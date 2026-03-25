@@ -4,6 +4,62 @@ All notable changes to Ohara are documented here.
 
 ---
 
+## [0.2.0] — 2026-03-25
+
+### Landing page + auth guard wiring
+
+Built the public-facing landing page and connected the root layout to Supabase auth, completing the full unauthenticated → authenticated routing loop.
+
+---
+
+## What was built
+
+### 1. Landing page (`app/index.tsx`)
+
+Five-section marketing page in the Hims.com design style. No images — typography and spacing do the work.
+
+| Section | Content |
+|---|---|
+| Nav | Sticky wordmark + "Log in" / "Get started" links to `/(auth)/login` and `/(auth)/signup` |
+| Hero | Tagline "Explore hobbies, track your goals.", sub-headline, single CTA button, trust line |
+| What is Ohara | 3 value cards: goals, reflection, progress |
+| How it works | 3 numbered steps, horizontal on desktop / stacked on mobile |
+| Social proof | 3 placeholder testimonial cards (to be replaced post-pilot) |
+| Final CTA | Repeat headline + CTA on `earth-green` background |
+| Footer | Copyright + About / Privacy / Terms placeholder links |
+
+Design tokens used: `cream` background, `near-black` text, `earth-green` accent, `amber` pull-quote marks, `card-bg` card surfaces. Instrument Serif injected via Google Fonts on web; system font fallback on native.
+
+### 2. Auth guard in root layout (`app/_layout.tsx`)
+
+Root layout now handles session bootstrapping and enforces routing rules:
+
+- On mount, calls `supabase.auth.getSession()` — renders a fullscreen spinner until resolved
+- `onAuthStateChange` subscription keeps session state live for the entire app lifetime
+- Guard logic (via `useSegments` + `useRouter`):
+  - Unauthenticated user on `(tabs)` → `/(auth)/login`
+  - Authenticated user on `(auth)` → `/(tabs)/dashboard`
+  - Landing page `/` always accessible
+- Stack registers `index`, `(auth)`, `(tabs)`, `+not-found` screens
+
+### 3. Web HTML shell (`app/+html.tsx`)
+
+- Injects `Instrument Serif` from Google Fonts (preconnect + stylesheet)
+- Sets page `<title>` and `<meta description>`
+- Base CSS: `#FAF9F6` background, `box-sizing: border-box`, subtle button hover transitions
+
+### 4. NativeWind + Tailwind config
+
+| File | Purpose |
+|---|---|
+| `tailwind.config.js` | Custom color tokens, NativeWind preset |
+| `global.css` | `@tailwind` directives entry point |
+| `babel.config.js` | NativeWind babel preset + `jsxImportSource` |
+| `metro.config.js` | `withNativeWind` plugin wired to `global.css` |
+| `nativewind-env.d.ts` | TypeScript types for `className` prop |
+
+---
+
 ## [0.1.0] — 2026-03-25
 
 ### Project scaffold + auth foundation

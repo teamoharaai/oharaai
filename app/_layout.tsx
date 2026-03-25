@@ -30,7 +30,8 @@ export default function RootLayout() {
     const inTabsGroup = segments[0] === '(tabs)';
     const inAuthGroup = segments[0] === '(auth)';
 
-    if (!session && inTabsGroup) {
+    // DEV BYPASS: comment out the first condition to skip auth and go straight to tabs
+    if (!session && inTabsGroup && !__DEV__) {
       router.replace('/(auth)/login');
     } else if (session && inAuthGroup) {
       router.replace('/(tabs)/dashboard');
