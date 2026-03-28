@@ -1,230 +1,296 @@
-# Ohara — Project Intelligence
+# CLAUDE.md — Ohara
 
-## What is Ohara?
+> Paste this at the start of every Claude Code session.
+> Last updated: 2026-03-25
 
-Ohara is a personal operating system for becoming. A mobile-first app (React Native / Expo) that helps users explore hobbies, set SMART goals through conversation, track milestones, and reflect through journaling.
+## What is Ohara
 
-**Tagline:** "Explore hobbies, track your goals."
+Ohara is a goal-first social operating system. Users set SMART goals through a conversational AI, reflect via free-write journaling, and build a personal collage profile of documented effort over time. The AI learns each user through conversation summarization — never raw chat storage.
 
----
+This is a **Phase 1 pilot build** for friends and family, shipping through the App Store.
 
-## Tech Stack
+## Tech stack (locked)
 
-| Layer | Choice |
-|---|---|
-| Framework | Expo (SDK 55) + TypeScript (strict) |
-| Routing | expo-router v4 (file-based) |
-| Styling | NativeWind v4 (Tailwind for RN) |
-| Database | Supabase (Postgres + Auth + RLS) |
-| State | Zustand |
-| AI | Anthropic Claude (server-side) |
+- **Expo (React Native Web)** — single codebase for web + iOS + Android
+- **Supabase** — auth, database, row-level security, file storage
+- **Anthropic API** — called directly from server-side, no middleware frameworks
+- **NativeWind** — Tailwind-style utility classes for React Native
+- **Zustand** — lightweight client state management
+- **TypeScript** — strict mode, all files
 
----
+## The four pillars (build order)
 
-## Design Tokens (tailwind.config.js)
+Phase 1 has four pillars built sequentially. Each depends on the one before it.
 
-```js
-cream:          '#FAF9F6'   // background
-near-black:     '#1A1A1A'   // text, buttons
-earth-green:    '#2D6A4F'   // accent, CTA sections
-amber:          '#E09F3E'   // quotes, highlights
-card-bg:        '#F3F1EC'   // card surfaces
-muted:          '#6B6B6B'   // secondary text
+### Pillar 1: Goals (build FIRST)
+SMART goal creation through conversational AI.
+```
+app/goals/create.tsx        — chat UI for goal creation
+app/goals/[id].tsx          — individual goal view (milestones, progress, status)
+lib/ai/goal-creation.ts     — orchestrator + SMART specialist pipeline
+lib/db/goals.ts             — Supabase queries for goals + milestones
 ```
 
-Typography: System font. Headings use Instrument Serif on web via inline style.
-
----
-
-## Folder Structure
-
+### Pillar 2: Reflection (build SECOND — requires Goals)
+Free-write journaling with AI guide responses. Product name: Starlog.
 ```
-app/
-  index.tsx                  ← Landing page (DO NOT TOUCH)
-  _layout.tsx                ← Root layout + auth guard
-  (auth)/
-    _layout.tsx
-    login.tsx
-    signup.tsx
-  (tabs)/
-    _layout.tsx              ← Bottom tab navigator
-    dashboard.tsx
-    goals/
-      index.tsx
-    starlog.tsx
-    explore.tsx
-
-lib/
-  db/
-    client.ts               ← Supabase client (AsyncStorage session)
-  types/
-    index.ts                ← All TypeScript types
-  store/
-    index.ts                ← Zustand stores (auth + goals)
-
-constants/
-  index.ts                  ← GOAL_CATEGORIES, FEATURES flags
-
-supabase/
-  migrations/
-    001_initial_schema.sql
-    002_enable_rls.sql
+app/starlog.tsx             — journal/reflection entry point
+lib/ai/guides.ts            — three guide personalities (warm / direct / playful)
+lib/ai/summarizer.ts        — converts journal entries to structured profile updates
+lib/db/starlog.ts           — Supabase queries for reflection entries
 ```
 
----
-
-## Database Schema
-
-### `profiles`
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid | FK → auth.users(id), PK |
-| display_name | text | |
-| character_profile | jsonb | AI-generated character data |
-| created_at | timestamptz | |
-| updated_at | timestamptz | auto-updated |
-
-### `goals`
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid | PK |
-| user_id | uuid | FK → auth.users |
-| title | text | |
-| category | GoalCategory | body/mind/money/create/connect/contribute |
-| mode | GoalMode | exploration/commitment |
-| status | GoalStatus | active/complete/stagnant/discovered |
-| smart_data | jsonb | SMART framework fields |
-| created_at | timestamptz | |
-| updated_at | timestamptz | |
-
-### `milestones`
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid | PK |
-| goal_id | uuid | FK → goals |
-| user_id | uuid | FK → auth.users |
-| title | text | |
-| is_complete | boolean | |
-| created_at | timestamptz | |
-
-### `conversation_summaries`
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid | PK |
-| goal_id | uuid | FK → goals |
-| user_id | uuid | FK → auth.users |
-| summary | text | |
-| created_at | timestamptz | |
-
-### `starlog_entries`
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid | PK |
-| user_id | uuid | FK → auth.users |
-| title | text | |
-| body | text | |
-| brt_classification | BRTClassification | bud/rose/thorn |
-| created_at | timestamptz | |
-
-### `interests`
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid | PK |
-| user_id | uuid | FK → auth.users |
-| name | text | |
-| created_at | timestamptz | |
-
----
-
-## Key Types
-
-```typescript
-GoalCategory = 'body' | 'mind' | 'money' | 'create' | 'connect' | 'contribute'
-GoalMode     = 'exploration' | 'commitment'
-GoalStatus   = 'active' | 'complete' | 'stagnant' | 'discovered'
-BRTClassification = 'bud' | 'rose' | 'thorn'
+### Pillar 3: Intelligence (build THIRD — requires Reflection)
+Background AI engine that updates user understanding over time.
+```
+lib/ai/profile-updater.ts   — consumes summarizer output, updates character_profile
+lib/ai/thorn-detector.ts    — identifies recurring negative patterns across reflections
+lib/db/profile.ts           — Supabase queries for character profile
+app/dashboard.tsx           — surfaces profile insights, goal health, patterns
 ```
 
----
-
-## Feature Flags (`constants/index.ts`)
-
-```typescript
-STARLOG_ENABLED:      false  // Pillar 2
-INTELLIGENCE_ENABLED: false  // Pillar 3
-DISCOVERY_ENABLED:    false  // Pillar 4
-SOCIAL_ENABLED:       false  // Phase 2
-COLLAGE_ENABLED:      false  // Phase 2
+### Pillar 4: Discovery (build FOURTH — requires Intelligence)
+Converts recurring thorns into short-term exploration goals.
 ```
-
----
-
-## Auth Flow
-
-1. Root `_layout.tsx` checks session via `supabase.auth.getSession()` on mount
-2. Subscribes to `onAuthStateChange`
-3. `useSegments` + `useRouter` guard:
-   - Unauthenticated user hitting `(tabs)` → redirect to `/(auth)/login`
-   - Authenticated user hitting `(auth)` → redirect to `/(tabs)/dashboard`
-4. Landing page (`/`) always accessible
-
----
-
-## Product Pillars
-
-| Pillar | Name | Status |
-|---|---|---|
-| 1 | Goal Creation (conversational SMART goals) | 🔲 Not built |
-| 2 | Starlog (BRT journaling) | 🔲 Not built |
-| 3 | Intelligence (AI insights) | 🔲 Not built |
-| 4 | Discovery (interest exploration) | 🔲 Not built |
-
----
+lib/ai/hobby-recommender.ts — suggests interests based on thorn patterns + profile
+app/explore.tsx             — browse/accept suggested exploration goals
+lib/db/interests.ts         — Supabase queries for interest tracking
+lib/db/goals.ts             — ↑ extends (promoted discoveries become goals)
+```
 
 ## What exists right now
 
-- [x] Repo scaffolded
-- [x] Landing page (`app/index.tsx`) — polished, NativeWind
-- [x] Auth flow (signup/login/session) — Supabase
-- [x] Root layout with auth guard
-- [x] Tab layout (4 placeholder screens)
-- [x] Supabase client (`lib/db/client.ts`)
-- [x] TypeScript types (`lib/types/index.ts`)
-- [x] Zustand stores (`lib/store/index.ts`)
-- [x] Database migrations (`supabase/migrations/`)
-- [x] Constants + feature flags (`constants/index.ts`)
-- [ ] Goal creation chat UI (Pillar 1)
-- [ ] SMART goal storage + display
-- [ ] Milestone tracking
-- [ ] Starlog (Pillar 2)
-- [ ] AI pipeline (Pillar 3)
-- [ ] Discovery / Explore (Pillar 4)
+<!-- UPDATE THIS SECTION AFTER EACH SESSION -->
+- [ ] Repo scaffolded
+- [ ] Supabase project created + schema applied
+- [ ] Auth flow (signup/login/session)
+- [ ] Goal creation conversation UI
+- [ ] SMART specialist pipeline
+- [ ] Goal saved to database
+- [ ] Starlog reflection UI
+- [ ] Guide responses
+- [ ] Summarizer → profile updates
+- [ ] Thorn detection
+- [ ] Dashboard
+- [ ] Explore/Discovery
+- [ ] App Store build (Expo EAS)
 
----
+## What does NOT exist yet (do not build unless asked)
+
+- Social/community features (Phase 2)
+- Public goal sharing / peer validation (Phase 2)
+- Collage profile display (Phase 2 — schema-ready only)
+- Digital Towns / civic layer (Phase 3)
+- Affiliate recommendations (post-revenue)
+- Push notifications
+- Third-party integrations (Nike Run, HealthKit, etc.)
+
+## Database schema (Supabase)
+
+```sql
+-- Extends Supabase auth.users
+create table public.profiles (
+  id uuid references auth.users(id) primary key,
+  display_name text,
+  created_at timestamptz default now(),
+  character_profile jsonb default '{}'::jsonb,
+  onboarding_complete boolean default false
+);
+
+-- Goals
+create table public.goals (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.profiles(id) not null,
+  title text not null,
+  smart_data jsonb not null,
+  mode text check (mode in ('exploration', 'commitment')) default 'exploration',
+  status text check (status in ('active', 'complete', 'stagnant', 'discovered')) default 'active',
+  category text check (category in ('body', 'mind', 'money', 'create', 'connect', 'contribute')),
+  is_private boolean default true,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- Milestones
+create table public.milestones (
+  id uuid primary key default gen_random_uuid(),
+  goal_id uuid references public.goals(id) on delete cascade,
+  title text not null,
+  due_date date,
+  complete boolean default false,
+  created_at timestamptz default now()
+);
+
+-- Conversation summaries (NEVER raw chat — only structured summaries)
+create table public.conversation_summaries (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.profiles(id) not null,
+  goal_id uuid references public.goals(id),
+  summary jsonb not null,
+  created_at timestamptz default now()
+);
+
+-- Starlog entries (reflection journal)
+create table public.starlog_entries (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.profiles(id) not null,
+  goal_id uuid references public.goals(id),
+  entry_text text not null,
+  guide_response jsonb,
+  brt_classification text check (brt_classification in ('bud', 'rose', 'thorn')),
+  created_at timestamptz default now()
+);
+
+-- Interests / discovery tracking
+create table public.interests (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.profiles(id) not null,
+  source_thorn_id uuid references public.starlog_entries(id),
+  promoted_goal_id uuid references public.goals(id),
+  name text not null,
+  status text check (status in ('suggested', 'exploring', 'promoted', 'dismissed')) default 'suggested',
+  created_at timestamptz default now()
+);
+```
+
+**RLS is mandatory on every table from day one.** Users can only read/write their own rows.
+
+## AI architecture
+
+### Goal creation pipeline
+1. User sends message in chat UI
+2. Orchestrator (Claude Sonnet) receives message + character_profile + conversation history
+3. Five SMART specialists (Claude Haiku) run in parallel — same model, five different system prompts
+4. Each specialist returns: `{satisfied: boolean, question?: string, flag?: string}`
+5. Orchestrator reads all 5 verdicts, picks the most important gap, asks ONE natural question
+6. Loop repeats until all 5 specialists return satisfied
+7. Orchestrator synthesizes a proposed SMART goal, user confirms
+8. Summarizer extracts key insights, updates character_profile — raw chat is NOT stored
+
+### Reflection pipeline
+1. User writes free-form in Starlog
+2. AI classifies as bud/rose/thorn (internal only — user never sees this taxonomy)
+3. One of three Guide personalities responds (warm / direct / playful)
+4. Summarizer updates character_profile with new insights
+5. Thorn detector checks for recurring patterns across entries
+
+### Cost control
+- Orchestrator: Claude Sonnet (reasoning-heavy, one call per turn)
+- Specialists: Claude Haiku (focused evaluation, five parallel calls per turn)
+- Target: < $0.01 per goal creation session
+- NEVER call Sonnet where Haiku is sufficient
+
+### Key AI rules
+- Summarization over storage — never persist raw conversations
+- BRT taxonomy (bud/rose/thorn) is internal only, never shown to users
+- Character profile is the single source of personalization truth
+- AI calls happen server-side only — API keys never reach the client
+- Guide personalities: warm (Clo), direct (Lach), playful (Atri) — placeholder names
+
+## Architecture rules (non-negotiable)
+
+1. **TypeScript strict mode** — no `any` types, no implicit returns
+2. **RLS on every table** — row-level security from day one, not retrofitted
+3. **Server-side AI calls only** — Anthropic API key never reaches client
+4. **Summarization, not storage** — raw chat is transient, only structured summaries persist
+5. **Single source of types** — all shared types live in one file, imported everywhere
+6. **Mobile-first design** — every screen designed for 390px viewport first
+7. **No hardcoded roles or limits** — use config/constants that can extend for Phase 2
+8. **Feature flags over deletion** — disable features with flags, never delete code paths
+9. **One branch per feature** — never commit directly to main
+
+## Scalability constraints
+
+Things that MUST be designed now even though they ship later:
+
+- `goals.is_private` exists now → enables public sharing in Phase 2
+- `goals.category` uses a check constraint → extendable enum for new categories
+- `profiles.character_profile` is jsonb → schema evolves without migrations
+- `conversation_summaries.goal_id` is nullable → supports general (non-goal) conversations later
+- `starlog_entries.goal_id` is nullable → supports standalone reflection in Phase 2
+- File storage paths: `{user_id}/goals/{goal_id}/` → ready for collage assembly later
+
+## Folder structure
+
+```
+ohara/
+├── app/                          # Expo Router (file-based routing)
+│   ├── (auth)/                   # Auth screens
+│   │   ├── login.tsx
+│   │   └── signup.tsx
+│   ├── (tabs)/                   # Main app tabs (protected)
+│   │   ├── _layout.tsx           # Tab navigation layout
+│   │   ├── dashboard.tsx         # Home/dashboard (Pillar 3)
+│   │   ├── goals/
+│   │   │   ├── index.tsx         # Goal list
+│   │   │   ├── create.tsx        # Goal creation chat (Pillar 1)
+│   │   │   └── [id].tsx          # Individual goal view
+│   │   ├── starlog.tsx           # Reflection journal (Pillar 2)
+│   │   └── explore.tsx           # Discovery (Pillar 4)
+│   ├── _layout.tsx               # Root layout + auth guard
+│   └── index.tsx                 # Landing/onboarding (public)
+│
+├── lib/
+│   ├── ai/
+│   │   ├── goal-creation.ts      # Orchestrator + specialist pipeline
+│   │   ├── specialists/          # One file per SMART specialist
+│   │   │   ├── specific.ts
+│   │   │   ├── measurable.ts
+│   │   │   ├── achievable.ts
+│   │   │   ├── relevant.ts
+│   │   │   └── timebound.ts
+│   │   ├── guides.ts             # Three reflection guide personalities
+│   │   ├── summarizer.ts         # Conversation → character profile update
+│   │   ├── profile-updater.ts    # Writes summarizer output to profile
+│   │   ├── thorn-detector.ts     # Pattern detection across reflections
+│   │   └── hobby-recommender.ts  # Thorn → discovery suggestions
+│   ├── db/
+│   │   ├── client.ts             # Supabase client init
+│   │   ├── goals.ts              # Goal CRUD + milestone queries
+│   │   ├── starlog.ts            # Reflection entry queries
+│   │   ├── profile.ts            # Character profile queries
+│   │   └── interests.ts          # Interest/discovery tracking queries
+│   ├── store/
+│   │   └── index.ts              # Zustand stores
+│   └── types/
+│       └── index.ts              # ALL shared types — single source of truth
+│
+├── components/
+│   ├── ui/                       # Generic reusable (Button, Input, Card)
+│   ├── chat/                     # Goal creation chat components
+│   ├── goals/                    # Goal display components
+│   ├── starlog/                  # Reflection/journal components
+│   └── explore/                  # Discovery components
+│
+├── constants/
+│   └── index.ts                  # App-wide constants, feature flags, categories
+│
+├── supabase/
+│   └── migrations/               # SQL migration files (schema versioned)
+│
+├── CLAUDE.md                     # This file
+├── CONTEXT.md                    # Weekly session context (update every session)
+├── app.json                      # Expo config
+├── package.json
+└── tsconfig.json
+```
 
 ## Current session context
 
-**Session 1 (2026-03-25):** Project scaffold + auth foundation
+<!-- UPDATE THIS BLOCK AT THE START OF EVERY SESSION -->
+```
+Current task: [what you're building this session]
+Branch: [git branch name]
+Files touched last session: [list]
+Blockers: [any]
+```
 
-Files created/modified:
-- `app/_layout.tsx` — replaced with auth guard using useSegments + useRouter
-- `app/(auth)/_layout.tsx` — new
-- `app/(auth)/login.tsx` — new, email/password login with Supabase
-- `app/(auth)/signup.tsx` — new, email/password/name signup + profile insert
-- `app/(tabs)/_layout.tsx` — replaced with 4-tab navigator (Dashboard, Goals, Starlog, Explore)
-- `app/(tabs)/dashboard.tsx` — new placeholder
-- `app/(tabs)/goals/index.tsx` — new placeholder
-- `app/(tabs)/starlog.tsx` — new placeholder
-- `app/(tabs)/explore.tsx` — new placeholder
-- `lib/db/client.ts` — Supabase client with AsyncStorage
-- `lib/types/index.ts` — all domain types
-- `lib/store/index.ts` — Zustand auth + goals stores
-- `constants/index.ts` — GOAL_CATEGORIES + FEATURES flags
-- `supabase/migrations/001_initial_schema.sql` — full schema
-- `supabase/migrations/002_enable_rls.sql` — RLS policies
-- `.env.local` — placeholder env vars (gitignored)
-- `.env.example` — committed empty template
+## Exit criteria for Phase 1
 
-Packages added: `@supabase/supabase-js`, `zustand`, `@react-native-async-storage/async-storage`
-
-**Next session:** Goal creation UI — conversational SMART goal flow (Pillar 1)
+All of these must be true before Phase 2 begins:
+1. A real user (not team) can sign up, create a SMART goal through conversation, and see it on dashboard
+2. User can write a Starlog reflection and receive a guide response
+3. Character profile updates after each conversation and reflection
+4. Returning user's next session reflects what the AI learned about them
+5. App runs on iOS via Expo (EAS build) and web simultaneously
+6. Zero crashes for 2 consecutive weeks
