@@ -26,13 +26,15 @@ export default function RootLayout() {
   useEffect(() => {
     if (loading) return;
 
-    const inAppGroup = segments[0] === '(app)';
-    const inAuthGroup = segments[0] === '(auth)';
+    const seg = segments as unknown as string[];
+    const inAppGroup = seg[0] === '(app)';
+    const inAuthGroup = seg[0] === '(auth)';
+    const onLandingPage = seg.length === 0;
 
     // DEV BYPASS: comment out the first condition to skip auth and go straight to app
     if (!session && inAppGroup && !__DEV__) {
       router.replace('/(auth)/login');
-    } else if (session && inAuthGroup) {
+    } else if (session && (inAuthGroup || onLandingPage)) {
       router.replace('/(app)/dashboard');
     }
   }, [session, loading, segments]);
@@ -50,6 +52,7 @@ export default function RootLayout() {
       <Stack.Screen name="index" />
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(app)" />
+      <Stack.Screen name="auth" />
       <Stack.Screen name="+not-found" />
     </Stack>
   );
