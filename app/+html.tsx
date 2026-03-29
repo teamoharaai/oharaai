@@ -10,10 +10,10 @@ export default function Root({ children }: { children: React.ReactNode }) {
           name="viewport"
           content="width=device-width, initial-scale=1, shrink-to-fit=no"
         />
-        <title>Ohara — Explore hobbies, track your goals.</title>
+        <title>OharaAI — Premium demo presentation</title>
         <meta
           name="description"
-          content="A personal operating system for becoming. Set goals, reflect, and grow."
+          content="OharaAI is a premium, minimal workspace for focused progress and professional execution."
         />
 
         {/* Google Fonts — Instrument Serif */}
@@ -39,16 +39,17 @@ export default function Root({ children }: { children: React.ReactNode }) {
 const baseStyles = `
 html, body, #root {
   height: 100%;
-  background-color: #FAF9F6;
+  background-color: #0A0A0F;
+  color: #FAFAFA;
 }
 * {
   box-sizing: border-box;
 }
 button, [role="button"] {
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
 }
 button:hover, [role="button"]:hover {
   transform: scale(1.02);
-  opacity: 0.92;
+  opacity: 0.96;
 }
 `;
