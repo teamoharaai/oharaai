@@ -3,10 +3,11 @@ export type Classification = 'GROWTH' | 'REALITY' | 'OBSTACLE';
 export interface StarlogEntry {
   id: string;
   userId: string;
-  goalId?: string;
-  rawText: string;
+  goalId: string | null;
+  goalTitle?: string;
+  content: string;
   mediaUrl?: string;
-  aiOptedIn: boolean;
+  aiInsightRequested: boolean;
   classification?: Classification;
   confidence?: number;
   themes?: string[];

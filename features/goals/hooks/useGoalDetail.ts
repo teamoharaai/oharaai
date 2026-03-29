@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { useGoalStore } from '../store';
 import { fetchGoals } from '../services/goal-service';
-import { MOCK_GOAL_ACTIVITIES } from '../services/mock-data';
 import type { GoalWithMeasurables, ActivityEntry } from '../types';
+import supabase from '@/lib/db/client';
 
 export function useGoalDetail(goalId: string): {
   goal: GoalWithMeasurables | null;
@@ -13,17 +13,24 @@ export function useGoalDetail(goalId: string): {
 
   useEffect(() => {
     if (goals.length === 0 && !isLoading) {
-      setIsLoading(true);
-      fetchGoals('mock-user').then((data) => {
+      async function load() {
+        setIsLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setIsLoading(false);
+          return;
+        }
+        const data = await fetchGoals(user.id);
         setGoals(data);
         setIsLoading(false);
-      });
+      }
+      load();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const goal = goals.find((g) => g.id === goalId) ?? null;
-  const activityEntries: ActivityEntry[] = MOCK_GOAL_ACTIVITIES[goalId] ?? [];
+  const activityEntries: ActivityEntry[] = [];
 
   return { goal, activityEntries, isLoading };
 }

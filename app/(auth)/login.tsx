@@ -8,14 +8,15 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
-import { Link, router } from 'expo-router';
+import { Link, router, useLocalSearchParams } from 'expo-router';
 import supabase from '@/lib/db/client';
 
 export default function LoginScreen() {
+  const params = useLocalSearchParams<{ error?: string }>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(params.error ?? null);
 
   async function handleLogin() {
     if (!email || !password) {

@@ -34,13 +34,6 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
-        name="goals"
-        options={{
-          title: 'Browse',
-          tabBarIcon: ({ focused }) => <TabIcon label="⊙" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
         name="starlog"
         options={{
           title: 'Starlog',
@@ -54,6 +47,8 @@ export default function AppLayout() {
           tabBarIcon: ({ focused }) => <TabIcon label="◈" focused={focused} />,
         }}
       />
+      {/* Hidden from tab bar — accessible via router.push */}
+      <Tabs.Screen name="goals" options={{ href: null }} />
     </Tabs>
   );
 }

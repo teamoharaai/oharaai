@@ -60,12 +60,14 @@ constants/        ← colors, features flags, goal themes
 
 - [ ] AI pipelines (client.ts exists as stub, no Anthropic SDK connected)
 - [ ] Goal creation conversation flow
-- [ ] Starlog AI insight (classification, Guide response, summarization)
+- [ ] Starlog AI insight (classification, Guide response, summarization) — toggle wired to DB, API call blocked by INTELLIGENCE_ENABLED flag
 - [ ] Character profile system
 - [ ] Discovery engine (Thorn pattern → goal suggestion)
 - [ ] Hobby matcher
 - [ ] Media uploads (Supabase Storage not configured)
 - [ ] Social layer (Phase 2)
+- [x] Starlog journaling screen — composer, goal picker, AI toggle, entry list (2026-03-29)
+- [x] Goals dashboard — real Supabase query replaces mock data (2026-03-29)
 
 ## Commands
 
@@ -92,3 +94,13 @@ npx expo start           # dev server (native)
 - Do not use inline `style={{}}` except for dynamic theme colors
 - Do not use CSS Grid for component internals — Flexbox only (Grid okay for dashboard card layout on web)
 - Do not add social/sharing features — that is Phase 2
+
+## Current session context
+
+> Last updated: 2026-03-29
+
+- **Tab bar**: Reduced to 3 tabs (Goals, Starlog, Explore). `goals` directory hidden with `href: null` — goal detail still reachable via `router.push`.
+- **Goals data**: `fetchGoals` / `fetchGoalById` now query Supabase. `useGoals` and `useGoalDetail` get user via `supabase.auth.getUser()`. Mock data file retained but unused by production paths.
+- **Starlog screen**: Full journaling UI in `features/starlog/components/StarlogScreen.tsx`. Composer (multiline input, goal picker modal, AI toggle), entry list. `useEntries` hook loads entries + active goals on mount. `createEntry` inserts to `starlog_entries`.
+- **Migration 005**: Renames `raw_text → content` and `ai_opted_in → ai_insight_requested` on `starlog_entries`. Must be pushed before deploy — see "How to link and push migrations" guide at end of this file.
+- **Auth callback route**: `app/(auth)/callback.tsx` handles post-email-verification redirects. Supports PKCE (`code` query param → `exchangeCodeForSession`) and implicit flow (hash `access_token` → `getSession`). On success redirects to `/(app)/dashboard`; on failure redirects to `/(auth)/login?error=...`. Login screen reads the `error` param on mount.
