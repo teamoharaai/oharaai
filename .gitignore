@@ -33,3 +33,6 @@ yarn-debug.log*
 
 # Turbo (future-proof)
 .turbo/
+
+# Supabase CLI scratch files
+supabase/.temp/
