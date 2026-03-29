@@ -265,7 +265,7 @@ npx expo start          # Expo Go on device
 |---|---|
 | `EXPO_PUBLIC_SUPABASE_URL` | Supabase dashboard → Settings → API → Project URL |
 | `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Supabase dashboard → Settings → API → anon public key |
-| `ANTHROPIC_API_KEY` | console.anthropic.com → API keys (needed for AI features, not yet wired up) |
+| `ANTHROPIC_API_KEY` | console.anthropic.com → API keys (used by the Anthropic Messages API client) |
 
 `EXPO_PUBLIC_` prefix is required for Expo to expose variables to the client bundle.
 
@@ -278,7 +278,7 @@ npx expo start          # Expo Go on device
 | Goal creation chat UI | Pillar 1 | Conversational SMART goal flow — next session |
 | Milestone tracking UI | Pillar 1 | Depends on goal creation |
 | Starlog (BRT journaling) | Pillar 2 | Schema exists, UI not started |
-| AI insights / intelligence | Pillar 3 | Requires Anthropic API wiring |
+| AI insights / intelligence | Pillar 3 | Client wiring exists; UI and job integration still pending |
 | Discovery / Explore | Pillar 4 | Interest tagging, suggestions |
 | Social features | Phase 2 | Not scoped |
 | Collage / profile visual | Phase 2 | Not scoped |
