@@ -1,9 +1,13 @@
 import { AI_CONFIG } from './config';
 
+type ConversationMessage = { role: 'user' | 'assistant'; content: string };
+
 interface CallLLMParams {
   pipeline: keyof typeof AI_CONFIG.pipelines;
   systemPrompt: string;
-  userMessage: string;
+  /** Single-turn: provide userMessage. Multi-turn: provide messages array. */
+  userMessage?: string;
+  messages?: ConversationMessage[];
   model?: string;
   maxTokens?: number;
 }
@@ -67,7 +71,7 @@ export async function callLLM(params: CallLLMParams): Promise<CallLLMResult> {
       model: resolveModel(params.model ?? pipelineConfig.model),
       max_tokens: resolveMaxTokens(params.pipeline, params.maxTokens),
       system: params.systemPrompt,
-      messages: [{ role: 'user', content: params.userMessage }],
+      messages: params.messages ?? [{ role: 'user', content: params.userMessage ?? '' }],
     }),
   });
 

@@ -1,7 +1,10 @@
 export const AI_CONFIG = {
-  models: { default: 'claude-haiku-4-5-20251001' },
+  models: {
+    default: 'claude-haiku-4-5-20251001',
+    sonnet: 'claude-sonnet-4-6',
+  },
   pipelines: {
-    goalCreation: { enabled: false, model: 'default' },
+    goalCreation: { enabled: true, model: 'sonnet' },
     starlogReflect: { enabled: false, model: 'default' },
     summarize: { enabled: false, model: 'default' },
   },

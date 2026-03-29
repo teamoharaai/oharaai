@@ -20,7 +20,7 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
   return (
     <Pressable
       onPress={() =>
-        router.push({ pathname: '/(app)/goals/[id]', params: { id: goal.id } })
+        router.push({ pathname: '/goals/[id]', params: { id: goal.id } })
       }
       style={({ pressed }) => ({
         backgroundColor: '#14141F',
