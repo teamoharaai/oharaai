@@ -17,6 +17,7 @@ export default function SignupScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   async function handleSignup() {
     if (!displayName || !email || !password) {
@@ -29,27 +30,31 @@ export default function SignupScreen() {
     }
     setLoading(true);
     setError(null);
+    setSuccessMessage(null);
 
-    const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          display_name: displayName,
+        },
+      },
+    });
     if (signUpError) {
       setLoading(false);
       setError(signUpError.message);
       return;
     }
 
-    if (data.user) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({ id: data.user.id, display_name: displayName });
-      if (profileError) {
-        setLoading(false);
-        setError(profileError.message);
-        return;
-      }
+    setLoading(false);
+
+    if (data.session) {
+      router.replace('/(app)/dashboard');
+      return;
     }
 
-    setLoading(false);
-    router.replace('/(app)/dashboard');
+    setSuccessMessage('Check your email to confirm your account, then log in.');
   }
 
   return (
@@ -70,6 +75,12 @@ export default function SignupScreen() {
         {error && (
           <View className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 mb-6">
             <Text className="text-sm text-red-600">{error}</Text>
+          </View>
+        )}
+
+        {successMessage && (
+          <View className="bg-green-50 border border-green-200 rounded-2xl px-4 py-3 mb-6">
+            <Text className="text-sm text-green-700">{successMessage}</Text>
           </View>
         )}
 
