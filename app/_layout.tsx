@@ -1,13 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import type { Session } from '@supabase/supabase-js';
 import supabase from '@/lib/db/client';
+import { useAuthStore } from '@/features/auth/store';
 import '../global.css';
 
 export default function RootLayout() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { session, loading, setSession, setLoading } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
 
@@ -27,14 +26,14 @@ export default function RootLayout() {
   useEffect(() => {
     if (loading) return;
 
-    const inTabsGroup = segments[0] === '(tabs)';
+    const inAppGroup = segments[0] === '(app)';
     const inAuthGroup = segments[0] === '(auth)';
 
-    // DEV BYPASS: comment out the first condition to skip auth and go straight to tabs
-    if (!session && inTabsGroup && !__DEV__) {
+    // DEV BYPASS: comment out the first condition to skip auth and go straight to app
+    if (!session && inAppGroup && !__DEV__) {
       router.replace('/(auth)/login');
     } else if (session && inAuthGroup) {
-      router.replace('/(tabs)/dashboard');
+      router.replace('/(app)/dashboard');
     }
   }, [session, loading, segments]);
 
@@ -50,7 +49,7 @@ export default function RootLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="(app)" />
       <Stack.Screen name="+not-found" />
     </Stack>
   );

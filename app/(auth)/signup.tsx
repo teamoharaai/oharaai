@@ -49,7 +49,7 @@ export default function SignupScreen() {
     }
 
     setLoading(false);
-    router.replace('/(tabs)/dashboard');
+    router.replace('/(app)/dashboard');
   }
 
   return (

@@ -29,7 +29,7 @@ export default function LoginScreen() {
     if (error) {
       setError(error.message);
     } else {
-      router.replace('/(tabs)/dashboard');
+      router.replace('/(app)/dashboard');
     }
   }
 

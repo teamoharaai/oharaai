@@ -1,0 +1,15 @@
+export const FEATURES = {
+  STARLOG_ENABLED: false,
+  INTELLIGENCE_ENABLED: false,
+  DISCOVERY_ENABLED: false,
+  SOCIAL_ENABLED: false,
+  COLLAGE_ENABLED: false,
+} as const;
+
+export const AI_FEATURES = {
+  GOAL_CREATION_PIPELINE: false,
+  STARLOG_REFLECT_PIPELINE: false,
+  SUMMARIZE_PIPELINE: false,
+} as const;
+
+export const GOAL_CATEGORIES = ['body', 'mind', 'money', 'create', 'connect', 'contribute'] as const;

@@ -1,0 +1,9 @@
+export const AI_CONFIG = {
+  models: { default: 'claude-haiku-4-5-20251001' },
+  pipelines: {
+    goalCreation: { enabled: false, model: 'default' },
+    starlogReflect: { enabled: false, model: 'default' },
+    summarize: { enabled: false, model: 'default' },
+  },
+  maxTokens: { goalCreation: 1024, starlogReflect: 512, summarize: 768 },
+} as const;

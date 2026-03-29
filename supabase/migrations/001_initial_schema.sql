@@ -1,23 +1,28 @@
 -- ─── Profiles ────────────────────────────────────────────────────────────────
 create table if not exists public.profiles (
-  id            uuid primary key references auth.users(id) on delete cascade,
-  display_name  text not null default '',
-  character_profile jsonb not null default '{}',
-  created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now()
+  id                  uuid primary key references auth.users(id) on delete cascade,
+  display_name        text not null default '',
+  character_profile   jsonb not null default '{}',
+  interests           jsonb not null default '[]',
+  context             jsonb not null default '{}',
+  onboarding_complete boolean not null default false,
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now()
 );
 
 -- ─── Goals ────────────────────────────────────────────────────────────────────
 create table if not exists public.goals (
-  id          uuid primary key default gen_random_uuid(),
-  user_id     uuid not null references auth.users(id) on delete cascade,
-  title       text not null,
-  category    text not null check (category in ('body','mind','money','create','connect','contribute')),
-  mode        text not null check (mode in ('exploration','commitment')),
-  status      text not null default 'active' check (status in ('active','complete','stagnant','discovered')),
-  smart_data  jsonb not null default '{}',
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now()
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null references auth.users(id) on delete cascade,
+  title        text not null,
+  category     text not null check (category in ('body','mind','money','create','connect','contribute')),
+  mode         text not null check (mode in ('exploration','commitment')),
+  status       text not null default 'active' check (status in ('active','complete','stagnant','discovered')),
+  smart_data   jsonb not null default '{}',
+  is_private   boolean not null default true,
+  community_id uuid,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
 );
 
 -- ─── Milestones ───────────────────────────────────────────────────────────────
@@ -26,35 +31,41 @@ create table if not exists public.milestones (
   goal_id     uuid not null references public.goals(id) on delete cascade,
   user_id     uuid not null references auth.users(id) on delete cascade,
   title       text not null,
-  is_complete boolean not null default false,
+  due_date    date,
+  complete    boolean not null default false,
   created_at  timestamptz not null default now()
 );
 
--- ─── Conversation Summaries ───────────────────────────────────────────────────
-create table if not exists public.conversation_summaries (
-  id          uuid primary key default gen_random_uuid(),
-  goal_id     uuid not null references public.goals(id) on delete cascade,
-  user_id     uuid not null references auth.users(id) on delete cascade,
-  summary     text not null,
-  created_at  timestamptz not null default now()
+-- ─── Starlog Sessions (structured summaries only — never raw chat) ─────────────
+create table if not exists public.starlog_sessions (
+  id         uuid primary key default gen_random_uuid(),
+  goal_id    uuid references public.goals(id) on delete set null,
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  summary    jsonb not null,
+  created_at timestamptz not null default now()
 );
 
--- ─── Starlog Entries ──────────────────────────────────────────────────────────
+-- ─── Starlog Entries (reflection journal) ────────────────────────────────────
 create table if not exists public.starlog_entries (
   id                 uuid primary key default gen_random_uuid(),
   user_id            uuid not null references auth.users(id) on delete cascade,
-  title              text not null,
-  body               text not null default '',
-  brt_classification text not null check (brt_classification in ('bud','rose','thorn')),
+  goal_id            uuid references public.goals(id) on delete set null,
+  entry_text         text not null,
+  guide_response     jsonb,
+  brt_classification text check (brt_classification in ('bud','rose','thorn')),
+  is_public          boolean not null default false,
   created_at         timestamptz not null default now()
 );
 
 -- ─── Interests ────────────────────────────────────────────────────────────────
 create table if not exists public.interests (
-  id         uuid primary key default gen_random_uuid(),
-  user_id    uuid not null references auth.users(id) on delete cascade,
-  name       text not null,
-  created_at timestamptz not null default now()
+  id               uuid primary key default gen_random_uuid(),
+  user_id          uuid not null references auth.users(id) on delete cascade,
+  source_thorn_id  uuid references public.starlog_entries(id) on delete set null,
+  promoted_goal_id uuid references public.goals(id) on delete set null,
+  name             text not null,
+  status           text not null default 'suggested' check (status in ('suggested','exploring','promoted','dismissed')),
+  created_at       timestamptz not null default now()
 );
 
 -- ─── Auto-update updated_at ───────────────────────────────────────────────────

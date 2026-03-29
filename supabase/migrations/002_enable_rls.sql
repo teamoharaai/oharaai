@@ -2,7 +2,7 @@
 alter table public.profiles enable row level security;
 alter table public.goals enable row level security;
 alter table public.milestones enable row level security;
-alter table public.conversation_summaries enable row level security;
+alter table public.starlog_sessions enable row level security;
 alter table public.starlog_entries enable row level security;
 alter table public.interests enable row level security;
 
@@ -53,21 +53,21 @@ create policy "Users can delete own milestones"
   on public.milestones for delete
   using (user_id = auth.uid());
 
--- ─── Conversation summaries policies ─────────────────────────────────────────
-create policy "Users can select own conversation summaries"
-  on public.conversation_summaries for select
+-- ─── Starlog sessions policies ───────────────────────────────────────────────
+create policy "Users can select own starlog sessions"
+  on public.starlog_sessions for select
   using (user_id = auth.uid());
 
-create policy "Users can insert own conversation summaries"
-  on public.conversation_summaries for insert
+create policy "Users can insert own starlog sessions"
+  on public.starlog_sessions for insert
   with check (user_id = auth.uid());
 
-create policy "Users can update own conversation summaries"
-  on public.conversation_summaries for update
+create policy "Users can update own starlog sessions"
+  on public.starlog_sessions for update
   using (user_id = auth.uid());
 
-create policy "Users can delete own conversation summaries"
-  on public.conversation_summaries for delete
+create policy "Users can delete own starlog sessions"
+  on public.starlog_sessions for delete
   using (user_id = auth.uid());
 
 -- ─── Starlog entries policies ─────────────────────────────────────────────────
