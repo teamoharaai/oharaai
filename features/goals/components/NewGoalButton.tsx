@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 export function NewGoalButton() {
   return (
     <TouchableOpacity
-      onPress={() => router.push('/(app)/goals')}
+      onPress={() => router.push('/goals/create')}
       style={{
         backgroundColor: '#6E5CE7',
         borderRadius: 20,
