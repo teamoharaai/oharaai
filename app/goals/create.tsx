@@ -100,13 +100,34 @@ export default function GoalCreateScreen() {
 
       if (data.isComplete && data.goalData) {
         setSavingGoal(true);
-        const saveResult = await createGoalWithMeasurables(user.id, data.goalData as AiGoalData);
+        const saveResult = await createGoalWithMeasurables(user.id, data.goalData as AiGoalData, {
+          requestId: data.requestId,
+        });
         setSavingGoal(false);
 
         if (saveResult.goalId) {
+          console.info('[goal-finalize] persistence succeeded', {
+            requestId: data.requestId,
+            stage: 'persistence',
+            goalId: saveResult.goalId,
+            finalizedBy: data.finalizedBy,
+          });
+
           const savedGoal = await fetchGoalById(saveResult.goalId);
           if (savedGoal) {
             upsertGoal(savedGoal);
+            console.info('[goal-finalize] hydration succeeded', {
+              requestId: data.requestId,
+              stage: 'post_save_hydration',
+              goalId: saveResult.goalId,
+            });
+          } else {
+            console.warn('[goal-finalize] hydration failed', {
+              requestId: data.requestId,
+              stage: 'post_save_hydration',
+              goalId: saveResult.goalId,
+              finalizedBy: data.finalizedBy,
+            });
           }
 
           if (saveResult.warning) {
@@ -120,13 +141,14 @@ export default function GoalCreateScreen() {
 
           router.replace(`/goals/${saveResult.goalId}`);
         } else {
-          console.error('[goal-create-screen] goal save failed', {
+          console.error('[goal-finalize] persistence failed', {
             requestId: data.requestId,
+            stage: 'persistence',
             error: saveResult.error,
             finalizedBy: data.finalizedBy,
           });
           setError(
-            `Goal created by AI but failed to save. ${saveResult.error ?? 'Please try again.'} (Request ${data.requestId})`,
+            `Goal finalization succeeded, but persistence failed. ${saveResult.error ?? 'Please try again.'} (Request ${data.requestId})`,
           );
         }
       }

@@ -41,34 +41,20 @@ export interface GoalFinalizeResponse {
   assumptions?: string[];
 }
 
-function extractJsonObject(raw: string): string {
+function parseGoalFinalizeJson(raw: string): unknown {
   const trimmed = raw.trim();
   if (!trimmed) {
     throw new Error('Goal finalization response is empty');
   }
 
-  const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-  if (fencedMatch?.[1]) {
-    return fencedMatch[1].trim();
-  }
-
-  const firstBrace = trimmed.indexOf('{');
-  const lastBrace = trimmed.lastIndexOf('}');
-  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-    return trimmed.slice(firstBrace, lastBrace + 1);
-  }
-
-  return trimmed;
-}
-
-export function parseGoalFinalizeResponse(raw: string): GoalFinalizeResponse {
-  let parsed: unknown;
   try {
-    parsed = JSON.parse(extractJsonObject(raw));
+    return JSON.parse(trimmed);
   } catch {
     throw new Error('Goal finalization response is not valid JSON');
   }
+}
 
+export function validateGoalFinalizeResponse(parsed: unknown): GoalFinalizeResponse {
   if (typeof parsed !== 'object' || parsed === null) {
     throw new Error('Goal finalization response must be a JSON object');
   }
@@ -105,15 +91,41 @@ export function parseGoalFinalizeResponse(raw: string): GoalFinalizeResponse {
   if (!Array.isArray(obj.measurables)) {
     throw new Error('measurables must be an array');
   }
-  for (const m of obj.measurables as unknown[]) {
+  for (const [index, m] of (obj.measurables as unknown[]).entries()) {
     if (typeof m !== 'object' || m === null) throw new Error('each measurable must be an object');
     const mObj = m as Record<string, unknown>;
-    if (typeof mObj.title !== 'string') throw new Error('measurable.title must be a string');
+    if (typeof mObj.title !== 'string' || mObj.title.trim() === '') {
+      throw new Error(`measurable[${index}].title must be a non-empty string`);
+    }
     if (!VALID_TYPES.includes(mObj.type as MeasurableType)) {
-      throw new Error(`measurable.type must be one of: ${VALID_TYPES.join(', ')}`);
+      throw new Error(`measurable[${index}].type must be one of: ${VALID_TYPES.join(', ')}`);
     }
     if (!VALID_FREQUENCIES.includes(mObj.frequency as MeasurableFrequency)) {
-      throw new Error(`measurable.frequency must be one of: ${VALID_FREQUENCIES.join(', ')}`);
+      throw new Error(`measurable[${index}].frequency must be one of: ${VALID_FREQUENCIES.join(', ')}`);
+    }
+    if (mObj.targetValue !== null && typeof mObj.targetValue !== 'number') {
+      throw new Error(`measurable[${index}].targetValue must be a number or null`);
+    }
+    if (mObj.targetUnit !== null && typeof mObj.targetUnit !== 'string') {
+      throw new Error(`measurable[${index}].targetUnit must be a string or null`);
+    }
+
+    if (mObj.type === 'counter') {
+      if (typeof mObj.targetValue !== 'number' || !Number.isFinite(mObj.targetValue)) {
+        throw new Error(`measurable[${index}].targetValue is required for counter measurables`);
+      }
+      if (typeof mObj.targetUnit !== 'string' || mObj.targetUnit.trim() === '') {
+        throw new Error(`measurable[${index}].targetUnit is required for counter measurables`);
+      }
+    }
+
+    if (mObj.type === 'checklist') {
+      if (mObj.targetValue !== null) {
+        throw new Error(`measurable[${index}].targetValue must be null for checklist measurables`);
+      }
+      if (mObj.targetUnit !== null) {
+        throw new Error(`measurable[${index}].targetUnit must be null for checklist measurables`);
+      }
     }
   }
 
@@ -128,4 +140,8 @@ export function parseGoalFinalizeResponse(raw: string): GoalFinalizeResponse {
   }
 
   return parsed as GoalFinalizeResponse;
+}
+
+export function parseGoalFinalizeResponse(raw: string): GoalFinalizeResponse {
+  return validateGoalFinalizeResponse(parseGoalFinalizeJson(raw));
 }

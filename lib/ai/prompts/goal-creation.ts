@@ -111,7 +111,7 @@ This finalization step must be resilient to incomplete conversations:
 CATEGORY — choose the single best fit:
 ${GOAL_CATEGORIES.map((c) => `- "${c}"`).join('\n')}
 
-MEASURABLES — suggest 2–4 based on what the user described. Types:
+MEASURABLES — suggest 2-4 based on what the user described when the conversation supports that many. Include at least 1 meaningful measurable. Types:
 - "counter": tracks cumulative progress toward a target number (e.g., "books read" 0/12). Requires targetValue and targetUnit.
 - "habit": tracks a recurring behavior (e.g., "30-minute run"). targetValue optional (defaults to 1).
 - "checklist": a one-time action to complete (e.g., "sign up for race"). No targetValue or targetUnit.
@@ -126,6 +126,12 @@ Output requirements:
 - No placeholder text
 - Every string value must be valid JSON
 - The response must begin with { and end with }
+- The response must be directly parseable by JSON.parse with no cleanup step
+- Do not wrap the JSON in markdown, labels, commentary, or any surrounding text
+- Include every required key exactly as shown below
+- Use null, not omitted fields, where the schema allows null
+- For "counter" measurables, targetValue must be a number and targetUnit must be a non-empty string
+- For "checklist" measurables, targetValue must be null and targetUnit must be null
 
 Respond with ONLY the JSON object below. No preamble, no markdown fences, no explanation outside the JSON.
 
@@ -154,6 +160,54 @@ Respond with ONLY the JSON object below. No preamble, no markdown fences, no exp
   ],
   "reasoning": "string — 1–2 sentences on why you structured the goal and measurables this way, including any key assumptions. Internal only, never shown to the user.",
   "assumptions": ["string — optional explicit assumptions used to fill missing details"]
+}`;
+
+export const GOAL_CREATION_FINALIZE_RETRY_PROMPT = `You are correcting a previously invalid goal finalization response.
+
+Return ONE strict JSON object only.
+
+Hard requirements:
+- Output must be valid JSON parseable by JSON.parse with no cleanup
+- Output must begin with { and end with }
+- No prose
+- No markdown
+- No code fences
+- No labels like "Here is the JSON"
+- No explanation before or after the JSON
+- Preserve the required schema exactly
+- Use null, not omitted fields, where null is allowed
+- For "counter" measurables, targetValue must be a number and targetUnit must be a non-empty string
+- For "checklist" measurables, targetValue must be null and targetUnit must be null
+
+CATEGORY — choose exactly one:
+${GOAL_CATEGORIES.map((c) => `- "${c}"`).join('\n')}
+
+Required JSON shape:
+{
+  "goal": {
+    "title": "string",
+    "description": "string",
+    "category": "body | mind | money | create | connect | contribute",
+    "deadline": "YYYY-MM-DD string or null",
+    "smart": {
+      "specific": "string",
+      "measurable": "string",
+      "achievable": "string",
+      "relevant": "string",
+      "timeBound": "string"
+    }
+  },
+  "measurables": [
+    {
+      "title": "string",
+      "type": "counter | habit | checklist",
+      "targetValue": "number or null",
+      "targetUnit": "string or null",
+      "frequency": "daily | weekly | monthly | once"
+    }
+  ],
+  "reasoning": "string",
+  "assumptions": ["string"]
 }`;
 
 // ─── User message builder ─────────────────────────────────────────────────────

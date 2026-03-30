@@ -48,22 +48,37 @@ const CATEGORY_THEME: Record<string, GoalTheme> = {
 export async function createGoalWithMeasurables(
   userId: string,
   aiData: AiGoalData,
+  options?: { requestId?: string },
 ): Promise<CreateGoalWithMeasurablesResult> {
+  const requestId = options?.requestId ?? null;
+
   if (!aiData.goal.title?.trim()) {
     const error = 'AI goal payload is missing a title';
-    console.error('[goal-save] validation failed', { userId, error, aiData });
+    console.error('[goal-finalize] persistence failed', {
+      requestId,
+      stage: 'persistence',
+      userId,
+      error,
+    });
     return { goalId: null, error, warning: null };
   }
 
   if (!aiData.goal.category?.trim()) {
     const error = 'AI goal payload is missing a category';
-    console.error('[goal-save] validation failed', { userId, error, aiData });
+    console.error('[goal-finalize] persistence failed', {
+      requestId,
+      stage: 'persistence',
+      userId,
+      error,
+    });
     return { goalId: null, error, warning: null };
   }
 
   const colorTheme: GoalTheme = CATEGORY_THEME[aiData.goal.category] ?? 'ocean';
 
-  console.info('[goal-save] inserting goal', {
+  console.info('[goal-finalize] persistence started', {
+    requestId,
+    stage: 'persistence',
     userId,
     title: aiData.goal.title,
     category: aiData.goal.category,
@@ -90,7 +105,9 @@ export async function createGoalWithMeasurables(
 
   if (goalError || !goalRow) {
     const error = goalError?.message ?? 'Goal insert returned no row';
-    console.error('[goal-save] goal insert failed', {
+    console.error('[goal-finalize] persistence failed', {
+      requestId,
+      stage: 'persistence',
       userId,
       error,
       code: goalError?.code,
@@ -120,7 +137,9 @@ export async function createGoalWithMeasurables(
 
     if (measurableError) {
       warning = measurableError.message;
-      console.error('[goal-save] measurables insert failed', {
+      console.error('[goal-finalize] persistence failed', {
+        requestId,
+        stage: 'persistence',
         goalId,
         error: measurableError.message,
         code: measurableError.code,
@@ -128,13 +147,20 @@ export async function createGoalWithMeasurables(
         hint: measurableError.hint,
       });
     } else {
-      console.info('[goal-save] measurables inserted', {
+      console.info('[goal-finalize] persistence measurables saved', {
+        requestId,
+        stage: 'persistence',
         goalId,
         measurableCount: aiData.measurables.length,
       });
     }
   }
 
-  console.info('[goal-save] goal saved', { goalId, warning });
+  console.info('[goal-finalize] persistence succeeded', {
+    requestId,
+    stage: 'persistence',
+    goalId,
+    warning,
+  });
   return { goalId, error: null, warning };
 }
