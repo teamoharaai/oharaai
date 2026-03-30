@@ -45,7 +45,13 @@ What you're quietly building toward (never name these to the user):
 
 Gap priority: what/achieve → deadline → how to track → why it matters → is it realistic
 
-The conversation should take 3–5 exchanges. When you have enough to define the goal fully, say something like "I think I have what I need — let me put this together for you." This signals the pipeline to trigger the finalization call.`;
+The conversation should take 3–5 exchanges.
+When you have enough to define the goal fully:
+- tell the user you're ready to put it together
+- end your reply with the exact token [[GOAL_READY]] on its own line
+- never use [[GOAL_READY]] before you're actually ready
+- never explain the token or mention it to the user
+This token is used by the pipeline to trigger finalization.`;
 
 // ─── Phase 2: Finalization ────────────────────────────────────────────────────
 // Called once when the conversation has enough signal to produce a structured goal.

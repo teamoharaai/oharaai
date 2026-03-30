@@ -13,11 +13,14 @@ import { useState, useRef, useEffect } from 'react';
 import { router } from 'expo-router';
 import supabase from '@/lib/db/client';
 import { createGoalWithMeasurables, type AiGoalData } from '@/lib/db/goals';
+import { fetchGoalById } from '@/features/goals/services/goal-service';
+import { useGoalStore } from '@/features/goals/store';
 import type { GoalData } from '@/app/api/goals/create+api';
 
 type ConversationMessage = { role: 'user' | 'assistant'; content: string };
 
 export default function GoalCreateScreen() {
+  const { upsertGoal } = useGoalStore();
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -60,16 +63,22 @@ export default function GoalCreateScreen() {
         body: JSON.stringify({
           userMessage: text,
           conversationHistory: messages,
-          userId: user.id,
         }),
       });
 
       if (!response.ok) {
-        const errData = (await response.json()) as { error?: string };
-        throw new Error(errData.error ?? `Request failed: ${response.status}`);
+        const errData = (await response.json()) as {
+          error?: string;
+          details?: string;
+          requestId?: string;
+        };
+        const detailMessage = errData.details ? ` ${errData.details}` : '';
+        const requestMessage = errData.requestId ? ` (Request ${errData.requestId})` : '';
+        throw new Error((errData.error ?? `Request failed: ${response.status}`) + detailMessage + requestMessage);
       }
 
       const data = (await response.json()) as {
+        requestId: string;
         message: string;
         isComplete: boolean;
         goalData?: GoalData;
@@ -79,13 +88,32 @@ export default function GoalCreateScreen() {
 
       if (data.isComplete && data.goalData) {
         setSavingGoal(true);
-        const goalId = await createGoalWithMeasurables(user.id, data.goalData as AiGoalData);
+        const saveResult = await createGoalWithMeasurables(user.id, data.goalData as AiGoalData);
         setSavingGoal(false);
 
-        if (goalId) {
-          router.replace(`/goals/${goalId}`);
+        if (saveResult.goalId) {
+          const savedGoal = await fetchGoalById(saveResult.goalId);
+          if (savedGoal) {
+            upsertGoal(savedGoal);
+          }
+
+          if (saveResult.warning) {
+            console.warn('[goal-create-screen] goal saved with warning', {
+              requestId: data.requestId,
+              goalId: saveResult.goalId,
+              warning: saveResult.warning,
+            });
+          }
+
+          router.replace(`/goals/${saveResult.goalId}`);
         } else {
-          setError('Goal created by AI but failed to save. Please try again.');
+          console.error('[goal-create-screen] goal save failed', {
+            requestId: data.requestId,
+            error: saveResult.error,
+          });
+          setError(
+            `Goal created by AI but failed to save. ${saveResult.error ?? 'Please try again.'} (Request ${data.requestId})`,
+          );
         }
       }
     } catch (err) {

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useGoalStore } from '../store';
-import { fetchGoals } from '../services/goal-service';
+import { fetchGoalById, fetchGoals } from '../services/goal-service';
 import type { GoalWithMeasurables, ActivityEntry } from '../types';
 import supabase from '@/lib/db/client';
 
@@ -10,9 +10,14 @@ export function useGoalDetail(goalId: string): {
   isLoading: boolean;
 } {
   const { goals, isLoading, setGoals, setIsLoading } = useGoalStore();
+  const goal = goals.find((g) => g.id === goalId) ?? null;
 
   useEffect(() => {
-    if (goals.length === 0 && !isLoading) {
+    if (!goalId || isLoading) {
+      return;
+    }
+
+    if (goals.length === 0 || !goal) {
       async function load() {
         setIsLoading(true);
         const { data: { user } } = await supabase.auth.getUser();
@@ -20,16 +25,21 @@ export function useGoalDetail(goalId: string): {
           setIsLoading(false);
           return;
         }
-        const data = await fetchGoals(user.id);
-        setGoals(data);
+        if (goals.length === 0) {
+          const data = await fetchGoals(user.id);
+          setGoals(data);
+        } else {
+          const data = await fetchGoalById(goalId);
+          if (data) {
+            setGoals([data, ...goals.filter((item) => item.id !== data.id)]);
+          }
+        }
         setIsLoading(false);
       }
       load();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [goal, goalId, goals, isLoading, setGoals, setIsLoading]);
 
-  const goal = goals.find((g) => g.id === goalId) ?? null;
   const activityEntries: ActivityEntry[] = [];
 
   return { goal, activityEntries, isLoading };

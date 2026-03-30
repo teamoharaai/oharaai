@@ -25,6 +25,12 @@ export interface AiGoalData {
   reasoning: string;
 }
 
+export interface CreateGoalWithMeasurablesResult {
+  goalId: string | null;
+  error: string | null;
+  warning: string | null;
+}
+
 const CATEGORY_THEME: Record<string, GoalTheme> = {
   body: 'ember',
   mind: 'lavender',
@@ -41,8 +47,27 @@ const CATEGORY_THEME: Record<string, GoalTheme> = {
 export async function createGoalWithMeasurables(
   userId: string,
   aiData: AiGoalData,
-): Promise<string | null> {
+): Promise<CreateGoalWithMeasurablesResult> {
+  if (!aiData.goal.title?.trim()) {
+    const error = 'AI goal payload is missing a title';
+    console.error('[goal-save] validation failed', { userId, error, aiData });
+    return { goalId: null, error, warning: null };
+  }
+
+  if (!aiData.goal.category?.trim()) {
+    const error = 'AI goal payload is missing a category';
+    console.error('[goal-save] validation failed', { userId, error, aiData });
+    return { goalId: null, error, warning: null };
+  }
+
   const colorTheme: GoalTheme = CATEGORY_THEME[aiData.goal.category] ?? 'ocean';
+
+  console.info('[goal-save] inserting goal', {
+    userId,
+    title: aiData.goal.title,
+    category: aiData.goal.category,
+    measurableCount: aiData.measurables.length,
+  });
 
   const { data: goalRow, error: goalError } = await supabase
     .from('goals')
@@ -63,11 +88,19 @@ export async function createGoalWithMeasurables(
     .single();
 
   if (goalError || !goalRow) {
-    console.error('Goal insert failed:', goalError?.message);
-    return null;
+    const error = goalError?.message ?? 'Goal insert returned no row';
+    console.error('[goal-save] goal insert failed', {
+      userId,
+      error,
+      code: goalError?.code,
+      details: goalError?.details,
+      hint: goalError?.hint,
+    });
+    return { goalId: null, error, warning: null };
   }
 
   const goalId = goalRow.id as string;
+  let warning: string | null = null;
 
   if (aiData.measurables.length > 0) {
     const { error: measurableError } = await supabase.from('measurables').insert(
@@ -85,10 +118,22 @@ export async function createGoalWithMeasurables(
     );
 
     if (measurableError) {
-      console.error('Measurables insert failed:', measurableError.message);
-      // Goal created — return it even if measurables failed
+      warning = measurableError.message;
+      console.error('[goal-save] measurables insert failed', {
+        goalId,
+        error: measurableError.message,
+        code: measurableError.code,
+        details: measurableError.details,
+        hint: measurableError.hint,
+      });
+    } else {
+      console.info('[goal-save] measurables inserted', {
+        goalId,
+        measurableCount: aiData.measurables.length,
+      });
     }
   }
 
-  return goalId;
+  console.info('[goal-save] goal saved', { goalId, warning });
+  return { goalId, error: null, warning };
 }

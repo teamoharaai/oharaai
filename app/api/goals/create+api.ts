@@ -3,6 +3,7 @@ import {
   GOAL_CREATION_SYSTEM_PROMPT,
   GOAL_CREATION_FINALIZE_PROMPT,
 } from '@/lib/ai/prompts/goal-creation';
+import { parseGoalFinalizeResponse, type GoalFinalizeResponse } from '@/lib/ai/schemas/goal-creation';
 
 type ConversationMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -42,6 +43,7 @@ export interface GoalData {
 }
 
 interface CreateResponse {
+  requestId: string;
   message: string;
   isComplete: boolean;
   goalData?: GoalData;
@@ -116,9 +118,23 @@ export function validateGoalPayload(body: unknown) {
 
 // ─── Route handler ────────────────────────────────────────────────────────────
 
-const FINALIZE_SIGNAL = /i think i have what i need/i;
+const FINALIZE_SENTINEL = '[[GOAL_READY]]';
+const LEGACY_FINALIZE_SIGNAL = /i think i have what i need/i;
+
+function createRequestId() {
+  return `goal-create-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function stripFinalizeSentinel(message: string) {
+  return message.replace(FINALIZE_SENTINEL, '').trim();
+}
+
+function shouldFinalize(message: string) {
+  return message.includes(FINALIZE_SENTINEL) || LEGACY_FINALIZE_SIGNAL.test(message);
+}
 
 export async function POST(request: Request): Promise<Response> {
+  const requestId = createRequestId();
   let body: RequestBody;
   try {
     body = (await request.json()) as RequestBody;
@@ -143,6 +159,12 @@ export async function POST(request: Request): Promise<Response> {
     { role: 'user', content: userMessage },
   ];
 
+  console.info('[goal-create] request received', {
+    requestId,
+    historyTurns: history.length,
+    latestUserMessageLength: userMessage.length,
+  });
+
   let aiMessage: string;
   try {
     const result = await callLLM({
@@ -153,11 +175,21 @@ export async function POST(request: Request): Promise<Response> {
     aiMessage = result.text;
   } catch (err) {
     const message = err instanceof Error ? err.message : 'AI call failed';
-    return Response.json({ error: message }, { status: 500 });
+    console.error('[goal-create] conversation call failed', { requestId, error: message });
+    return Response.json({ error: message, requestId }, { status: 500 });
   }
 
-  if (!FINALIZE_SIGNAL.test(aiMessage)) {
-    const response: CreateResponse = { message: aiMessage, isComplete: false };
+  const shouldFinalizeGoal = shouldFinalize(aiMessage);
+  const displayMessage = stripFinalizeSentinel(aiMessage);
+
+  console.info('[goal-create] conversation response received', {
+    requestId,
+    shouldFinalizeGoal,
+    assistantPreview: displayMessage.slice(0, 160),
+  });
+
+  if (!shouldFinalizeGoal) {
+    const response: CreateResponse = { requestId, message: displayMessage, isComplete: false };
     return Response.json(response);
   }
 
@@ -169,7 +201,7 @@ export async function POST(request: Request): Promise<Response> {
     .map((m) => `${m.role === 'user' ? 'User' : 'Guide'}: ${m.content}`)
     .join('\n\n');
 
-  let goalData: GoalData;
+  let goalData: GoalFinalizeResponse;
   try {
     const finalResult = await callLLM({
       pipeline: 'goalCreation',
@@ -182,14 +214,25 @@ export async function POST(request: Request): Promise<Response> {
       ],
     });
 
-    goalData = JSON.parse(finalResult.text) as GoalData;
+    goalData = parseGoalFinalizeResponse(finalResult.text);
+    console.info('[goal-create] finalization succeeded', {
+      requestId,
+      goalTitle: goalData.goal.title,
+      measurableCount: goalData.measurables.length,
+    });
   } catch (err) {
-    // Finalization failed — return the conversational message without goalData
-    console.error('Goal finalization failed:', err);
-    const response: CreateResponse = { message: aiMessage, isComplete: false };
-    return Response.json(response);
+    const message = err instanceof Error ? err.message : 'Goal finalization failed';
+    console.error('[goal-create] finalization failed after completion signal', {
+      requestId,
+      error: message,
+      assistantMessage: displayMessage,
+    });
+    return Response.json(
+      { error: 'Goal finalization failed after completion signal', details: message, requestId },
+      { status: 422 },
+    );
   }
 
-  const response: CreateResponse = { message: aiMessage, isComplete: true, goalData };
+  const response: CreateResponse = { requestId, message: displayMessage, isComplete: true, goalData };
   return Response.json(response);
 }
