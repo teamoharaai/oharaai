@@ -59,6 +59,13 @@ Response shape during draft stage:
   - Assumptions made
 - Then ask at most 1-3 targeted clarification questions
 
+After the first meaningful draft:
+- Default to incremental updates, not full re-drafts
+- Do not repeat the full goal draft, full assumptions list, and full follow-up block on every turn
+- Respond with only what changed, such as updated deadline, measurables, scope, category, or assumptions
+- Ask at most 1 targeted follow-up question if one is still needed
+- Restate the full draft only if the user explicitly asks for a recap, or if multiple core fields changed materially
+
 Question limits:
 - In normal cases, ask 0-2 questions. Only ask 3 if the third one materially improves the draft
 - Ask more than 3 only if the request is too ambiguous to structure responsibly, and say what is blocking you
@@ -103,42 +110,32 @@ This token is used by the pipeline to trigger finalization.`;
 // Called once when the conversation has enough signal to produce a structured goal.
 // Returns strict JSON — no preamble, no markdown fencing.
 
-export const GOAL_CREATION_FINALIZE_PROMPT = `Based on the conversation so far, produce the final structured goal.
+export const GOAL_CREATION_FINALIZE_PROMPT = `Produce the final structured goal from the conversation.
 
-This finalization step must be resilient to incomplete conversations:
-- Use the full conversation to infer the best possible goal from what the user has already shared
-- If some details are missing, make reasonable assumptions instead of refusing to complete
-- Capture those assumptions explicitly
-- Only leave a field null when a reasonable assumption would be misleading
-- Never mention internal process, caveats, or uncertainty outside the JSON
+Infer the best possible goal from the transcript. If details are missing, make reasonable assumptions and list them in "assumptions". Use null only when assuming would be misleading.
 
-CATEGORY — choose the single best fit:
+CATEGORY:
 ${GOAL_CATEGORIES.map((c) => `- "${c}"`).join('\n')}
 
-MEASURABLES — suggest 2-4 based on what the user described when the conversation supports that many. Include at least 1 meaningful measurable. Types:
-- "counter": tracks cumulative progress toward a target number (e.g., "books read" 0/12). Requires targetValue and targetUnit.
-- "habit": tracks a recurring behavior (e.g., "30-minute run"). targetValue optional (defaults to 1).
-- "checklist": a one-time action to complete (e.g., "sign up for race"). No targetValue or targetUnit.
+MEASURABLE TYPES:
+- "counter": requires numeric targetValue and non-empty targetUnit
+- "habit": recurring behavior, targetValue optional
+- "checklist": one-time action, targetValue null, targetUnit null
 
-Each measurable needs a frequency: "daily", "weekly", "monthly", or "once".
-Make measurables feel like natural extensions of what the user described, not added homework.
+FREQUENCIES:
+- "daily"
+- "weekly"
+- "monthly"
+- "once"
 
-Output requirements:
+Rules:
 - Return STRICT JSON only
-- No prose before or after the JSON
-- No markdown fences
-- No placeholder text
-- Every string value must be valid JSON
-- The response must begin with { and end with }
-- The response must be directly parseable by JSON.parse with no cleanup step
-- Do not wrap the JSON in markdown, labels, commentary, or any surrounding text
-- Include every required key exactly as shown below
-- Use null, not omitted fields, where the schema allows null
-- For "counter" measurables, targetValue must be a number and targetUnit must be a non-empty string
-- For "checklist" measurables, targetValue must be null and targetUnit must be null
-- The system may already begin the response with "{" for you; continue the JSON object and do not restart or wrap it
-
-Respond with ONLY the JSON object below. No preamble, no markdown fences, no explanation outside the JSON.
+- No prose, labels, markdown, or code fences
+- Begin with { and end with }
+- Include every required key exactly as shown
+- Use null where allowed, not omitted fields
+- For open-ended goals, use null deadline and "No fixed deadline" for smart.timeBound
+- Suggest 1-4 meaningful measurables grounded in the conversation
 
 {
   "goal": {

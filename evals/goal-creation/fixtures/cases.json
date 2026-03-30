@@ -1,0 +1,891 @@
+[
+  {
+    "id": "body-half-marathon-busy-schedule",
+    "title": "Half marathon while working full time",
+    "initialInput": "I want to run a half marathon this fall, but I work a ton and I've never trained for one before.",
+    "followUps": [
+      "A local race is in October, and right now I can run about 2 miles without stopping.",
+      "I'd realistically train 4 days a week if the plan isn't extreme."
+    ],
+    "expected": {
+      "category": "body",
+      "maxClarificationQuestions": 2,
+      "shouldUseAssumptions": true,
+      "assumptionKeywords": [
+        "October",
+        "4 days",
+        "beginner"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 300
+      },
+      "measurables": {
+        "min": 2,
+        "max": 4
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1,
+      "realism": {
+        "maxCounterTargetValue": 30
+      }
+    }
+  },
+  {
+    "id": "money-emergency-fund-freelancer",
+    "title": "Emergency fund on uneven income",
+    "initialInput": "I need to build an emergency fund, but my freelance income changes every month so I struggle to make a plan.",
+    "followUps": [
+      "I'd like to have $6,000 set aside eventually.",
+      "If I could reach that in about 10 months, that would feel solid."
+    ],
+    "expected": {
+      "category": "money",
+      "maxClarificationQuestions": 2,
+      "shouldUseAssumptions": true,
+      "assumptionKeywords": [
+        "$6,000",
+        "10 months",
+        "variable income"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 400
+      },
+      "measurables": {
+        "min": 2,
+        "max": 4
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1,
+      "realism": {
+        "maxCounterTargetValue": 12000
+      }
+    }
+  },
+  {
+    "id": "mind-read-more-books",
+    "title": "Read more with loose starting point",
+    "initialInput": "I want to read more. I've barely finished any books lately and I miss it.",
+    "followUps": [
+      "Twelve books this year sounds ambitious but possible.",
+      "I'd probably read 20 to 30 minutes before bed most nights."
+    ],
+    "expected": {
+      "category": "mind",
+      "maxClarificationQuestions": 2,
+      "shouldUseAssumptions": true,
+      "assumptionKeywords": [
+        "12 books",
+        "before bed"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 370
+      },
+      "measurables": {
+        "min": 2,
+        "max": 3
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "create-open-etsy-pottery",
+    "title": "Launch a pottery Etsy shop",
+    "initialInput": "I've been making pottery for fun and I think I want to open a small Etsy shop for it.",
+    "followUps": [
+      "I only have about six pieces that are good enough to sell right now.",
+      "I'd love to launch before the holiday season if that's realistic."
+    ],
+    "expected": {
+      "category": "create",
+      "maxClarificationQuestions": 2,
+      "shouldUseAssumptions": true,
+      "assumptionKeywords": [
+        "holiday season",
+        "six pieces"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 320
+      },
+      "measurables": {
+        "min": 2,
+        "max": 4
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "connect-sister-relationship-repair",
+    "title": "Reconnect with a sibling",
+    "initialInput": "My sister and I aren't exactly fighting, but we've drifted apart and I want to rebuild that relationship.",
+    "followUps": [
+      "I'd like us to talk every week again.",
+      "A monthly coffee or call would be a good minimum if weekly is too much."
+    ],
+    "expected": {
+      "category": "connect",
+      "maxClarificationQuestions": 2,
+      "shouldUseAssumptions": true,
+      "assumptionKeywords": [
+        "weekly",
+        "monthly coffee",
+        "relationship"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 240
+      },
+      "measurables": {
+        "min": 1,
+        "max": 3
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "contribute-food-pantry-volunteering",
+    "title": "Volunteer at a food pantry",
+    "initialInput": "I keep saying I want to volunteer more in my city, especially around food insecurity, but I never actually commit.",
+    "followUps": [
+      "Twice a month would feel meaningful and still realistic.",
+      "I could start next month if I pick one place and sign up."
+    ],
+    "expected": {
+      "category": "contribute",
+      "maxClarificationQuestions": 2,
+      "shouldUseAssumptions": true,
+      "assumptionKeywords": [
+        "twice a month",
+        "next month",
+        "one place"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 180
+      },
+      "measurables": {
+        "min": 2,
+        "max": 3
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "body-fix-sleep-scroll-habit",
+    "title": "Improve sleep by cutting doomscrolling",
+    "initialInput": "My sleep has been awful because I stay up scrolling. I want to fix that without turning my life into some rigid bootcamp.",
+    "followUps": [
+      "If I could be asleep by 11 on weeknights most of the time, that would change everything.",
+      "I probably need a phone cutoff around 10:30."
+    ],
+    "expected": {
+      "category": "body",
+      "maxClarificationQuestions": 2,
+      "shouldUseAssumptions": true,
+      "assumptionKeywords": [
+        "11",
+        "weeknights",
+        "10:30"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 120
+      },
+      "measurables": {
+        "min": 2,
+        "max": 4
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "money-career-switch-ux",
+    "title": "Career switch into UX",
+    "initialInput": "I want to switch from customer support into UX design, but I'm overwhelmed by how big that feels.",
+    "followUps": [
+      "I'd love to start applying in about 9 months.",
+      "I can study around 7 hours a week if I stick to it."
+    ],
+    "expected": {
+      "category": "money",
+      "maxClarificationQuestions": 2,
+      "shouldUseAssumptions": true,
+      "assumptionKeywords": [
+        "9 months",
+        "7 hours",
+        "apply"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 365
+      },
+      "measurables": {
+        "min": 2,
+        "max": 4
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "mind-spanish-before-trip",
+    "title": "Learn conversational Spanish before travel",
+    "initialInput": "I'm going to Spain in June and I want enough Spanish to get around without panicking.",
+    "followUps": [
+      "I'm basically a beginner, maybe a little Duolingo level.",
+      "Fifteen to twenty minutes a day is realistic."
+    ],
+    "expected": {
+      "category": "mind",
+      "maxClarificationQuestions": 2,
+      "shouldUseAssumptions": true,
+      "assumptionKeywords": [
+        "June",
+        "beginner",
+        "15"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 120
+      },
+      "measurables": {
+        "min": 2,
+        "max": 4
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "body-first-pull-up-after-injury",
+    "title": "First pull-up after shoulder setback",
+    "initialInput": "I want to do my first pull-up this year, but I had a shoulder issue a few months ago so I need to be smart.",
+    "followUps": [
+      "Physical therapy wrapped up, and I'm cleared for regular strength work.",
+      "Three gym sessions a week is probably my ceiling."
+    ],
+    "expected": {
+      "category": "body",
+      "maxClarificationQuestions": 2,
+      "shouldUseAssumptions": true,
+      "assumptionKeywords": [
+        "this year",
+        "cleared",
+        "three gym sessions"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 365
+      },
+      "measurables": {
+        "min": 2,
+        "max": 4
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "money-pay-off-credit-card",
+    "title": "Pay off credit card debt",
+    "initialInput": "I need to finally pay off my credit card debt instead of pretending it's manageable.",
+    "followUps": [
+      "It's about $4,800 right now.",
+      "I'd like it gone within 8 months if the payments are realistic."
+    ],
+    "expected": {
+      "category": "money",
+      "maxClarificationQuestions": 2,
+      "shouldUseAssumptions": true,
+      "assumptionKeywords": [
+        "$4,800",
+        "8 months",
+        "payments"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 300
+      },
+      "measurables": {
+        "min": 2,
+        "max": 3
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1,
+      "realism": {
+        "maxCounterTargetValue": 10000
+      }
+    }
+  },
+  {
+    "id": "create-self-publish-novella",
+    "title": "Write and self-publish a novella",
+    "initialInput": "I've talked about writing fiction forever. I want to actually finish and self-publish a novella.",
+    "followUps": [
+      "Something around 25,000 words feels like the right size.",
+      "I'd love to publish by the end of the year."
+    ],
+    "expected": {
+      "category": "create",
+      "maxClarificationQuestions": 2,
+      "shouldUseAssumptions": true,
+      "assumptionKeywords": [
+        "25,000 words",
+        "end of the year",
+        "self-publish"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 365
+      },
+      "measurables": {
+        "min": 2,
+        "max": 4
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1,
+      "realism": {
+        "maxCounterTargetValue": 50000
+      }
+    }
+  },
+  {
+    "id": "connect-make-friends-new-city",
+    "title": "Build friendships after moving",
+    "initialInput": "I moved to Chicago recently and I feel lonely. I want to make real friends here, not just random acquaintances.",
+    "followUps": [
+      "Joining one recurring group and making one plan a week seems doable.",
+      "If I felt settled socially by late summer, that would be huge."
+    ],
+    "expected": {
+      "category": "connect",
+      "maxClarificationQuestions": 2,
+      "shouldUseAssumptions": true,
+      "assumptionKeywords": [
+        "Chicago",
+        "one recurring group",
+        "late summer"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 220
+      },
+      "measurables": {
+        "min": 2,
+        "max": 3
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "mind-open-ended-meditation",
+    "title": "Meditation without a hard deadline",
+    "initialInput": "I want meditation to become a real part of my life instead of something I do for three days and forget.",
+    "followUps": [
+      "This is more about consistency than hitting a specific date.",
+      "Ten minutes in the morning is a realistic start."
+    ],
+    "expected": {
+      "category": "mind",
+      "maxClarificationQuestions": 2,
+      "shouldUseAssumptions": true,
+      "assumptionKeywords": [
+        "consistency",
+        "10 minutes",
+        "morning"
+      ],
+      "deadline": {
+        "kind": "open"
+      },
+      "measurables": {
+        "min": 1,
+        "max": 3
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "contribute-start-community-garden",
+    "title": "Start a neighborhood garden project",
+    "initialInput": "I'd love to start some kind of community garden project on my block, but right now it's just an idea.",
+    "followUps": [
+      "If I can get 5 neighbors interested, I think it becomes real.",
+      "I'd want to get the first planning meeting happening within 2 months."
+    ],
+    "expected": {
+      "category": "contribute",
+      "maxClarificationQuestions": 3,
+      "shouldUseAssumptions": true,
+      "assumptionKeywords": [
+        "5 neighbors",
+        "2 months",
+        "planning meeting"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 120
+      },
+      "measurables": {
+        "min": 2,
+        "max": 4
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "money-grad-school-parenting",
+    "title": "Prepare grad school applications while parenting",
+    "initialInput": "I want to apply to grad school, but I have two kids and a full-time job, so I need a plan that isn't fantasy.",
+    "followUps": [
+      "I only want to apply to three programs, not ten.",
+      "I'd need the applications out by December."
+    ],
+    "expected": {
+      "category": "money",
+      "maxClarificationQuestions": 2,
+      "shouldUseAssumptions": true,
+      "assumptionKeywords": [
+        "three programs",
+        "December",
+        "full-time job"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 300
+      },
+      "measurables": {
+        "min": 2,
+        "max": 4
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "create-home-office-reset",
+    "title": "Organize a chaotic home office",
+    "initialInput": "My home office is chaos and it's making me avoid work. I need to get it under control.",
+    "followUps": [
+      "If it were organized within a month, I'd be thrilled.",
+      "I can probably dedicate two focused sessions each weekend."
+    ],
+    "expected": {
+      "category": "create",
+      "maxClarificationQuestions": 2,
+      "shouldUseAssumptions": true,
+      "assumptionKeywords": [
+        "within a month",
+        "two focused sessions"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 90
+      },
+      "measurables": {
+        "min": 1,
+        "max": 3
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "connect-date-night-marriage",
+    "title": "Protect time with spouse",
+    "initialInput": "My wife and I are in a rut because life is nonstop. I want us to actually prioritize each other again.",
+    "followUps": [
+      "A weekly date night is the main thing I want to protect.",
+      "If we were doing that consistently for 3 months, I'd feel way better."
+    ],
+    "expected": {
+      "category": "connect",
+      "maxClarificationQuestions": 2,
+      "shouldUseAssumptions": true,
+      "assumptionKeywords": [
+        "weekly date night",
+        "3 months"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 150
+      },
+      "measurables": {
+        "min": 1,
+        "max": 3
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "mind-burnout-weekend-boundaries",
+    "title": "Recover from burnout",
+    "initialInput": "I'm burnt out and I keep working on weekends. I want to stop feeling like my job eats my whole life.",
+    "followUps": [
+      "A good start would be having at least three full weekends off each month.",
+      "I know I also need a real shutdown routine on weeknights."
+    ],
+    "expected": {
+      "category": "mind",
+      "maxClarificationQuestions": 2,
+      "shouldUseAssumptions": true,
+      "assumptionKeywords": [
+        "three full weekends",
+        "shutdown routine"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 180
+      },
+      "measurables": {
+        "min": 2,
+        "max": 4
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "mixed-vague-happier-healthier",
+    "title": "Vague better-life request",
+    "initialInput": "I just want to be happier and healthier. Everything feels off lately.",
+    "followUps": [
+      "Sleep and movement are probably the biggest missing pieces.",
+      "If I had a simple routine going in the next 6 weeks, that would help a lot."
+    ],
+    "expected": {
+      "category": "body",
+      "maxClarificationQuestions": 3,
+      "shouldUseAssumptions": true,
+      "assumptionKeywords": [
+        "sleep",
+        "movement",
+        "6 weeks"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 90
+      },
+      "measurables": {
+        "min": 2,
+        "max": 4
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "money-overambitious-millionaire-fast",
+    "title": "Become a millionaire quickly",
+    "initialInput": "I want to become a millionaire within a year, starting from basically nothing.",
+    "followUps": [
+      "I can save maybe $500 a month right now.",
+      "I'm open to side hustles but I don't want something unrealistic."
+    ],
+    "expected": {
+      "category": "money",
+      "maxClarificationQuestions": 3,
+      "shouldUseAssumptions": true,
+      "shouldFinalize": true,
+      "shouldOfferScopeReduction": true,
+      "shouldPreserveAmbition": true,
+      "assumptionKeywords": [
+        "$500",
+        "side hustle",
+        "starting from nothing"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 500
+      },
+      "measurables": {
+        "min": 2,
+        "max": 4
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "body-contradictory-marathon-training",
+    "title": "Contradictory marathon goal",
+    "initialInput": "I want to run a marathon this year but I only want to train once a week and not push myself too hard.",
+    "followUps": [
+      "I don't really enjoy long runs.",
+      "I'd still like to finish the race though."
+    ],
+    "expected": {
+      "category": "body",
+      "maxClarificationQuestions": 3,
+      "shouldUseAssumptions": true,
+      "shouldFinalize": false,
+      "shouldOfferScopeReduction": true,
+      "shouldPreserveAmbition": true,
+      "assumptionKeywords": [
+        "once a week",
+        "low intensity"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 365
+      },
+      "measurables": {
+        "min": 1,
+        "max": 3
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 3,
+      "requiredFollowUpsBeforeAutoFinalize": 2
+    }
+  },
+  {
+    "id": "mixed-multiple-goals-overload",
+    "title": "Too many goals in one input",
+    "initialInput": "I want to lose weight, start a business, learn Spanish, and fix my sleep schedule.",
+    "followUps": [
+      "Honestly sleep and weight are probably most important.",
+      "I get overwhelmed trying to do everything at once."
+    ],
+    "expected": {
+      "category": "body",
+      "maxClarificationQuestions": 3,
+      "shouldUseAssumptions": true,
+      "shouldFinalize": true,
+      "shouldOfferScopeReduction": true,
+      "shouldSplitGoal": true,
+      "shouldAcknowledgeEmotion": true,
+      "assumptionKeywords": [
+        "sleep",
+        "weight",
+        "overwhelmed"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 120
+      },
+      "measurables": {
+        "min": 2,
+        "max": 4
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 3,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "mind-emotional-overwhelm-input",
+    "title": "Emotional unstructured input",
+    "initialInput": "Everything feels off. I can't focus, I'm tired all the time, I keep saying I'll fix things but I don't. I just feel stuck.",
+    "followUps": [
+      "Sleep and energy are probably the biggest issues.",
+      "If I had a simple routine that actually worked, that would help."
+    ],
+    "expected": {
+      "category": "mind",
+      "maxClarificationQuestions": 3,
+      "shouldUseAssumptions": true,
+      "shouldFinalize": true,
+      "shouldOfferScopeReduction": true,
+      "shouldAcknowledgeEmotion": true,
+      "assumptionKeywords": [
+        "sleep",
+        "routine",
+        "energy"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 90
+      },
+      "measurables": {
+        "min": 2,
+        "max": 4
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "mind-should-not-finalize-yet",
+    "title": "Insufficient detail for finalization",
+    "initialInput": "I want to improve my life but I'm not sure how.",
+    "followUps": [],
+    "expected": {
+      "category": "mind",
+      "maxClarificationQuestions": 4,
+      "shouldUseAssumptions": false,
+      "shouldFinalize": false,
+      "shouldAcknowledgeEmotion": true,
+      "assumptionKeywords": [],
+      "deadline": {
+        "kind": "open"
+      },
+      "measurables": {
+        "min": 0,
+        "max": 2
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 3,
+      "requiredFollowUpsBeforeAutoFinalize": 2
+    }
+  },
+  {
+    "id": "body-defeat-odds-olympics",
+    "title": "Extreme ambition (Defeat the Odds)",
+    "initialInput": "I want to qualify for the Olympics someday.",
+    "followUps": [
+      "I'm not currently training seriously.",
+      "I just feel like I want to aim high."
+    ],
+    "expected": {
+      "category": "body",
+      "maxClarificationQuestions": 3,
+      "shouldUseAssumptions": true,
+      "shouldFinalize": true,
+      "shouldOfferScopeReduction": true,
+      "shouldPreserveAmbition": true,
+      "assumptionKeywords": [
+        "long-term",
+        "training",
+        "starting point"
+      ],
+      "deadline": {
+        "kind": "open"
+      },
+      "measurables": {
+        "min": 1,
+        "max": 3
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 3,
+      "requiredFollowUpsBeforeAutoFinalize": 2
+    }
+  },
+  {
+    "id": "money-dependency-blocked-goal",
+    "title": "Goal blocked by constraints",
+    "initialInput": "I want to go back to school but I don't have the money and I work full time.",
+    "followUps": [
+      "I could maybe take one class at a time.",
+      "I'd need to figure out finances first."
+    ],
+    "expected": {
+      "category": "money",
+      "maxClarificationQuestions": 3,
+      "shouldUseAssumptions": true,
+      "shouldFinalize": true,
+      "shouldOfferScopeReduction": true,
+      "assumptionKeywords": [
+        "one class",
+        "finances",
+        "full time job"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 600
+      },
+      "measurables": {
+        "min": 1,
+        "max": 3
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "mind-identity-open-ended",
+    "title": "Identity-based goal",
+    "initialInput": "I want to become someone who reads and learns consistently.",
+    "followUps": [
+      "I don't care about a strict number, just consistency.",
+      "Maybe daily or near daily would be ideal."
+    ],
+    "expected": {
+      "category": "mind",
+      "maxClarificationQuestions": 2,
+      "shouldUseAssumptions": true,
+      "shouldFinalize": true,
+      "assumptionKeywords": [
+        "consistency",
+        "daily"
+      ],
+      "deadline": {
+        "kind": "open"
+      },
+      "measurables": {
+        "min": 1,
+        "max": 3
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 2,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "create-scope-too-large",
+    "title": "Scope reduction needed",
+    "initialInput": "I want to build a full SaaS business from scratch in 3 months.",
+    "followUps": [
+      "I have some coding experience but not a full product yet.",
+      "I also work full time."
+    ],
+    "expected": {
+      "category": "create",
+      "maxClarificationQuestions": 3,
+      "shouldUseAssumptions": true,
+      "shouldFinalize": true,
+      "shouldOfferScopeReduction": true,
+      "shouldPreserveAmbition": true,
+      "assumptionKeywords": [
+        "3 months",
+        "full time job"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 120
+      },
+      "measurables": {
+        "min": 2,
+        "max": 4
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 3,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  },
+  {
+    "id": "mixed-split-goal-needed",
+    "title": "Goal splitting required",
+    "initialInput": "I want to get in shape and fix my diet and sleep all at once.",
+    "followUps": [
+      "Sleep is probably the root issue.",
+      "If I fixed that, everything else might improve."
+    ],
+    "expected": {
+      "category": "body",
+      "maxClarificationQuestions": 3,
+      "shouldUseAssumptions": true,
+      "shouldFinalize": true,
+      "shouldOfferScopeReduction": true,
+      "shouldSplitGoal": true,
+      "assumptionKeywords": [
+        "sleep",
+        "root issue"
+      ],
+      "deadline": {
+        "kind": "bounded",
+        "maxDaysFromNow": 120
+      },
+      "measurables": {
+        "min": 2,
+        "max": 4
+      },
+      "minAssistantTurnsBeforeAutoFinalize": 3,
+      "requiredFollowUpsBeforeAutoFinalize": 1
+    }
+  }
+]

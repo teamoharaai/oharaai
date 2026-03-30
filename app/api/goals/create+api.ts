@@ -301,7 +301,12 @@ function prepareFinalizeTranscript({
 }): string {
   try {
     let removedMarkers = 0;
+    const lastAssistantIndex = [...history]
+      .map((message, index) => ({ message, index }))
+      .filter(({ message }) => message.role === 'assistant')
+      .at(-1)?.index ?? -1;
     const sanitizedTurns = history
+      .filter((message, index) => message.role === 'user' || index === lastAssistantIndex)
       .map((message) => {
         const sanitized = sanitizeTranscriptContent(message.content);
         removedMarkers += sanitized.markersRemoved;
@@ -326,6 +331,7 @@ function prepareFinalizeTranscript({
       stage: 'transcript_preparation',
       inputTurns: history.length,
       sanitizedTurns: sanitizedTurns.length,
+      lastAssistantIncluded: lastAssistantIndex !== -1,
       markersRemoved: removedMarkers,
       transcriptPreview: previewForLog(transcript),
     });
@@ -377,6 +383,10 @@ ${previousOutput}
 Return the corrected JSON object only.`;
 }
 
+function isTimeoutErrorMessage(message: string) {
+  return /\brequest timed out\b|\btimed out\b|\btimeout\b/i.test(message);
+}
+
 async function finalizeGoalFromTranscript({
   requestId,
   transcript,
@@ -388,6 +398,7 @@ async function finalizeGoalFromTranscript({
 }): Promise<GoalFinalizeResponse> {
   let lastError: GoalFinalizationError | null = null;
   let previousOutput: string | null = null;
+  let timeoutRetryUsed = false;
 
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     if (attempt === 2) {
@@ -412,31 +423,52 @@ async function finalizeGoalFromTranscript({
         });
 
     let finalResult;
-    try {
-      finalResult = await callLLM({
-        pipeline: 'goalFinalize',
-        systemPrompt,
-        messages: [{ role: 'user', content: userContent }],
-        assistantPrefill: FINALIZE_ASSISTANT_PREFILL,
-        stopSequences: ['```'],
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Finalization model call failed';
-      const stage: GoalFinalizeStage = message.includes('no text content')
-        ? 'model_response_missing'
-        : 'model_call';
-      console.error(stage === 'model_call' ? '[goal-finalize] model call failed' : '[goal-finalize] model response missing', {
-        requestId,
-        trigger,
-        attempt,
-        stage,
-        error: message,
-      });
-      throw new GoalFinalizationError(message, {
-        stage,
-        attempt,
-        rawPreview: '',
-      });
+    let modelCallAttempt = 0;
+    while (!finalResult) {
+      modelCallAttempt += 1;
+      try {
+        finalResult = await callLLM({
+          pipeline: 'goalFinalize',
+          systemPrompt,
+          messages: [{ role: 'user', content: userContent }],
+          assistantPrefill: FINALIZE_ASSISTANT_PREFILL,
+          stopSequences: ['```'],
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Finalization model call failed';
+        const stage: GoalFinalizeStage = message.includes('no text content')
+          ? 'model_response_missing'
+          : 'model_call';
+        const isTimeout = stage === 'model_call' && isTimeoutErrorMessage(message);
+
+        if (isTimeout && !timeoutRetryUsed) {
+          timeoutRetryUsed = true;
+          console.warn('[goal-finalize] model call timeout, retrying once', {
+            requestId,
+            trigger,
+            attempt,
+            modelCallAttempt,
+            stage,
+            error: message,
+          });
+          continue;
+        }
+
+        console.error(stage === 'model_call' ? '[goal-finalize] model call failed' : '[goal-finalize] model response missing', {
+          requestId,
+          trigger,
+          attempt,
+          modelCallAttempt,
+          stage,
+          error: message,
+          timeoutRetryUsed,
+        });
+        throw new GoalFinalizationError(message, {
+          stage,
+          attempt,
+          rawPreview: '',
+        });
+      }
     }
 
     const responseText = finalResult.text.trim();

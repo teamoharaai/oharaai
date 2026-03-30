@@ -1,30 +1,8 @@
 import supabase from './client';
 import type { GoalTheme } from '@/constants/themes';
+import type { GoalFinalizeResponse } from '@/lib/ai/schemas/goal-creation';
 
-export interface AiGoalData {
-  goal: {
-    title: string;
-    description: string;
-    category: string;
-    deadline: string | null;
-    smart: {
-      specific: string;
-      measurable: string;
-      achievable: string;
-      relevant: string;
-      timeBound: string;
-    };
-  };
-  measurables: Array<{
-    title: string;
-    type: 'counter' | 'habit' | 'checklist';
-    targetValue: number | null;
-    targetUnit: string | null;
-    frequency: 'daily' | 'weekly' | 'monthly' | 'once';
-  }>;
-  reasoning: string;
-  assumptions?: string[];
-}
+export type AiGoalData = GoalFinalizeResponse;
 
 export interface CreateGoalWithMeasurablesResult {
   goalId: string | null;
@@ -40,6 +18,62 @@ const CATEGORY_THEME: Record<string, GoalTheme> = {
   connect: 'coral',
   contribute: 'forest',
 };
+
+function normalizeDeadlineForPersistence(deadline: string | null): string | null {
+  if (!deadline) return null;
+
+  const trimmed = deadline.trim();
+  if (!trimmed) return null;
+
+  const directDate = new Date(trimmed);
+  if (!Number.isNaN(directDate.getTime())) {
+    return directDate.toISOString();
+  }
+
+  const dateOnlyMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    const normalized = new Date(`${trimmed}T00:00:00.000Z`);
+    if (!Number.isNaN(normalized.getTime())) {
+      return normalized.toISOString();
+    }
+  }
+
+  return null;
+}
+
+function mapAiGoalDataToDbInserts(aiData: AiGoalData, userId: string) {
+  const colorTheme: GoalTheme = CATEGORY_THEME[aiData.goal.category] ?? 'ocean';
+  const normalizedDeadline = normalizeDeadlineForPersistence(aiData.goal.deadline);
+
+  return {
+    goalInsert: {
+      user_id: userId,
+      title: aiData.goal.title,
+      description: aiData.goal.description,
+      category: aiData.goal.category,
+      mode: 'commitment' as const,
+      status: 'active' as const,
+      smart_data: aiData.goal.smart,
+      color_theme: colorTheme,
+      deadline: normalizedDeadline,
+      is_public: false,
+      ai_generated: true,
+    },
+    measurableInserts: aiData.measurables.map((m, index) => ({
+      title: m.title,
+      type: m.type,
+      target_value: m.targetValue ?? null,
+      target_unit: m.targetUnit ?? null,
+      frequency: m.frequency,
+      current_value: 0,
+      is_ai_suggested: true,
+      sort_order: index,
+    })),
+    normalizationWarnings: aiData.goal.deadline && !normalizedDeadline
+      ? [`Invalid deadline "${aiData.goal.deadline}" was normalized to null before persistence`]
+      : [],
+  };
+}
 
 /**
  * Inserts a goal + its measurables from an AI finalization result.
@@ -74,7 +108,8 @@ export async function createGoalWithMeasurables(
     return { goalId: null, error, warning: null };
   }
 
-  const colorTheme: GoalTheme = CATEGORY_THEME[aiData.goal.category] ?? 'ocean';
+  const { goalInsert, measurableInserts, normalizationWarnings } = mapAiGoalDataToDbInserts(aiData, userId);
+  let warning: string | null = normalizationWarnings[0] ?? null;
 
   console.info('[goal-finalize] persistence started', {
     requestId,
@@ -85,21 +120,18 @@ export async function createGoalWithMeasurables(
     measurableCount: aiData.measurables.length,
   });
 
+  if (normalizationWarnings.length > 0) {
+    console.warn('[goal-finalize] persistence normalization adjusted payload', {
+      requestId,
+      stage: 'persistence',
+      userId,
+      warnings: normalizationWarnings,
+    });
+  }
+
   const { data: goalRow, error: goalError } = await supabase
     .from('goals')
-    .insert({
-      user_id: userId,
-      title: aiData.goal.title,
-      description: aiData.goal.description,
-      category: aiData.goal.category,
-      mode: 'commitment',
-      status: 'active',
-      smart_data: aiData.goal.smart,
-      color_theme: colorTheme,
-      deadline: aiData.goal.deadline ?? null,
-      is_public: false,
-      ai_generated: true,
-    })
+    .insert(goalInsert)
     .select('id')
     .single();
 
@@ -118,25 +150,17 @@ export async function createGoalWithMeasurables(
   }
 
   const goalId = goalRow.id as string;
-  let warning: string | null = null;
 
-  if (aiData.measurables.length > 0) {
+  if (measurableInserts.length > 0) {
     const { error: measurableError } = await supabase.from('measurables').insert(
-      aiData.measurables.map((m, index) => ({
+      measurableInserts.map((row) => ({
         goal_id: goalId,
-        title: m.title,
-        type: m.type,
-        target_value: m.targetValue ?? null,
-        target_unit: m.targetUnit ?? null,
-        frequency: m.frequency,
-        current_value: 0,
-        is_ai_suggested: true,
-        sort_order: index,
+        ...row,
       })),
     );
 
     if (measurableError) {
-      warning = measurableError.message;
+      warning = [warning, measurableError.message].filter(Boolean).join(' | ');
       console.error('[goal-finalize] persistence failed', {
         requestId,
         stage: 'persistence',
