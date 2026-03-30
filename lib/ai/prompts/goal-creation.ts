@@ -101,6 +101,13 @@ This token is used by the pipeline to trigger finalization.`;
 
 export const GOAL_CREATION_FINALIZE_PROMPT = `Based on the conversation so far, produce the final structured goal.
 
+This finalization step must be resilient to incomplete conversations:
+- Use the full conversation to infer the best possible goal from what the user has already shared
+- If some details are missing, make reasonable assumptions instead of refusing to complete
+- Capture those assumptions explicitly
+- Only leave a field null when a reasonable assumption would be misleading
+- Never mention internal process, caveats, or uncertainty outside the JSON
+
 CATEGORY — choose the single best fit:
 ${GOAL_CATEGORIES.map((c) => `- "${c}"`).join('\n')}
 
@@ -111,6 +118,14 @@ MEASURABLES — suggest 2–4 based on what the user described. Types:
 
 Each measurable needs a frequency: "daily", "weekly", "monthly", or "once".
 Make measurables feel like natural extensions of what the user described, not added homework.
+
+Output requirements:
+- Return STRICT JSON only
+- No prose before or after the JSON
+- No markdown fences
+- No placeholder text
+- Every string value must be valid JSON
+- The response must begin with { and end with }
 
 Respond with ONLY the JSON object below. No preamble, no markdown fences, no explanation outside the JSON.
 
@@ -137,7 +152,8 @@ Respond with ONLY the JSON object below. No preamble, no markdown fences, no exp
       "frequency": "daily | weekly | monthly | once"
     }
   ],
-  "reasoning": "string — 1–2 sentences on why you structured the goal and measurables this way. Internal only, never shown to the user."
+  "reasoning": "string — 1–2 sentences on why you structured the goal and measurables this way, including any key assumptions. Internal only, never shown to the user.",
+  "assumptions": ["string — optional explicit assumptions used to fill missing details"]
 }`;
 
 // ─── User message builder ─────────────────────────────────────────────────────

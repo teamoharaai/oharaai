@@ -23,6 +23,7 @@ export interface AiGoalData {
     frequency: 'daily' | 'weekly' | 'monthly' | 'once';
   }>;
   reasoning: string;
+  assumptions?: string[];
 }
 
 export interface CreateGoalWithMeasurablesResult {

@@ -32,18 +32,24 @@ export default function GoalCreateScreen() {
     scrollRef.current?.scrollToEnd({ animated: true });
   }, [messages]);
 
-  async function handleSend() {
+  async function submitGoalChat(options?: { finalize?: boolean }) {
+    const finalize = options?.finalize === true;
     const text = input.trim();
-    if (!text || isLoading) return;
+    if (isLoading || savingGoal) return;
+    if (!finalize && !text) return;
+    if (finalize && !text && messages.length === 0) return;
 
-    setInput('');
     setError(null);
 
-    const updatedMessages: ConversationMessage[] = [
-      ...messages,
-      { role: 'user', content: text },
-    ];
-    setMessages(updatedMessages);
+    const nextUserMessage = text ? { role: 'user' as const, content: text } : null;
+    const updatedMessages: ConversationMessage[] = nextUserMessage
+      ? [...messages, nextUserMessage]
+      : messages;
+
+    if (text) {
+      setInput('');
+      setMessages(updatedMessages);
+    }
     setIsLoading(true);
 
     try {
@@ -61,8 +67,9 @@ export default function GoalCreateScreen() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userMessage: text,
+          ...(text ? { userMessage: text } : {}),
           conversationHistory: messages,
+          finalize,
         }),
       });
 
@@ -71,10 +78,12 @@ export default function GoalCreateScreen() {
           error?: string;
           details?: string;
           requestId?: string;
+          finalizeStage?: string;
         };
         const detailMessage = errData.details ? ` ${errData.details}` : '';
+        const stageMessage = errData.finalizeStage ? ` [${errData.finalizeStage}]` : '';
         const requestMessage = errData.requestId ? ` (Request ${errData.requestId})` : '';
-        throw new Error((errData.error ?? `Request failed: ${response.status}`) + detailMessage + requestMessage);
+        throw new Error((errData.error ?? `Request failed: ${response.status}`) + stageMessage + detailMessage + requestMessage);
       }
 
       const data = (await response.json()) as {
@@ -82,9 +91,12 @@ export default function GoalCreateScreen() {
         message: string;
         isComplete: boolean;
         goalData?: GoalData;
+        finalizedBy?: 'assistant' | 'user';
       };
 
-      setMessages([...updatedMessages, { role: 'assistant', content: data.message }]);
+      if (!data.isComplete && data.message) {
+        setMessages([...updatedMessages, { role: 'assistant', content: data.message }]);
+      }
 
       if (data.isComplete && data.goalData) {
         setSavingGoal(true);
@@ -102,6 +114,7 @@ export default function GoalCreateScreen() {
               requestId: data.requestId,
               goalId: saveResult.goalId,
               warning: saveResult.warning,
+              finalizedBy: data.finalizedBy,
             });
           }
 
@@ -110,6 +123,7 @@ export default function GoalCreateScreen() {
           console.error('[goal-create-screen] goal save failed', {
             requestId: data.requestId,
             error: saveResult.error,
+            finalizedBy: data.finalizedBy,
           });
           setError(
             `Goal created by AI but failed to save. ${saveResult.error ?? 'Please try again.'} (Request ${data.requestId})`,
@@ -123,14 +137,22 @@ export default function GoalCreateScreen() {
     }
   }
 
+  async function handleSend() {
+    await submitGoalChat();
+  }
+
+  async function handleCreateGoal() {
+    await submitGoalChat({ finalize: true });
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0A0F' }}>
       {/* Nav */}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingHorizontal: 16,
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: 16,
           paddingVertical: 10,
           borderBottomWidth: 1,
           borderBottomColor: '#1E1E2E',
@@ -146,6 +168,21 @@ export default function GoalCreateScreen() {
         </TouchableOpacity>
         <View style={{ width: 1, height: 16, backgroundColor: '#1E1E2E', marginRight: 12 }} />
         <Text style={{ color: '#FAFAFA', fontWeight: '600', fontSize: 15 }}>New goal</Text>
+        <View style={{ flex: 1 }} />
+        <TouchableOpacity
+          onPress={handleCreateGoal}
+          disabled={(messages.length === 0 && !input.trim()) || isLoading || savingGoal}
+          style={{
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 999,
+            backgroundColor:
+              (messages.length > 0 || input.trim()) && !isLoading && !savingGoal ? '#1D6F5F' : '#1E1E2E',
+          }}
+          activeOpacity={0.7}
+        >
+          <Text style={{ color: '#FAFAFA', fontSize: 13, fontWeight: '600' }}>Create goal</Text>
+        </TouchableOpacity>
       </View>
 
       <KeyboardAvoidingView

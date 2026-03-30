@@ -38,12 +38,33 @@ export interface GoalFinalizeResponse {
   };
   measurables: GoalFinalizeMeasurable[];
   reasoning: string;
+  assumptions?: string[];
+}
+
+function extractJsonObject(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    throw new Error('Goal finalization response is empty');
+  }
+
+  const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (fencedMatch?.[1]) {
+    return fencedMatch[1].trim();
+  }
+
+  const firstBrace = trimmed.indexOf('{');
+  const lastBrace = trimmed.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    return trimmed.slice(firstBrace, lastBrace + 1);
+  }
+
+  return trimmed;
 }
 
 export function parseGoalFinalizeResponse(raw: string): GoalFinalizeResponse {
   let parsed: unknown;
   try {
-    parsed = JSON.parse(raw);
+    parsed = JSON.parse(extractJsonObject(raw));
   } catch {
     throw new Error('Goal finalization response is not valid JSON');
   }
@@ -68,6 +89,9 @@ export function parseGoalFinalizeResponse(raw: string): GoalFinalizeResponse {
   if (!VALID_CATEGORIES.includes(g.category as GoalCategory)) {
     throw new Error(`goal.category must be one of: ${VALID_CATEGORIES.join(', ')}`);
   }
+  if (g.deadline !== null && typeof g.deadline !== 'string') {
+    throw new Error('goal.deadline must be a string or null');
+  }
   if (typeof g.smart !== 'object' || g.smart === null) {
     throw new Error('goal.smart must be an object');
   }
@@ -90,6 +114,16 @@ export function parseGoalFinalizeResponse(raw: string): GoalFinalizeResponse {
     }
     if (!VALID_FREQUENCIES.includes(mObj.frequency as MeasurableFrequency)) {
       throw new Error(`measurable.frequency must be one of: ${VALID_FREQUENCIES.join(', ')}`);
+    }
+  }
+
+  if (typeof obj.reasoning !== 'string') {
+    throw new Error('reasoning must be a string');
+  }
+
+  if (obj.assumptions !== undefined) {
+    if (!Array.isArray(obj.assumptions) || obj.assumptions.some((item) => typeof item !== 'string')) {
+      throw new Error('assumptions must be an array of strings');
     }
   }
 

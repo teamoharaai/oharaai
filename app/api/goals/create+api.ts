@@ -10,8 +10,9 @@ type ConversationMessage = { role: 'user' | 'assistant'; content: string };
 // userId must NEVER come from the request body — it must come from the session.
 // It is intentionally excluded from this interface.
 interface RequestBody {
-  userMessage: string;
+  userMessage?: string;
   conversationHistory?: ConversationMessage[];
+  finalize?: boolean;
 }
 
 interface SmartData {
@@ -40,6 +41,7 @@ export interface GoalData {
   };
   measurables: AiMeasurable[];
   reasoning: string;
+  assumptions?: string[];
 }
 
 interface CreateResponse {
@@ -47,6 +49,7 @@ interface CreateResponse {
   message: string;
   isComplete: boolean;
   goalData?: GoalData;
+  finalizedBy?: 'assistant' | 'user';
 }
 
 // ─── Input sanitization ───────────────────────────────────────────────────────
@@ -63,6 +66,18 @@ function sanitizeString(input: unknown, maxLength: number): string {
     .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
   const trimmed = cleaned.trim();
   if (trimmed.length === 0) throw new Error('Value cannot be empty');
+  if (trimmed.length > maxLength) throw new Error(`Value exceeds ${maxLength} character limit`);
+  return trimmed;
+}
+
+function sanitizeOptionalString(input: unknown, maxLength: number): string | null {
+  if (input === undefined || input === null) return null;
+  if (typeof input !== 'string') throw new Error('Expected string');
+  const cleaned = input
+    .replace(/\0/g, '')
+    .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  const trimmed = cleaned.trim();
+  if (trimmed.length === 0) return null;
   if (trimmed.length > maxLength) throw new Error(`Value exceeds ${maxLength} character limit`);
   return trimmed;
 }
@@ -128,8 +143,107 @@ function stripFinalizeSentinel(message: string) {
   return message.replace(FINALIZE_SENTINEL, '').trim();
 }
 
+function stripInternalMarkers(message: string) {
+  return stripFinalizeSentinel(message).replace(/\[\[[A-Z_]+\]\]/g, '').trim();
+}
+
 function shouldFinalize(message: string) {
   return message.includes(FINALIZE_SENTINEL);
+}
+
+function buildTranscript(history: ConversationMessage[]) {
+  return history
+    .map((m) => `${m.role === 'user' ? 'User' : 'Guide'}: ${stripInternalMarkers(m.content)}`)
+    .join('\n\n');
+}
+
+type FinalizeTrigger = 'assistant' | 'user';
+
+class GoalFinalizationError extends Error {
+  stage: 'model_output' | 'validation';
+  attempt: number;
+  rawPreview: string;
+
+  constructor(
+    message: string,
+    options: { stage: 'model_output' | 'validation'; attempt: number; rawPreview: string },
+  ) {
+    super(message);
+    this.name = 'GoalFinalizationError';
+    this.stage = options.stage;
+    this.attempt = options.attempt;
+    this.rawPreview = options.rawPreview;
+  }
+}
+
+async function finalizeGoalFromTranscript({
+  requestId,
+  transcript,
+  trigger,
+}: {
+  requestId: string;
+  transcript: string;
+  trigger: FinalizeTrigger;
+}): Promise<GoalFinalizeResponse> {
+  let lastError: GoalFinalizationError | null = null;
+  let previousOutput: string | null = null;
+
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const repairNote = lastError
+      ? `\n\nYour previous response failed ${lastError.stage === 'model_output' ? 'JSON parsing' : 'validation'}: ${lastError.message}\nReturn STRICT JSON only and fix the issue.`
+      : '';
+
+    const finalResult = await callLLM({
+      pipeline: 'goalCreation',
+      systemPrompt: GOAL_CREATION_FINALIZE_PROMPT,
+      messages: [
+        {
+          role: 'user',
+          content: `Here is the conversation:\n\n${transcript}\n\nProduce the goal JSON now.${repairNote}${previousOutput ? `\n\nPrevious invalid output:\n${previousOutput}` : ''}`,
+        },
+      ],
+    });
+
+    console.info('[goal-create] finalization model response received', {
+      requestId,
+      trigger,
+      attempt,
+      outputPreview: finalResult.text.slice(0, 240),
+    });
+
+    try {
+      const goalData = parseGoalFinalizeResponse(finalResult.text);
+      console.info('[goal-create] finalization parsed successfully', {
+        requestId,
+        trigger,
+        attempt,
+        goalTitle: goalData.goal.title,
+        measurableCount: goalData.measurables.length,
+        assumptionsCount: goalData.assumptions?.length ?? 0,
+      });
+      return goalData;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown finalization error';
+      const stage = message.includes('not valid JSON') ? 'model_output' : 'validation';
+      lastError = new GoalFinalizationError(message, {
+        stage,
+        attempt,
+        rawPreview: finalResult.text.slice(0, 500),
+      });
+      previousOutput = finalResult.text;
+
+      console.error('[goal-create] finalization parse failed', {
+        requestId,
+        trigger,
+        attempt,
+        stage,
+        error: message,
+        outputPreview: finalResult.text.slice(0, 240),
+      });
+    }
+  }
+
+  throw lastError ?? new Error('Goal finalization failed');
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -141,13 +255,20 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  let userMessage: string;
+  let userMessage: string | null;
   let conversationHistory: ConversationMessage[];
+  let finalizeRequested = false;
   try {
-    userMessage = sanitizeString(body.userMessage, MAX_USER_MESSAGE_LENGTH);
+    finalizeRequested = body.finalize === true;
+    userMessage = finalizeRequested
+      ? sanitizeOptionalString(body.userMessage, MAX_USER_MESSAGE_LENGTH)
+      : sanitizeString(body.userMessage, MAX_USER_MESSAGE_LENGTH);
     conversationHistory = body.conversationHistory
       ? sanitizeHistory(body.conversationHistory)
       : [];
+    if (finalizeRequested && !userMessage && conversationHistory.length === 0) {
+      throw new Error('Cannot finalize without any goal conversation');
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Invalid request';
     return Response.json({ error: message }, { status: 400 });
@@ -155,14 +276,57 @@ export async function POST(request: Request): Promise<Response> {
 
   const history: ConversationMessage[] = [
     ...conversationHistory,
-    { role: 'user', content: userMessage },
+    ...(userMessage ? [{ role: 'user' as const, content: userMessage }] : []),
   ];
 
   console.info('[goal-create] request received', {
     requestId,
     historyTurns: history.length,
-    latestUserMessageLength: userMessage.length,
+    latestUserMessageLength: userMessage?.length ?? 0,
+    finalizeRequested,
   });
+
+  if (finalizeRequested) {
+    const transcript = buildTranscript(history);
+
+    try {
+      const goalData = await finalizeGoalFromTranscript({
+        requestId,
+        transcript,
+        trigger: 'user',
+      });
+
+      const response: CreateResponse = {
+        requestId,
+        message: 'Creating your goal from the conversation so far.',
+        isComplete: true,
+        goalData,
+        finalizedBy: 'user',
+      };
+      return Response.json(response);
+    } catch (err) {
+      const error = err instanceof GoalFinalizationError ? err : null;
+      const message = err instanceof Error ? err.message : 'Goal finalization failed';
+      console.error('[goal-create] explicit finalization failed', {
+        requestId,
+        trigger: 'user',
+        stage: error?.stage ?? 'unknown',
+        attempt: error?.attempt ?? null,
+        error: message,
+        rawPreview: error?.rawPreview ?? null,
+      });
+      return Response.json(
+        {
+          error: 'Goal finalization failed',
+          code: 'GOAL_FINALIZATION_FAILED',
+          details: message,
+          finalizeStage: error?.stage ?? 'unknown',
+          requestId,
+        },
+        { status: 422 },
+      );
+    }
+  }
 
   let aiMessage: string;
   try {
@@ -192,46 +356,53 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json(response);
   }
 
-  // Finalization: build conversation transcript and call finalize prompt
-  const transcript = [
-    ...history,
-    { role: 'assistant' as const, content: aiMessage },
-  ]
-    .map((m) => `${m.role === 'user' ? 'User' : 'Guide'}: ${m.content}`)
-    .join('\n\n');
-
   let goalData: GoalFinalizeResponse;
   try {
-    const finalResult = await callLLM({
-      pipeline: 'goalCreation',
-      systemPrompt: GOAL_CREATION_FINALIZE_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: `Here is the conversation:\n\n${transcript}\n\nProduce the goal JSON now.`,
-        },
-      ],
+    const transcript = buildTranscript([
+      ...history,
+      { role: 'assistant' as const, content: aiMessage },
+    ]);
+    goalData = await finalizeGoalFromTranscript({
+      requestId,
+      transcript,
+      trigger: 'assistant',
     });
-
-    goalData = parseGoalFinalizeResponse(finalResult.text);
     console.info('[goal-create] finalization succeeded', {
       requestId,
       goalTitle: goalData.goal.title,
       measurableCount: goalData.measurables.length,
+      assumptionsCount: goalData.assumptions?.length ?? 0,
     });
   } catch (err) {
+    const error = err instanceof GoalFinalizationError ? err : null;
     const message = err instanceof Error ? err.message : 'Goal finalization failed';
     console.error('[goal-create] finalization failed after completion signal', {
       requestId,
+      trigger: 'assistant',
+      stage: error?.stage ?? 'unknown',
+      attempt: error?.attempt ?? null,
       error: message,
       assistantMessage: displayMessage,
+      rawPreview: error?.rawPreview ?? null,
     });
     return Response.json(
-      { error: 'Goal finalization failed after completion signal', details: message, requestId },
+      {
+        error: 'Goal finalization failed after completion signal',
+        code: 'GOAL_FINALIZATION_FAILED',
+        details: message,
+        finalizeStage: error?.stage ?? 'unknown',
+        requestId,
+      },
       { status: 422 },
     );
   }
 
-  const response: CreateResponse = { requestId, message: displayMessage, isComplete: true, goalData };
+  const response: CreateResponse = {
+    requestId,
+    message: displayMessage,
+    isComplete: true,
+    goalData,
+    finalizedBy: 'assistant',
+  };
   return Response.json(response);
 }
