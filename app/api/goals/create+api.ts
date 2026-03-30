@@ -119,7 +119,6 @@ export function validateGoalPayload(body: unknown) {
 // ─── Route handler ────────────────────────────────────────────────────────────
 
 const FINALIZE_SENTINEL = '[[GOAL_READY]]';
-const LEGACY_FINALIZE_SIGNAL = /i think i have what i need/i;
 
 function createRequestId() {
   return `goal-create-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -130,7 +129,7 @@ function stripFinalizeSentinel(message: string) {
 }
 
 function shouldFinalize(message: string) {
-  return message.includes(FINALIZE_SENTINEL) || LEGACY_FINALIZE_SIGNAL.test(message);
+  return message.includes(FINALIZE_SENTINEL);
 }
 
 export async function POST(request: Request): Promise<Response> {
