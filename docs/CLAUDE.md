@@ -2,6 +2,12 @@
 
 > Single source of truth for Claude Code sessions. Last updated: 2026-03-29
 
+## Security & infrastructure (2026-03-29)
+
+- [x] Auth callback verified: `vercel.json` created with catch-all rewrite to `/` (NOT `/index.html` — app.json uses `"output": "server"`, so SSR handles routing). `callback.tsx` correctly implements PKCE flow. `(auth)/_layout.tsx` has no auth guard so callback is freely accessible.
+- [x] Input sanitization on `app/api/goals/create+api.ts`: strips null bytes + control chars, enforces max lengths (userMessage: 4000, history: 40 turns × 4000 chars each). `userId` removed from `RequestBody` — must always come from session. `validateGoalPayload` helper added for use when DB writes are wired in.
+- [x] RLS policies verified in `supabase/migrations/002_enable_rls.sql`: all tables have SELECT/INSERT/UPDATE/DELETE policies gated on `user_id = auth.uid()`. Two-account isolation test at `scripts/test-rls.ts` (requires `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`).
+
 ## Project
 
 Ohara is a goal-first social platform. Users create SMART goals, journal in "Starlog," and build a character profile through AI-powered conversation summarization. Raw conversations are never stored — only structured summaries. This is non-negotiable.
