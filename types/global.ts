@@ -1,6 +1,7 @@
-export type GoalCategory = 'body' | 'mind' | 'money' | 'create' | 'connect' | 'contribute';
+import type { GoalCategory, GoalDbStatus, GoalSmartData } from '@/lib/goals/schema';
+
 export type GoalMode = 'exploration' | 'commitment';
-export type GoalStatus = 'active' | 'complete' | 'stagnant' | 'discovered';
+export type GoalStatus = GoalDbStatus;
 export type BRTClassification = 'bud' | 'rose' | 'thorn';
 
 export interface Profile {
@@ -23,14 +24,7 @@ export interface Goal {
   status: GoalStatus;
   is_private: boolean;
   community_id: string | null;
-  smart_data: {
-    specific?: string;
-    measurable?: string;
-    achievable?: string;
-    relevant?: string;
-    time_bound?: string;
-    [key: string]: unknown;
-  };
+  smart_data: Partial<GoalSmartData>;
   created_at: string;
   updated_at: string;
 }

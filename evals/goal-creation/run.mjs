@@ -136,12 +136,11 @@ function countQuestions(text) {
 function isStructuredDraft(text) {
   const normalized = text.toLowerCase();
   const signals = [
-    /goal title|title:/,
+    /draft title|goal title|title:/,
     /summary:|what this looks like|draft/,
-    /why it matters|why:/,
-    /category:/,
-    /timeframe:|target date|deadline:/,
-    /milestones?|next steps?/,
+    /why this matters|why it matters|why:/,
+    /assumed timeline|timeframe:|target date|deadline:/,
+    /first milestones?|milestones?|next steps?/,
     /assumptions?:/,
   ];
   return signals.filter((pattern) => pattern.test(normalized)).length >= 3;

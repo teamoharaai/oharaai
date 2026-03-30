@@ -43,31 +43,41 @@ Every pipeline in `lib/ai/pipelines/` must:
 {
   goal: {
     title: string,           // max 100 chars
-    description: string,     // max 500 chars
+    description: string,     // max 300 chars
     category: string,        // must be one of GOAL_CATEGORIES from constants
-    deadline: string,        // ISO 8601 date string, must be future
+    deadline: string | null, // YYYY-MM-DD or null for open-ended goals
+    smart: {
+      specific: string,
+      measurable: string,
+      achievable: string,
+      relevant: string,
+      timeBound: string
+    }
   },
   measurables: {             // 1-5 items, AI-suggested
     title: string,           // max 80 chars
     type: "counter" | "habit" | "checklist",
-    targetValue?: number,    // required for counter and habit, omit for checklist
-    targetUnit?: string,     // required for counter, optional for habit
+    targetValue: number | null,
+    targetUnit: string | null,
     frequency: "daily" | "weekly" | "monthly" | "once",
   }[],
-  reasoning: string          // internal only — why the AI structured the goal this way
+  reasoning: string,         // internal only — why the AI structured the goal this way
                              // stored in ai_usage log, never shown to user
+  assumptions: string[]      // normalized to [] when no explicit assumptions are needed
 }
 ```
 
 ### Validation rules
 - `goal.title` must not be empty, max 100 chars
 - `goal.category` must match a value in `constants/features.ts → GOAL_CATEGORIES`
-- `goal.deadline` must parse as a valid future date
+- `goal.deadline` must be either `null` or a date string
+- `goal.smart` must include all five string fields
 - `measurables` array must have 1-5 items
 - If `type === "counter"`, `targetValue` and `targetUnit` are required
-- If `type === "habit"`, `targetValue` is optional (defaults to 1)
-- If `type === "checklist"`, `targetValue` and `targetUnit` must be omitted
+- If `type === "habit"`, `targetValue` and `targetUnit` may be present but are not required
+- If `type === "checklist"`, `targetValue` and `targetUnit` must be `null`
 - `frequency` is required for all types
+- `assumptions` is always present after normalization
 
 ### On validation failure
 1. Log error to `ai_usage` with `error: "schema_validation_failed"`

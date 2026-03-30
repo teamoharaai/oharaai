@@ -12,10 +12,10 @@ import {
 import { useState, useRef, useEffect } from 'react';
 import { router } from 'expo-router';
 import supabase from '@/lib/db/client';
-import { createGoalWithMeasurables, type AiGoalData } from '@/lib/db/goals';
+import { createGoalWithMeasurables } from '@/lib/db/goals';
 import { fetchGoalById } from '@/features/goals/services/goal-service';
 import { useGoalStore } from '@/features/goals/store';
-import type { GoalData } from '@/app/api/goals/create+api';
+import type { GoalFinalizeResponse } from '@/lib/ai/schemas/goal-creation';
 
 type ConversationMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -90,7 +90,7 @@ export default function GoalCreateScreen() {
         requestId: string;
         message: string;
         isComplete: boolean;
-        goalData?: GoalData;
+        goalData?: GoalFinalizeResponse;
         finalizedBy?: 'assistant' | 'user';
       };
 
@@ -100,7 +100,7 @@ export default function GoalCreateScreen() {
 
       if (data.isComplete && data.goalData) {
         setSavingGoal(true);
-        const saveResult = await createGoalWithMeasurables(user.id, data.goalData as AiGoalData, {
+        const saveResult = await createGoalWithMeasurables(user.id, data.goalData, {
           requestId: data.requestId,
         });
         setSavingGoal(false);

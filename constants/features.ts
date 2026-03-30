@@ -1,3 +1,5 @@
+export { GOAL_CATEGORIES } from '@/lib/goals/schema';
+
 export const FEATURES = {
   STARLOG_ENABLED: false,
   INTELLIGENCE_ENABLED: false,
@@ -11,5 +13,3 @@ export const AI_FEATURES = {
   STARLOG_REFLECT_PIPELINE: false,
   SUMMARIZE_PIPELINE: false,
 } as const;
-
-export const GOAL_CATEGORIES = ['body', 'mind', 'money', 'create', 'connect', 'contribute'] as const;

@@ -14,7 +14,7 @@ This harness evaluates the existing goal-creation API flow against a fixed fixtu
 ### Time to first structured draft
 
 - Measured in milliseconds from the first user request until the first assistant message that looks like a concrete draft.
-- Draft detection is heuristic: the response should contain at least three draft-style signals such as a title, summary, category, timeframe, milestones, next steps, or assumptions.
+- Draft detection is heuristic: the response should contain at least three draft-style signals such as a draft title, summary, why this matters, assumed timeline, first milestones, or assumptions.
 - Score:
   - `5`: first assistant turn is structured
   - `3`: structured by the second assistant turn

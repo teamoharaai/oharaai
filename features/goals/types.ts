@@ -1,21 +1,29 @@
 import type { GoalTheme } from '@/constants/themes';
+import type {
+  GoalCategory,
+  GoalDbStatus,
+  GoalMeasurableFrequency,
+  GoalMeasurableType,
+  GoalSmartData,
+} from '@/lib/goals/schema';
 
-export type GoalStatus = 'active' | 'paused' | 'completed' | 'archived';
-export type MeasurableType = 'counter' | 'habit' | 'checklist';
-export type MeasurableFrequency = 'daily' | 'weekly' | 'monthly' | 'once';
+export type GoalStatus = GoalDbStatus;
+export type MeasurableType = GoalMeasurableType;
+export type MeasurableFrequency = GoalMeasurableFrequency;
 
 export interface Goal {
   id: string;
   userId: string;
   title: string;
-  description?: string;
-  category: string;
+  description: string | null;
+  category: GoalCategory;
   colorTheme: GoalTheme;
-  deadline?: Date;
+  deadline: Date | null;
   isPublic: boolean;
   progress: number;
   status: GoalStatus;
   aiGenerated: boolean;
+  smartData: GoalSmartData | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,9 +33,9 @@ export interface Measurable {
   goalId: string;
   title: string;
   type: MeasurableType;
-  targetValue?: number;
-  targetUnit?: string;
-  frequency?: MeasurableFrequency;
+  targetValue: number | null;
+  targetUnit: string | null;
+  frequency: MeasurableFrequency | null;
   currentValue: number;
   isAiSuggested: boolean;
   sortOrder: number;

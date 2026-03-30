@@ -3,42 +3,38 @@
 // See docs/AI_RESPONSE_SCHEMA.md for the full contract.
 // TODO: Replace manual validation with Zod once `zod` is installed.
 
-import type { GoalCategory } from '../prompts/goal-creation';
-
-const VALID_CATEGORIES: ReadonlyArray<GoalCategory> = [
-  'body', 'mind', 'money', 'create', 'connect', 'contribute',
-];
-const VALID_TYPES = ['counter', 'habit', 'checklist'] as const;
-const VALID_FREQUENCIES = ['daily', 'weekly', 'monthly', 'once'] as const;
-
-export type MeasurableType = (typeof VALID_TYPES)[number];
-export type MeasurableFrequency = (typeof VALID_FREQUENCIES)[number];
+import {
+  GOAL_CATEGORIES,
+  GOAL_MEASURABLE_FREQUENCIES,
+  GOAL_MEASURABLE_TYPES,
+  GOAL_SMART_KEYS,
+  type GoalCategory,
+  type GoalMeasurableFrequency,
+  type GoalMeasurableType,
+  type GoalSmartData,
+} from '@/lib/goals/schema';
 
 export interface GoalFinalizeMeasurable {
   title: string;
-  type: MeasurableType;
+  type: GoalMeasurableType;
   targetValue: number | null;
   targetUnit: string | null;
-  frequency: MeasurableFrequency;
+  frequency: GoalMeasurableFrequency;
+}
+
+export interface GoalFinalizeGoal {
+  title: string;
+  description: string;
+  category: GoalCategory;
+  deadline: string | null;
+  smart: GoalSmartData;
 }
 
 export interface GoalFinalizeResponse {
-  goal: {
-    title: string;
-    description: string;
-    category: GoalCategory;
-    deadline: string | null;
-    smart: {
-      specific: string;
-      measurable: string;
-      achievable: string;
-      relevant: string;
-      timeBound: string;
-    };
-  };
+  goal: GoalFinalizeGoal;
   measurables: GoalFinalizeMeasurable[];
   reasoning: string;
-  assumptions?: string[];
+  assumptions: string[];
 }
 
 function parseGoalFinalizeJson(raw: string): unknown {
@@ -72,8 +68,8 @@ export function validateGoalFinalizeResponse(parsed: unknown): GoalFinalizeRespo
   if (typeof g.description !== 'string') {
     throw new Error('goal.description must be a string');
   }
-  if (!VALID_CATEGORIES.includes(g.category as GoalCategory)) {
-    throw new Error(`goal.category must be one of: ${VALID_CATEGORIES.join(', ')}`);
+  if (!GOAL_CATEGORIES.includes(g.category as GoalCategory)) {
+    throw new Error(`goal.category must be one of: ${GOAL_CATEGORIES.join(', ')}`);
   }
   if (g.deadline !== null && typeof g.deadline !== 'string') {
     throw new Error('goal.deadline must be a string or null');
@@ -82,7 +78,7 @@ export function validateGoalFinalizeResponse(parsed: unknown): GoalFinalizeRespo
     throw new Error('goal.smart must be an object');
   }
   const smart = g.smart as Record<string, unknown>;
-  for (const key of ['specific', 'measurable', 'achievable', 'relevant', 'timeBound']) {
+  for (const key of GOAL_SMART_KEYS) {
     if (typeof smart[key] !== 'string') {
       throw new Error(`goal.smart.${key} must be a string`);
     }
@@ -97,11 +93,11 @@ export function validateGoalFinalizeResponse(parsed: unknown): GoalFinalizeRespo
     if (typeof mObj.title !== 'string' || mObj.title.trim() === '') {
       throw new Error(`measurable[${index}].title must be a non-empty string`);
     }
-    if (!VALID_TYPES.includes(mObj.type as MeasurableType)) {
-      throw new Error(`measurable[${index}].type must be one of: ${VALID_TYPES.join(', ')}`);
+    if (!GOAL_MEASURABLE_TYPES.includes(mObj.type as GoalMeasurableType)) {
+      throw new Error(`measurable[${index}].type must be one of: ${GOAL_MEASURABLE_TYPES.join(', ')}`);
     }
-    if (!VALID_FREQUENCIES.includes(mObj.frequency as MeasurableFrequency)) {
-      throw new Error(`measurable[${index}].frequency must be one of: ${VALID_FREQUENCIES.join(', ')}`);
+    if (!GOAL_MEASURABLE_FREQUENCIES.includes(mObj.frequency as GoalMeasurableFrequency)) {
+      throw new Error(`measurable[${index}].frequency must be one of: ${GOAL_MEASURABLE_FREQUENCIES.join(', ')}`);
     }
     if (mObj.targetValue !== null && typeof mObj.targetValue !== 'number') {
       throw new Error(`measurable[${index}].targetValue must be a number or null`);
@@ -133,13 +129,38 @@ export function validateGoalFinalizeResponse(parsed: unknown): GoalFinalizeRespo
     throw new Error('reasoning must be a string');
   }
 
-  if (obj.assumptions !== undefined) {
-    if (!Array.isArray(obj.assumptions) || obj.assumptions.some((item) => typeof item !== 'string')) {
-      throw new Error('assumptions must be an array of strings');
-    }
+  const assumptions = obj.assumptions;
+  if (assumptions !== undefined && (!Array.isArray(assumptions) || assumptions.some((item) => typeof item !== 'string'))) {
+    throw new Error('assumptions must be an array of strings');
   }
 
-  return parsed as GoalFinalizeResponse;
+  return {
+    goal: {
+      title: g.title.trim(),
+      description: g.description.trim(),
+      category: g.category as GoalCategory,
+      deadline: g.deadline,
+      smart: {
+        specific: String(smart.specific).trim(),
+        measurable: String(smart.measurable).trim(),
+        achievable: String(smart.achievable).trim(),
+        relevant: String(smart.relevant).trim(),
+        timeBound: String(smart.timeBound).trim(),
+      },
+    },
+    measurables: (obj.measurables as unknown[]).map((m) => {
+      const mObj = m as Record<string, unknown>;
+      return {
+        title: String(mObj.title).trim(),
+        type: mObj.type as GoalMeasurableType,
+        targetValue: mObj.targetValue as number | null,
+        targetUnit: typeof mObj.targetUnit === 'string' ? mObj.targetUnit.trim() : null,
+        frequency: mObj.frequency as GoalMeasurableFrequency,
+      };
+    }),
+    reasoning: obj.reasoning.trim(),
+    assumptions: (assumptions as string[] | undefined)?.map((item) => item.trim()).filter(Boolean) ?? [],
+  };
 }
 
 export function parseGoalFinalizeResponse(raw: string): GoalFinalizeResponse {

@@ -2,8 +2,6 @@ import supabase from './client';
 import type { GoalTheme } from '@/constants/themes';
 import type { GoalFinalizeResponse } from '@/lib/ai/schemas/goal-creation';
 
-export type AiGoalData = GoalFinalizeResponse;
-
 export interface CreateGoalWithMeasurablesResult {
   goalId: string | null;
   error: string | null;
@@ -41,7 +39,7 @@ function normalizeDeadlineForPersistence(deadline: string | null): string | null
   return null;
 }
 
-function mapAiGoalDataToDbInserts(aiData: AiGoalData, userId: string) {
+function mapAiGoalDataToDbInserts(aiData: GoalFinalizeResponse, userId: string) {
   const colorTheme: GoalTheme = CATEGORY_THEME[aiData.goal.category] ?? 'ocean';
   const normalizedDeadline = normalizeDeadlineForPersistence(aiData.goal.deadline);
 
@@ -81,7 +79,7 @@ function mapAiGoalDataToDbInserts(aiData: AiGoalData, userId: string) {
  */
 export async function createGoalWithMeasurables(
   userId: string,
-  aiData: AiGoalData,
+  aiData: GoalFinalizeResponse,
   options?: { requestId?: string },
 ): Promise<CreateGoalWithMeasurablesResult> {
   const requestId = options?.requestId ?? null;

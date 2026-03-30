@@ -1,4 +1,3 @@
-# API Contract — TODO
 # API Contract — Ohara
 
 > Strict contract between frontend and backend. Frozen per sprint.
@@ -64,7 +63,7 @@ List the authenticated user's goals.
 **Query params:**
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
-| status | string | "active" | Filter: "active", "paused", "completed", "archived", "all" |
+| status | string | "active" | Filter: "active", "complete", "stagnant", "discovered", "all" |
 | category | string | — | Filter by category |
 | cursor | string | — | Pagination cursor (goal ID) |
 | limit | number | 20 | Results per page (max 50) |
@@ -81,8 +80,15 @@ List the authenticated user's goals.
     deadline: string | null,       // ISO 8601
     isPublic: boolean,
     progress: number,              // 0-100
-    status: "active" | "paused" | "completed" | "archived",
+    status: "active" | "complete" | "stagnant" | "discovered",
     aiGenerated: boolean,
+    smartData: {                   // SMART breakdown; all keys always present
+      specific: string,
+      measurable: string,
+      achievable: string,
+      relevant: string,
+      timeBound: string
+    } | null,
     measurableCount: number,       // count, not full objects
     createdAt: string,
     updatedAt: string
@@ -108,8 +114,15 @@ Get a single goal with its measurables and recent activity.
     deadline: string | null,
     isPublic: boolean,
     progress: number,
-    status: "active" | "paused" | "completed" | "archived",
+    status: "active" | "complete" | "stagnant" | "discovered",
     aiGenerated: boolean,
+    smartData: {                   // SMART breakdown; all keys always present
+      specific: string,
+      measurable: string,
+      achievable: string,
+      relevant: string,
+      timeBound: string
+    },                             // required on hydrated goal; null only if goal predates SMART migration
     createdAt: string,
     updatedAt: string,
     measurables: {
@@ -127,9 +140,9 @@ Get a single goal with its measurables and recent activity.
     }[],
     recentEntries: {               // last 10 starlog entries for this goal
       id: string,
-      rawText: string,
+      content: string,
       mediaUrl: string | null,
-      aiOptedIn: boolean,
+      aiInsightRequested: boolean,
       classification: "GROWTH" | "REALITY" | "OBSTACLE" | null,
       aiResponse: string | null,
       createdAt: string
@@ -179,6 +192,72 @@ Create a new goal with measurables.
 
 ---
 
+#### `POST /api/goals/create` — AI goal creation (conversational)
+Drive the multi-turn goal creation conversation and finalize a SMART goal. This endpoint is served by the Expo API route (`app/api/goals/create+api.ts`), not the `/api/v1/` prefix.
+
+**Request body:**
+```typescript
+{
+  userMessage?: string,          // omit when finalize: true with no new text
+  conversationHistory: {
+    role: "user" | "assistant",
+    content: string
+  }[],
+  finalize?: boolean             // true = skip drafting, finalize immediately
+}
+```
+
+**Response `200` — drafting turn (isComplete: false):**
+```typescript
+{
+  requestId: string,
+  message: string,               // assistant reply to display in chat
+  isComplete: false
+}
+```
+
+**Response `200` — finalized (isComplete: true):**
+```typescript
+{
+  requestId: string,
+  message: string,
+  isComplete: true,
+  finalizedBy: "assistant" | "user",
+  goalData: {                    // GoalFinalizeResponse — save this to DB
+    goal: {
+      title: string,
+      description: string,
+      category: "body" | "mind" | "money" | "create" | "connect" | "contribute",
+      deadline: string | null,   // ISO 8601 or null
+      smart: {
+        specific: string,
+        measurable: string,
+        achievable: string,
+        relevant: string,
+        timeBound: string
+      }
+    },
+    measurables: {
+      title: string,
+      type: "counter" | "habit" | "checklist",
+      targetValue: number | null,
+      targetUnit: string | null,
+      frequency: "daily" | "weekly" | "monthly" | "once"
+    }[],
+    reasoning: string,
+    assumptions: string[]        // always present; empty array if none
+  }
+}
+```
+
+**Notes:**
+- `userId` is never accepted in the request body — always resolved from the session JWT server-side.
+- `assumptions` is always `string[]`. The array is empty (`[]`) when no assumptions were made, never `null` or `undefined`.
+- The client is responsible for calling `lib/db/goals.createGoalWithMeasurables` after receiving `isComplete: true`.
+- `requestId` is a UUID generated per request — include it in all error reports.
+
+---
+
 #### `PATCH /api/v1/goals/:id`
 Update a goal's editable fields.
 
@@ -190,7 +269,7 @@ Update a goal's editable fields.
   category?: string,
   deadline?: string,
   isPublic?: boolean,
-  status?: "active" | "paused" | "completed" | "archived"
+  status?: "active" | "complete" | "stagnant" | "discovered"
 }
 ```
 
@@ -198,7 +277,7 @@ Update a goal's editable fields.
 
 **Notes:**
 - Changing `category` re-assigns `colorTheme` automatically.
-- Setting `status: "completed"` triggers a completion timestamp (server-side).
+- Setting `status: "complete"` triggers a completion timestamp (server-side).
 
 ---
 
@@ -308,9 +387,9 @@ List the authenticated user's journal entries.
   data: {
     id: string,
     goalId: string | null,
-    rawText: string,
+    content: string,
     mediaUrl: string | null,
-    aiOptedIn: boolean,
+    aiInsightRequested: boolean,
     classification: "GROWTH" | "REALITY" | "OBSTACLE" | null,
     confidence: number | null,
     themes: string[] | null,
@@ -330,7 +409,7 @@ Create a new journal entry.
 **Request body:**
 ```typescript
 {
-  rawText: string,             // required, max 5000 chars
+  content: string,             // required, max 5000 chars
   goalId?: string,             // optional — links entry to a goal
   mediaUrl?: string            // optional — URL to uploaded media (see Media section)
 }
@@ -492,5 +571,5 @@ PATCH  /api/v1/instance/:id/settings     — instance-level settings
 5. **Never remove a field from a response** without deprecation — add a new field alongside the old one, mark old as deprecated, remove in next phase.
 6. **Never change a field's type** (e.g., `string` → `number`) — that's a breaking change requiring a new endpoint version.
 
-> Contract version: 1.0 — Phase 1
-> Last updated: 2026-03-29
+> Contract version: 1.1 — Phase 1
+> Last updated: 2026-03-30

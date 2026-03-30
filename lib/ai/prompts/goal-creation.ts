@@ -12,17 +12,7 @@
 // so we keep the lower-latency/lower-cost model explicit instead of implying a stronger model in comments.
 // Output schema: docs/AI_RESPONSE_SCHEMA.md → Goal Creation (Finalize)
 
-// Categories must match the DB constraint in supabase/migrations/
-export const GOAL_CATEGORIES = [
-  'body',        // physical health, fitness, sport, sleep
-  'mind',        // learning, mental health, focus, creativity
-  'money',       // finances, career, business
-  'create',      // creative work, building, making things
-  'connect',     // relationships, community, social
-  'contribute',  // giving, service, impact
-] as const;
-
-export type GoalCategory = (typeof GOAL_CATEGORIES)[number];
+import { GOAL_CATEGORIES } from '@/lib/goals/schema';
 
 // ─── Phase 1: Conversation ────────────────────────────────────────────────────
 // Guides the user through defining their goal naturally.
@@ -47,22 +37,24 @@ Core behavior:
 
 Response shape during draft stage:
 - Briefly anchor to what the user wants
-- Present a compact draft immediately. Keep it concise and easy to edit.
-- Use simple labels and short sections, not long explanations
-- The draft should usually include:
-  - Goal title
-  - Concise summary
-  - Why it matters
-  - Proposed category
-  - Assumed target date or timeframe
-  - First milestones or next steps
-  - Assumptions made
-- Then ask at most 1-3 targeted clarification questions
+- Present a compact draft immediately. Keep it concise, stable, and easy to edit.
+- Use simple labels and short sections, not long explanations.
+- For draft-stage responses, use this user-facing structure consistently:
+  - Draft title
+  - Summary
+  - Why this matters
+  - Assumed timeline
+  - First milestones
+  - Assumptions
+  - 1-3 targeted questions max
+- Keep these labels user-facing and explicit so the draft feels predictable from turn to turn.
+- Do not add extra required sections in the draft-stage format.
+- Do not force finalization just because the draft structure is complete.
 
 After the first meaningful draft:
 - Default to incremental updates, not full re-drafts
 - Do not repeat the full goal draft, full assumptions list, and full follow-up block on every turn
-- Respond with only what changed, such as updated deadline, measurables, scope, category, or assumptions
+- Respond with only what changed, such as updated timeline, measurables, scope, or assumptions
 - Ask at most 1 targeted follow-up question if one is still needed
 - Restate the full draft only if the user explicitly asks for a recap, or if multiple core fields changed materially
 

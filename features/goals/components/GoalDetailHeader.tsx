@@ -10,6 +10,20 @@ interface GoalDetailHeaderProps {
   goal: GoalWithMeasurables;
 }
 
+function getStatusBadgeVariant(status: GoalWithMeasurables['status']): 'active' | 'complete' | 'paused' | 'archived' {
+  switch (status) {
+    case 'active':
+      return 'active';
+    case 'stagnant':
+      return 'paused';
+    case 'discovered':
+      return 'archived';
+    case 'complete':
+    default:
+      return 'complete';
+  }
+}
+
 export function GoalDetailHeader({ goal }: GoalDetailHeaderProps) {
   const [descExpanded, setDescExpanded] = useState(false);
   const theme = GOAL_THEMES[goal.colorTheme];
@@ -19,7 +33,7 @@ export function GoalDetailHeader({ goal }: GoalDetailHeaderProps) {
       {/* Badges */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
         <Badge label={goal.category} variant="category" />
-        <Badge label={goal.status} variant={goal.status === 'active' ? 'active' : 'complete'} />
+        <Badge label={goal.status} variant={getStatusBadgeVariant(goal.status)} />
         {goal.aiGenerated && <Badge label="AI" variant="ai" />}
       </View>
 

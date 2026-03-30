@@ -19,40 +19,11 @@ interface RequestBody {
   finalize?: boolean;
 }
 
-interface SmartData {
-  specific: string;
-  measurable: string;
-  achievable: string;
-  relevant: string;
-  timeBound: string;
-}
-
-interface AiMeasurable {
-  title: string;
-  type: 'counter' | 'habit' | 'checklist';
-  targetValue: number | null;
-  targetUnit: string | null;
-  frequency: 'daily' | 'weekly' | 'monthly' | 'once';
-}
-
-export interface GoalData {
-  goal: {
-    title: string;
-    description: string;
-    category: string;
-    deadline: string | null;
-    smart: SmartData;
-  };
-  measurables: AiMeasurable[];
-  reasoning: string;
-  assumptions?: string[];
-}
-
 interface CreateResponse {
   requestId: string;
   message: string;
   isComplete: boolean;
-  goalData?: GoalData;
+  goalData?: GoalFinalizeResponse;
   finalizedBy?: 'assistant' | 'user';
 }
 
@@ -98,41 +69,6 @@ function sanitizeHistory(raw: unknown): ConversationMessage[] {
       content: sanitizeString(content, MAX_HISTORY_MESSAGE_LENGTH),
     };
   });
-}
-
-// ─── Goal payload validation (used when writing to DB) ───────────────────────
-
-const VALID_CATEGORIES = ['body', 'mind', 'money', 'create', 'connect', 'contribute'] as const;
-const VALID_MODES = ['exploration', 'commitment'] as const;
-
-function validateFutureDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) throw new Error('Invalid date');
-  if (date < new Date()) throw new Error('Deadline must be in the future');
-  return date.toISOString();
-}
-
-export function validateGoalPayload(body: unknown) {
-  if (!body || typeof body !== 'object') throw new Error('Invalid payload');
-  const b = body as Record<string, unknown>;
-
-  const category = b.category;
-  if (!VALID_CATEGORIES.includes(category as (typeof VALID_CATEGORIES)[number])) {
-    throw new Error('Invalid category');
-  }
-
-  const mode = b.mode;
-  if (!VALID_MODES.includes(mode as (typeof VALID_MODES)[number])) {
-    throw new Error('Invalid mode');
-  }
-
-  return {
-    title: sanitizeString(b.title, 200),
-    description: b.description ? sanitizeString(b.description as string, 2000) : null,
-    category: category as string,
-    mode: mode as string,
-    deadline: b.deadline ? validateFutureDate(b.deadline as string) : null,
-  };
 }
 
 // ─── Route handler ────────────────────────────────────────────────────────────
