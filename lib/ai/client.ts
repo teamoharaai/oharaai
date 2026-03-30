@@ -8,14 +8,17 @@ interface CallLLMParams {
   /** Single-turn: provide userMessage. Multi-turn: provide messages array. */
   userMessage?: string;
   messages?: ConversationMessage[];
+  assistantPrefill?: string;
   model?: string;
   maxTokens?: number;
+  stopSequences?: string[];
 }
 
 interface CallLLMResult {
   text: string;
   inputTokens: number;
   outputTokens: number;
+  model: string;
 }
 
 interface AnthropicMessageResponse {
@@ -60,6 +63,12 @@ export async function callLLM(params: CallLLMParams): Promise<CallLLMResult> {
     throw new Error(`AI pipeline "${params.pipeline}" is disabled in lib/ai/config.ts`);
   }
 
+  const resolvedModel = resolveModel(params.model ?? pipelineConfig.model);
+  const requestMessages = params.messages ?? [{ role: 'user' as const, content: params.userMessage ?? '' }];
+  const messages = params.assistantPrefill
+    ? [...requestMessages, { role: 'assistant' as const, content: params.assistantPrefill }]
+    : requestMessages;
+
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -68,10 +77,11 @@ export async function callLLM(params: CallLLMParams): Promise<CallLLMResult> {
       'x-api-key': getAnthropicApiKey(),
     },
     body: JSON.stringify({
-      model: resolveModel(params.model ?? pipelineConfig.model),
+      model: resolvedModel,
       max_tokens: resolveMaxTokens(params.pipeline, params.maxTokens),
       system: params.systemPrompt,
-      messages: params.messages ?? [{ role: 'user', content: params.userMessage ?? '' }],
+      messages,
+      stop_sequences: params.stopSequences,
     }),
   });
 
@@ -82,19 +92,24 @@ export async function callLLM(params: CallLLMParams): Promise<CallLLMResult> {
     throw new Error(message);
   }
 
-  const text = (data.content ?? [])
+  const continuation = (data.content ?? [])
     .filter((block) => block.type === 'text' && typeof block.text === 'string')
     .map((block) => block.text)
     .join('\n')
     .trim();
 
-  if (!text) {
+  if (!continuation) {
     throw new Error('Anthropic returned no text content.');
   }
+
+  const text = params.assistantPrefill
+    ? `${params.assistantPrefill}${continuation}`
+    : continuation;
 
   return {
     text,
     inputTokens: data.usage?.input_tokens ?? 0,
     outputTokens: data.usage?.output_tokens ?? 0,
+    model: resolvedModel,
   };
 }

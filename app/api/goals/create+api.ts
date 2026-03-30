@@ -139,6 +139,8 @@ export function validateGoalPayload(body: unknown) {
 
 const FINALIZE_SENTINEL = '[[GOAL_READY]]';
 const INTERNAL_MARKER_PATTERN = /\[\[[A-Z0-9_:-]+\]\]/g;
+const FINALIZE_OUTPUT_DEBUG_PREVIEW = 1200;
+const FINALIZE_ASSISTANT_PREFILL = '{';
 
 function createRequestId() {
   return `goal-create-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -165,6 +167,7 @@ class GoalFinalizationError extends Error {
   attempt: number;
   rawPreview: string;
   retryable: boolean;
+  debug?: Record<string, unknown>;
 
   constructor(
     message: string,
@@ -173,6 +176,7 @@ class GoalFinalizationError extends Error {
       attempt: number;
       rawPreview: string;
       retryable?: boolean;
+      debug?: Record<string, unknown>;
     },
   ) {
     super(message);
@@ -181,12 +185,93 @@ class GoalFinalizationError extends Error {
     this.attempt = options.attempt;
     this.rawPreview = options.rawPreview;
     this.retryable = options.retryable ?? false;
+    this.debug = options.debug;
   }
 }
 
 function previewForLog(value: string | null | undefined, maxLength = 240) {
   if (!value) return null;
   return value.slice(0, maxLength);
+}
+
+function analyzeFinalizationOutput(raw: string) {
+  const trimmed = raw.trim();
+  const firstBrace = trimmed.indexOf('{');
+  const lastBrace = trimmed.lastIndexOf('}');
+
+  return {
+    length: trimmed.length,
+    startsWithBrace: trimmed.startsWith('{'),
+    endsWithBrace: trimmed.endsWith('}'),
+    hasCodeFence: trimmed.includes('```'),
+    hasSentinel: trimmed.includes(FINALIZE_SENTINEL),
+    hasInternalMarker: /\[\[[A-Z0-9_:-]+\]\]/.test(trimmed),
+    firstBrace,
+    lastBrace,
+    leadingPreview: trimmed.slice(0, 120),
+    trailingPreview: trimmed.slice(Math.max(0, trimmed.length - 120)),
+  };
+}
+
+function extractEmbeddedJsonObject(raw: string): string | null {
+  const trimmed = raw.trim();
+  const start = trimmed.indexOf('{');
+
+  if (start === -1) {
+    return null;
+  }
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let index = start; index < trimmed.length; index += 1) {
+    const char = trimmed[index];
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === '\\') {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (char === '{') {
+      depth += 1;
+      continue;
+    }
+
+    if (char === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        return trimmed.slice(start, index + 1);
+      }
+    }
+  }
+
+  return null;
+}
+
+function tryRepairFinalizationFormatting(raw: string): GoalFinalizeResponse | null {
+  const extracted = extractEmbeddedJsonObject(raw);
+
+  if (!extracted || extracted === raw.trim()) {
+    return null;
+  }
+
+  try {
+    return parseGoalFinalizeResponse(extracted);
+  } catch {
+    return null;
+  }
 }
 
 function sanitizeTranscriptContent(content: string): { content: string; markersRemoved: number } {
@@ -329,9 +414,11 @@ async function finalizeGoalFromTranscript({
     let finalResult;
     try {
       finalResult = await callLLM({
-        pipeline: 'goalCreation',
+        pipeline: 'goalFinalize',
         systemPrompt,
         messages: [{ role: 'user', content: userContent }],
+        assistantPrefill: FINALIZE_ASSISTANT_PREFILL,
+        stopSequences: ['```'],
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Finalization model call failed';
@@ -353,10 +440,13 @@ async function finalizeGoalFromTranscript({
     }
 
     const responseText = finalResult.text.trim();
+    const responseShape = analyzeFinalizationOutput(responseText);
     console.info('[goal-finalize] model response received', {
       requestId,
       trigger,
       attempt,
+      model: finalResult.model,
+      outputShape: responseShape,
       outputPreview: previewForLog(responseText),
     });
 
@@ -382,6 +472,7 @@ async function finalizeGoalFromTranscript({
         requestId,
         trigger,
         attempt,
+        model: finalResult.model,
         stage: 'schema_validation',
         goalTitle: goalData.goal.title,
         measurableCount: goalData.measurables.length,
@@ -394,11 +485,31 @@ async function finalizeGoalFromTranscript({
         message === 'Goal finalization response is not valid JSON' ||
         message === 'Goal finalization response must be a JSON object'
       ) {
+        const repaired = tryRepairFinalizationFormatting(responseText);
+        if (repaired) {
+          console.warn('[goal-finalize] formatting repair succeeded', {
+            requestId,
+            trigger,
+            attempt,
+            stage: 'json_parse',
+            model: finalResult.model,
+            repairStrategy: 'extract_embedded_json_object',
+            outputShape: responseShape,
+            outputPreview: previewForLog(responseText, FINALIZE_OUTPUT_DEBUG_PREVIEW),
+          });
+          return repaired;
+        }
+
         lastError = new GoalFinalizationError(message, {
           stage: 'json_parse',
           attempt,
-          rawPreview: responseText.slice(0, 500),
+          rawPreview: responseText.slice(0, FINALIZE_OUTPUT_DEBUG_PREVIEW),
           retryable: attempt === 1,
+          debug: {
+            model: finalResult.model,
+            outputShape: responseShape,
+            outputPreview: responseText.slice(0, FINALIZE_OUTPUT_DEBUG_PREVIEW),
+          },
         });
         previousOutput = responseText;
         console.error('[goal-finalize] parse failed', {
@@ -406,8 +517,10 @@ async function finalizeGoalFromTranscript({
           trigger,
           attempt,
           stage: 'json_parse',
+          model: finalResult.model,
           error: message,
-          outputPreview: previewForLog(responseText),
+          outputShape: responseShape,
+          outputPreview: previewForLog(responseText, FINALIZE_OUTPUT_DEBUG_PREVIEW),
         });
         if (attempt === 1) {
           continue;
@@ -417,8 +530,10 @@ async function finalizeGoalFromTranscript({
           trigger,
           attempt,
           stage: 'json_parse',
+          model: finalResult.model,
           error: message,
-          outputPreview: previewForLog(responseText),
+          outputShape: responseShape,
+          outputPreview: previewForLog(responseText, FINALIZE_OUTPUT_DEBUG_PREVIEW),
         });
         throw lastError;
       }
@@ -426,7 +541,12 @@ async function finalizeGoalFromTranscript({
       lastError = new GoalFinalizationError(message, {
         stage: 'schema_validation',
         attempt,
-        rawPreview: responseText.slice(0, 500),
+        rawPreview: responseText.slice(0, FINALIZE_OUTPUT_DEBUG_PREVIEW),
+        debug: {
+          model: finalResult.model,
+          outputShape: responseShape,
+          outputPreview: responseText.slice(0, FINALIZE_OUTPUT_DEBUG_PREVIEW),
+        },
       });
 
       console.error('[goal-finalize] validation failed', {
@@ -434,8 +554,10 @@ async function finalizeGoalFromTranscript({
         trigger,
         attempt,
         stage: 'schema_validation',
+        model: finalResult.model,
         error: message,
-        outputPreview: previewForLog(responseText),
+        outputShape: responseShape,
+        outputPreview: previewForLog(responseText, FINALIZE_OUTPUT_DEBUG_PREVIEW),
       });
       throw lastError;
     }
@@ -528,6 +650,7 @@ export async function POST(request: Request): Promise<Response> {
           code: 'GOAL_FINALIZATION_FAILED',
           details: message,
           finalizeStage: error?.stage ?? 'unknown',
+          finalizeDebug: error?.debug ?? null,
           requestId,
         },
         { status: 422 },
@@ -608,6 +731,7 @@ export async function POST(request: Request): Promise<Response> {
         code: 'GOAL_FINALIZATION_FAILED',
         details: message,
         finalizeStage: error?.stage ?? 'unknown',
+        finalizeDebug: error?.debug ?? null,
         requestId,
       },
       { status: 422 },

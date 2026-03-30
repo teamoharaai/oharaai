@@ -4,8 +4,12 @@
 //   Phase 1 — GOAL_CREATION_SYSTEM_PROMPT: pure conversation, no JSON required
 //   Phase 2 — GOAL_CREATION_FINALIZE_PROMPT: called once when the goal is clear, returns structured JSON
 //
-// Used by: lib/ai/pipelines/create-goal.ts
-// Model: claude-sonnet-4-6 (orchestrator quality)
+// Runtime model path:
+//   - conversation stage: AI_CONFIG.pipelines.goalCreation -> AI_CONFIG.models.default
+//   - finalization stage: AI_CONFIG.pipelines.goalFinalize -> AI_CONFIG.models.goalFinalize
+// Current finalization model: claude-haiku-4-5-20251001
+// Why Haiku here: finalization is now a constrained extraction step with JSON boundary hardening,
+// so we keep the lower-latency/lower-cost model explicit instead of implying a stronger model in comments.
 // Output schema: docs/AI_RESPONSE_SCHEMA.md → Goal Creation (Finalize)
 
 // Categories must match the DB constraint in supabase/migrations/
@@ -132,6 +136,7 @@ Output requirements:
 - Use null, not omitted fields, where the schema allows null
 - For "counter" measurables, targetValue must be a number and targetUnit must be a non-empty string
 - For "checklist" measurables, targetValue must be null and targetUnit must be null
+- The system may already begin the response with "{" for you; continue the JSON object and do not restart or wrap it
 
 Respond with ONLY the JSON object below. No preamble, no markdown fences, no explanation outside the JSON.
 
@@ -178,6 +183,7 @@ Hard requirements:
 - Use null, not omitted fields, where null is allowed
 - For "counter" measurables, targetValue must be a number and targetUnit must be a non-empty string
 - For "checklist" measurables, targetValue must be null and targetUnit must be null
+- The system may already begin the response with "{" for you; continue the JSON object and do not restart or wrap it
 
 CATEGORY — choose exactly one:
 ${GOAL_CATEGORIES.map((c) => `- "${c}"`).join('\n')}
