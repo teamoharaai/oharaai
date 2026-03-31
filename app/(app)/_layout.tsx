@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Text } from 'react-native';
+import { FEATURES } from '@/constants/features';
 
 function TabIcon({ label, focused }: { label: string; focused: boolean }) {
   return (
@@ -33,20 +34,24 @@ export default function AppLayout() {
           tabBarIcon: ({ focused }) => <TabIcon label="◎" focused={focused} />,
         }}
       />
-      <Tabs.Screen
-        name="starlog"
-        options={{
-          title: 'Starlog',
-          tabBarIcon: ({ focused }) => <TabIcon label="✦" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ focused }) => <TabIcon label="◈" focused={focused} />,
-        }}
-      />
+      {FEATURES.STARLOG_ENABLED ? (
+        <Tabs.Screen
+          name="starlog"
+          options={{
+            title: 'Starlog',
+            tabBarIcon: ({ focused }) => <TabIcon label="✦" focused={focused} />,
+          }}
+        />
+      ) : null}
+      {FEATURES.DISCOVERY_ENABLED ? (
+        <Tabs.Screen
+          name="explore"
+          options={{
+            title: 'Explore',
+            tabBarIcon: ({ focused }) => <TabIcon label="◈" focused={focused} />,
+          }}
+        />
+      ) : null}
     </Tabs>
   );
 }

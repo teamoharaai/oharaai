@@ -37,6 +37,33 @@ function mapEntry(row: DbStarlogEntry): StarlogEntry {
   };
 }
 
+async function requestStarlogReflection(
+  content: string,
+  aiInsightRequested: boolean,
+): Promise<string | null> {
+  if (!aiInsightRequested) {
+    return null;
+  }
+
+  const response = await fetch('/api/starlog/reflect', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      content,
+      aiInsightRequested,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = (await response.json()) as { error?: string; details?: string };
+    const detail = errorData.details ? ` ${errorData.details}` : '';
+    throw new Error((errorData.error ?? 'Starlog reflection request failed') + detail);
+  }
+
+  const data = (await response.json()) as { reflection?: string | null };
+  return data.reflection ?? null;
+}
+
 export async function fetchEntries(userId: string): Promise<StarlogEntry[]> {
   const { data, error } = await supabase
     .from('starlog_entries')
@@ -77,7 +104,34 @@ export async function createEntry(params: {
     .single();
 
   if (error || !data) return null;
-  return mapEntry(data as unknown as DbStarlogEntry);
+
+  const insertedEntry = mapEntry(data as unknown as DbStarlogEntry);
+  const reflection = await requestStarlogReflection(params.content, params.aiInsightRequested);
+
+  if (!reflection) {
+    return insertedEntry;
+  }
+
+  const processedAt = new Date().toISOString();
+  const { data: updatedData, error: updateError } = await supabase
+    .from('starlog_entries')
+    .update({
+      ai_response: reflection,
+      processed_at: processedAt,
+    })
+    .eq('id', insertedEntry.id)
+    .select('*, goals(id, title)')
+    .single();
+
+  if (updateError || !updatedData) {
+    return {
+      ...insertedEntry,
+      aiResponse: reflection,
+      processedAt: new Date(processedAt),
+    };
+  }
+
+  return mapEntry(updatedData as unknown as DbStarlogEntry);
 }
 
 export async function fetchActiveGoalsForPicker(

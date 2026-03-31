@@ -8,6 +8,27 @@ import { GoalStarlogEntriesPanel } from '@/features/goals/components/GoalStarlog
 import { ActivityFeed } from '@/features/goals/components/ActivityFeed';
 import { GoalMediaGallery } from '@/features/goals/components/GoalMediaGallery';
 
+function GoalDetailLoadingState() {
+  return (
+    <SafeAreaView className="flex-1 bg-dark-bg px-4 pt-4">
+      <View className="mb-4 h-10 w-28 animate-pulse rounded-full bg-dark-card" />
+      <View className="animate-pulse rounded-xl border border-dark-border bg-dark-card p-6">
+        <View className="mb-4 flex-row gap-2">
+          <View className="h-6 w-20 rounded-full bg-dark-border" />
+          <View className="h-6 w-16 rounded-full bg-dark-border" />
+        </View>
+        <View className="mb-4 h-9 w-3/4 rounded-lg bg-dark-border" />
+        <View className="mb-2 h-4 w-full rounded-full bg-dark-border" />
+        <View className="mb-8 h-4 w-5/6 rounded-full bg-dark-border" />
+        <View className="flex-row items-center justify-between">
+          <View className="h-16 w-36 rounded-xl bg-dark-border" />
+          <View className="h-20 w-20 rounded-full bg-dark-border" />
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+}
+
 export default function GoalDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const goalId = Array.isArray(id) ? id[0] : (id ?? '');
@@ -27,11 +48,7 @@ export default function GoalDetailScreen() {
   const isDesktop = width >= 1024;
 
   if (isLoading) {
-    return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-dark-bg">
-        <Text className="text-muted">Loading...</Text>
-      </SafeAreaView>
-    );
+    return <GoalDetailLoadingState />;
   }
 
   if (!goal) {

@@ -5,18 +5,10 @@ export function NewGoalButton() {
   return (
     <TouchableOpacity
       onPress={() => router.push('/goals/create')}
-      style={{
-        backgroundColor: '#6E5CE7',
-        borderRadius: 20,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-      }}
+      className="flex-row items-center gap-1 rounded-full bg-[#1B7A5A] px-4 py-2"
       activeOpacity={0.8}
     >
-      <Text style={{ color: '#FAFAFA', fontWeight: '600', fontSize: 14 }}>+ New Goal</Text>
+      <Text className="text-sm font-semibold text-ink">+ New Goal</Text>
     </TouchableOpacity>
   );
 }

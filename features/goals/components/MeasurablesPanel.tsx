@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, Text, TextInput, TouchableOpacity, View }
 import { MeasurableCard } from './MeasurableCard';
 import type { Measurable, MeasurableInput, MeasurableUpdates, MeasurableType } from '../types';
 import { GOAL_MEASURABLE_TYPES } from '@/lib/goals/schema';
+import { EmptyStateCard } from '@/components/ui/EmptyStateCard';
 
 interface MeasurablesPanelProps {
   measurables: Measurable[];
@@ -87,7 +88,12 @@ export function MeasurablesPanel({
       )}
 
       {measurables.length === 0 && !showAddForm && (
-        <Text className="text-ink-dim text-xs mb-3">No measurables yet.</Text>
+        <View className="mb-3">
+          <EmptyStateCard
+            title="No measurables yet."
+            description="Add a simple tracker to make progress on this goal easier to see."
+          />
+        </View>
       )}
 
       {[...measurables]

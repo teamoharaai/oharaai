@@ -1,17 +1,41 @@
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native';
+import { router } from 'expo-router';
 import { useGoals } from '@/features/goals/hooks/useGoals';
 import { GoalGrid } from '@/features/goals/components/GoalGrid';
 import { NewGoalButton } from '@/features/goals/components/NewGoalButton';
+import { EmptyStateCard } from '@/components/ui/EmptyStateCard';
+
+function DashboardLoadingState() {
+  const { width } = useWindowDimensions();
+  const cards = width >= 640 ? [0, 1] : [0];
+
+  return (
+    <View className="gap-4">
+      {cards.map((card) => (
+        <View
+          key={card}
+          className="animate-pulse rounded-xl border border-dark-border bg-dark-card px-5 py-5"
+        >
+          <View className="mb-4 h-4 w-24 rounded-full bg-dark-border" />
+          <View className="mb-3 h-8 w-3/4 rounded-lg bg-dark-border" />
+          <View className="mb-6 h-3 w-2/3 rounded-full bg-dark-border" />
+          <View className="h-2 w-full rounded-full bg-dark-border" />
+        </View>
+      ))}
+    </View>
+  );
+}
 
 function EmptyState() {
   return (
-    <View style={{ alignItems: 'center', paddingVertical: 80, gap: 14 }}>
-      <Text style={{ fontSize: 52, color: '#8888A0' }}>◎</Text>
-      <Text style={{ color: '#FAFAFA', fontSize: 18, fontWeight: '600' }}>No goals yet</Text>
-      <Text style={{ color: '#8888A0', textAlign: 'center', fontSize: 14, paddingHorizontal: 32 }}>
-        Set your first goal and start tracking what matters to you.
-      </Text>
+    <View className="py-16">
+      <EmptyStateCard
+        title="You haven't set any goals yet."
+        description="Create your first goal to start tracking what matters most."
+        actionLabel="Create your first goal"
+        onActionPress={() => router.push('/goals/create')}
+      />
     </View>
   );
 }
@@ -26,47 +50,25 @@ export default function DashboardScreen() {
       : undefined;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0A0F' }}>
+    <SafeAreaView className="flex-1 bg-dark-bg">
       <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 20, paddingTop: 16, paddingBottom: 40 }}
+        className="flex-1"
+        contentContainerClassName="px-5 pb-10 pt-4"
       >
-        {/* Header */}
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 24,
-          }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Text style={{ color: '#FAFAFA', fontSize: 24, fontWeight: '800' }}>Your Goals</Text>
+        <View className="mb-6 flex-row items-center justify-between">
+          <View className="flex-row items-center gap-2.5">
+            <Text className="text-2xl font-extrabold text-ink">Your Goals</Text>
             {activeGoals.length > 0 && (
-              <View
-                style={{
-                  backgroundColor: '#14141F',
-                  borderRadius: 12,
-                  paddingHorizontal: 10,
-                  paddingVertical: 3,
-                  borderWidth: 1,
-                  borderColor: '#1E1E2E',
-                }}
-              >
-                <Text style={{ color: '#8888A0', fontSize: 12 }}>
-                  {activeGoals.length} active
-                </Text>
+              <View className="rounded-xl border border-dark-border bg-dark-card px-2.5 py-1">
+                <Text className="text-xs text-ink-dim">{activeGoals.length} active</Text>
               </View>
             )}
           </View>
           <NewGoalButton />
         </View>
 
-        {/* Content */}
         {isLoading ? (
-          <View style={{ alignItems: 'center', paddingVertical: 60 }}>
-            <Text style={{ color: '#8888A0' }}>Loading...</Text>
-          </View>
+          <DashboardLoadingState />
         ) : goals.length === 0 ? (
           <EmptyState />
         ) : (

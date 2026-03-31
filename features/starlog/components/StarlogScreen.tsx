@@ -1,27 +1,55 @@
 import { useState } from 'react';
 import {
-  View,
+  FlatList,
+  Modal,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
-  Modal,
-  FlatList,
-  SafeAreaView,
-  ActivityIndicator,
-  Pressable,
+  View,
 } from 'react-native';
+import { FEATURES } from '@/constants/features';
+import { EmptyStateCard } from '@/components/ui/EmptyStateCard';
 import { useEntries } from '../hooks/useEntries';
 import { EntryCard } from './EntryCard';
-import { FEATURES } from '@/constants/features';
 
 function formatHeaderDate(date: Date): string {
-  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const months = [
-    'January','February','March','April','May','June',
-    'July','August','September','October','November','December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
   return `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()}`;
+}
+
+function StarlogLoadingState() {
+  return (
+    <View className="gap-3 py-2">
+      {[0, 1, 2].map((item) => (
+        <View
+          key={item}
+          className="animate-pulse rounded-xl border border-dark-border bg-dark-card p-4"
+        >
+          <View className="mb-3 h-4 w-full rounded-full bg-dark-border" />
+          <View className="mb-2 h-4 w-5/6 rounded-full bg-dark-border" />
+          <View className="mb-4 h-4 w-2/3 rounded-full bg-dark-border" />
+          <View className="h-3 w-20 rounded-full bg-dark-border" />
+        </View>
+      ))}
+    </View>
+  );
 }
 
 export function StarlogScreen() {
@@ -36,7 +64,6 @@ export function StarlogScreen() {
   async function handleSave() {
     if (!text.trim()) return;
     setIsSaving(true);
-    // FEATURES.INTELLIGENCE_ENABLED guards any AI logic — currently false, so no API calls
     const aiRequested = FEATURES.INTELLIGENCE_ENABLED ? aiInsightOn : false;
     await saveEntry(text.trim(), linkedGoal?.id ?? null, aiRequested);
     setText('');
@@ -49,39 +76,20 @@ export function StarlogScreen() {
   const canSave = text.trim().length > 0 && !isSaving;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0A0F' }}>
+    <SafeAreaView className="flex-1 bg-dark-bg">
       <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 20, paddingTop: 16, paddingBottom: 40 }}
+        className="flex-1"
+        contentContainerClassName="px-5 pb-10 pt-4"
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header */}
-        <View style={{ marginBottom: 24 }}>
-          <Text style={{ color: '#FAFAFA', fontSize: 24, fontWeight: '800' }}>Starlog</Text>
-          <Text style={{ color: '#8888A0', fontSize: 13, marginTop: 2 }}>
-            {formatHeaderDate(today)}
-          </Text>
+        <View className="mb-6">
+          <Text className="text-2xl font-extrabold text-ink">Starlog</Text>
+          <Text className="mt-0.5 text-[13px] text-ink-dim">{formatHeaderDate(today)}</Text>
         </View>
 
-        {/* Composer */}
-        <View
-          style={{
-            backgroundColor: '#14141F',
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: '#1E1E2E',
-            padding: 16,
-            marginBottom: 24,
-          }}
-        >
+        <View className="mb-6 rounded-xl border border-dark-border bg-dark-card p-4">
           <TextInput
-            style={{
-              color: '#FAFAFA',
-              fontSize: 15,
-              lineHeight: 22,
-              minHeight: 100,
-              textAlignVertical: 'top',
-            }}
+            className="min-h-[100px] text-[15px] leading-[22px] text-ink"
             placeholder="What's on your mind?"
             placeholderTextColor="#8888A0"
             multiline
@@ -89,102 +97,59 @@ export function StarlogScreen() {
             onChangeText={setText}
           />
 
-          {/* Controls row */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 14, gap: 8, flexWrap: 'wrap' }}>
-            {/* Goal link */}
+          <View className="mt-3.5 flex-row flex-wrap items-center gap-2">
             {linkedGoal ? (
               <TouchableOpacity
                 onPress={() => setLinkedGoal(null)}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  backgroundColor: '#1E1E2E',
-                  borderRadius: 16,
-                  paddingHorizontal: 10,
-                  paddingVertical: 5,
-                  gap: 6,
-                }}
+                className="flex-row items-center gap-1.5 rounded-full bg-dark-border px-3 py-1.5"
                 activeOpacity={0.7}
               >
-                <Text style={{ color: '#FAFAFA', fontSize: 12 }}>{linkedGoal.title}</Text>
-                <Text style={{ color: '#8888A0', fontSize: 14, lineHeight: 16 }}>×</Text>
+                <Text className="text-xs text-ink">{linkedGoal.title}</Text>
+                <Text className="text-sm leading-4 text-ink-dim">×</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
                 onPress={() => setPickerVisible(true)}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  borderWidth: 1,
-                  borderColor: '#1E1E2E',
-                  borderRadius: 16,
-                  paddingHorizontal: 10,
-                  paddingVertical: 5,
-                }}
+                className="flex-row items-center rounded-full border border-dark-border px-3 py-1.5"
                 activeOpacity={0.7}
               >
-                <Text style={{ color: '#8888A0', fontSize: 12 }}>+ Link goal</Text>
+                <Text className="text-xs text-ink-dim">+ Link goal</Text>
               </TouchableOpacity>
             )}
 
-            {/* AI insight toggle */}
             <TouchableOpacity
-              onPress={() => setAiInsightOn((v) => !v)}
-              style={{
-                borderRadius: 16,
-                paddingHorizontal: 10,
-                paddingVertical: 5,
-                backgroundColor: aiInsightOn ? '#6E5CE7' : '#1E1E2E',
-              }}
+              onPress={() => setAiInsightOn((value) => !value)}
+              className={`rounded-full px-3 py-1.5 ${aiInsightOn ? 'bg-[#1B7A5A]' : 'bg-dark-border'}`}
               activeOpacity={0.7}
             >
-              <Text style={{ color: aiInsightOn ? '#FAFAFA' : '#8888A0', fontSize: 12 }}>
-                AI insight
-              </Text>
+              <Text className={`text-xs ${aiInsightOn ? 'text-ink' : 'text-ink-dim'}`}>AI insight</Text>
             </TouchableOpacity>
           </View>
 
-          {aiInsightOn && (
-            <Text style={{ color: '#8888A0', fontSize: 11, marginTop: 8 }}>
-              Ohara AI will reflect on this entry
-            </Text>
-          )}
+          {aiInsightOn ? (
+            <Text className="mt-2 text-[11px] text-ink-dim">Ohara AI will reflect on this entry</Text>
+          ) : null}
 
-          {/* Save button */}
           <TouchableOpacity
             onPress={handleSave}
             disabled={!canSave}
-            style={{
-              backgroundColor: canSave ? '#FAFAFA' : '#1E1E2E',
-              borderRadius: 8,
-              paddingVertical: 12,
-              alignItems: 'center',
-              marginTop: 16,
-            }}
+            className={`mt-4 items-center rounded-lg py-3 ${canSave ? 'bg-[#6FDFB8]' : 'bg-dark-border'}`}
             activeOpacity={0.8}
           >
-            <Text
-              style={{
-                color: canSave ? '#0A0A0F' : '#8888A0',
-                fontWeight: '600',
-                fontSize: 14,
-              }}
-            >
+            <Text className={`text-sm font-semibold ${canSave ? 'text-dark-bg' : 'text-ink-dim'}`}>
               {isSaving ? 'Saving...' : 'Save Entry'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Entries list */}
         {isLoading ? (
-          <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-            <ActivityIndicator color="#8888A0" />
-          </View>
+          <StarlogLoadingState />
         ) : entries.length === 0 ? (
-          <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-            <Text style={{ color: '#8888A0', textAlign: 'center', fontSize: 14 }}>
-              No entries yet. Write your first reflection above.
-            </Text>
+          <View className="pt-2">
+            <EmptyStateCard
+              title="No Starlog entries yet."
+              description="Write your first reflection above to start building your Starlog."
+            />
           </View>
         ) : (
           entries.map((entry) => (
@@ -193,7 +158,6 @@ export function StarlogScreen() {
         )}
       </ScrollView>
 
-      {/* Goal picker modal */}
       <Modal
         visible={pickerVisible}
         transparent
@@ -201,47 +165,14 @@ export function StarlogScreen() {
         onRequestClose={() => setPickerVisible(false)}
       >
         <Pressable
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}
+          className="flex-1 justify-end bg-black/60"
           onPress={() => setPickerVisible(false)}
         >
-          <Pressable
-            style={{
-              backgroundColor: '#14141F',
-              borderTopLeftRadius: 16,
-              borderTopRightRadius: 16,
-              borderTopWidth: 1,
-              borderColor: '#1E1E2E',
-              paddingTop: 12,
-              paddingBottom: 40,
-              maxHeight: '60%',
-            }}
-          >
-            {/* Handle */}
-            <View
-              style={{
-                width: 36,
-                height: 4,
-                backgroundColor: '#2E2E3E',
-                borderRadius: 2,
-                alignSelf: 'center',
-                marginBottom: 16,
-              }}
-            />
-            <Text
-              style={{
-                color: '#FAFAFA',
-                fontWeight: '700',
-                fontSize: 16,
-                paddingHorizontal: 20,
-                marginBottom: 12,
-              }}
-            >
-              Link a goal
-            </Text>
+          <Pressable className="max-h-[60%] rounded-t-2xl border-t border-dark-border bg-dark-card pb-10 pt-3">
+            <View className="mb-4 h-1 w-9 self-center rounded-full bg-[#2E2E3E]" />
+            <Text className="mb-3 px-5 text-base font-bold text-ink">Link a goal</Text>
             {pickerGoals.length === 0 ? (
-              <Text style={{ color: '#8888A0', paddingHorizontal: 20, fontSize: 14 }}>
-                No active goals found.
-              </Text>
+              <Text className="px-5 text-sm text-ink-dim">No active goals found.</Text>
             ) : (
               <FlatList
                 data={pickerGoals}
@@ -252,15 +183,10 @@ export function StarlogScreen() {
                       setLinkedGoal(item);
                       setPickerVisible(false);
                     }}
-                    style={{
-                      paddingHorizontal: 20,
-                      paddingVertical: 14,
-                      borderBottomWidth: 1,
-                      borderBottomColor: '#1E1E2E',
-                    }}
+                    className="border-b border-dark-border px-5 py-3.5"
                     activeOpacity={0.7}
                   >
-                    <Text style={{ color: '#FAFAFA', fontSize: 15 }}>{item.title}</Text>
+                    <Text className="text-[15px] text-ink">{item.title}</Text>
                   </TouchableOpacity>
                 )}
               />

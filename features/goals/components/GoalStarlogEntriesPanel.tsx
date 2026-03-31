@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import type { StarlogEntry } from '@/features/starlog/types';
+import { EmptyStateCard } from '@/components/ui/EmptyStateCard';
 
 interface GoalStarlogEntriesPanelProps {
   entries: StarlogEntry[];
@@ -60,9 +61,23 @@ export function GoalStarlogEntriesPanel({
         Starlog Entries
       </Text>
       {isLoading ? (
-        <Text className="text-sm text-muted">Loading Starlog entries...</Text>
+        <View className="gap-3">
+          {[0, 1].map((item) => (
+            <View
+              key={item}
+              className="animate-pulse rounded-xl border border-dark-border bg-dark-card px-4 py-4"
+            >
+              <View className="mb-3 h-3 w-24 rounded-full bg-dark-border" />
+              <View className="mb-2 h-4 w-full rounded-full bg-dark-border" />
+              <View className="h-4 w-4/5 rounded-full bg-dark-border" />
+            </View>
+          ))}
+        </View>
       ) : entries.length === 0 ? (
-        <Text className="text-sm text-muted">No Starlog entries yet.</Text>
+        <EmptyStateCard
+          title="No Starlog entries yet."
+          description="Linked reflections will show up here as you add them in Starlog."
+        />
       ) : (
         <View className="gap-3">
           {entries.map((entry) => (

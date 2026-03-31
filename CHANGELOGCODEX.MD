@@ -27,11 +27,20 @@
 ## [Unreleased]
 
 ### Added
+- Added a dedicated Starlog reflection prompt in `lib/ai/prompts/starlog-reflection.ts` and a separate Haiku-backed Starlog client in `lib/ai/starlog-client.ts` so Starlog reflections now use an isolated AI path instead of the goal-creation client.
 
 ### Changed
 - Added `getEntriesByGoalId(goalId)` to `features/starlog/services/starlog-service.ts` and surfaced linked Starlog entry previews on the goal detail screen via `features/goals/hooks/useGoalDetail.ts`, `app/goals/[id].tsx`, and `features/goals/components/GoalStarlogEntriesPanel.tsx` so goals now show their related reflections directly below measurables.
+- Replaced hardcoded fallback Supabase client credentials in `lib/db/client.ts` with required environment validation so the app no longer initializes against placeholder values when `EXPO_PUBLIC_SUPABASE_URL` or `EXPO_PUBLIC_SUPABASE_ANON_KEY` are missing.
+- Set `STARLOG_ENABLED` to `true` in `constants/features.ts` for Phase 1 shipping, while keeping `DISCOVERY_ENABLED` `false`, and wired `app/(app)/_layout.tsx` so the Starlog and Explore tabs now render only when their respective flags are enabled.
+- Wired Starlog entry creation through a new `app/api/starlog/reflect+api.ts` backend path and updated `features/starlog/services/starlog-service.ts` to request and persist a concise Starlog reflection only when `aiInsightRequested` is true, with `processed_at` set after a successful response.
+- Replaced the dashboard, goal detail, and Starlog bare loading text with dark-theme NativeWind pulse skeletons, and updated the relevant CTAs to match the Phase 1 teal accent. Affected files: `app/(app)/dashboard.tsx`, `app/goals/[id].tsx`, `features/starlog/components/StarlogScreen.tsx`, `features/goals/components/NewGoalButton.tsx`, `components/ui/EmptyStateCard.tsx`.
 
 ### Fixed
 - Added a subtle empty state for goal-linked Starlog content on the detail screen: `No Starlog entries yet.` This keeps the section informative when a goal has no related entries.
+- Added `supabase/migrations/006_rls_audit_fixes.sql` to make RLS CRUD coverage explicit for `measurables`, `measurable_logs`, `profiles`, and `ai_usage`, closing gaps where policies relied on `FOR ALL` without `WITH CHECK` or omitted explicit deny coverage for blocked operations.
+- Added `supabase/migrations/007_remove_public_goals_policy.sql` to remove the Phase 2 public-goals select policy from `public.goals` without changing any other goals RLS policies.
+- Standardized empty-state treatment across Dashboard, Starlog, goal-linked Starlog entries, and goal measurables so Phase 1 users see centered dark cards with clear next steps instead of bare copy. Affected files: `app/(app)/dashboard.tsx`, `features/starlog/components/StarlogScreen.tsx`, `features/goals/components/GoalStarlogEntriesPanel.tsx`, `features/goals/components/MeasurablesPanel.tsx`, `components/ui/EmptyStateCard.tsx`.
 
 ### Refactored
+- Replaced the Flow A / Flow B ambiguity detection model in `lib/ai/prompts/goal-creation.ts` with a three-stage SPARK → SHAPE → DRAFT conversation model. Stage 1 (Spark) always fires on the first message with domain-aware context and 1-3 questions — no draft. Stage 2 (Shape) proposes a lightweight goal frame for confirmation before committing to structure. Stage 3 (Draft) produces the full 6-section scaffold after frame confirmation. Updated Core behavior to align with the new stage model and remove conflicting draft-first defaults.

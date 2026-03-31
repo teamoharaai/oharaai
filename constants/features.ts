@@ -1,7 +1,7 @@
 export { GOAL_CATEGORIES } from '@/lib/goals/schema';
 
 export const FEATURES = {
-  STARLOG_ENABLED: false,
+  STARLOG_ENABLED: true,
   INTELLIGENCE_ENABLED: false,
   DISCOVERY_ENABLED: false,
   SOCIAL_ENABLED: false,
