@@ -1,5 +1,5 @@
 import supabase from '@/lib/db/client';
-import type { Goal, GoalWithMeasurables, Measurable, MeasurableType, MeasurableFrequency, GoalStatus } from '../types';
+import type { Goal, GoalWithMeasurables, Measurable, MeasurableType, MeasurableFrequency, GoalStatus, MeasurableInput, MeasurableUpdates } from '../types';
 import type { GoalTheme } from '@/constants/themes';
 import {
   GOAL_CATEGORIES,
@@ -170,7 +170,75 @@ export async function createGoal(_goal: Partial<Goal>): Promise<Goal | null> {
   return null;
 }
 
-export async function updateGoal(_goalId: string, _updates: Partial<Goal>): Promise<Goal | null> {
-  // TODO: implement Supabase update
-  return null;
+export async function updateGoal(goalId: string, updates: Partial<Goal>): Promise<GoalWithMeasurables | null> {
+  const patch: Record<string, unknown> = {};
+  if (updates.title !== undefined) patch.title = updates.title;
+  if (updates.description !== undefined) patch.description = updates.description;
+  if (updates.status !== undefined) patch.status = updates.status;
+  if (updates.progress !== undefined) patch.progress = updates.progress;
+  if (updates.deadline !== undefined) patch.deadline = updates.deadline?.toISOString() ?? null;
+  if (updates.isPublic !== undefined) patch.is_public = updates.isPublic;
+  if (updates.colorTheme !== undefined) patch.color_theme = updates.colorTheme;
+  if (updates.category !== undefined) patch.category = updates.category;
+
+  if (Object.keys(patch).length === 0) return null;
+
+  const { data, error } = await supabase
+    .from('goals')
+    .update(patch)
+    .eq('id', goalId)
+    .select(GOAL_SELECT)
+    .single();
+
+  if (error || !data) return null;
+  return mapGoal(data as unknown as DbGoal);
+}
+
+export async function createMeasurable(goalId: string, input: MeasurableInput): Promise<Measurable | null> {
+  const { data, error } = await supabase
+    .from('measurables')
+    .insert({
+      goal_id: goalId,
+      title: input.title.trim(),
+      type: input.type,
+      target_value: input.targetValue ?? null,
+      target_unit: input.targetUnit?.trim() || null,
+      frequency: input.frequency ?? null,
+      current_value: 0,
+      sort_order: input.sortOrder ?? 0,
+    })
+    .select()
+    .single();
+
+  if (error || !data) return null;
+  return mapMeasurable(data as unknown as DbMeasurable);
+}
+
+export async function updateMeasurable(measurableId: string, updates: MeasurableUpdates): Promise<Measurable | null> {
+  const patch: Record<string, unknown> = {};
+  if (updates.title !== undefined) patch.title = updates.title.trim();
+  if ('targetValue' in updates) patch.target_value = updates.targetValue ?? null;
+  if ('targetUnit' in updates) patch.target_unit = updates.targetUnit?.trim() || null;
+  if ('frequency' in updates) patch.frequency = updates.frequency ?? null;
+  if (updates.currentValue !== undefined) patch.current_value = updates.currentValue;
+
+  if (Object.keys(patch).length === 0) return null;
+
+  const { data, error } = await supabase
+    .from('measurables')
+    .update(patch)
+    .eq('id', measurableId)
+    .select()
+    .single();
+
+  if (error || !data) return null;
+  return mapMeasurable(data as unknown as DbMeasurable);
+}
+
+export async function deleteMeasurable(measurableId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('measurables')
+    .delete()
+    .eq('id', measurableId);
+  return !error;
 }

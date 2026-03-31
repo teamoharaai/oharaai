@@ -48,6 +48,17 @@ export async function fetchEntries(userId: string): Promise<StarlogEntry[]> {
   return (data as unknown as DbStarlogEntry[]).map(mapEntry);
 }
 
+export async function getEntriesByGoalId(goalId: string): Promise<StarlogEntry[]> {
+  const { data, error } = await supabase
+    .from('starlog_entries')
+    .select('*, goals(id, title)')
+    .eq('goal_id', goalId)
+    .order('created_at', { ascending: false });
+
+  if (error || !data) return [];
+  return (data as unknown as DbStarlogEntry[]).map(mapEntry);
+}
+
 export async function createEntry(params: {
   userId: string;
   content: string;

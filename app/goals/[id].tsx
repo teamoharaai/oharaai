@@ -2,34 +2,44 @@ import { View, Text, ScrollView, TouchableOpacity, useWindowDimensions, SafeArea
 import { useLocalSearchParams, router } from 'expo-router';
 import { GOAL_THEMES } from '@/constants/themes';
 import { useGoalDetail } from '@/features/goals/hooks/useGoalDetail';
-import { useGoalStore } from '@/features/goals/store';
 import { GoalDetailHeader } from '@/features/goals/components/GoalDetailHeader';
 import { MeasurablesPanel } from '@/features/goals/components/MeasurablesPanel';
+import { GoalStarlogEntriesPanel } from '@/features/goals/components/GoalStarlogEntriesPanel';
 import { ActivityFeed } from '@/features/goals/components/ActivityFeed';
 import { GoalMediaGallery } from '@/features/goals/components/GoalMediaGallery';
 
 export default function GoalDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const goalId = Array.isArray(id) ? id[0] : (id ?? '');
-  const { goal, activityEntries, isLoading } = useGoalDetail(goalId);
-  const { updateMeasurableValue } = useGoalStore();
+  const {
+    goal,
+    activityEntries,
+    starlogEntries,
+    isLoading,
+    isStarlogLoading,
+    onSaveMeasurable,
+    onDeleteMeasurable,
+    onAddMeasurable,
+    measurableError,
+    clearMeasurableError,
+  } = useGoalDetail(goalId);
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
 
   if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0A0F', alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: '#8888A0' }}>Loading...</Text>
+      <SafeAreaView className="flex-1 items-center justify-center bg-dark-bg">
+        <Text className="text-muted">Loading...</Text>
       </SafeAreaView>
     );
   }
 
   if (!goal) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0A0F', alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: '#8888A0' }}>Goal not found</Text>
-        <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}>
-          <Text style={{ color: '#6E5CE7' }}>← Go back</Text>
+      <SafeAreaView className="flex-1 items-center justify-center bg-dark-bg">
+        <Text className="text-muted">Goal not found</Text>
+        <TouchableOpacity className="mt-4" onPress={() => router.back()}>
+          <Text className="text-sm text-indigo-400">← Go back</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -40,82 +50,60 @@ export default function GoalDetailScreen() {
   const leftContent = (
     <>
       <GoalDetailHeader goal={goal} />
-      <View style={{ paddingHorizontal: 24, paddingBottom: 16 }}>
+      <View className="px-6 pb-4">
         <MeasurablesPanel
           measurables={goal.measurables}
           accentColor={theme.accent}
-          onLog={updateMeasurableValue}
+          onSave={onSaveMeasurable}
+          onDelete={onDeleteMeasurable}
+          onAdd={onAddMeasurable}
+          error={measurableError}
+          onDismissError={clearMeasurableError}
+        />
+        <GoalStarlogEntriesPanel
+          entries={starlogEntries}
+          isLoading={isStarlogLoading}
         />
       </View>
     </>
   );
 
   const rightContent = (
-    <View
-      style={{
-        backgroundColor: '#14141F',
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#1E1E2E',
-        margin: 16,
-        overflow: 'hidden',
-      }}
-    >
+    <View className="m-4 overflow-hidden rounded-xl border border-dark-border bg-dark-card">
       <ActivityFeed entries={activityEntries} />
       <GoalMediaGallery entries={activityEntries} />
     </View>
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0A0F' }}>
-      {/* Nav bar */}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingHorizontal: 16,
-          paddingVertical: 10,
-          borderBottomWidth: 1,
-          borderBottomColor: '#1E1E2E',
-        }}
-      >
+    <SafeAreaView className="flex-1 bg-dark-bg">
+      <View className="flex-row items-center border-b border-dark-border px-4 py-2.5">
         <TouchableOpacity
           onPress={() => router.back()}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            paddingVertical: 4,
-            paddingRight: 12,
-          }}
+          className="flex-row items-center gap-1.5 py-1 pr-3"
           activeOpacity={0.7}
         >
-          <Text style={{ color: '#8888A0', fontSize: 18 }}>←</Text>
-          <Text style={{ color: '#8888A0', fontSize: 14 }}>Goals</Text>
+          <Text className="text-lg text-muted">←</Text>
+          <Text className="text-sm text-muted">Goals</Text>
         </TouchableOpacity>
-        <View
-          style={{ width: 1, height: 16, backgroundColor: '#1E1E2E', marginRight: 12 }}
-        />
-        <Text style={{ color: '#FAFAFA', fontWeight: '600', fontSize: 15, flex: 1 }} numberOfLines={1}>
+        <View className="mr-3 h-4 w-px bg-dark-border" />
+        <Text className="flex-1 text-[15px] font-semibold text-white" numberOfLines={1}>
           {goal.title}
         </Text>
       </View>
 
-      {/* Two-column on desktop, single-column on mobile */}
       {isDesktop ? (
-        <View style={{ flex: 1, flexDirection: 'row' }}>
-          <ScrollView style={{ flex: 3 }} contentContainerStyle={{ paddingBottom: 40 }}>
+        <View className="flex-1 flex-row">
+          <ScrollView className="flex-[3]" contentContainerClassName="pb-10">
             {leftContent}
           </ScrollView>
-          <View
-            style={{ width: 1, backgroundColor: '#1E1E2E' }}
-          />
-          <ScrollView style={{ flex: 2 }} contentContainerStyle={{ paddingBottom: 40 }}>
+          <View className="w-px bg-dark-border" />
+          <ScrollView className="flex-[2]" contentContainerClassName="pb-10">
             {rightContent}
           </ScrollView>
         </View>
       ) : (
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }}>
+        <ScrollView className="flex-1" contentContainerClassName="pb-10">
           {leftContent}
           {rightContent}
         </ScrollView>

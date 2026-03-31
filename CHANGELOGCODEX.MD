@@ -29,7 +29,9 @@
 ### Added
 
 ### Changed
+- Added `getEntriesByGoalId(goalId)` to `features/starlog/services/starlog-service.ts` and surfaced linked Starlog entry previews on the goal detail screen via `features/goals/hooks/useGoalDetail.ts`, `app/goals/[id].tsx`, and `features/goals/components/GoalStarlogEntriesPanel.tsx` so goals now show their related reflections directly below measurables.
 
 ### Fixed
+- Added a subtle empty state for goal-linked Starlog content on the detail screen: `No Starlog entries yet.` This keeps the section informative when a goal has no related entries.
 
 ### Refactored

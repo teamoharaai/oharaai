@@ -55,6 +55,23 @@ export interface GoalWithMeasurables extends Goal {
   measurables: Measurable[];
 }
 
+export interface MeasurableInput {
+  title: string;
+  type: MeasurableType;
+  targetValue?: number | null;
+  targetUnit?: string | null;
+  frequency?: MeasurableFrequency | null;
+  sortOrder?: number;
+}
+
+export interface MeasurableUpdates {
+  title?: string;
+  targetValue?: number | null;
+  targetUnit?: string | null;
+  frequency?: MeasurableFrequency | null;
+  currentValue?: number;
+}
+
 export interface ActivityEntry {
   id: string;
   goalId?: string;

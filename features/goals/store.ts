@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { GoalWithMeasurables } from './types';
+import type { GoalWithMeasurables, Measurable } from './types';
 
 interface GoalStore {
   goals: GoalWithMeasurables[];
@@ -10,6 +10,8 @@ interface GoalStore {
   setSelectedGoalId: (id: string | null) => void;
   setIsLoading: (loading: boolean) => void;
   updateMeasurableValue: (measurableId: string, value: number) => void;
+  upsertMeasurable: (goalId: string, measurable: Measurable) => void;
+  removeMeasurable: (goalId: string, measurableId: string) => void;
 }
 
 export const useGoalStore = create<GoalStore>((set) => ({
@@ -38,5 +40,23 @@ export const useGoalStore = create<GoalStore>((set) => ({
           m.id === measurableId ? { ...m, currentValue: value } : m
         ),
       })),
+    })),
+  upsertMeasurable: (goalId, measurable) =>
+    set((state) => ({
+      goals: state.goals.map((goal) => {
+        if (goal.id !== goalId) return goal;
+        const exists = goal.measurables.some((m) => m.id === measurable.id);
+        const measurables = exists
+          ? goal.measurables.map((m) => (m.id === measurable.id ? measurable : m))
+          : [...goal.measurables, measurable].sort((a, b) => a.sortOrder - b.sortOrder);
+        return { ...goal, measurables };
+      }),
+    })),
+  removeMeasurable: (goalId, measurableId) =>
+    set((state) => ({
+      goals: state.goals.map((goal) => {
+        if (goal.id !== goalId) return goal;
+        return { ...goal, measurables: goal.measurables.filter((m) => m.id !== measurableId) };
+      }),
     })),
 }));
