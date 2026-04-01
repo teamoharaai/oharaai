@@ -48,3 +48,20 @@ Expo (React Native Web, SSR mode) → Vercel · Supabase (auth, DB, RLS) · Anth
 - No hardcoded secrets
 - CC reads CHANGELOGCODEX.md first to catch up on Codex sessions
 - Codex writes to CHANGELOGCODEX.md after every session
+
+## SSR Safety Rule (critical)
+
+Modules imported at the top level of `app/_layout.tsx` must NEVER throw 
+at module load time. This crashes the SSR handler before anything renders.
+
+**Layer 1 — module initialization** (client.ts, any top-level import)
+→ Safe fallbacks only. Never throw.
+→ Export an `isDatabaseConfigured` boolean for downstream checks.
+
+**Layer 2 — runtime** (hooks, useEffect, API routes)
+→ Safe to validate, assert, and throw.
+→ This is where "fail fast" belongs.
+
+EXPO_PUBLIC_* vars are baked in by Metro at build time for the client 
+bundle. They are NOT guaranteed to be visible in the Vercel SSR server 
+function runtime. Never hard-throw on them at module load time.
