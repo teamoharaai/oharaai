@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
 import { router } from 'expo-router';
+// CHANGE 1: Import LinearGradient for full-screen background gradient
+import { LinearGradient } from 'expo-linear-gradient';
 import supabase from '@/lib/db/client';
 import { createGoalWithMeasurables } from '@/lib/db/goals';
 import { fetchGoalById } from '@/features/goals/services/goal-service';
@@ -167,167 +169,261 @@ export default function GoalCreateScreen() {
     await submitGoalChat({ finalize: true });
   }
 
+  // CHANGE 2: Intro state — shown when no messages and input is empty
+  const showIntro = messages.length === 0 && input.trim().length === 0;
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0A0F' }}>
-      {/* Nav */}
+    // CHANGE 1: SafeAreaView is now transparent; LinearGradient provides the background
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#050A06' }}>
+      <LinearGradient
+        colors={['#0D1A0F', '#0A110C', '#080D09', '#050A06']}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={{ flex: 1 }}
+      >
+        {/* CHANGE 6: Nav bar — transparent background, no hard bottom border */}
         <View
           style={{
             flexDirection: 'row',
             alignItems: 'center',
             paddingHorizontal: 16,
-          paddingVertical: 10,
-          borderBottomWidth: 1,
-          borderBottomColor: '#1E1E2E',
-        }}
-      >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingRight: 12 }}
-          activeOpacity={0.7}
-        >
-          <Text style={{ color: '#8888A0', fontSize: 18 }}>←</Text>
-          <Text style={{ color: '#8888A0', fontSize: 14 }}>Goals</Text>
-        </TouchableOpacity>
-        <View style={{ width: 1, height: 16, backgroundColor: '#1E1E2E', marginRight: 12 }} />
-        <Text style={{ color: '#FAFAFA', fontWeight: '600', fontSize: 15 }}>New goal</Text>
-        <View style={{ flex: 1 }} />
-        <TouchableOpacity
-          onPress={handleCreateGoal}
-          disabled={(messages.length === 0 && !input.trim()) || isLoading || savingGoal}
-          style={{
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            borderRadius: 999,
-            backgroundColor:
-              (messages.length > 0 || input.trim()) && !isLoading && !savingGoal ? '#1D6F5F' : '#1E1E2E',
-          }}
-          activeOpacity={0.7}
-        >
-          <Text style={{ color: '#FAFAFA', fontSize: 13, fontWeight: '600' }}>Create goal</Text>
-        </TouchableOpacity>
-      </View>
-
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
-      >
-        {/* Message list */}
-        <ScrollView
-          ref={scrollRef}
-          style={{ flex: 1 }}
-          contentContainerStyle={{ padding: 16, paddingBottom: 8, gap: 12 }}
-        >
-          {messages.length === 0 && (
-            <View style={{ alignItems: 'center', marginTop: 48, gap: 8 }}>
-              <Text style={{ color: '#FAFAFA', fontSize: 18, fontWeight: '600' }}>
-                What do you want to achieve?
-              </Text>
-              <Text style={{ color: '#8888A0', fontSize: 14, textAlign: 'center', maxWidth: 280 }}>
-                Describe your goal in plain words — I'll help you shape it.
-              </Text>
-            </View>
-          )}
-
-          {messages.map((msg, i) => (
-            <View
-              key={i}
-              style={{
-                alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                maxWidth: '80%',
-                backgroundColor: msg.role === 'user' ? '#6E5CE7' : '#14141F',
-                borderRadius: 12,
-                borderWidth: msg.role === 'assistant' ? 1 : 0,
-                borderColor: '#1E1E2E',
-                padding: 12,
-              }}
-            >
-              <Text
-                style={{
-                  color: msg.role === 'user' ? '#FAFAFA' : '#D4D4E8',
-                  fontSize: 15,
-                  lineHeight: 22,
-                }}
-              >
-                {msg.content}
-              </Text>
-            </View>
-          ))}
-
-          {(isLoading || savingGoal) && (
-            <View style={{ alignSelf: 'flex-start', padding: 12 }}>
-              <ActivityIndicator color="#6E5CE7" />
-              {savingGoal && (
-                <Text style={{ color: '#8888A0', fontSize: 13, marginTop: 6 }}>
-                  Saving your goal…
-                </Text>
-              )}
-            </View>
-          )}
-
-          {error && (
-            <View
-              style={{
-                backgroundColor: '#2D1B1B',
-                borderRadius: 8,
-                padding: 12,
-                borderWidth: 1,
-                borderColor: '#5C2020',
-              }}
-            >
-              <Text style={{ color: '#FF6B6B', fontSize: 14 }}>{error}</Text>
-            </View>
-          )}
-        </ScrollView>
-
-        {/* Input */}
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'flex-end',
-            padding: 12,
-            gap: 8,
-            borderTopWidth: 1,
-            borderTopColor: '#1E1E2E',
+            paddingVertical: 10,
           }}
         >
-          <TextInput
-            style={{
-              flex: 1,
-              backgroundColor: '#14141F',
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: '#1E1E2E',
-              color: '#FAFAFA',
-              fontSize: 15,
-              padding: 12,
-              maxHeight: 120,
-            }}
-            placeholder="Tell me about your goal…"
-            placeholderTextColor="#8888A0"
-            value={input}
-            onChangeText={setInput}
-            multiline
-            onSubmitEditing={handleSend}
-            editable={!isLoading && !savingGoal}
-          />
           <TouchableOpacity
-            onPress={handleSend}
-            disabled={!input.trim() || isLoading || savingGoal}
+            onPress={() => router.back()}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingRight: 12 }}
+            activeOpacity={0.7}
+          >
+            <Text style={{ color: '#556655', fontSize: 18 }}>←</Text>
+            <Text style={{ color: '#556655', fontSize: 14 }}>Goals</Text>
+          </TouchableOpacity>
+          <View style={{ width: 1, height: 16, backgroundColor: '#1E3020', marginRight: 12 }} />
+          <Text style={{ color: '#FAFAFA', fontWeight: '600', fontSize: 15 }}>New goal</Text>
+          <View style={{ flex: 1 }} />
+          {/* CHANGE 6: "Create goal" button — dark green with teal text */}
+          <TouchableOpacity
+            onPress={handleCreateGoal}
+            disabled={(messages.length === 0 && !input.trim()) || isLoading || savingGoal}
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              backgroundColor: input.trim() && !isLoading ? '#6E5CE7' : '#1E1E2E',
-              alignItems: 'center',
-              justifyContent: 'center',
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              borderRadius: 999,
+              backgroundColor: '#1A3020',
+              borderWidth: 1,
+              borderColor:
+                (messages.length > 0 || input.trim()) && !isLoading && !savingGoal
+                  ? '#2A5030'
+                  : '#1E3020',
+              opacity:
+                (messages.length > 0 || input.trim()) && !isLoading && !savingGoal ? 1 : 0.4,
             }}
             activeOpacity={0.7}
           >
-            <Text style={{ color: '#FAFAFA', fontSize: 18, lineHeight: 20 }}>↑</Text>
+            <Text style={{ color: '#6FDFB8', fontSize: 13, fontWeight: '600' }}>Create goal</Text>
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
+          {/* CHANGE 2: Intro block — centered logo mark + heading + subtext */}
+          {showIntro ? (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 16 }}>
+              <View
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 28,
+                  backgroundColor: '#1A3020',
+                  borderWidth: 1,
+                  borderColor: '#2A4830',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ color: '#6FDFB8', fontSize: 20, fontWeight: '500' }}>O</Text>
+              </View>
+              <Text style={{ color: '#FFFFFF', fontSize: 22, fontWeight: '500', textAlign: 'center' }}>
+                What do you want to achieve?
+              </Text>
+              <Text style={{ color: '#556655', fontSize: 14, textAlign: 'center', lineHeight: 22 }}>
+                {'Describe your goal in plain words —\nI\'ll help you shape it.'}
+              </Text>
+            </View>
+          ) : (
+            /* CHANGE 3: Chat history — styled message bubbles */
+            <ScrollView
+              ref={scrollRef}
+              style={{ flex: 1 }}
+              contentContainerStyle={{ paddingTop: 16, paddingBottom: 8 }}
+            >
+              {messages.map((msg, i) => (
+                <View
+                  key={i}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'flex-start',
+                    paddingHorizontal: 16,
+                    marginBottom: 12,
+                    // User messages right-aligned; assistant left-aligned
+                    justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                  }}
+                >
+                  {/* CHANGE 3: Ohara messages — teal dot prefix, no bubble */}
+                  {msg.role === 'assistant' && (
+                    <View
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: 3,
+                        backgroundColor: '#6FDFB8',
+                        marginTop: 6,
+                        marginRight: 8,
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+                  {/* CHANGE 3: User messages — dark green bubble */}
+                  <View
+                    style={
+                      msg.role === 'user'
+                        ? {
+                            backgroundColor: '#1A2E1E',
+                            borderRadius: 16,
+                            borderBottomRightRadius: 4,
+                            paddingHorizontal: 16,
+                            paddingVertical: 12,
+                            maxWidth: '80%',
+                          }
+                        : { maxWidth: '90%' }
+                    }
+                  >
+                    <Text
+                      style={{
+                        color: msg.role === 'user' ? '#FFFFFF' : '#C8D8C8',
+                        fontSize: 14,
+                        lineHeight: 22,
+                      }}
+                    >
+                      {msg.content}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+
+              {(isLoading || savingGoal) && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 12, gap: 8 }}>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#6FDFB8' }} />
+                  <ActivityIndicator color="#6FDFB8" size="small" />
+                  {savingGoal && (
+                    <Text style={{ color: '#556655', fontSize: 13 }}>Saving your goal…</Text>
+                  )}
+                </View>
+              )}
+
+              {error && (
+                <View
+                  style={{
+                    marginHorizontal: 16,
+                    backgroundColor: '#2D1B1B',
+                    borderRadius: 8,
+                    padding: 12,
+                    borderWidth: 1,
+                    borderColor: '#5C2020',
+                    marginBottom: 8,
+                  }}
+                >
+                  <Text style={{ color: '#FF6B6B', fontSize: 14 }}>{error}</Text>
+                </View>
+              )}
+            </ScrollView>
+          )}
+
+          {/* CHANGE 4: Input area — frosted dark-green container */}
+          <View
+            style={{
+              backgroundColor: '#0E1A10',
+              borderWidth: 1,
+              borderColor: '#1E3020',
+              borderRadius: 16,
+              marginHorizontal: 16,
+              marginBottom: 8,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              flexDirection: 'row',
+              alignItems: 'flex-end',
+              gap: 8,
+            }}
+          >
+            <TextInput
+              style={{
+                flex: 1,
+                backgroundColor: 'transparent',
+                color: '#FFFFFF',
+                fontSize: 14,
+                maxHeight: 120,
+                padding: 0,
+              }}
+              placeholder="Tell me about your goal..."
+              placeholderTextColor="#445544"
+              value={input}
+              onChangeText={setInput}
+              multiline
+              onSubmitEditing={handleSend}
+              editable={!isLoading && !savingGoal}
+            />
+            {/* CHANGE 4: Send button — teal circle, only shown when input has content */}
+            {input.trim().length > 0 && (
+              <TouchableOpacity
+                onPress={handleSend}
+                disabled={isLoading || savingGoal}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: '#6FDFB8',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={{ color: '#0A0A0F', fontSize: 16, lineHeight: 18 }}>↑</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* CHANGE 5: Mode selector pills — placeholder only, not wired */}
+          {/* TODO: wire mode selection in Phase 2 */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 12, gap: 8 }}
+            style={{ flexShrink: 0 }}
+          >
+            {(['⚡ Quick', '◎ Deep', '✦ Reflect', '❋ Holistic'] as const).map((label) => (
+              <TouchableOpacity
+                key={label}
+                onPress={() => console.log('TODO: wire mode selection in Phase 2', label)}
+                style={{
+                  backgroundColor: '#0E1A10',
+                  borderWidth: 1,
+                  borderColor: '#1E3020',
+                  borderRadius: 999,
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={{ color: '#6FDFB8', fontSize: 12, fontWeight: '500' }}>{label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </LinearGradient>
     </SafeAreaView>
   );
 }
