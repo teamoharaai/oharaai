@@ -1,7 +1,8 @@
-import { View, Text, Pressable } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { GOAL_THEMES } from '@/constants/themes';
 import { Badge } from '@/components/ui/Badge';
+import { Typography } from '@/components/ui/Typography';
 import type { GoalWithMeasurables } from '../types';
 
 interface GoalCardProps {
@@ -42,12 +43,13 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
       </View>
 
       {/* Title */}
-      <Text
-        style={{ color: '#FAFAFA', fontSize: 17, fontWeight: '700', marginBottom: 12, lineHeight: 24 }}
+      <Typography
+        variant="title"
         numberOfLines={2}
+        style={{ marginBottom: 12 }}
       >
         {goal.title}
-      </Text>
+      </Typography>
 
       {/* Progress bar */}
       <View style={{ height: 3, backgroundColor: '#1E1E2E', borderRadius: 2, marginBottom: 12 }}>
@@ -63,13 +65,16 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
 
       {/* Footer row */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={{ color: '#8888A0', fontSize: 12 }}>{goal.progress}% complete</Text>
+        <Typography variant="caption">{goal.progress}% complete</Typography>
         {days !== null && (
-          <Text style={{ color: days > 14 ? '#8888A0' : '#E85D04', fontSize: 12, fontWeight: '500' }}>
+          <Typography
+            variant="caption"
+            style={{ color: days > 14 ? '#8888A0' : '#E85D04' }}
+          >
             {days > 0 ? `${days}d left` : 'Overdue'}
-          </Text>
+          </Typography>
         )}
-        <Text style={{ color: '#8888A0', fontSize: 18, lineHeight: 20 }}>⋯</Text>
+        <Typography variant="caption" style={{ fontSize: 18, lineHeight: 20 }}>⋯</Typography>
       </View>
     </Pressable>
   );

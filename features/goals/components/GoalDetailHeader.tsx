@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
 import { GOAL_THEMES } from '@/constants/themes';
 import { Badge } from '@/components/ui/Badge';
 import { ProgressRing } from '@/components/ui/ProgressRing';
+import { Typography } from '@/components/ui/Typography';
 import { CountdownTimer } from './CountdownTimer';
 import type { GoalWithMeasurables } from '../types';
 
@@ -38,17 +39,9 @@ export function GoalDetailHeader({ goal }: GoalDetailHeaderProps) {
       </View>
 
       {/* Title */}
-      <Text
-        style={{
-          color: '#FAFAFA',
-          fontSize: 30,
-          fontWeight: '800',
-          lineHeight: 36,
-          marginBottom: 10,
-        }}
-      >
+      <Typography variant="heading" className="text-3xl" style={{ marginBottom: 10 }}>
         {goal.title}
-      </Text>
+      </Typography>
 
       {/* Description */}
       {goal.description && (
@@ -56,14 +49,16 @@ export function GoalDetailHeader({ goal }: GoalDetailHeaderProps) {
           onPress={() => setDescExpanded((v) => !v)}
           activeOpacity={0.7}
         >
-          <Text
-            style={{ color: '#8888A0', fontSize: 14, lineHeight: 21 }}
+          <Typography
+            variant="body"
             numberOfLines={descExpanded ? undefined : 2}
           >
             {goal.description}
-          </Text>
+          </Typography>
           {!descExpanded && (
-            <Text style={{ color: theme.accent, fontSize: 12, marginTop: 2 }}>Show more</Text>
+            <Typography variant="caption" style={{ color: theme.accent, marginTop: 2 }}>
+              Show more
+            </Typography>
           )}
         </TouchableOpacity>
       )}
@@ -82,7 +77,7 @@ export function GoalDetailHeader({ goal }: GoalDetailHeaderProps) {
         {goal.deadline ? (
           <CountdownTimer deadline={goal.deadline} accentColor={theme.accent} />
         ) : (
-          <Text style={{ color: '#8888A0', fontSize: 13 }}>No deadline set</Text>
+          <Typography variant="label">No deadline set</Typography>
         )}
         <ProgressRing
           progress={goal.progress}

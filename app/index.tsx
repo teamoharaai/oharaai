@@ -4,10 +4,10 @@ import {
   Image,
   Platform,
   ScrollView,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Typography } from "@/components/ui/Typography";
 
 function NavLink({
   label,
@@ -22,7 +22,7 @@ function NavLink({
     return (
       <Link href={href} asChild>
         <TouchableOpacity>
-          <Text className="text-sm font-medium text-ink-dim">{label}</Text>
+          <Typography variant="label">{label}</Typography>
         </TouchableOpacity>
       </Link>
     );
@@ -30,7 +30,7 @@ function NavLink({
 
   return (
     <TouchableOpacity onPress={onPress}>
-      <Text className="text-sm font-medium text-ink-dim">{label}</Text>
+      <Typography variant="label">{label}</Typography>
     </TouchableOpacity>
   );
 }
@@ -49,8 +49,7 @@ function ActionButton({
       ? "bg-ink border border-white/10"
       : "bg-white/5 border border-white/12";
 
-  const textClassName =
-    variant === "primary" ? "text-dark-bg" : "text-ink";
+  const textColor = variant === "primary" ? "#0A0A0F" : "#FAFAFA";
 
   return (
     <Link href={href} asChild>
@@ -66,9 +65,9 @@ function ActionButton({
             : undefined
         }
       >
-        <Text className={`${textClassName} text-sm font-semibold`}>
+        <Typography variant="label" className="font-semibold" style={{ color: textColor }}>
           {label}
-        </Text>
+        </Typography>
       </TouchableOpacity>
     </Link>
   );
@@ -97,9 +96,9 @@ function Header({
       }
     >
       <View className="mx-auto w-full max-w-6xl flex-row items-center justify-between rounded-full border border-white/10 bg-white/5 px-5 py-4">
-        <Text className="text-base font-semibold tracking-[0.24em] text-ink">
+        <Typography variant="label" className="font-semibold text-base tracking-[0.24em] text-ink">
           OharaAI
-        </Text>
+        </Typography>
 
         <View className="flex-row items-center gap-5">
           <NavLink label="Log in" href="/(auth)/login" />
@@ -120,13 +119,20 @@ function Hero() {
     >
       <View className="items-center" style={{ maxWidth: 720 }}>
         <View className="mb-8 rounded-full border border-white/10 bg-white/5 px-4 py-2">
-          <Text className="text-[11px] font-medium uppercase tracking-[0.28em] text-ink-dim">
+          <Typography variant="caption" className="font-medium uppercase tracking-[0.28em]">
             Premium demo presentation
-          </Text>
+          </Typography>
         </View>
 
-        <Text
-          className="mb-6 text-center font-semibold text-ink"
+        {/*
+         * Hero title: uses CSS clamp() for fluid responsive sizing on web.
+         * React Native's style system doesn't support clamp(), so we apply it
+         * only on web via an inline style override and fall back to a fixed
+         * native size. This is intentional — do not replace with a Tailwind class.
+         */}
+        <Typography
+          variant="heading"
+          className="mb-6 text-center"
           style={
             Platform.OS === "web"
               ? ({
@@ -138,15 +144,16 @@ function Hero() {
           }
         >
           OharaAI
-        </Text>
+        </Typography>
 
-        <Text
-          className="mb-10 text-center text-base leading-7 text-ink-dim"
+        <Typography
+          variant="body"
+          className="mb-10 text-center leading-7"
           style={{ maxWidth: 560 }}
         >
           A calm, high-clarity workspace for focused decision-making, progress
           visibility, and professional execution.
-        </Text>
+        </Typography>
 
         <View className="flex-row items-center justify-center gap-4">
           <ActionButton label="Sign up" href="/(auth)/signup" />
@@ -175,32 +182,32 @@ function Footer({
           className="rounded-3xl border border-white/10 bg-white/[0.04] p-6"
           onLayout={(event) => onRoadmapLayout(event.nativeEvent.layout.y)}
         >
-          <Text className="mb-2 text-xs font-medium uppercase tracking-[0.28em] text-ink-dim">
+          <Typography variant="caption" className="mb-2 font-medium uppercase tracking-[0.28em]">
             Roadmap
-          </Text>
-          <Text className="text-sm leading-6 text-ink-dim">
+          </Typography>
+          <Typography variant="body" className="leading-6">
             This demo landing page is intentionally minimal. The product path
             centers on focused planning, intelligent progress tracking, and a
             premium operating rhythm.
-          </Text>
+          </Typography>
         </View>
 
         <View
           className="rounded-3xl border border-white/10 bg-white/[0.04] p-6"
           onLayout={(event) => onAboutLayout(event.nativeEvent.layout.y)}
         >
-          <Text className="mb-2 text-xs font-medium uppercase tracking-[0.28em] text-ink-dim">
+          <Typography variant="caption" className="mb-2 font-medium uppercase tracking-[0.28em]">
             About us
-          </Text>
-          <Text className="text-sm leading-6 text-ink-dim">
+          </Typography>
+          <Typography variant="body" className="leading-6">
             OharaAI is presented here as a refined product demo: measured,
             modern, and designed to communicate confidence without noise.
-          </Text>
+          </Typography>
         </View>
 
-        <Text className="text-center text-xs text-ink-dim/70">
+        <Typography variant="caption" className="text-center" style={{ opacity: 0.7 }}>
           © {new Date().getFullYear()} OharaAI
-        </Text>
+        </Typography>
       </View>
     </View>
   );

@@ -1,11 +1,26 @@
 import { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import { useFonts } from 'expo-font';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+} from '@expo-google-fonts/inter';
+import { Lora_400Regular, Lora_400Regular_Italic } from '@expo-google-fonts/lora';
 import supabase from '@/lib/db/client';
 import { useAuthStore } from '@/features/auth/store';
 import '../global.css';
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    'Inter-Regular': Inter_400Regular,
+    'Inter-Medium': Inter_500Medium,
+    'Inter-SemiBold': Inter_600SemiBold,
+    'Lora-Regular': Lora_400Regular,
+    'Lora-Italic': Lora_400Regular_Italic,
+  });
+
   const { session, loading, setSession, setLoading } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
@@ -39,7 +54,7 @@ export default function RootLayout() {
     }
   }, [session, loading, segments]);
 
-  if (loading) {
+  if (!fontsLoaded || loading) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FAF9F6' }}>
         <ActivityIndicator size="large" color="#1A1A1A" />

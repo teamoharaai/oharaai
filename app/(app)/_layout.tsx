@@ -8,6 +8,17 @@ function TabIcon({ label, focused }: { label: string; focused: boolean }) {
   );
 }
 
+// Change 2: Badge style ready for when counts are wired — no tabBarBadge values yet
+const badgeStyle = {
+  backgroundColor: '#6FDFB8',
+  color: '#0A0A0F',
+  fontSize: 10,
+  minWidth: 16,
+  height: 16,
+  borderRadius: 8,
+  lineHeight: 16,
+};
+
 export default function AppLayout() {
   return (
     <Tabs
@@ -32,6 +43,7 @@ export default function AppLayout() {
         options={{
           title: 'Goals',
           tabBarIcon: ({ focused }) => <TabIcon label="◎" focused={focused} />,
+          tabBarBadgeStyle: badgeStyle,
         }}
       />
       {FEATURES.STARLOG_ENABLED ? (
@@ -40,6 +52,7 @@ export default function AppLayout() {
           options={{
             title: 'Starlog',
             tabBarIcon: ({ focused }) => <TabIcon label="✦" focused={focused} />,
+            tabBarBadgeStyle: badgeStyle,
           }}
         />
       ) : null}
@@ -49,6 +62,7 @@ export default function AppLayout() {
           options={{
             title: 'Explore',
             tabBarIcon: ({ focused }) => <TabIcon label="◈" focused={focused} />,
+            tabBarBadgeStyle: badgeStyle,
           }}
         />
       ) : null}
