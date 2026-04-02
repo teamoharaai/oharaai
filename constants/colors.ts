@@ -24,3 +24,30 @@ export const THEME = {
     tabIconSelected: '#fff',
   },
 } as const;
+
+export const LIGHT_THEME = {
+  background: {
+    page: '#F5F1EA',
+    card: '#FFFFFF',
+    sidebar: '#3D5247',
+    input: '#F0EDE6',
+    subtle: '#EAE7E0',
+  },
+  text: {
+    primary: '#1A1F1C',
+    secondary: '#6B7B6E',
+    inverse: '#E8EDE9',
+    accent: '#4A7C5F',
+    muted: '#9CAF9F',
+  },
+  border: {
+    default: 'rgba(0,0,0,0.06)',
+    subtle: 'rgba(0,0,0,0.04)',
+    accent: '#4A7C5F',
+  },
+  accent: {
+    primary: '#4A7C5F',
+    teal: '#6FDFB8',
+    tealSubtle: '#E8F5EF',
+  },
+} as const;

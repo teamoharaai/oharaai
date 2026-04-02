@@ -9,12 +9,12 @@ interface BadgeProps {
 
 const VARIANT_STYLES: Record<BadgeVariant, { bg: string; text: string }> = {
   new: { bg: '#E09F3E26', text: '#E09F3E' },
-  active: { bg: '#2D6A4F26', text: '#52B788' },
-  complete: { bg: '#8888A026', text: '#8888A0' },
-  paused: { bg: '#8888A026', text: '#8888A0' },
-  archived: { bg: '#1E1E2E', text: '#8888A0' },
+  active: { bg: '#E8F5EF', text: '#4A7C5F' },
+  complete: { bg: '#EAE7E0', text: '#6B7B6E' },
+  paused: { bg: '#EAE7E0', text: '#6B7B6E' },
+  archived: { bg: '#EAE7E0', text: '#9CAF9F' },
   ai: { bg: '#6E5CE726', text: '#6E5CE7' },
-  category: { bg: '#1E1E2E', text: '#8888A0' },
+  category: { bg: '#F0EDE6', text: '#4A7C5F' },
 };
 
 export function Badge({ label, variant = 'active' }: BadgeProps) {

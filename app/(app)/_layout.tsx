@@ -1,17 +1,18 @@
-import { Tabs } from 'expo-router';
+import { Platform, View, useWindowDimensions } from 'react-native';
 import { Text } from 'react-native';
+import { Stack, Tabs } from 'expo-router';
 import { FEATURES } from '@/constants/features';
+import { Sidebar } from '@/components/layout/Sidebar';
 
 function TabIcon({ label, focused }: { label: string; focused: boolean }) {
   return (
-    <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.4, color: '#FAFAFA' }}>{label}</Text>
+    <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.4, color: '#4A7C5F' }}>{label}</Text>
   );
 }
 
-// Change 2: Badge style ready for when counts are wired — no tabBarBadge values yet
 const badgeStyle = {
-  backgroundColor: '#6FDFB8',
-  color: '#0A0A0F',
+  backgroundColor: '#4A7C5F',
+  color: '#FFFFFF',
   fontSize: 10,
   minWidth: 16,
   height: 16,
@@ -20,17 +21,31 @@ const badgeStyle = {
 };
 
 export default function AppLayout() {
+  const { width } = useWindowDimensions();
+  const showSidebar = Platform.OS === 'web' && width >= 768;
+
+  if (showSidebar) {
+    return (
+      <View style={{ flex: 1, flexDirection: 'row' }}>
+        <Sidebar />
+        <View style={{ flex: 1 }}>
+          <Stack screenOptions={{ headerShown: false }} />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#0A0A0F',
-          borderTopColor: '#1E1E2E',
-          borderTopWidth: 1,
+          backgroundColor: '#F5F1EA',
+          borderTopColor: 'rgba(0,0,0,0.06)',
+          borderTopWidth: 0.5,
         },
-        tabBarActiveTintColor: '#FAFAFA',
-        tabBarInactiveTintColor: '#8888A0',
+        tabBarActiveTintColor: '#4A7C5F',
+        tabBarInactiveTintColor: '#9CAF9F',
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '500',

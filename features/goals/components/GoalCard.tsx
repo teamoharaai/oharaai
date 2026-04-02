@@ -24,15 +24,18 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
         router.push({ pathname: '/goals/[id]', params: { id: goal.id } })
       }
       style={({ pressed }) => ({
-        backgroundColor: '#14141F',
+        backgroundColor: '#FFFFFF',
         borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#1E1E2E',
         borderLeftWidth: 3,
-        borderLeftColor: theme.accent,
+        borderLeftColor: theme.accent + '99', // 60% opacity
         padding: 16,
         opacity: pressed ? 0.85 : 1,
         transform: [{ scale: pressed ? 0.98 : 1 }],
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+        elevation: 2,
       })}
     >
       {/* Top row: category + active badge */}
@@ -52,7 +55,7 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
       </Typography>
 
       {/* Progress bar */}
-      <View style={{ height: 3, backgroundColor: '#1E1E2E', borderRadius: 2, marginBottom: 12 }}>
+      <View style={{ height: 3, backgroundColor: '#EAE7E0', borderRadius: 2, marginBottom: 12 }}>
         <View
           style={{
             width: `${goal.progress}%`,
@@ -69,12 +72,12 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
         {days !== null && (
           <Typography
             variant="caption"
-            style={{ color: days > 14 ? '#8888A0' : '#E85D04' }}
+            style={{ color: days > 0 ? (days > 14 ? '#6B7B6E' : '#C0483A') : '#C0483A' }}
           >
             {days > 0 ? `${days}d left` : 'Overdue'}
           </Typography>
         )}
-        <Typography variant="caption" style={{ fontSize: 18, lineHeight: 20 }}>⋯</Typography>
+        <Typography variant="caption" style={{ fontSize: 18, lineHeight: 20, color: '#9CAF9F' }}>⋯</Typography>
       </View>
     </Pressable>
   );

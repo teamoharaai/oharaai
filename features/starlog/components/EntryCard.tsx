@@ -10,34 +10,37 @@ export function EntryCard({ entry }: { entry: StarlogEntry }) {
   return (
     <View
       style={{
-        backgroundColor: '#14141F',
+        backgroundColor: '#FFFFFF',
         borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#1E1E2E',
         padding: 16,
         marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+        elevation: 2,
       }}
     >
       <Text
-        style={{ color: '#FAFAFA', fontSize: 14, lineHeight: 20 }}
+        style={{ color: '#1A1F1C', fontSize: 14, lineHeight: 20 }}
         numberOfLines={3}
       >
         {entry.content}
       </Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 8 }}>
-        <Text style={{ color: '#8888A0', fontSize: 12 }}>
+        <Text style={{ color: '#9CAF9F', fontSize: 12 }}>
           {formatEntryDate(entry.createdAt)}
         </Text>
         {entry.goalTitle && (
           <View
             style={{
-              backgroundColor: '#1E1E2E',
+              backgroundColor: '#E8F5EF',
               borderRadius: 10,
               paddingHorizontal: 8,
               paddingVertical: 2,
             }}
           >
-            <Text style={{ color: '#8888A0', fontSize: 11 }}>{entry.goalTitle}</Text>
+            <Text style={{ color: '#4A7C5F', fontSize: 11 }}>{entry.goalTitle}</Text>
           </View>
         )}
       </View>

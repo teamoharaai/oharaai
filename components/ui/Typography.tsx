@@ -3,13 +3,13 @@ import { Text, type TextProps, type StyleProp, type TextStyle } from 'react-nati
 type Variant = 'heading' | 'title' | 'body' | 'label' | 'caption' | 'ai' | 'ai-italic';
 
 const VARIANT_CLASSES: Record<Variant, string> = {
-  heading:     'font-semibold text-2xl text-white',
-  title:       'font-medium text-lg text-white',
-  body:        'font-sans text-base text-[#C0C0CC]',
-  label:       'font-medium text-sm text-[#888899]',
-  caption:     'font-sans text-xs text-[#555566]',
-  ai:          'font-serif text-base text-[#C8D8C8] leading-relaxed',
-  'ai-italic': 'font-serif-italic text-base text-[#C8D8C8] leading-relaxed',
+  heading:     'font-semibold text-2xl text-[#1A1F1C]',
+  title:       'font-medium text-lg text-[#1A1F1C]',
+  body:        'font-sans text-base text-[#6B7B6E]',
+  label:       'font-medium text-sm text-[#6B7B6E]',
+  caption:     'font-sans text-xs text-[#9CAF9F]',
+  ai:          'font-serif text-base text-[#4A7C5F] leading-relaxed',
+  'ai-italic': 'font-serif-italic text-base text-[#4A7C5F] leading-relaxed',
 };
 
 interface TypographyProps extends Omit<TextProps, 'style'> {
