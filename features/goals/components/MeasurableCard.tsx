@@ -8,11 +8,20 @@ interface MeasurableCardProps {
   accentColor: string;
   onSave?: (measurableId: string, updates: MeasurableUpdates) => Promise<void>;
   onDelete?: (measurableId: string) => Promise<void>;
+  onComplete?: (measurableId: string) => Promise<void>;
+  isCompleted: boolean;
 }
 
 type EditingField = 'title' | 'targetValue' | 'currentValue' | null;
 
-export function MeasurableCard({ measurable, accentColor, onSave, onDelete }: MeasurableCardProps) {
+export function MeasurableCard({
+  measurable,
+  accentColor,
+  onSave,
+  onDelete,
+  onComplete,
+  isCompleted,
+}: MeasurableCardProps) {
   const [currentValue, setCurrentValue] = useState(measurable.currentValue);
   const [editingField, setEditingField] = useState<EditingField>(null);
   const [draftTitle, setDraftTitle] = useState(measurable.title);
@@ -100,6 +109,13 @@ export function MeasurableCard({ measurable, accentColor, onSave, onDelete }: Me
     await onDelete?.(measurable.id);
   }
 
+  async function handleComplete() {
+    if (!onComplete || isCompleted || isSaving) return;
+    setIsSaving(true);
+    await onComplete(measurable.id);
+    setIsSaving(false);
+  }
+
   const target = measurable.targetValue ?? 1;
   const pct = Math.min(100, Math.round((currentValue / target) * 100));
   const canEdit = !!onSave;
@@ -138,6 +154,24 @@ export function MeasurableCard({ measurable, accentColor, onSave, onDelete }: Me
     >
       {/* Title row */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <TouchableOpacity
+          onPress={handleComplete}
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 14,
+            borderWidth: 2,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderColor: isCompleted ? '#3D5247' : '#DDD6CA',
+            backgroundColor: isCompleted ? '#3D5247' : 'transparent',
+          }}
+          disabled={!onComplete || isCompleted || isSaving}
+        >
+          {isCompleted ? (
+            <Text style={{ fontSize: 13, fontWeight: '700', color: '#FFFFFF' }}>✓</Text>
+          ) : null}
+        </TouchableOpacity>
         {editingField === 'title' ? (
           <TextInput
             style={[inputStyle, { flex: 1, fontSize: 13, fontWeight: '500' }]}
@@ -151,7 +185,14 @@ export function MeasurableCard({ measurable, accentColor, onSave, onDelete }: Me
           />
         ) : (
           <Pressable style={{ flex: 1 }} onPress={() => canEdit && setEditingField('title')}>
-            <Text style={{ fontSize: 13, fontWeight: '500', color: '#1A1F1C' }}>
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: '500',
+                color: isCompleted ? '#9CA89E' : '#1A1F1C',
+                textDecorationLine: isCompleted ? 'line-through' : 'none',
+              }}
+            >
               {measurable.title}
             </Text>
           </Pressable>
@@ -239,7 +280,7 @@ export function MeasurableCard({ measurable, accentColor, onSave, onDelete }: Me
 
       {/* Habit */}
       {measurable.type === 'habit' && (() => {
-        const done = currentValue === 1;
+        const done = isCompleted || currentValue === 1;
         return (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <TouchableOpacity
@@ -267,7 +308,7 @@ export function MeasurableCard({ measurable, accentColor, onSave, onDelete }: Me
 
       {/* Checklist */}
       {measurable.type === 'checklist' && (() => {
-        const done = currentValue === 1;
+        const done = isCompleted || currentValue === 1;
         return (
           <TouchableOpacity
             onPress={handleToggle}
@@ -294,7 +335,7 @@ export function MeasurableCard({ measurable, accentColor, onSave, onDelete }: Me
               style={{
                 fontSize: 12,
                 flex: 1,
-                color: done ? '#9CAF9F' : '#1A1F1C',
+                color: done ? '#9CA89E' : '#1A1F1C',
                 textDecorationLine: done ? 'line-through' : 'none',
               }}
             >

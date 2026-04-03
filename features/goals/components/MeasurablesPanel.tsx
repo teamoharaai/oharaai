@@ -10,6 +10,8 @@ interface MeasurablesPanelProps {
   onSave?: (measurableId: string, updates: MeasurableUpdates) => Promise<void>;
   onDelete?: (measurableId: string) => Promise<void>;
   onAdd?: (input: MeasurableInput) => Promise<void>;
+  onComplete?: (measurableId: string) => Promise<void>;
+  completedIds: Set<string>;
   error?: string | null;
   onDismissError?: () => void;
 }
@@ -49,6 +51,8 @@ export function MeasurablesPanel({
   onSave,
   onDelete,
   onAdd,
+  onComplete,
+  completedIds,
   error,
   onDismissError,
 }: MeasurablesPanelProps) {
@@ -59,6 +63,14 @@ export function MeasurablesPanel({
   const [addUnit, setAddUnit] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+  const sortedMeasurables = [...measurables].sort((a, b) => a.sortOrder - b.sortOrder);
+  const incompleteMeasurables = sortedMeasurables.filter(
+    (measurable) => !completedIds.has(measurable.id),
+  );
+  const completeMeasurables = sortedMeasurables.filter((measurable) =>
+    completedIds.has(measurable.id),
+  );
+  const orderedMeasurables = [...incompleteMeasurables, ...completeMeasurables];
 
   function resetAddForm() {
     setAddTitle('');
@@ -147,17 +159,17 @@ export function MeasurablesPanel({
       )}
 
       {/* Milestone cards */}
-      {[...measurables]
-        .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map((m) => (
-          <MeasurableCard
-            key={m.id}
-            measurable={m}
-            accentColor={accentColor}
-            onSave={onSave}
-            onDelete={onDelete}
-          />
-        ))}
+      {orderedMeasurables.map((m) => (
+        <MeasurableCard
+          key={m.id}
+          measurable={m}
+          accentColor={accentColor}
+          onSave={onSave}
+          onDelete={onDelete}
+          onComplete={onComplete}
+          isCompleted={completedIds.has(m.id)}
+        />
+      ))}
 
       {/* Add form */}
       {showAddForm ? (

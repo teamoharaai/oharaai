@@ -1,29 +1,29 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useGoalStore } from '../store';
 import { fetchGoalById, fetchGoals, createMeasurable, updateMeasurable, deleteMeasurable } from '../services/goal-service';
-import type { GoalWithMeasurables, ActivityEntry, MeasurableInput, MeasurableUpdates } from '../types';
-import type { EchoEntry } from '@/features/echo/types';
-import { getEntriesByGoalId } from '@/features/echo/services/echo-service';
+import type { GoalWithMeasurables, MeasurableInput, MeasurableUpdates } from '../types';
 import supabase from '@/lib/db/client';
 
 export function useGoalDetail(goalId: string): {
   goal: GoalWithMeasurables | null;
-  activityEntries: ActivityEntry[];
-  echoEntries: EchoEntry[];
   isLoading: boolean;
-  isEchoLoading: boolean;
   onSaveMeasurable: (measurableId: string, updates: MeasurableUpdates) => Promise<void>;
   onDeleteMeasurable: (measurableId: string) => Promise<void>;
   onAddMeasurable: (input: MeasurableInput) => Promise<void>;
+  onCompleteMeasurable: (measurableId: string) => Promise<void>;
+  completedIds: Set<string>;
   measurableError: string | null;
   clearMeasurableError: () => void;
 } {
-  const { goals, isLoading, setGoals, setIsLoading, upsertMeasurable, removeMeasurable } =
+  const { goals, isLoading, setGoals, setIsLoading, upsertGoal, upsertMeasurable, removeMeasurable } =
     useGoalStore();
-  const [echoEntries, setEchoEntries] = useState<EchoEntry[]>([]);
-  const [isEchoLoading, setIsEchoLoading] = useState(false);
   const [measurableError, setMeasurableError] = useState<string | null>(null);
+  const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const goal = goals.find((g) => g.id === goalId) ?? null;
+
+  useEffect(() => {
+    setCompletedIds(new Set());
+  }, [goalId]);
 
   useEffect(() => {
     if (!goalId || isLoading) {
@@ -54,31 +54,6 @@ export function useGoalDetail(goalId: string): {
       load();
     }
   }, [goal, goalId, goals, isLoading, setGoals, setIsLoading]);
-
-  useEffect(() => {
-    if (!goalId) {
-      setEchoEntries([]);
-      setIsEchoLoading(false);
-      return;
-    }
-
-    let isActive = true;
-
-    async function loadEchoEntries() {
-      setIsEchoLoading(true);
-      const data = await getEntriesByGoalId(goalId);
-      if (isActive) {
-        setEchoEntries(data);
-        setIsEchoLoading(false);
-      }
-    }
-
-    loadEchoEntries();
-
-    return () => {
-      isActive = false;
-    };
-  }, [goalId]);
 
   const clearMeasurableError = useCallback(() => setMeasurableError(null), []);
 
@@ -140,17 +115,76 @@ export function useGoalDetail(goalId: string): {
     [goalId, goals, upsertMeasurable],
   );
 
-  const activityEntries: ActivityEntry[] = [];
+  const onCompleteMeasurable = useCallback(
+    async (measurableId: string) => {
+      const currentGoal = goals.find((item) => item.id === goalId);
+      if (!currentGoal) return;
+
+      const measurable = currentGoal.measurables.find((item) => item.id === measurableId);
+      if (!measurable || completedIds.has(measurableId)) return;
+
+      setMeasurableError(null);
+      setCompletedIds((prev) => new Set(prev).add(measurableId));
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        setCompletedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(measurableId);
+          return next;
+        });
+        setMeasurableError('You need to be signed in to complete a milestone.');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/goals/complete-measurable', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ measurableId, goalId }),
+        });
+
+        const payload = (await response.json()) as
+          | { success: true; progress: number }
+          | { error?: string };
+
+        if (!response.ok || !('success' in payload) || !payload.success) {
+          const message = 'error' in payload ? payload.error : undefined;
+          throw new Error(message ?? 'Failed to complete milestone');
+        }
+
+        upsertGoal({
+          ...currentGoal,
+          progress: payload.progress,
+        });
+      } catch (error) {
+        setCompletedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(measurableId);
+          return next;
+        });
+        setMeasurableError(
+          error instanceof Error ? error.message : 'Failed to complete milestone',
+        );
+      }
+    },
+    [completedIds, goalId, goals, upsertGoal],
+  );
 
   return {
     goal,
-    activityEntries,
-    echoEntries,
     isLoading,
-    isEchoLoading,
     onSaveMeasurable,
     onDeleteMeasurable,
     onAddMeasurable,
+    onCompleteMeasurable,
+    completedIds,
     measurableError,
     clearMeasurableError,
   };

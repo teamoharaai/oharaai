@@ -1,29 +1,106 @@
-import { View, Text } from 'react-native';
-import type { ActivityEntry } from '../types';
+import { Pressable, Text, View, ActivityIndicator } from 'react-native';
+import { router } from 'expo-router';
+import type { ActivityItem, EchoEntryActivity, MilestoneCompletedActivity, GoalCreatedActivity } from '@/types/activity';
 
 interface ActivityFeedProps {
-  entries: ActivityEntry[];
+  items: ActivityItem[];
+  loading: boolean;
+  error: string | null;
 }
 
-const TYPE_ICONS: Record<ActivityEntry['type'], string> = {
-  journal: '✦',
-  milestone: '◎',
-  measurable: '▲',
-};
-
-function formatRelativeTime(date: Date): string {
-  const diff = Date.now() - date.getTime();
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  if (days === 0) return 'Today';
-  if (days === 1) return 'Yesterday';
-  if (days < 7) return `${days} days ago`;
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+function formatDate(timestamp: string): string {
+  const date = new Date(timestamp);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export function ActivityFeed({ entries }: ActivityFeedProps) {
-  const sorted = [...entries].sort(
-    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+function GoalCreatedRow({ item }: { item: GoalCreatedActivity }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <Text style={{ fontSize: 11, color: '#9CAF9F' }}>◉</Text>
+      <Text style={{ fontSize: 13, color: '#9CAF9F', flex: 1 }}>Goal created</Text>
+      <Text style={{ fontSize: 12, color: '#9CAF9F' }}>{formatDate(item.timestamp)}</Text>
+    </View>
   );
+}
+
+function EchoEntryCard({ item }: { item: EchoEntryActivity }) {
+  return (
+    <Pressable
+      onPress={() => router.push(`/(app)/echo/${item.entryId}` as never)}
+      style={({ pressed }) => ({
+        backgroundColor: pressed ? '#F0EDE6' : '#F8F6F1',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#EAE7E0',
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+      })}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text style={{ fontSize: 11, color: '#9CAF9F' }}>✦</Text>
+          <Text style={{ fontSize: 12, color: '#9CAF9F' }}>{formatDate(item.timestamp)}</Text>
+        </View>
+        {item.emotion?.primary ? (
+          <View
+            style={{
+              backgroundColor: '#EAE7E0',
+              borderRadius: 999,
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+            }}
+          >
+            <Text style={{ fontSize: 11, color: '#6B7B6E', textTransform: 'capitalize' }}>
+              {item.emotion.primary}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+      <Text style={{ fontSize: 13, color: '#1A1F1C', lineHeight: 20 }} numberOfLines={3}>
+        {item.preview}
+      </Text>
+    </Pressable>
+  );
+}
+
+function MilestoneRow({ item }: { item: MilestoneCompletedActivity }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <Text style={{ fontSize: 13, color: '#3D5247' }}>✓</Text>
+      <Text style={{ fontSize: 13, color: '#1A1F1C', flex: 1 }} numberOfLines={1}>
+        {item.label}
+      </Text>
+      <Text style={{ fontSize: 12, color: '#9CAF9F' }}>{formatDate(item.timestamp)}</Text>
+    </View>
+  );
+}
+
+function ActivityRow({ item, isLast }: { item: ActivityItem; isLast: boolean }) {
+  const content =
+    item.kind === 'goal_created' ? (
+      <GoalCreatedRow item={item} />
+    ) : item.kind === 'echo_entry' ? (
+      <EchoEntryCard item={item} />
+    ) : (
+      <MilestoneRow item={item} />
+    );
+
+  return (
+    <View
+      style={{
+        marginBottom: isLast ? 0 : 12,
+        paddingBottom: isLast ? 0 : 12,
+        borderBottomWidth: isLast ? 0 : 1,
+        borderBottomColor: '#EAE7E0',
+      }}
+    >
+      {content}
+    </View>
+  );
+}
+
+export function ActivityFeed({ items, loading, error }: ActivityFeedProps) {
+  void error;
 
   return (
     <View
@@ -52,57 +129,11 @@ export function ActivityFeed({ entries }: ActivityFeedProps) {
         Activity
       </Text>
 
-      {sorted.length === 0 ? (
-        <View style={{ paddingVertical: 8, paddingHorizontal: 4 }}>
-          <Text style={{ fontSize: 14, color: '#6B7B6E', marginBottom: 4 }}>
-            Activity will build here as you make progress.
-          </Text>
-          <Text style={{ fontSize: 13, color: '#9CAF9F', lineHeight: 20 }}>
-            Logged reflections and milestone updates will appear in this feed.
-          </Text>
-        </View>
+      {loading ? (
+        <ActivityIndicator size="small" color="#9CAF9F" style={{ alignSelf: 'flex-start' }} />
       ) : (
-        sorted.map((entry, index) => (
-          <View
-            key={entry.id}
-            style={{
-              marginBottom: index < sorted.length - 1 ? 16 : 0,
-              paddingBottom: index < sorted.length - 1 ? 16 : 0,
-              borderBottomWidth: index < sorted.length - 1 ? 1 : 0,
-              borderBottomColor: '#EAE7E0',
-            }}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              <Text style={{ color: '#9CAF9F', fontSize: 11 }}>
-                {TYPE_ICONS[entry.type]}
-              </Text>
-              <Text style={{ color: '#9CAF9F', fontSize: 11, letterSpacing: 0.3 }}>
-                {formatRelativeTime(entry.createdAt)}
-              </Text>
-            </View>
-
-            <Text
-              style={{ color: '#1A1F1C', fontSize: 13, lineHeight: 20 }}
-              numberOfLines={4}
-            >
-              {entry.text}
-            </Text>
-
-            {entry.aiResponse && (
-              <View
-                style={{
-                  marginTop: 8,
-                  paddingLeft: 12,
-                  borderLeftWidth: 2,
-                  borderLeftColor: '#EAE7E0',
-                }}
-              >
-                <Text style={{ color: '#6B7B6E', fontSize: 12, lineHeight: 18, fontStyle: 'italic' }}>
-                  {entry.aiResponse}
-                </Text>
-              </View>
-            )}
-          </View>
+        items.map((item, index) => (
+          <ActivityRow key={item.id} item={item} isLast={index === items.length - 1} />
         ))
       )}
     </View>

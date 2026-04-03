@@ -4,7 +4,9 @@ import { GOAL_THEMES } from '@/constants/themes';
 import { useGoalDetail } from '@/features/goals/hooks/useGoalDetail';
 import { GoalDetailHeader } from '@/features/goals/components/GoalDetailHeader';
 import { MeasurablesPanel } from '@/features/goals/components/MeasurablesPanel';
-import { GoalEchoEntriesPanel } from '@/features/goals/components/GoalEchoEntriesPanel';
+import { ActivityFeed } from '@/features/goals/components/ActivityFeed';
+import { AffiliateTeaser } from '@/components/AffiliateTeaser';
+import { useActivity } from '@/features/goals/hooks/useActivity';
 
 function GoalDetailLoadingState() {
   return (
@@ -83,15 +85,16 @@ export default function GoalDetailScreen() {
   const goalId = Array.isArray(id) ? id[0] : (id ?? '');
   const {
     goal,
-    echoEntries,
     isLoading,
-    isEchoLoading,
     onSaveMeasurable,
     onDeleteMeasurable,
     onAddMeasurable,
+    onCompleteMeasurable,
+    completedIds,
     measurableError,
     clearMeasurableError,
   } = useGoalDetail(goalId);
+  const { items, loading: activityLoading, error: activityError } = useActivity(goalId);
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
 
@@ -99,6 +102,7 @@ export default function GoalDetailScreen() {
   if (!goal) return <GoalNotFound />;
 
   const theme = GOAL_THEMES[goal.colorTheme];
+  const hasEchoEntry = items.some((item) => item.kind === 'echo_entry');
 
   const mainWorkspace = (
     <>
@@ -109,13 +113,13 @@ export default function GoalDetailScreen() {
         onSave={onSaveMeasurable}
         onDelete={onDeleteMeasurable}
         onAdd={onAddMeasurable}
+        onComplete={onCompleteMeasurable}
+        completedIds={completedIds}
         error={measurableError}
         onDismissError={clearMeasurableError}
       />
-      <GoalEchoEntriesPanel
-        entries={echoEntries}
-        isLoading={isEchoLoading}
-      />
+      <ActivityFeed items={items} loading={activityLoading} error={activityError} />
+      {goal.progress > 0 && hasEchoEntry ? <AffiliateTeaser /> : null}
     </>
   );
 
