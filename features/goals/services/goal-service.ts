@@ -196,6 +196,15 @@ export async function updateGoal(goalId: string, updates: Partial<Goal>): Promis
   return mapGoal(data as unknown as DbGoal);
 }
 
+export async function deleteGoal(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('goals')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
 export async function createMeasurable(goalId: string, input: MeasurableInput): Promise<Measurable | null> {
   const { data, error } = await supabase
     .from('measurables')

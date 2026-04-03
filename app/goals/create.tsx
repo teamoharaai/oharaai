@@ -10,27 +10,44 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import supabase from '@/lib/db/client';
 import { createGoalWithMeasurables } from '@/lib/db/goals';
 import { fetchGoalById } from '@/features/goals/services/goal-service';
 import { useGoalStore } from '@/features/goals/store';
+import { useProjectStore } from '@/features/projects/store';
 import type { GoalFinalizeResponse } from '@/lib/ai/schemas/goal-creation';
 
 type ConversationMessage = { role: 'user' | 'assistant'; content: string };
 
 export default function GoalCreateScreen() {
+  const { projectId: incomingProjectId } = useLocalSearchParams<{ projectId?: string }>();
   const { upsertGoal } = useGoalStore();
+  const { projects, loadProjects } = useProjectStore();
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [savingGoal, setSavingGoal] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    typeof incomingProjectId === 'string' ? incomingProjectId : null,
+  );
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollToEnd({ animated: true });
   }, [messages]);
+
+  useEffect(() => {
+    loadProjects();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (typeof incomingProjectId === 'string') {
+      setSelectedProjectId(incomingProjectId);
+    }
+  }, [incomingProjectId]);
 
   async function submitGoalChat(options?: { finalize?: boolean }) {
     const finalize = options?.finalize === true;
@@ -70,6 +87,7 @@ export default function GoalCreateScreen() {
           ...(text ? { userMessage: text } : {}),
           conversationHistory: messages,
           finalize,
+          projectId: selectedProjectId,
         }),
       });
 
@@ -102,6 +120,7 @@ export default function GoalCreateScreen() {
         setSavingGoal(true);
         const saveResult = await createGoalWithMeasurables(user.id, data.goalData, {
           requestId: data.requestId,
+          projectId: selectedProjectId,
         });
         setSavingGoal(false);
 
@@ -453,6 +472,58 @@ export default function GoalCreateScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        {showIntro && projects.length > 0 && (
+          <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+            <Text
+              style={{
+                color: '#6B7B6E',
+                fontSize: 13,
+                fontWeight: '500',
+                marginBottom: 8,
+              }}
+            >
+              Link to a project (optional)
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ flexDirection: 'row', gap: 8 }}
+              style={{ flexGrow: 0 }}
+            >
+              {projects.map((project) => {
+                const isSelected = selectedProjectId === project.id;
+                return (
+                  <TouchableOpacity
+                    key={project.id}
+                    onPress={() =>
+                      setSelectedProjectId((current) => (current === project.id ? null : project.id))
+                    }
+                    style={{
+                      backgroundColor: isSelected ? '#3D5247' : '#FFFFFF',
+                      borderWidth: isSelected ? 0 : 1,
+                      borderColor: '#EAE7E0',
+                      borderRadius: 999,
+                      paddingHorizontal: 16,
+                      paddingVertical: 8,
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={{
+                        color: isSelected ? '#E8EDE9' : '#6B7B6E',
+                        fontSize: 14,
+                        fontWeight: '500',
+                      }}
+                    >
+                      {project.title}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

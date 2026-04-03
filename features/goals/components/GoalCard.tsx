@@ -1,8 +1,9 @@
-import { View, Pressable } from 'react-native';
-import { router } from 'expo-router';
+import { View, Pressable, Alert } from 'react-native';
+import { router, usePathname } from 'expo-router';
 import { GOAL_THEMES } from '@/constants/themes';
 import { Badge } from '@/components/ui/Badge';
 import { Typography } from '@/components/ui/Typography';
+import { useGoalStore } from '../store';
 import type { GoalWithMeasurables } from '../types';
 
 interface GoalCardProps {
@@ -17,6 +18,39 @@ function daysUntil(date: Date): number {
 export function GoalCard({ goal, isNewest }: GoalCardProps) {
   const theme = GOAL_THEMES[goal.colorTheme];
   const days = goal.deadline ? daysUntil(goal.deadline) : null;
+  const pathname = usePathname();
+  const deleteGoal = useGoalStore((state) => state.deleteGoal);
+
+  const confirmDelete = () => {
+    Alert.alert('Delete goal', 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteGoal(goal.id);
+            if (pathname === '/goals/[id]') {
+              router.replace('/(app)/dashboard');
+            }
+          } catch {
+            Alert.alert('Could not delete goal', 'Please try again.');
+          }
+        },
+      },
+    ]);
+  };
+
+  const openMenu = () => {
+    Alert.alert('Goal options', undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete goal',
+        style: 'destructive',
+        onPress: confirmDelete,
+      },
+    ]);
+  };
 
   return (
     <Pressable
@@ -77,7 +111,17 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
             {days > 0 ? `${days}d left` : 'Overdue'}
           </Typography>
         )}
-        <Typography variant="caption" style={{ fontSize: 18, lineHeight: 20, color: '#9CAF9F' }}>⋯</Typography>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Open options for ${goal.title}`}
+          hitSlop={8}
+          onPress={(event) => {
+            event.stopPropagation();
+            openMenu();
+          }}
+        >
+          <Typography variant="caption" style={{ fontSize: 18, lineHeight: 20, color: '#9CAF9F' }}>⋯</Typography>
+        </Pressable>
       </View>
     </Pressable>
   );

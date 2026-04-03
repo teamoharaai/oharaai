@@ -5,7 +5,6 @@ import { useEffect } from 'react';
 import { useGoals } from '@/features/goals/hooks/useGoals';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { GoalGrid } from '@/features/goals/components/GoalGrid';
-import { EmptyStateCard } from '@/components/ui/EmptyStateCard';
 import { useProjectStore } from '@/features/projects/store';
 import { ProjectCard } from '@/features/projects/components/ProjectCard';
 
@@ -62,15 +61,70 @@ function DashboardLoadingState() {
   );
 }
 
-function EmptyState() {
+function GuidedEmptyState() {
   return (
-    <View style={{ paddingVertical: 64 }}>
-      <EmptyStateCard
-        title="You haven't set any goals yet."
-        description="Create your first goal to start tracking what matters most."
-        actionLabel="Create your first goal"
-        onActionPress={() => router.push('/goals/create')}
-      />
+    <View style={{ paddingVertical: 64, alignItems: 'center' }}>
+      <Text
+        style={{
+          fontSize: 22,
+          fontWeight: '500',
+          color: '#1A1F1C',
+          textAlign: 'center',
+          marginBottom: 12,
+        }}
+      >
+        Start with a goal or a long-term project.
+      </Text>
+      <Text
+        style={{
+          fontSize: 15,
+          lineHeight: 22,
+          color: '#6B7B6E',
+          textAlign: 'center',
+          maxWidth: 420,
+          marginBottom: 24,
+        }}
+      >
+        Goals are short-term and focused. Projects are bigger ambitions that goals build toward.
+      </Text>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 12,
+          flexWrap: 'wrap',
+        }}
+      >
+        <Pressable
+          onPress={() => router.push('/goals/create')}
+          style={{
+            backgroundColor: '#3D5247',
+            borderRadius: 12,
+            paddingHorizontal: 20,
+            paddingVertical: 12,
+          }}
+        >
+          <Text style={{ color: '#E8EDE9', fontSize: 15, fontWeight: '600' }}>
+            New goal
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => router.push('/projects/create')}
+          style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: '#3D5247',
+            paddingHorizontal: 20,
+            paddingVertical: 12,
+          }}
+        >
+          <Text style={{ color: '#3D5247', fontSize: 15, fontWeight: '600' }}>
+            New project
+          </Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -102,6 +156,7 @@ export default function DashboardScreen() {
 
   const standaloneGoals = goals.filter((g) => g.projectId === null);
   const hasProjects = projects.length > 0;
+  const isCompletelyEmpty = projects.length === 0 && standaloneGoals.length === 0;
 
   const displayName = displayNameFromEmail(user?.email);
   const greeting = displayName ? `${getGreeting()}, ${displayName}.` : `${getGreeting()}.`;
@@ -120,25 +175,25 @@ export default function DashboardScreen() {
 
         {isLoading ? (
           <DashboardLoadingState />
+        ) : isCompletelyEmpty ? (
+          <GuidedEmptyState />
         ) : (
           <>
             {/* Projects section */}
-            {hasProjects && (
-              <View style={{ marginBottom: 24 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <Text style={SECTION_LABEL_STYLE}>Projects</Text>
-                  <Pressable onPress={() => router.push('/projects/create')}>
-                    <Text style={{ fontSize: 20, color: '#4A7C5F', lineHeight: 24 }}>+</Text>
-                  </Pressable>
-                </View>
-                {projects.map((project) => (
-                  <ProjectCard key={project.id} project={project} />
-                ))}
+            <View style={{ marginBottom: hasProjects ? 24 : 32 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: hasProjects ? 16 : 0 }}>
+                <Text style={SECTION_LABEL_STYLE}>Projects</Text>
+                <Pressable onPress={() => router.push('/projects/create')}>
+                  <Text style={{ fontSize: 20, color: '#4A7C5F', lineHeight: 24 }}>+</Text>
+                </Pressable>
               </View>
-            )}
+              {hasProjects && projects.map((project) => (
+                <ProjectCard key={project.id} project={project} />
+              ))}
+            </View>
 
-            {/* Goals section — shown when there are standalone goals, or when there are no projects (new user empty state) */}
-            {(standaloneGoals.length > 0 || projects.length === 0) && (
+            {/* Goals section */}
+            {standaloneGoals.length > 0 && (
               <View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                   <Text style={SECTION_LABEL_STYLE}>Goals</Text>
@@ -146,11 +201,7 @@ export default function DashboardScreen() {
                     <Text style={{ fontSize: 20, color: '#4A7C5F', lineHeight: 24 }}>+</Text>
                   </Pressable>
                 </View>
-                {standaloneGoals.length > 0 ? (
-                  <GoalGrid goals={standaloneGoals} newestId={newestId} />
-                ) : (
-                  <EmptyState />
-                )}
+                <GoalGrid goals={standaloneGoals} newestId={newestId} />
               </View>
             )}
           </>

@@ -39,7 +39,11 @@ function normalizeDeadlineForPersistence(deadline: string | null): string | null
   return null;
 }
 
-function mapAiGoalDataToDbInserts(aiData: GoalFinalizeResponse, userId: string) {
+function mapAiGoalDataToDbInserts(
+  aiData: GoalFinalizeResponse,
+  userId: string,
+  projectId?: string | null,
+) {
   const colorTheme: GoalTheme = CATEGORY_THEME[aiData.goal.category] ?? 'ocean';
   const normalizedDeadline = normalizeDeadlineForPersistence(aiData.goal.deadline);
 
@@ -56,6 +60,7 @@ function mapAiGoalDataToDbInserts(aiData: GoalFinalizeResponse, userId: string) 
       deadline: normalizedDeadline,
       is_public: false,
       ai_generated: true,
+      project_id: projectId ?? null,
     },
     measurableInserts: aiData.measurables.map((m, index) => ({
       title: m.title,
@@ -80,7 +85,7 @@ function mapAiGoalDataToDbInserts(aiData: GoalFinalizeResponse, userId: string) 
 export async function createGoalWithMeasurables(
   userId: string,
   aiData: GoalFinalizeResponse,
-  options?: { requestId?: string },
+  options?: { requestId?: string; projectId?: string | null },
 ): Promise<CreateGoalWithMeasurablesResult> {
   const requestId = options?.requestId ?? null;
 
@@ -106,7 +111,11 @@ export async function createGoalWithMeasurables(
     return { goalId: null, error, warning: null };
   }
 
-  const { goalInsert, measurableInserts, normalizationWarnings } = mapAiGoalDataToDbInserts(aiData, userId);
+  const { goalInsert, measurableInserts, normalizationWarnings } = mapAiGoalDataToDbInserts(
+    aiData,
+    userId,
+    options?.projectId,
+  );
   let warning: string | null = normalizationWarnings[0] ?? null;
 
   console.info('[goal-finalize] persistence started', {
@@ -116,6 +125,7 @@ export async function createGoalWithMeasurables(
     title: aiData.goal.title,
     category: aiData.goal.category,
     measurableCount: aiData.measurables.length,
+    projectId: options?.projectId ?? null,
   });
 
   if (normalizationWarnings.length > 0) {

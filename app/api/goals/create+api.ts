@@ -17,6 +17,7 @@ interface RequestBody {
   userMessage?: string;
   conversationHistory?: ConversationMessage[];
   finalize?: boolean;
+  projectId?: string | null;
 }
 
 interface CreateResponse {
@@ -546,8 +547,10 @@ export async function POST(request: Request): Promise<Response> {
   let userMessage: string | null;
   let conversationHistory: ConversationMessage[];
   let finalizeRequested = false;
+  let projectId: string | null = null;
   try {
     finalizeRequested = body.finalize === true;
+    projectId = sanitizeOptionalString(body.projectId, 255);
     userMessage = finalizeRequested
       ? sanitizeOptionalString(body.userMessage, MAX_USER_MESSAGE_LENGTH)
       : sanitizeString(body.userMessage, MAX_USER_MESSAGE_LENGTH);
@@ -572,6 +575,7 @@ export async function POST(request: Request): Promise<Response> {
     historyTurns: history.length,
     latestUserMessageLength: userMessage?.length ?? 0,
     finalizeRequested,
+    projectId,
   });
 
   if (finalizeRequested) {

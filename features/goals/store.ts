@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { deleteGoal as deleteGoalRecord } from './services/goal-service';
 import type { GoalWithMeasurables, Measurable } from './types';
 
 interface GoalStore {
@@ -9,6 +10,7 @@ interface GoalStore {
   upsertGoal: (goal: GoalWithMeasurables) => void;
   setSelectedGoalId: (id: string | null) => void;
   setIsLoading: (loading: boolean) => void;
+  deleteGoal: (id: string) => Promise<void>;
   updateMeasurableValue: (measurableId: string, value: number) => void;
   upsertMeasurable: (goalId: string, measurable: Measurable) => void;
   removeMeasurable: (goalId: string, measurableId: string) => void;
@@ -32,6 +34,12 @@ export const useGoalStore = create<GoalStore>((set) => ({
     }),
   setSelectedGoalId: (id) => set({ selectedGoalId: id }),
   setIsLoading: (loading) => set({ isLoading: loading }),
+  deleteGoal: async (id) => {
+    await deleteGoalRecord(id);
+    set((state) => ({
+      goals: state.goals.filter((goal) => goal.id !== id),
+    }));
+  },
   updateMeasurableValue: (measurableId, value) =>
     set((state) => ({
       goals: state.goals.map((goal) => ({
