@@ -24,6 +24,7 @@ export interface Goal {
   status: GoalStatus;
   aiGenerated: boolean;
   smartData: GoalSmartData | null;
+  projectId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -82,3 +83,19 @@ export interface ActivityEntry {
   type: 'journal' | 'milestone' | 'measurable';
   createdAt: Date;
 }
+
+export type ProjectStatus = 'active' | 'complete' | 'archived';
+
+export type Project = {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  status: ProjectStatus;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProjectWithGoals = Project & {
+  goals: GoalWithMeasurables[];
+};

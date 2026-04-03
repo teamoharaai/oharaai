@@ -35,32 +35,32 @@ export function CountdownTimer({ deadline, accentColor }: CountdownTimerProps) {
   if (timeLeft.overdue) {
     return (
       <View>
-        <Text style={{ color: '#E85D04', fontSize: 15, fontWeight: '700', letterSpacing: 1 }}>
-          OVERDUE
+        <Text style={{ color: '#E85D04', fontSize: 13, fontWeight: '600', letterSpacing: 0.5 }}>
+          Deadline passed
         </Text>
       </View>
     );
   }
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 16 }}>
       <View style={{ alignItems: 'center' }}>
-        <Text style={{ color: accentColor, fontSize: 52, fontWeight: '800', lineHeight: 56 }}>
+        <Text style={{ color: accentColor, fontSize: 44, fontWeight: '700', lineHeight: 48 }}>
           {timeLeft.days}
         </Text>
-        <Text style={{ color: '#8888A0', fontSize: 10, fontWeight: '500', letterSpacing: 1.5, textTransform: 'uppercase' }}>
+        <Text style={{ color: '#9CAF9F', fontSize: 10, fontWeight: '500', letterSpacing: 1.5, textTransform: 'uppercase' }}>
           days
         </Text>
       </View>
-      <View style={{ alignItems: 'center', paddingBottom: 6 }}>
-        <Text style={{ color: '#FAFAFA', fontSize: 22, fontWeight: '600' }}>{timeLeft.hours}h</Text>
-        <Text style={{ color: '#8888A0', fontSize: 10, fontWeight: '500', letterSpacing: 1.5, textTransform: 'uppercase' }}>
+      <View style={{ alignItems: 'center', paddingBottom: 4 }}>
+        <Text style={{ color: '#6B7B6E', fontSize: 17, fontWeight: '500' }}>{timeLeft.hours}h</Text>
+        <Text style={{ color: '#9CAF9F', fontSize: 10, fontWeight: '500', letterSpacing: 1.5, textTransform: 'uppercase' }}>
           hrs
         </Text>
       </View>
-      <View style={{ alignItems: 'center', paddingBottom: 6 }}>
-        <Text style={{ color: '#FAFAFA', fontSize: 22, fontWeight: '600' }}>{timeLeft.minutes}m</Text>
-        <Text style={{ color: '#8888A0', fontSize: 10, fontWeight: '500', letterSpacing: 1.5, textTransform: 'uppercase' }}>
+      <View style={{ alignItems: 'center', paddingBottom: 4 }}>
+        <Text style={{ color: '#6B7B6E', fontSize: 17, fontWeight: '500' }}>{timeLeft.minutes}m</Text>
+        <Text style={{ color: '#9CAF9F', fontSize: 10, fontWeight: '500', letterSpacing: 1.5, textTransform: 'uppercase' }}>
           min
         </Text>
       </View>

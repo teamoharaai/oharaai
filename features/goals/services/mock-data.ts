@@ -14,6 +14,7 @@ export const MOCK_GOALS: GoalWithMeasurables[] = [
     status: 'active',
     aiGenerated: false,
     smartData: null,
+    projectId: null,
     createdAt: new Date('2026-03-20'),
     updatedAt: new Date('2026-03-28'),
     measurables: [
@@ -35,6 +36,7 @@ export const MOCK_GOALS: GoalWithMeasurables[] = [
     status: 'active',
     aiGenerated: false,
     smartData: null,
+    projectId: null,
     createdAt: new Date('2026-03-15'),
     updatedAt: new Date('2026-03-27'),
     measurables: [
@@ -55,6 +57,7 @@ export const MOCK_GOALS: GoalWithMeasurables[] = [
     status: 'active',
     aiGenerated: false,
     smartData: null,
+    projectId: null,
     createdAt: new Date('2026-02-01'),
     updatedAt: new Date('2026-03-28'),
     measurables: [
@@ -75,6 +78,7 @@ export const MOCK_GOALS: GoalWithMeasurables[] = [
     status: 'active',
     aiGenerated: false,
     smartData: null,
+    projectId: null,
     createdAt: new Date('2026-01-01'),
     updatedAt: new Date('2026-03-25'),
     measurables: [
@@ -94,6 +98,7 @@ export const MOCK_GOALS: GoalWithMeasurables[] = [
     status: 'active',
     aiGenerated: false,
     smartData: null,
+    projectId: null,
     createdAt: new Date('2026-01-15'),
     updatedAt: new Date('2026-03-26'),
     measurables: [

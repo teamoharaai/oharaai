@@ -10,8 +10,29 @@ export function GoalMediaGallery({ entries }: GoalMediaGalleryProps) {
   if (mediaEntries.length === 0) return null;
 
   return (
-    <View style={{ padding: 16, paddingTop: 0 }}>
-      <Text style={{ color: '#FAFAFA', fontSize: 15, fontWeight: '600', marginBottom: 10 }}>
+    <View
+      style={{
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 20,
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 12,
+        elevation: 1,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 11,
+          fontWeight: '500',
+          color: '#6B7B6E',
+          letterSpacing: 1.5,
+          textTransform: 'uppercase',
+          marginBottom: 12,
+        }}
+      >
         Photos
       </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -19,7 +40,7 @@ export function GoalMediaGallery({ entries }: GoalMediaGalleryProps) {
           {mediaEntries.map((entry) => (
             <View
               key={entry.id}
-              style={{ borderRadius: 10, overflow: 'hidden', backgroundColor: '#1E1E2E' }}
+              style={{ borderRadius: 10, overflow: 'hidden', backgroundColor: '#F0EDE6' }}
             >
               <Image
                 source={{ uri: entry.mediaUrl }}

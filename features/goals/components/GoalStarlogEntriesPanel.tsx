@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import type { StarlogEntry } from '@/features/starlog/types';
-import { EmptyStateCard } from '@/components/ui/EmptyStateCard';
 
 interface GoalStarlogEntriesPanelProps {
   entries: StarlogEntry[];
@@ -17,10 +16,7 @@ function formatEntryDate(date: Date): string {
 }
 
 function getPreview(content: string): string {
-  if (content.length <= 100) {
-    return content;
-  }
-
+  if (content.length <= 100) return content;
   return `${content.slice(0, 100).trimEnd()}...`;
 }
 
@@ -30,56 +26,112 @@ function GoalStarlogEntryRow({ entry }: { entry: StarlogEntry }) {
   const visibleContent = isExpanded ? entry.content : getPreview(entry.content);
 
   return (
-    <View className="rounded-xl border border-dark-border bg-dark-card px-4 py-4">
-      <Text className="mb-2 text-xs font-medium uppercase tracking-[0.2em] text-muted">
+    <View
+      style={{
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#EAE7E0',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 10,
+          fontWeight: '500',
+          letterSpacing: 1.5,
+          textTransform: 'uppercase',
+          color: '#9CAF9F',
+          marginBottom: 8,
+        }}
+      >
         {formatEntryDate(entry.createdAt)}
       </Text>
-      <Text className="text-sm leading-6 text-white">
+      <Text style={{ fontSize: 14, lineHeight: 22, color: '#1A1F1C' }}>
         {visibleContent}
       </Text>
-      {isLongContent ? (
+      {isLongContent && (
         <Pressable
-          className="mt-3 self-start"
-          onPress={() => setIsExpanded((value) => !value)}
+          style={{ marginTop: 10, alignSelf: 'flex-start' }}
+          onPress={() => setIsExpanded((v) => !v)}
         >
-          <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: '500',
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+              color: '#9CAF9F',
+            }}
+          >
             {isExpanded ? 'Show less' : 'Read more'}
           </Text>
         </Pressable>
-      ) : null}
+      )}
     </View>
   );
 }
 
-export function GoalStarlogEntriesPanel({
-  entries,
-  isLoading,
-}: GoalStarlogEntriesPanelProps) {
+const SECTION_CARD_STYLE = {
+  backgroundColor: '#FFFFFF',
+  borderRadius: 16,
+  padding: 20,
+  marginBottom: 12,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.05,
+  shadowRadius: 12,
+  elevation: 1,
+};
+
+export function GoalStarlogEntriesPanel({ entries, isLoading }: GoalStarlogEntriesPanelProps) {
   return (
-    <View className="mt-6">
-      <Text className="mb-3 text-base font-semibold text-white">
-        Starlog Entries
+    <View style={SECTION_CARD_STYLE}>
+      <Text
+        style={{
+          fontSize: 11,
+          fontWeight: '500',
+          color: '#6B7B6E',
+          letterSpacing: 1.5,
+          textTransform: 'uppercase',
+          marginBottom: 14,
+        }}
+      >
+        Reflections
       </Text>
+
       {isLoading ? (
-        <View className="gap-3">
+        <View style={{ gap: 10 }}>
           {[0, 1].map((item) => (
             <View
               key={item}
-              className="animate-pulse rounded-xl border border-dark-border bg-dark-card px-4 py-4"
+              style={{
+                backgroundColor: '#F5F1EA',
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: '#EAE7E0',
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+              }}
             >
-              <View className="mb-3 h-3 w-24 rounded-full bg-dark-border" />
-              <View className="mb-2 h-4 w-full rounded-full bg-dark-border" />
-              <View className="h-4 w-4/5 rounded-full bg-dark-border" />
+              <View style={{ height: 10, width: 80, borderRadius: 999, backgroundColor: '#EAE7E0', marginBottom: 10 }} />
+              <View style={{ height: 12, borderRadius: 999, backgroundColor: '#EAE7E0', marginBottom: 6 }} />
+              <View style={{ height: 12, width: '80%', borderRadius: 999, backgroundColor: '#EAE7E0' }} />
             </View>
           ))}
         </View>
       ) : entries.length === 0 ? (
-        <EmptyStateCard
-          title="No Starlog entries yet."
-          description="Linked reflections will show up here as you add them in Starlog."
-        />
+        <View style={{ paddingVertical: 12, paddingHorizontal: 4 }}>
+          <Text style={{ fontSize: 14, color: '#6B7B6E', marginBottom: 4 }}>
+            Reflections will collect here as you build momentum.
+          </Text>
+          <Text style={{ fontSize: 13, color: '#9CAF9F', lineHeight: 20 }}>
+            When you log a Starlog entry linked to this goal, it will appear here.
+          </Text>
+        </View>
       ) : (
-        <View className="gap-3">
+        <View style={{ gap: 8 }}>
           {entries.map((entry) => (
             <GoalStarlogEntryRow key={entry.id} entry={entry} />
           ))}

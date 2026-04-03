@@ -21,10 +21,8 @@ export function MeasurableCard({ measurable, accentColor, onSave, onDelete }: Me
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Commit guards: avoid double-save on blur-after-submit
   const commitRef = useRef<EditingField>(null);
 
-  // Sync local state from props (handles optimistic rollback)
   useEffect(() => {
     setCurrentValue(measurable.currentValue);
     setDraftCurrent(String(measurable.currentValue));
@@ -43,7 +41,6 @@ export function MeasurableCard({ measurable, accentColor, onSave, onDelete }: Me
       setEditingField(null);
       return;
     }
-    // Guard: if this field was already committed via onSubmitEditing, skip
     if (commitRef.current === field) {
       commitRef.current = null;
       return;
@@ -66,7 +63,7 @@ export function MeasurableCard({ measurable, accentColor, onSave, onDelete }: Me
     } else if (field === 'currentValue') {
       const n = parseFloat(draftCurrent);
       if (isNaN(n) || n === measurable.currentValue) return;
-      setCurrentValue(n); // local optimistic before async
+      setCurrentValue(n);
       updates = { currentValue: n };
     }
 
@@ -107,19 +104,43 @@ export function MeasurableCard({ measurable, accentColor, onSave, onDelete }: Me
   const pct = Math.min(100, Math.round((currentValue / target) * 100));
   const canEdit = !!onSave;
 
+  const inputStyle = {
+    fontSize: 12,
+    color: '#1A1F1C',
+    backgroundColor: '#F0EDE6',
+    borderWidth: 1,
+    borderColor: '#EAE7E0',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  };
+
   return (
     <Pressable
-      className={`bg-dark-card rounded-xl border border-dark-border mb-2.5 p-3.5${isSaving ? ' opacity-60' : ''}`}
+      style={{
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#EAE7E0',
+        marginBottom: 8,
+        padding: 14,
+        opacity: isSaving ? 0.7 : 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 6,
+        elevation: 1,
+      }}
       onLongPress={() => {
         if (onDelete && !showDeleteConfirm) setShowDeleteConfirm(true);
       }}
       delayLongPress={400}
     >
       {/* Title row */}
-      <View className="flex-row items-center gap-2 mb-3">
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
         {editingField === 'title' ? (
           <TextInput
-            className="flex-1 text-sm font-medium text-ink bg-dark-bg border border-dark-border rounded-lg px-2 py-1"
+            style={[inputStyle, { flex: 1, fontSize: 13, fontWeight: '500' }]}
             value={draftTitle}
             onChangeText={setDraftTitle}
             onBlur={() => saveField('title')}
@@ -129,14 +150,16 @@ export function MeasurableCard({ measurable, accentColor, onSave, onDelete }: Me
             selectTextOnFocus
           />
         ) : (
-          <Pressable className="flex-1" onPress={() => canEdit && setEditingField('title')}>
-            <Text className="text-ink text-sm font-medium">{measurable.title}</Text>
+          <Pressable style={{ flex: 1 }} onPress={() => canEdit && setEditingField('title')}>
+            <Text style={{ fontSize: 13, fontWeight: '500', color: '#1A1F1C' }}>
+              {measurable.title}
+            </Text>
           </Pressable>
         )}
 
         {measurable.isAiSuggested && <Badge label="AI" variant="ai" />}
         {measurable.frequency && (
-          <Text className="text-ink-dim text-xs">{measurable.frequency}</Text>
+          <Text style={{ fontSize: 11, color: '#9CAF9F' }}>{measurable.frequency}</Text>
         )}
         {isSaving && <ActivityIndicator size="small" color={accentColor} />}
       </View>
@@ -144,11 +167,11 @@ export function MeasurableCard({ measurable, accentColor, onSave, onDelete }: Me
       {/* Counter */}
       {measurable.type === 'counter' && (
         <View>
-          <View className="flex-row items-center justify-between mb-2">
-            <View className="flex-row items-center gap-1">
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               {editingField === 'currentValue' ? (
                 <TextInput
-                  className="w-14 text-ink-dim text-xs border border-dark-border rounded px-1.5 py-0.5 bg-dark-bg"
+                  style={[inputStyle, { width: 52 }]}
                   value={draftCurrent}
                   onChangeText={setDraftCurrent}
                   keyboardType="numeric"
@@ -160,15 +183,15 @@ export function MeasurableCard({ measurable, accentColor, onSave, onDelete }: Me
                 />
               ) : (
                 <Pressable onPress={() => canEdit && setEditingField('currentValue')}>
-                  <Text className="text-ink-dim text-xs">{currentValue}</Text>
+                  <Text style={{ fontSize: 12, color: '#6B7B6E' }}>{currentValue}</Text>
                 </Pressable>
               )}
 
-              <Text className="text-ink-dim text-xs">/</Text>
+              <Text style={{ fontSize: 12, color: '#9CAF9F' }}>/</Text>
 
               {editingField === 'targetValue' ? (
                 <TextInput
-                  className="w-14 text-ink-dim text-xs border border-dark-border rounded px-1.5 py-0.5 bg-dark-bg"
+                  style={[inputStyle, { width: 52 }]}
                   value={draftTarget}
                   onChangeText={setDraftTarget}
                   keyboardType="numeric"
@@ -180,27 +203,36 @@ export function MeasurableCard({ measurable, accentColor, onSave, onDelete }: Me
                 />
               ) : (
                 <Pressable onPress={() => canEdit && setEditingField('targetValue')}>
-                  <Text className="text-ink-dim text-xs">{measurable.targetValue ?? '—'}</Text>
+                  <Text style={{ fontSize: 12, color: '#6B7B6E' }}>
+                    {measurable.targetValue ?? '—'}
+                  </Text>
                 </Pressable>
               )}
 
               {measurable.targetUnit && (
-                <Text className="text-ink-dim text-xs"> {measurable.targetUnit}</Text>
+                <Text style={{ fontSize: 12, color: '#9CAF9F' }}> {measurable.targetUnit}</Text>
               )}
             </View>
 
             <TouchableOpacity
               onPress={handleIncrement}
-              className="rounded-full px-3.5 py-1"
-              style={{ backgroundColor: accentColor + '26' }}
+              style={{
+                borderRadius: 999,
+                paddingHorizontal: 14,
+                paddingVertical: 4,
+                backgroundColor: accentColor + '1A',
+              }}
               disabled={isSaving}
             >
-              <Text className="text-base font-bold" style={{ color: accentColor }}>+</Text>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: accentColor }}>+</Text>
             </TouchableOpacity>
           </View>
 
-          <View className="h-1 rounded-sm overflow-hidden bg-dark-border">
-            <View className="h-1 rounded-sm" style={{ width: `${pct}%`, backgroundColor: accentColor }} />
+          {/* Progress bar */}
+          <View style={{ height: 4, borderRadius: 2, overflow: 'hidden', backgroundColor: '#EAE7E0' }}>
+            <View
+              style={{ height: 4, borderRadius: 2, width: `${pct}%` as `${number}%`, backgroundColor: accentColor }}
+            />
           </View>
         </View>
       )}
@@ -209,19 +241,24 @@ export function MeasurableCard({ measurable, accentColor, onSave, onDelete }: Me
       {measurable.type === 'habit' && (() => {
         const done = currentValue === 1;
         return (
-          <View className="flex-row items-center gap-2.5">
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <TouchableOpacity
               onPress={handleToggle}
-              className="w-7 h-7 rounded-full border-2 items-center justify-center"
               style={{
-                borderColor: done ? accentColor : '#1E1E2E',
-                backgroundColor: done ? accentColor + '26' : 'transparent',
+                width: 28,
+                height: 28,
+                borderRadius: 14,
+                borderWidth: 2,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderColor: done ? accentColor : '#EAE7E0',
+                backgroundColor: done ? accentColor + '1A' : 'transparent',
               }}
               disabled={isSaving}
             >
-              {done && <Text className="text-sm font-bold" style={{ color: accentColor }}>✓</Text>}
+              {done && <Text style={{ fontSize: 13, fontWeight: '700', color: accentColor }}>✓</Text>}
             </TouchableOpacity>
-            <Text className={`text-xs ${done ? 'text-ink' : 'text-ink-dim'}`}>
+            <Text style={{ fontSize: 12, color: done ? '#1A1F1C' : '#9CAF9F' }}>
               {done ? 'Done today' : 'Not done yet'}
             </Text>
           </View>
@@ -234,20 +271,32 @@ export function MeasurableCard({ measurable, accentColor, onSave, onDelete }: Me
         return (
           <TouchableOpacity
             onPress={handleToggle}
-            className="flex-row items-center gap-2.5"
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
             disabled={isSaving}
           >
             <View
-              className="w-5 h-5 rounded border-2 items-center justify-center"
               style={{
-                borderColor: done ? accentColor : '#1E1E2E',
+                width: 20,
+                height: 20,
+                borderRadius: 4,
+                borderWidth: 2,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderColor: done ? accentColor : '#EAE7E0',
                 backgroundColor: done ? accentColor : 'transparent',
               }}
             >
-              {done && <Text className="text-[11px] font-extrabold" style={{ color: '#0A0A0F' }}>✓</Text>}
+              {done && (
+                <Text style={{ fontSize: 10, fontWeight: '800', color: '#FFFFFF' }}>✓</Text>
+              )}
             </View>
             <Text
-              className={`text-xs flex-1 ${done ? 'text-ink-dim line-through' : 'text-ink'}`}
+              style={{
+                fontSize: 12,
+                flex: 1,
+                color: done ? '#9CAF9F' : '#1A1F1C',
+                textDecorationLine: done ? 'line-through' : 'none',
+              }}
             >
               {measurable.title}
             </Text>
@@ -257,20 +306,37 @@ export function MeasurableCard({ measurable, accentColor, onSave, onDelete }: Me
 
       {/* Inline delete confirmation */}
       {showDeleteConfirm && (
-        <View className="mt-3 pt-3 border-t border-dark-border flex-row items-center justify-between">
-          <Text className="text-ink-dim text-xs">Delete this measurable?</Text>
-          <View className="flex-row gap-2">
+        <View
+          style={{
+            marginTop: 12,
+            paddingTop: 12,
+            borderTopWidth: 1,
+            borderTopColor: '#EAE7E0',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Text style={{ fontSize: 12, color: '#6B7B6E' }}>Delete this milestone?</Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity
-              className="px-3 py-1.5"
+              style={{ paddingHorizontal: 12, paddingVertical: 6 }}
               onPress={() => setShowDeleteConfirm(false)}
             >
-              <Text className="text-ink-dim text-xs">Cancel</Text>
+              <Text style={{ fontSize: 12, color: '#9CAF9F' }}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              className="bg-red-950 border border-red-900 rounded-lg px-3 py-1.5"
+              style={{
+                backgroundColor: '#FFF5F5',
+                borderWidth: 1,
+                borderColor: '#FECACA',
+                borderRadius: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+              }}
               onPress={handleDelete}
             >
-              <Text className="text-red-400 text-xs font-medium">Delete</Text>
+              <Text style={{ fontSize: 12, fontWeight: '500', color: '#EF4444' }}>Delete</Text>
             </TouchableOpacity>
           </View>
         </View>

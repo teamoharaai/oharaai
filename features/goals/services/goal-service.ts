@@ -39,6 +39,7 @@ type DbGoal = {
   progress: number | string;
   status: string;
   ai_generated: boolean;
+  project_id: string | null;
   created_at: string;
   updated_at: string;
   measurables: DbMeasurable[];
@@ -128,6 +129,7 @@ function mapGoal(row: DbGoal): GoalWithMeasurables {
     status: toStatus(row.status),
     aiGenerated: row.ai_generated,
     smartData: toSmartData(row.smart_data),
+    projectId: row.project_id,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
     measurables: (row.measurables ?? []).map(mapMeasurable),
@@ -136,7 +138,7 @@ function mapGoal(row: DbGoal): GoalWithMeasurables {
 
 const GOAL_SELECT = `
   id, user_id, title, description, category, smart_data, color_theme, deadline,
-  is_public, progress, status, ai_generated, created_at, updated_at,
+  is_public, progress, status, ai_generated, project_id, created_at, updated_at,
   measurables (
     id, goal_id, title, type, target_value, target_unit, frequency,
     current_value, is_ai_suggested, sort_order, created_at, updated_at

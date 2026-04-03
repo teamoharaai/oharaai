@@ -26,47 +26,78 @@ export function ActivityFeed({ entries }: ActivityFeedProps) {
   );
 
   return (
-    <View style={{ padding: 16 }}>
-      <Text style={{ color: '#FAFAFA', fontSize: 15, fontWeight: '600', marginBottom: 14 }}>
+    <View
+      style={{
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 20,
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 12,
+        elevation: 1,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 11,
+          fontWeight: '500',
+          color: '#6B7B6E',
+          letterSpacing: 1.5,
+          textTransform: 'uppercase',
+          marginBottom: 14,
+        }}
+      >
         Activity
       </Text>
+
       {sorted.length === 0 ? (
-        <Text style={{ color: '#8888A0', fontSize: 13 }}>No activity yet.</Text>
+        <View style={{ paddingVertical: 8, paddingHorizontal: 4 }}>
+          <Text style={{ fontSize: 14, color: '#6B7B6E', marginBottom: 4 }}>
+            Activity will build here as you make progress.
+          </Text>
+          <Text style={{ fontSize: 13, color: '#9CAF9F', lineHeight: 20 }}>
+            Logged reflections and milestone updates will appear in this feed.
+          </Text>
+        </View>
       ) : (
         sorted.map((entry, index) => (
           <View
             key={entry.id}
             style={{
-              marginBottom: 16,
-              paddingBottom: 16,
+              marginBottom: index < sorted.length - 1 ? 16 : 0,
+              paddingBottom: index < sorted.length - 1 ? 16 : 0,
               borderBottomWidth: index < sorted.length - 1 ? 1 : 0,
-              borderBottomColor: '#1E1E2E',
+              borderBottomColor: '#EAE7E0',
             }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              <Text style={{ color: '#8888A0', fontSize: 13 }}>
+              <Text style={{ color: '#9CAF9F', fontSize: 11 }}>
                 {TYPE_ICONS[entry.type]}
               </Text>
-              <Text style={{ color: '#8888A0', fontSize: 11 }}>
+              <Text style={{ color: '#9CAF9F', fontSize: 11, letterSpacing: 0.3 }}>
                 {formatRelativeTime(entry.createdAt)}
               </Text>
             </View>
+
             <Text
-              style={{ color: '#FAFAFA', fontSize: 13, lineHeight: 20 }}
+              style={{ color: '#1A1F1C', fontSize: 13, lineHeight: 20 }}
               numberOfLines={4}
             >
               {entry.text}
             </Text>
+
             {entry.aiResponse && (
               <View
                 style={{
                   marginTop: 8,
-                  paddingLeft: 10,
+                  paddingLeft: 12,
                   borderLeftWidth: 2,
-                  borderLeftColor: '#8888A0',
+                  borderLeftColor: '#EAE7E0',
                 }}
               >
-                <Text style={{ color: '#8888A0', fontSize: 12, lineHeight: 18, fontStyle: 'italic' }}>
+                <Text style={{ color: '#6B7B6E', fontSize: 12, lineHeight: 18, fontStyle: 'italic' }}>
                   {entry.aiResponse}
                 </Text>
               </View>

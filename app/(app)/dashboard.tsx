@@ -1,10 +1,13 @@
 import { View, Text, ScrollView, useWindowDimensions, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native';
 import { router } from 'expo-router';
+import { useEffect } from 'react';
 import { useGoals } from '@/features/goals/hooks/useGoals';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { GoalGrid } from '@/features/goals/components/GoalGrid';
 import { EmptyStateCard } from '@/components/ui/EmptyStateCard';
+import { useProjectStore } from '@/features/projects/store';
+import { ProjectCard } from '@/features/projects/components/ProjectCard';
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -72,14 +75,33 @@ function EmptyState() {
   );
 }
 
+const SECTION_LABEL_STYLE = {
+  fontSize: 11,
+  fontWeight: '500' as const,
+  color: '#6B7B6E',
+  letterSpacing: 1.5,
+  textTransform: 'uppercase' as const,
+};
+
 export default function DashboardScreen() {
-  const { goals, isLoading } = useGoals();
+  const { goals, isLoading: goalsLoading } = useGoals();
+  const { projects, isLoading: projectsLoading, loadProjects } = useProjectStore();
   const { user } = useAuth();
+
+  useEffect(() => {
+    loadProjects();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const isLoading = goalsLoading || projectsLoading;
 
   const newestId =
     goals.length > 0
       ? [...goals].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0]?.id
       : undefined;
+
+  const standaloneGoals = goals.filter((g) => g.projectId === null);
+  const hasProjects = projects.length > 0;
 
   const displayName = displayNameFromEmail(user?.email);
   const greeting = displayName ? `${getGreeting()}, ${displayName}.` : `${getGreeting()}.`;
@@ -96,31 +118,42 @@ export default function DashboardScreen() {
           <Text style={{ fontSize: 13, color: '#6B7B6E', marginTop: 2 }}>{getDateLabel()}</Text>
         </View>
 
-        {/* Goals section header */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <Text
-            style={{
-              fontSize: 11,
-              fontWeight: '500',
-              color: '#6B7B6E',
-              letterSpacing: 1.5,
-              textTransform: 'uppercase',
-            }}
-          >
-            Goals
-          </Text>
-          <Pressable onPress={() => router.push('/goals/create')}>
-            <Text style={{ fontSize: 20, color: '#4A7C5F', lineHeight: 24 }}>+</Text>
-          </Pressable>
-        </View>
-
-        {/* GoalGrid */}
         {isLoading ? (
           <DashboardLoadingState />
-        ) : goals.length === 0 ? (
-          <EmptyState />
         ) : (
-          <GoalGrid goals={goals} newestId={newestId} />
+          <>
+            {/* Projects section */}
+            {hasProjects && (
+              <View style={{ marginBottom: 24 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <Text style={SECTION_LABEL_STYLE}>Projects</Text>
+                  <Pressable onPress={() => router.push('/projects/create')}>
+                    <Text style={{ fontSize: 20, color: '#4A7C5F', lineHeight: 24 }}>+</Text>
+                  </Pressable>
+                </View>
+                {projects.map((project) => (
+                  <ProjectCard key={project.id} project={project} />
+                ))}
+              </View>
+            )}
+
+            {/* Goals section — shown when there are standalone goals, or when there are no projects (new user empty state) */}
+            {(standaloneGoals.length > 0 || projects.length === 0) && (
+              <View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <Text style={SECTION_LABEL_STYLE}>Goals</Text>
+                  <Pressable onPress={() => router.push('/goals/create')}>
+                    <Text style={{ fontSize: 20, color: '#4A7C5F', lineHeight: 24 }}>+</Text>
+                  </Pressable>
+                </View>
+                {standaloneGoals.length > 0 ? (
+                  <GoalGrid goals={standaloneGoals} newestId={newestId} />
+                ) : (
+                  <EmptyState />
+                )}
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
     </SafeAreaView>

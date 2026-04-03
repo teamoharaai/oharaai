@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { View, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { GOAL_THEMES } from '@/constants/themes';
 import { Badge } from '@/components/ui/Badge';
 import { ProgressRing } from '@/components/ui/ProgressRing';
-import { Typography } from '@/components/ui/Typography';
 import { CountdownTimer } from './CountdownTimer';
 import type { GoalWithMeasurables } from '../types';
 
@@ -13,15 +12,11 @@ interface GoalDetailHeaderProps {
 
 function getStatusBadgeVariant(status: GoalWithMeasurables['status']): 'active' | 'complete' | 'paused' | 'archived' {
   switch (status) {
-    case 'active':
-      return 'active';
-    case 'stagnant':
-      return 'paused';
-    case 'discovered':
-      return 'archived';
+    case 'active':    return 'active';
+    case 'stagnant':  return 'paused';
+    case 'discovered': return 'archived';
     case 'complete':
-    default:
-      return 'complete';
+    default:          return 'complete';
   }
 }
 
@@ -30,59 +25,71 @@ export function GoalDetailHeader({ goal }: GoalDetailHeaderProps) {
   const theme = GOAL_THEMES[goal.colorTheme];
 
   return (
-    <View style={{ padding: 24, paddingBottom: 16 }}>
+    <View
+      style={{
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        borderLeftWidth: 4,
+        borderLeftColor: theme.accent,
+        marginBottom: 12,
+        paddingHorizontal: 20,
+        paddingVertical: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 16,
+        elevation: 2,
+      }}
+    >
       {/* Badges */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
         <Badge label={goal.category} variant="category" />
         <Badge label={goal.status} variant={getStatusBadgeVariant(goal.status)} />
         {goal.aiGenerated && <Badge label="AI" variant="ai" />}
       </View>
 
       {/* Title */}
-      <Typography variant="heading" className="text-3xl" style={{ marginBottom: 10 }}>
+      <Text
+        style={{
+          fontSize: 26,
+          fontWeight: '600',
+          color: '#1A1F1C',
+          lineHeight: 32,
+          marginBottom: goal.description ? 10 : 0,
+        }}
+      >
         {goal.title}
-      </Typography>
+      </Text>
 
-      {/* Description */}
+      {/* Description (collapsible) */}
       {goal.description && (
-        <TouchableOpacity
-          onPress={() => setDescExpanded((v) => !v)}
-          activeOpacity={0.7}
-        >
-          <Typography
-            variant="body"
+        <TouchableOpacity onPress={() => setDescExpanded((v) => !v)} activeOpacity={0.7}>
+          <Text
+            style={{ fontSize: 14, color: '#6B7B6E', lineHeight: 22 }}
             numberOfLines={descExpanded ? undefined : 2}
           >
             {goal.description}
-          </Typography>
-          {!descExpanded && (
-            <Typography variant="caption" style={{ color: theme.accent, marginTop: 2 }}>
-              Show more
-            </Typography>
+          </Text>
+          {!descExpanded && goal.description.length > 100 && (
+            <Text style={{ fontSize: 12, color: theme.accent, marginTop: 3 }}>Show more</Text>
           )}
         </TouchableOpacity>
       )}
 
-      {/* Countdown + Progress Ring */}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginTop: 20,
-          flexWrap: 'wrap',
-          gap: 12,
-        }}
-      >
+      {/* Divider */}
+      <View style={{ height: 1, backgroundColor: '#EAE7E0', marginVertical: 16 }} />
+
+      {/* Progress row: countdown + ring */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         {goal.deadline ? (
           <CountdownTimer deadline={goal.deadline} accentColor={theme.accent} />
         ) : (
-          <Typography variant="label">No deadline set</Typography>
+          <Text style={{ fontSize: 13, color: '#9CAF9F' }}>No deadline set</Text>
         )}
         <ProgressRing
           progress={goal.progress}
-          size={80}
-          strokeWidth={7}
+          size={72}
+          strokeWidth={6}
           color={theme.accent}
         />
       </View>

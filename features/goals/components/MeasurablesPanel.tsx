@@ -3,7 +3,6 @@ import { ActivityIndicator, Pressable, Text, TextInput, TouchableOpacity, View }
 import { MeasurableCard } from './MeasurableCard';
 import type { Measurable, MeasurableInput, MeasurableUpdates, MeasurableType } from '../types';
 import { GOAL_MEASURABLE_TYPES } from '@/lib/goals/schema';
-import { EmptyStateCard } from '@/components/ui/EmptyStateCard';
 
 interface MeasurablesPanelProps {
   measurables: Measurable[];
@@ -19,6 +18,29 @@ const TYPE_LABELS: Record<MeasurableType, string> = {
   counter: 'Counter',
   habit: 'Habit',
   checklist: 'Checklist',
+};
+
+const SECTION_CARD_STYLE = {
+  backgroundColor: '#FFFFFF',
+  borderRadius: 16,
+  padding: 20,
+  marginBottom: 12,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.05,
+  shadowRadius: 12,
+  elevation: 1,
+};
+
+const inputStyle = {
+  fontSize: 13,
+  color: '#1A1F1C',
+  backgroundColor: '#F0EDE6',
+  borderWidth: 1,
+  borderColor: '#EAE7E0',
+  borderRadius: 10,
+  paddingHorizontal: 12,
+  paddingVertical: 8,
 };
 
 export function MeasurablesPanel({
@@ -56,7 +78,7 @@ export function MeasurablesPanel({
     if (!onAdd) return;
 
     const targetNum = addTarget.trim() === '' ? null : parseFloat(addTarget);
-    if (addTarget.trim() !== '' && (isNaN(targetNum as number))) {
+    if (addTarget.trim() !== '' && isNaN(targetNum as number)) {
       setAddError('Target must be a number.');
       return;
     }
@@ -74,28 +96,57 @@ export function MeasurablesPanel({
   }
 
   return (
-    <View className="mb-2">
-      <Text className="text-ink text-base font-semibold mb-3">Measurables</Text>
+    <View style={SECTION_CARD_STYLE}>
+      {/* Section header */}
+      <Text
+        style={{
+          fontSize: 11,
+          fontWeight: '500',
+          color: '#6B7B6E',
+          letterSpacing: 1.5,
+          textTransform: 'uppercase',
+          marginBottom: 14,
+        }}
+      >
+        Milestones
+      </Text>
 
       {/* Error banner */}
       {error && (
-        <View className="bg-red-950 border border-red-900 rounded-xl px-4 py-3 mb-3 flex-row items-center justify-between">
-          <Text className="text-red-400 text-xs flex-1 mr-2">{error}</Text>
+        <View
+          style={{
+            backgroundColor: '#FFF5F5',
+            borderWidth: 1,
+            borderColor: '#FECACA',
+            borderRadius: 10,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+            marginBottom: 12,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Text style={{ fontSize: 12, color: '#EF4444', flex: 1, marginRight: 8 }}>{error}</Text>
           <TouchableOpacity onPress={onDismissError}>
-            <Text className="text-red-400 text-xs font-semibold">Dismiss</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#EF4444' }}>Dismiss</Text>
           </TouchableOpacity>
         </View>
       )}
 
+      {/* Empty state */}
       {measurables.length === 0 && !showAddForm && (
-        <View className="mb-3">
-          <EmptyStateCard
-            title="No measurables yet."
-            description="Add a simple tracker to make progress on this goal easier to see."
-          />
+        <View style={{ paddingVertical: 16, paddingHorizontal: 4, marginBottom: 8 }}>
+          <Text style={{ fontSize: 14, color: '#6B7B6E', marginBottom: 4 }}>
+            Track progress through milestones.
+          </Text>
+          <Text style={{ fontSize: 13, color: '#9CAF9F', lineHeight: 20 }}>
+            Add a counter, habit, or checklist to make progress on this goal visible.
+          </Text>
         </View>
       )}
 
+      {/* Milestone cards */}
       {[...measurables]
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .map((m) => (
@@ -108,14 +159,23 @@ export function MeasurablesPanel({
           />
         ))}
 
-      {/* Add measurable form */}
+      {/* Add form */}
       {showAddForm ? (
-        <View className="bg-dark-card rounded-xl border border-dark-border p-3.5 mb-2.5">
+        <View
+          style={{
+            backgroundColor: '#F5F1EA',
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: '#EAE7E0',
+            padding: 14,
+            marginTop: 4,
+          }}
+        >
           {/* Name */}
           <TextInput
-            className="text-ink text-sm bg-dark-bg border border-dark-border rounded-lg px-3 py-2 mb-3"
-            placeholder="Measurable name"
-            placeholderTextColor="#8888A0"
+            style={[inputStyle, { marginBottom: 10 }]}
+            placeholder="Milestone name"
+            placeholderTextColor="#9CAF9F"
             value={addTitle}
             onChangeText={setAddTitle}
             autoFocus
@@ -123,19 +183,27 @@ export function MeasurablesPanel({
           />
 
           {/* Type selector */}
-          <View className="flex-row gap-2 mb-3">
+          <View style={{ flexDirection: 'row', gap: 6, marginBottom: 10 }}>
             {(GOAL_MEASURABLE_TYPES as readonly MeasurableType[]).map((t) => (
               <Pressable
                 key={t}
                 onPress={() => setAddType(t)}
-                className={`flex-1 items-center rounded-lg py-1.5 border ${
-                  addType === t ? 'border-transparent' : 'border-dark-border'
-                }`}
-                style={addType === t ? { backgroundColor: accentColor + '26', borderColor: accentColor } : undefined}
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  borderRadius: 8,
+                  paddingVertical: 6,
+                  borderWidth: 1,
+                  borderColor: addType === t ? accentColor : '#EAE7E0',
+                  backgroundColor: addType === t ? accentColor + '1A' : 'transparent',
+                }}
               >
                 <Text
-                  className="text-xs font-medium"
-                  style={addType === t ? { color: accentColor } : { color: '#8888A0' }}
+                  style={{
+                    fontSize: 12,
+                    fontWeight: '500',
+                    color: addType === t ? accentColor : '#9CAF9F',
+                  }}
                 >
                   {TYPE_LABELS[t]}
                 </Text>
@@ -143,21 +211,21 @@ export function MeasurablesPanel({
             ))}
           </View>
 
-          {/* Target + Unit (counter only for target; all types for unit optional) */}
-          <View className="flex-row gap-2 mb-3">
+          {/* Target + Unit */}
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
             <TextInput
-              className="flex-1 text-ink text-sm bg-dark-bg border border-dark-border rounded-lg px-3 py-2"
+              style={[inputStyle, { flex: 1 }]}
               placeholder="Target (e.g. 10)"
-              placeholderTextColor="#8888A0"
+              placeholderTextColor="#9CAF9F"
               value={addTarget}
               onChangeText={setAddTarget}
               keyboardType="numeric"
               returnKeyType="next"
             />
             <TextInput
-              className="flex-1 text-ink text-sm bg-dark-bg border border-dark-border rounded-lg px-3 py-2"
+              style={[inputStyle, { flex: 1 }]}
               placeholder="Unit (e.g. km)"
-              placeholderTextColor="#8888A0"
+              placeholderTextColor="#9CAF9F"
               value={addUnit}
               onChangeText={setAddUnit}
               returnKeyType="done"
@@ -166,27 +234,39 @@ export function MeasurablesPanel({
           </View>
 
           {addError && (
-            <Text className="text-red-400 text-xs mb-2">{addError}</Text>
+            <Text style={{ fontSize: 12, color: '#EF4444', marginBottom: 8 }}>{addError}</Text>
           )}
 
-          <View className="flex-row gap-2">
+          <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity
-              className="flex-1 items-center py-2 rounded-lg border border-dark-border"
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                paddingVertical: 8,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: '#EAE7E0',
+              }}
               onPress={resetAddForm}
               disabled={isAdding}
             >
-              <Text className="text-ink-dim text-xs font-medium">Cancel</Text>
+              <Text style={{ fontSize: 13, color: '#6B7B6E' }}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              className="flex-1 items-center py-2 rounded-lg"
-              style={{ backgroundColor: accentColor }}
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                paddingVertical: 8,
+                borderRadius: 8,
+                backgroundColor: accentColor,
+              }}
               onPress={handleAdd}
               disabled={isAdding}
             >
               {isAdding ? (
-                <ActivityIndicator size="small" color="#0A0A0F" />
+                <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Text className="text-xs font-semibold" style={{ color: '#0A0A0F' }}>Add</Text>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#FFFFFF' }}>Add</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -194,10 +274,21 @@ export function MeasurablesPanel({
       ) : (
         onAdd && (
           <TouchableOpacity
-            className="flex-row items-center gap-2 py-2.5 px-3.5 rounded-xl border border-dashed border-dark-border"
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              paddingVertical: 10,
+              paddingHorizontal: 14,
+              borderRadius: 10,
+              borderWidth: 1,
+              borderStyle: 'dashed',
+              borderColor: '#EAE7E0',
+              marginTop: measurables.length > 0 ? 4 : 0,
+            }}
             onPress={() => setShowAddForm(true)}
           >
-            <Text className="text-ink-dim text-xs">＋ Add measurable</Text>
+            <Text style={{ fontSize: 13, color: '#9CAF9F' }}>＋ Add milestone</Text>
           </TouchableOpacity>
         )
       )}
