@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useEchoStore } from '../store';
 import { fetchEntries, createEntry, fetchActiveGoalsForPicker } from '../services/echo-service';
 import supabase from '@/lib/db/client';
+import type { EchoBrt, EchoEmotion } from '../types';
 
 export function useEntries() {
   const { entries, isLoading, setEntries, prependEntry, setIsLoading } = useEchoStore();
@@ -29,11 +30,20 @@ export function useEntries() {
     content: string,
     goalId: string | null,
     aiInsightRequested: boolean,
+    brt: EchoBrt | null,
+    emotion: EchoEmotion | null,
   ): Promise<boolean> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
 
-    const entry = await createEntry({ userId: user.id, content, goalId, aiInsightRequested });
+    const entry = await createEntry({
+      userId: user.id,
+      content,
+      goalId,
+      aiInsightRequested,
+      brt,
+      emotion,
+    });
     if (!entry) return false;
 
     prependEntry(entry);

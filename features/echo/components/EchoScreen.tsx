@@ -13,7 +13,22 @@ import {
 import { FEATURES } from '@/constants/features';
 import { EmptyStateCard } from '@/components/ui/EmptyStateCard';
 import { useEntries } from '../hooks/useEntries';
-import { EntryCard } from './EntryCard';
+import type { EchoEntry } from '../types';
+
+const COLORS = {
+  background: '#F5F1EA',
+  card: '#FFFFFF',
+  accent: '#3D5247',
+  text: '#1C1C1E',
+  muted: '#6B7280',
+  border: '#D8D2C8',
+  shadow: '#000000',
+  badgeBackground: '#EEF2EF',
+};
+
+function formatPillLabel(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
 
 function formatHeaderDate(date: Date): string {
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -32,6 +47,109 @@ function formatHeaderDate(date: Date): string {
     'December',
   ];
   return `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()}`;
+}
+
+function formatRelativeTime(date: Date): string {
+  const seconds = Math.max(1, Math.floor((Date.now() - date.getTime()) / 1000));
+  const ranges = [
+    { limit: 60, unit: 'second' },
+    { limit: 3600, unit: 'minute', divisor: 60 },
+    { limit: 86400, unit: 'hour', divisor: 3600 },
+    { limit: 604800, unit: 'day', divisor: 86400 },
+    { limit: 2629800, unit: 'week', divisor: 604800 },
+    { limit: 31557600, unit: 'month', divisor: 2629800 },
+  ] as const;
+
+  for (const range of ranges) {
+    if (seconds < range.limit) {
+      const value = 'divisor' in range ? Math.floor(seconds / range.divisor) : seconds;
+      return `${value} ${range.unit}${value === 1 ? '' : 's'} ago`;
+    }
+  }
+
+  const years = Math.floor(seconds / 31557600);
+  return `${years} year${years === 1 ? '' : 's'} ago`;
+}
+
+function SectionLabel({ children }: { children: string }) {
+  return (
+    <Text
+      style={{
+        marginBottom: 10,
+        fontFamily: 'Inter',
+        fontSize: 12,
+        fontWeight: '600',
+        letterSpacing: 1.2,
+        textTransform: 'uppercase',
+        color: COLORS.muted,
+      }}
+    >
+      {children}
+    </Text>
+  );
+}
+
+function EchoEntryListCard({ entry }: { entry: EchoEntry }) {
+  return (
+    <View
+      style={{
+        marginBottom: 12,
+        borderRadius: 12,
+        backgroundColor: COLORS.card,
+        padding: 16,
+        shadowColor: COLORS.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+        elevation: 2,
+      }}
+    >
+      <Text
+        style={{
+          color: COLORS.text,
+          fontFamily: 'Inter',
+          fontSize: 14,
+          lineHeight: 21,
+        }}
+        numberOfLines={2}
+      >
+        {entry.content}
+      </Text>
+
+      <View style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Text
+          style={{
+            color: COLORS.muted,
+            fontFamily: 'Inter',
+            fontSize: 12,
+          }}
+        >
+          {formatRelativeTime(entry.createdAt)}
+        </Text>
+        {entry.emotion?.primary ? (
+          <View
+            style={{
+              borderRadius: 999,
+              backgroundColor: COLORS.badgeBackground,
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+            }}
+          >
+            <Text
+              style={{
+                color: COLORS.accent,
+                fontFamily: 'Inter',
+                fontSize: 11,
+                fontWeight: '500',
+              }}
+            >
+              {formatPillLabel(entry.emotion.primary)}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+    </View>
+  );
 }
 
 function EchoLoadingState() {
@@ -69,12 +187,13 @@ export function EchoScreen() {
   const [aiInsightOn, setAiInsightOn] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isComposerFocused, setIsComposerFocused] = useState(false);
 
   async function handleSave() {
     if (!text.trim()) return;
     setIsSaving(true);
     const aiRequested = FEATURES.INTELLIGENCE_ENABLED ? aiInsightOn : false;
-    await saveEntry(text.trim(), linkedGoal?.id ?? null, aiRequested);
+    await saveEntry(text.trim(), linkedGoal?.id ?? null, aiRequested, null, null);
     setText('');
     setLinkedGoal(null);
     setAiInsightOn(false);
@@ -92,8 +211,8 @@ export function EchoScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={{ marginBottom: 24 }}>
-          <Text style={{ fontSize: 24, fontWeight: '800', color: '#1A1F1C' }}>Echo</Text>
-          <Text style={{ marginTop: 2, fontSize: 13, color: '#9CAF9F' }}>
+          <Text style={{ fontFamily: 'Inter', fontSize: 24, fontWeight: '800', color: COLORS.text }}>Echo</Text>
+          <Text style={{ marginTop: 2, fontFamily: 'Inter', fontSize: 13, color: COLORS.muted }}>
             {formatHeaderDate(today)}
           </Text>
         </View>
@@ -103,10 +222,10 @@ export function EchoScreen() {
           style={{
             marginBottom: 24,
             borderRadius: 12,
-            backgroundColor: '#FFFFFF',
+            backgroundColor: COLORS.card,
             padding: 16,
             borderWidth: 1,
-            borderColor: '#EAE7E0',
+            borderColor: isComposerFocused ? COLORS.accent : COLORS.border,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.06,
@@ -114,18 +233,28 @@ export function EchoScreen() {
             elevation: 2,
           }}
         >
+          <SectionLabel>Reflection</SectionLabel>
           <TextInput
             style={{
               minHeight: 100,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: isComposerFocused ? COLORS.accent : COLORS.border,
+              backgroundColor: COLORS.card,
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              fontFamily: 'Inter',
               fontSize: 15,
               lineHeight: 22,
-              color: '#1A1F1C',
+              color: COLORS.text,
             }}
             placeholder="What's on your mind?"
-            placeholderTextColor="#9CAF9F"
+            placeholderTextColor={COLORS.muted}
             multiline
             value={text}
             onChangeText={setText}
+            onFocus={() => setIsComposerFocused(true)}
+            onBlur={() => setIsComposerFocused(false)}
           />
 
           <View style={{ marginTop: 14, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
@@ -137,14 +266,14 @@ export function EchoScreen() {
                   alignItems: 'center',
                   gap: 6,
                   borderRadius: 999,
-                  backgroundColor: '#E8F5EF',
+                  backgroundColor: COLORS.badgeBackground,
                   paddingHorizontal: 12,
                   paddingVertical: 6,
                 }}
                 activeOpacity={0.7}
               >
-                <Text style={{ fontSize: 12, color: '#4A7C5F' }}>{linkedGoal.title}</Text>
-                <Text style={{ fontSize: 14, lineHeight: 16, color: '#4A7C5F' }}>×</Text>
+                <Text style={{ fontFamily: 'Inter', fontSize: 12, color: COLORS.accent }}>{linkedGoal.title}</Text>
+                <Text style={{ fontFamily: 'Inter', fontSize: 14, lineHeight: 16, color: COLORS.accent }}>×</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
@@ -154,13 +283,13 @@ export function EchoScreen() {
                   alignItems: 'center',
                   borderRadius: 999,
                   borderWidth: 1,
-                  borderColor: '#EAE7E0',
+                  borderColor: COLORS.border,
                   paddingHorizontal: 12,
                   paddingVertical: 6,
                 }}
                 activeOpacity={0.7}
               >
-                <Text style={{ fontSize: 12, color: '#9CAF9F' }}>+ Link goal</Text>
+                <Text style={{ fontFamily: 'Inter', fontSize: 12, color: COLORS.muted }}>+ Link goal</Text>
               </TouchableOpacity>
             )}
 
@@ -170,18 +299,18 @@ export function EchoScreen() {
                 borderRadius: 999,
                 paddingHorizontal: 12,
                 paddingVertical: 6,
-                backgroundColor: aiInsightOn ? '#4A7C5F' : '#EAE7E0',
+                backgroundColor: aiInsightOn ? COLORS.accent : COLORS.background,
               }}
               activeOpacity={0.7}
             >
-              <Text style={{ fontSize: 12, color: aiInsightOn ? '#FFFFFF' : '#6B7B6E' }}>
+              <Text style={{ fontFamily: 'Inter', fontSize: 12, color: aiInsightOn ? '#FFFFFF' : COLORS.muted }}>
                 AI insight
               </Text>
             </TouchableOpacity>
           </View>
 
           {aiInsightOn ? (
-            <Text style={{ marginTop: 8, fontSize: 11, color: '#9CAF9F' }}>
+            <Text style={{ marginTop: 8, fontFamily: 'Inter', fontSize: 11, color: COLORS.muted }}>
               Ohara AI will reflect on this entry
             </Text>
           ) : null}
@@ -192,17 +321,18 @@ export function EchoScreen() {
             style={{
               marginTop: 16,
               alignItems: 'center',
-              borderRadius: 8,
+              borderRadius: 12,
               paddingVertical: 12,
-              backgroundColor: canSave ? '#4A7C5F' : '#EAE7E0',
+              backgroundColor: canSave ? COLORS.accent : COLORS.border,
             }}
             activeOpacity={0.8}
           >
             <Text
               style={{
+                fontFamily: 'Inter',
                 fontSize: 14,
                 fontWeight: '600',
-                color: canSave ? '#FFFFFF' : '#9CAF9F',
+                color: canSave ? '#FFFFFF' : COLORS.muted,
               }}
             >
               {isSaving ? 'Saving...' : 'Save Entry'}
@@ -221,7 +351,7 @@ export function EchoScreen() {
           </View>
         ) : (
           entries.map((entry) => (
-            <EntryCard key={entry.id} entry={entry} />
+            <EchoEntryListCard key={entry.id} entry={entry} />
           ))
         )}
       </ScrollView>
@@ -237,16 +367,16 @@ export function EchoScreen() {
           onPress={() => setPickerVisible(false)}
         >
           <Pressable
-            style={{
-              maxHeight: '60%',
-              borderTopLeftRadius: 16,
-              borderTopRightRadius: 16,
-              borderTopWidth: 1,
-              borderTopColor: '#EAE7E0',
-              backgroundColor: '#FFFFFF',
-              paddingBottom: 40,
-              paddingTop: 12,
-            }}
+              style={{
+                maxHeight: '60%',
+                borderTopLeftRadius: 16,
+                borderTopRightRadius: 16,
+                borderTopWidth: 1,
+                borderTopColor: COLORS.border,
+                backgroundColor: COLORS.card,
+                paddingBottom: 40,
+                paddingTop: 12,
+              }}
           >
             <View
               style={{
@@ -254,7 +384,7 @@ export function EchoScreen() {
                 width: 36,
                 alignSelf: 'center',
                 borderRadius: 999,
-                backgroundColor: '#EAE7E0',
+                backgroundColor: COLORS.border,
                 marginBottom: 16,
               }}
             />
@@ -262,15 +392,16 @@ export function EchoScreen() {
               style={{
                 marginBottom: 12,
                 paddingHorizontal: 20,
+                fontFamily: 'Inter',
                 fontSize: 16,
                 fontWeight: '700',
-                color: '#1A1F1C',
+                color: COLORS.text,
               }}
             >
               Link a goal
             </Text>
             {pickerGoals.length === 0 ? (
-              <Text style={{ paddingHorizontal: 20, fontSize: 14, color: '#9CAF9F' }}>
+              <Text style={{ paddingHorizontal: 20, fontFamily: 'Inter', fontSize: 14, color: COLORS.muted }}>
                 No active goals found.
               </Text>
             ) : (
@@ -285,13 +416,13 @@ export function EchoScreen() {
                     }}
                     style={{
                       borderBottomWidth: 1,
-                      borderBottomColor: '#EAE7E0',
+                      borderBottomColor: COLORS.border,
                       paddingHorizontal: 20,
                       paddingVertical: 14,
                     }}
                     activeOpacity={0.7}
                   >
-                    <Text style={{ fontSize: 15, color: '#1A1F1C' }}>{item.title}</Text>
+                    <Text style={{ fontFamily: 'Inter', fontSize: 15, color: COLORS.text }}>{item.title}</Text>
                   </TouchableOpacity>
                 )}
               />

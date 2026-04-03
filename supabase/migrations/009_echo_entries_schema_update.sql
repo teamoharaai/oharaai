@@ -2,6 +2,9 @@
 -- Replace legacy classification/publicity fields with JSONB analysis payloads
 -- and explicit text visibility state for the current Echo model output.
 
+ALTER TABLE public.starlog_entries RENAME TO echo_entries;
+ALTER TABLE public.starlog_sessions RENAME TO echo_sessions;
+
 ALTER TABLE public.echo_entries
   DROP COLUMN IF EXISTS classification,
   DROP COLUMN IF EXISTS is_public,

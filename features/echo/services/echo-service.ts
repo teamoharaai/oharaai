@@ -1,4 +1,5 @@
 import supabase from '@/lib/db/client';
+import { AI_CONFIG } from '@/lib/ai/config';
 import type { EchoEntry } from '../types';
 
 type DbGoalRef = { id: string; title: string } | null;
@@ -45,10 +46,17 @@ function mapEntry(row: DbEchoEntry): EchoEntry {
   };
 }
 
+type ReflectPayload = {
+  reflection: string | null;
+  emotion: EchoEntry['emotion'] | null;
+  brt: EchoEntry['brt'] | null;
+  confidence: number | null;
+};
+
 async function requestEchoReflection(
   content: string,
   aiInsightRequested: boolean,
-): Promise<string | null> {
+): Promise<ReflectPayload | null> {
   if (!aiInsightRequested) {
     return null;
   }
@@ -68,8 +76,8 @@ async function requestEchoReflection(
     throw new Error((errorData.error ?? 'Echo reflection request failed') + detail);
   }
 
-  const data = (await response.json()) as { reflection?: string | null };
-  return data.reflection ?? null;
+  const data = (await response.json()) as ReflectPayload;
+  return data;
 }
 
 export async function fetchEntries(userId: string): Promise<EchoEntry[]> {
@@ -99,6 +107,8 @@ export async function createEntry(params: {
   content: string;
   goalId: string | null;
   aiInsightRequested: boolean;
+  brt: EchoEntry['brt'] | null;
+  emotion: EchoEntry['emotion'] | null;
 }): Promise<EchoEntry | null> {
   const { data, error } = await supabase
     .from('echo_entries')
@@ -107,6 +117,8 @@ export async function createEntry(params: {
       content: params.content,
       goal_id: params.goalId,
       ai_insight_requested: params.aiInsightRequested,
+      brt: params.brt,
+      emotion: params.emotion,
     })
     .select('*, goals(id, title)')
     .single();
@@ -114,9 +126,9 @@ export async function createEntry(params: {
   if (error || !data) return null;
 
   const insertedEntry = mapEntry(data as unknown as DbEchoEntry);
-  const reflection = await requestEchoReflection(params.content, params.aiInsightRequested);
+  const reflectPayload = await requestEchoReflection(params.content, params.aiInsightRequested);
 
-  if (!reflection) {
+  if (!reflectPayload) {
     return insertedEntry;
   }
 
@@ -124,7 +136,11 @@ export async function createEntry(params: {
   const { data: updatedData, error: updateError } = await supabase
     .from('echo_entries')
     .update({
-      ai_response: reflection,
+      ai_response: reflectPayload.reflection,
+      emotion: reflectPayload.emotion,
+      brt: reflectPayload.brt,
+      confidence: reflectPayload.confidence,
+      model_version: AI_CONFIG.models.default,
       processed_at: processedAt,
     })
     .eq('id', insertedEntry.id)
@@ -134,7 +150,10 @@ export async function createEntry(params: {
   if (updateError || !updatedData) {
     return {
       ...insertedEntry,
-      aiResponse: reflection,
+      aiResponse: reflectPayload.reflection ?? undefined,
+      emotion: reflectPayload.emotion ?? undefined,
+      brt: reflectPayload.brt ?? undefined,
+      confidence: reflectPayload.confidence ?? undefined,
       processedAt: new Date(processedAt),
     };
   }
