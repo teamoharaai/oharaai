@@ -144,11 +144,11 @@ export default function GoalDetailScreen() {
         }}
       >
         <Pressable onPress={() => router.back()}>
-          <Text style={{ fontSize: 15, color: '#4A7C5F' }}>← Goals</Text>
+          <Text style={{ fontFamily: 'Inter', fontSize: 15, color: '#4A7C5F' }}>← Goals</Text>
         </Pressable>
-        <Text style={{ fontSize: 15, color: '#9CAF9F', marginHorizontal: 8 }}>|</Text>
+        <Text style={{ fontFamily: 'Inter', fontSize: 15, color: '#9CAF9F', marginHorizontal: 8 }}>|</Text>
         <Text
-          style={{ fontSize: 15, fontWeight: '500', color: '#1A1F1C', flex: 1 }}
+          style={{ fontFamily: 'Inter', fontSize: 15, fontWeight: '500', color: '#1A1F1C', flex: 1 }}
           numberOfLines={1}
         >
           {goal.title}

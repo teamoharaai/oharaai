@@ -18,7 +18,7 @@ function GoalCreatedRow({ item }: { item: GoalCreatedActivity }) {
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
       <Text style={{ fontSize: 11, color: '#9CAF9F' }}>◉</Text>
       <Text style={{ fontSize: 13, color: '#9CAF9F', flex: 1 }}>Goal created</Text>
-      <Text style={{ fontSize: 12, color: '#9CAF9F' }}>{formatDate(item.timestamp)}</Text>
+      <Text style={{ fontFamily: 'Inter', fontSize: 12, color: '#9CAF9F' }}>{formatDate(item.timestamp)}</Text>
     </View>
   );
 }
@@ -56,7 +56,7 @@ function EchoEntryCard({ item }: { item: EchoEntryActivity }) {
           </View>
         ) : null}
       </View>
-      <Text style={{ fontSize: 13, color: '#1A1F1C', lineHeight: 20 }} numberOfLines={3}>
+      <Text style={{ fontFamily: 'Inter', fontSize: 13, color: '#1A1F1C', lineHeight: 20 }} numberOfLines={3}>
         {item.preview}
       </Text>
     </Pressable>
@@ -118,6 +118,7 @@ export function ActivityFeed({ items, loading, error }: ActivityFeedProps) {
     >
       <Text
         style={{
+          fontFamily: 'Inter',
           fontSize: 11,
           fontWeight: '500',
           color: '#6B7B6E',

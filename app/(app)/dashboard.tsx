@@ -130,6 +130,7 @@ function GuidedEmptyState() {
 }
 
 const SECTION_LABEL_STYLE = {
+  fontFamily: 'Inter',
   fontSize: 11,
   fontWeight: '500' as const,
   color: '#6B7B6E',
@@ -169,8 +170,8 @@ export default function DashboardScreen() {
       >
         {/* Greeting header */}
         <View style={{ marginBottom: 20 }}>
-          <Text style={{ fontSize: 22, fontWeight: '500', color: '#1A1F1C' }}>{greeting}</Text>
-          <Text style={{ fontSize: 13, color: '#6B7B6E', marginTop: 2 }}>{getDateLabel()}</Text>
+          <Text style={{ fontFamily: 'Inter', fontSize: 22, fontWeight: '500', color: '#1A1F1C' }}>{greeting}</Text>
+          <Text style={{ fontFamily: 'Inter', fontSize: 13, color: '#6B7B6E', marginTop: 2 }}>{getDateLabel()}</Text>
         </View>
 
         {isLoading ? (

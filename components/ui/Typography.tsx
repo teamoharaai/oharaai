@@ -4,7 +4,7 @@ type Variant = 'heading' | 'title' | 'body' | 'label' | 'caption' | 'ai' | 'ai-i
 
 const VARIANT_CLASSES: Record<Variant, string> = {
   heading:     'font-semibold text-2xl text-[#1A1F1C]',
-  title:       'font-medium text-lg text-[#1A1F1C]',
+  title:       'font-medium font-sans text-lg text-[#1A1F1C]',
   body:        'font-sans text-base text-[#6B7B6E]',
   label:       'font-medium text-sm text-[#6B7B6E]',
   caption:     'font-sans text-xs text-[#9CAF9F]',

@@ -51,6 +51,7 @@ export function GoalDetailHeader({ goal }: GoalDetailHeaderProps) {
       {/* Title */}
       <Text
         style={{
+          fontFamily: 'Inter',
           fontSize: 26,
           fontWeight: '600',
           color: '#1A1F1C',
@@ -65,7 +66,7 @@ export function GoalDetailHeader({ goal }: GoalDetailHeaderProps) {
       {goal.description && (
         <TouchableOpacity onPress={() => setDescExpanded((v) => !v)} activeOpacity={0.7}>
           <Text
-            style={{ fontSize: 14, color: '#6B7B6E', lineHeight: 22 }}
+            style={{ fontFamily: 'Inter', fontSize: 14, color: '#6B7B6E', lineHeight: 22 }}
             numberOfLines={descExpanded ? undefined : 2}
           >
             {goal.description}
