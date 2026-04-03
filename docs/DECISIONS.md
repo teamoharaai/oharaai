@@ -16,12 +16,12 @@
 **Decision:** AI insight on journal entries is opt-in, not default.
 **Reason:** Journaling is the user's space. AI should enhance, not intrude. Also reduces cost — private entries are zero AI cost.
 **Three paths:** (A) Private journal — no AI. (B) Request insight on specific entry. (C) Always-on mode via user setting.
-**Impact:** `starlog_entries.ai_opted_in` boolean controls flow. Pipeline trigger is decoupled from pipeline logic.
+**Impact:** `echo_entries.ai_opted_in` boolean controls flow. Pipeline trigger is decoupled from pipeline logic.
 
-### 2026-03-29 — Unified Starlog Table with Goal FK
+### 2026-03-29 — Unified Echo Table with Goal FK
 
-**Decision:** Goal-specific journal entries and general journal entries live in the same `starlog_entries` table. `goal_id` is a nullable FK.
-**Reason:** Same AI pipeline, same components, same sharing model. Avoids duplicate tables. Goal activity feed pulls from starlog where `goal_id` matches.
+**Decision:** Goal-specific journal entries and general journal entries live in the same `echo_entries` table. `goal_id` is a nullable FK.
+**Reason:** Same AI pipeline, same components, same sharing model. Avoids duplicate tables. Goal activity feed pulls from echo where `goal_id` matches.
 **Impact:** Media attached to goal-specific entries can surface in goal detail UI.
 
 ### 2026-03-29 — Measurable Types: Counter, Habit, Checklist
@@ -40,7 +40,7 @@
 
 **Decision:** Migrated from flat technical-role structure to hybrid feature-slice.
 **Reason:** Each feature owns its components, hooks, services, store, and types. Reduces context-switching. Scales to Phase 2 by adding new feature folders without touching existing ones.
-**Impact:** `features/auth/`, `features/goals/`, `features/starlog/`, `features/profile/`, `features/dashboard/`. Shared infra stays in `lib/`.
+**Impact:** `features/auth/`, `features/goals/`, `features/echo/`, `features/profile/`, `features/dashboard/`. Shared infra stays in `lib/`.
 
 ### 2026-03-29 — AI Response Schema as Strict Contract
 
@@ -59,3 +59,16 @@
 **Decision:** Dashboard is responsive grid (4→2→1 columns). Goal detail is two-column on desktop, single-column stack on mobile.
 **Reason:** Deploying to Vercel first, desktop is primary surface. Flexbox-based layout translates to native ScrollView later.
 **Impact:** No CSS Grid for component internals. Grid only acceptable for dashboard card layout on web.
+
+## Thorn -> Goal Suggestion Loop (Phase 2)
+
+When a user's Echo reflection contains a thorn element, Ohara will surface a
+prompt suggesting the creation of a new goal linked back to the original goal.
+This creates continuity between reflection and goal creation, compounding growth
+over time.
+
+Implementation notes:
+- Triggered server-side after BRT parsing detects thorn signal
+- Suggested goal is pre-seeded with thorn context but user-initiated
+- Link between thorn reflection and derived goal stored via goal metadata
+- Phase 2 only - requires Discovery feature and pattern analysis layer

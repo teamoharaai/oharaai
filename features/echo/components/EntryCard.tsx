@@ -1,12 +1,12 @@
 import { View, Text } from 'react-native';
-import type { StarlogEntry } from '../types';
+import type { EchoEntry } from '../types';
 
 function formatEntryDate(date: Date): string {
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   return `${months[date.getMonth()]} ${date.getDate()}`;
 }
 
-export function EntryCard({ entry }: { entry: StarlogEntry }) {
+export function EntryCard({ entry }: { entry: EchoEntry }) {
   return (
     <View
       style={{

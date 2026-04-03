@@ -8,17 +8,17 @@ ALTER TABLE public.goals
   ADD COLUMN IF NOT EXISTS progress numeric NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS ai_generated boolean NOT NULL DEFAULT false;
 
--- ─── Extend starlog_entries with new columns ──────────────────────────────────
--- starlog_entries already exists from 001; rename + add columns for this phase
+-- ─── Extend echo_entries with new columns ──────────────────────────────────
+-- echo_entries already exists from 001; rename + add columns for this phase
 -- Rename entry_text → raw_text (no data yet; safe to rename)
-ALTER TABLE public.starlog_entries
+ALTER TABLE public.echo_entries
   RENAME COLUMN entry_text TO raw_text;
 
 -- Drop old bud/rose/thorn column; replaced by GROWTH/REALITY/OBSTACLE below
-ALTER TABLE public.starlog_entries
+ALTER TABLE public.echo_entries
   DROP COLUMN IF EXISTS brt_classification;
 
-ALTER TABLE public.starlog_entries
+ALTER TABLE public.echo_entries
   ADD COLUMN IF NOT EXISTS media_url text,
   ADD COLUMN IF NOT EXISTS ai_opted_in boolean NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS classification text CHECK (classification IN ('GROWTH', 'REALITY', 'OBSTACLE')),
@@ -105,6 +105,6 @@ CREATE INDEX IF NOT EXISTS idx_goals_status          ON public.goals(status);
 CREATE INDEX IF NOT EXISTS idx_goals_is_public        ON public.goals(is_public);
 CREATE INDEX IF NOT EXISTS idx_measurables_goal_id    ON public.measurables(goal_id);
 CREATE INDEX IF NOT EXISTS idx_measurable_logs_mid    ON public.measurable_logs(measurable_id);
-CREATE INDEX IF NOT EXISTS idx_starlog_goal_id        ON public.starlog_entries(goal_id);
+CREATE INDEX IF NOT EXISTS idx_echo_goal_id        ON public.echo_entries(goal_id);
 CREATE INDEX IF NOT EXISTS idx_ai_usage_user_id       ON public.ai_usage(user_id);
 CREATE INDEX IF NOT EXISTS idx_ai_usage_pipeline      ON public.ai_usage(pipeline);

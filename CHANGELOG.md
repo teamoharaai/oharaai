@@ -55,7 +55,7 @@ Session-by-session log of all changes made to Ohara.
 - Created database schema and RLS migrations (`supabase/migrations/`)
 - Set up NativeWind + Tailwind config with custom design tokens
 - Defined all domain types and feature flag constants
-- Placeholder tab screens for Dashboard, Goals, Starlog, Explore
+- Placeholder tab screens for Dashboard, Goals, Echo, Explore
 
 ---
 

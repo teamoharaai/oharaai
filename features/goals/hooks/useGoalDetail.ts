@@ -2,16 +2,16 @@ import { useCallback, useEffect, useState } from 'react';
 import { useGoalStore } from '../store';
 import { fetchGoalById, fetchGoals, createMeasurable, updateMeasurable, deleteMeasurable } from '../services/goal-service';
 import type { GoalWithMeasurables, ActivityEntry, MeasurableInput, MeasurableUpdates } from '../types';
-import type { StarlogEntry } from '@/features/starlog/types';
-import { getEntriesByGoalId } from '@/features/starlog/services/starlog-service';
+import type { EchoEntry } from '@/features/echo/types';
+import { getEntriesByGoalId } from '@/features/echo/services/echo-service';
 import supabase from '@/lib/db/client';
 
 export function useGoalDetail(goalId: string): {
   goal: GoalWithMeasurables | null;
   activityEntries: ActivityEntry[];
-  starlogEntries: StarlogEntry[];
+  echoEntries: EchoEntry[];
   isLoading: boolean;
-  isStarlogLoading: boolean;
+  isEchoLoading: boolean;
   onSaveMeasurable: (measurableId: string, updates: MeasurableUpdates) => Promise<void>;
   onDeleteMeasurable: (measurableId: string) => Promise<void>;
   onAddMeasurable: (input: MeasurableInput) => Promise<void>;
@@ -20,8 +20,8 @@ export function useGoalDetail(goalId: string): {
 } {
   const { goals, isLoading, setGoals, setIsLoading, upsertMeasurable, removeMeasurable } =
     useGoalStore();
-  const [starlogEntries, setStarlogEntries] = useState<StarlogEntry[]>([]);
-  const [isStarlogLoading, setIsStarlogLoading] = useState(false);
+  const [echoEntries, setEchoEntries] = useState<EchoEntry[]>([]);
+  const [isEchoLoading, setIsEchoLoading] = useState(false);
   const [measurableError, setMeasurableError] = useState<string | null>(null);
   const goal = goals.find((g) => g.id === goalId) ?? null;
 
@@ -57,23 +57,23 @@ export function useGoalDetail(goalId: string): {
 
   useEffect(() => {
     if (!goalId) {
-      setStarlogEntries([]);
-      setIsStarlogLoading(false);
+      setEchoEntries([]);
+      setIsEchoLoading(false);
       return;
     }
 
     let isActive = true;
 
-    async function loadStarlogEntries() {
-      setIsStarlogLoading(true);
+    async function loadEchoEntries() {
+      setIsEchoLoading(true);
       const data = await getEntriesByGoalId(goalId);
       if (isActive) {
-        setStarlogEntries(data);
-        setIsStarlogLoading(false);
+        setEchoEntries(data);
+        setIsEchoLoading(false);
       }
     }
 
-    loadStarlogEntries();
+    loadEchoEntries();
 
     return () => {
       isActive = false;
@@ -145,9 +145,9 @@ export function useGoalDetail(goalId: string): {
   return {
     goal,
     activityEntries,
-    starlogEntries,
+    echoEntries,
     isLoading,
-    isStarlogLoading,
+    isEchoLoading,
     onSaveMeasurable,
     onDeleteMeasurable,
     onAddMeasurable,

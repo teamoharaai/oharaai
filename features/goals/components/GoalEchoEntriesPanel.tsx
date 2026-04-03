@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import type { StarlogEntry } from '@/features/starlog/types';
+import type { EchoEntry } from '@/features/echo/types';
 
-interface GoalStarlogEntriesPanelProps {
-  entries: StarlogEntry[];
+interface GoalEchoEntriesPanelProps {
+  entries: EchoEntry[];
   isLoading: boolean;
 }
 
@@ -20,7 +20,7 @@ function getPreview(content: string): string {
   return `${content.slice(0, 100).trimEnd()}...`;
 }
 
-function GoalStarlogEntryRow({ entry }: { entry: StarlogEntry }) {
+function GoalEchoEntryRow({ entry }: { entry: EchoEntry }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const isLongContent = entry.content.length > 100;
   const visibleContent = isExpanded ? entry.content : getPreview(entry.content);
@@ -85,7 +85,7 @@ const SECTION_CARD_STYLE = {
   elevation: 1,
 };
 
-export function GoalStarlogEntriesPanel({ entries, isLoading }: GoalStarlogEntriesPanelProps) {
+export function GoalEchoEntriesPanel({ entries, isLoading }: GoalEchoEntriesPanelProps) {
   return (
     <View style={SECTION_CARD_STYLE}>
       <Text
@@ -127,13 +127,13 @@ export function GoalStarlogEntriesPanel({ entries, isLoading }: GoalStarlogEntri
             Reflections will collect here as you build momentum.
           </Text>
           <Text style={{ fontSize: 13, color: '#9CAF9F', lineHeight: 20 }}>
-            When you log a Starlog entry linked to this goal, it will appear here.
+            When you log an Echo entry linked to this goal, it will appear here.
           </Text>
         </View>
       ) : (
         <View style={{ gap: 8 }}>
           {entries.map((entry) => (
-            <GoalStarlogEntryRow key={entry.id} entry={entry} />
+            <GoalEchoEntryRow key={entry.id} entry={entry} />
           ))}
         </View>
       )}

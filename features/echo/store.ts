@@ -1,20 +1,20 @@
 import { create } from 'zustand';
-import type { StarlogEntry } from './types';
+import type { EchoEntry } from './types';
 
-interface StarlogStore {
-  entries: StarlogEntry[];
+interface EchoStore {
+  entries: EchoEntry[];
   isLoading: boolean;
   activeGoalId: string | null;
   isSessionOpen: boolean;
-  setEntries: (entries: StarlogEntry[]) => void;
-  prependEntry: (entry: StarlogEntry) => void;
+  setEntries: (entries: EchoEntry[]) => void;
+  prependEntry: (entry: EchoEntry) => void;
   setIsLoading: (loading: boolean) => void;
   setActiveGoalId: (id: string | null) => void;
   openSession: () => void;
   closeSession: () => void;
 }
 
-export const useStarlogStore = create<StarlogStore>((set) => ({
+export const useEchoStore = create<EchoStore>((set) => ({
   entries: [],
   isLoading: false,
   activeGoalId: null,

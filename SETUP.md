@@ -93,11 +93,11 @@ app/
     login.tsx            ← Email + password login
     signup.tsx           ← Email + password + display name signup
   (tabs)/
-    _layout.tsx          ← Bottom tab bar (Dashboard, Goals, Starlog, Explore)
+    _layout.tsx          ← Bottom tab bar (Dashboard, Goals, Echo, Explore)
     dashboard.tsx        ← Placeholder
     goals/
       index.tsx          ← Placeholder
-    starlog.tsx          ← Placeholder
+    echo.tsx          ← Placeholder
     explore.tsx          ← Placeholder
 
 lib/
@@ -163,7 +163,7 @@ supabase/migrations/002_enable_rls.sql
 | `goals` | User's goals. Each has a category, mode (exploration/commitment), status, and SMART data (jsonb). |
 | `milestones` | Checkable steps within a goal. Belong to both a goal and a user. |
 | `conversation_summaries` | AI conversation summaries attached to goals. |
-| `starlog_entries` | Journal entries classified as bud/rose/thorn (BRT framework). |
+| `echo_entries` | Journal entries classified as bud/rose/thorn (BRT framework). |
 | `interests` | User interest tags, used by the Explore/Discovery pillar. |
 
 **Row-level security:** Every table has RLS enabled. All policies follow the same rule: users can only read/write rows where `user_id = auth.uid()` (or `id = auth.uid()` for `profiles`). No row from one user is ever accessible to another.
@@ -199,7 +199,7 @@ Two Zustand stores:
 GOAL_CATEGORIES = ['body', 'mind', 'money', 'create', 'connect', 'contribute']
 
 FEATURES = {
-  STARLOG_ENABLED:      false,  // Pillar 2
+  ECHO_ENABLED:      false,  // Pillar 2
   INTELLIGENCE_ENABLED: false,  // Pillar 3
   DISCOVERY_ENABLED:    false,  // Pillar 4
   SOCIAL_ENABLED:       false,  // Phase 2
@@ -277,13 +277,13 @@ npx expo start          # Expo Go on device
 |---|---|---|
 | Goal creation chat UI | Pillar 1 | Conversational SMART goal flow — next session |
 | Milestone tracking UI | Pillar 1 | Depends on goal creation |
-| Starlog (BRT journaling) | Pillar 2 | Schema exists, UI not started |
+| Echo (BRT journaling) | Pillar 2 | Schema exists, UI not started |
 | AI insights / intelligence | Pillar 3 | Client wiring exists; UI and job integration still pending |
 | Discovery / Explore | Pillar 4 | Interest tagging, suggestions |
 | Social features | Phase 2 | Not scoped |
 | Collage / profile visual | Phase 2 | Not scoped |
 
-Placeholder screens (Dashboard, Goals, Starlog, Explore) each show a title and a "Log out" button. They exist purely to confirm tab navigation and auth redirect work correctly before building real content into them.
+Placeholder screens (Dashboard, Goals, Echo, Explore) each show a title and a "Log out" button. They exist purely to confirm tab navigation and auth redirect work correctly before building real content into them.
 
 ---
 

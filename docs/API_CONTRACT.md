@@ -138,7 +138,7 @@ Get a single goal with its measurables and recent activity.
       createdAt: string,
       updatedAt: string
     }[],
-    recentEntries: {               // last 10 starlog entries for this goal
+    recentEntries: {               // last 10 echo entries for this goal
       id: string,
       content: string,
       mediaUrl: string | null,
@@ -282,7 +282,7 @@ Update a goal's editable fields.
 ---
 
 #### `DELETE /api/v1/goals/:id`
-Delete a goal and cascade-delete its measurables and measurable logs. Starlog entries linked to this goal get `goal_id` set to null (not deleted).
+Delete a goal and cascade-delete its measurables and measurable logs. Echo entries linked to this goal get `goal_id` set to null (not deleted).
 
 **Response `204`:** No body.
 
@@ -368,9 +368,9 @@ Log progress on a measurable (increment counter, complete habit, check item).
 
 ---
 
-### Starlog (Journal)
+### Echo (Journal)
 
-#### `GET /api/v1/starlog`
+#### `GET /api/v1/echo`
 List the authenticated user's journal entries.
 
 **Query params:**
@@ -403,7 +403,7 @@ List the authenticated user's journal entries.
 
 ---
 
-#### `POST /api/v1/starlog`
+#### `POST /api/v1/echo`
 Create a new journal entry.
 
 **Request body:**
@@ -424,7 +424,7 @@ Create a new journal entry.
 
 ---
 
-#### `POST /api/v1/starlog/:id/insight`
+#### `POST /api/v1/echo/:id/insight`
 Request AI insight on a journal entry. Async — returns immediately, client polls for result.
 
 **Request body:** None.
@@ -442,20 +442,20 @@ Request AI insight on a journal entry. Async — returns immediately, client pol
 
 **Notes:**
 - Enqueues the entry for AI processing via `lib/ai/queue.ts`.
-- Client polls `GET /api/v1/starlog/:id` until `processedAt` is not null, or subscribes via Supabase Realtime on the `starlog_entries` table.
+- Client polls `GET /api/v1/echo/:id` until `processedAt` is not null, or subscribes via Supabase Realtime on the `echo_entries` table.
 - If AI pipeline fails after retry, `processedAt` is set but `aiResponse` remains null and an error is logged. Client shows "Insight unavailable."
 - Calling this on an already-processed entry returns `200` with existing insight (no reprocessing).
 
 ---
 
-#### `GET /api/v1/starlog/:id`
+#### `GET /api/v1/echo/:id`
 Get a single journal entry with full detail.
 
 **Response `200`:** Single entry object (same shape as list item).
 
 ---
 
-#### `DELETE /api/v1/starlog/:id`
+#### `DELETE /api/v1/echo/:id`
 Delete a journal entry.
 
 **Response `204`:** No body.

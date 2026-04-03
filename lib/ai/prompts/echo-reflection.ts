@@ -1,4 +1,4 @@
-export const STARLOG_REFLECTION_SYSTEM_PROMPT = `You are writing a brief reflection on a user's journal entry for Ohara.
+export const ECHO_REFLECTION_SYSTEM_PROMPT = `You are writing a brief reflection on a user's journal entry for Ohara.
 
 Your job is to notice what is actually happening in the entry and reflect back something useful.
 
@@ -18,6 +18,6 @@ Response rules:
 - Do not mention being an AI or a system.
 `;
 
-export function buildStarlogReflectionPrompt(journalEntry: string) {
+export function buildEchoReflectionPrompt(journalEntry: string) {
   return `Journal entry:\n\n${journalEntry.trim()}`;
 }

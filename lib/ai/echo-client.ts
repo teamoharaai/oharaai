@@ -1,12 +1,12 @@
-const STARLOG_REFLECTION_MODEL = 'claude-haiku-4-5-20251001';
-const STARLOG_REFLECTION_MAX_TOKENS = 500;
+const ECHO_REFLECTION_MODEL = 'claude-haiku-4-5-20251001';
+const ECHO_REFLECTION_MAX_TOKENS = 500;
 
-interface StarlogReflectionParams {
+interface EchoReflectionParams {
   systemPrompt: string;
   userMessage: string;
 }
 
-interface StarlogReflectionResult {
+interface EchoReflectionResult {
   text: string;
   inputTokens: number;
   outputTokens: number;
@@ -32,9 +32,9 @@ function getAnthropicApiKey() {
   return apiKey;
 }
 
-export async function callStarlogReflection(
-  params: StarlogReflectionParams,
-): Promise<StarlogReflectionResult> {
+export async function callEchoReflection(
+  params: EchoReflectionParams,
+): Promise<EchoReflectionResult> {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -43,8 +43,8 @@ export async function callStarlogReflection(
       'x-api-key': getAnthropicApiKey(),
     },
     body: JSON.stringify({
-      model: STARLOG_REFLECTION_MODEL,
-      max_tokens: STARLOG_REFLECTION_MAX_TOKENS,
+      model: ECHO_REFLECTION_MODEL,
+      max_tokens: ECHO_REFLECTION_MAX_TOKENS,
       system: params.systemPrompt,
       messages: [{ role: 'user', content: params.userMessage }],
     }),
@@ -71,6 +71,6 @@ export async function callStarlogReflection(
     text,
     inputTokens: data.usage?.input_tokens ?? 0,
     outputTokens: data.usage?.output_tokens ?? 0,
-    model: STARLOG_REFLECTION_MODEL,
+    model: ECHO_REFLECTION_MODEL,
   };
 }

@@ -9,7 +9,7 @@ Vertical feature slices. Each subdirectory owns everything for one product featu
 ## Rules
 
 1. **Each feature is self-contained.** Components, hooks, services, store, and types all live together.
-2. **No cross-feature imports.** `features/goals/` must never import from `features/starlog/`. If two features need the same thing, extract it to `lib/` or `components/ui/`.
+2. **No cross-feature imports.** `features/goals/` must never import from `features/echo/`. If two features need the same thing, extract it to `lib/` or `components/ui/`.
 3. **Components receive data as props.** No component calls Supabase, services, or AI pipelines directly. Data flows: hook → store → component via props.
 4. **One Zustand store per feature.** Named `use{Feature}Store`. Never import another feature's store.
 5. **Services are pure async functions.** They query Supabase, call AI pipelines (via `lib/ai/`), and return typed data. No React, no hooks, no side effects.
@@ -28,4 +28,4 @@ Vertical feature slices. Each subdirectory owns everything for one product featu
 
 ## Phase 2 notes
 
-When social features arrive, they get their own feature slices: `features/feed/`, `features/forums/`. They do NOT modify existing feature internals. They may read from shared data via `lib/` services but never import from `features/goals/` or `features/starlog/` directly.
+When social features arrive, they get their own feature slices: `features/feed/`, `features/forums/`. They do NOT modify existing feature internals. They may read from shared data via `lib/` services but never import from `features/goals/` or `features/echo/` directly.

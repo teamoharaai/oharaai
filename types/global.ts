@@ -39,7 +39,7 @@ export interface Milestone {
   created_at: string;
 }
 
-export interface StarlogSession {
+export interface EchoSession {
   id: string;
   goal_id: string | null;
   user_id: string;
@@ -47,14 +47,14 @@ export interface StarlogSession {
   created_at: string;
 }
 
-export interface StarlogEntry {
+export interface EchoEntry {
   id: string;
   user_id: string;
   goal_id: string | null;
   entry_text: string;
   guide_response: Record<string, unknown> | null;
   brt_classification: BRTClassification | null;
-  is_public: boolean;
+  visibility: 'private' | 'shared';
   created_at: string;
 }
 

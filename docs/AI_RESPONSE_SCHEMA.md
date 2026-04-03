@@ -60,9 +60,9 @@
 
 ---
 
-## Starlog Reflect Pipeline
+## Echo Reflect Pipeline
 
-**Pipeline:** `starlogReflect`
+**Pipeline:** `echoReflect`
 **Schema file:** `lib/ai/schemas/reflect.ts` _(stub — not yet implemented)_
 
 ```json

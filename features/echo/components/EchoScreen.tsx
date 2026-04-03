@@ -34,7 +34,7 @@ function formatHeaderDate(date: Date): string {
   return `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()}`;
 }
 
-function StarlogLoadingState() {
+function EchoLoadingState() {
   return (
     <View style={{ gap: 12, paddingVertical: 8 }}>
       {[0, 1, 2].map((item) => (
@@ -61,7 +61,7 @@ function StarlogLoadingState() {
   );
 }
 
-export function StarlogScreen() {
+export function EchoScreen() {
   const { entries, isLoading, pickerGoals, saveEntry } = useEntries();
 
   const [text, setText] = useState('');
@@ -92,7 +92,7 @@ export function StarlogScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={{ marginBottom: 24 }}>
-          <Text style={{ fontSize: 24, fontWeight: '800', color: '#1A1F1C' }}>Starlog</Text>
+          <Text style={{ fontSize: 24, fontWeight: '800', color: '#1A1F1C' }}>Echo</Text>
           <Text style={{ marginTop: 2, fontSize: 13, color: '#9CAF9F' }}>
             {formatHeaderDate(today)}
           </Text>
@@ -211,12 +211,12 @@ export function StarlogScreen() {
         </View>
 
         {isLoading ? (
-          <StarlogLoadingState />
+          <EchoLoadingState />
         ) : entries.length === 0 ? (
           <View style={{ paddingTop: 8 }}>
             <EmptyStateCard
-              title="No Starlog entries yet."
-              description="Write your first reflection above to start building your Starlog."
+              title="No Echo entries yet."
+              description="Write your first reflection above to start building your Echo."
             />
           </View>
         ) : (

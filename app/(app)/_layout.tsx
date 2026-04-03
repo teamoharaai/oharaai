@@ -31,7 +31,7 @@ export default function AppLayout() {
         <View style={{ flex: 1 }}>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="dashboard" />
-            <Stack.Screen name="starlog" />
+            <Stack.Screen name="echo" />
             <Stack.Screen name="explore" />
           </Stack>
         </View>
@@ -65,11 +65,11 @@ export default function AppLayout() {
           tabBarBadgeStyle: badgeStyle,
         }}
       />
-      {FEATURES.STARLOG_ENABLED ? (
+      {FEATURES.ECHO_ENABLED ? (
         <Tabs.Screen
-          name="starlog"
+          name="echo"
           options={{
-            title: 'Starlog',
+            title: 'Echo',
             tabBarIcon: ({ focused }) => <TabIcon label="✦" focused={focused} />,
             tabBarBadgeStyle: badgeStyle,
           }}

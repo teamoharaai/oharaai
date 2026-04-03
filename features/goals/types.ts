@@ -79,7 +79,11 @@ export interface ActivityEntry {
   text: string;
   aiResponse?: string;
   mediaUrl?: string;
-  classification?: string;
+  brt?: {
+    bud: string[];
+    rose: string[];
+    thorn: string[];
+  };
   type: 'journal' | 'milestone' | 'measurable';
   createdAt: Date;
 }

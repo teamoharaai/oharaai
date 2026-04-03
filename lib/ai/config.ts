@@ -6,8 +6,8 @@ export const AI_CONFIG = {
   pipelines: {
     goalCreation: { enabled: true, model: 'default' },
     goalFinalize: { enabled: true, model: 'goalFinalize' },
-    starlogReflect: { enabled: false, model: 'default' },
+    echoReflect: { enabled: false, model: 'default' },
     summarize: { enabled: false, model: 'default' },
   },
-  maxTokens: { goalCreation: 1024, goalFinalize: 1024, starlogReflect: 512, summarize: 768 },
+  maxTokens: { goalCreation: 1024, goalFinalize: 1024, echoReflect: 512, summarize: 768 },
 } as const;

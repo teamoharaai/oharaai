@@ -2,8 +2,8 @@
 alter table public.profiles enable row level security;
 alter table public.goals enable row level security;
 alter table public.milestones enable row level security;
-alter table public.starlog_sessions enable row level security;
-alter table public.starlog_entries enable row level security;
+alter table public.echo_sessions enable row level security;
+alter table public.echo_entries enable row level security;
 alter table public.interests enable row level security;
 
 -- ─── Profiles policies ────────────────────────────────────────────────────────
@@ -53,38 +53,38 @@ create policy "Users can delete own milestones"
   on public.milestones for delete
   using (user_id = auth.uid());
 
--- ─── Starlog sessions policies ───────────────────────────────────────────────
-create policy "Users can select own starlog sessions"
-  on public.starlog_sessions for select
+-- ─── Echo sessions policies ───────────────────────────────────────────────
+create policy "Users can select own echo sessions"
+  on public.echo_sessions for select
   using (user_id = auth.uid());
 
-create policy "Users can insert own starlog sessions"
-  on public.starlog_sessions for insert
+create policy "Users can insert own echo sessions"
+  on public.echo_sessions for insert
   with check (user_id = auth.uid());
 
-create policy "Users can update own starlog sessions"
-  on public.starlog_sessions for update
+create policy "Users can update own echo sessions"
+  on public.echo_sessions for update
   using (user_id = auth.uid());
 
-create policy "Users can delete own starlog sessions"
-  on public.starlog_sessions for delete
+create policy "Users can delete own echo sessions"
+  on public.echo_sessions for delete
   using (user_id = auth.uid());
 
--- ─── Starlog entries policies ─────────────────────────────────────────────────
-create policy "Users can select own starlog entries"
-  on public.starlog_entries for select
+-- ─── Echo entries policies ─────────────────────────────────────────────────
+create policy "Users can select own echo entries"
+  on public.echo_entries for select
   using (user_id = auth.uid());
 
-create policy "Users can insert own starlog entries"
-  on public.starlog_entries for insert
+create policy "Users can insert own echo entries"
+  on public.echo_entries for insert
   with check (user_id = auth.uid());
 
-create policy "Users can update own starlog entries"
-  on public.starlog_entries for update
+create policy "Users can update own echo entries"
+  on public.echo_entries for update
   using (user_id = auth.uid());
 
-create policy "Users can delete own starlog entries"
-  on public.starlog_entries for delete
+create policy "Users can delete own echo entries"
+  on public.echo_entries for delete
   using (user_id = auth.uid());
 
 -- ─── Interests policies ───────────────────────────────────────────────────────

@@ -7,7 +7,7 @@
 1. **Every schema change requires a new numbered migration file.** Never edit existing migration files.
 2. **RLS is enabled on every table.** No exceptions. If you create a table, add RLS policies in the same migration.
 3. **Use `CREATE TABLE IF NOT EXISTS`** to make migrations idempotent.
-4. **Foreign keys must specify ON DELETE behavior.** Use CASCADE for child data (measurables → goals), SET NULL for optional references (starlog → goals).
+4. **Foreign keys must specify ON DELETE behavior.** Use CASCADE for child data (measurables → goals), SET NULL for optional references (echo → goals).
 5. **Add indexes on columns used in WHERE clauses and JOINs.** At minimum: `user_id`, `goal_id`, `status`.
 6. **Naming:** tables are `snake_case` plural (`goals`, `measurables`), columns are `snake_case`, constraints are descriptive.
 7. **JSONB for flexible data** (character profiles). Typed columns for structured data (goals, measurables).

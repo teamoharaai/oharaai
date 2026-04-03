@@ -36,8 +36,8 @@ create table if not exists public.milestones (
   created_at  timestamptz not null default now()
 );
 
--- ─── Starlog Sessions (structured summaries only — never raw chat) ─────────────
-create table if not exists public.starlog_sessions (
+-- ─── Echo Sessions (structured summaries only — never raw chat) ─────────────
+create table if not exists public.echo_sessions (
   id         uuid primary key default gen_random_uuid(),
   goal_id    uuid references public.goals(id) on delete set null,
   user_id    uuid not null references auth.users(id) on delete cascade,
@@ -45,8 +45,8 @@ create table if not exists public.starlog_sessions (
   created_at timestamptz not null default now()
 );
 
--- ─── Starlog Entries (reflection journal) ────────────────────────────────────
-create table if not exists public.starlog_entries (
+-- ─── Echo Entries (reflection journal) ────────────────────────────────────
+create table if not exists public.echo_entries (
   id                 uuid primary key default gen_random_uuid(),
   user_id            uuid not null references auth.users(id) on delete cascade,
   goal_id            uuid references public.goals(id) on delete set null,
@@ -61,7 +61,7 @@ create table if not exists public.starlog_entries (
 create table if not exists public.interests (
   id               uuid primary key default gen_random_uuid(),
   user_id          uuid not null references auth.users(id) on delete cascade,
-  source_thorn_id  uuid references public.starlog_entries(id) on delete set null,
+  source_thorn_id  uuid references public.echo_entries(id) on delete set null,
   promoted_goal_id uuid references public.goals(id) on delete set null,
   name             text not null,
   status           text not null default 'suggested' check (status in ('suggested','exploring','promoted','dismissed')),

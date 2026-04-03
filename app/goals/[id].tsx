@@ -4,7 +4,7 @@ import { GOAL_THEMES } from '@/constants/themes';
 import { useGoalDetail } from '@/features/goals/hooks/useGoalDetail';
 import { GoalDetailHeader } from '@/features/goals/components/GoalDetailHeader';
 import { MeasurablesPanel } from '@/features/goals/components/MeasurablesPanel';
-import { GoalStarlogEntriesPanel } from '@/features/goals/components/GoalStarlogEntriesPanel';
+import { GoalEchoEntriesPanel } from '@/features/goals/components/GoalEchoEntriesPanel';
 
 function GoalDetailLoadingState() {
   return (
@@ -83,9 +83,9 @@ export default function GoalDetailScreen() {
   const goalId = Array.isArray(id) ? id[0] : (id ?? '');
   const {
     goal,
-    starlogEntries,
+    echoEntries,
     isLoading,
-    isStarlogLoading,
+    isEchoLoading,
     onSaveMeasurable,
     onDeleteMeasurable,
     onAddMeasurable,
@@ -112,9 +112,9 @@ export default function GoalDetailScreen() {
         error={measurableError}
         onDismissError={clearMeasurableError}
       />
-      <GoalStarlogEntriesPanel
-        entries={starlogEntries}
-        isLoading={isStarlogLoading}
+      <GoalEchoEntriesPanel
+        entries={echoEntries}
+        isLoading={isEchoLoading}
       />
     </>
   );

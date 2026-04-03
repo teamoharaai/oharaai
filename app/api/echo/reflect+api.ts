@@ -1,8 +1,8 @@
-import { callStarlogReflection } from '@/lib/ai/starlog-client';
+import { callEchoReflection } from '@/lib/ai/echo-client';
 import {
-  STARLOG_REFLECTION_SYSTEM_PROMPT,
-  buildStarlogReflectionPrompt,
-} from '@/lib/ai/prompts/starlog-reflection';
+  ECHO_REFLECTION_SYSTEM_PROMPT,
+  buildEchoReflectionPrompt,
+} from '@/lib/ai/prompts/echo-reflection';
 
 interface ReflectRequestBody {
   content?: string;
@@ -39,9 +39,9 @@ export async function POST(request: Request) {
     }
 
     const content = sanitizeContent(body.content);
-    const result = await callStarlogReflection({
-      systemPrompt: STARLOG_REFLECTION_SYSTEM_PROMPT,
-      userMessage: buildStarlogReflectionPrompt(content),
+    const result = await callEchoReflection({
+      systemPrompt: ECHO_REFLECTION_SYSTEM_PROMPT,
+      userMessage: buildEchoReflectionPrompt(content),
     });
 
     return Response.json({
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
 
     return Response.json(
       {
-        error: 'Failed to generate Starlog reflection',
+        error: 'Failed to generate Echo reflection',
         details: message,
       },
       { status: 400 },

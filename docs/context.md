@@ -22,7 +22,7 @@ Fixing scaffold before building features — all five fixes complete.
 ## Relevant files
 - types/index.ts — all shared TypeScript interfaces
 - store/auth.ts — session + profile state (wired to root layout)
-- store/session.ts — active Starlog session state
+- store/session.ts — active Echo session state
 - store/ui.ts — loading states, modals
 - app/_layout.tsx — root layout, auth guard, uses useAuthStore
 - app/(app)/ — protected tab screens (renamed from (tabs)/)

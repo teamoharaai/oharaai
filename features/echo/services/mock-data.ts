@@ -1,13 +1,25 @@
-import type { StarlogEntry } from '../types';
+import type { EchoEntry } from '../types';
 
-export const MOCK_STARLOG_ENTRIES: StarlogEntry[] = [
+export const MOCK_ECHO_ENTRIES: EchoEntry[] = [
   {
     id: 'se1',
     userId: 'mock-user',
     goalId: '1',
     content: 'First run done! Only made it 1.5 miles but felt good to start. Legs were heavy but I pushed through the last quarter mile.',
     aiInsightRequested: true,
-    classification: 'GROWTH',
+    brt: {
+      bud: ['stuck with the run even when it got hard'],
+      rose: ['felt good to get started again'],
+      thorn: ['legs felt heavy at the end'],
+    },
+    emotion: {
+      valence: 0.62,
+      energy: 'medium',
+      clarity: 'high',
+      primary: 'determined',
+    },
+    modelVersion: 'mock-haiku-v1',
+    visibility: 'private',
     confidence: 0.85,
     themes: ['exercise', 'persistence'],
     aiResponse: 'Starting is the hardest part and you did it. That last quarter mile when your legs were heavy — that is where the real training happens.',
@@ -20,7 +32,19 @@ export const MOCK_STARLOG_ENTRIES: StarlogEntry[] = [
     goalId: '1',
     content: 'Skipped my run today. Work was brutal and I just could not find the energy. Feeling guilty about it.',
     aiInsightRequested: true,
-    classification: 'OBSTACLE',
+    brt: {
+      bud: ['goal still matters enough to feel its absence'],
+      rose: [],
+      thorn: ['work drained energy for the run', 'guilt showed up after skipping'],
+    },
+    emotion: {
+      valence: -0.48,
+      energy: 'low',
+      clarity: 'high',
+      primary: 'guilty',
+    },
+    modelVersion: 'mock-haiku-v1',
+    visibility: 'private',
     confidence: 0.78,
     themes: ['work-stress', 'guilt', 'energy'],
     aiResponse: 'Rest is part of training, not the absence of it. The guilt tells me this goal matters to you — that is more signal than one missed day.',
@@ -34,6 +58,19 @@ export const MOCK_STARLOG_ENTRIES: StarlogEntry[] = [
     content: 'Hit 2 miles today without stopping. Progress!',
     mediaUrl: 'https://placehold.co/400x300/E85D04/FFF?text=Run+Photo',
     aiInsightRequested: false,
+    brt: {
+      bud: ['capacity is increasing'],
+      rose: ['finished 2 miles without stopping'],
+      thorn: [],
+    },
+    emotion: {
+      valence: 0.8,
+      energy: 'high',
+      clarity: 'high',
+      primary: 'proud',
+    },
+    modelVersion: 'mock-haiku-v1',
+    visibility: 'private',
     createdAt: new Date('2026-03-28T07:30:00'),
   },
 ];

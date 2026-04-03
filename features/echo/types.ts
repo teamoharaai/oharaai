@@ -1,6 +1,17 @@
-export type Classification = 'GROWTH' | 'REALITY' | 'OBSTACLE';
+export type EchoBrt = {
+  bud: string[];
+  rose: string[];
+  thorn: string[];
+};
 
-export interface StarlogEntry {
+export type EchoEmotion = {
+  valence: number;
+  energy: 'low' | 'medium' | 'high';
+  clarity: 'low' | 'high';
+  primary: string;
+};
+
+export interface EchoEntry {
   id: string;
   userId: string;
   goalId: string | null;
@@ -8,7 +19,10 @@ export interface StarlogEntry {
   content: string;
   mediaUrl?: string;
   aiInsightRequested: boolean;
-  classification?: Classification;
+  brt?: EchoBrt;
+  emotion?: EchoEmotion;
+  modelVersion?: string;
+  visibility: 'private' | 'shared';
   confidence?: number;
   themes?: string[];
   aiResponse?: string;

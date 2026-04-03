@@ -87,7 +87,7 @@ Every pipeline in `lib/ai/pipelines/` must:
 
 ---
 
-## Schema: Starlog Reflection (Journal Insight)
+## Schema: Echo Reflection (Journal Insight)
 
 **Pipeline:** `lib/ai/pipelines/reflect.ts`
 **Model:** Haiku
@@ -135,7 +135,7 @@ Every pipeline in `lib/ai/pipelines/` must:
 
 **Pipeline:** `lib/ai/pipelines/summarize.ts`
 **Model:** Haiku
-**Trigger:** After every 3rd Starlog entry with AI insight, or daily cron if user journaled
+**Trigger:** After every 3rd Echo entry with AI insight, or daily cron if user journaled
 
 ### Input
 

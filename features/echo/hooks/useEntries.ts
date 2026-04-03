@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useStarlogStore } from '../store';
-import { fetchEntries, createEntry, fetchActiveGoalsForPicker } from '../services/starlog-service';
+import { useEchoStore } from '../store';
+import { fetchEntries, createEntry, fetchActiveGoalsForPicker } from '../services/echo-service';
 import supabase from '@/lib/db/client';
 
 export function useEntries() {
-  const { entries, isLoading, setEntries, prependEntry, setIsLoading } = useStarlogStore();
+  const { entries, isLoading, setEntries, prependEntry, setIsLoading } = useEchoStore();
   const [pickerGoals, setPickerGoals] = useState<Array<{ id: string; title: string }>>([]);
 
   useEffect(() => {
