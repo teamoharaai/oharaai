@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Pressable, Alert, StyleSheet, Text } from 'react-native';
+import { View, Pressable, Alert, StyleSheet, Text, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { GOAL_THEMES } from '@/constants/themes';
 import { Badge } from '@/components/ui/Badge';
@@ -22,30 +22,38 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
   const deleteGoal = useGoalStore((state) => state.deleteGoal);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const handleDelete = () => {
-    Alert.alert('Delete goal', 'This cannot be undone.', [
-      {
-        text: 'Cancel',
-        style: 'cancel',
-        onPress: () => setMenuOpen(false),
-      },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteGoal(goal.id);
-            setMenuOpen(false);
-            if (router.canGoBack()) {
-              router.back();
-            }
-          } catch {
-            setMenuOpen(false);
-            Alert.alert('Could not delete goal', 'Please try again.');
-          }
-        },
-      },
-    ]);
+  const handleDelete = async () => {
+    const confirmed = Platform.OS === 'web'
+      ? window.confirm('Delete goal? This cannot be undone.')
+      : await new Promise<boolean>((resolve) =>
+          Alert.alert(
+            'Delete goal',
+            'This cannot be undone.',
+            [
+              {
+                text: 'Cancel',
+                style: 'cancel',
+                onPress: () => resolve(false),
+              },
+              {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: () => resolve(true),
+              },
+            ],
+          )
+        );
+
+    if (!confirmed) return;
+
+    try {
+      await deleteGoal(goal.id);
+      if (router.canGoBack()) {
+        router.back();
+      }
+    } catch {
+      Alert.alert('Could not delete goal', 'Please try again.');
+    }
   };
 
   return (
@@ -147,9 +155,9 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
           }}
         >
           <Pressable
-            onPress={() => {
+            onPress={async () => {
               setMenuOpen(false);
-              handleDelete();
+              await handleDelete();
             }}
             style={{ paddingHorizontal: 16, paddingVertical: 12 }}
           >
