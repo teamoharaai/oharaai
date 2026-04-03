@@ -29,7 +29,11 @@ export default function AppLayout() {
       <View style={{ flex: 1, flexDirection: 'row' }}>
         <Sidebar />
         <View style={{ flex: 1 }}>
-          <Stack screenOptions={{ headerShown: false }} />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="dashboard" />
+            <Stack.Screen name="starlog" />
+            <Stack.Screen name="explore" />
+          </Stack>
         </View>
       </View>
     );
