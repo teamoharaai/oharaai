@@ -1,4 +1,4 @@
-import type { GoalCategory, GoalDbStatus, GoalSmartData } from '@/lib/goals/schema';
+import type { GoalCategory, GoalDbStatus, GoalSmartData, GoalVisibility } from '@/lib/goals/schema';
 
 export type GoalMode = 'exploration' | 'commitment';
 export type GoalStatus = GoalDbStatus;
@@ -19,12 +19,17 @@ export interface Goal {
   id: string;
   user_id: string;
   title: string;
+  description: string | null;
   category: GoalCategory;
   mode: GoalMode;
   status: GoalStatus;
-  is_private: boolean;
-  community_id: string | null;
+  color_theme: string;
+  deadline: string | null;
+  visibility: GoalVisibility;
   smart_data: Partial<GoalSmartData>;
+  progress: number;
+  ai_generated: boolean;
+  project_id: string | null;
   created_at: string;
   updated_at: string;
 }

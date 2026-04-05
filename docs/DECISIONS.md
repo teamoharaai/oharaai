@@ -64,6 +64,12 @@
 
 **Decision:** `due_date` in `action_logs` is set by the client (`new Date().toISOString().split('T')[0]`). Timezone offset is a known issue — a user in UTC-8 at 11pm will get tomorrow's date. Acceptable for pilot. Revisit before action completion UI ships.
 
+### 2026-04-05 — Goals use explicit visibility states
+
+**Decision:** Goal sharing is stored as a `visibility` enum-like field with `private`, `circle`, and `public`, not a boolean.
+**Reason:** Visibility enum prevents consent violation when Phase 2 expands audience. Users who chose 'circle' (connections only) should never be silently upgraded to 'public' (all authenticated). A boolean sharing flag is insufficient because it collapses limited-consent sharing and broad visibility into the same state.
+**Impact:** `circle` remains distinct from `public` in both schema and application types. Phase 1 may preserve conservative access behavior until connection-aware visibility is fully implemented, so `circle` is stored now without being treated as public by current policies.
+
 ## Thorn -> Goal Suggestion Loop (Phase 2)
 
 When a user's Echo reflection contains a thorn element, Ohara will surface a
@@ -76,3 +82,5 @@ Implementation notes:
 - Suggested goal is pre-seeded with thorn context but user-initiated
 - Link between thorn reflection and derived goal stored via goal metadata
 - Phase 2 only - requires Discovery feature and pattern analysis layer
+
+Intelligence zone is gated behind both FEATURES.INTELLIGENCE_ENABLED and a non-empty character_profile. Currently dormant — will activate automatically once the summarizer pipeline is enabled and has run at least once per user.

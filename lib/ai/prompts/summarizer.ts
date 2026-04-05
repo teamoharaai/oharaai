@@ -28,6 +28,8 @@ RULES:
 - Patterns track recurring friction themes, especially when they repeatedly appear in thorn moments across recent entries. If a theme shows up in 2+ recent entries as an obstacle or point of strain, note it as increasing. If an existing pattern's theme does not appear in recent entries, mark it as stable (not decreasing — absence of mention is not resolution).
 - The "note" field on each pattern is for your internal reasoning only. Max 100 characters. It helps debug why a pattern was flagged.
 - The "summary" field is a one-line description of what changed in this update. Max 200 characters. It goes into the update log, not shown to users.
+- Keep explanations minimal and concise.
+- Do not include unnecessary commentary outside required structure.
 
 WHAT NOT TO DO:
 - Do not invent interests or strengths the entries do not support.

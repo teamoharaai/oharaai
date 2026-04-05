@@ -1,5 +1,6 @@
 import supabase from '@/lib/db/client';
 import { AI_CONFIG } from '@/lib/ai/config';
+import type { AiResponse } from '@/lib/ai/contracts';
 import type { EchoEntry } from '../types';
 
 type DbGoalRef = { id: string; title: string } | null;
@@ -57,8 +58,11 @@ type ReflectPayload = {
 export type CreateEntryResultStatus =
   | 'saved'
   | 'saved_without_summary'
+  | 'rate_limited'
   | 'offline'
   | 'unconfirmed';
+
+export type SubmissionFailureStatus = Extract<CreateEntryResultStatus, 'offline' | 'unconfirmed'>;
 
 export type CreateEntryResult = {
   status: CreateEntryResultStatus;
@@ -78,39 +82,53 @@ function isNetworkError(error: unknown): boolean {
   return /network request failed|failed to fetch|networkerror|load failed|offline/i.test(message);
 }
 
+export function getSubmissionFailureStatus(error: unknown): SubmissionFailureStatus {
+  return isNetworkError(error) ? 'offline' : 'unconfirmed';
+}
+
 async function requestEchoReflection(
   content: string,
   aiInsightRequested: boolean,
+  accessToken: string,
 ): Promise<ReflectPayload | null> {
   if (!aiInsightRequested) {
     return null;
   }
 
+  if (!accessToken.trim()) {
+    throw new Error('Missing access token for Echo reflection request');
+  }
+
   const response = await fetch('/api/echo/reflect', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
     body: JSON.stringify({
       content,
       aiInsightRequested,
     }),
   });
 
-  if (!response.ok) {
-    let message = 'Echo reflection request failed';
+  let body: AiResponse<ReflectPayload>;
+  try {
+    body = (await response.json()) as AiResponse<ReflectPayload>;
+  } catch {
+    throw new Error('Echo reflection request failed');
+  }
 
-    try {
-      const errorData = (await response.json()) as { error?: string; details?: string };
-      const detail = errorData.details ? ` ${errorData.details}` : '';
-      message = (errorData.error ?? message) + detail;
-    } catch {
-      // Keep the generic fallback when the error body is unavailable.
+  if (!body.ok) {
+    const { code, message } = body.error;
+    if (response.status === 429 && code === 'RATE_LIMITED') {
+      const error = new Error(message);
+      error.name = 'RateLimitedEchoReflectionError';
+      throw error;
     }
-
     throw new Error(message);
   }
 
-  const data = (await response.json()) as ReflectPayload;
-  return data;
+  return body.data;
 }
 
 export async function fetchEntries(userId: string): Promise<EchoEntry[]> {
@@ -143,21 +161,30 @@ export async function createEntry(params: {
   brt: EchoEntry['brt'] | null;
   emotion: EchoEntry['emotion'] | null;
 }): Promise<CreateEntryResult> {
-  const { data, error } = await supabase
-    .from('echo_entries')
-    .insert({
-      user_id: params.userId,
-      content: params.content,
-      goal_id: params.goalId,
-      ai_insight_requested: params.aiInsightRequested,
-      brt: params.brt,
-      emotion: params.emotion,
-    })
-    .select('*, goals(id, title)')
-    .single();
+  let data: DbEchoEntry | null = null;
+  let error: unknown = null;
+  try {
+    const result = await supabase
+      .from('echo_entries')
+      .insert({
+        user_id: params.userId,
+        content: params.content,
+        goal_id: params.goalId,
+        ai_insight_requested: params.aiInsightRequested,
+        brt: params.brt,
+        emotion: params.emotion,
+      })
+      .select('*, goals(id, title)')
+      .single();
+
+    data = (result.data as DbEchoEntry | null) ?? null;
+    error = result.error;
+  } catch (insertError) {
+    return { status: getSubmissionFailureStatus(insertError) };
+  }
 
   if (error || !data) {
-    return { status: isNetworkError(error) ? 'offline' : 'unconfirmed' };
+    return { status: getSubmissionFailureStatus(error) };
   }
 
   const insertedEntry = mapEntry(data as unknown as DbEchoEntry);
@@ -168,8 +195,19 @@ export async function createEntry(params: {
 
   let reflectPayload: ReflectPayload | null;
   try {
-    reflectPayload = await requestEchoReflection(params.content, params.aiInsightRequested);
-  } catch {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    reflectPayload = await requestEchoReflection(
+      params.content,
+      params.aiInsightRequested,
+      session?.access_token ?? '',
+    );
+  } catch (error) {
+    if (error instanceof Error && error.name === 'RateLimitedEchoReflectionError') {
+      return { status: 'rate_limited', entry: insertedEntry };
+    }
+
     return { status: 'saved_without_summary', entry: insertedEntry };
   }
 

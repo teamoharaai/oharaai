@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FlatList,
   Modal,
@@ -112,11 +112,12 @@ function EchoLoadingState() {
 
 type SubmissionNoticeKind = Extract<
   CreateEntryResultStatus,
-  'saved_without_summary' | 'offline' | 'unconfirmed'
+  'saved_without_summary' | 'rate_limited' | 'offline' | 'unconfirmed'
 >;
 
 const SUBMISSION_NOTICE_COPY: Record<SubmissionNoticeKind, string> = {
   saved_without_summary: 'Ohara saved your reflection. Its response may appear later.',
+  rate_limited: "You've reached today's limit. Your reflections are still saved locally.",
   offline: "You're offline. Your draft is saved on this device. Submit it when you're back online.",
   unconfirmed:
     "We couldn't confirm your reflection was submitted. Your draft is still saved on this device.",
@@ -127,6 +128,10 @@ function ComposerNotice({ kind }: { kind: SubmissionNoticeKind }) {
     saved_without_summary: {
       container: 'border-[#D8D2C8] bg-[#F8F5EF]',
       text: 'text-[#5F6B66]',
+    },
+    rate_limited: {
+      container: 'border-amber-200 bg-amber-50',
+      text: 'text-amber-800',
     },
     offline: {
       container: 'border-amber-200 bg-amber-50',
@@ -167,22 +172,39 @@ export function EchoScreen() {
   const currentContextKey = getEchoDraftContextKey(linkedGoal?.id ?? null);
   const previousContextKeyRef = useRef(currentContextKey);
   const latestDraftSnapshotRef = useRef({ contextKey: currentContextKey, text: '' });
+  const lastPersistedDraftRef = useRef<{ contextKey: string; text: string } | null>(null);
   const skipContextPersistRef = useRef<string | null>(null);
 
+  const syncLatestDraftSnapshot = useCallback((contextKey: string, nextText: string) => {
+    latestDraftSnapshotRef.current = { contextKey, text: nextText };
+  }, []);
+
+  const flushDraft = useCallback((contextKey: string, nextText: string) => {
+    const lastPersisted = lastPersistedDraftRef.current;
+    if (lastPersisted?.contextKey === contextKey && lastPersisted.text === nextText) {
+      return;
+    }
+
+    lastPersistedDraftRef.current = { contextKey, text: nextText };
+    setDraft(contextKey, nextText);
+  }, [setDraft]);
+
   useEffect(() => {
-    latestDraftSnapshotRef.current = { contextKey: currentContextKey, text };
-  }, [currentContextKey, text]);
+    syncLatestDraftSnapshot(currentContextKey, text);
+  }, [currentContextKey, syncLatestDraftSnapshot, text]);
 
   useEffect(() => {
     if (!hasHydrated || hasRestoredDraft) return;
 
     const initialGoal = lastLinkedGoal;
     const initialContextKey = getEchoDraftContextKey(initialGoal?.id ?? null);
+    const initialDraftText = getDraft(initialContextKey);
     previousContextKeyRef.current = initialContextKey;
+    syncLatestDraftSnapshot(initialContextKey, initialDraftText);
     setLinkedGoal(initialGoal);
-    setText(getDraft(initialContextKey));
+    setText(initialDraftText);
     setHasRestoredDraft(true);
-  }, [getDraft, hasHydrated, hasRestoredDraft, lastLinkedGoal]);
+  }, [getDraft, hasHydrated, hasRestoredDraft, lastLinkedGoal, syncLatestDraftSnapshot]);
 
   useEffect(() => {
     if (!linkedGoal || !pickerGoals.length) return;
@@ -203,13 +225,15 @@ export function EchoScreen() {
     if (skipContextPersistRef.current === previousContextKey) {
       skipContextPersistRef.current = null;
     } else {
-      setDraft(previousContextKey, latestDraftSnapshotRef.current.text);
+      flushDraft(previousContextKey, latestDraftSnapshotRef.current.text);
     }
 
     previousContextKeyRef.current = currentContextKey;
-    setText(getDraft(currentContextKey));
+    const nextDraftText = getDraft(currentContextKey);
+    syncLatestDraftSnapshot(currentContextKey, nextDraftText);
+    setText(nextDraftText);
     setSubmissionNotice(null);
-  }, [currentContextKey, getDraft, hasHydrated, hasRestoredDraft, setDraft]);
+  }, [currentContextKey, flushDraft, getDraft, hasHydrated, hasRestoredDraft, syncLatestDraftSnapshot]);
 
   useEffect(() => {
     if (!hasHydrated || !hasRestoredDraft) return;
@@ -220,23 +244,28 @@ export function EchoScreen() {
     if (!hasHydrated || !hasRestoredDraft) return;
 
     const timeout = setTimeout(() => {
-      setDraft(currentContextKey, text);
+      flushDraft(currentContextKey, text);
     }, 500);
 
     return () => clearTimeout(timeout);
-  }, [currentContextKey, hasHydrated, hasRestoredDraft, setDraft, text]);
+  }, [currentContextKey, flushDraft, hasHydrated, hasRestoredDraft, text]);
 
   useEffect(() => {
     return () => {
       const snapshot = latestDraftSnapshotRef.current;
-      setDraft(snapshot.contextKey, snapshot.text);
+      flushDraft(snapshot.contextKey, snapshot.text);
     };
-  }, [setDraft]);
+  }, [flushDraft]);
+
+  function clearSubmissionNotice() {
+    setSubmissionNotice(null);
+  }
 
   function handleTextChange(value: string) {
     if (submissionNotice) {
-      setSubmissionNotice(null);
+      clearSubmissionNotice();
     }
+    syncLatestDraftSnapshot(currentContextKey, value);
     setText(value);
   }
 
@@ -246,23 +275,34 @@ export function EchoScreen() {
 
     const activeContextKey = currentContextKey;
     setIsSaving(true);
-    setSubmissionNotice(null);
+    clearSubmissionNotice();
     try {
+      flushDraft(activeContextKey, trimmedText);
+
       const aiRequested = FEATURES.INTELLIGENCE_ENABLED ? aiInsightOn : false;
       const result = await saveEntry(trimmedText, linkedGoal?.id ?? null, aiRequested, null, null);
 
-      if (result.status === 'saved' || result.status === 'saved_without_summary') {
+      if (result.status === 'saved') {
         skipContextPersistRef.current = activeContextKey;
+        syncLatestDraftSnapshot(activeContextKey, '');
+        lastPersistedDraftRef.current = { contextKey: activeContextKey, text: '' };
+        clearSubmissionNotice();
         clearDraft(activeContextKey);
         setText('');
         setLinkedGoal(null);
         setAiInsightOn(false);
-        setSubmissionNotice(result.status === 'saved_without_summary' ? 'saved_without_summary' : null);
+      } else if (result.status === 'saved_without_summary' || result.status === 'rate_limited') {
+        skipContextPersistRef.current = activeContextKey;
+        syncLatestDraftSnapshot(activeContextKey, '');
+        lastPersistedDraftRef.current = { contextKey: activeContextKey, text: '' };
+        clearDraft(activeContextKey);
+        setText('');
+        setLinkedGoal(null);
+        setAiInsightOn(false);
+        setSubmissionNotice(result.status);
       } else {
         setSubmissionNotice(result.status);
       }
-    } catch {
-      setSubmissionNotice('unconfirmed');
     } finally {
       setIsSaving(false);
     }

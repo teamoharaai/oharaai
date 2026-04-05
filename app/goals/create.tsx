@@ -17,6 +17,7 @@ import { fetchGoalById } from '@/features/goals/services/goal-service';
 import { useGoalStore } from '@/features/goals/store';
 import { useProjectStore } from '@/features/projects/store';
 import type { GoalFinalizeResponse } from '@/lib/ai/schemas/goal-creation';
+import type { AiResponse } from '@/lib/ai/contracts';
 import {
   ACTION_CAPTURE_PROMPT,
   ACTION_CAPTURE_CONFIRMATION,
@@ -131,9 +132,17 @@ export default function GoalCreateScreen() {
     setIsLoading(true);
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const [
+        {
+          data: { user },
+        },
+        {
+          data: { session },
+        },
+      ] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.auth.getSession(),
+      ]);
 
       if (!user) {
         setError('Not authenticated. Please log in again.');
@@ -141,9 +150,18 @@ export default function GoalCreateScreen() {
         return;
       }
 
+      if (!session?.access_token) {
+        setError('Not authenticated. Please log in again.');
+        setIsLoading(false);
+        return;
+      }
+
       const response = await fetch('/api/goals/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
           ...(text ? { userMessage: text } : {}),
           conversationHistory: messages,
@@ -152,26 +170,27 @@ export default function GoalCreateScreen() {
         }),
       });
 
-      if (!response.ok) {
-        const errData = (await response.json()) as {
-          error?: string;
-          details?: string;
-          requestId?: string;
-          finalizeStage?: string;
-        };
-        const detailMessage = errData.details ? ` ${errData.details}` : '';
-        const stageMessage = errData.finalizeStage ? ` [${errData.finalizeStage}]` : '';
-        const requestMessage = errData.requestId ? ` (Request ${errData.requestId})` : '';
-        throw new Error((errData.error ?? `Request failed: ${response.status}`) + stageMessage + detailMessage + requestMessage);
-      }
-
-      const data = (await response.json()) as {
+      type GoalCreateData = {
         requestId: string;
         message: string;
         isComplete: boolean;
         goalData?: GoalFinalizeResponse;
         finalizedBy?: 'assistant' | 'user';
       };
+
+      const body = (await response.json()) as AiResponse<GoalCreateData>;
+
+      if (!body.ok) {
+        const { code, message, details } = body.error;
+        const detailsObj = details && typeof details === 'object' ? details as Record<string, unknown> : null;
+        const stageMessage = detailsObj?.finalizeStage ? ` [${detailsObj.finalizeStage}]` : '';
+        const requestMessage = detailsObj?.requestId ? ` (Request ${detailsObj.requestId})` : '';
+        const reasonMessage = detailsObj?.reason && typeof detailsObj.reason === 'string' ? ` ${detailsObj.reason}` : '';
+        const suffix = code === 'PARSE_ERROR' ? stageMessage + reasonMessage + requestMessage : '';
+        throw new Error(message + suffix);
+      }
+
+      const data = body.data;
 
       if (!data.isComplete && data.message) {
         setMessages([...updatedMessages, { role: 'assistant', content: data.message }]);

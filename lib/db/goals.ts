@@ -69,7 +69,7 @@ function mapAiGoalDataToDbInserts(
       smart_data: aiData.goal.smart,
       color_theme: colorTheme,
       deadline: normalizedDeadline,
-      is_public: false,
+      visibility: 'private' as const,
       ai_generated: true,
       project_id: projectId ?? null,
     },

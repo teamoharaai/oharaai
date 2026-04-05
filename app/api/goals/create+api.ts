@@ -1,5 +1,9 @@
 import { callLLM } from '@/lib/ai/client';
 import {
+  isAIRateLimitError,
+} from '@/lib/ai/errors';
+import type { AiResponse } from '@/lib/ai/contracts';
+import {
   GOAL_CREATION_SYSTEM_PROMPT,
   GOAL_CREATION_FINALIZE_PROMPT,
   GOAL_CREATION_FINALIZE_RETRY_PROMPT,
@@ -8,6 +12,7 @@ import {
   parseGoalFinalizeResponse,
   type GoalFinalizeResponse,
 } from '@/lib/ai/schemas/goal-creation';
+import supabase, { isDatabaseConfigured } from '@/lib/db/client';
 
 type ConversationMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -26,6 +31,28 @@ interface CreateResponse {
   isComplete: boolean;
   goalData?: GoalFinalizeResponse;
   finalizedBy?: 'assistant' | 'user';
+}
+
+async function getAuthContextFromRequest(request: Request) {
+  const authHeader = request.headers.get('Authorization');
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token || !isDatabaseConfigured) return null;
+
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser(token);
+
+  return error || !user ? null : { userId: user.id, accessToken: token };
+}
+
+function rateLimitedResponse(error: { message: string }): Response {
+  const body: AiResponse<never> = {
+    ok: false,
+    data: null,
+    error: { code: 'RATE_LIMITED', message: error.message },
+  };
+  return Response.json(body, { status: 429 });
 }
 
 // ─── Input sanitization ───────────────────────────────────────────────────────
@@ -328,10 +355,12 @@ async function finalizeGoalFromTranscript({
   requestId,
   transcript,
   trigger,
+  auth,
 }: {
   requestId: string;
   transcript: string;
   trigger: FinalizeTrigger;
+  auth: { userId: string; accessToken: string };
 }): Promise<GoalFinalizeResponse> {
   let lastError: GoalFinalizationError | null = null;
   let previousOutput: string | null = null;
@@ -366,12 +395,18 @@ async function finalizeGoalFromTranscript({
       try {
         finalResult = await callLLM({
           pipeline: 'goalFinalize',
+          userId: auth.userId,
+          accessToken: auth.accessToken,
           systemPrompt,
           messages: [{ role: 'user', content: userContent }],
           assistantPrefill: FINALIZE_ASSISTANT_PREFILL,
           stopSequences: ['```'],
         });
       } catch (error) {
+        if (isAIRateLimitError(error)) {
+          throw error;
+        }
+
         const message = error instanceof Error ? error.message : 'Finalization model call failed';
         const stage: GoalFinalizeStage = message.includes('no text content')
           ? 'model_response_missing'
@@ -541,7 +576,8 @@ export async function POST(request: Request): Promise<Response> {
   try {
     body = (await request.json()) as RequestBody;
   } catch {
-    return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
+    const errBody: AiResponse<never> = { ok: false, data: null, error: { code: 'INVALID_INPUT', message: 'Invalid JSON body' } };
+    return Response.json(errBody, { status: 400 });
   }
 
   let userMessage: string | null;
@@ -562,7 +598,14 @@ export async function POST(request: Request): Promise<Response> {
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Invalid request';
-    return Response.json({ error: message }, { status: 400 });
+    const errBody: AiResponse<never> = { ok: false, data: null, error: { code: 'INVALID_INPUT', message } };
+    return Response.json(errBody, { status: 400 });
+  }
+
+  const auth = await getAuthContextFromRequest(request);
+  if (!auth) {
+    const errBody: AiResponse<never> = { ok: false, data: null, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } };
+    return Response.json(errBody, { status: 401 });
   }
 
   const history: ConversationMessage[] = [
@@ -595,6 +638,7 @@ export async function POST(request: Request): Promise<Response> {
         requestId,
         transcript,
         trigger: 'user',
+        auth,
       });
 
       const response: CreateResponse = {
@@ -604,8 +648,12 @@ export async function POST(request: Request): Promise<Response> {
         goalData,
         finalizedBy: 'user',
       };
-      return Response.json(response);
+      return Response.json({ ok: true, data: response, error: null } satisfies AiResponse<CreateResponse>);
     } catch (err) {
+      if (isAIRateLimitError(err)) {
+        return rateLimitedResponse(err);
+      }
+
       const error = err instanceof GoalFinalizationError ? err : null;
       const message = err instanceof Error ? err.message : 'Goal finalization failed';
       console.error('[goal-create] explicit finalization failed', {
@@ -616,17 +664,21 @@ export async function POST(request: Request): Promise<Response> {
         error: message,
         rawPreview: error?.rawPreview ?? null,
       });
-      return Response.json(
-        {
-          error: 'Goal finalization failed',
-          code: 'GOAL_FINALIZATION_FAILED',
-          details: message,
-          finalizeStage: error?.stage ?? 'unknown',
-          finalizeDebug: error?.debug ?? null,
-          requestId,
+      const errBody: AiResponse<never> = {
+        ok: false,
+        data: null,
+        error: {
+          code: 'PARSE_ERROR',
+          message: 'Goal finalization failed',
+          details: {
+            reason: message,
+            finalizeStage: error?.stage ?? 'unknown',
+            finalizeDebug: error?.debug ?? null,
+            requestId,
+          },
         },
-        { status: 422 },
-      );
+      };
+      return Response.json(errBody, { status: 422 });
     }
   }
 
@@ -634,14 +686,21 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const result = await callLLM({
       pipeline: 'goalCreation',
+      userId: auth.userId,
+      accessToken: auth.accessToken,
       systemPrompt: GOAL_CREATION_SYSTEM_PROMPT,
       messages: history,
     });
     aiMessage = result.text;
   } catch (err) {
+    if (isAIRateLimitError(err)) {
+      return rateLimitedResponse(err);
+    }
+
     const message = err instanceof Error ? err.message : 'AI call failed';
     console.error('[goal-create] conversation call failed', { requestId, error: message });
-    return Response.json({ error: message, requestId }, { status: 500 });
+    const errBody: AiResponse<never> = { ok: false, data: null, error: { code: 'AI_PROVIDER_ERROR', message, details: { requestId } } };
+    return Response.json(errBody, { status: 500 });
   }
 
   const shouldFinalizeGoal = shouldFinalize(aiMessage);
@@ -655,7 +714,7 @@ export async function POST(request: Request): Promise<Response> {
 
   if (!shouldFinalizeGoal) {
     const response: CreateResponse = { requestId, message: displayMessage, isComplete: false };
-    return Response.json(response);
+    return Response.json({ ok: true, data: response, error: null } satisfies AiResponse<CreateResponse>);
   }
 
   let goalData: GoalFinalizeResponse;
@@ -678,6 +737,7 @@ export async function POST(request: Request): Promise<Response> {
       requestId,
       transcript,
       trigger: 'assistant',
+      auth,
     });
     console.info('[goal-create] finalization succeeded', {
       requestId,
@@ -686,6 +746,10 @@ export async function POST(request: Request): Promise<Response> {
       assumptionsCount: goalData.assumptions?.length ?? 0,
     });
   } catch (err) {
+    if (isAIRateLimitError(err)) {
+      return rateLimitedResponse(err);
+    }
+
     const error = err instanceof GoalFinalizationError ? err : null;
     const message = err instanceof Error ? err.message : 'Goal finalization failed';
     console.error('[goal-create] finalization failed after completion signal', {
@@ -697,17 +761,21 @@ export async function POST(request: Request): Promise<Response> {
       assistantMessage: displayMessage,
       rawPreview: error?.rawPreview ?? null,
     });
-    return Response.json(
-      {
-        error: 'Goal finalization failed after completion signal',
-        code: 'GOAL_FINALIZATION_FAILED',
-        details: message,
-        finalizeStage: error?.stage ?? 'unknown',
-        finalizeDebug: error?.debug ?? null,
-        requestId,
+    const errBody: AiResponse<never> = {
+      ok: false,
+      data: null,
+      error: {
+        code: 'PARSE_ERROR',
+        message: 'Goal finalization failed after completion signal',
+        details: {
+          reason: message,
+          finalizeStage: error?.stage ?? 'unknown',
+          finalizeDebug: error?.debug ?? null,
+          requestId,
+        },
       },
-      { status: 422 },
-    );
+    };
+    return Response.json(errBody, { status: 422 });
   }
 
   const response: CreateResponse = {
@@ -717,5 +785,5 @@ export async function POST(request: Request): Promise<Response> {
     goalData,
     finalizedBy: 'assistant',
   };
-  return Response.json(response);
+  return Response.json({ ok: true, data: response, error: null } satisfies AiResponse<CreateResponse>);
 }

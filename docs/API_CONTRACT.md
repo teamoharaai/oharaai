@@ -78,7 +78,7 @@ List the authenticated user's goals.
     category: string,
     colorTheme: string,
     deadline: string | null,       // ISO 8601
-    isPublic: boolean,
+    visibility: "private" | "circle" | "public",
     progress: number,              // 0-100
     status: "active" | "complete" | "stagnant" | "discovered",
     aiGenerated: boolean,
@@ -112,7 +112,7 @@ Get a single goal with its measurables and recent activity.
     category: string,
     colorTheme: string,
     deadline: string | null,
-    isPublic: boolean,
+    visibility: "private" | "circle" | "public",
     progress: number,
     status: "active" | "complete" | "stagnant" | "discovered",
     aiGenerated: boolean,
@@ -188,7 +188,7 @@ Create a new goal with measurables.
 **Notes:**
 - `colorTheme` is auto-assigned by the server from `CATEGORY_THEME_MAP`. Clients never send it.
 - `progress` starts at 0, calculated server-side from measurables.
-- `isPublic` defaults to false. Updated via PATCH.
+- `visibility` defaults to `"private"`. Updated via PATCH with an explicit literal.
 
 ---
 
@@ -268,7 +268,7 @@ Update a goal's editable fields.
   description?: string,
   category?: string,
   deadline?: string,
-  isPublic?: boolean,
+  visibility?: "private" | "circle" | "public",
   status?: "active" | "complete" | "stagnant" | "discovered"
 }
 ```

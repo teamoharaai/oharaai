@@ -1,4 +1,8 @@
 import { callEchoReflection } from '@/lib/ai/echo-client';
+import {
+  isAIRateLimitError,
+} from '@/lib/ai/errors';
+import type { AiResponse } from '@/lib/ai/contracts';
 import { buildEchoReflectionPrompt } from '@/lib/ai/prompts/echo-reflection';
 import { ECHO_INFERENCE_PROMPT } from '@/lib/ai/echo/prompts';
 import supabase, { isDatabaseConfigured } from '@/lib/db/client';
@@ -9,7 +13,7 @@ interface ReflectRequestBody {
   aiInsightRequested?: boolean;
 }
 
-async function getUserFromRequest(request: Request) {
+async function getAuthContextFromRequest(request: Request) {
   const authHeader = request.headers.get('Authorization');
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
   if (!token || !isDatabaseConfigured) return null;
@@ -19,7 +23,7 @@ async function getUserFromRequest(request: Request) {
     error,
   } = await supabase.auth.getUser(token);
 
-  return error || !user ? null : user;
+  return error || !user ? null : { userId: user.id, accessToken: token };
 }
 
 async function touchLastSummarizedAt(userId: string): Promise<void> {
@@ -34,10 +38,11 @@ async function touchLastSummarizedAt(userId: string): Promise<void> {
 }
 
 type InferenceResult = {
-  reflection: string;
+  reflection: string | null;
   emotion: EchoEmotion | null;
   brt: EchoBrt | null;
   confidence: number | null;
+  summarized: boolean;
 };
 
 function sanitizeContent(input: unknown) {
@@ -72,19 +77,19 @@ function parseInferenceResponse(rawText: string): InferenceResult {
     parsed = JSON.parse(rawText);
   } catch (err) {
     console.error('[echo/reflect] JSON.parse failed:', err);
-    return { reflection: rawText, emotion: null, brt: null, confidence: null };
+    return { reflection: rawText, emotion: null, brt: null, confidence: null, summarized: false };
   }
 
   if (typeof parsed !== 'object' || parsed === null) {
     console.error('[echo/reflect] parsed value is not an object');
-    return { reflection: rawText, emotion: null, brt: null, confidence: null };
+    return { reflection: rawText, emotion: null, brt: null, confidence: null, summarized: false };
   }
 
   const obj = parsed as Record<string, unknown>;
 
   if (typeof obj['reflection'] !== 'string') {
     console.error('[echo/reflect] reflection field missing or not a string');
-    return { reflection: rawText, emotion: null, brt: null, confidence: null };
+    return { reflection: rawText, emotion: null, brt: null, confidence: null, summarized: false };
   }
 
   const reflection = obj['reflection'];
@@ -136,7 +141,7 @@ function parseInferenceResponse(rawText: string): InferenceResult {
   const confidence =
     typeof obj['confidence'] === 'number' ? obj['confidence'] : null;
 
-  return { reflection, emotion, brt, confidence };
+  return { reflection, emotion, brt, confidence, summarized: true };
 }
 
 export async function POST(request: Request) {
@@ -148,7 +153,18 @@ export async function POST(request: Request) {
   }
 
   if (body.aiInsightRequested === false) {
-    return Response.json({ reflection: null, summarized: false });
+    const noAiBody: AiResponse<Pick<InferenceResult, 'reflection' | 'summarized'>> = {
+      ok: true,
+      data: { reflection: null, summarized: false },
+      error: null,
+    };
+    return Response.json(noAiBody);
+  }
+
+  const auth = await getAuthContextFromRequest(request);
+  if (!auth) {
+    const errBody: AiResponse<never> = { ok: false, data: null, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } };
+    return Response.json(errBody, { status: 401 });
   }
 
   let content: string;
@@ -156,29 +172,48 @@ export async function POST(request: Request) {
     content = sanitizeContent(body.content);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Invalid content';
-    return Response.json({ error: message }, { status: 400 });
+    const errBody: AiResponse<never> = { ok: false, data: null, error: { code: 'INVALID_INPUT', message } };
+    return Response.json(errBody, { status: 400 });
   }
 
   let result;
   try {
     result = await callEchoReflection({
+      userId: auth.userId,
+      accessToken: auth.accessToken,
       systemPrompt: ECHO_INFERENCE_PROMPT,
       userMessage: buildEchoReflectionPrompt(content),
     });
   } catch (error) {
+    if (isAIRateLimitError(error)) {
+      const errBody: AiResponse<never> = { ok: false, data: null, error: { code: 'RATE_LIMITED', message: error.message } };
+      return Response.json(errBody, { status: 429 });
+    }
+
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[echo/reflect] AI call failed, entry already saved:', message);
-    return Response.json({ reflection: null, emotion: null, brt: null, confidence: null, summarized: false });
+    // Return ok:true with null reflection — the entry is already saved locally.
+    // The caller checks summarized:false and resolves to saved_without_summary.
+    const fallbackBody: AiResponse<InferenceResult> = {
+      ok: true,
+      data: { reflection: null, emotion: null, brt: null, confidence: null, summarized: false },
+      error: null,
+    };
+    return Response.json(fallbackBody);
   }
 
-  const { reflection, emotion, brt, confidence } = parseInferenceResponse(result.text);
+  const { reflection, emotion, brt, confidence, summarized } = parseInferenceResponse(result.text);
 
   // Fire-and-forget: update last_summarized_at on the profile.
   // Deliberately not awaited — a profile update failure must never block the response.
-  const user = await getUserFromRequest(request);
-  if (user) {
-    void touchLastSummarizedAt(user.id);
+  if (summarized) {
+    void touchLastSummarizedAt(auth.userId);
   }
 
-  return Response.json({ reflection, emotion, brt, confidence, summarized: true });
+  const successBody: AiResponse<InferenceResult> = {
+    ok: true,
+    data: { reflection, emotion, brt, confidence, summarized },
+    error: null,
+  };
+  return Response.json(successBody);
 }

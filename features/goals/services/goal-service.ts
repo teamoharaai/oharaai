@@ -9,6 +9,8 @@ import {
   GOAL_SMART_KEYS,
   type GoalCategory,
   type GoalSmartData,
+  GOAL_VISIBILITIES,
+  type GoalVisibility,
 } from '@/lib/goals/schema';
 
 type DbMeasurable = {
@@ -35,7 +37,7 @@ type DbGoal = {
   smart_data: Record<string, unknown> | null;
   color_theme: string;
   deadline: string | null;
-  is_public: boolean;
+  visibility: string;
   progress: number | string;
   status: string;
   ai_generated: boolean;
@@ -72,6 +74,10 @@ function toCategory(raw: string): GoalCategory {
 
 function toStatus(raw: string): GoalStatus {
   return GOAL_DB_STATUSES.includes(raw as GoalStatus) ? (raw as GoalStatus) : 'active';
+}
+
+function toVisibility(raw: string): GoalVisibility {
+  return GOAL_VISIBILITIES.includes(raw as GoalVisibility) ? (raw as GoalVisibility) : 'private';
 }
 
 function toMeasurableType(raw: string): MeasurableType {
@@ -124,7 +130,7 @@ function mapGoal(row: DbGoal): GoalWithMeasurables {
     category: toCategory(row.category),
     colorTheme: toTheme(row.color_theme),
     deadline: toDate(row.deadline),
-    isPublic: row.is_public,
+    visibility: toVisibility(row.visibility),
     progress: toNumber(row.progress, 0),
     status: toStatus(row.status),
     aiGenerated: row.ai_generated,
@@ -138,7 +144,7 @@ function mapGoal(row: DbGoal): GoalWithMeasurables {
 
 const GOAL_SELECT = `
   id, user_id, title, description, category, smart_data, color_theme, deadline,
-  is_public, progress, status, ai_generated, project_id, created_at, updated_at,
+  visibility, progress, status, ai_generated, project_id, created_at, updated_at,
   measurables (
     id, goal_id, title, type, target_value, target_unit, frequency,
     current_value, is_ai_suggested, sort_order, created_at, updated_at
@@ -179,7 +185,7 @@ export async function updateGoal(goalId: string, updates: Partial<Goal>): Promis
   if (updates.status !== undefined) patch.status = updates.status;
   if (updates.progress !== undefined) patch.progress = updates.progress;
   if (updates.deadline !== undefined) patch.deadline = updates.deadline?.toISOString() ?? null;
-  if (updates.isPublic !== undefined) patch.is_public = updates.isPublic;
+  if (updates.visibility !== undefined) patch.visibility = updates.visibility;
   if (updates.colorTheme !== undefined) patch.color_theme = updates.colorTheme;
   if (updates.category !== undefined) patch.category = updates.category;
 

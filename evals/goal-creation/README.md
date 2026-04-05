@@ -38,7 +38,8 @@ Optional flags:
 ```bash
 --fixture <id>         Run one fixture only
 --max-turns <n>        Max assistant turns before forced finalization (default: 4)
---output <path>        Write JSON results to a custom path
+--output <path>        W
+rite JSON results to a custom path
 --base-url <url>       API base URL, default http://localhost:8081
 ```
 

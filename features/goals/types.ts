@@ -5,6 +5,7 @@ import type {
   GoalMeasurableFrequency,
   GoalMeasurableType,
   GoalSmartData,
+  GoalVisibility,
 } from '@/lib/goals/schema';
 
 export type GoalStatus = GoalDbStatus;
@@ -19,7 +20,7 @@ export interface Goal {
   category: GoalCategory;
   colorTheme: GoalTheme;
   deadline: Date | null;
-  isPublic: boolean;
+  visibility: GoalVisibility;
   progress: number;
   status: GoalStatus;
   aiGenerated: boolean;

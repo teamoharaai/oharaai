@@ -21,6 +21,12 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
   const days = goal.deadline ? daysUntil(goal.deadline) : null;
   const deleteGoal = useGoalStore((state) => state.deleteGoal);
   const [menuOpen, setMenuOpen] = useState(false);
+  const visibilityLabel =
+    goal.visibility === 'public'
+      ? 'Public'
+      : goal.visibility === 'circle'
+        ? 'Circle'
+        : null;
 
   const handleDelete = async () => {
     const confirmed = Platform.OS === 'web'
@@ -87,7 +93,7 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
           <Badge label={goal.category} variant="category" />
           {isNewest && <Badge label="Active" variant="active" />}
-          {goal.isPublic && <Badge label="Public" variant="new" />}
+          {visibilityLabel && <Badge label={visibilityLabel} variant="new" />}
         </View>
 
         {/* Title */}

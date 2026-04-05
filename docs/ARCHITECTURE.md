@@ -96,7 +96,7 @@ When in doubt, start inside the feature. Extract to shared only when a second co
 
 These patterns exist specifically so Phase 2+ changes are config changes, not rewrites:
 
-- `goal.is_public` → Phase 2 social sharing (default false, toggle ready)
+- `goal.visibility` → Phase 2 social sharing can expand safely without conflating circle-only access with fully public access
 - `echo_entries.goal_id` nullable → entries work as general journal OR goal-specific
 - `measurables.is_ai_suggested` → distinguishes user-created from LLM-suggested
 - `ai_usage` table → cost monitoring from day one

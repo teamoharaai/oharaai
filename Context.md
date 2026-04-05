@@ -32,7 +32,7 @@ Expo (React Native Web, SSR mode) → Vercel · Supabase (auth, DB, RLS) · Anth
 - Goal status: `active / complete / stagnant / discovered` (never paused/completed/archived)
 - Assumptions: always `string[]`, never optional
 - All measurable writes scoped through RLS via `goal_id → goals.user_id = auth.uid()`
-- `is_public` policy removed from goals table — Phase 2 feature
+- Goal visibility uses explicit `private / circle / public` states; Phase 1 keeps non-owner access conservative until connection-aware sharing ships
 
 ## Outstanding
 - Dashboard redesign (Echo entry point, Guide presence as Ohara voice, badge fix)

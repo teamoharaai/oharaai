@@ -4,7 +4,7 @@ ALTER TABLE public.goals
   ADD COLUMN IF NOT EXISTS description text,
   ADD COLUMN IF NOT EXISTS color_theme text NOT NULL DEFAULT 'ocean',
   ADD COLUMN IF NOT EXISTS deadline timestamptz,
-  ADD COLUMN IF NOT EXISTS is_public boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS visibility text NOT NULL DEFAULT 'private' CHECK (visibility IN ('private', 'circle', 'public')),
   ADD COLUMN IF NOT EXISTS progress numeric NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS ai_generated boolean NOT NULL DEFAULT false;
 
@@ -75,7 +75,7 @@ ALTER TABLE public.ai_usage ENABLE ROW LEVEL SECURITY;
 -- (own-goal CRUD policies already added in 002_enable_rls.sql)
 CREATE POLICY "Users can view public goals"
   ON public.goals FOR SELECT
-  USING (is_public = true);
+  USING (visibility = 'public');
 
 -- Measurables: access through goal ownership
 CREATE POLICY "Users can CRUD measurables for own goals"
@@ -102,7 +102,7 @@ CREATE POLICY "System can insert AI usage"
 
 -- ─── Indexes ──────────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_goals_status          ON public.goals(status);
-CREATE INDEX IF NOT EXISTS idx_goals_is_public        ON public.goals(is_public);
+CREATE INDEX IF NOT EXISTS idx_goals_visibility       ON public.goals(visibility);
 CREATE INDEX IF NOT EXISTS idx_measurables_goal_id    ON public.measurables(goal_id);
 CREATE INDEX IF NOT EXISTS idx_measurable_logs_mid    ON public.measurable_logs(measurable_id);
 CREATE INDEX IF NOT EXISTS idx_echo_goal_id        ON public.echo_entries(goal_id);

@@ -1,9 +1,16 @@
+import { createClient } from '@supabase/supabase-js';
 import { AI_CONFIG } from './config';
+import { AIRateLimitError } from './errors';
 
 type ConversationMessage = { role: 'user' | 'assistant'; content: string };
 
-interface CallLLMParams {
+const DAILY_AI_LIMIT = 30;
+const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
+
+export interface CallLLMParams {
   pipeline: keyof typeof AI_CONFIG.pipelines;
+  userId: string;
+  accessToken: string;
   systemPrompt: string;
   /** Single-turn: provide userMessage. Multi-turn: provide messages array. */
   userMessage?: string;
@@ -12,9 +19,10 @@ interface CallLLMParams {
   model?: string;
   maxTokens?: number;
   stopSequences?: string[];
+  timeoutMs?: number;
 }
 
-interface CallLLMResult {
+export interface CallLLMResult {
   text: string;
   inputTokens: number;
   outputTokens: number;
@@ -56,6 +64,63 @@ function getAnthropicApiKey() {
   return apiKey;
 }
 
+function getSupabaseConfig() {
+  const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
+  const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
+
+  if (!url || !anonKey) {
+    throw new Error('Supabase env missing. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY.');
+  }
+
+  return { url, anonKey };
+}
+
+function createAuthedSupabaseClient(accessToken: string) {
+  const { url, anonKey } = getSupabaseConfig();
+
+  return createClient(url, anonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  });
+}
+
+async function consumeDailyQuota(userId: string, accessToken: string) {
+  if (!userId.trim()) {
+    throw new Error('Authenticated user required for AI calls.');
+  }
+
+  if (!accessToken.trim()) {
+    throw new Error('Authenticated AI access token missing.');
+  }
+
+  const usageDate = new Date().toISOString().slice(0, 10);
+  const supabase = createAuthedSupabaseClient(accessToken);
+  const { data, error } = await supabase.rpc('consume_daily_ai_quota', {
+    p_date: usageDate,
+    p_limit: DAILY_AI_LIMIT,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const row = Array.isArray(data) ? data[0] : null;
+  if (!row || typeof row.allowed !== 'boolean' || typeof row.count !== 'number') {
+    throw new Error('Daily AI quota RPC returned an invalid payload.');
+  }
+
+  if (!row.allowed) {
+    throw new AIRateLimitError();
+  }
+}
+
 export async function callLLM(params: CallLLMParams): Promise<CallLLMResult> {
   const pipelineConfig = AI_CONFIG.pipelines[params.pipeline];
 
@@ -68,22 +133,39 @@ export async function callLLM(params: CallLLMParams): Promise<CallLLMResult> {
   const messages = params.assistantPrefill
     ? [...requestMessages, { role: 'assistant' as const, content: params.assistantPrefill }]
     : requestMessages;
+  const controller = new AbortController();
+  const timeoutMs = params.timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-      'x-api-key': getAnthropicApiKey(),
-    },
-    body: JSON.stringify({
-      model: resolvedModel,
-      max_tokens: resolveMaxTokens(params.pipeline, params.maxTokens),
-      system: params.systemPrompt,
-      messages,
-      stop_sequences: params.stopSequences,
-    }),
-  });
+  await consumeDailyQuota(params.userId, params.accessToken);
+
+  let response: Response;
+  try {
+    response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+        'x-api-key': getAnthropicApiKey(),
+      },
+      body: JSON.stringify({
+        model: resolvedModel,
+        max_tokens: resolveMaxTokens(params.pipeline, params.maxTokens),
+        system: params.systemPrompt,
+        messages,
+        stop_sequences: params.stopSequences,
+      }),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`Anthropic request timed out after ${timeoutMs}ms`);
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const data = (await response.json()) as AnthropicMessageResponse;
 

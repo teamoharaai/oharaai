@@ -4,6 +4,7 @@ import {
   fetchEntries,
   createEntry,
   fetchActiveGoalsForPicker,
+  getSubmissionFailureStatus,
   type CreateEntryResult,
 } from '../services/echo-service';
 import supabase from '@/lib/db/client';
@@ -38,7 +39,16 @@ export function useEntries() {
     brt: EchoBrt | null,
     emotion: EchoEmotion | null,
   ): Promise<CreateEntryResult> => {
-    const { data: { user } } = await supabase.auth.getUser();
+    let user;
+    try {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+      user = authUser;
+    } catch (error) {
+      return { status: getSubmissionFailureStatus(error) };
+    }
+
     if (!user) return { status: 'unconfirmed' };
 
     const result = await createEntry({

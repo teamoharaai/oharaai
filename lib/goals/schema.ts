@@ -35,3 +35,6 @@ export type GoalMeasurableFrequency = (typeof GOAL_MEASURABLE_FREQUENCIES)[numbe
 
 export const GOAL_DB_STATUSES = ['active', 'complete', 'stagnant', 'discovered'] as const;
 export type GoalDbStatus = (typeof GOAL_DB_STATUSES)[number];
+
+export const GOAL_VISIBILITIES = ['private', 'circle', 'public'] as const;
+export type GoalVisibility = (typeof GOAL_VISIBILITIES)[number];
