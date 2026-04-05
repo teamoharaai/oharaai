@@ -66,7 +66,7 @@
 - Added `features/actions/components/NextActionSection.tsx` to render the goal detail Next Action card with loading, retry, pending-action, and inline create states. The section supports optimistic `Complete` / `Skip` interactions with rollback on PATCH failure and uses post-success revalidation after both PATCH and POST flows. Affected files: `features/actions/components/NextActionSection.tsx`, `features/actions/hooks/useLatestAction.ts`.
 
 ### Changed
-- Updated `app/goals/[id].tsx` to insert `NextActionSection` directly below `GoalDetailHeader` and above the existing goal detail content flow toward `ActivityFeed`, keeping the new action UI isolated from measurables and Echo logic. Affected file: `app/goals/[id].tsx`.
+- Updated `app/goals/[id].tsx` to insert `NextActionSection` directly below `GoalDetailHeader`, above `MeasurablesPanel` (which sits above `ActivityFeed`). Screen order: `GoalDetailHeader → NextActionSection → MeasurablesPanel → ActivityFeed`. Keeps the new action UI isolated from measurables and Echo logic. Affected file: `app/goals/[id].tsx`.
 - Kept next-action creation on the lowest-risk path by revalidating with `useLatestAction().mutate()` after a successful `POST /api/actions` instead of introducing optimistic insert state. Notable limitation: the client still sends `status: 'pending'` for clarity, but the existing backend already hardcodes pending on insert, so no API contract change was required.
 
 ### Refactored
