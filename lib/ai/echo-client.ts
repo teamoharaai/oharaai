@@ -1,5 +1,6 @@
 const ECHO_REFLECTION_MODEL = 'claude-haiku-4-5-20251001';
 const ECHO_REFLECTION_MAX_TOKENS = 500;
+const ECHO_REFLECTION_TIMEOUT_MS = 15_000;
 
 interface EchoReflectionParams {
   systemPrompt: string;
@@ -35,20 +36,34 @@ function getAnthropicApiKey() {
 export async function callEchoReflection(
   params: EchoReflectionParams,
 ): Promise<EchoReflectionResult> {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-      'x-api-key': getAnthropicApiKey(),
-    },
-    body: JSON.stringify({
-      model: ECHO_REFLECTION_MODEL,
-      max_tokens: ECHO_REFLECTION_MAX_TOKENS,
-      system: params.systemPrompt,
-      messages: [{ role: 'user', content: params.userMessage }],
-    }),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), ECHO_REFLECTION_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+        'x-api-key': getAnthropicApiKey(),
+      },
+      body: JSON.stringify({
+        model: ECHO_REFLECTION_MODEL,
+        max_tokens: ECHO_REFLECTION_MAX_TOKENS,
+        system: params.systemPrompt,
+        messages: [{ role: 'user', content: params.userMessage }],
+      }),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error(`Anthropic request timed out after ${ECHO_REFLECTION_TIMEOUT_MS}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const data = (await response.json()) as AnthropicMessageResponse;
 

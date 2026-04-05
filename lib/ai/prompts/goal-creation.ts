@@ -280,6 +280,23 @@ Required JSON shape:
   "assumptions": ["string"]
 }`;
 
+// ─── Post-finalization action capture ────────────────────────────────────────
+// After [[GOAL_READY]] is detected and the goal is persisted, the screen
+// appends ACTION_CAPTURE_PROMPT directly as an assistant message (no LLM call).
+// The user responds with one action; the screen POSTs it to /api/actions and
+// appends ACTION_CAPTURE_CONFIRMATION before navigating.
+//
+// Rules for this turn:
+// - Ask for ONE action only — not a plan, not multiple steps
+// - No motivational language
+// - No follow-up questions after the action is captured
+
+export const ACTION_CAPTURE_PROMPT =
+  "What's one action you can take today to start moving on this?";
+
+export const ACTION_CAPTURE_CONFIRMATION =
+  "Locked in. You'll see this on your dashboard.";
+
 // ─── User message builder ─────────────────────────────────────────────────────
 // Formats each turn's user message to include profile context when available.
 

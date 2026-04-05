@@ -17,6 +17,10 @@ import { fetchGoalById } from '@/features/goals/services/goal-service';
 import { useGoalStore } from '@/features/goals/store';
 import { useProjectStore } from '@/features/projects/store';
 import type { GoalFinalizeResponse } from '@/lib/ai/schemas/goal-creation';
+import {
+  ACTION_CAPTURE_PROMPT,
+  ACTION_CAPTURE_CONFIRMATION,
+} from '@/lib/ai/prompts/goal-creation';
 
 type ConversationMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -28,6 +32,7 @@ export default function GoalCreateScreen() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [savingGoal, setSavingGoal] = useState(false);
+  const [savedGoalId, setSavedGoalId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     typeof incomingProjectId === 'string' ? incomingProjectId : null,
@@ -55,6 +60,62 @@ export default function GoalCreateScreen() {
     if (isLoading || savingGoal) return;
     if (!finalize && !text) return;
     if (finalize && !text && messages.length === 0) return;
+
+    // ── Post-finalization: action capture turn ────────────────────────────────
+    // Goal is already saved. This message is the user's first action commitment.
+    // POST it to /api/actions, append confirmation, then navigate.
+    if (savedGoalId !== null) {
+      const actionText = text;
+      if (!actionText) return;
+
+      setInput('');
+      const messagesWithAction: ConversationMessage[] = [
+        ...messages,
+        { role: 'user', content: actionText },
+      ];
+      setMessages(messagesWithAction);
+      setIsLoading(true);
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const today = new Date().toISOString().split('T')[0];
+
+        try {
+          const actionRes = await fetch('/api/actions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+            },
+            body: JSON.stringify({
+              goal_id: savedGoalId,
+              action_text: actionText,
+              due_date: today,
+            }),
+          });
+          if (!actionRes.ok) {
+            console.warn('[goal-create] action capture non-ok response', { status: actionRes.status });
+          }
+        } catch (actionErr) {
+          console.error('[goal-create] action capture failed', actionErr instanceof Error ? actionErr.message : 'Unknown error');
+          // navigate anyway — action is a bonus, not a gate
+        }
+
+        setMessages([
+          ...messagesWithAction,
+          { role: 'assistant', content: ACTION_CAPTURE_CONFIRMATION },
+        ]);
+
+        const navigateId = savedGoalId;
+        setTimeout(() => {
+          router.replace(`/goals/${navigateId}`);
+        }, 1500);
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     setError(null);
 
@@ -158,7 +219,11 @@ export default function GoalCreateScreen() {
             });
           }
 
-          router.replace(`/goals/${saveResult.goalId}`);
+          setSavedGoalId(saveResult.goalId);
+          setMessages([
+            ...updatedMessages,
+            { role: 'assistant', content: ACTION_CAPTURE_PROMPT },
+          ]);
         } else {
           console.error('[goal-finalize] persistence failed', {
             requestId: data.requestId,

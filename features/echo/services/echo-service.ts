@@ -51,7 +51,32 @@ type ReflectPayload = {
   emotion: EchoEntry['emotion'] | null;
   brt: EchoEntry['brt'] | null;
   confidence: number | null;
+  summarized: boolean;
 };
+
+export type CreateEntryResultStatus =
+  | 'saved'
+  | 'saved_without_summary'
+  | 'offline'
+  | 'unconfirmed';
+
+export type CreateEntryResult = {
+  status: CreateEntryResultStatus;
+  entry?: EchoEntry;
+};
+
+function isNetworkError(error: unknown): boolean {
+  if (!error) return false;
+
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'object' && error !== null && 'message' in error
+        ? String(error.message)
+        : String(error);
+
+  return /network request failed|failed to fetch|networkerror|load failed|offline/i.test(message);
+}
 
 async function requestEchoReflection(
   content: string,
@@ -71,9 +96,17 @@ async function requestEchoReflection(
   });
 
   if (!response.ok) {
-    const errorData = (await response.json()) as { error?: string; details?: string };
-    const detail = errorData.details ? ` ${errorData.details}` : '';
-    throw new Error((errorData.error ?? 'Echo reflection request failed') + detail);
+    let message = 'Echo reflection request failed';
+
+    try {
+      const errorData = (await response.json()) as { error?: string; details?: string };
+      const detail = errorData.details ? ` ${errorData.details}` : '';
+      message = (errorData.error ?? message) + detail;
+    } catch {
+      // Keep the generic fallback when the error body is unavailable.
+    }
+
+    throw new Error(message);
   }
 
   const data = (await response.json()) as ReflectPayload;
@@ -109,7 +142,7 @@ export async function createEntry(params: {
   aiInsightRequested: boolean;
   brt: EchoEntry['brt'] | null;
   emotion: EchoEntry['emotion'] | null;
-}): Promise<EchoEntry | null> {
+}): Promise<CreateEntryResult> {
   const { data, error } = await supabase
     .from('echo_entries')
     .insert({
@@ -123,13 +156,25 @@ export async function createEntry(params: {
     .select('*, goals(id, title)')
     .single();
 
-  if (error || !data) return null;
+  if (error || !data) {
+    return { status: isNetworkError(error) ? 'offline' : 'unconfirmed' };
+  }
 
   const insertedEntry = mapEntry(data as unknown as DbEchoEntry);
-  const reflectPayload = await requestEchoReflection(params.content, params.aiInsightRequested);
 
-  if (!reflectPayload) {
-    return insertedEntry;
+  if (!params.aiInsightRequested) {
+    return { status: 'saved', entry: insertedEntry };
+  }
+
+  let reflectPayload: ReflectPayload | null;
+  try {
+    reflectPayload = await requestEchoReflection(params.content, params.aiInsightRequested);
+  } catch {
+    return { status: 'saved_without_summary', entry: insertedEntry };
+  }
+
+  if (!reflectPayload || !reflectPayload.summarized || !reflectPayload.reflection) {
+    return { status: 'saved_without_summary', entry: insertedEntry };
   }
 
   const processedAt = new Date().toISOString();
@@ -142,23 +187,17 @@ export async function createEntry(params: {
       confidence: reflectPayload.confidence,
       model_version: AI_CONFIG.models.default,
       processed_at: processedAt,
+      summarized: true,
     })
     .eq('id', insertedEntry.id)
     .select('*, goals(id, title)')
     .single();
 
   if (updateError || !updatedData) {
-    return {
-      ...insertedEntry,
-      aiResponse: reflectPayload.reflection ?? undefined,
-      emotion: reflectPayload.emotion ?? undefined,
-      brt: reflectPayload.brt ?? undefined,
-      confidence: reflectPayload.confidence ?? undefined,
-      processedAt: new Date(processedAt),
-    };
+    return { status: 'saved_without_summary', entry: insertedEntry };
   }
 
-  return mapEntry(updatedData as unknown as DbEchoEntry);
+  return { status: 'saved', entry: mapEntry(updatedData as unknown as DbEchoEntry) };
 }
 
 export async function fetchActiveGoalsForPicker(

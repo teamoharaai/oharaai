@@ -1,11 +1,36 @@
 import { callEchoReflection } from '@/lib/ai/echo-client';
 import { buildEchoReflectionPrompt } from '@/lib/ai/prompts/echo-reflection';
 import { ECHO_INFERENCE_PROMPT } from '@/lib/ai/echo/prompts';
+import supabase, { isDatabaseConfigured } from '@/lib/db/client';
 import type { EchoEmotion, EchoBrt } from '@/features/echo/types';
 
 interface ReflectRequestBody {
   content?: string;
   aiInsightRequested?: boolean;
+}
+
+async function getUserFromRequest(request: Request) {
+  const authHeader = request.headers.get('Authorization');
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token || !isDatabaseConfigured) return null;
+
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser(token);
+
+  return error || !user ? null : user;
+}
+
+async function touchLastSummarizedAt(userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ last_summarized_at: new Date().toISOString() })
+    .eq('id', userId);
+
+  if (error) {
+    console.error('[echo/reflect] failed to update last_summarized_at:', error.message);
+  }
 }
 
 type InferenceResult = {
@@ -115,31 +140,45 @@ function parseInferenceResponse(rawText: string): InferenceResult {
 }
 
 export async function POST(request: Request) {
+  let body: ReflectRequestBody;
   try {
-    const body = (await request.json()) as ReflectRequestBody;
+    body = (await request.json()) as ReflectRequestBody;
+  } catch {
+    return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
 
-    if (body.aiInsightRequested === false) {
-      return Response.json({ reflection: null });
-    }
+  if (body.aiInsightRequested === false) {
+    return Response.json({ reflection: null, summarized: false });
+  }
 
-    const content = sanitizeContent(body.content);
-    const result = await callEchoReflection({
+  let content: string;
+  try {
+    content = sanitizeContent(body.content);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Invalid content';
+    return Response.json({ error: message }, { status: 400 });
+  }
+
+  let result;
+  try {
+    result = await callEchoReflection({
       systemPrompt: ECHO_INFERENCE_PROMPT,
       userMessage: buildEchoReflectionPrompt(content),
     });
-
-    const { reflection, emotion, brt, confidence } = parseInferenceResponse(result.text);
-
-    return Response.json({ reflection, emotion, brt, confidence });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unexpected error';
-
-    return Response.json(
-      {
-        error: 'Failed to generate Echo reflection',
-        details: message,
-      },
-      { status: 400 },
-    );
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[echo/reflect] AI call failed, entry already saved:', message);
+    return Response.json({ reflection: null, emotion: null, brt: null, confidence: null, summarized: false });
   }
+
+  const { reflection, emotion, brt, confidence } = parseInferenceResponse(result.text);
+
+  // Fire-and-forget: update last_summarized_at on the profile.
+  // Deliberately not awaited — a profile update failure must never block the response.
+  const user = await getUserFromRequest(request);
+  if (user) {
+    void touchLastSummarizedAt(user.id);
+  }
+
+  return Response.json({ reflection, emotion, brt, confidence, summarized: true });
 }

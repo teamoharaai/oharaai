@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   FlatList,
   Modal,
@@ -12,19 +12,14 @@ import {
 } from 'react-native';
 import { FEATURES } from '@/constants/features';
 import { EmptyStateCard } from '@/components/ui/EmptyStateCard';
+import {
+  getEchoDraftContextKey,
+  useEchoDraftStore,
+  type EchoDraftGoalRef,
+} from '../draft-store';
 import { useEntries } from '../hooks/useEntries';
+import type { CreateEntryResultStatus } from '../services/echo-service';
 import type { EchoEntry } from '../types';
-
-const COLORS = {
-  background: '#F5F1EA',
-  card: '#FFFFFF',
-  accent: '#3D5247',
-  text: '#1C1C1E',
-  muted: '#6B7280',
-  border: '#D8D2C8',
-  shadow: '#000000',
-  badgeBackground: '#EEF2EF',
-};
 
 function formatPillLabel(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
@@ -73,17 +68,7 @@ function formatRelativeTime(date: Date): string {
 
 function SectionLabel({ children }: { children: string }) {
   return (
-    <Text
-      style={{
-        marginBottom: 10,
-        fontFamily: 'Inter',
-        fontSize: 12,
-        fontWeight: '600',
-        letterSpacing: 1.2,
-        textTransform: 'uppercase',
-        color: COLORS.muted,
-      }}
-    >
+    <Text className="mb-2.5 font-sans text-xs font-semibold uppercase tracking-[1.2px] text-[#6B7280]">
       {children}
     </Text>
   );
@@ -91,58 +76,16 @@ function SectionLabel({ children }: { children: string }) {
 
 function EchoEntryListCard({ entry }: { entry: EchoEntry }) {
   return (
-    <View
-      style={{
-        marginBottom: 12,
-        borderRadius: 12,
-        backgroundColor: COLORS.card,
-        padding: 16,
-        shadowColor: COLORS.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 12,
-        elevation: 2,
-      }}
-    >
-      <Text
-        style={{
-          color: COLORS.text,
-          fontFamily: 'Inter',
-          fontSize: 14,
-          lineHeight: 21,
-        }}
-        numberOfLines={2}
-      >
+    <View className="mb-3 rounded-xl bg-white p-4 shadow-sm">
+      <Text className="font-sans text-sm leading-[21px] text-[#1C1C1E]" numberOfLines={2}>
         {entry.content}
       </Text>
 
-      <View style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Text
-          style={{
-            color: COLORS.muted,
-            fontFamily: 'Inter',
-            fontSize: 12,
-          }}
-        >
-          {formatRelativeTime(entry.createdAt)}
-        </Text>
+      <View className="mt-3 flex-row items-center gap-2">
+        <Text className="font-sans text-xs text-[#6B7280]">{formatRelativeTime(entry.createdAt)}</Text>
         {entry.emotion?.primary ? (
-          <View
-            style={{
-              borderRadius: 999,
-              backgroundColor: COLORS.badgeBackground,
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-            }}
-          >
-            <Text
-              style={{
-                color: COLORS.accent,
-                fontFamily: 'Inter',
-                fontSize: 11,
-                fontWeight: '500',
-              }}
-            >
+          <View className="rounded-full bg-[#EEF2EF] px-2 py-1">
+            <Text className="font-sans text-[11px] font-medium text-[#3D5247]">
               {formatPillLabel(entry.emotion.primary)}
             </Text>
           </View>
@@ -154,187 +97,264 @@ function EchoEntryListCard({ entry }: { entry: EchoEntry }) {
 
 function EchoLoadingState() {
   return (
-    <View style={{ gap: 12, paddingVertical: 8 }}>
+    <View className="gap-3 py-2">
       {[0, 1, 2].map((item) => (
-        <View
-          key={item}
-          style={{
-            borderRadius: 12,
-            backgroundColor: '#FFFFFF',
-            padding: 16,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.06,
-            shadowRadius: 12,
-            elevation: 2,
-          }}
-        >
-          <View style={{ marginBottom: 12, height: 14, borderRadius: 999, backgroundColor: '#EAE7E0' }} />
-          <View style={{ marginBottom: 8, height: 14, width: '83%', borderRadius: 999, backgroundColor: '#EAE7E0' }} />
-          <View style={{ marginBottom: 16, height: 14, width: '66%', borderRadius: 999, backgroundColor: '#EAE7E0' }} />
-          <View style={{ height: 12, width: 80, borderRadius: 999, backgroundColor: '#EAE7E0' }} />
+        <View key={item} className="rounded-xl bg-white p-4 shadow-sm">
+          <View className="mb-3 h-3.5 rounded-full bg-[#EAE7E0]" />
+          <View className="mb-2 h-3.5 w-[83%] rounded-full bg-[#EAE7E0]" />
+          <View className="mb-4 h-3.5 w-[66%] rounded-full bg-[#EAE7E0]" />
+          <View className="h-3 w-20 rounded-full bg-[#EAE7E0]" />
         </View>
       ))}
     </View>
   );
 }
 
+type SubmissionNoticeKind = Extract<
+  CreateEntryResultStatus,
+  'saved_without_summary' | 'offline' | 'unconfirmed'
+>;
+
+const SUBMISSION_NOTICE_COPY: Record<SubmissionNoticeKind, string> = {
+  saved_without_summary: 'Ohara saved your reflection. Its response may appear later.',
+  offline: "You're offline. Your draft is saved on this device. Submit it when you're back online.",
+  unconfirmed:
+    "We couldn't confirm your reflection was submitted. Your draft is still saved on this device.",
+};
+
+function ComposerNotice({ kind }: { kind: SubmissionNoticeKind }) {
+  const toneClasses = {
+    saved_without_summary: {
+      container: 'border-[#D8D2C8] bg-[#F8F5EF]',
+      text: 'text-[#5F6B66]',
+    },
+    offline: {
+      container: 'border-amber-200 bg-amber-50',
+      text: 'text-amber-800',
+    },
+    unconfirmed: {
+      container: 'border-red-200 bg-red-50',
+      text: 'text-red-700',
+    },
+  } as const;
+
+  return (
+    <View className={`mt-3 rounded-xl border px-4 py-3 ${toneClasses[kind].container}`}>
+      <Text className={`font-sans text-sm leading-5 ${toneClasses[kind].text}`}>
+        {SUBMISSION_NOTICE_COPY[kind]}
+      </Text>
+    </View>
+  );
+}
+
 export function EchoScreen() {
   const { entries, isLoading, pickerGoals, saveEntry } = useEntries();
+  const hasHydrated = useEchoDraftStore((state) => state.hasHydrated);
+  const getDraft = useEchoDraftStore((state) => state.getDraft);
+  const setDraft = useEchoDraftStore((state) => state.setDraft);
+  const clearDraft = useEchoDraftStore((state) => state.clearDraft);
+  const lastLinkedGoal = useEchoDraftStore((state) => state.lastLinkedGoal);
+  const setLastLinkedGoal = useEchoDraftStore((state) => state.setLastLinkedGoal);
 
   const [text, setText] = useState('');
-  const [linkedGoal, setLinkedGoal] = useState<{ id: string; title: string } | null>(null);
+  const [linkedGoal, setLinkedGoal] = useState<EchoDraftGoalRef | null>(null);
   const [aiInsightOn, setAiInsightOn] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isComposerFocused, setIsComposerFocused] = useState(false);
+  const [submissionNotice, setSubmissionNotice] = useState<SubmissionNoticeKind | null>(null);
+  const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
+  const currentContextKey = getEchoDraftContextKey(linkedGoal?.id ?? null);
+  const previousContextKeyRef = useRef(currentContextKey);
+  const latestDraftSnapshotRef = useRef({ contextKey: currentContextKey, text: '' });
+  const skipContextPersistRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    latestDraftSnapshotRef.current = { contextKey: currentContextKey, text };
+  }, [currentContextKey, text]);
+
+  useEffect(() => {
+    if (!hasHydrated || hasRestoredDraft) return;
+
+    const initialGoal = lastLinkedGoal;
+    const initialContextKey = getEchoDraftContextKey(initialGoal?.id ?? null);
+    previousContextKeyRef.current = initialContextKey;
+    setLinkedGoal(initialGoal);
+    setText(getDraft(initialContextKey));
+    setHasRestoredDraft(true);
+  }, [getDraft, hasHydrated, hasRestoredDraft, lastLinkedGoal]);
+
+  useEffect(() => {
+    if (!linkedGoal || !pickerGoals.length) return;
+
+    const latestGoal = pickerGoals.find((goal) => goal.id === linkedGoal.id);
+    if (!latestGoal || latestGoal.title === linkedGoal.title) return;
+
+    setLinkedGoal(latestGoal);
+    setLastLinkedGoal(latestGoal);
+  }, [linkedGoal, pickerGoals, setLastLinkedGoal]);
+
+  useEffect(() => {
+    if (!hasHydrated || !hasRestoredDraft) return;
+
+    const previousContextKey = previousContextKeyRef.current;
+    if (previousContextKey === currentContextKey) return;
+
+    if (skipContextPersistRef.current === previousContextKey) {
+      skipContextPersistRef.current = null;
+    } else {
+      setDraft(previousContextKey, latestDraftSnapshotRef.current.text);
+    }
+
+    previousContextKeyRef.current = currentContextKey;
+    setText(getDraft(currentContextKey));
+    setSubmissionNotice(null);
+  }, [currentContextKey, getDraft, hasHydrated, hasRestoredDraft, setDraft]);
+
+  useEffect(() => {
+    if (!hasHydrated || !hasRestoredDraft) return;
+    setLastLinkedGoal(linkedGoal);
+  }, [hasHydrated, hasRestoredDraft, linkedGoal, setLastLinkedGoal]);
+
+  useEffect(() => {
+    if (!hasHydrated || !hasRestoredDraft) return;
+
+    const timeout = setTimeout(() => {
+      setDraft(currentContextKey, text);
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [currentContextKey, hasHydrated, hasRestoredDraft, setDraft, text]);
+
+  useEffect(() => {
+    return () => {
+      const snapshot = latestDraftSnapshotRef.current;
+      setDraft(snapshot.contextKey, snapshot.text);
+    };
+  }, [setDraft]);
+
+  function handleTextChange(value: string) {
+    if (submissionNotice) {
+      setSubmissionNotice(null);
+    }
+    setText(value);
+  }
 
   async function handleSave() {
-    if (!text.trim()) return;
+    const trimmedText = text.trim();
+    if (!trimmedText || isSaving) return;
+
+    const activeContextKey = currentContextKey;
     setIsSaving(true);
-    const aiRequested = FEATURES.INTELLIGENCE_ENABLED ? aiInsightOn : false;
-    await saveEntry(text.trim(), linkedGoal?.id ?? null, aiRequested, null, null);
-    setText('');
-    setLinkedGoal(null);
-    setAiInsightOn(false);
-    setIsSaving(false);
+    setSubmissionNotice(null);
+    try {
+      const aiRequested = FEATURES.INTELLIGENCE_ENABLED ? aiInsightOn : false;
+      const result = await saveEntry(trimmedText, linkedGoal?.id ?? null, aiRequested, null, null);
+
+      if (result.status === 'saved' || result.status === 'saved_without_summary') {
+        skipContextPersistRef.current = activeContextKey;
+        clearDraft(activeContextKey);
+        setText('');
+        setLinkedGoal(null);
+        setAiInsightOn(false);
+        setSubmissionNotice(result.status === 'saved_without_summary' ? 'saved_without_summary' : null);
+      } else {
+        setSubmissionNotice(result.status);
+      }
+    } catch {
+      setSubmissionNotice('unconfirmed');
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   const today = new Date();
   const canSave = text.trim().length > 0 && !isSaving;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F1EA' }}>
+    <SafeAreaView className="flex-1 bg-[#F5F1EA]">
       <ScrollView
-        style={{ flex: 1 }}
+        className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40, paddingTop: 16 }}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={{ marginBottom: 24 }}>
-          <Text style={{ fontFamily: 'Inter', fontSize: 24, fontWeight: '800', color: COLORS.text }}>Echo</Text>
-          <Text style={{ marginTop: 2, fontFamily: 'Inter', fontSize: 13, color: COLORS.muted }}>
+        <View className="mb-6">
+          <Text className="font-sans text-2xl font-extrabold text-[#1C1C1E]">Echo</Text>
+          <Text className="mt-0.5 font-sans text-sm text-[#6B7280]">
             {formatHeaderDate(today)}
           </Text>
         </View>
 
-        {/* Composer */}
         <View
-          style={{
-            marginBottom: 24,
-            borderRadius: 12,
-            backgroundColor: COLORS.card,
-            padding: 16,
-            borderWidth: 1,
-            borderColor: isComposerFocused ? COLORS.accent : COLORS.border,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.06,
-            shadowRadius: 12,
-            elevation: 2,
-          }}
+          className={`mb-6 rounded-xl border bg-white p-4 shadow-sm ${
+            isComposerFocused ? 'border-[#3D5247]' : 'border-[#D8D2C8]'
+          }`}
         >
           <SectionLabel>Reflection</SectionLabel>
           <TextInput
-            style={{
-              minHeight: 100,
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: isComposerFocused ? COLORS.accent : COLORS.border,
-              backgroundColor: COLORS.card,
-              paddingHorizontal: 14,
-              paddingVertical: 12,
-              fontFamily: 'Inter',
-              fontSize: 15,
-              lineHeight: 22,
-              color: COLORS.text,
-            }}
+            className={`min-h-[100px] rounded-xl border bg-white px-3.5 py-3 font-sans text-base text-[#1C1C1E] ${
+              isComposerFocused ? 'border-[#3D5247]' : 'border-[#D8D2C8]'
+            }`}
             placeholder="What's on your mind?"
-            placeholderTextColor={COLORS.muted}
+            placeholderTextColor="#6B7280"
             multiline
             value={text}
-            onChangeText={setText}
+            onChangeText={handleTextChange}
             onFocus={() => setIsComposerFocused(true)}
             onBlur={() => setIsComposerFocused(false)}
+            textAlignVertical="top"
           />
 
-          <View style={{ marginTop: 14, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+          <View className="mt-3.5 flex-row flex-wrap items-center gap-2">
             {linkedGoal ? (
               <TouchableOpacity
                 onPress={() => setLinkedGoal(null)}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 6,
-                  borderRadius: 999,
-                  backgroundColor: COLORS.badgeBackground,
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                }}
+                className="flex-row items-center gap-1.5 rounded-full bg-[#EEF2EF] px-3 py-1.5"
                 activeOpacity={0.7}
               >
-                <Text style={{ fontFamily: 'Inter', fontSize: 12, color: COLORS.accent }}>{linkedGoal.title}</Text>
-                <Text style={{ fontFamily: 'Inter', fontSize: 14, lineHeight: 16, color: COLORS.accent }}>×</Text>
+                <Text className="font-sans text-xs text-[#3D5247]">{linkedGoal.title}</Text>
+                <Text className="font-sans text-sm leading-4 text-[#3D5247]">×</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
                 onPress={() => setPickerVisible(true)}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  borderRadius: 999,
-                  borderWidth: 1,
-                  borderColor: COLORS.border,
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                }}
+                className="flex-row items-center rounded-full border border-[#D8D2C8] px-3 py-1.5"
                 activeOpacity={0.7}
               >
-                <Text style={{ fontFamily: 'Inter', fontSize: 12, color: COLORS.muted }}>+ Link goal</Text>
+                <Text className="font-sans text-xs text-[#6B7280]">+ Link goal</Text>
               </TouchableOpacity>
             )}
 
             <TouchableOpacity
               onPress={() => setAiInsightOn((value) => !value)}
-              style={{
-                borderRadius: 999,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                backgroundColor: aiInsightOn ? COLORS.accent : COLORS.background,
-              }}
+              className={`rounded-full px-3 py-1.5 ${
+                aiInsightOn ? 'bg-[#3D5247]' : 'bg-[#F5F1EA]'
+              }`}
               activeOpacity={0.7}
             >
-              <Text style={{ fontFamily: 'Inter', fontSize: 12, color: aiInsightOn ? '#FFFFFF' : COLORS.muted }}>
+              <Text className={`font-sans text-xs ${aiInsightOn ? 'text-white' : 'text-[#6B7280]'}`}>
                 AI insight
               </Text>
             </TouchableOpacity>
           </View>
 
           {aiInsightOn ? (
-            <Text style={{ marginTop: 8, fontFamily: 'Inter', fontSize: 11, color: COLORS.muted }}>
+            <Text className="mt-2 font-sans text-[11px] text-[#6B7280]">
               Ohara AI will reflect on this entry
             </Text>
           ) : null}
 
+          {submissionNotice ? <ComposerNotice kind={submissionNotice} /> : null}
+
           <TouchableOpacity
             onPress={handleSave}
             disabled={!canSave}
-            style={{
-              marginTop: 16,
-              alignItems: 'center',
-              borderRadius: 12,
-              paddingVertical: 12,
-              backgroundColor: canSave ? COLORS.accent : COLORS.border,
-            }}
+            className={`mt-4 items-center rounded-xl py-3 ${
+              canSave ? 'bg-[#3D5247]' : 'bg-[#D8D2C8]'
+            }`}
             activeOpacity={0.8}
           >
-            <Text
-              style={{
-                fontFamily: 'Inter',
-                fontSize: 14,
-                fontWeight: '600',
-                color: canSave ? '#FFFFFF' : COLORS.muted,
-              }}
-            >
+            <Text className={`font-sans text-sm font-semibold ${canSave ? 'text-white' : 'text-[#6B7280]'}`}>
               {isSaving ? 'Saving...' : 'Save Entry'}
             </Text>
           </TouchableOpacity>
@@ -343,7 +363,7 @@ export function EchoScreen() {
         {isLoading ? (
           <EchoLoadingState />
         ) : entries.length === 0 ? (
-          <View style={{ paddingTop: 8 }}>
+          <View className="pt-2">
             <EmptyStateCard
               title="No Echo entries yet."
               description="Write your first reflection above to start building your Echo."
@@ -363,45 +383,16 @@ export function EchoScreen() {
         onRequestClose={() => setPickerVisible(false)}
       >
         <Pressable
-          style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}
+          className="flex-1 justify-end bg-black/40"
           onPress={() => setPickerVisible(false)}
         >
           <Pressable
-              style={{
-                maxHeight: '60%',
-                borderTopLeftRadius: 16,
-                borderTopRightRadius: 16,
-                borderTopWidth: 1,
-                borderTopColor: COLORS.border,
-                backgroundColor: COLORS.card,
-                paddingBottom: 40,
-                paddingTop: 12,
-              }}
+            className="max-h-[60%] rounded-t-2xl border-t border-[#D8D2C8] bg-white pb-10 pt-3"
           >
-            <View
-              style={{
-                height: 4,
-                width: 36,
-                alignSelf: 'center',
-                borderRadius: 999,
-                backgroundColor: COLORS.border,
-                marginBottom: 16,
-              }}
-            />
-            <Text
-              style={{
-                marginBottom: 12,
-                paddingHorizontal: 20,
-                fontFamily: 'Inter',
-                fontSize: 16,
-                fontWeight: '700',
-                color: COLORS.text,
-              }}
-            >
-              Link a goal
-            </Text>
+            <View className="mb-4 h-1 w-9 self-center rounded-full bg-[#D8D2C8]" />
+            <Text className="mb-3 px-5 font-sans text-base font-bold text-[#1C1C1E]">Link a goal</Text>
             {pickerGoals.length === 0 ? (
-              <Text style={{ paddingHorizontal: 20, fontFamily: 'Inter', fontSize: 14, color: COLORS.muted }}>
+              <Text className="px-5 font-sans text-sm text-[#6B7280]">
                 No active goals found.
               </Text>
             ) : (
@@ -414,15 +405,10 @@ export function EchoScreen() {
                       setLinkedGoal(item);
                       setPickerVisible(false);
                     }}
-                    style={{
-                      borderBottomWidth: 1,
-                      borderBottomColor: COLORS.border,
-                      paddingHorizontal: 20,
-                      paddingVertical: 14,
-                    }}
+                    className="border-b border-[#D8D2C8] px-5 py-3.5"
                     activeOpacity={0.7}
                   >
-                    <Text style={{ fontFamily: 'Inter', fontSize: 15, color: COLORS.text }}>{item.title}</Text>
+                    <Text className="font-sans text-base text-[#1C1C1E]">{item.title}</Text>
                   </TouchableOpacity>
                 )}
               />
