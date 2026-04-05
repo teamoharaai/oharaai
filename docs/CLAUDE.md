@@ -2,6 +2,10 @@
 
 > Single source of truth for Claude Code sessions. Last updated: 2026-03-29
 
+## Known Patches
+
+- **zustand 5.0.12** — `patches/zustand+5.0.12.patch` fixes `import.meta.env` in the ESM middleware build (`esm/middleware.mjs`). Metro resolves `zustand/middleware` to the ESM build, which uses a Vite-specific `import.meta.env?.MODE` idiom that crashes in non-module script contexts. Patch replaces both occurrences with `process.env.NODE_ENV`. The `"postinstall": "patch-package"` script in `package.json` re-applies the patch on every `npm install` and Vercel deploy. If Zustand is upgraded, re-verify `esm/middleware.mjs` and re-run `npx patch-package zustand`.
+
 ## Security & infrastructure (2026-03-29)
 
 - [x] Auth callback verified: `vercel.json` created with catch-all rewrite to `/` (NOT `/index.html` — app.json uses `"output": "server"`, so SSR handles routing). `callback.tsx` correctly implements PKCE flow. `(auth)/_layout.tsx` has no auth guard so callback is freely accessible.
