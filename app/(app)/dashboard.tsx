@@ -7,6 +7,9 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useLatestAction } from '@/features/actions/hooks/useLatestAction';
 import { useEntries } from '@/features/echo/hooks/useEntries';
 import { useProfileStore } from '@/features/profile/store';
+import { useProjectStore } from '@/features/projects/store';
+import { GoalGrid } from '@/features/goals/components/GoalGrid';
+import { ProjectCard } from '@/features/projects/components/ProjectCard';
 import { FEATURES } from '@/constants/features';
 import supabase from '@/lib/db/client';
 import type { AiResponse } from '@/lib/ai/contracts';
@@ -324,7 +327,13 @@ type IntelligenceData = {
 export default function DashboardScreen() {
   const { goals, isLoading: goalsLoading } = useGoals();
   const { user } = useAuth();
+  const { projects, isLoading: projectsLoading, loadProjects } = useProjectStore();
   const { entries, isLoading: echoLoading } = useEntries();
+
+  useEffect(() => {
+    loadProjects();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const {
     cachedInsight,
     insightFetched,
@@ -386,6 +395,21 @@ export default function DashboardScreen() {
     [goals],
   );
 
+  const standaloneGoals = useMemo(
+    () => goals.filter((g) => g.projectId === null),
+    [goals],
+  );
+
+  const newestId = useMemo(
+    () =>
+      goals.length > 0
+        ? [...goals].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0]?.id
+        : undefined,
+    [goals],
+  );
+
+  const hasProjects = projects.length > 0;
+
   const latestEntry = entries[0] ?? null;
 
   const displayName = displayNameFromEmail(user?.email);
@@ -421,7 +445,7 @@ export default function DashboardScreen() {
           </Pressable>
         </View>
 
-        {goalsLoading ? (
+        {goalsLoading || projectsLoading ? (
           <DashboardSkeleton />
         ) : (
           <View className="gap-3">
@@ -432,7 +456,37 @@ export default function DashboardScreen() {
               <NoActiveGoalCard />
             )}
 
-            {/* Zone 2: Echo */}
+            {/* Zone 2: Projects */}
+            <View>
+              <View className="mb-4 flex-row items-center justify-between">
+                <Text className="font-sans text-[11px] font-medium uppercase tracking-[1.5px] text-[#6B7B6E]">
+                  Projects
+                </Text>
+                <Pressable onPress={() => router.push('/projects/create')}>
+                  <Text className="text-[20px] leading-6 text-[#4A7C5F]">+</Text>
+                </Pressable>
+              </View>
+              {hasProjects && projects.map((project) => (
+                <ProjectCard key={project.id} project={project} />
+              ))}
+            </View>
+
+            {/* Zone 3: All Goals */}
+            {standaloneGoals.length > 0 && (
+              <View>
+                <View className="mb-4 flex-row items-center justify-between">
+                  <Text className="font-sans text-[11px] font-medium uppercase tracking-[1.5px] text-[#6B7B6E]">
+                    Goals
+                  </Text>
+                  <Pressable onPress={() => router.push('/goals/create')}>
+                    <Text className="text-[20px] leading-6 text-[#4A7C5F]">+</Text>
+                  </Pressable>
+                </View>
+                <GoalGrid goals={standaloneGoals} newestId={newestId} />
+              </View>
+            )}
+
+            {/* Zone 4: Echo */}
             {FEATURES.ECHO_ENABLED ? (
               <EchoZone
                 latestEntryContent={latestEntry?.content ?? null}
@@ -441,7 +495,7 @@ export default function DashboardScreen() {
               />
             ) : null}
 
-            {/* Zone 3: Intelligence */}
+            {/* Zone 5: Intelligence */}
             <IntelligenceZone
               insight={cachedInsight}
               isLoading={insightLoading}

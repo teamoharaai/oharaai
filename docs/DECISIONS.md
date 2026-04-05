@@ -83,4 +83,10 @@ Implementation notes:
 - Link between thorn reflection and derived goal stored via goal metadata
 - Phase 2 only - requires Discovery feature and pattern analysis layer
 
+## April 5th, 2026
 Intelligence zone is gated behind both FEATURES.INTELLIGENCE_ENABLED and a non-empty character_profile. Currently dormant — will activate automatically once the summarizer pipeline is enabled and has run at least once per user.
+
+Rate limit is 30 AI calls/day/user, enforced atomically at callLLM via consume_daily_ai_quota(). UTC date bucket. Retries count against quota. Limit was chosen for Phase 1 pilot; revisit before broader rollout.
+The Echo failure shape is worth a comment in the code:
+
+ok: true with { reflection: null, summarized: false } is intentional — entry is persisted before the AI call, so generation failure is not an application error.
