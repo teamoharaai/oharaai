@@ -60,6 +60,10 @@
 **Reason:** Deploying to Vercel first, desktop is primary surface. Flexbox-based layout translates to native ScrollView later.
 **Impact:** No CSS Grid for component internals. Grid only acceptable for dashboard card layout on web.
 
+### 2026-04-05 — action_logs.due_date is client-generated
+
+**Decision:** `due_date` in `action_logs` is set by the client (`new Date().toISOString().split('T')[0]`). Timezone offset is a known issue — a user in UTC-8 at 11pm will get tomorrow's date. Acceptable for pilot. Revisit before action completion UI ships.
+
 ## Thorn -> Goal Suggestion Loop (Phase 2)
 
 When a user's Echo reflection contains a thorn element, Ohara will surface a
