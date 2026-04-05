@@ -7,6 +7,7 @@ import { MeasurablesPanel } from '@/features/goals/components/MeasurablesPanel';
 import { ActivityFeed } from '@/features/goals/components/ActivityFeed';
 import { AffiliateTeaser } from '@/components/AffiliateTeaser';
 import { useActivity } from '@/features/goals/hooks/useActivity';
+import { NextActionSection } from '@/features/actions/components/NextActionSection';
 
 function GoalDetailLoadingState() {
   return (
@@ -107,6 +108,7 @@ export default function GoalDetailScreen() {
   const mainWorkspace = (
     <>
       <GoalDetailHeader goal={goal} />
+      <NextActionSection goalId={goalId} />
       <MeasurablesPanel
         measurables={goal.measurables}
         accentColor={theme.accent}
