@@ -32,6 +32,7 @@ export default function AppLayout() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="dashboard" />
             <Stack.Screen name="echo" />
+            <Stack.Screen name="constellation" />
             <Stack.Screen name="explore" />
           </Stack>
         </View>
@@ -48,7 +49,7 @@ export default function AppLayout() {
           borderTopColor: 'rgba(0,0,0,0.06)',
           borderTopWidth: 0.5,
         },
-        tabBarActiveTintColor: '#4A7C5F',
+        tabBarActiveTintColor: '#3D5247',
         tabBarInactiveTintColor: '#9CAF9F',
         tabBarLabelStyle: {
           fontSize: 11,
@@ -75,6 +76,18 @@ export default function AppLayout() {
           }}
         />
       ) : null}
+      <Tabs.Screen
+        name="constellation"
+        options={
+          FEATURES.CONSTELLATION_ENABLED
+            ? {
+                title: 'Constellation',
+                tabBarIcon: ({ focused }) => <TabIcon label="✧" focused={focused} />,
+                tabBarBadgeStyle: badgeStyle,
+              }
+            : { href: null }
+        }
+      />
       {FEATURES.DISCOVERY_ENABLED ? (
         <Tabs.Screen
           name="explore"

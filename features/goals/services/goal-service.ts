@@ -139,7 +139,122 @@ function mapGoal(row: DbGoal): GoalWithMeasurables {
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
     measurables: (row.measurables ?? []).map(mapMeasurable),
+    vaultItemCount: 0,
+    echoLinkCount: 0,
+    latestBrtTags: null,
   };
+}
+
+// Local DB shape for BRT — avoids cross-feature import
+type DbBrtValue = { bud?: string[]; rose?: string[]; thorn?: string[] } | null;
+
+// UI heuristic: compress multi-dimensional BRT into single tag
+// Priority: bud → rose → thorn
+// Temporary — Phase 2 may replace with richer signal model
+function deriveBrtTag(brt: DbBrtValue): 'bud' | 'rose' | 'thorn' | null {
+  if (!brt) return null;
+  if (brt.bud && brt.bud.length > 0) return 'bud';
+  if (brt.rose && brt.rose.length > 0) return 'rose';
+  if (brt.thorn && brt.thorn.length > 0) return 'thorn';
+  return null;
+}
+
+/**
+ * Fetches per-goal activity signals in bulk (no N+1).
+ * Returns maps: goalId → vaultItemCount, echoLinkCount, latestBrtTags.
+ */
+async function fetchGoalSignals(
+  goalIds: string[],
+  userId: string,
+): Promise<{
+  vaultItemCountMap: Map<string, number>;
+  echoLinkCountMap: Map<string, number>;
+  latestBrtTagsMap: Map<string, string[]>;
+}> {
+  const vaultItemCountMap = new Map<string, number>();
+  const echoLinkCountMap = new Map<string, number>();
+  const latestBrtTagsMap = new Map<string, string[]>();
+
+  try {
+    // 1. Vaults → vault IDs keyed by goal_id
+    const { data: vaultRows } = await supabase
+      .from('vaults')
+      .select('id, goal_id')
+      .in('goal_id', goalIds)
+      .eq('user_id', userId);
+
+    const vaultGoalMap = new Map<string, string>(); // vaultId → goalId
+    const vaultIds: string[] = [];
+    for (const v of (vaultRows as Array<{ id: string; goal_id: string }> ?? [])) {
+      vaultGoalMap.set(v.id, v.goal_id);
+      vaultIds.push(v.id);
+    }
+
+    // 2. Vault items count per vault
+    if (vaultIds.length > 0) {
+      const { data: itemRows } = await supabase
+        .from('vault_items')
+        .select('vault_id')
+        .in('vault_id', vaultIds);
+
+      for (const item of (itemRows as Array<{ vault_id: string }> ?? [])) {
+        const goalId = vaultGoalMap.get(item.vault_id);
+        if (goalId) {
+          vaultItemCountMap.set(goalId, (vaultItemCountMap.get(goalId) ?? 0) + 1);
+        }
+      }
+    }
+
+    // 3. Echo-goal links — count + collect entry IDs
+    const { data: linkRows } = await supabase
+      .from('echo_goal_links')
+      .select('goal_id, echo_entry_id')
+      .in('goal_id', goalIds);
+
+    const goalEntryMap = new Map<string, string[]>(); // goalId → [entryId, ...]
+    const allEntryIds: string[] = [];
+
+    for (const link of (linkRows as Array<{ goal_id: string; echo_entry_id: string }> ?? [])) {
+      echoLinkCountMap.set(link.goal_id, (echoLinkCountMap.get(link.goal_id) ?? 0) + 1);
+      const existing = goalEntryMap.get(link.goal_id) ?? [];
+      existing.push(link.echo_entry_id);
+      goalEntryMap.set(link.goal_id, existing);
+      allEntryIds.push(link.echo_entry_id);
+    }
+
+    // 4. Echo entries — fetch brt + created_at for BRT dot derivation
+    if (allEntryIds.length > 0) {
+      const { data: entryRows } = await supabase
+        .from('echo_entries')
+        .select('id, brt, created_at')
+        .in('id', allEntryIds)
+        .not('brt', 'is', null);
+
+      const entryById = new Map<string, { brt: DbBrtValue; created_at: string }>();
+      for (const e of (entryRows as Array<{ id: string; brt: DbBrtValue; created_at: string }> ?? [])) {
+        entryById.set(e.id, { brt: e.brt, created_at: e.created_at });
+      }
+
+      for (const [goalId, entryIds] of goalEntryMap.entries()) {
+        const tagged: Array<{ tag: string; created_at: string }> = [];
+
+        for (const entryId of entryIds) {
+          const entry = entryById.get(entryId);
+          if (!entry?.brt) continue;
+          const tag = deriveBrtTag(entry.brt);
+          if (tag) tagged.push({ tag, created_at: entry.created_at });
+        }
+
+        tagged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        const tags = tagged.slice(0, 3).map((t) => t.tag);
+        if (tags.length > 0) latestBrtTagsMap.set(goalId, tags);
+      }
+    }
+  } catch {
+    // Signal fetch failure must not block goal list — fallback to empty maps
+  }
+
+  return { vaultItemCountMap, echoLinkCountMap, latestBrtTagsMap };
 }
 
 const GOAL_SELECT = `
@@ -159,7 +274,22 @@ export async function fetchGoals(userId: string): Promise<GoalWithMeasurables[]>
     .order('created_at', { ascending: false });
 
   if (error || !data) return [];
-  return (data as unknown as DbGoal[]).map(mapGoal);
+  const goals = (data as unknown as DbGoal[]).map(mapGoal);
+
+  if (goals.length === 0) return goals;
+
+  const goalIds = goals.map((g) => g.id);
+  const { vaultItemCountMap, echoLinkCountMap, latestBrtTagsMap } = await fetchGoalSignals(
+    goalIds,
+    userId,
+  );
+
+  return goals.map((goal) => ({
+    ...goal,
+    vaultItemCount: vaultItemCountMap.get(goal.id) ?? 0,
+    echoLinkCount: echoLinkCountMap.get(goal.id) ?? 0,
+    latestBrtTags: latestBrtTagsMap.get(goal.id) ?? null,
+  }));
 }
 
 export async function fetchGoalById(goalId: string): Promise<GoalWithMeasurables | null> {

@@ -22,6 +22,9 @@ export const MOCK_GOALS: GoalWithMeasurables[] = [
       { id: 'm2', goalId: '1', title: 'Drink 3L water daily', type: 'habit', targetValue: 3, targetUnit: 'liters', frequency: 'daily', currentValue: 1, isAiSuggested: true, sortOrder: 1, createdAt: new Date(), updatedAt: new Date() },
       { id: 'm3', goalId: '1', title: 'Journal run reflections', type: 'checklist', targetValue: null, targetUnit: null, frequency: 'weekly', currentValue: 0, isAiSuggested: false, sortOrder: 2, createdAt: new Date(), updatedAt: new Date() },
     ],
+    vaultItemCount: 0,
+    echoLinkCount: 0,
+    latestBrtTags: null,
   },
   {
     id: '2',
@@ -43,6 +46,9 @@ export const MOCK_GOALS: GoalWithMeasurables[] = [
       { id: 'm4', goalId: '2', title: 'Duolingo sessions', type: 'counter', targetValue: 7, targetUnit: 'sessions', frequency: 'weekly', currentValue: 3, isAiSuggested: true, sortOrder: 0, createdAt: new Date(), updatedAt: new Date() },
       { id: 'm5', goalId: '2', title: 'Watch Spanish media', type: 'habit', targetValue: null, targetUnit: null, frequency: 'daily', currentValue: 0, isAiSuggested: false, sortOrder: 1, createdAt: new Date(), updatedAt: new Date() },
     ],
+    vaultItemCount: 0,
+    echoLinkCount: 0,
+    latestBrtTags: null,
   },
   {
     id: '3',
@@ -64,6 +70,9 @@ export const MOCK_GOALS: GoalWithMeasurables[] = [
       { id: 'm6', goalId: '3', title: 'Features shipped', type: 'counter', targetValue: 12, targetUnit: 'features', frequency: 'once', currentValue: 5, isAiSuggested: false, sortOrder: 0, createdAt: new Date(), updatedAt: new Date() },
       { id: 'm7', goalId: '3', title: 'Daily coding session', type: 'habit', targetValue: null, targetUnit: null, frequency: 'daily', currentValue: 1, isAiSuggested: false, sortOrder: 1, createdAt: new Date(), updatedAt: new Date() },
     ],
+    vaultItemCount: 0,
+    echoLinkCount: 0,
+    latestBrtTags: null,
   },
   {
     id: '4',
@@ -84,6 +93,9 @@ export const MOCK_GOALS: GoalWithMeasurables[] = [
     measurables: [
       { id: 'm8', goalId: '4', title: 'Books completed', type: 'counter', targetValue: 24, targetUnit: 'books', frequency: 'once', currentValue: 5, isAiSuggested: false, sortOrder: 0, createdAt: new Date(), updatedAt: new Date() },
     ],
+    vaultItemCount: 0,
+    echoLinkCount: 0,
+    latestBrtTags: null,
   },
   {
     id: '5',
@@ -105,6 +117,9 @@ export const MOCK_GOALS: GoalWithMeasurables[] = [
       { id: 'm9', goalId: '5', title: 'Amount saved', type: 'counter', targetValue: 5000, targetUnit: 'dollars', frequency: 'once', currentValue: 3000, isAiSuggested: false, sortOrder: 0, createdAt: new Date(), updatedAt: new Date() },
       { id: 'm10', goalId: '5', title: 'Review budget weekly', type: 'habit', targetValue: null, targetUnit: null, frequency: 'weekly', currentValue: 1, isAiSuggested: true, sortOrder: 1, createdAt: new Date(), updatedAt: new Date() },
     ],
+    vaultItemCount: 0,
+    echoLinkCount: 0,
+    latestBrtTags: null,
   },
 ];
 

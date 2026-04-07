@@ -4,6 +4,7 @@ export const FEATURES = {
   ECHO_ENABLED: true,
   INTELLIGENCE_ENABLED: false,
   DISCOVERY_ENABLED: false,
+  CONSTELLATION_ENABLED: false,
   SOCIAL_ENABLED: false,
   COLLAGE_ENABLED: false,
 } as const;

@@ -189,6 +189,89 @@ export async function createEntry(params: {
 
   const insertedEntry = mapEntry(data as unknown as DbEchoEntry);
 
+  // STEP 2 — Manual goal linking (non-blocking)
+  // Fires only when a goalId was explicitly provided. Must never block the response.
+  if (params.goalId) {
+    void (async () => {
+      try {
+        await supabase
+          .from('echo_goal_links')
+          .upsert(
+            {
+              echo_entry_id: insertedEntry.id,
+              goal_id: params.goalId,
+              link_source: 'manual',
+              confirmed: true,
+            },
+            { onConflict: 'echo_entry_id,goal_id', ignoreDuplicates: true },
+          );
+      } catch (err) {
+        console.error('[echo-goal-links] manual insert failed:', err);
+      }
+    })();
+  }
+
+  // STEP 3 — AI auto-linking (keyword match, non-blocking)
+  // Fires only when no goalId was provided. No AI calls — keyword heuristic only.
+  // Phase 2: swap this IIFE body for an AI-backed classifier.
+  if (!params.goalId) {
+    const echoContent = params.content;
+    const userId = params.userId;
+    const echoEntryId = insertedEntry.id;
+
+    void (async () => {
+      try {
+        const { data: goals } = await supabase
+          .from('goals')
+          .select('id, title')
+          .eq('user_id', userId)
+          .eq('status', 'active');
+
+        if (!goals?.length) return;
+
+        const contentLower = echoContent.toLowerCase();
+
+        const STOP_WORDS = new Set([
+          'this', 'that', 'with', 'have', 'will', 'from', 'they', 'been', 'were',
+        ]);
+
+        let bestMatch: { goalId: string; score: number } | null = null;
+
+        for (const goal of goals) {
+          const words = goal.title
+            .toLowerCase()
+            .split(/\s+/)
+            .filter((w: string) => w.length >= 4 && !STOP_WORDS.has(w));
+
+          if (!words.length) continue;
+
+          const matchCount = words.filter((w: string) => contentLower.includes(w)).length;
+          const score = matchCount / words.length;
+
+          if (score > 0.7 && (!bestMatch || score > bestMatch.score)) {
+            bestMatch = { goalId: goal.id, score };
+          }
+        }
+
+        if (bestMatch) {
+          await supabase
+            .from('echo_goal_links')
+            .upsert(
+              {
+                echo_entry_id: echoEntryId,
+                goal_id: bestMatch.goalId,
+                link_source: 'ai_auto',
+                confirmed: false,
+              },
+              { onConflict: 'echo_entry_id,goal_id', ignoreDuplicates: true },
+            );
+        }
+      } catch (err) {
+        console.error('[echo-goal-links] ai_auto failed:', err);
+      }
+    })();
+  }
+
   if (!params.aiInsightRequested) {
     return { status: 'saved', entry: insertedEntry };
   }

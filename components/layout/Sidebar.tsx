@@ -11,9 +11,10 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Goals',   href: '/(app)/dashboard', match: '/dashboard', enabled: true },
-  { label: 'Echo', href: '/(app)/echo',   match: '/echo',   enabled: FEATURES.ECHO_ENABLED },
-  { label: 'Explore', href: '/(app)/explore',   match: '/explore',   enabled: FEATURES.DISCOVERY_ENABLED },
+  { label: 'Goals',         href: '/(app)/dashboard',     match: '/dashboard',     enabled: true },
+  { label: 'Echo',          href: '/(app)/echo',          match: '/echo',          enabled: FEATURES.ECHO_ENABLED },
+  { label: 'Constellation', href: '/(app)/constellation', match: '/constellation', enabled: FEATURES.CONSTELLATION_ENABLED },
+  { label: 'Explore',       href: '/(app)/explore',       match: '/explore',       enabled: FEATURES.DISCOVERY_ENABLED },
 ];
 
 export function Sidebar() {

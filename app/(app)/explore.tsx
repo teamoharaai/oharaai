@@ -1,25 +1,34 @@
-import { View, Text, TouchableOpacity } from 'react-native';
-import { router } from 'expo-router';
-import supabase from '@/lib/db/client';
+import { View, Text, SafeAreaView } from 'react-native';
 
 export default function ExploreScreen() {
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    router.replace('/(auth)/login');
-  }
-
   return (
-    <View className="flex-1 bg-cream items-center justify-center px-6">
-      <Text className="text-2xl font-bold text-near-black mb-2">Explore</Text>
-      <Text className="text-base text-muted text-center mb-12">
-        Explore coming soon.
-      </Text>
-      <TouchableOpacity
-        className="bg-near-black rounded-full px-8 py-3"
-        onPress={handleLogout}
-      >
-        <Text className="text-base text-cream font-medium">Log out</Text>
-      </TouchableOpacity>
-    </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F1EA' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 }}>
+        <Text
+          style={{
+            fontFamily: 'Inter',
+            fontSize: 22,
+            fontWeight: '600',
+            color: '#1A1F1C',
+            textAlign: 'center',
+            marginBottom: 12,
+          }}
+        >
+          Explore is coming
+        </Text>
+        <Text
+          style={{
+            fontFamily: 'Inter',
+            fontSize: 14,
+            lineHeight: 21,
+            color: '#6B7280',
+            textAlign: 'center',
+            maxWidth: 280,
+          }}
+        >
+          Discover goals, patterns, and insights from the Ohara community. Launching in a future phase.
+        </Text>
+      </View>
+    </SafeAreaView>
   );
 }

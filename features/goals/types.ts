@@ -55,6 +55,9 @@ export interface MeasurableLog {
 
 export interface GoalWithMeasurables extends Goal {
   measurables: Measurable[];
+  vaultItemCount: number;
+  echoLinkCount: number;
+  latestBrtTags: string[] | null;
 }
 
 export interface MeasurableInput {

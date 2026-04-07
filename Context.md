@@ -63,6 +63,10 @@ Theme: cream #F5F1EA, white cards, forest green #3D5247, Inter + Lora
 - spaces.owner_id is the owner column (renamed from user_id in migration 022); space_members.user_id is unchanged
 - Next migration number: 023
 
+## Signal Layer Notes
+- `latestBrtTags` on `GoalWithMeasurables` is derived via `deriveBrtTag()` in `features/goals/services/goal-service.ts`. Heuristic: bud → rose → thorn priority, max 3 tags, sorted by echo entry created_at desc. Phase 2 may replace with a dedicated `brt_tag` column.
+- **Tracked debt**: `vaultNoteCount` should be renamed to `vaultItemCount` before Phase 1.5, when document/link vault items ship and the "note" framing becomes inaccurate. Affects: `features/goals/types.ts`, `features/goals/services/goal-service.ts`, `features/goals/components/GoalCard.tsx`, `features/goals/services/mock-data.ts`.
+
 ## Outstanding (Phase 1)
 - Dashboard redesign: Echo entry point, Ohara voice/Guide presence, badge fix
 - Goal creation UI redesign: chat interface, mode selector

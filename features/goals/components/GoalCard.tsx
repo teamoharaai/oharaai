@@ -117,6 +117,20 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
           />
         </View>
 
+        {/* Activity line — fixed-height wrapper prevents layout shift when signals are absent */}
+        <View style={{ minHeight: 20, justifyContent: 'center', marginTop: 4, marginBottom: 4 }}>
+          {(goal.vaultItemCount > 0 || goal.echoLinkCount > 0) && (
+            <Text style={{ fontSize: 12, color: '#6B7280' }}>
+              {[
+                goal.vaultItemCount > 0 ? `${goal.vaultItemCount} item${goal.vaultItemCount !== 1 ? 's' : ''}` : null,
+                goal.echoLinkCount > 0 ? `${goal.echoLinkCount} reflection${goal.echoLinkCount !== 1 ? 's' : ''}` : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </Text>
+          )}
+        </View>
+
         {/* Footer row */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="caption">{goal.progress}% complete</Typography>
@@ -128,15 +142,36 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
               {days > 0 ? `${days}d left` : 'Overdue'}
             </Typography>
           )}
-          <View onStartShouldSetResponder={() => true}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Open options for ${goal.title}`}
-              hitSlop={8}
-              onPress={() => setMenuOpen(true)}
-            >
-              <Typography variant="caption" style={{ fontSize: 18, lineHeight: 20, color: '#9CAF9F' }}>⋯</Typography>
-            </Pressable>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            {/* BRT micro-dots */}
+            {goal.latestBrtTags && goal.latestBrtTags.length > 0 && (
+              <View style={{ flexDirection: 'row', alignSelf: 'flex-end', gap: 3 }}>
+                {goal.latestBrtTags.map((tag, i) => (
+                  <View
+                    key={i}
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: 3,
+                      backgroundColor:
+                        tag === 'bud' ? '#4A7C5F' :
+                        tag === 'rose' ? '#F59E0B' :
+                        '#EF4444',
+                    }}
+                  />
+                ))}
+              </View>
+            )}
+            <View onStartShouldSetResponder={() => true}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Open options for ${goal.title}`}
+                hitSlop={8}
+                onPress={() => setMenuOpen(true)}
+              >
+                <Typography variant="caption" style={{ fontSize: 18, lineHeight: 20, color: '#9CAF9F' }}>⋯</Typography>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Pressable>

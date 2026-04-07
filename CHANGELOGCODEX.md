@@ -2,6 +2,39 @@
 
 ## [Unreleased]
 
+### Changed (2026-04-07)
+- Renamed goal signal field `vaultNoteCount` to `vaultItemCount` in the goal type, goal service, goal card, and goal mock data; updated the GoalCard label from notes to items with no logic changes.
+
+### Added (2026-04-07 — Prompt 9C: Signal Refinement + BRT Centralization)
+- Extracted inline BRT derivation logic from `fetchGoalSignals()` into a named helper `deriveBrtTag(brt: DbBrtValue): 'bud' | 'rose' | 'thorn' | null` in `features/goals/services/goal-service.ts`. Annotated with heuristic comment and Phase 2 migration note. No behavior change.
+- Fixed GoalCard layout shift: wrapped conditional activity line (`{n} notes · {n} reflections`) in a fixed `minHeight: 20` View so card height is stable whether signals are present or not.
+- Confirmed Constellation screen uses API route (`/api/dashboard/summary`) for counts — `supabase` import is auth-token-only (no direct data reads). No logic changes.
+- Renamed `{/* Progress section */}` comment to `{/* Progress gates */}` for clarity.
+- `tsc --noEmit`: clean.
+- Updated `CONTEXT.md`: added Signal Layer Notes section documenting `deriveBrtTag()` location and `vaultNoteCount → vaultItemCount` rename as tracked Phase 1.5 debt.
+
+### ✓ Prompt 9 Complete (9A + 9B + 9C)
+- 9A: Echo → Goal auto-linking (keyword heuristic, `echo_goal_links`, non-blocking IIFE)
+- 9B: Goal signal enrichment (vaultNoteCount, echoLinkCount, latestBrtTags), GoalCard micro-dots, Constellation screen, dashboard summary API
+- 9C: BRT helper centralization, GoalCard layout-shift fix, signal layer documentation
+
+### Added (2026-04-07 — Prompt 9B: Goal Signal Enrichment + Constellation Screen)
+- Extended `GoalWithMeasurables` in `features/goals/types.ts` with three signal fields: `vaultNoteCount: number`, `echoLinkCount: number`, `latestBrtTags: string[] | null`.
+- Added `fetchGoalSignals()` helper in `features/goals/services/goal-service.ts` that fetches per-goal vault note counts, echo link counts, and latest BRT tags in 4 bulk queries (no N+1). BRT tag derived from `echo_entries.brt` JSONB object (bud → rose → thorn priority). Signal fetch failures are caught and silently ignored so goal list is never blocked.
+- Updated `fetchGoals()` in `goal-service.ts` to call `fetchGoalSignals()` and merge results into returned goals. `mapGoal()` now sets default `vaultNoteCount: 0`, `echoLinkCount: 0`, `latestBrtTags: null` so all callers remain valid.
+- Updated `features/goals/services/mock-data.ts` to include signal default fields on all 5 mock goals.
+- Updated `features/goals/components/GoalCard.tsx`: added activity line below progress bar (`{n} notes · {n} reflections`, only when count > 0); added BRT micro-dots (6×6 circles, flex row, `alignSelf: flex-end`) in footer using color map: bud `#4A7C5F`, rose `#F59E0B`, thorn `#EF4444`. No other GoalCard logic or styles changed.
+- Created `app/api/dashboard/summary+api.ts`: authenticated GET route returning `{ goalCount, echoCount }` using Supabase `count: 'exact'` — used by Constellation screen.
+- Replaced `app/(app)/constellation.tsx` placeholder with full Phase 1.5 implementation: SafeAreaView + ScrollView, star-node visual (8 positioned Views, no SVG dep), headline, subtext, progress bars toward 3-goal / 10-echo gates, status line. Fetches from `/api/dashboard/summary` via Bearer token. Counts rendered only after loaded (null guard). No direct Supabase data calls.
+- Replaced `app/(app)/explore.tsx` content with centered placeholder ("Explore is coming") using inline styles, no icon library, SafeAreaView container.
+- Added `CONSTELLATION_ENABLED: false` to `constants/features.ts`.
+- Updated `components/layout/Sidebar.tsx` NAV_ITEMS: added Constellation route (gated by `CONSTELLATION_ENABLED`, opacity 0.4, no-nav when disabled).
+- Updated `app/(app)/_layout.tsx`: added `constellation` Stack.Screen for sidebar path; added Constellation Tabs.Screen (hidden via `href: null` when `CONSTELLATION_ENABLED` is false); updated `tabBarActiveTintColor` to `#3D5247`.
+- `tsc --noEmit`: clean.
+
+### Added (2026-04-07 — Echo → Goal Auto-Linking)
+- Updated `features/echo/services/echo-service.ts:createEntry()` to write to `echo_goal_links` after every successful `echo_entries` insert. Manual link fires when `goalId` is provided (`link_source: 'manual'`, `confirmed: true`). AI auto-link fires when no `goalId` is provided — keyword heuristic scores active goal titles against entry content, inserts the single best match above 0.7 threshold (`link_source: 'ai_auto'`, `confirmed: false`). Both paths are non-blocking void IIFEs isolated from the main save flow. Bridge table upsert uses `onConflict: 'echo_entry_id,goal_id'` with `ignoreDuplicates: true` — no duplicate links possible. No new AI calls introduced; Phase 2 classifier can swap in by replacing the auto-link IIFE body. `tsc --noEmit` clean.
+
 ### Added (2026-04-07 — Echo Links Zustand Store)
 - Added `store/echo-links.ts` with a new `useEchoLinksStore` Zustand store that mirrors `store/vaults.ts`, using the existing goal-fetch helper plus authenticated echo-link confirm, dismiss, and manual-create mutations with exact optimistic rollback paths and recomputed unconfirmed counts.
 - Added `EchoEntryWithLink` to `types/echo-link.ts` so the new echo-links store can type its linked-entry state against the existing `getEchoEntriesForGoal()` response shape.
