@@ -177,37 +177,6 @@ export default function ProjectDetailScreen() {
             )}
           </View>
 
-          {/* Phase 2: Activity feed — project-level updates and milestone history */}
-          <View
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: 16,
-              padding: 20,
-              marginBottom: 28,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.04,
-              shadowRadius: 10,
-              elevation: 1,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: '500',
-                color: '#6B7B6E',
-                letterSpacing: 1.5,
-                textTransform: 'uppercase',
-                marginBottom: 12,
-              }}
-            >
-              Activity
-            </Text>
-            <Text style={{ fontSize: 15, color: '#6B7B6E', lineHeight: 22 }}>
-              Goal updates and milestone changes will appear here.
-            </Text>
-          </View>
-
           {/* Delete project action */}
           <View style={{ alignItems: 'flex-start' }}>
             <Pressable

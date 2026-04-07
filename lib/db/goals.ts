@@ -339,7 +339,7 @@ export async function getActivityByGoalId(
     kind: 'goal_created',
     id: `goal-created-${goalId}`,
     timestamp: (goalData as unknown as DbGoalCreatedAtRow | null)?.created_at
-      ?? new Date(0).toISOString(),
+      ?? new Date().toISOString(),
   };
 
   return [...echoItems, ...milestoneItems, goalCreatedItem].sort(

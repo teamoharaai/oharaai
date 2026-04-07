@@ -1,5 +1,6 @@
+import { useCallback, useState } from 'react';
 import { View, Text, ScrollView, Pressable, useWindowDimensions, SafeAreaView } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, router } from 'expo-router';
 import { GOAL_THEMES } from '@/constants/themes';
 import { useGoalDetail } from '@/features/goals/hooks/useGoalDetail';
 import { GoalDetailHeader } from '@/features/goals/components/GoalDetailHeader';
@@ -8,6 +9,7 @@ import { ActivityFeed } from '@/features/goals/components/ActivityFeed';
 import { AffiliateTeaser } from '@/components/AffiliateTeaser';
 import { useActivity } from '@/features/goals/hooks/useActivity';
 import { NextActionSection } from '@/features/actions/components/NextActionSection';
+import { getVaultItemCount } from '@/lib/db/vaults';
 
 function GoalDetailLoadingState() {
   return (
@@ -84,6 +86,7 @@ function GoalNotFound() {
 export default function GoalDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const goalId = Array.isArray(id) ? id[0] : (id ?? '');
+  const [vaultItemCount, setVaultItemCount] = useState(0);
   const {
     goal,
     isLoading,
@@ -98,6 +101,36 @@ export default function GoalDetailScreen() {
   const { items, loading: activityLoading, error: activityError } = useActivity(goalId);
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!goalId) {
+        setVaultItemCount(0);
+        return;
+      }
+
+      let active = true;
+
+      async function loadVaultItemCount() {
+        try {
+          const count = await getVaultItemCount(goalId);
+          if (active) {
+            setVaultItemCount(count);
+          }
+        } catch {
+          if (active) {
+            setVaultItemCount(0);
+          }
+        }
+      }
+
+      loadVaultItemCount();
+
+      return () => {
+        active = false;
+      };
+    }, [goalId]),
+  );
 
   if (isLoading) return <GoalDetailLoadingState />;
   if (!goal) return <GoalNotFound />;
@@ -117,6 +150,7 @@ export default function GoalDetailScreen() {
         onAdd={onAddMeasurable}
         onComplete={onCompleteMeasurable}
         completedIds={completedIds}
+        vaultItemCount={vaultItemCount}
         error={measurableError}
         onDismissError={clearMeasurableError}
       />

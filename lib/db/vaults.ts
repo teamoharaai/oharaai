@@ -47,6 +47,28 @@ export async function getVaultItems(vaultId: string): Promise<VaultItem[]> {
 }
 
 /**
+ * Counts vault items for a goal by following goal_id → vaults.id → vault_items.vault_id.
+ */
+export async function getVaultItemCount(goalId: string): Promise<number> {
+  const { data: vault, error: vaultError } = await supabase
+    .from('vaults')
+    .select('id')
+    .eq('goal_id', goalId)
+    .maybeSingle();
+
+  if (vaultError) throw new Error(vaultError.message);
+  if (!vault) return 0;
+
+  const { count, error } = await supabase
+    .from('vault_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('vault_id', vault.id);
+
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
+/**
  * Inserts a note-type vault item.
  */
 export async function addVaultItem(

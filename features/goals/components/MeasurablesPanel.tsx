@@ -12,6 +12,7 @@ interface MeasurablesPanelProps {
   onAdd?: (input: MeasurableInput) => Promise<void>;
   onComplete?: (measurableId: string) => Promise<void>;
   completedIds: Set<string>;
+  vaultItemCount: number;
   error?: string | null;
   onDismissError?: () => void;
 }
@@ -53,6 +54,7 @@ export function MeasurablesPanel({
   onAdd,
   onComplete,
   completedIds,
+  vaultItemCount,
   error,
   onDismissError,
 }: MeasurablesPanelProps) {
@@ -156,6 +158,12 @@ export function MeasurablesPanel({
             Add a counter, habit, or checklist to make progress on this goal visible.
           </Text>
         </View>
+      )}
+
+      {vaultItemCount > 0 && (
+        <Text style={{ fontSize: 12, color: '#9CAF9F', marginBottom: 8 }}>
+          {vaultItemCount} vault entries
+        </Text>
       )}
 
       {/* Milestone cards */}
