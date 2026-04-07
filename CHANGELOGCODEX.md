@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Added (2026-04-07 — Echo Links Zustand Store)
+- Added `store/echo-links.ts` with a new `useEchoLinksStore` Zustand store that mirrors `store/vaults.ts`, using the existing goal-fetch helper plus authenticated echo-link confirm, dismiss, and manual-create mutations with exact optimistic rollback paths and recomputed unconfirmed counts.
+- Added `EchoEntryWithLink` to `types/echo-link.ts` so the new echo-links store can type its linked-entry state against the existing `getEchoEntriesForGoal()` response shape.
+- Added `GET /api/echo-links/:goalId` handling in `app/api/echo-links/[linkId]+api.ts` so goal-linked echo entries can be loaded through the API using the repo’s existing Bearer-token auth pattern and response conventions.
+
+### Changed (2026-04-07 — Echo Links API Fetch)
+- Updated `store/echo-links.ts` to load goal-linked echo entries from `/api/echo-links/:goalId` instead of importing `lib/db/echo-goal-links` directly, preserving the existing store logic while moving the read path behind the API boundary.
+
+### Added (2026-04-07 — Vault Zustand Store)
+- Added `store/vaults.ts` with a new `useVaultStore` Zustand store for goal-detail vault state, following the existing store architecture while adding authenticated vault fetch/create/update/delete actions plus precise optimistic rollback paths for confirm and dismiss flows.
+- Added `CreateVaultItemInput` to `types/vault.ts` so the new vault store can accept a typed create payload that matches the current `POST /api/vaults/[goalId]` request contract.
+
 ### Added (2026-04-06 — Goal Vault + Echo Trail)
 - Added `features/goals/hooks/useVault.ts`, `features/goals/hooks/useEchoTrail.ts`, `features/goals/components/VaultItemCard.tsx`, and `features/goals/components/EchoTrail.tsx` so the goal vault screen can manage saved notes/links and review linked Echo reflections in dedicated reusable UI/hooks.
 

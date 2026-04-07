@@ -30,3 +30,10 @@ export interface VaultItem {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CreateVaultItemInput {
+  itemType: VaultItemType;
+  title: string;
+  content?: string | null;
+  metadata?: VaultItem['metadata'];
+}

@@ -2,6 +2,7 @@ import supabase, { createAuthedClient, isDatabaseConfigured } from '@/lib/db/cli
 import {
   confirmLink,
   dismissLink,
+  getEchoEntriesForGoal,
   getEchoLinkByIdForUserGoal,
 } from '@/lib/db/echo-goal-links';
 
@@ -31,6 +32,40 @@ function sanitizeString(input: unknown, maxLength: number): string {
   if (trimmed.length === 0) throw new Error('Value cannot be empty');
   if (trimmed.length > maxLength) throw new Error(`Value exceeds ${maxLength} character limit`);
   return trimmed;
+}
+
+// ─── GET /api/echo-links/:goalId ──────────────────────────────────────────────
+
+export async function GET(
+  request: Request,
+  { params }: { params: { linkId: string } },
+): Promise<Response> {
+  if (!isDatabaseConfigured) {
+    return Response.json({ error: 'Database not configured' }, { status: 503 });
+  }
+
+  const auth = await getAuthContextFromRequest(request);
+  if (!auth) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  let goalId: string;
+  try {
+    goalId = sanitizeString(params.linkId, MAX_ID_LENGTH);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Invalid request';
+    return Response.json({ error: message }, { status: 400 });
+  }
+
+  try {
+    const authedDb = createAuthedClient(auth.accessToken);
+    const echoEntries = await getEchoEntriesForGoal(goalId, authedDb);
+    return Response.json({ echoEntries });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unexpected error';
+    console.error('[echo-links] GET by goal failed', { goalId, error: message });
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
 
 // ─── PUT /api/echo-links/:linkId ──────────────────────────────────────────────
