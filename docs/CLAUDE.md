@@ -1,133 +1,77 @@
-# CLAUDE.md — Ohara
+# CLAUDE.md — Ohara Architectural Constitution
+# Last updated: April 2026 | Post-Vaults spec
 
-> Single source of truth for Claude Code sessions. Last updated: 2026-03-29
+## What Ohara Is
+Goal-first personal growth platform. Social operating system.
+Stack: Expo (RN Web, SSR), Vercel, Supabase, Anthropic API, NativeWind, Zustand, TS strict.
+Theme: cream (#F5F1EA) base, white (#FFFFFF) cards, forest green (#3D5247) accent, Inter + Lora.
 
-## Known Patches
+## Data Model (Current)
+- **Spaces**: contained environments (personal | team | institutional | community). Every user has a personal space. goals and projects have nullable space_id FK.
+- **Goals**: atomic unit of behavior. Has milestones (UI rename of measurables), status (active/complete/stagnant/discovered), category, optional project_id FK.
+- **Projects**: long-term ambition containers. Aggregate multiple goals. Have their own Vault.
+- **Vaults**: goal-bound content workspaces. One vault per goal (auto-created). Contains vault_items (note | link | document | insight | action_update).
+- **Echo**: standalone journaling (BRT: Bud/Rose/Thorn). Separate Haiku-backed path in lib/ai/echo-client.ts.
+- **Echo-Goal Links**: many-to-many bridge (echo_goal_links table). Supports manual, ai_suggested, ai_auto linking. Replaces single goal_id FK for linking.
+- **Intelligence**: summarization over storage. Never persists raw conversations. Updates character_profile JSONB. Gated on isProfileSufficient().
+- **Constellation**: visual graph of goals, echo patterns, traits, vault insights. Schema (constellation_edges) exists, UI ships Phase 2.
 
-- **zustand 5.0.12** — `patches/zustand+5.0.12.patch` fixes `import.meta.env` in the ESM middleware build (`esm/middleware.mjs`). Metro resolves `zustand/middleware` to the ESM build, which uses a Vite-specific `import.meta.env?.MODE` idiom that crashes in non-module script contexts. Patch replaces both occurrences with `process.env.NODE_ENV`. The `"postinstall": "patch-package"` script in `package.json` re-applies the patch on every `npm install` and Vercel deploy. If Zustand is upgraded, re-verify `esm/middleware.mjs` and re-run `npx patch-package zustand`.
+## Core Architecture Rules
 
-## Security & infrastructure (2026-03-29)
+### SSR Safety (CRITICAL)
+Modules imported at _layout.tsx top level must NEVER throw at module load time.
+- Layer 1 (module init): safe fallbacks only (?? '', isDatabaseConfigured, null as any)
+- Layer 2 (hooks, useEffect, API routes): validate and throw
+- EXPO_PUBLIC_* vars are Metro build-time only, not guaranteed in Vercel SSR runtime
 
-- [x] Auth callback verified: `vercel.json` created with catch-all rewrite to `/` (NOT `/index.html` — app.json uses `"output": "server"`, so SSR handles routing). `callback.tsx` correctly implements PKCE flow. `(auth)/_layout.tsx` has no auth guard so callback is freely accessible.
-- [x] Input sanitization on `app/api/goals/create+api.ts`: strips null bytes + control chars, enforces max lengths (userMessage: 4000, history: 40 turns × 4000 chars each). `userId` removed from `RequestBody` — must always come from session. `validateGoalPayload` helper added for use when DB writes are wired in.
-- [x] RLS policies verified in `supabase/migrations/002_enable_rls.sql`: all tables have SELECT/INSERT/UPDATE/DELETE policies gated on `user_id = auth.uid()`. Two-account isolation test at `scripts/test-rls.ts` (requires `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`).
+### AI Layer
+- All AI calls go through lib/ai/client.ts (single chokepoint for logging, cost, model swapping)
+- Echo uses lib/ai/echo-client.ts (separate Haiku path, clean abstraction boundary)
+- Vault insights use lib/ai/vault-insights.ts (Haiku, suggestions only, user confirms)
+- Phase 1: Haiku everywhere. Phase 2: Sonnet for goal creation.
+- AI-generated insights require user confirmation (metadata.confirmed). Never auto-applied.
 
-## Project
+### Data Rules
+- userId ALWAYS from server-side session. Never from request body.
+- Summarization over storage: raw conversations never persisted, only structured summaries.
+- echo_entries.goal_id preserved for backward compat. echo_goal_links is canonical many-to-many.
+- Vault creation failure must NOT block goal creation. Non-blocking, log errors.
+- Space creation failure must NOT block signup. Non-blocking, log errors.
 
-Ohara is a goal-first social platform. Users create SMART goals, journal in "Echo," and build a character profile through AI-powered conversation summarization. Raw conversations are never stored — only structured summaries. This is non-negotiable.
+### Naming (Current, Do Not Reference Old Names)
+- Echo (not Starlog)
+- Ohara AI (not Polaris, not Thuban, not Guides, not Clo/Lach/Atri)
+- Milestones (UI rename of measurables, no schema change)
+- Vault (goal-bound workspace)
+- Constellation (personal visual graph), Atlas (B2B aggregate view)
 
-**Current phase:** Phase 1 — personal layer (goals, reflection, AI core). Solo build for friends-and-family pilot.
+### Cascade Levels
+- L1: visual files — change freely
+- L2: coordinate with lane owner first
+- L3: team decision required — types, schema, AI output contracts
 
-## Tech stack (locked)
+### What NOT To Build
+- No feed, no profile pages, no social push notifications (Phase 2)
+- No Obsidian-style free-form node linking (Ohara uses AI-assisted extraction)
+- No free-floating notes (everything tied to a goal or Echo stream)
+- No document upload UI yet (Phase 1.5)
+- No constellation interactive graph yet (Phase 2, needs data density)
+- No institutional or community Space UI (Phase 3)
+- Olive gradient: discarded. Do not reference.
+- Multi-Guide personalities (Clo, Lach, Atri): dropped. Single Ohara voice.
 
-- **Expo (React Native Web)** — single codebase, web + iOS + Android
-- **Supabase** — auth, Postgres, RLS, Edge Functions, Storage
-- **Anthropic API** — all AI calls server-side only via `lib/ai/client.ts`
-- **NativeWind** — Tailwind utility classes for React Native
-- **Zustand** — client state, one store per feature
-- **TypeScript strict mode** — all files, no `any`
+## File Ownership
+- CEO (Ariel): lib/ai/*, types/*, constants/*, architecture, CLAUDE.md
+- CTO: lib/db/*, supabase/migrations/*, app/api/*, hooks/*, store/*
+- VP Product: components/*, app/(app)/*, app/goals/*, app/projects/*, features/*
+- CFO: legal, outreach, pilot coordination
 
-## Architecture
+## Key Files
+- API_CONTRACT.md, AI_RESPONSE_SCHEMA.md, ARCHITECTURE.md, DECISIONS.md
+- CONTEXT.md (15-line session opener, read first)
+- CHANGELOGCODEX.md (Codex reads/writes each session)
+- ohara_vaults_spec.docx (Vaults, Spaces, Constellation, UI spec)
+- ohara_implementation_guide.docx (12 prompt execution plan)
 
-Feature-slice hybrid. Shared infra in `lib/`, feature code in `features/`.
-
-See @docs/ARCHITECTURE.md for full structure and conventions.
-
-## SSR Safety Rule (critical)
-
-Modules imported at the top level of `app/_layout.tsx` must NEVER throw 
-at module load time. This crashes the SSR handler before anything renders.
-
-**Layer 1 — module initialization** (client.ts, any top-level import)
-→ Safe fallbacks only. Never throw.
-→ Export an `isDatabaseConfigured` boolean for downstream checks.
-
-**Layer 2 — runtime** (hooks, useEffect, API routes)
-→ Safe to validate, assert, and throw.
-→ This is where "fail fast" belongs.
-
-EXPO_PUBLIC_* vars are baked in by Metro at build time for the client 
-bundle. They are NOT guaranteed to be visible in the Vercel SSR server 
-function runtime. Never hard-throw on them at module load time.
-
-## Critical rules — NEVER violate
-
-1. **All AI calls go through `lib/ai/client.ts`** — never import Anthropic SDK elsewhere
-2. **All AI calls are server-side only** — Supabase Edge Functions, never client
-3. **Supabase RLS enabled on all tables** — never bypass, never disable
-4. **No raw conversation storage** — only structured JSONB summaries
-5. **No API keys in code** — all secrets from `process.env` / `.env.local`
-6. **AI outputs must match schema** — see @docs/AI_RESPONSE_SCHEMA.md
-7. **Types live in their feature** — `features/*/types.ts`, not a global dump
-8. **Components receive data as props** — no component queries Supabase directly
-9. **Every schema change needs a migration** — `supabase/migrations/`
-10. **Bud/Rose/Thorn is internal taxonomy only** — never shown to users
-
-## Folder structure (abbreviated)
-
-```
-app/              ← routes only, thin files
-features/         ← vertical feature slices (auth, goals, echo, profile, dashboard)
-  {feature}/
-    components/   ← feature-specific UI
-    hooks/        ← feature-specific hooks
-    services/     ← data fetching, business logic
-    store.ts      ← Zustand store
-    types.ts      ← feature types
-components/ui/    ← shared primitives (Button, Card, Input, ProgressRing)
-components/layout/← shared wrappers (Screen, Header)
-lib/ai/           ← AI client, config, prompts, pipelines
-lib/db/           ← Supabase client singleton
-lib/rules/        ← deterministic logic (no LLM)
-lib/utils/        ← date, validation helpers
-constants/        ← colors, features flags, goal themes
-```
-
-## What is NOT built yet
-
-- [ ] AI pipelines (client.ts exists as stub, no Anthropic SDK connected)
-- [ ] Goal creation conversation flow
-- [ ] Echo AI insight (classification, Guide response, summarization) — toggle wired to DB, API call blocked by INTELLIGENCE_ENABLED flag
-- [ ] Character profile system
-- [ ] Discovery engine (Thorn pattern → goal suggestion)
-- [ ] Hobby matcher
-- [ ] Media uploads (Supabase Storage not configured)
-- [ ] Social layer (Phase 2)
-- [x] Echo journaling screen — composer, goal picker, AI toggle, entry list (2026-03-29)
-- [x] Goals dashboard — real Supabase query replaces mock data (2026-03-29)
-
-## Commands
-
-```bash
-npx expo start --web     # dev server (web)
-npx tsc --noEmit         # type check
-npx expo start           # dev server (native)
-```
-
-## Key docs
-
-- @docs/ARCHITECTURE.md — folder conventions, data flow, component rules
-- @docs/AI_RESPONSE_SCHEMA.md — strict AI input/output contracts
-- @docs/DECISIONS.md — dated decision log
-- @docs/API_CONTRACT.md — endpoint shapes, frozen per sprint
-- @docs/PHASE1_CHECKLIST.md — build progress tracker
-
-## What NOT to do
-
-- Do not create folders outside the structure above
-- Do not install packages without checking `package.json` first
-- Do not put business logic in route files — routes import feature components only
-- Do not create global stores — each feature owns its Zustand store
-- Do not use inline `style={{}}` except for dynamic theme colors
-- Do not use CSS Grid for component internals — Flexbox only (Grid okay for dashboard card layout on web)
-- Do not add social/sharing features — that is Phase 2
-
-## Current session context
-
-> Last updated: 2026-03-29
-
-- **Tab bar**: Reduced to 3 tabs (Goals, Echo, Explore). `goals` directory hidden with `href: null` — goal detail still reachable via `router.push`.
-- **Goals data**: `fetchGoals` / `fetchGoalById` now query Supabase. `useGoals` and `useGoalDetail` get user via `supabase.auth.getUser()`. Mock data file retained but unused by production paths.
-- **Echo screen**: Full journaling UI in `features/echo/components/EchoScreen.tsx`. Composer (multiline input, goal picker modal, AI toggle), entry list. `useEntries` hook loads entries + active goals on mount. `createEntry` inserts to `echo_entries`.
-- **Migration 005**: Renames `raw_text → content` and `ai_opted_in → ai_insight_requested` on `echo_entries`. Must be pushed before deploy — see "How to link and push migrations" guide at end of this file.
-- **Auth callback route**: `app/(auth)/callback.tsx` handles post-email-verification redirects. Supports PKCE (`code` query param → `exchangeCodeForSession`) and implicit flow (hash `access_token` → `getSession`). On success redirects to `/(app)/dashboard`; on failure redirects to `/(auth)/login?error=...`. Login screen reads the `error` param on mount.
+## Validation
+npx tsc --noEmit must pass before and after every change. No exceptions.

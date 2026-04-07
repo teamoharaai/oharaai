@@ -1,26 +1,30 @@
-# CLAUDE.md — supabase/
+# supabase/CLAUDE.md — Database & Migration Rules
 
-> Loaded when Claude Code touches files in this directory.
+Owner: CTO. Cascade Level 3.
+
+## Migration Conventions
+- Sequential numbering: 001, 002, ... currently through 009. Next: 010.
+- Filename: NNN_description.sql
+- Always enable RLS on new tables.
+- Always add RLS policies in the same migration that creates the table.
+- FK references: verify actual column names before writing. Audit first.
+
+## Current Schema (post-009)
+- profiles, goals, projects, measurables, measurable_logs
+- echo_entries, echo_sessions (renamed from starlog_* in 009)
+- ai_usage
+
+## Incoming (010-014, from implementation guide)
+- 014: spaces
+- 015: space_members
+- 016: add space_id to goals + projects (nullable)
+- 017: vaults + vault_items
+- 018: echo_goal_links + backfill from echo_entries.goal_id
 
 ## Rules
-
-1. **Every schema change requires a new numbered migration file.** Never edit existing migration files.
-2. **RLS is enabled on every table.** No exceptions. If you create a table, add RLS policies in the same migration.
-3. **Use `CREATE TABLE IF NOT EXISTS`** to make migrations idempotent.
-4. **Foreign keys must specify ON DELETE behavior.** Use CASCADE for child data (measurables → goals), SET NULL for optional references (echo → goals).
-5. **Add indexes on columns used in WHERE clauses and JOINs.** At minimum: `user_id`, `goal_id`, `status`.
-6. **Naming:** tables are `snake_case` plural (`goals`, `measurables`), columns are `snake_case`, constraints are descriptive.
-7. **JSONB for flexible data** (character profiles). Typed columns for structured data (goals, measurables).
-8. **Never store raw AI conversations.** Only structured summaries in JSONB or typed columns.
-9. **Test migrations locally** with `supabase db reset` before committing.
-
-## Migration naming
-
-```
-001_initial_schema.sql
-002_enable_rls.sql
-003_goals_measurables_schema.sql
-004_{description}.sql
-```
-
-Always increment the number. Never reuse a number.
+- Nullable FKs for new columns on existing tables (no data migration needed).
+- echo_entries.goal_id is PRESERVED. Do not drop it. echo_goal_links is the canonical bridge.
+- Vault auto-creation: one vault per goal. Enforced by unique(goal_id) on vaults.
+- RLS: vaults scoped to owner_id. vault_items scoped to vault ownership.
+- RLS: spaces scoped to owner + members. space_members scoped to space membership.
+- Never modify existing RLS policies in new migrations.

@@ -90,3 +90,9 @@ Rate limit is 30 AI calls/day/user, enforced atomically at callLLM via consume_d
 The Echo failure shape is worth a comment in the code:
 
 ok: true with { reflection: null, summarized: false } is intentional — entry is persisted before the AI call, so generation failure is not an application error.
+
+Pipeline observability logs emitted via console.log (structured JSON) at 
+lib/ai/client.ts chokepoint. Captured by Vercel. No DB table — revisit 
+in Phase 2 when usage patterns are known.
+
+## April 6th,2026

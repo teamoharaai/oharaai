@@ -106,3 +106,10 @@
 
 ### Changed (2026-04-05)
 - Restored GoalGrid and ProjectCard to dashboard; 5-zone layout finalized. Zone order: (1) Active Goal + Next Action, (2) Projects, (3) All Goals, (4) Echo, (5) Intelligence. `useProjectStore`, `GoalGrid`, and `ProjectCard` re-imported. `GoalGrid` receives `standaloneGoals` (goals where `projectId === null`) and `newestId`. `ProjectCard` iterates `projects` from `useProjectStore`. Loading gate updated to `goalsLoading || projectsLoading`. All Block 5 zone logic (active goal, next action, echo, intelligence) unchanged.
+
+### Added (2026-04-05)
+- Added pipeline observability to callLLM chokepoint — structured JSON events emitted via console.log, captured by Vercel. Fields: pipeline, model, latency_ms, tokens, error_code, user_id, timestamp. Emits after rate limit check on every provider call (success and failure). Error code classified from thrown value; errors rethrown unchanged. No signature change — user_id already present in CallLLMParams. Affected file: lib/ai/client.ts only.
+
+### Added (2026-04-05)
+- Added pipeline observability to callLLM chokepoint — structured JSON events emitted via console.log, captured by Vercel. Fields: pipeline, model, latency_ms, tokens, error_code, user_id, timestamp. Emits after rate limit check on every provider call (success and failure). Error code classified from thrown value; errors rethrown unchanged. No signature change — user_id already present in CallLLMParams. Affected file: lib/ai/client.ts only.
+- Added Echo reconciliation: `app/api/echo/reconcile+api.ts` (`POST /api/echo/reconcile`) queries all echo_entries where summarized = false AND ai_insight_requested = true for the authenticated user, re-runs summarization via callEchoReflection, updates summarized = true on each success, and updates profiles.last_summarized_at after the batch. Single-entry failures are caught and logged without aborting the batch. Returns { reconciled: N, failed: M }. Dashboard triggers a fire-and-forget POST on mount via useRef-guarded useEffect (no render blocking, no loading state). Affected files: app/api/echo/reconcile+api.ts (new), app/(app)/dashboard.tsx.

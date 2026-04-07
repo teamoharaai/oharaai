@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { AI_CONFIG } from './config';
 import { AIRateLimitError } from './errors';
+import type { AiErrorCode } from './contracts';
 
 type ConversationMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -121,6 +122,29 @@ async function consumeDailyQuota(userId: string, accessToken: string) {
   }
 }
 
+function classifyError(err: unknown): AiErrorCode {
+  if (err != null && typeof err === 'object' && 'code' in err) {
+    return (err as { code: AiErrorCode }).code;
+  }
+  return 'AI_PROVIDER_ERROR';
+}
+
+interface ObservabilityEvent {
+  event: 'ai_call';
+  pipeline: string;
+  model: string;
+  latency_ms: number;
+  input_tokens: number;
+  output_tokens: number;
+  error_code: AiErrorCode | null;
+  user_id: string;
+  timestamp: string;
+}
+
+function emitObservabilityLog(event: ObservabilityEvent): void {
+  console.log(JSON.stringify(event));
+}
+
 export async function callLLM(params: CallLLMParams): Promise<CallLLMResult> {
   const pipelineConfig = AI_CONFIG.pipelines[params.pipeline];
 
@@ -139,59 +163,97 @@ export async function callLLM(params: CallLLMParams): Promise<CallLLMResult> {
 
   await consumeDailyQuota(params.userId, params.accessToken);
 
-  let response: Response;
+  const callStart = Date.now();
+  let responseUsage = { input_tokens: 0, output_tokens: 0 };
+
   try {
-    response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-        'x-api-key': getAnthropicApiKey(),
-      },
-      body: JSON.stringify({
-        model: resolvedModel,
-        max_tokens: resolveMaxTokens(params.pipeline, params.maxTokens),
-        system: params.systemPrompt,
-        messages,
-        stop_sequences: params.stopSequences,
-      }),
-      signal: controller.signal,
-    });
-  } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error(`Anthropic request timed out after ${timeoutMs}ms`);
+    let response: Response;
+    try {
+      response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+          'x-api-key': getAnthropicApiKey(),
+        },
+        body: JSON.stringify({
+          model: resolvedModel,
+          max_tokens: resolveMaxTokens(params.pipeline, params.maxTokens),
+          system: params.systemPrompt,
+          messages,
+          stop_sequences: params.stopSequences,
+        }),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error(`Anthropic request timed out after ${timeoutMs}ms`);
+      }
+
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
     }
 
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
+    const data = (await response.json()) as AnthropicMessageResponse;
+
+    responseUsage = {
+      input_tokens: data.usage?.input_tokens ?? 0,
+      output_tokens: data.usage?.output_tokens ?? 0,
+    };
+
+    if (!response.ok) {
+      const message = data.error?.message ?? `Anthropic request failed with status ${response.status}`;
+      throw new Error(message);
+    }
+
+    const continuation = (data.content ?? [])
+      .filter((block) => block.type === 'text' && typeof block.text === 'string')
+      .map((block) => block.text)
+      .join('\n')
+      .trim();
+
+    if (!continuation) {
+      throw new Error('Anthropic returned no text content.');
+    }
+
+    const text = params.assistantPrefill
+      ? `${params.assistantPrefill}${continuation}`
+      : continuation;
+
+    const result: CallLLMResult = {
+      text,
+      inputTokens: responseUsage.input_tokens,
+      outputTokens: responseUsage.output_tokens,
+      model: resolvedModel,
+    };
+
+    emitObservabilityLog({
+      event: 'ai_call',
+      pipeline: params.pipeline,
+      model: resolvedModel,
+      latency_ms: Date.now() - callStart,
+      input_tokens: responseUsage.input_tokens,
+      output_tokens: responseUsage.output_tokens,
+      error_code: null,
+      user_id: params.userId,
+      timestamp: new Date().toISOString(),
+    });
+
+    return result;
+  } catch (err) {
+    emitObservabilityLog({
+      event: 'ai_call',
+      pipeline: params.pipeline,
+      model: resolvedModel,
+      latency_ms: Date.now() - callStart,
+      input_tokens: responseUsage.input_tokens,
+      output_tokens: responseUsage.output_tokens,
+      error_code: classifyError(err),
+      user_id: params.userId,
+      timestamp: new Date().toISOString(),
+    });
+
+    throw err;
   }
-
-  const data = (await response.json()) as AnthropicMessageResponse;
-
-  if (!response.ok) {
-    const message = data.error?.message ?? `Anthropic request failed with status ${response.status}`;
-    throw new Error(message);
-  }
-
-  const continuation = (data.content ?? [])
-    .filter((block) => block.type === 'text' && typeof block.text === 'string')
-    .map((block) => block.text)
-    .join('\n')
-    .trim();
-
-  if (!continuation) {
-    throw new Error('Anthropic returned no text content.');
-  }
-
-  const text = params.assistantPrefill
-    ? `${params.assistantPrefill}${continuation}`
-    : continuation;
-
-  return {
-    text,
-    inputTokens: data.usage?.input_tokens ?? 0,
-    outputTokens: data.usage?.output_tokens ?? 0,
-    model: resolvedModel,
-  };
 }

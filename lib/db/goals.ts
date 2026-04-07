@@ -199,6 +199,26 @@ export async function createGoalWithMeasurables(
     }
   }
 
+  // Auto-create vault for this goal (non-blocking)
+  const { error: vaultError } = await supabase
+    .from('vaults')
+    .insert({
+      user_id: userId,
+      goal_id: goalId,
+      space_id: null,
+      vault_type: 'personal',
+    });
+
+  if (vaultError) {
+    console.error('[vault] Failed to auto-create vault for goal', goalId, {
+      requestId,
+      stage: 'persistence',
+      error: vaultError.message,
+      code: vaultError.code,
+    });
+    // Non-blocking: goal creation still succeeds
+  }
+
   console.info('[goal-finalize] persistence succeeded', {
     requestId,
     stage: 'persistence',

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native';
 import { router } from 'expo-router';
@@ -333,6 +333,17 @@ export default function DashboardScreen() {
   useEffect(() => {
     loadProjects();
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fire-and-forget: reconcile any unsummarized Echo entries in the background.
+  // The ref guard prevents duplicate calls from StrictMode double-invocation.
+  const reconcileInFlight = useRef(false);
+  useEffect(() => {
+    if (reconcileInFlight.current) return;
+    reconcileInFlight.current = true;
+    fetch('/api/echo/reconcile', { method: 'POST' })
+      .catch((err: unknown) => console.warn('Echo reconciliation failed silently:', err))
+      .finally(() => { reconcileInFlight.current = false; });
   }, []);
   const {
     cachedInsight,

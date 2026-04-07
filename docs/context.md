@@ -1,30 +1,16 @@
-# Ohara — Agent Context
+# CONTEXT.md — Session Opener
+# Paste at top of every CC/Codex session. Update after each session.
 
-Stack: Expo (React Native Web), Supabase, Anthropic API, NativeWind,
-Zustand, TypeScript strict
+Ohara: goal-first personal growth platform. Phase 1 pilot.
+Stack: Expo (RN Web SSR), Vercel, Supabase, Anthropic (Haiku), NativeWind, Zustand, TS strict.
+Theme: cream #F5F1EA, white cards, forest green #3D5247, Inter + Lora.
 
-Current phase: Phase 1
+Current state: Phase 1 core stable. Migrations through 009. tsc passing.
+New spec landed: Vaults (goal-bound workspaces), Spaces (personal + team),
+Constellation (Phase 2 visual graph), Echo Option C (echo_goal_links bridge).
+Executing from ohara_implementation_guide.docx — 12 prompts in dependency order.
 
-All AI calls go through lib/ai/client.ts using callAI() — never import
-Anthropic SDK outside lib/ai/
+Next prompt: P1 (migrations 014-018: spaces, space_members, vaults, vault_items, echo_goal_links).
+Blocked until P1 ships: everything.
 
-Never hardcode API keys — all keys from process.env
-
-RLS enabled on all Supabase tables from day one
-
-types/index.ts is the single source of truth for all TypeScript interfaces
-
-store/ at root level — auth.ts, session.ts, ui.ts
-
-## Current task
-Fixing scaffold before building features — all five fixes complete.
-
-## Relevant files
-- types/index.ts — all shared TypeScript interfaces
-- store/auth.ts — session + profile state (wired to root layout)
-- store/session.ts — active Echo session state
-- store/ui.ts — loading states, modals
-- app/_layout.tsx — root layout, auth guard, uses useAuthStore
-- app/(app)/ — protected tab screens (renamed from (tabs)/)
-- supabase/migrations/001_initial_schema.sql — corrected schema
-- supabase/migrations/002_enable_rls.sql — RLS policies
+Read CLAUDE.md before starting. Run npx tsc --noEmit before and after.

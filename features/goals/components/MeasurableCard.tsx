@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { router } from 'expo-router';
 import { Badge } from '@/components/ui/Badge';
 import type { Measurable, MeasurableUpdates } from '../types';
 
@@ -147,6 +148,7 @@ export function MeasurableCard({
         shadowRadius: 6,
         elevation: 1,
       }}
+      onPress={() => router.push(`/goals/${measurable.goalId}/vault`)}
       onLongPress={() => {
         if (onDelete && !showDeleteConfirm) setShowDeleteConfirm(true);
       }}
@@ -184,7 +186,7 @@ export function MeasurableCard({
             selectTextOnFocus
           />
         ) : (
-          <Pressable style={{ flex: 1 }} onPress={() => canEdit && setEditingField('title')}>
+          <Pressable style={{ flex: 1 }} onPress={() => router.push(`/goals/${measurable.goalId}/vault`)}>
             <Text
               style={{
                 fontSize: 13,
