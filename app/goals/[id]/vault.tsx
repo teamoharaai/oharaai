@@ -221,7 +221,7 @@ export default function VaultScreen() {
                   {item.content}
                 </Text>
                 <Text style={{ fontFamily: 'Inter', fontSize: 11, color: '#9CAF9F' }}>
-                  {new Date(item.created_at).toLocaleDateString(undefined, {
+                  {new Date(item.createdAt).toLocaleDateString(undefined, {
                     month: 'short',
                     day: 'numeric',
                     year: 'numeric',

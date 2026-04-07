@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Added (2026-04-06 — Migration 022)
+- Created `supabase/migrations/022_spaces_rename_owner_id.sql`: renames `spaces.user_id` → `spaces.owner_id`. Includes: column rename; drop/recreate `spaces_user_id_idx` → `spaces_owner_id_idx`; drop/recreate `spaces_one_personal_per_user_idx` on `owner_id`; drop/recreate 4 RLS policies on `public.spaces`; drop/recreate 4 RLS policies on `public.space_members` that subquery `spaces.owner_id`; updated `handle_new_user_space()` function INSERT/ON CONFLICT/SELECT to use `owner_id`.
+
+### Changed (2026-04-06 — Migration 022)
+- Updated `lib/db/spaces.ts`: `DbSpaceRow.user_id` → `owner_id`; `mapSpace(row.user_id)` → `mapSpace(row.owner_id)`; all `.select()` strings and `.eq('user_id', ...)` against spaces table updated to `owner_id`; insert payload key `user_id` → `owner_id`. `space_members` queries unchanged (their `user_id` column is unaffected).
+
+### Added (2026-04-06 — Prompt 4)
+- Created `lib/db/spaces.ts`: `getPersonalSpace`, `getSpacesForUser`, `createSpace`, `getSpaceMembers`, `addSpaceMember`, `removeSpaceMember`. Uses types from `types/space.ts`. Maps DB `owner_id` → `Space.ownerId`; `joined_at` → `joinedAt`. `getSpacesForUser` uses two sequential queries (space_members then spaces IN) to match existing no-complex-join pattern.
+- Created `lib/db/echo-goal-links.ts`: `getLinksForEchoEntry`, `getLinksForGoal`, `getEchoEntriesForGoal`, `createLink`, `confirmLink`, `dismissLink`, `getUnconfirmedLinksForUser`. Uses types from `types/echo-link.ts` and `EchoEntry` from `features/echo/types.ts`. `getEchoEntriesForGoal` and `getUnconfirmedLinksForUser` use two sequential queries instead of complex JOINs. Maps `echo_entry_id` → `echoEntryId`, `link_source` → `linkSource`.
+- Rewrote `lib/db/vaults.ts` with canonical service API: `getVaultByGoalId`, `getVaultItems` (sort_order ASC), `getVaultItemsByType`, `createVaultItem`, `updateVaultItem`, `deleteVaultItem`, `getVaultWithItems`. All functions use types from `types/vault.ts`; re-exports `VaultItem` from that module. Legacy helpers (`getOrCreateVault`, `addVaultItem`, `getVaultItemCount`) preserved unchanged.
+
+### Changed (2026-04-06 — Prompt 4)
+- Updated `app/goals/[id]/vault.tsx`: changed `item.created_at` → `item.createdAt` (strictly necessary — `VaultItem` is now the canonical camelCase type from `types/vault.ts`).
+
 ### Added
 - Documented `POST /api/goals/create` AI goal creation endpoint in `docs/API_CONTRACT.md`, including full `GoalFinalizeResponse` payload shape (`goal`, `measurables`, `reasoning`, `assumptions`). Affected file: `docs/API_CONTRACT.md`.
 - Added `supabase/migrations/012_goals_visibility_model.sql` to replace `goals.is_public` with checked `visibility` values (`private`, `circle`, `public`), backfill existing rows safely, and remove the legacy boolean/index path.

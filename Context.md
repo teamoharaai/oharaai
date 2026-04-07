@@ -21,7 +21,7 @@ Theme: cream #F5F1EA, white cards, forest green #3D5247, Inter + Lora
 `CHANGELOGCODEX.md` · `docs/context.md` (deprecated — root CONTEXT.md is canonical)
 
 ## Current State
-- Migrations: through 021 (spaces personal uniqueness)
+- Migrations: through 022 (spaces.user_id → owner_id rename)
 - `tsc --noEmit`: clean
 - RLS: verified across all tables
 - Auth: Supabase auth working; `/auth/callback` 404 parked (teammate has Auth0 solution)
@@ -35,6 +35,11 @@ Theme: cream #F5F1EA, white cards, forest green #3D5247, Inter + Lora
 - `app/projects/[id].tsx`: placeholder Activity card removed
 - `lib/db/goals.ts`: epoch fallback fixed (new Date(0) → new Date())
 - Vault lookup chain: goal_id → vaults.goal_id → vaults.id → vault_items.vault_id (no direct goal_id on vault_items)
+
+## Shipped — Service Layer (2026-04-06)
+- `lib/db/vaults.ts`: rewritten with canonical API — `getVaultByGoalId` · `getVaultItems` (sort_order ASC) · `getVaultItemsByType` · `createVaultItem` · `updateVaultItem` · `deleteVaultItem` · `getVaultWithItems`. Legacy helpers preserved. Types from `types/vault.ts`.
+- `lib/db/spaces.ts`: `getPersonalSpace` · `getSpacesForUser` · `createSpace` · `getSpaceMembers` · `addSpaceMember` · `removeSpaceMember`. Maps `owner_id → ownerId`, `joined_at → joinedAt`.
+- `lib/db/echo-goal-links.ts`: `getLinksForEchoEntry` · `getLinksForGoal` · `getEchoEntriesForGoal` · `createLink` · `confirmLink` · `dismissLink` · `getUnconfirmedLinksForUser`. Two-query pattern for JOIN-dependent functions.
 
 ## Shipped — Type Layer (2026-04-06)
 - `types/vault.ts`: Vault, VaultItem, VaultItemType, VaultItemMetadata (pure types, zero side effects)
@@ -55,6 +60,8 @@ Theme: cream #F5F1EA, white cards, forest green #3D5247, Inter + Lora
 - All measurable writes scoped through RLS via `goal_id → goals.user_id = auth.uid()`
 - Visibility: `private / circle / public` — non-owner access conservative until social ships
 - vault_items has no milestone_id — milestone context not in schema yet
+- spaces.owner_id is the owner column (renamed from user_id in migration 022); space_members.user_id is unchanged
+- Next migration number: 023
 
 ## Outstanding (Phase 1)
 - Dashboard redesign: Echo entry point, Ohara voice/Guide presence, badge fix
