@@ -117,3 +117,12 @@
 ### Added (2026-04-05)
 - Added pipeline observability to callLLM chokepoint — structured JSON events emitted via console.log, captured by Vercel. Fields: pipeline, model, latency_ms, tokens, error_code, user_id, timestamp. Emits after rate limit check on every provider call (success and failure). Error code classified from thrown value; errors rethrown unchanged. No signature change — user_id already present in CallLLMParams. Affected file: lib/ai/client.ts only.
 - Added Echo reconciliation: `app/api/echo/reconcile+api.ts` (`POST /api/echo/reconcile`) queries all echo_entries where summarized = false AND ai_insight_requested = true for the authenticated user, re-runs summarization via callEchoReflection, updates summarized = true on each success, and updates profiles.last_summarized_at after the batch. Single-entry failures are caught and logged without aborting the batch. Returns { reconciled: N, failed: M }. Dashboard triggers a fire-and-forget POST on mount via useRef-guarded useEffect (no render blocking, no loading state). Affected files: app/api/echo/reconcile+api.ts (new), app/(app)/dashboard.tsx.
+
+### Added (2026-04-06)
+- Created `types/vault.ts`: `VaultItemType` union, `VaultItemMetadata` typed object (url, annotation, fileType, aiConfidence, confirmed, tags), `VaultItem` interface, `Vault` interface. Pure types, no logic, no side effects. Follows L3 type rules from `types/CLAUDE.md`.
+- Created `types/space.ts`: `SpaceType` union (`personal | team | institutional | community`), `SpaceRole` union, `SpaceMember` interface, `Space` interface. Pure types, no logic, no side effects.
+- Created `types/echo-link.ts`: `EchoLinkSource` union (`manual | ai_suggested | ai_auto`), `EchoGoalLink` interface mirroring the `echo_goal_links` many-to-many bridge table. Pure types, no logic, no side effects.
+
+### Changed (2026-04-06)
+- Extended `types/activity.ts` `ActivityItem` discriminated union with three new variants (on `kind` field). All new variants share the required `id` and `timestamp` base fields per union contract. No existing variant shapes modified.
+- Applied narrowing fix in `features/goals/components/ActivityFeed.tsx`: exhaustive switch on `kind` is now type-safe against the full `ActivityItem` union; previously unhandled variants no longer produce implicit `any` or dead-branch type errors. TSC clean after change.

@@ -76,14 +76,21 @@ function MilestoneRow({ item }: { item: MilestoneCompletedActivity }) {
 }
 
 function ActivityRow({ item, isLast }: { item: ActivityItem; isLast: boolean }) {
-  const content =
-    item.kind === 'goal_created' ? (
-      <GoalCreatedRow item={item} />
-    ) : item.kind === 'echo_entry' ? (
-      <EchoEntryCard item={item} />
-    ) : (
-      <MilestoneRow item={item} />
-    );
+  const content = (() => {
+    switch (item.kind) {
+      case 'goal_created':
+        return <GoalCreatedRow item={item} />;
+      case 'echo_entry':
+        return <EchoEntryCard item={item} />;
+      case 'milestone_completed':
+        return <MilestoneRow item={item} />;
+      case 'vault_item_added':
+      case 'insight_confirmed':
+      case 'echo_linked':
+        // Placeholder: these activity kinds will get dedicated UI in a later pass.
+        return null;
+    }
+  })();
 
   return (
     <View

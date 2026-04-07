@@ -1,9 +1,14 @@
 # Ohara — Session Context
+# Paste at top of every CC/Codex session. Update after each session.
 
-Ohara is a goal-first personal growth platform: SMART goal creation via conversational AI, Echo journaling, and an Intelligence layer that builds a character profile over time. Solo developer (Ariel) in Phase 1 friends-and-family pilot.
+Ohara is a goal-first personal growth platform: SMART goal creation via conversational AI,
+Echo journaling, and an Intelligence layer that builds a character profile over time.
+Phase 1 friends-and-family pilot.
 
 ## Stack
-Expo (React Native Web, SSR mode) → Vercel · Supabase (auth, DB, RLS) · Anthropic API · NativeWind · Zustand · TypeScript strict mode
+Expo (React Native Web, SSR mode) → Vercel · Supabase (auth, DB, RLS) · Anthropic API (Haiku)
+NativeWind · Zustand · TypeScript strict mode
+Theme: cream #F5F1EA, white cards, forest green #3D5247, Inter + Lora
 
 ## Lane Ownership
 - Ariel: `lib/ai/`, constants, types, architecture
@@ -12,39 +17,57 @@ Expo (React Native Web, SSR mode) → Vercel · Supabase (auth, DB, RLS) · Anth
 - CFO: legal, outreach, content
 
 ## Key Files
-`API_CONTRACT.md` · `AI_RESPONSE_SCHEMA.md` · `CLAUDE.md` · `AGENTS.md` · `schema.ts` · `CHANGELOGCODEX.md`
+`API_CONTRACT.md` · `AI_RESPONSE_SCHEMA.md` · `CLAUDE.md` · `AGENTS.md` · `schema.ts`
+`CHANGELOGCODEX.md` · `docs/context.md` (deprecated — root CONTEXT.md is canonical)
+
+## Current State
+- Migrations: through 021 (spaces personal uniqueness)
+- `tsc --noEmit`: clean
+- RLS: verified across all tables
+- Auth: Supabase auth working; `/auth/callback` 404 parked (teammate has Auth0 solution)
+
+## Shipped — Execution Loop Foundation
+- `lib/db/vaults.ts`: getOrCreateVault · getVaultItems · addVaultItem · getVaultItemCount
+- `app/goals/[id]/index.tsx`: goal detail (was [id].tsx — moved for nested routing)
+- `app/goals/[id]/vault.tsx`: minimal vault screen (list entries + add note)
+- `features/goals/components/MeasurablesPanel.tsx`: single goal-level vault count line above milestone rows; milestone tap navigates to vault
+- `features/goals/components/MeasurableCard.tsx`: net zero change — restored to original structure
+- `app/projects/[id].tsx`: placeholder Activity card removed
+- `lib/db/goals.ts`: epoch fallback fixed (new Date(0) → new Date())
+- Vault lookup chain: goal_id → vaults.goal_id → vaults.id → vault_items.vault_id (no direct goal_id on vault_items)
+
+## Shipped — Type Layer (2026-04-06)
+- `types/vault.ts`: Vault, VaultItem, VaultItemType, VaultItemMetadata (pure types, zero side effects)
+- `types/space.ts`: Space, SpaceType, SpaceRole, SpaceMember
+- `types/echo-link.ts`: EchoGoalLink, EchoLinkSource
+- `types/activity.ts`: extended with three new ActivityItem variants (discriminated union on `kind`)
+- `features/goals/components/ActivityFeed.tsx`: narrowing fix applied — exhaustive switch on `kind` now type-safe
+- `tsc --noEmit`: clean after all above changes
 
 ## AI Architecture
-- Ohara (goal creation): Haiku Phase 1 → Sonnet Phase 2, `lib/ai/prompts/goal-creation.ts`
+- Goal creation (Ohara): Haiku Phase 1 → Sonnet Phase 2, `lib/ai/prompts/goal-creation.ts`
 - Echo reflection: Haiku always, `lib/ai/echo-client.ts` + `lib/ai/prompts/echo-reflection.ts`
-- Summarization over storage: raw conversations never persisted, only structured summaries update character profile (JSONB)
-
-## Current State (Phase 1 Pilot)
-- Auth: Supabase auth working, `/auth/callback` 404 parked for Phase 2 (teammate has Auth0 solution)
-- Schema: fully canonicalized, `tsc --noEmit` clean, RLS verified across all tables
-- Goal creation: conversational AI with ambiguity detection (Flow A/B), 6-section draft scaffold, `[[GOAL_READY]]` finalization signal, Ohara voice/tone layer implemented
-- Goal detail: Echo entries display, measurables fully editable inline with optimistic UI + rollback
-- Echo: Haiku-backed reflection, `ai_insight_requested` gates API call, goal attachment supported
-- Dashboard: loading/empty states polished, feature flags wired (`ECHO_ENABLED=true`, `DISCOVERY_ENABLED=false`)
-- Feature flags: `ECHO_ENABLED` · `INTELLIGENCE_ENABLED` · `DISCOVERY_ENABLED` · `SOCIAL_ENABLED` · `COLLAGE_ENABLED`
+- Summarization over storage: raw conversations never persisted; only structured summaries update character profile (JSONB)
 
 ## Canonical Schema Rules
 - Goal status: `active / complete / stagnant / discovered` (never paused/completed/archived)
 - Assumptions: always `string[]`, never optional
 - All measurable writes scoped through RLS via `goal_id → goals.user_id = auth.uid()`
-- Goal visibility uses explicit `private / circle / public` states; Phase 1 keeps non-owner access conservative until connection-aware sharing ships
+- Visibility: `private / circle / public` — non-owner access conservative until social ships
+- vault_items has no milestone_id — milestone context not in schema yet
 
-## Outstanding
-- Dashboard redesign (Echo entry point, Guide presence as Ohara voice, badge fix)
-- Goal creation UI redesign (chat interface, olive gradient, mode selector)
-- Flow A prompt: add encouraging words for ambiguous-but-specific inputs before follow-up questions
+## Outstanding (Phase 1)
+- Dashboard redesign: Echo entry point, Ohara voice/Guide presence, badge fix
+- Goal creation UI redesign: chat interface, mode selector
+- Flow A prompt: add encouraging words for ambiguous-but-specific inputs
 - Typography pass
 - Landing page redesign
-- Sub-goals / project format (Phase 2 — separate architecture discussion needed)
+- `/auth/callback` 404 resolution before pilot goes live
 
 ## Rules
 - NativeWind only — no inline styles except dynamic theme colors
 - No raw API calls outside `lib/ai/client.ts` or `lib/ai/echo-client.ts`
 - No hardcoded secrets
-- CC reads CHANGELOGCODEX.md first to catch up on Codex sessions
+- Read CLAUDE.md and CHANGELOGCODEX.md before starting any session
 - Codex writes to CHANGELOGCODEX.md after every session
+- Run `npx tsc --noEmit` before and after every task
