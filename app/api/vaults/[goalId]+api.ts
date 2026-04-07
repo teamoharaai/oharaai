@@ -1,7 +1,7 @@
-import supabase, { isDatabaseConfigured } from '@/lib/db/client';
+import supabase, { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 import {
-  getVaultByGoalId,
-  getVaultWithItems,
+  getVaultByGoalIdForUser,
+  getVaultItems,
   createVaultItem,
 } from '@/lib/db/vaults';
 import type { VaultItem, VaultItemType } from '@/types/vault';
@@ -14,22 +14,23 @@ const VAULT_ITEM_TYPES: readonly VaultItemType[] = [
   'action_update',
 ];
 
+const MAX_ID_LENGTH = 255;
 const MAX_TITLE_LENGTH = 200;
 const MAX_CONTENT_LENGTH = 10000;
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
-async function getUserFromRequest(request: Request) {
+async function getAuthContextFromRequest(request: Request) {
   const authHeader = request.headers.get('Authorization');
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token) return null;
+  if (!token || !isDatabaseConfigured) return null;
 
   const {
     data: { user },
     error,
   } = await supabase.auth.getUser(token);
 
-  return error || !user ? null : user;
+  return error || !user ? null : { userId: user.id, accessToken: token };
 }
 
 // ─── Input sanitization ───────────────────────────────────────────────────────
@@ -83,22 +84,27 @@ export async function GET(
     return Response.json({ error: 'Database not configured' }, { status: 503 });
   }
 
-  const user = await getUserFromRequest(request);
-  if (!user) {
+  const auth = await getAuthContextFromRequest(request);
+  if (!auth) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { goalId } = params;
-  if (!goalId?.trim()) {
-    return Response.json({ error: 'goalId is required' }, { status: 400 });
+  let goalId: string;
+  try {
+    goalId = sanitizeString(params.goalId, MAX_ID_LENGTH);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Invalid request';
+    return Response.json({ error: message }, { status: 400 });
   }
 
   try {
-    const result = await getVaultWithItems(goalId.trim());
-    if (!result || result.vault.ownerId !== user.id) {
+    const authedDb = createAuthedClient(auth.accessToken);
+    const vault = await getVaultByGoalIdForUser(goalId, auth.userId, authedDb);
+    if (!vault) {
       return Response.json({ error: 'Not found' }, { status: 404 });
     }
-    return Response.json({ vault: result.vault, items: result.items });
+    const items = await getVaultItems(vault.id, authedDb);
+    return Response.json({ vault, items });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
     console.error('[vaults] GET failed', { goalId, error: message });
@@ -123,14 +129,17 @@ export async function POST(
     return Response.json({ error: 'Database not configured' }, { status: 503 });
   }
 
-  const user = await getUserFromRequest(request);
-  if (!user) {
+  const auth = await getAuthContextFromRequest(request);
+  if (!auth) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { goalId } = params;
-  if (!goalId?.trim()) {
-    return Response.json({ error: 'goalId is required' }, { status: 400 });
+  let goalId: string;
+  try {
+    goalId = sanitizeString(params.goalId, MAX_ID_LENGTH);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Invalid request';
+    return Response.json({ error: message }, { status: 400 });
   }
 
   let body: CreateVaultItemBody;
@@ -159,8 +168,9 @@ export async function POST(
   }
 
   try {
-    const vault = await getVaultByGoalId(goalId.trim());
-    if (!vault || vault.ownerId !== user.id) {
+    const authedDb = createAuthedClient(auth.accessToken);
+    const vault = await getVaultByGoalIdForUser(goalId, auth.userId, authedDb);
+    if (!vault) {
       return Response.json({ error: 'Not found' }, { status: 404 });
     }
 
@@ -171,9 +181,9 @@ export async function POST(
       content,
       metadata,
       visibility: 'private',
-      createdBy: user.id,
+      createdBy: auth.userId,
       sortOrder: 0,
-    });
+    }, authedDb);
 
     return Response.json({ item }, { status: 201 });
   } catch (error) {

@@ -96,3 +96,24 @@ lib/ai/client.ts chokepoint. Captured by Vercel. No DB table — revisit
 in Phase 2 when usage patterns are known.
 
 ## April 6th,2026
+## BRTClassification vs EchoBrt — consolidation deferred
+
+**Date:** April 2026
+**Status:** Deferred — cleanup needed
+
+Two BRT-related types currently coexist:
+- `BRTClassification = 'bud' | 'rose' | 'thorn'` in `types/global.ts`
+- `EchoBrt` (definition in `features/echo/types.ts`, used in `types/activity.ts` and `lib/db/goals.ts`)
+
+`EchoBrt` is already behaving as a domain-wide type but lives in a feature folder.
+`BRTClassification` in `global.ts` is a separate definition that may or may not be equivalent.
+
+**Action required:** Audit whether these two types are identical or diverging.
+If identical, consolidate to one definition in `types/global.ts`, deprecate `EchoBrt`
+from the feature folder, and update all import sites. If diverging, document the
+distinction explicitly.
+
+**Affected files:** `features/echo/types.ts`, `types/global.ts`, `types/activity.ts`,
+`lib/db/goals.ts`, `lib/activity/mappers.ts`
+
+Renamed spaces.user_id → owner_id in migration 022 for semantic clarity; ownerId in types/space.ts now maps directly without aliasing"

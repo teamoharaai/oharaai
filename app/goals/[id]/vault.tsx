@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -9,79 +10,309 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
-import supabase from '@/lib/db/client';
-import { getOrCreateVault, getVaultItems, addVaultItem } from '@/lib/db/vaults';
-import type { VaultItem } from '@/lib/db/vaults';
+import { useFocusEffect, useLocalSearchParams, router } from 'expo-router';
+import { useVault } from '@/features/goals/hooks/useVault';
+import { useEchoTrail } from '@/features/goals/hooks/useEchoTrail';
+import { VaultItemCard } from '@/features/goals/components/VaultItemCard';
+import { EchoTrail } from '@/features/goals/components/EchoTrail';
+
+const CARD_STYLE = {
+  backgroundColor: '#FFFFFF',
+  borderRadius: 16,
+  padding: 16,
+  marginBottom: 8,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.05,
+  shadowRadius: 12,
+  elevation: 1,
+};
+
+const INPUT_STYLE = {
+  fontSize: 14,
+  color: '#1A1F1C',
+  backgroundColor: '#F5F1EA',
+  borderRadius: 10,
+  borderWidth: 1,
+  borderColor: '#EAE7E0',
+  paddingHorizontal: 12,
+  paddingVertical: 10,
+};
+
+// ─── Sheet sub-components ──────────────────────────────────────────────────────
+
+type VaultPickerSheetProps = {
+  onNote: () => void;
+  onLink: () => void;
+  onClose: () => void;
+};
+
+function VaultPickerSheet({ onNote, onLink, onClose }: VaultPickerSheetProps) {
+  void onClose;
+  return (
+    <View>
+      <Text
+        style={{
+          fontFamily: 'Inter',
+          fontSize: 15,
+          fontWeight: '600',
+          color: '#1A1F1C',
+          marginBottom: 16,
+        }}
+      >
+        Add to Vault
+      </Text>
+      <Pressable
+        onPress={onNote}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+          paddingVertical: 14,
+          borderBottomWidth: 1,
+          borderBottomColor: '#F0EDE6',
+        }}
+      >
+        <Text style={{ fontSize: 20 }}>📝</Text>
+        <Text style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: '500', color: '#1A1F1C' }}>
+          Add Note
+        </Text>
+      </Pressable>
+      <Pressable
+        onPress={onLink}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+          paddingVertical: 14,
+        }}
+      >
+        <Text style={{ fontSize: 20 }}>🔗</Text>
+        <Text style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: '500', color: '#1A1F1C' }}>
+          Save Link
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+type AddNoteSheetProps = {
+  onSave: (title: string, content: string) => Promise<void>;
+  onClose: () => void;
+};
+
+function AddNoteSheet({ onSave, onClose }: AddNoteSheetProps) {
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    if (!content.trim()) return;
+    setSaving(true);
+    await onSave(title.trim(), content.trim());
+    setSaving(false);
+  }
+
+  return (
+    <View>
+      <Text
+        style={{
+          fontFamily: 'Inter',
+          fontSize: 15,
+          fontWeight: '600',
+          color: '#1A1F1C',
+          marginBottom: 14,
+        }}
+      >
+        Add Note
+      </Text>
+      <TextInput
+        style={[INPUT_STYLE, { marginBottom: 10 }]}
+        placeholder="Title (optional)"
+        placeholderTextColor="#9CAF9F"
+        value={title}
+        onChangeText={setTitle}
+        returnKeyType="next"
+      />
+      <TextInput
+        style={[INPUT_STYLE, { minHeight: 100, textAlignVertical: 'top', marginBottom: 14 }]}
+        placeholder="Write your note…"
+        placeholderTextColor="#9CAF9F"
+        value={content}
+        onChangeText={setContent}
+        multiline
+        numberOfLines={5}
+      />
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <TouchableOpacity
+          onPress={onClose}
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            paddingVertical: 10,
+            borderRadius: 10,
+            borderWidth: 1,
+            borderColor: '#EAE7E0',
+          }}
+          disabled={saving}
+        >
+          <Text style={{ fontFamily: 'Inter', fontSize: 14, color: '#6B7B6E' }}>Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={handleSave}
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            paddingVertical: 10,
+            borderRadius: 10,
+            backgroundColor: '#3D5247',
+            opacity: saving || !content.trim() ? 0.5 : 1,
+          }}
+          disabled={saving || !content.trim()}
+        >
+          {saving ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: '600', color: '#FFFFFF' }}>
+              Save
+            </Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+type SaveLinkSheetProps = {
+  onSave: (url: string, annotation?: string) => Promise<void>;
+  onClose: () => void;
+};
+
+function SaveLinkSheet({ onSave, onClose }: SaveLinkSheetProps) {
+  const [url, setUrl] = useState('');
+  const [annotation, setAnnotation] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    if (!url.trim()) return;
+    setSaving(true);
+    await onSave(url.trim(), annotation.trim() || undefined);
+    setSaving(false);
+  }
+
+  return (
+    <View>
+      <Text
+        style={{
+          fontFamily: 'Inter',
+          fontSize: 15,
+          fontWeight: '600',
+          color: '#1A1F1C',
+          marginBottom: 14,
+        }}
+      >
+        Save Link
+      </Text>
+      <TextInput
+        style={[INPUT_STYLE, { marginBottom: 10 }]}
+        placeholder="https://…"
+        placeholderTextColor="#9CAF9F"
+        value={url}
+        onChangeText={setUrl}
+        autoCapitalize="none"
+        keyboardType="url"
+        returnKeyType="next"
+      />
+      <TextInput
+        style={[INPUT_STYLE, { marginBottom: 14 }]}
+        placeholder="Note about this link (optional)"
+        placeholderTextColor="#9CAF9F"
+        value={annotation}
+        onChangeText={setAnnotation}
+        returnKeyType="done"
+        onSubmitEditing={handleSave}
+      />
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <TouchableOpacity
+          onPress={onClose}
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            paddingVertical: 10,
+            borderRadius: 10,
+            borderWidth: 1,
+            borderColor: '#EAE7E0',
+          }}
+          disabled={saving}
+        >
+          <Text style={{ fontFamily: 'Inter', fontSize: 14, color: '#6B7B6E' }}>Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={handleSave}
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            paddingVertical: 10,
+            borderRadius: 10,
+            backgroundColor: '#3D5247',
+            opacity: saving || !url.trim() ? 0.5 : 1,
+          }}
+          disabled={saving || !url.trim()}
+        >
+          {saving ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: '600', color: '#FFFFFF' }}>
+              Save
+            </Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+// ─── Main screen ───────────────────────────────────────────────────────────────
 
 export default function VaultScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const goalId = Array.isArray(id) ? id[0] : (id ?? '');
 
-  const [vaultId, setVaultId] = useState<string | null>(null);
-  const [items, setItems] = useState<VaultItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [input, setInput] = useState('');
-  const [saving, setSaving] = useState(false);
-  const userIdRef = useRef<string | null>(null);
+  const vault = useVault(goalId);
+  const echoTrail = useEchoTrail(goalId);
 
-  useEffect(() => {
-    if (!goalId) return;
-    let cancelled = false;
+  const [showSheet, setShowSheet] = useState(false);
+  const [sheetMode, setSheetMode] = useState<'pick' | 'note' | 'link'>('pick');
 
-    async function init() {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        const userId = session?.user?.id;
-        if (!userId) throw new Error('Not authenticated');
-        userIdRef.current = userId;
+  useFocusEffect(
+    useCallback(() => {
+      void vault.refresh();
+      void echoTrail.refresh();
+    }, [vault.refresh, echoTrail.refresh]),
+  );
 
-        const vid = await getOrCreateVault(goalId, userId);
-        if (cancelled) return;
-        setVaultId(vid);
+  function openSheet() {
+    setSheetMode('pick');
+    setShowSheet(true);
+  }
 
-        const fetched = await getVaultItems(vid);
-        if (cancelled) return;
-        setItems(fetched);
-      } catch (e: unknown) {
-        if (!cancelled) {
-          const msg = e instanceof Error ? e.message : 'Failed to load vault';
-          setError(msg);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
+  function closeSheet() {
+    setShowSheet(false);
+  }
 
-    init();
-    return () => {
-      cancelled = true;
-    };
-  }, [goalId]);
+  async function handleAddNote(title: string, content: string) {
+    await vault.addNote(title, content);
+    closeSheet();
+  }
 
-  async function handleSave() {
-    const trimmed = input.trim();
-    if (!trimmed || !vaultId || !userIdRef.current || saving) return;
-    setSaving(true);
-    try {
-      await addVaultItem(vaultId, userIdRef.current, trimmed);
-      const refreshed = await getVaultItems(vaultId);
-      setItems(refreshed);
-      setInput('');
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Failed to save entry';
-      setError(msg);
-    } finally {
-      setSaving(false);
-    }
+  async function handleAddLink(url: string, annotation?: string) {
+    await vault.addLink(url, annotation);
+    closeSheet();
   }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F1EA' }}>
-      {/* Nav */}
+      {/* Nav bar */}
       <View
         style={{
           flexDirection: 'row',
@@ -98,140 +329,199 @@ export default function VaultScreen() {
           |
         </Text>
         <Text
-          style={{ fontFamily: 'Inter', fontSize: 15, fontWeight: '500', color: '#1A1F1C' }}
+          style={{ fontFamily: 'Inter', fontSize: 15, fontWeight: '500', color: '#1A1F1C', flex: 1 }}
         >
           Vault
         </Text>
       </View>
 
-      {loading ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator color="#3D5247" />
-        </View>
-      ) : error ? (
-        <View
-          style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}
-        >
-          <Text style={{ fontSize: 14, color: '#EF4444', textAlign: 'center' }}>{error}</Text>
-        </View>
-      ) : (
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Add entry */}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Vault Items ────────────────────────────────────────────────── */}
+        <View style={{ marginBottom: 24 }}>
           <View
             style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: 16,
-              padding: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
               marginBottom: 12,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.05,
-              shadowRadius: 12,
-              elevation: 1,
             }}
           >
-            <TextInput
+            <Text
               style={{
-                fontSize: 14,
-                color: '#1A1F1C',
-                backgroundColor: '#F5F1EA',
-                borderRadius: 10,
-                borderWidth: 1,
-                borderColor: '#EAE7E0',
-                paddingHorizontal: 12,
-                paddingVertical: 10,
-                marginBottom: 10,
-                minHeight: 80,
-                textAlignVertical: 'top',
+                fontFamily: 'Inter',
+                fontSize: 11,
+                fontWeight: '500',
+                color: '#6B7B6E',
+                letterSpacing: 1.5,
+                textTransform: 'uppercase',
               }}
-              placeholder="Add a note…"
-              placeholderTextColor="#9CAF9F"
-              value={input}
-              onChangeText={setInput}
-              multiline
-            />
-            <TouchableOpacity
-              style={{
-                alignSelf: 'flex-end',
-                backgroundColor: '#3D5247',
-                borderRadius: 8,
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                opacity: saving || !input.trim() ? 0.5 : 1,
-              }}
-              onPress={handleSave}
-              disabled={saving || !input.trim()}
             >
-              {saving ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={{ fontSize: 13, fontWeight: '600', color: '#FFFFFF' }}>Save</Text>
-              )}
+              Items{vault.items.length > 0 ? ` (${vault.items.length})` : ''}
+            </Text>
+            <TouchableOpacity onPress={openSheet} hitSlop={8}>
+              <Text style={{ fontSize: 22, color: '#3D5247', lineHeight: 24 }}>＋</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Entries */}
-          {items.length === 0 ? (
-            <View
+          {vault.loading && (
+            <ActivityIndicator
+              size="small"
+              color="#9CAF9F"
+              style={{ alignSelf: 'flex-start', marginBottom: 8 }}
+            />
+          )}
+
+          {vault.error ? (
+            <Text style={{ fontSize: 13, color: '#EF4444', marginBottom: 8 }}>{vault.error}</Text>
+          ) : null}
+
+          {!vault.loading && vault.items.length === 0 ? (
+            <Pressable
+              onPress={openSheet}
               style={{
-                backgroundColor: '#FFFFFF',
-                borderRadius: 16,
-                padding: 20,
+                ...CARD_STYLE,
                 alignItems: 'center',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.05,
-                shadowRadius: 12,
-                elevation: 1,
+                paddingVertical: 32,
               }}
             >
-              <Text style={{ fontFamily: 'Inter', fontSize: 14, color: '#9CAF9F' }}>
-                No entries yet.
-              </Text>
-            </View>
-          ) : (
-            items.map((item) => (
-              <View
-                key={item.id}
+              <Text style={{ fontSize: 30, marginBottom: 8 }}>◫</Text>
+              <Text
                 style={{
-                  backgroundColor: '#FFFFFF',
-                  borderRadius: 16,
-                  padding: 16,
-                  marginBottom: 8,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.05,
-                  shadowRadius: 12,
-                  elevation: 1,
+                  fontFamily: 'Inter',
+                  fontSize: 13,
+                  color: '#9CAF9F',
+                  textAlign: 'center',
+                  lineHeight: 20,
                 }}
               >
-                <Text
-                  style={{
-                    fontFamily: 'Inter',
-                    fontSize: 14,
-                    color: '#1A1F1C',
-                    lineHeight: 20,
-                    marginBottom: 6,
-                  }}
-                >
-                  {item.content}
-                </Text>
-                <Text style={{ fontFamily: 'Inter', fontSize: 11, color: '#9CAF9F' }}>
-                  {new Date(item.createdAt).toLocaleDateString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
-                </Text>
-              </View>
+                Add notes, links, and resources{'\n'}to build your vault
+              </Text>
+            </Pressable>
+          ) : (
+            vault.items.map((item) => (
+              <VaultItemCard
+                key={item.id}
+                item={item}
+                goalId={goalId}
+                onUpdate={vault.updateItem}
+                onDelete={vault.removeItem}
+              />
             ))
           )}
-        </ScrollView>
-      )}
+        </View>
+
+        {/* ── Echo Trail ─────────────────────────────────────────────────── */}
+        <View style={{ marginBottom: 24 }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 12,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: 'Inter',
+                fontSize: 11,
+                fontWeight: '500',
+                color: '#6B7B6E',
+                letterSpacing: 1.5,
+                textTransform: 'uppercase',
+              }}
+            >
+              Reflections
+            </Text>
+            <Pressable
+              onPress={() =>
+                router.push(`/(app)/echo?goalId=${goalId}` as never)
+              }
+            >
+              <Text style={{ fontFamily: 'Inter', fontSize: 13, color: '#3D5247', fontWeight: '500' }}>
+                Write in Echo
+              </Text>
+            </Pressable>
+          </View>
+
+          {echoTrail.loading && (
+            <ActivityIndicator
+              size="small"
+              color="#9CAF9F"
+              style={{ alignSelf: 'flex-start', marginBottom: 8 }}
+            />
+          )}
+
+          {!echoTrail.loading && echoTrail.entries.length === 0 ? (
+            <Pressable
+              onPress={() =>
+                router.push(`/(app)/echo?goalId=${goalId}` as never)
+              }
+              style={{
+                ...CARD_STYLE,
+                alignItems: 'center',
+                paddingVertical: 28,
+                flexDirection: 'row',
+                justifyContent: 'center',
+                gap: 8,
+              }}
+            >
+              <Text style={{ fontFamily: 'Inter', fontSize: 13, color: '#9CAF9F' }}>
+                Journal about this goal in Echo
+              </Text>
+              <Text style={{ fontSize: 14, color: '#9CAF9F' }}>›</Text>
+            </Pressable>
+          ) : (
+            <EchoTrail
+              entries={echoTrail.entries}
+              goalId={goalId}
+              onConfirmLink={echoTrail.confirmLink}
+              onDismissLink={echoTrail.dismissLink}
+            />
+          )}
+        </View>
+      </ScrollView>
+
+      {/* ── Bottom Sheet ──────────────────────────────────────────────────── */}
+      <Modal
+        visible={showSheet}
+        transparent
+        animationType="slide"
+        onRequestClose={closeSheet}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' }}
+          onPress={closeSheet}
+        />
+        <View
+          style={{
+            backgroundColor: '#FFFFFF',
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            paddingHorizontal: 24,
+            paddingTop: 24,
+            paddingBottom: 40,
+            minHeight: 280,
+          }}
+        >
+          {sheetMode === 'pick' && (
+            <VaultPickerSheet
+              onNote={() => setSheetMode('note')}
+              onLink={() => setSheetMode('link')}
+              onClose={closeSheet}
+            />
+          )}
+          {sheetMode === 'note' && (
+            <AddNoteSheet onSave={handleAddNote} onClose={closeSheet} />
+          )}
+          {sheetMode === 'link' && (
+            <SaveLinkSheet onSave={handleAddLink} onClose={closeSheet} />
+          )}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

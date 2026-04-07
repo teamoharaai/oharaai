@@ -2,6 +2,7 @@ import supabase from './client';
 import type { GoalTheme } from '@/constants/themes';
 import type { GoalFinalizeResponse } from '@/lib/ai/schemas/goal-creation';
 import type { ActivityItem } from '@/types/activity';
+import type { VaultItemType } from '@/types/vault';
 import type { EchoEmotion, EchoBrt } from '@/features/echo/types';
 
 export interface CreateGoalWithMeasurablesResult {
@@ -263,6 +264,34 @@ type DbGoalOwnershipRow = {
   id: string;
 };
 
+// Additional row types for new activity sources
+
+type DbVaultRowForActivity = {
+  id: string;
+};
+
+type DbVaultItemRowForActivity = {
+  id: string;
+  item_type: string;
+  title: string | null;
+  content: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+};
+
+type DbEchoLinkRow = {
+  id: string;
+  echo_entry_id: string;
+  created_at: string;
+};
+
+type DbEchoEntryForLinkRow = {
+  id: string;
+  content: string;
+  brt: EchoBrt | null;
+};
+
 /**
  * Returns a unified activity timeline for a goal, sorted descending by timestamp.
  * Always includes at least one item: the goal_created event.
@@ -271,23 +300,28 @@ export async function getActivityByGoalId(
   goalId: string,
   userId: string,
 ): Promise<ActivityItem[]> {
-  // 1. Echo entries for this goal
+  // 1. Echo entries for this goal (legacy echo_entries.goal_id path — preserved for backward compat)
   const { data: echoData } = await supabase
     .from('echo_entries')
     .select('id, content, emotion, brt, created_at')
     .eq('goal_id', goalId)
     .eq('user_id', userId);
 
+  // Track IDs surfaced via legacy path to avoid duplicate echo_linked rows for the same entry
+  const legacyEchoEntryIds = new Set<string>();
   const echoItems: ActivityItem[] = (echoData as unknown as DbEchoEntryRow[] ?? []).map(
-    (row) => ({
-      kind: 'echo_entry' as const,
-      id: `echo-${row.id}`,
-      entryId: row.id,
-      preview: row.content.slice(0, 100),
-      emotion: row.emotion,
-      brt: row.brt,
-      timestamp: row.created_at,
-    }),
+    (row) => {
+      legacyEchoEntryIds.add(row.id);
+      return {
+        kind: 'echo_entry' as const,
+        id: `echo-${row.id}`,
+        entryId: row.id,
+        preview: row.content.slice(0, 100),
+        emotion: row.emotion,
+        brt: row.brt,
+        timestamp: row.created_at,
+      };
+    },
   );
 
   // 2. Measurable completion logs (logs where value >= measurable target_value)
@@ -342,9 +376,105 @@ export async function getActivityByGoalId(
       ?? new Date().toISOString(),
   };
 
-  return [...echoItems, ...milestoneItems, goalCreatedItem].sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+  // 4. Vault items — note/link additions (user-initiated types only)
+  //    insight and action_update types are excluded: insights get their own kind below;
+  //    action_updates are system-generated events, not user-initiated additions.
+  const vaultAddedItems: ActivityItem[] = [];
+  const insightConfirmedItems: ActivityItem[] = [];
+
+  const { data: vaultRowData } = await supabase
+    .from('vaults')
+    .select('id')
+    .eq('goal_id', goalId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (vaultRowData) {
+    const vaultId = (vaultRowData as unknown as DbVaultRowForActivity).id;
+
+    const { data: vaultItemData } = await supabase
+      .from('vault_items')
+      .select('id, item_type, title, content, metadata, created_at, updated_at')
+      .eq('vault_id', vaultId)
+      .in('item_type', ['note', 'link', 'insight']);
+
+    for (const row of (vaultItemData as unknown as DbVaultItemRowForActivity[] ?? [])) {
+      if (row.item_type === 'note' || row.item_type === 'link') {
+        const itemType = row.item_type as VaultItemType;
+        const title =
+          row.title ??
+          (row.content ? row.content.slice(0, 60) : null) ??
+          (row.item_type === 'link' ? 'Saved link' : 'Note');
+        vaultAddedItems.push({
+          kind: 'vault_item_added',
+          id: `vault-item-${row.id}`,
+          itemType,
+          title,
+          timestamp: row.created_at,
+        });
+      } else if (row.item_type === 'insight') {
+        // Only emit insight_confirmed when confirmed: true is persisted in metadata.
+        // Uses updated_at as timestamp — this is the closest real timestamp to when
+        // confirmation occurred, since no dedicated confirmed_at column exists.
+        const meta = row.metadata as { confirmed?: boolean } | null;
+        if (meta?.confirmed === true) {
+          insightConfirmedItems.push({
+            kind: 'insight_confirmed',
+            id: `insight-confirmed-${row.id}`,
+            content: row.content ?? row.title ?? 'Insight',
+            timestamp: row.updated_at,
+          });
+        }
+      }
+    }
+  }
+
+  // 5. Echo-goal links — reflections linked via echo_goal_links (many-to-many bridge).
+  //    Entries already surfaced via the legacy echo_entries.goal_id path are excluded
+  //    to prevent duplicate activity rows for the same underlying reflection.
+  //    Timestamp is echo_goal_links.created_at (when linked), not echo_entries.created_at.
+  const echoLinkedItems: ActivityItem[] = [];
+
+  const { data: linkData } = await supabase
+    .from('echo_goal_links')
+    .select('id, echo_entry_id, created_at')
+    .eq('goal_id', goalId);
+
+  const newLinks = (linkData as unknown as DbEchoLinkRow[] ?? []).filter(
+    (link) => !legacyEchoEntryIds.has(link.echo_entry_id),
   );
+
+  if (newLinks.length > 0) {
+    const linkedEntryIds = newLinks.map((link) => link.echo_entry_id);
+    const linkByEntryId = new Map(newLinks.map((link) => [link.echo_entry_id, link]));
+
+    const { data: linkedEchoData } = await supabase
+      .from('echo_entries')
+      .select('id, content, brt')
+      .in('id', linkedEntryIds);
+
+    for (const entry of (linkedEchoData as unknown as DbEchoEntryForLinkRow[] ?? [])) {
+      const link = linkByEntryId.get(entry.id);
+      if (!link) continue;
+      echoLinkedItems.push({
+        kind: 'echo_linked',
+        id: `echo-linked-${link.id}`,
+        echoEntryId: entry.id,
+        preview: entry.content.slice(0, 100),
+        brt: entry.brt ?? null,
+        timestamp: link.created_at,
+      });
+    }
+  }
+
+  return [
+    ...echoItems,
+    ...milestoneItems,
+    goalCreatedItem,
+    ...vaultAddedItems,
+    ...insightConfirmedItems,
+    ...echoLinkedItems,
+  ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 }
 
 function normalizeMeasurableTarget(targetValue: number | null): number {
@@ -439,6 +569,17 @@ export async function completeMeasurable(
   if (updateGoalError) {
     throw new Error(updateGoalError.message);
   }
+}
+
+export async function getProjectTitle(projectId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('projects')
+    .select('title')
+    .eq('id', projectId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return (data as { title: string }).title;
 }
 
 export async function getGoalProgressById(goalId: string, userId: string): Promise<number> {

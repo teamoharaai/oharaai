@@ -1,23 +1,38 @@
-import supabase, { isDatabaseConfigured } from '@/lib/db/client';
-import { updateVaultItem, deleteVaultItem } from '@/lib/db/vaults';
+import supabase, { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
+import {
+  getVaultItemByIdForUser,
+  updateVaultItem,
+  deleteVaultItem,
+} from '@/lib/db/vaults';
 import type { VaultItem } from '@/types/vault';
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
-async function getUserFromRequest(request: Request) {
+async function getAuthContextFromRequest(request: Request) {
   const authHeader = request.headers.get('Authorization');
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token) return null;
+  if (!token || !isDatabaseConfigured) return null;
 
   const {
     data: { user },
     error,
   } = await supabase.auth.getUser(token);
 
-  return error || !user ? null : user;
+  return error || !user ? null : { userId: user.id, accessToken: token };
 }
 
 // ─── Input sanitization ───────────────────────────────────────────────────────
+
+function sanitizeString(input: unknown, maxLength: number): string {
+  if (typeof input !== 'string') throw new Error('Expected string');
+  const cleaned = input
+    .replace(/\0/g, '')
+    .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  const trimmed = cleaned.trim();
+  if (trimmed.length === 0) throw new Error('Value cannot be empty');
+  if (trimmed.length > maxLength) throw new Error(`Value exceeds ${maxLength} character limit`);
+  return trimmed;
+}
 
 function sanitizeOptionalString(input: unknown, maxLength: number): string | null {
   if (input === undefined || input === null) return null;
@@ -45,37 +60,9 @@ function sanitizeMetadata(input: unknown): VaultItem['metadata'] {
   return obj as VaultItem['metadata'];
 }
 
+const MAX_ID_LENGTH = 255;
 const MAX_TITLE_LENGTH = 200;
 const MAX_CONTENT_LENGTH = 10000;
-
-// ─── Ownership helper ─────────────────────────────────────────────────────────
-
-async function resolveItemOwner(
-  itemId: string,
-): Promise<{ vaultId: string; ownerId: string } | null> {
-  const { data: itemRow, error: itemError } = await supabase
-    .from('vault_items')
-    .select('id, vault_id')
-    .eq('id', itemId)
-    .maybeSingle();
-
-  if (itemError || !itemRow) return null;
-
-  const vaultId = (itemRow as { id: string; vault_id: string }).vault_id;
-
-  const { data: vaultRow, error: vaultError } = await supabase
-    .from('vaults')
-    .select('id, user_id')
-    .eq('id', vaultId)
-    .maybeSingle();
-
-  if (vaultError || !vaultRow) return null;
-
-  return {
-    vaultId,
-    ownerId: (vaultRow as { id: string; user_id: string }).user_id,
-  };
-}
 
 // ─── PUT /api/vaults/items/:itemId ────────────────────────────────────────────
 
@@ -93,14 +80,17 @@ export async function PUT(
     return Response.json({ error: 'Database not configured' }, { status: 503 });
   }
 
-  const user = await getUserFromRequest(request);
-  if (!user) {
+  const auth = await getAuthContextFromRequest(request);
+  if (!auth) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { itemId } = params;
-  if (!itemId?.trim()) {
-    return Response.json({ error: 'itemId is required' }, { status: 400 });
+  let itemId: string;
+  try {
+    itemId = sanitizeString(params.itemId, MAX_ID_LENGTH);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Invalid request';
+    return Response.json({ error: message }, { status: 400 });
   }
 
   let body: UpdateVaultItemBody;
@@ -129,12 +119,13 @@ export async function PUT(
   }
 
   try {
-    const ownership = await resolveItemOwner(itemId.trim());
-    if (!ownership || ownership.ownerId !== user.id) {
+    const authedDb = createAuthedClient(auth.accessToken);
+    const existingItem = await getVaultItemByIdForUser(itemId, auth.userId, authedDb);
+    if (!existingItem) {
       return Response.json({ error: 'Not found' }, { status: 404 });
     }
 
-    const item = await updateVaultItem(itemId.trim(), updates);
+    const item = await updateVaultItem(itemId, updates, authedDb);
     return Response.json({ item });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
@@ -153,23 +144,27 @@ export async function DELETE(
     return Response.json({ error: 'Database not configured' }, { status: 503 });
   }
 
-  const user = await getUserFromRequest(request);
-  if (!user) {
+  const auth = await getAuthContextFromRequest(request);
+  if (!auth) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { itemId } = params;
-  if (!itemId?.trim()) {
-    return Response.json({ error: 'itemId is required' }, { status: 400 });
+  let itemId: string;
+  try {
+    itemId = sanitizeString(params.itemId, MAX_ID_LENGTH);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Invalid request';
+    return Response.json({ error: message }, { status: 400 });
   }
 
   try {
-    const ownership = await resolveItemOwner(itemId.trim());
-    if (!ownership || ownership.ownerId !== user.id) {
+    const authedDb = createAuthedClient(auth.accessToken);
+    const existingItem = await getVaultItemByIdForUser(itemId, auth.userId, authedDb);
+    if (!existingItem) {
       return Response.json({ error: 'Not found' }, { status: 404 });
     }
 
-    await deleteVaultItem(itemId.trim());
+    await deleteVaultItem(itemId, authedDb);
     return Response.json({ success: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';

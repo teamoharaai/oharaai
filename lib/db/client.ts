@@ -18,6 +18,20 @@ export const supabase: SupabaseClient = isDatabaseConfigured
     })
   : (null as any);
 
+export function createAuthedClient(accessToken: string): SupabaseClient {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  });
+}
+
 if (!isDatabaseConfigured && process.env.NODE_ENV !== 'production') {
   console.warn('[Ohara] Supabase env vars not found — db calls will fail');
 }

@@ -1,8 +1,11 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import supabase from './client';
 import type { Vault, VaultItem, VaultItemType } from '@/types/vault';
 
 // Re-export canonical type so existing imports of `VaultItem` from this module still resolve.
 export type { VaultItem };
+
+type DbClient = SupabaseClient;
 
 // ── DB row types ──────────────────────────────────────────────────────────────
 
@@ -73,8 +76,11 @@ function buildVaultItemUpdate(updates: Partial<VaultItem>): Record<string, unkno
 
 // ── Canonical functions (new service API) ─────────────────────────────────────
 
-export async function getVaultByGoalId(goalId: string): Promise<Vault | null> {
-  const { data, error } = await supabase
+export async function getVaultByGoalId(
+  goalId: string,
+  client: DbClient = supabase,
+): Promise<Vault | null> {
+  const { data, error } = await client
     .from('vaults')
     .select('id, user_id, goal_id, space_id, vault_type, created_at, updated_at')
     .eq('goal_id', goalId)
@@ -85,8 +91,28 @@ export async function getVaultByGoalId(goalId: string): Promise<Vault | null> {
   return mapVault(data as unknown as DbVaultRow);
 }
 
-export async function getVaultItems(vaultId: string): Promise<VaultItem[]> {
-  const { data, error } = await supabase
+export async function getVaultByGoalIdForUser(
+  goalId: string,
+  userId: string,
+  client: DbClient = supabase,
+): Promise<Vault | null> {
+  const { data, error } = await client
+    .from('vaults')
+    .select('id, user_id, goal_id, space_id, vault_type, created_at, updated_at')
+    .eq('goal_id', goalId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+  return mapVault(data as unknown as DbVaultRow);
+}
+
+export async function getVaultItems(
+  vaultId: string,
+  client: DbClient = supabase,
+): Promise<VaultItem[]> {
+  const { data, error } = await client
     .from('vault_items')
     .select('id, vault_id, item_type, title, content, metadata, visibility, created_by, sort_order, created_at, updated_at')
     .eq('vault_id', vaultId)
@@ -99,8 +125,9 @@ export async function getVaultItems(vaultId: string): Promise<VaultItem[]> {
 export async function getVaultItemsByType(
   vaultId: string,
   itemType: VaultItemType,
+  client: DbClient = supabase,
 ): Promise<VaultItem[]> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('vault_items')
     .select('id, vault_id, item_type, title, content, metadata, visibility, created_by, sort_order, created_at, updated_at')
     .eq('vault_id', vaultId)
@@ -114,8 +141,9 @@ export async function getVaultItemsByType(
 export async function createVaultItem(
   vaultId: string,
   item: Omit<VaultItem, 'id' | 'createdAt' | 'updatedAt'>,
+  client: DbClient = supabase,
 ): Promise<VaultItem> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('vault_items')
     .insert({
       vault_id: vaultId,
@@ -137,10 +165,11 @@ export async function createVaultItem(
 export async function updateVaultItem(
   itemId: string,
   updates: Partial<VaultItem>,
+  client: DbClient = supabase,
 ): Promise<VaultItem> {
   const payload = buildVaultItemUpdate(updates);
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('vault_items')
     .update(payload)
     .eq('id', itemId)
@@ -151,8 +180,11 @@ export async function updateVaultItem(
   return mapVaultItem(data as unknown as DbVaultItemRow);
 }
 
-export async function deleteVaultItem(itemId: string): Promise<void> {
-  const { error } = await supabase
+export async function deleteVaultItem(
+  itemId: string,
+  client: DbClient = supabase,
+): Promise<void> {
+  const { error } = await client
     .from('vault_items')
     .delete()
     .eq('id', itemId);
@@ -160,12 +192,41 @@ export async function deleteVaultItem(itemId: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+export async function getVaultItemByIdForUser(
+  itemId: string,
+  userId: string,
+  client: DbClient = supabase,
+): Promise<VaultItem | null> {
+  const { data: itemRow, error: itemError } = await client
+    .from('vault_items')
+    .select('id, vault_id, item_type, title, content, metadata, visibility, created_by, sort_order, created_at, updated_at')
+    .eq('id', itemId)
+    .maybeSingle();
+
+  if (itemError) throw itemError;
+  if (!itemRow) return null;
+
+  const row = itemRow as unknown as DbVaultItemRow;
+  const { data: vaultRow, error: vaultError } = await client
+    .from('vaults')
+    .select('id')
+    .eq('id', row.vault_id)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (vaultError) throw vaultError;
+  if (!vaultRow) return null;
+
+  return mapVaultItem(row);
+}
+
 export async function getVaultWithItems(
   goalId: string,
+  client: DbClient = supabase,
 ): Promise<{ vault: Vault; items: VaultItem[] } | null> {
-  const vault = await getVaultByGoalId(goalId);
+  const vault = await getVaultByGoalId(goalId, client);
   if (!vault) return null;
-  const items = await getVaultItems(vault.id);
+  const items = await getVaultItems(vault.id, client);
   return { vault, items };
 }
 
@@ -175,8 +236,12 @@ export async function getVaultWithItems(
  * Returns the vault id for a goal, creating the vault if it does not exist.
  * Lookup chain: goal_id → vaults.goal_id → vaults.id
  */
-export async function getOrCreateVault(goalId: string, userId: string): Promise<string> {
-  const { data: existing } = await supabase
+export async function getOrCreateVault(
+  goalId: string,
+  userId: string,
+  client: DbClient = supabase,
+): Promise<string> {
+  const { data: existing } = await client
     .from('vaults')
     .select('id')
     .eq('goal_id', goalId)
@@ -184,7 +249,7 @@ export async function getOrCreateVault(goalId: string, userId: string): Promise<
 
   if (existing) return existing.id as string;
 
-  const { data: created, error } = await supabase
+  const { data: created, error } = await client
     .from('vaults')
     .insert({ goal_id: goalId, user_id: userId, vault_type: 'personal' })
     .select('id')
@@ -201,8 +266,9 @@ export async function addVaultItem(
   vaultId: string,
   userId: string,
   content: string,
+  client: DbClient = supabase,
 ): Promise<void> {
-  const { error } = await supabase.from('vault_items').insert({
+  const { error } = await client.from('vault_items').insert({
     vault_id: vaultId,
     item_type: 'note',
     content,
@@ -218,8 +284,11 @@ export async function addVaultItem(
 /**
  * Counts vault items for a goal by following goal_id → vaults.id → vault_items.vault_id.
  */
-export async function getVaultItemCount(goalId: string): Promise<number> {
-  const { data: vault, error: vaultError } = await supabase
+export async function getVaultItemCount(
+  goalId: string,
+  client: DbClient = supabase,
+): Promise<number> {
+  const { data: vault, error: vaultError } = await client
     .from('vaults')
     .select('id')
     .eq('goal_id', goalId)
@@ -228,7 +297,7 @@ export async function getVaultItemCount(goalId: string): Promise<number> {
   if (vaultError) throw new Error(vaultError.message);
   if (!vault) return 0;
 
-  const { count, error } = await supabase
+  const { count, error } = await client
     .from('vault_items')
     .select('id', { count: 'exact', head: true })
     .eq('vault_id', vault.id);

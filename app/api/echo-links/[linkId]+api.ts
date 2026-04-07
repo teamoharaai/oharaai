@@ -1,68 +1,36 @@
-import supabase, { isDatabaseConfigured } from '@/lib/db/client';
-import { confirmLink, dismissLink } from '@/lib/db/echo-goal-links';
-import type { EchoGoalLink } from '@/types/echo-link';
+import supabase, { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
+import {
+  confirmLink,
+  dismissLink,
+  getEchoLinkByIdForUserGoal,
+} from '@/lib/db/echo-goal-links';
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
-async function getUserFromRequest(request: Request) {
+async function getAuthContextFromRequest(request: Request) {
   const authHeader = request.headers.get('Authorization');
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token) return null;
+  if (!token || !isDatabaseConfigured) return null;
 
   const {
     data: { user },
     error,
   } = await supabase.auth.getUser(token);
 
-  return error || !user ? null : user;
+  return error || !user ? null : { userId: user.id, accessToken: token };
 }
 
-// ─── Ownership helper ─────────────────────────────────────────────────────────
+const MAX_ID_LENGTH = 255;
 
-type DbLinkRow = {
-  id: string;
-  echo_entry_id: string;
-  goal_id: string;
-  link_source: string;
-  confidence: number | null;
-  confirmed: boolean;
-  created_at: string;
-};
-
-async function getLinkForUser(
-  linkId: string,
-  userId: string,
-): Promise<EchoGoalLink | null> {
-  // Fetch the link itself
-  const { data: linkRow, error: linkError } = await supabase
-    .from('echo_goal_links')
-    .select('id, echo_entry_id, goal_id, link_source, confidence, confirmed, created_at')
-    .eq('id', linkId)
-    .maybeSingle();
-
-  if (linkError || !linkRow) return null;
-
-  const row = linkRow as unknown as DbLinkRow;
-
-  // Confirm ownership via associated goal
-  const { data: goal, error: goalError } = await supabase
-    .from('goals')
-    .select('id')
-    .eq('id', row.goal_id)
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (goalError || !goal) return null;
-
-  return {
-    id: row.id,
-    echoEntryId: row.echo_entry_id,
-    goalId: row.goal_id,
-    linkSource: row.link_source as EchoGoalLink['linkSource'],
-    confidence: row.confidence,
-    confirmed: row.confirmed,
-    createdAt: row.created_at,
-  };
+function sanitizeString(input: unknown, maxLength: number): string {
+  if (typeof input !== 'string') throw new Error('Expected string');
+  const cleaned = input
+    .replace(/\0/g, '')
+    .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  const trimmed = cleaned.trim();
+  if (trimmed.length === 0) throw new Error('Value cannot be empty');
+  if (trimmed.length > maxLength) throw new Error(`Value exceeds ${maxLength} character limit`);
+  return trimmed;
 }
 
 // ─── PUT /api/echo-links/:linkId ──────────────────────────────────────────────
@@ -75,23 +43,27 @@ export async function PUT(
     return Response.json({ error: 'Database not configured' }, { status: 503 });
   }
 
-  const user = await getUserFromRequest(request);
-  if (!user) {
+  const auth = await getAuthContextFromRequest(request);
+  if (!auth) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { linkId } = params;
-  if (!linkId?.trim()) {
-    return Response.json({ error: 'linkId is required' }, { status: 400 });
+  let linkId: string;
+  try {
+    linkId = sanitizeString(params.linkId, MAX_ID_LENGTH);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Invalid request';
+    return Response.json({ error: message }, { status: 400 });
   }
 
   try {
-    const link = await getLinkForUser(linkId.trim(), user.id);
+    const authedDb = createAuthedClient(auth.accessToken);
+    const link = await getEchoLinkByIdForUserGoal(linkId, auth.userId, authedDb);
     if (!link) {
       return Response.json({ error: 'Not found' }, { status: 404 });
     }
 
-    await confirmLink(linkId.trim());
+    await confirmLink(linkId, authedDb);
     return Response.json({ link: { ...link, confirmed: true } });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
@@ -110,23 +82,27 @@ export async function DELETE(
     return Response.json({ error: 'Database not configured' }, { status: 503 });
   }
 
-  const user = await getUserFromRequest(request);
-  if (!user) {
+  const auth = await getAuthContextFromRequest(request);
+  if (!auth) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { linkId } = params;
-  if (!linkId?.trim()) {
-    return Response.json({ error: 'linkId is required' }, { status: 400 });
+  let linkId: string;
+  try {
+    linkId = sanitizeString(params.linkId, MAX_ID_LENGTH);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Invalid request';
+    return Response.json({ error: message }, { status: 400 });
   }
 
   try {
-    const link = await getLinkForUser(linkId.trim(), user.id);
+    const authedDb = createAuthedClient(auth.accessToken);
+    const link = await getEchoLinkByIdForUserGoal(linkId, auth.userId, authedDb);
     if (!link) {
       return Response.json({ error: 'Not found' }, { status: 404 });
     }
 
-    await dismissLink(linkId.trim());
+    await dismissLink(linkId, authedDb);
     return Response.json({ success: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';

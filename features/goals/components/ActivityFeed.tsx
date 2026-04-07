@@ -85,10 +85,29 @@ function ActivityRow({ item, isLast }: { item: ActivityItem; isLast: boolean }) 
       case 'milestone_completed':
         return <MilestoneRow item={item} />;
       case 'vault_item_added':
+        return (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={{ fontSize: 11, color: '#9CAF9F' }}>◈</Text>
+            <Text style={{ fontSize: 13, color: '#9CAF9F', flex: 1 }}>Added an item to Vault</Text>
+            <Text style={{ fontFamily: 'Inter', fontSize: 12, color: '#9CAF9F' }}>{formatDate(item.timestamp)}</Text>
+          </View>
+        );
       case 'insight_confirmed':
+        return (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={{ fontSize: 11, color: '#9CAF9F' }}>✦</Text>
+            <Text style={{ fontSize: 13, color: '#9CAF9F', flex: 1 }}>Confirmed an insight</Text>
+            <Text style={{ fontFamily: 'Inter', fontSize: 12, color: '#9CAF9F' }}>{formatDate(item.timestamp)}</Text>
+          </View>
+        );
       case 'echo_linked':
-        // Placeholder: these activity kinds will get dedicated UI in a later pass.
-        return null;
+        return (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={{ fontSize: 11, color: '#9CAF9F' }}>✦</Text>
+            <Text style={{ fontSize: 13, color: '#9CAF9F', flex: 1 }}>Linked a reflection</Text>
+            <Text style={{ fontFamily: 'Inter', fontSize: 12, color: '#9CAF9F' }}>{formatDate(item.timestamp)}</Text>
+          </View>
+        );
     }
   })();
 

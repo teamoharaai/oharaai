@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+### Added (2026-04-06 — Goal Vault + Echo Trail)
+- Added `features/goals/hooks/useVault.ts`, `features/goals/hooks/useEchoTrail.ts`, `features/goals/components/VaultItemCard.tsx`, and `features/goals/components/EchoTrail.tsx` so the goal vault screen can manage saved notes/links and review linked Echo reflections in dedicated reusable UI/hooks.
+
+### Changed (2026-04-06 — Goal Detail + Vault Surface)
+- Updated `app/goals/[id]/index.tsx` to show parent project context plus summary cards for Vault and Reflections, making the goal detail screen a clearer hub into the new vault and journaling flows.
+- Updated `app/goals/[id]/vault.tsx`, `features/goals/components/ActivityFeed.tsx`, `lib/db/goals.ts`, and `docs/DECISIONS.md` to reshape Vault into a richer note/link/reflection workspace and surface vault additions, confirmed insights, and linked reflections in the activity timeline.
+
+### Changed (2026-04-06 — Prompt 5 Surgical Fix)
+- Updated `lib/db/client.ts` to export `createAuthedClient(accessToken)`, mirroring the existing bearer-token-scoped Supabase pattern so Prompt 5 API routes can execute RLS-gated reads/writes under the authenticated user instead of the shared anon client.
+- Updated `lib/db/vaults.ts` service signatures to accept an optional Supabase client and added ownership helpers `getVaultByGoalIdForUser` and `getVaultItemByIdForUser` so vault API routes can keep ownership checks inside the service layer while preserving existing external behavior for other callers.
+- Updated `lib/db/echo-goal-links.ts` service signatures to accept an optional Supabase client, added `getUnconfirmedLinksForUserGoals`, `getEchoLinkByIdForUserGoal`, and `createLinkForUserGoal`, and kept `getUnconfirmedLinksForUser` as a compatibility alias. Ownership is now consistently scoped through `goals.user_id` across the Prompt 5 echo-link routes.
+- Updated `app/api/vaults/[goalId]+api.ts`, `app/api/vaults/items/[itemId]+api.ts`, `app/api/echo-links/+api.ts`, and `app/api/echo-links/[linkId]+api.ts` to use the canonical bearer-auth extraction shape (`{ userId, accessToken }`), create token-scoped DB clients for their service calls, and apply the canonical string sanitization pattern to route params and request IDs.
+
+### Fixed (2026-04-06 — Prompt 5 Surgical Fix)
+- Fixed Prompt 5 vault and echo-link API routes so their DB operations now run under authenticated bearer context, making the routes merge-safe with existing RLS instead of relying on the shared anon client. Affected files: `lib/db/client.ts`, `lib/db/vaults.ts`, `lib/db/echo-goal-links.ts`, `app/api/vaults/[goalId]+api.ts`, `app/api/vaults/items/[itemId]+api.ts`, `app/api/echo-links/+api.ts`, `app/api/echo-links/[linkId]+api.ts`.
+- Replaced fragile duplicate echo-link detection in `app/api/echo-links/+api.ts` by preserving structured Supabase/Postgres error metadata from `lib/db/echo-goal-links.ts` and mapping unique violations (`23505`, optional echo-link constraint match) to HTTP 409.
+
 ### Added (2026-04-06 — Migration 022)
 - Created `supabase/migrations/022_spaces_rename_owner_id.sql`: renames `spaces.user_id` → `spaces.owner_id`. Includes: column rename; drop/recreate `spaces_user_id_idx` → `spaces_owner_id_idx`; drop/recreate `spaces_one_personal_per_user_idx` on `owner_id`; drop/recreate 4 RLS policies on `public.spaces`; drop/recreate 4 RLS policies on `public.space_members` that subquery `spaces.owner_id`; updated `handle_new_user_space()` function INSERT/ON CONFLICT/SELECT to use `owner_id`.
 

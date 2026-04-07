@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, Pressable, useWindowDimensions, SafeAreaView } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, router } from 'expo-router';
 import { GOAL_THEMES } from '@/constants/themes';
@@ -6,10 +6,9 @@ import { useGoalDetail } from '@/features/goals/hooks/useGoalDetail';
 import { GoalDetailHeader } from '@/features/goals/components/GoalDetailHeader';
 import { MeasurablesPanel } from '@/features/goals/components/MeasurablesPanel';
 import { ActivityFeed } from '@/features/goals/components/ActivityFeed';
-import { AffiliateTeaser } from '@/components/AffiliateTeaser';
 import { useActivity } from '@/features/goals/hooks/useActivity';
-import { NextActionSection } from '@/features/actions/components/NextActionSection';
-import { getVaultItemCount } from '@/lib/db/vaults';
+import { getVaultItemCount, } from '@/lib/db/vaults';
+import { getProjectTitle } from '@/lib/db/goals';
 
 function GoalDetailLoadingState() {
   return (
@@ -83,10 +82,26 @@ function GoalNotFound() {
   );
 }
 
+const SUMMARY_CARD_STYLE = {
+  backgroundColor: '#FFFFFF',
+  borderRadius: 16,
+  padding: 16,
+  marginBottom: 12,
+  flexDirection: 'row' as const,
+  alignItems: 'center' as const,
+  justifyContent: 'space-between' as const,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.05,
+  shadowRadius: 12,
+  elevation: 1,
+};
+
 export default function GoalDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const goalId = Array.isArray(id) ? id[0] : (id ?? '');
   const [vaultItemCount, setVaultItemCount] = useState(0);
+  const [projectTitle, setProjectTitle] = useState<string | null>(null);
   const {
     goal,
     isLoading,
@@ -102,6 +117,7 @@ export default function GoalDetailScreen() {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
 
+  // Fetch vault item count on focus
   useFocusEffect(
     useCallback(() => {
       if (!goalId) {
@@ -132,16 +148,53 @@ export default function GoalDetailScreen() {
     }, [goalId]),
   );
 
+  // Fetch project title whenever the goal's projectId is known
+  useEffect(() => {
+    if (!goal?.projectId) {
+      setProjectTitle(null);
+      return;
+    }
+    let active = true;
+    getProjectTitle(goal.projectId)
+      .then((t) => { if (active) setProjectTitle(t); })
+      .catch(() => { if (active) setProjectTitle(null); });
+    return () => { active = false; };
+  }, [goal?.projectId]);
+
   if (isLoading) return <GoalDetailLoadingState />;
   if (!goal) return <GoalNotFound />;
 
   const theme = GOAL_THEMES[goal.colorTheme];
-  const hasEchoEntry = items.some((item) => item.kind === 'echo_entry');
 
   const mainWorkspace = (
     <>
       <GoalDetailHeader goal={goal} />
-      <NextActionSection goalId={goalId} />
+
+      {/* Parent project row */}
+      {goal.projectId && projectTitle ? (
+        <Pressable
+          onPress={() =>
+            router.push({ pathname: '/projects/[id]', params: { id: goal.projectId! } })
+          }
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            marginBottom: 10,
+            paddingHorizontal: 2,
+          }}
+        >
+          <Text style={{ fontFamily: 'Inter', fontSize: 13, color: '#6B7B6E' }}>
+            Part of: {projectTitle}
+          </Text>
+          <Text style={{ fontSize: 14, color: '#9CAF9F' }}>›</Text>
+        </Pressable>
+      ) : null}
+
+      {/* Phase 3: Space badge — spaceId is not yet on GoalWithMeasurables */}
+
+      {/* Phase 2: NextActionSection */}
+
       <MeasurablesPanel
         measurables={goal.measurables}
         accentColor={theme.accent}
@@ -154,8 +207,52 @@ export default function GoalDetailScreen() {
         error={measurableError}
         onDismissError={clearMeasurableError}
       />
+
+      {/* Vault Summary Card */}
+      <Pressable
+        onPress={() => router.push(`/goals/${goalId}/vault`)}
+        style={SUMMARY_CARD_STYLE}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Text style={{ fontSize: 20, color: '#3D5247' }}>◫</Text>
+          <View>
+            <Text style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: '600', color: '#1A1F1C' }}>
+              Vault
+            </Text>
+            <Text style={{ fontFamily: 'Inter', fontSize: 12, color: '#9CAF9F' }}>
+              {vaultItemCount === 0
+                ? 'No items yet'
+                : `${vaultItemCount} item${vaultItemCount !== 1 ? 's' : ''}`}
+            </Text>
+          </View>
+        </View>
+        <Text style={{ fontSize: 18, color: '#9CAF9F' }}>›</Text>
+      </Pressable>
+
+      {/* Echo Summary Card */}
+      <Pressable
+        onPress={() =>
+          router.push(`/(app)/echo?goalId=${goalId}` as never)
+        }
+        style={SUMMARY_CARD_STYLE}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Text style={{ fontSize: 20, color: '#3D5247' }}>✦</Text>
+          <View>
+            <Text style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: '600', color: '#1A1F1C' }}>
+              Reflections
+            </Text>
+            <Text style={{ fontFamily: 'Inter', fontSize: 12, color: '#9CAF9F' }}>
+              Tap to journal about this goal
+            </Text>
+          </View>
+        </View>
+        <Text style={{ fontSize: 18, color: '#9CAF9F' }}>›</Text>
+      </Pressable>
+
       <ActivityFeed items={items} loading={activityLoading} error={activityError} />
-      {goal.progress > 0 && hasEchoEntry ? <AffiliateTeaser /> : null}
+
+      {/* deferred: AffiliateTeaser */}
     </>
   );
 
