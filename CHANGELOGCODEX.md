@@ -2,7 +2,11 @@
 
 ## [Unreleased]
 
+### Added (2026-04-07 — Prompt 11: Constellation Sample SVG)
+- Added `components/constellation/ConstellationSample.web.tsx` as a static inline SVG constellation sample using the existing React Native Web raw-`<svg>` pattern, with seven labeled nodes, curved connection paths, and a reduced-motion-safe pulse on the Current Season anchor. Added `components/constellation/ConstellationSample.tsx` as a native-safe static fallback so no new SVG dependency was required.
+
 ### Changed (2026-04-07)
+- Updated `app/(app)/constellation.tsx` to replace the prior star-dot placeholder visual with the new Constellation sample inside a white preview card, while leaving the existing screen structure and summary-gate logic intact.
 - Polished `app/projects/[id].tsx` by replacing the stubbed edit row with a local modal form wired to `updateProject()`, updating hero state immediately after save, and consolidating delete confirmation onto a minimally extended shared `components/ui/Modal.tsx` with optional confirm/cancel actions and destructive styling.
 - Fixed project detail goal loading in `features/projects/services/project-service.ts` by adding a project-scoped goals query and removing the previous fetch-all-then-filter behavior, while preserving the same mapped goal shape and signal enrichment used by `GoalCard`.
 - Extended `app/projects/[id].tsx` below the existing Goals section only: added placeholder `Project Vault` and `Activity` cards, added a `Settings` card with stubbed edit action, space-gated hidden manage-members placeholder, and a local destructive delete confirmation modal wired to the existing `deleteProject()` project service helper. Hero card and Goals section from Prompt 10A were left unchanged.

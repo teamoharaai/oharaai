@@ -1,21 +1,11 @@
 import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, SafeAreaView } from 'react-native';
+import ConstellationSample from '@/components/constellation/ConstellationSample';
+import { LIGHT_THEME } from '@/constants/colors';
 import supabase from '@/lib/db/client';
 
 const GOAL_GATE = 3;
 const ECHO_GATE = 10;
-
-// Simple star node layout — no SVG dep needed
-const STAR_NODES: Array<{ top: number; left: number; size: number; opacity: number }> = [
-  { top: 20, left: 80,  size: 5, opacity: 0.9 },
-  { top: 60, left: 40,  size: 3, opacity: 0.6 },
-  { top: 50, left: 130, size: 4, opacity: 0.75 },
-  { top: 90, left: 70,  size: 6, opacity: 1 },
-  { top: 30, left: 160, size: 3, opacity: 0.5 },
-  { top: 100, left: 20, size: 4, opacity: 0.65 },
-  { top: 10, left: 200, size: 3, opacity: 0.55 },
-  { top: 70, left: 190, size: 5, opacity: 0.8 },
-];
 
 async function getAccessToken(): Promise<string | null> {
   const {
@@ -76,30 +66,25 @@ export default function ConstellationScreen() {
           paddingVertical: 48,
         }}
       >
-        {/* Visual — star nodes simulated with Views */}
+        {/* Visual */}
         <View
           style={{
-            width: 240,
-            height: 130,
+            width: '100%',
+            maxWidth: 360,
+            backgroundColor: LIGHT_THEME.background.card,
+            borderRadius: 24,
+            borderWidth: 1,
+            borderColor: 'rgba(0,0,0,0.04)',
+            padding: 20,
             marginBottom: 40,
-            position: 'relative',
+            shadowColor: '#000000',
+            shadowOpacity: 0.06,
+            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 2 },
+            elevation: 2,
           }}
         >
-          {STAR_NODES.map((node, i) => (
-            <View
-              key={i}
-              style={{
-                position: 'absolute',
-                top: node.top,
-                left: node.left,
-                width: node.size,
-                height: node.size,
-                borderRadius: node.size / 2,
-                backgroundColor: '#3D5247',
-                opacity: node.opacity,
-              }}
-            />
-          ))}
+          <ConstellationSample />
         </View>
 
         {/* Headline */}
