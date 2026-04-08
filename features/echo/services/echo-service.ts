@@ -1,6 +1,9 @@
 import supabase from '@/lib/db/client';
 import { AI_CONFIG } from '@/lib/ai/config';
 import type { AiResponse } from '@/lib/ai/contracts';
+import { buildEchoEmbeddingText } from '@/lib/ai/embedding-text';
+import { generateEmbedding } from '@/lib/ai/embeddings';
+import { EMBEDDING_MODEL } from '@/lib/ai/constants';
 import type { EchoEntry } from '../types';
 
 type DbGoalRef = { id: string; title: string } | null;
@@ -161,6 +164,8 @@ export async function createEntry(params: {
   brt: EchoEntry['brt'] | null;
   emotion: EchoEntry['emotion'] | null;
 }): Promise<CreateEntryResult> {
+  const embeddingText = buildEchoEmbeddingText(params.content);
+
   let data: DbEchoEntry | null = null;
   let error: unknown = null;
   try {
@@ -173,6 +178,7 @@ export async function createEntry(params: {
         ai_insight_requested: params.aiInsightRequested,
         brt: params.brt,
         emotion: params.emotion,
+        embedding_text: embeddingText,
       })
       .select('*, goals(id, title)')
       .single();
@@ -188,6 +194,32 @@ export async function createEntry(params: {
   }
 
   const insertedEntry = mapEntry(data as unknown as DbEchoEntry);
+
+  // STEP 1 — Fire-and-forget embedding (non-blocking)
+  // echo_entries must save even if embedding fails.
+  if (embeddingText) {
+    void generateEmbedding(embeddingText, 'document')
+      .then(async (vector) => {
+        if (vector) {
+          await supabase
+            .from('echo_entries')
+            .update({
+              embedding: vector as any, // pgvector accepts number[]
+              embedding_model: EMBEDDING_MODEL,
+            })
+            .eq('id', insertedEntry.id);
+        }
+      })
+      .catch((err) => {
+        console.error(JSON.stringify({
+          event: 'embedding_write_failed',
+          table: 'echo_entries',
+          record_id: insertedEntry.id,
+          error: err instanceof Error ? err.message : 'unknown',
+          timestamp: new Date().toISOString(),
+        }));
+      });
+  }
 
   // STEP 2 — Manual goal linking (non-blocking)
   // Fires only when a goalId was explicitly provided. Must never block the response.

@@ -13,7 +13,10 @@ export type AiErrorCode =
   | 'AI_PROVIDER_ERROR'
   | 'PARSE_ERROR'
   | 'UNKNOWN_ERROR'
-  | 'FEATURE_DISABLED';
+  | 'FEATURE_DISABLED'
+  | 'EMBEDDING_FAILED'
+  | 'EMBEDDING_RATE_LIMITED'
+  | 'EMBEDDING_KEY_MISSING';
 
 export interface AiSuccessResponse<T> {
   ok: true;

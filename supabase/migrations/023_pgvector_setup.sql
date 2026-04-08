@@ -17,19 +17,19 @@ CREATE EXTENSION IF NOT EXISTS vector
 
 -- Priority 1: echo_entries
 ALTER TABLE echo_entries
-  ADD COLUMN IF NOT EXISTS embedding vector(1024),
+  ADD COLUMN IF NOT EXISTS embedding extensions.vector(1024),
   ADD COLUMN IF NOT EXISTS embedding_text text,
   ADD COLUMN IF NOT EXISTS embedding_model text;
 
 -- Priority 2: goals
 ALTER TABLE goals
-  ADD COLUMN IF NOT EXISTS embedding vector(1024),
+  ADD COLUMN IF NOT EXISTS embedding extensions.vector(1024),
   ADD COLUMN IF NOT EXISTS embedding_text text,
   ADD COLUMN IF NOT EXISTS embedding_model text;
 
 -- Priority 4: vault_items
 ALTER TABLE vault_items
-  ADD COLUMN IF NOT EXISTS embedding vector(1024),
+  ADD COLUMN IF NOT EXISTS embedding extensions.vector(1024),
   ADD COLUMN IF NOT EXISTS embedding_text text,
   ADD COLUMN IF NOT EXISTS embedding_model text;
 
@@ -40,17 +40,17 @@ ALTER TABLE vault_items
 
 CREATE INDEX IF NOT EXISTS idx_echo_entries_embedding
   ON echo_entries
-  USING hnsw (embedding vector_cosine_ops)
+  USING hnsw (embedding extensions.vector_cosine_ops)
   WITH (m = 16, ef_construction = 64);
 
 CREATE INDEX IF NOT EXISTS idx_goals_embedding
   ON goals
-  USING hnsw (embedding vector_cosine_ops)
+  USING hnsw (embedding extensions.vector_cosine_ops)
   WITH (m = 16, ef_construction = 64);
 
 CREATE INDEX IF NOT EXISTS idx_vault_items_embedding
   ON vault_items
-  USING hnsw (embedding vector_cosine_ops)
+  USING hnsw (embedding extensions.vector_cosine_ops)
   WITH (m = 16, ef_construction = 64);
 
 -- ═══════════════════════════════════════════

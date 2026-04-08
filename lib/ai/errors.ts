@@ -12,6 +12,9 @@ export const AI_ERROR_CODES = {
   parseError: 'PARSE_ERROR',
   unknownError: 'UNKNOWN_ERROR',
   featureDisabled: 'FEATURE_DISABLED',
+  embeddingFailed: 'EMBEDDING_FAILED',
+  embeddingRateLimited: 'EMBEDDING_RATE_LIMITED',
+  embeddingKeyMissing: 'EMBEDDING_KEY_MISSING',
 } as const satisfies Record<string, AiErrorCode>;
 
 export class AIRateLimitError extends Error {
@@ -25,4 +28,31 @@ export class AIRateLimitError extends Error {
 
 export function isAIRateLimitError(error: unknown): error is AIRateLimitError {
   return error instanceof AIRateLimitError;
+}
+
+export class AIEmbeddingError extends Error {
+  code: AiErrorCode = AI_ERROR_CODES.embeddingFailed;
+
+  constructor(message = 'Embedding generation failed') {
+    super(message);
+    this.name = 'AIEmbeddingError';
+  }
+}
+
+export class AIEmbeddingRateLimitError extends Error {
+  code: AiErrorCode = AI_ERROR_CODES.embeddingRateLimited;
+
+  constructor(message = 'Embedding provider rate limit reached') {
+    super(message);
+    this.name = 'AIEmbeddingRateLimitError';
+  }
+}
+
+export class AIEmbeddingKeyMissingError extends Error {
+  code: AiErrorCode = AI_ERROR_CODES.embeddingKeyMissing;
+
+  constructor(message = 'Voyage API key missing. Set VOYAGE_API_KEY in your local environment.') {
+    super(message);
+    this.name = 'AIEmbeddingKeyMissingError';
+  }
 }

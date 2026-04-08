@@ -78,3 +78,5 @@ Theme: cream #F5F1EA, white cards, forest green #3D5247, Inter + Lora
 - Read CLAUDE.md and CHANGELOGCODEX.md before starting any session
 - Codex writes to CHANGELOGCODEX.md after every session
 - Run `npx tsc --noEmit` before and after every task
+
+last migration: 023, next: 024

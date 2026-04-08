@@ -1,6 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import supabase from './client';
 import type { Vault, VaultItem, VaultItemType } from '@/types/vault';
+import { buildVaultItemEmbeddingText } from '@/lib/ai/embedding-text';
+import { generateEmbedding } from '@/lib/ai/embeddings';
+import { EMBEDDING_MODEL } from '@/lib/ai/constants';
 
 // Re-export canonical type so existing imports of `VaultItem` from this module still resolve.
 export type { VaultItem };
@@ -143,6 +146,8 @@ export async function createVaultItem(
   item: Omit<VaultItem, 'id' | 'createdAt' | 'updatedAt'>,
   client: DbClient = supabase,
 ): Promise<VaultItem> {
+  const embeddingText = buildVaultItemEmbeddingText(item.content);
+
   const { data, error } = await client
     .from('vault_items')
     .insert({
@@ -154,12 +159,40 @@ export async function createVaultItem(
       visibility: item.visibility,
       created_by: item.createdBy,
       sort_order: item.sortOrder,
+      embedding_text: embeddingText,
     })
     .select('id, vault_id, item_type, title, content, metadata, visibility, created_by, sort_order, created_at, updated_at')
     .single();
 
   if (error || !data) throw new Error(error?.message ?? 'Failed to create vault item');
-  return mapVaultItem(data as unknown as DbVaultItemRow);
+  const vaultItem = mapVaultItem(data as unknown as DbVaultItemRow);
+
+  // Fire-and-forget embedding (non-blocking)
+  if (embeddingText) {
+    void generateEmbedding(embeddingText, 'document')
+      .then(async (vector) => {
+        if (vector) {
+          await client
+            .from('vault_items')
+            .update({
+              embedding: vector as any, // pgvector accepts number[]
+              embedding_model: EMBEDDING_MODEL,
+            })
+            .eq('id', vaultItem.id);
+        }
+      })
+      .catch((err) => {
+        console.error(JSON.stringify({
+          event: 'embedding_write_failed',
+          table: 'vault_items',
+          record_id: vaultItem.id,
+          error: err instanceof Error ? err.message : 'unknown',
+          timestamp: new Date().toISOString(),
+        }));
+      });
+  }
+
+  return vaultItem;
 }
 
 export async function updateVaultItem(
@@ -268,17 +301,50 @@ export async function addVaultItem(
   content: string,
   client: DbClient = supabase,
 ): Promise<void> {
-  const { error } = await client.from('vault_items').insert({
-    vault_id: vaultId,
-    item_type: 'note',
-    content,
-    created_by: userId,
-    visibility: 'private',
-    sort_order: 0,
-    metadata: {},
-  });
+  const embeddingText = buildVaultItemEmbeddingText(content);
+
+  const { data: insertedItem, error } = await client
+    .from('vault_items')
+    .insert({
+      vault_id: vaultId,
+      item_type: 'note',
+      content,
+      created_by: userId,
+      visibility: 'private',
+      sort_order: 0,
+      metadata: {},
+      embedding_text: embeddingText,
+    })
+    .select('id')
+    .single();
 
   if (error) throw new Error(error.message);
+
+  // Fire-and-forget embedding (non-blocking)
+  if (embeddingText && insertedItem) {
+    const itemId = (insertedItem as { id: string }).id;
+    void generateEmbedding(embeddingText, 'document')
+      .then(async (vector) => {
+        if (vector) {
+          await client
+            .from('vault_items')
+            .update({
+              embedding: vector as any, // pgvector accepts number[]
+              embedding_model: EMBEDDING_MODEL,
+            })
+            .eq('id', itemId);
+        }
+      })
+      .catch((err) => {
+        console.error(JSON.stringify({
+          event: 'embedding_write_failed',
+          table: 'vault_items',
+          record_id: itemId,
+          error: err instanceof Error ? err.message : 'unknown',
+          timestamp: new Date().toISOString(),
+        }));
+      });
+  }
 }
 
 /**

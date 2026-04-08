@@ -1,6 +1,9 @@
 import supabase from './client';
 import type { GoalTheme } from '@/constants/themes';
 import type { GoalFinalizeResponse } from '@/lib/ai/schemas/goal-creation';
+import { buildGoalEmbeddingText } from '@/lib/ai/embedding-text';
+import { generateEmbedding } from '@/lib/ai/embeddings';
+import { EMBEDDING_MODEL } from '@/lib/ai/constants';
 import type { ActivityItem } from '@/types/activity';
 import type { VaultItemType } from '@/types/vault';
 import type { EchoEmotion, EchoBrt } from '@/features/echo/types';
@@ -58,6 +61,11 @@ function mapAiGoalDataToDbInserts(
 ) {
   const colorTheme: GoalTheme = CATEGORY_THEME[aiData.goal.category] ?? 'ocean';
   const normalizedDeadline = normalizeDeadlineForPersistence(aiData.goal.deadline);
+  const embeddingText = buildGoalEmbeddingText(
+    aiData.goal.title,
+    aiData.goal.description,
+    aiData.measurables,
+  );
 
   return {
     goalInsert: {
@@ -72,6 +80,7 @@ function mapAiGoalDataToDbInserts(
       visibility: 'private' as const,
       ai_generated: true,
       project_id: projectId ?? null,
+      embedding_text: embeddingText,
     },
     measurableInserts: aiData.measurables.map((m, index) => ({
       title: m.title,
@@ -86,6 +95,7 @@ function mapAiGoalDataToDbInserts(
     normalizationWarnings: aiData.goal.deadline && !normalizedDeadline
       ? [`Invalid deadline "${aiData.goal.deadline}" was normalized to null before persistence`]
       : [],
+    embeddingText,
   };
 }
 
@@ -122,7 +132,7 @@ export async function createGoalWithMeasurables(
     return { goalId: null, error, warning: null };
   }
 
-  const { goalInsert, measurableInserts, normalizationWarnings } = mapAiGoalDataToDbInserts(
+  const { goalInsert, measurableInserts, normalizationWarnings, embeddingText } = mapAiGoalDataToDbInserts(
     aiData,
     userId,
     options?.projectId,
@@ -197,6 +207,29 @@ export async function createGoalWithMeasurables(
         measurableCount: aiData.measurables.length,
       });
     }
+  }
+
+  // Generate and store embedding for this goal (sync, isolated)
+  // Goal is already saved — embedding failure must not affect the result.
+  try {
+    const vector = await generateEmbedding(embeddingText, 'document');
+    if (vector) {
+      await supabase
+        .from('goals')
+        .update({
+          embedding: vector as any, // pgvector accepts number[]
+          embedding_model: EMBEDDING_MODEL,
+        })
+        .eq('id', goalId);
+    }
+  } catch (err) {
+    console.error(JSON.stringify({
+      event: 'embedding_write_failed',
+      table: 'goals',
+      record_id: goalId,
+      error: err instanceof Error ? err.message : 'unknown',
+      timestamp: new Date().toISOString(),
+    }));
   }
 
   // Auto-create vault for this goal (non-blocking)
