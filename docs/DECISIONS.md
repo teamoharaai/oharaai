@@ -117,3 +117,82 @@ distinction explicitly.
 `lib/db/goals.ts`, `lib/activity/mappers.ts`
 
 Renamed spaces.user_id → owner_id in migration 022 for semantic clarity; ownerId in types/space.ts now maps directly without aliasing"
+
+## 2026-04-08
+
+### H2 — Echo Prompt File Consolidation [DEFERRED]
+
+**Status:** Deferred to dedicated session before Phase 2 echo work begins.
+
+**Context:**
+Two separate prompt files serve the echo pipeline:
+- `lib/ai/echo/prompts.ts` → `ECHO_INFERENCE_PROMPT` (interprets user
+  input: tone, themes, goal relevance)
+- `lib/ai/prompts/echo-reflection.ts` → `ECHO_REFLECTION_SYSTEM_PROMPT`
+  and `buildEchoReflectionPrompt()` (generates AI response back to user)
+
+Both are imported by the same API routes (`reconcile`, `reflect`).
+They are not duplicates — they serve different stages of the pipeline.
+The problem is organizational: they live in different directories.
+
+**Decision:**
+Both files should eventually live in `lib/ai/echo/` as the
+feature-scoped canonical location. Consolidation deferred because
+it requires modifying live API routes and falls outside the scope
+of a cleanup session.
+
+**Action required before Phase 2 echo work:**
+Run a dedicated single-concern prompt to move
+`lib/ai/prompts/echo-reflection.ts` into `lib/ai/echo/` and update
+all importers.
+
+---
+
+### H3 — mode Column (goals table) [PARTIALLY RESOLVED]
+
+**Status:** Insert removed. Column drop deferred.
+
+**Context:**
+The `mode` column (`exploration | commitment`) was added in migration
+`001_initial_schema.sql` and was never dropped. The concept was removed
+from the product. The canonical `Goal` TS type has no `mode` field.
+`lib/db/goals.ts` was silently inserting `mode: 'commitment' as const`
+on every goal creation with no consumer reading it.
+
+**Decision:**
+- Removed `mode: 'commitment'` from the goal insert in `lib/db/goals.ts`.
+  The column remains in the DB. Insert succeeds without it (column is
+  nullable or has a default).
+- Formally dropping the column requires a new migration. Scheduled as
+  a CTO task — coordinate before Phase 2 schema work begins.
+
+**Action required:**
+CTO to create migration `022_drop_goals_mode_column.sql` when
+convenient. Non-blocking for Phase 2.
+
+---
+
+### H4 — useEchoTrail Direct DB Import [DEFERRED]
+
+**Status:** Deferred to dedicated session. Documented as known
+boundary violation.
+
+**Context:**
+`features/goals/hooks/useEchoTrail.ts` imports directly from
+`lib/db/echo-goal-links`, bypassing the API layer. All other
+feature hooks go through API routes. This means Echo Trail does
+not benefit from API-layer auth scoping, rate limiting, or
+structured logging.
+
+**Decision:**
+Not migrated during cleanup to avoid touching the live echo pipeline
+outside its dedicated session. The direct DB import is a known
+approved exception for Phase 1 only.
+
+**Action required before Phase 2:**
+Run a dedicated prompt to create `app/api/echo/trail+api.ts` and
+migrate `useEchoTrail.ts` to fetch through it. This must be
+completed before any Phase 2 echo feature work begins to ensure
+the API layer is consistent.
+
+**Owner:** Ariel (AI layer) + CTO (API route + DB layer).

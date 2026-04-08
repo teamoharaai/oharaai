@@ -65,7 +65,6 @@ function mapAiGoalDataToDbInserts(
       title: aiData.goal.title,
       description: aiData.goal.description,
       category: aiData.goal.category,
-      mode: 'commitment' as const,
       status: 'active' as const,
       smart_data: aiData.goal.smart,
       color_theme: colorTheme,

@@ -2,6 +2,19 @@ import supabase, { isDatabaseConfigured } from '@/lib/db/client';
 import type { ActionLog, ActionLogStatus } from '@/features/actions/types';
 
 const ACTION_LOG_STATUSES: readonly ActionLogStatus[] = ['pending', 'complete', 'skipped'];
+
+function mapActionLog(row: Record<string, unknown>): ActionLog {
+  return {
+    id: row.id as string,
+    goalId: row.goal_id as string,
+    userId: row.user_id as string,
+    actionText: row.action_text as string,
+    status: row.status as ActionLog['status'],
+    dueDate: (row.due_date as string | null) ?? null,
+    completedAt: (row.completed_at as string | null) ?? null,
+    createdAt: row.created_at as string,
+  };
+}
 const MAX_ACTION_TEXT_LENGTH = 1000;
 
 function sanitizeActionText(input: unknown): string {
@@ -105,5 +118,5 @@ export async function PATCH(
     return Response.json({ error: 'Action log not found' }, { status: 404 });
   }
 
-  return Response.json({ item: data as ActionLog });
+  return Response.json({ item: mapActionLog(data as Record<string, unknown>) });
 }

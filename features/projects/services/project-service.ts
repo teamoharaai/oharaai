@@ -1,5 +1,6 @@
 import supabase from '@/lib/db/client';
-import type { Project, ProjectWithGoals, GoalWithMeasurables } from '@/features/goals/types';
+import type { Project, ProjectWithGoals } from '@/features/projects/types';
+import type { GoalWithMeasurables } from '@/features/goals/types';
 import { enrichGoalsWithSignals, GOAL_SELECT, mapGoal, type DbGoal } from '@/features/goals/services/goal-service';
 
 export async function fetchProjects(userId: string): Promise<Project[]> {

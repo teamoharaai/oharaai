@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Project } from '@/features/goals/types';
+import type { Project } from '@/features/projects/types';
 import {
   fetchProjects,
   createProject as createProjectService,

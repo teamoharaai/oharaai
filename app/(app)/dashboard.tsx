@@ -145,7 +145,7 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
         ) : displayedAction ? (
           <View>
             <Text className="mb-4 font-sans text-[15px] leading-[22px] text-[#1A1F1C]">
-              {displayedAction.action_text}
+              {displayedAction.actionText}
             </Text>
             <View className="flex-row gap-3">
               <TouchableOpacity

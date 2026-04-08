@@ -1,6 +1,6 @@
 import { View, Text, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import type { Project } from '@/features/goals/types';
+import type { Project } from '@/features/projects/types';
 
 interface ProjectCardProps {
   project: Project;

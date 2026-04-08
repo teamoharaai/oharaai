@@ -182,7 +182,7 @@ export function NextActionSection({ goalId }: NextActionSectionProps) {
       {!isLoading && !showHookError && displayedAction ? (
         <View>
           <Text className="mb-4 font-sans text-base font-medium leading-6 text-[#1A1F1C]">
-            {displayedAction.action_text}
+            {displayedAction.actionText}
           </Text>
 
           <View className="flex-row gap-3">

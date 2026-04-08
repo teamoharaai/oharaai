@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { deleteProject, fetchProjectWithGoals, updateProject } from '@/features/projects/services/project-service';
 import { GoalCard } from '@/features/goals/components/GoalCard';
-import type { ProjectWithGoals, ProjectStatus } from '@/features/goals/types';
+import type { ProjectWithGoals, ProjectStatus } from '@/features/projects/types';
 
 function getProjectStatusBadgeVariant(status: ProjectStatus): 'active' | 'complete' | 'archived' {
   switch (status) {

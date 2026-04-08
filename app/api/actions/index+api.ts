@@ -2,6 +2,19 @@ import supabase, { isDatabaseConfigured } from '@/lib/db/client';
 import type { ActionLog, ActionLogStatus } from '@/features/actions/types';
 
 const ACTION_LOG_STATUSES: readonly ActionLogStatus[] = ['pending', 'complete', 'skipped'];
+
+function mapActionLog(row: Record<string, unknown>): ActionLog {
+  return {
+    id: row.id as string,
+    goalId: row.goal_id as string,
+    userId: row.user_id as string,
+    actionText: row.action_text as string,
+    status: row.status as ActionLog['status'],
+    dueDate: (row.due_date as string | null) ?? null,
+    completedAt: (row.completed_at as string | null) ?? null,
+    createdAt: row.created_at as string,
+  };
+}
 const MAX_ACTION_TEXT_LENGTH = 1000;
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 100;
@@ -100,7 +113,7 @@ export async function GET(request: Request): Promise<Response> {
     return Response.json({ error: error.message }, { status: 500 });
   }
 
-  return Response.json({ items: (data as ActionLog[]) ?? [] });
+  return Response.json({ items: ((data as Record<string, unknown>[]) ?? []).map(mapActionLog) });
 }
 
 // ─── POST /api/actions ────────────────────────────────────────────────────────
@@ -158,5 +171,5 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: error.message }, { status: 500 });
   }
 
-  return Response.json({ item: data as ActionLog }, { status: 201 });
+  return Response.json({ item: mapActionLog(data as Record<string, unknown>) }, { status: 201 });
 }

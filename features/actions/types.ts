@@ -2,11 +2,11 @@ export type ActionLogStatus = 'pending' | 'complete' | 'skipped';
 
 export interface ActionLog {
   id: string;
-  goal_id: string;
-  user_id: string;
-  action_text: string;
+  goalId: string;
+  userId: string;
+  actionText: string;
   status: ActionLogStatus;
-  due_date: string | null;
-  completed_at: string | null;
-  created_at: string;
+  dueDate: string | null;
+  completedAt: string | null;
+  createdAt: string;
 }
