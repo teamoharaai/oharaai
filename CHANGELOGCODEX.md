@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added (2026-04-08 — Conversation 3 Block 1: pgvector Setup)
+- Created `supabase/migrations/023_pgvector_setup.sql`: enables `vector` extension via `CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions`; adds `embedding vector(1024)`, `embedding_text text`, and `embedding_model text` columns (all nullable, `IF NOT EXISTS`) to `echo_entries`, `goals`, and `vault_items`; creates HNSW indexes (`vector_cosine_ops`, m=16, ef_construction=64) on all three tables; adds partial index `idx_vault_items_needs_embedding` filtering for unembedded items with `content` length > 200 chars. Migration is fully idempotent. Model: `voyage-4-lite`, 1024 dimensions. Spec ref: `ohara_constellation_spec.md` Section 7c.
+- Added `embedding?: number[] | null`, `embedding_text?: string | null`, `embedding_model?: string | null` to `EchoEntry` in `features/echo/types.ts` — append-only, no existing fields modified.
+- Added same three fields to `Goal` in `features/goals/types.ts` — append-only.
+- Added same three fields to `VaultItem` in `types/vault.ts` — append-only.
+- Created `lib/ai/constants.ts`: `EMBEDDING_DIMENSIONS = 1024`, `EMBEDDING_MODEL = 'voyage-4-lite'`, `EMBEDDING_MIN_WORD_COUNT = 40`, `EMBEDDING_MAX_TOKENS = 512`.
+- `tsc --noEmit`: clean.
+
 ### Cleanup (2026-04-08 — Second Cleanup Pass)
 Passes: H1, H3, H6 (H5 flagged — see below). Batch D items confirmed complete from prior session.
 

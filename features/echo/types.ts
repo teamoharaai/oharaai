@@ -28,6 +28,9 @@ export interface EchoEntry {
   aiResponse?: string;
   processedAt?: Date;
   createdAt: Date;
+  embedding?: number[] | null;
+  embedding_text?: string | null;
+  embedding_model?: string | null;
 }
 
 export interface InsightRequest {

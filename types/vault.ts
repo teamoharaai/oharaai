@@ -29,6 +29,9 @@ export interface VaultItem {
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
+  embedding?: number[] | null;
+  embedding_text?: string | null;
+  embedding_model?: string | null;
 }
 
 export interface CreateVaultItemInput {

@@ -28,6 +28,9 @@ export interface Goal {
   projectId: string | null;
   createdAt: Date;
   updatedAt: Date;
+  embedding?: number[] | null;
+  embedding_text?: string | null;
+  embedding_model?: string | null;
 }
 
 export interface Measurable {
