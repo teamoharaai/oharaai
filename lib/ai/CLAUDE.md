@@ -6,6 +6,7 @@ Owner: CEO (Ariel). Cascade Level 2-3.
 - client.ts: Central AI gateway. ALL AI calls route through here. Single chokepoint.
 - echo-client.ts: Echo journaling (Haiku). BRT analysis. Clean abstraction — swap model here only.
 - vault-insights.ts: Vault intelligence (Haiku). Suggests insights, user confirms. Phase 1 deferrable.
+- pipelines/intelligence.ts: Only remaining pipeline wrapper. All other pipeline wrappers (create-goal, reflect, summarize) were removed — they were never adopted. Do NOT reintroduce the wrapper pattern. callLLM (via client.ts) is the canonical invocation path.
 
 ## Rules
 - Haiku for all Phase 1 AI. No Sonnet until Phase 2.

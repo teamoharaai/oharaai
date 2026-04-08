@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Cleanup (2026-04-07 — Codebase Audit)
+Batches: A, B (partial), C (partial), D (partial)
+
+- **Batch A:** Deleted 22 dead files: `lib/ai/queue.ts`, `lib/ai/pipelines/create-goal.ts`, `lib/ai/pipelines/reflect.ts`, `lib/ai/pipelines/summarize.ts`, `lib/rules/{task-recommender,hobby-matcher,thorn-detector}.ts`, `lib/utils/{date,validation,ui-store}.ts`, `lib/activity/mappers.ts`, `features/dashboard/components/DailyView.tsx`, `features/dashboard/hooks/useDailyTasks.ts`, `features/dashboard/services/task-recommender.ts`, `features/dashboard/types.ts`, `features/goals/components/{GoalMediaGallery,GoalEchoEntriesPanel,NewGoalButton}.tsx`, `features/goals/hooks/useMeasurables.ts`, `features/goals/services/mock-data.ts`, `features/echo/services/mock-data.ts`, `features/profile/services/profile-service.ts`. Removed `ECHO_REFLECTION_PROMPT` dead export from `lib/ai/echo/prompts.ts`. Removed `createGoal()` TODO stub from `features/goals/services/goal-service.ts`. Removed stale `TRACKED DEBT — vaultNoteCount → vaultItemCount` entry from `CONTEXT.md` (completed in Prompt 11).
+- **Batch B:** Deleted `types/global.ts` and `types/index.ts` after moving live `Profile` type to `features/auth/types.ts` and updating `features/auth/store.ts` import. Removed dead `ActivityEntry` interface from `features/goals/types.ts`. Converted three inline `ActivityItem` union variants (`vault_item_added`, `insight_confirmed`, `echo_linked`) to named interfaces (`VaultItemAddedActivity`, `InsightConfirmedActivity`, `EchoLinkedActivity`). Updated `ActivityKind` union to include all six variants.
+- **Batch C (C3 only):** Added refactor-target comment above `getActivityByGoalId()` in `lib/db/goals.ts` documenting that activity assembly logic belongs in the service layer (Phase 2 target).
+- **Batch D (partial):** Renamed `vaultGoalMap` → `vaultIdToGoalId` in `features/goals/services/goal-service.ts`. Updated Bud BRT color from `#22C55E` → `#4A7C5F` in `components/CLAUDE.md` and `lib/db/CLAUDE.md`. Removed `void error` suppression in `ActivityFeed.tsx` (replaced with `if (error) return null`). Removed `void onClose` suppression in `vault.tsx` `VaultPickerSheet` (wired to Cancel button). Documented pipeline removal in `lib/ai/CLAUDE.md`.
+
+Excluded: H1–H6 items pending human review (store pattern decision, echo prompt consolidation, mode column, useEchoTrail boundary, Project type move, ActionLog rename).
+
+`tsc --noEmit`: clean after each batch.
+
 ### Added (2026-04-07 — Prompt 11: Constellation Sample SVG)
 - Added `components/constellation/ConstellationSample.web.tsx` as a static inline SVG constellation sample using the existing React Native Web raw-`<svg>` pattern, with seven labeled nodes, curved connection paths, and a reduced-motion-safe pulse on the Current Season anchor. Added `components/constellation/ConstellationSample.tsx` as a native-safe static fallback so no new SVG dependency was required.
 

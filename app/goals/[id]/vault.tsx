@@ -48,7 +48,6 @@ type VaultPickerSheetProps = {
 };
 
 function VaultPickerSheet({ onNote, onLink, onClose }: VaultPickerSheetProps) {
-  void onClose;
   return (
     <View>
       <Text
@@ -85,12 +84,20 @@ function VaultPickerSheet({ onNote, onLink, onClose }: VaultPickerSheetProps) {
           alignItems: 'center',
           gap: 12,
           paddingVertical: 14,
+          borderBottomWidth: 1,
+          borderBottomColor: '#F0EDE6',
         }}
       >
         <Text style={{ fontSize: 20 }}>🔗</Text>
         <Text style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: '500', color: '#1A1F1C' }}>
           Save Link
         </Text>
+      </Pressable>
+      <Pressable
+        onPress={onClose}
+        style={{ paddingVertical: 14, alignItems: 'center' }}
+      >
+        <Text style={{ fontFamily: 'Inter', fontSize: 14, color: '#6B7280' }}>Cancel</Text>
       </Pressable>
     </View>
   );

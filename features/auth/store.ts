@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import type { Session } from '@supabase/supabase-js';
-import type { Profile } from '@/types';
-import type { AuthState } from './types';
+import type { Profile, AuthState } from './types';
 
 interface AuthStore extends AuthState {
   session: Session | null;

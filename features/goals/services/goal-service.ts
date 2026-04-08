@@ -183,10 +183,10 @@ async function fetchGoalSignals(
       .in('goal_id', goalIds)
       .eq('user_id', userId);
 
-    const vaultGoalMap = new Map<string, string>(); // vaultId → goalId
+    const vaultIdToGoalId = new Map<string, string>(); // vaultId → goalId
     const vaultIds: string[] = [];
     for (const v of (vaultRows as Array<{ id: string; goal_id: string }> ?? [])) {
-      vaultGoalMap.set(v.id, v.goal_id);
+      vaultIdToGoalId.set(v.id, v.goal_id);
       vaultIds.push(v.id);
     }
 
@@ -198,7 +198,7 @@ async function fetchGoalSignals(
         .in('vault_id', vaultIds);
 
       for (const item of (itemRows as Array<{ vault_id: string }> ?? [])) {
-        const goalId = vaultGoalMap.get(item.vault_id);
+        const goalId = vaultIdToGoalId.get(item.vault_id);
         if (goalId) {
           vaultItemCountMap.set(goalId, (vaultItemCountMap.get(goalId) ?? 0) + 1);
         }
@@ -307,11 +307,6 @@ export async function fetchGoalById(goalId: string): Promise<GoalWithMeasurables
 
   if (error || !data) return null;
   return mapGoal(data as unknown as DbGoal);
-}
-
-export async function createGoal(_goal: Partial<Goal>): Promise<Goal | null> {
-  // TODO: implement Supabase insert
-  return null;
 }
 
 export async function updateGoal(goalId: string, updates: Partial<Goal>): Promise<GoalWithMeasurables | null> {

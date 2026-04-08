@@ -77,21 +77,6 @@ export interface MeasurableUpdates {
   currentValue?: number;
 }
 
-export interface ActivityEntry {
-  id: string;
-  goalId?: string;
-  text: string;
-  aiResponse?: string;
-  mediaUrl?: string;
-  brt?: {
-    bud: string[];
-    rose: string[];
-    thorn: string[];
-  };
-  type: 'journal' | 'milestone' | 'measurable';
-  createdAt: Date;
-}
-
 export type ProjectStatus = 'active' | 'complete' | 'archived';
 
 export type Project = {

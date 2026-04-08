@@ -292,6 +292,10 @@ type DbEchoEntryForLinkRow = {
   brt: EchoBrt | null;
 };
 
+// NOTE: This function performs activity assembly and formatting logic
+// that belongs in a service layer. Retained here for Phase 1 stability.
+// Refactor target in Phase 2.
+
 /**
  * Returns a unified activity timeline for a goal, sorted descending by timestamp.
  * Always includes at least one item: the goal_created event.

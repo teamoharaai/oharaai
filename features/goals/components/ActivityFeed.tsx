@@ -126,7 +126,7 @@ function ActivityRow({ item, isLast }: { item: ActivityItem; isLast: boolean }) 
 }
 
 export function ActivityFeed({ items, loading, error }: ActivityFeedProps) {
-  void error;
+  if (error) return null;
 
   return (
     <View

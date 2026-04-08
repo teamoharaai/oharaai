@@ -8,7 +8,7 @@ Owner: VP Product. Cascade Level 1 (visual), Level 2 (data fetching).
 - Accent: forest green #3D5247
 - Text: #1A1A1A body, #6B7280 muted/secondary
 - Typography: Inter for all UI, Lora for editorial moments only
-- BRT colors: Bud #22C55E, Rose #F59E0B, Thorn #EF4444
+- BRT colors: Bud #4A7C5F, Rose #F59E0B, Thorn #EF4444
 
 ## Key Components
 - GoalCard.tsx: shows title, status, progress, vault activity line, BRT micro-dots

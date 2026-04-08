@@ -2,7 +2,7 @@ import type { EchoBrt } from '@/features/echo/types';
 import type { EchoEmotion } from '@/features/echo/types';
 import type { VaultItemType } from '@/types/vault';
 
-export type ActivityKind = 'echo_entry' | 'milestone_completed' | 'goal_created';
+export type ActivityKind = 'echo_entry' | 'milestone_completed' | 'goal_created' | 'vault_item_added' | 'insight_confirmed' | 'echo_linked';
 
 interface ActivityBase {
   id: string;
@@ -27,28 +27,28 @@ export interface GoalCreatedActivity extends ActivityBase {
   kind: 'goal_created';
 }
 
+export interface VaultItemAddedActivity extends ActivityBase {
+  kind: 'vault_item_added';
+  itemType: VaultItemType;
+  title: string;
+}
+
+export interface InsightConfirmedActivity extends ActivityBase {
+  kind: 'insight_confirmed';
+  content: string;
+}
+
+export interface EchoLinkedActivity extends ActivityBase {
+  kind: 'echo_linked';
+  echoEntryId: string;
+  preview: string;
+  brt: EchoBrt | null;
+}
+
 export type ActivityItem =
   | EchoEntryActivity
   | MilestoneCompletedActivity
   | GoalCreatedActivity
-  | {
-      kind: 'vault_item_added';
-      id: string;
-      itemType: VaultItemType;
-      title: string;
-      timestamp: string;
-    }
-  | {
-      kind: 'insight_confirmed';
-      id: string;
-      content: string;
-      timestamp: string;
-    }
-  | {
-      kind: 'echo_linked';
-      id: string;
-      echoEntryId: string;
-      preview: string;
-      brt: EchoBrt | null;
-      timestamp: string;
-    };
+  | VaultItemAddedActivity
+  | InsightConfirmedActivity
+  | EchoLinkedActivity;
