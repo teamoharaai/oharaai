@@ -63,10 +63,6 @@ Theme: cream #F5F1EA, white cards, forest green #3D5247, Inter + Lora
 - spaces.owner_id is the owner column (renamed from user_id in migration 022); space_members.user_id is unchanged
 - Next migration number: 023
 
-## Signal Layer Notes
-- `latestBrtTags` on `GoalWithMeasurables` is derived via `deriveBrtTag()` in `features/goals/services/goal-service.ts`. Heuristic: bud → rose → thorn priority, max 3 tags, sorted by echo entry created_at desc. Phase 2 may replace with a dedicated `brt_tag` column.
-- **Tracked debt**: `vaultNoteCount` should be renamed to `vaultItemCount` before Phase 1.5, when document/link vault items ship and the "note" framing becomes inaccurate. Affects: `features/goals/types.ts`, `features/goals/services/goal-service.ts`, `features/goals/components/GoalCard.tsx`, `features/goals/services/mock-data.ts`.
-
 ## Outstanding (Phase 1)
 - Dashboard redesign: Echo entry point, Ohara voice/Guide presence, badge fix
 - Goal creation UI redesign: chat interface, mode selector
@@ -82,3 +78,13 @@ Theme: cream #F5F1EA, white cards, forest green #3D5247, Inter + Lora
 - Read CLAUDE.md and CHANGELOGCODEX.md before starting any session
 - Codex writes to CHANGELOGCODEX.md after every session
 - Run `npx tsc --noEmit` before and after every task
+
+## TRACKED DEBT — rename vaultNoteCount → vaultItemCount
+Current: goal-service.ts fetches a count of all vault_items rows per goal and
+exposes it as vaultNoteCount. GoalCard displays this as "{n} notes".
+Problem: vault_items will support multiple item types (notes, links, files).
+The count already includes all types; the label is already wrong at >0 non-note items.
+Fix: rename field to vaultItemCount in the type, goal-service.ts, and GoalCard.tsx.
+Update GoalCard label from "notes" to "items".
+No schema or query changes required.
+Do before: any Vault item types beyond notes ship (Phase 1.5 / Prompt 10+).

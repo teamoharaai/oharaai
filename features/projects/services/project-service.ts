@@ -1,6 +1,6 @@
 import supabase from '@/lib/db/client';
-import type { Project, ProjectWithGoals } from '@/features/goals/types';
-import { fetchGoals } from '@/features/goals/services/goal-service';
+import type { Project, ProjectWithGoals, GoalWithMeasurables } from '@/features/goals/types';
+import { enrichGoalsWithSignals, GOAL_SELECT, mapGoal, type DbGoal } from '@/features/goals/services/goal-service';
 
 export async function fetchProjects(userId: string): Promise<Project[]> {
   const { data, error } = await supabase
@@ -23,14 +23,24 @@ export async function fetchProjectWithGoals(projectId: string): Promise<ProjectW
   if (projectError || !projectData) return null;
 
   const project = projectData as Project;
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const allGoals = await fetchGoals(user.id);
-  const goals = allGoals.filter((g) => g.projectId === projectId);
+  const goals = await fetchGoalsByProject(projectId);
 
   return { ...project, goals };
+}
+
+export async function fetchGoalsByProject(projectId: string): Promise<GoalWithMeasurables[]> {
+  const { data, error } = await supabase
+    .from('goals')
+    .select(GOAL_SELECT)
+    .eq('project_id', projectId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  const goals = ((data ?? []) as unknown as DbGoal[]).map(mapGoal);
+  if (goals.length === 0) return goals;
+
+  return enrichGoalsWithSignals(goals, goals[0].userId);
 }
 
 export async function createProject(payload: {

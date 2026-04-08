@@ -3,6 +3,10 @@
 ## [Unreleased]
 
 ### Changed (2026-04-07)
+- Polished `app/projects/[id].tsx` by replacing the stubbed edit row with a local modal form wired to `updateProject()`, updating hero state immediately after save, and consolidating delete confirmation onto a minimally extended shared `components/ui/Modal.tsx` with optional confirm/cancel actions and destructive styling.
+- Fixed project detail goal loading in `features/projects/services/project-service.ts` by adding a project-scoped goals query and removing the previous fetch-all-then-filter behavior, while preserving the same mapped goal shape and signal enrichment used by `GoalCard`.
+- Extended `app/projects/[id].tsx` below the existing Goals section only: added placeholder `Project Vault` and `Activity` cards, added a `Settings` card with stubbed edit action, space-gated hidden manage-members placeholder, and a local destructive delete confirmation modal wired to the existing `deleteProject()` project service helper. Hero card and Goals section from Prompt 10A were left unchanged.
+- Redesigned the top two sections of `app/projects/[id].tsx`: rebuilt the project hero card with shared badge styling, aggregate child-goal progress, and the requested cream/white/forest hierarchy; rebuilt the Goals section as a vertical shared-`GoalCard` list with count badge, filled `+ Add Goal` CTA, and the new empty-state copy. Left lower page sections unchanged. No project model or goal-card variant changes.
 - Renamed goal signal field `vaultNoteCount` to `vaultItemCount` in the goal type, goal service, goal card, and goal mock data; updated the GoalCard label from notes to items with no logic changes.
 
 ### Added (2026-04-07 — Prompt 9C: Signal Refinement + BRT Centralization)

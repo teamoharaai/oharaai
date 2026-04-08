@@ -1,26 +1,35 @@
-import { View, Text, ScrollView, Pressable, ActivityIndicator, SafeAreaView } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, SafeAreaView, TextInput } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { fetchProjectWithGoals } from '@/features/projects/services/project-service';
+import { Badge } from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/Modal';
+import { deleteProject, fetchProjectWithGoals, updateProject } from '@/features/projects/services/project-service';
 import { GoalCard } from '@/features/goals/components/GoalCard';
 import type { ProjectWithGoals, ProjectStatus } from '@/features/goals/types';
 
-type StatusConfig = {
-  bg: string;
-  text: string;
-  label: string;
-};
-
-const STATUS_CONFIG: Record<ProjectStatus, StatusConfig> = {
-  active:   { bg: '#E8F5EF', text: '#4A7C5F', label: 'Active' },
-  complete: { bg: '#F0EDE6', text: '#6B7B6E', label: 'Complete' },
-  archived: { bg: '#F5F1EA', text: '#9CAF9F', label: 'Archived' },
-};
+function getProjectStatusBadgeVariant(status: ProjectStatus): 'active' | 'complete' | 'archived' {
+  switch (status) {
+    case 'active':
+      return 'active';
+    case 'archived':
+      return 'archived';
+    case 'complete':
+    default:
+      return 'complete';
+  }
+}
 
 export default function ProjectDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [project, setProject] = useState<ProjectWithGoals | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editError, setEditError] = useState<string | null>(null);
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -51,7 +60,97 @@ export default function ProjectDetailScreen() {
     );
   }
 
-  const statusCfg = STATUS_CONFIG[project.status] ?? STATUS_CONFIG.active;
+  const aggregateProgress = project.goals.length > 0
+    ? Math.round(project.goals.reduce((sum, goal) => sum + goal.progress, 0) / project.goals.length)
+    : 0;
+  const statusLabel = project.status === 'active'
+    ? 'Active'
+    : project.status === 'complete'
+      ? 'Complete'
+      : 'Archived';
+  const statusVariant = getProjectStatusBadgeVariant(project.status);
+
+  const inputStyle = {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EAE7E0',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#1A1F1C',
+  } as const;
+
+  const openEditModal = () => {
+    setEditTitle(project.title);
+    setEditDescription(project.description ?? '');
+    setEditError(null);
+    setIsEditModalVisible(true);
+  };
+
+  const closeEditModal = () => {
+    if (isSubmittingEdit) return;
+    setEditTitle(project.title);
+    setEditDescription(project.description ?? '');
+    setEditError(null);
+    setIsEditModalVisible(false);
+  };
+
+  const handleEditProjectPress = () => {
+    openEditModal();
+  };
+
+  const handleSaveProject = async () => {
+    if (isSubmittingEdit) return;
+
+    const trimmedTitle = editTitle.trim();
+    if (!trimmedTitle) {
+      setEditError('Project name is required.');
+      return;
+    }
+
+    try {
+      setIsSubmittingEdit(true);
+      setEditError(null);
+
+      const updatedProject = await updateProject(project.id, {
+        title: trimmedTitle,
+        description: editDescription,
+      });
+
+      setProject((currentProject) => (
+        currentProject
+          ? { ...currentProject, ...updatedProject }
+          : currentProject
+      ));
+      setEditTitle(updatedProject.title);
+      setEditDescription(updatedProject.description ?? '');
+      setIsEditModalVisible(false);
+    } catch (error) {
+      setEditError(error instanceof Error ? error.message : 'Failed to update project.');
+    } finally {
+      setIsSubmittingEdit(false);
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    if (isDeleting) return;
+
+    try {
+      setIsDeleting(true);
+      await deleteProject(project.id);
+      setIsDeleteModalVisible(false);
+      if (router.canGoBack()) {
+        router.back();
+        return;
+      }
+      router.replace('/(app)/dashboard');
+    } catch {
+      setIsDeleteModalVisible(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F1EA' }}>
@@ -69,72 +168,103 @@ export default function ProjectDetailScreen() {
           <View
             style={{
               backgroundColor: '#FFFFFF',
-              borderRadius: 16,
+              borderRadius: 12,
               borderLeftWidth: 4,
               borderLeftColor: '#3D5247',
               padding: 20,
-              marginBottom: 28,
+              marginBottom: 24,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.06,
-              shadowRadius: 12,
+              shadowRadius: 8,
               elevation: 2,
             }}
           >
             <Text
               style={{
-                fontSize: 11,
-                fontWeight: '500',
-                color: '#6B7B6E',
-                letterSpacing: 1.5,
-                textTransform: 'uppercase',
-                marginBottom: 12,
+                fontFamily: 'Inter',
+                fontSize: 24,
+                fontWeight: '700',
+                color: '#1A1A1A',
+                lineHeight: 30,
+              }}
+            >
+              {project.title}
+            </Text>
+
+            {project.description && (
+              <Text
+                style={{
+                  fontFamily: 'Inter',
+                  fontSize: 14,
+                  color: '#6B7280',
+                  lineHeight: 20,
+                  marginTop: 8,
+                }}
+              >
+                {project.description}
+              </Text>
+            )}
+
+            <View style={{ marginTop: 16, alignItems: 'flex-start' }}>
+              <Badge label={statusLabel} variant={statusVariant} />
+            </View>
+
+            <Text
+              style={{
+                fontFamily: 'Inter',
+                fontSize: 12,
+                fontStyle: 'italic',
+                color: '#9CA3AF',
+                marginTop: 16,
+                marginBottom: 10,
               }}
             >
               Long-term ambition
             </Text>
 
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: project.description ? 14 : 0 }}>
-              <Text style={{ fontSize: 28, fontWeight: '600', color: '#1A1F1C', flex: 1, lineHeight: 34 }}>
-                {project.title}
-              </Text>
-              <View style={{ backgroundColor: statusCfg.bg, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }}>
-                <Text style={{ fontSize: 11, fontWeight: '500', color: statusCfg.text }}>{statusCfg.label}</Text>
-              </View>
+            <View style={{ width: '100%', height: 8, borderRadius: 999, backgroundColor: '#E7E2D8', overflow: 'hidden' }}>
+              <View
+                style={{
+                  width: `${aggregateProgress}%`,
+                  height: '100%',
+                  backgroundColor: '#3D5247',
+                  borderRadius: 999,
+                }}
+              />
             </View>
 
-            {project.description && (
-              <Text style={{ fontSize: 15, color: '#6B7B6E', lineHeight: 22 }}>
-                {project.description}
-              </Text>
-            )}
+            {/* TODO: space badge requires space_id join — not available from current project query */}
           </View>
 
           {/* Goals section */}
           <View style={{ marginBottom: 28 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: '500',
-                  color: '#6B7B6E',
-                  letterSpacing: 1.5,
-                  textTransform: 'uppercase',
-                }}
-              >
-                Goals
-              </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }}>
+                <Text
+                  style={{
+                    fontFamily: 'Inter',
+                    fontSize: 18,
+                    fontWeight: '600',
+                    color: '#1A1A1A',
+                  }}
+                >
+                  Goals
+                </Text>
+                <Badge label={`${project.goals.length}`} variant="category" />
+              </View>
               <Pressable
                 onPress={() => router.push({ pathname: '/goals/create', params: { projectId: project.id } })}
                 style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
+                  backgroundColor: '#3D5247',
+                  borderRadius: 12,
+                  paddingHorizontal: 16,
+                  paddingVertical: 10,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <Text style={{ fontSize: 20, color: '#4A7C5F', lineHeight: 24 }}>+</Text>
+                <Text style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: '600', color: '#F5F1EA' }}>+ Add Goal</Text>
               </Pressable>
             </View>
 
@@ -142,7 +272,7 @@ export default function ProjectDetailScreen() {
               <View
                 style={{
                   backgroundColor: '#FFFFFF',
-                  borderRadius: 16,
+                  borderRadius: 12,
                   paddingHorizontal: 20,
                   paddingVertical: 28,
                   alignItems: 'center',
@@ -153,8 +283,16 @@ export default function ProjectDetailScreen() {
                   elevation: 1,
                 }}
               >
-                <Text style={{ fontSize: 15, color: '#6B7B6E', marginBottom: 16, textAlign: 'center' }}>
-                  No goals linked to this project yet.
+                <Text
+                  style={{
+                    fontFamily: 'Inter',
+                    fontSize: 15,
+                    color: '#6B7B6E',
+                    marginBottom: 16,
+                    textAlign: 'center',
+                  }}
+                >
+                  Break this ambition into achievable goals
                 </Text>
                 <Pressable
                   onPress={() => router.push({ pathname: '/goals/create', params: { projectId: project.id } })}
@@ -165,7 +303,7 @@ export default function ProjectDetailScreen() {
                     paddingVertical: 12,
                   }}
                 >
-                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#E8EDE9' }}>Add a goal</Text>
+                  <Text style={{ fontFamily: 'Inter', fontSize: 15, fontWeight: '600', color: '#E8EDE9' }}>+ Add Goal</Text>
                 </Pressable>
               </View>
             ) : (
@@ -177,27 +315,262 @@ export default function ProjectDetailScreen() {
             )}
           </View>
 
-          {/* Delete project action */}
-          <View style={{ alignItems: 'flex-start' }}>
-            <Pressable
-              disabled
+          {/* Project Vault */}
+          <View style={{ marginBottom: 28 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12 }}>
+              <Text
+                style={{
+                  fontFamily: 'Inter',
+                  fontSize: 18,
+                  fontWeight: '600',
+                  color: '#1A1A1A',
+                }}
+              >
+                Project Vault
+              </Text>
+              <Pressable
+                onPress={() => {}}
+                style={{
+                  backgroundColor: '#3D5247',
+                  borderRadius: 12,
+                  width: 36,
+                  height: 36,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ fontFamily: 'Inter', fontSize: 20, lineHeight: 22, color: '#F5F1EA' }}>+</Text>
+              </Pressable>
+            </View>
+
+            {/* TODO: Project-level vault support requires a schema change — add nullable project_id
+            // column to the vaults table (goal_id would remain nullable for goal-bound vaults).
+            // Until that migration ships, this section is a placeholder only. */}
+            <View
               style={{
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: 'rgba(192,72,58,0.22)',
                 backgroundColor: '#FFFFFF',
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                opacity: 0.6,
+                borderRadius: 8,
+                paddingHorizontal: 20,
+                paddingVertical: 22,
+                borderWidth: 1,
+                borderColor: '#E7E2D8',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.04,
+                shadowRadius: 8,
+                elevation: 1,
               }}
             >
-              <Text style={{ fontSize: 14, fontWeight: '500', color: '#C0483A' }}>
-                Delete project
+              <Text style={{ fontFamily: 'Inter', fontSize: 15, color: '#6B7280', lineHeight: 22 }}>
+                Add project-level notes and resources
               </Text>
-            </Pressable>
+            </View>
+          </View>
+
+          {/* Activity */}
+          <View style={{ marginBottom: 28 }}>
+            <Text
+              style={{
+                fontFamily: 'Inter',
+                fontSize: 18,
+                fontWeight: '600',
+                color: '#1A1A1A',
+                marginBottom: 16,
+              }}
+            >
+              Activity
+            </Text>
+
+            <View
+              style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: 8,
+                paddingHorizontal: 20,
+                paddingVertical: 22,
+                borderWidth: 1,
+                borderColor: '#E7E2D8',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.04,
+                shadowRadius: 8,
+                elevation: 1,
+              }}
+            >
+              <Text style={{ fontFamily: 'Inter', fontSize: 15, color: '#6B7280', lineHeight: 22 }}>
+                Activity will appear as you and your team make progress
+              </Text>
+            </View>
+          </View>
+
+          {/* Settings */}
+          <View style={{ marginBottom: 28 }}>
+            <Text
+              style={{
+                fontFamily: 'Inter',
+                fontSize: 18,
+                fontWeight: '600',
+                color: '#1A1A1A',
+                marginBottom: 16,
+              }}
+            >
+              Settings
+            </Text>
+
+            <View
+              style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: '#E7E2D8',
+                overflow: 'hidden',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.04,
+                shadowRadius: 8,
+                elevation: 1,
+              }}
+            >
+              <Pressable
+                onPress={handleEditProjectPress}
+                style={{
+                  paddingHorizontal: 18,
+                  paddingVertical: 16,
+                  borderBottomWidth: 1,
+                  borderBottomColor: '#EFE9DE',
+                }}
+              >
+                <Text style={{ fontFamily: 'Inter', fontSize: 15, color: '#1A1A1A' }}>
+                  Edit project name and description
+                </Text>
+              </Pressable>
+
+              {/* TODO: Manage members visibility requires space_id join — hidden until available */}
+
+              <Pressable
+                onPress={() => setIsDeleteModalVisible(true)}
+                style={{
+                  paddingHorizontal: 18,
+                  paddingVertical: 16,
+                }}
+              >
+                <Text style={{ fontFamily: 'Inter', fontSize: 15, fontWeight: '500', color: '#DC2626' }}>
+                  Delete project
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={isEditModalVisible}
+        onClose={closeEditModal}
+        showCloseButton={false}
+        closeDisabled={isSubmittingEdit}
+        cancelText="Cancel"
+        onCancel={closeEditModal}
+        cancelDisabled={isSubmittingEdit}
+        confirmText={isSubmittingEdit ? 'Saving…' : 'Save changes'}
+        onConfirm={() => {
+          void handleSaveProject();
+        }}
+        confirmDisabled={isSubmittingEdit}
+      >
+        <Text style={{ fontFamily: 'Inter', fontSize: 18, fontWeight: '600', color: '#1A1A1A', marginBottom: 10 }}>
+          Edit project
+        </Text>
+        <Text style={{ fontFamily: 'Inter', fontSize: 14, lineHeight: 21, color: '#6B7280', marginBottom: 18 }}>
+          Update the project name and long-term intent.
+        </Text>
+
+        <View style={{ marginBottom: 14 }}>
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: '500',
+              color: '#6B7B6E',
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+              marginBottom: 8,
+            }}
+          >
+            Project name
+          </Text>
+          <TextInput
+            style={inputStyle}
+            value={editTitle}
+            onChangeText={(value) => {
+              setEditTitle(value);
+              if (editError) setEditError(null);
+            }}
+            placeholder="e.g. Build financial independence"
+            placeholderTextColor="#9CAF9F"
+            editable={!isSubmittingEdit}
+            autoFocus
+            returnKeyType="next"
+          />
+        </View>
+
+        <View>
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: '500',
+              color: '#6B7B6E',
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+              marginBottom: 8,
+            }}
+          >
+            Long-term intent (optional)
+          </Text>
+          <TextInput
+            style={[inputStyle, { minHeight: 88, maxHeight: 132, textAlignVertical: 'top' }]}
+            value={editDescription}
+            onChangeText={(value) => {
+              setEditDescription(value);
+              if (editError) setEditError(null);
+            }}
+            placeholder="Describe what achieving this means to you..."
+            placeholderTextColor="#9CAF9F"
+            editable={!isSubmittingEdit}
+            multiline
+          />
+        </View>
+
+        {editError ? (
+          <Text style={{ marginTop: 12, fontSize: 13, lineHeight: 18, color: '#DC2626' }}>
+            {editError}
+          </Text>
+        ) : null}
+      </Modal>
+
+      <Modal
+        visible={isDeleteModalVisible}
+        onClose={() => {
+          if (!isDeleting) {
+            setIsDeleteModalVisible(false);
+          }
+        }}
+        showCloseButton={false}
+        closeDisabled={isDeleting}
+        cancelText="Cancel"
+        onCancel={() => setIsDeleteModalVisible(false)}
+        cancelDisabled={isDeleting}
+        confirmText={isDeleting ? 'Deleting…' : 'Delete'}
+        onConfirm={() => {
+          void handleDeleteProject();
+        }}
+        confirmDisabled={isDeleting}
+        confirmVariant="destructive"
+      >
+        <Text style={{ fontFamily: 'Inter', fontSize: 18, fontWeight: '600', color: '#1A1A1A', marginBottom: 10 }}>
+          Delete project
+        </Text>
+        <Text style={{ fontFamily: 'Inter', fontSize: 14, lineHeight: 21, color: '#6B7280' }}>
+          Are you sure you want to delete this project? This cannot be undone.
+        </Text>
+      </Modal>
     </SafeAreaView>
   );
 }

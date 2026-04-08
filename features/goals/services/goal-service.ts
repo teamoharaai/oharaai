@@ -28,7 +28,7 @@ type DbMeasurable = {
   updated_at: string;
 };
 
-type DbGoal = {
+export type DbGoal = {
   id: string;
   user_id: string;
   title: string;
@@ -121,7 +121,7 @@ function mapMeasurable(row: DbMeasurable): Measurable {
   };
 }
 
-function mapGoal(row: DbGoal): GoalWithMeasurables {
+export function mapGoal(row: DbGoal): GoalWithMeasurables {
   return {
     id: row.id,
     userId: row.user_id,
@@ -257,7 +257,7 @@ async function fetchGoalSignals(
   return { vaultItemCountMap, echoLinkCountMap, latestBrtTagsMap };
 }
 
-const GOAL_SELECT = `
+export const GOAL_SELECT = `
   id, user_id, title, description, category, smart_data, color_theme, deadline,
   visibility, progress, status, ai_generated, project_id, created_at, updated_at,
   measurables (
@@ -266,16 +266,10 @@ const GOAL_SELECT = `
   )
 `.trim();
 
-export async function fetchGoals(userId: string): Promise<GoalWithMeasurables[]> {
-  const { data, error } = await supabase
-    .from('goals')
-    .select(GOAL_SELECT)
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
-
-  if (error || !data) return [];
-  const goals = (data as unknown as DbGoal[]).map(mapGoal);
-
+export async function enrichGoalsWithSignals(
+  goals: GoalWithMeasurables[],
+  userId: string,
+): Promise<GoalWithMeasurables[]> {
   if (goals.length === 0) return goals;
 
   const goalIds = goals.map((g) => g.id);
@@ -290,6 +284,18 @@ export async function fetchGoals(userId: string): Promise<GoalWithMeasurables[]>
     echoLinkCount: echoLinkCountMap.get(goal.id) ?? 0,
     latestBrtTags: latestBrtTagsMap.get(goal.id) ?? null,
   }));
+}
+
+export async function fetchGoals(userId: string): Promise<GoalWithMeasurables[]> {
+  const { data, error } = await supabase
+    .from('goals')
+    .select(GOAL_SELECT)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error || !data) return [];
+  const goals = (data as unknown as DbGoal[]).map(mapGoal);
+  return enrichGoalsWithSignals(goals, userId);
 }
 
 export async function fetchGoalById(goalId: string): Promise<GoalWithMeasurables | null> {
