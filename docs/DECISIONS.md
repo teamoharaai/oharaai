@@ -196,3 +196,8 @@ completed before any Phase 2 echo feature work begins to ensure
 the API layer is consistent.
 
 **Owner:** Ariel (AI layer) + CTO (API route + DB layer).
+
+## 2026-04-08: profile_embeddings junction table deferred to Phase 2.
+   Only powers "smarter candidate extraction context" retrieval use case,
+   which is Qdrant-era. Blocks 1–4 deliver complete embedding pipeline
+   without it.
