@@ -34,6 +34,7 @@ export default function AppLayout() {
             <Stack.Screen name="echo" />
             <Stack.Screen name="constellation" />
             <Stack.Screen name="explore" />
+            <Stack.Screen name="about" />
           </Stack>
         </View>
       </View>
