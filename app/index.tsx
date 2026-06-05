@@ -15,7 +15,7 @@ function NavLink({
   onPress,
 }: {
   label: string;
-  href?: "/(auth)/login" | "/(auth)/signup";
+  href?: string;
   onPress?: () => void;
 }) {
   if (href) {
@@ -75,10 +75,8 @@ function ActionButton({
 
 function Header({
   onPressRoadmap,
-  onPressAbout,
 }: {
   onPressRoadmap: () => void;
-  onPressAbout: () => void;
 }) {
   return (
     <View
@@ -101,10 +99,11 @@ function Header({
         </Typography>
 
         <View className="flex-row items-center gap-5">
+          <NavLink label="About us" href="/about" />
           <NavLink label="Log in" href="/(auth)/login" />
           <NavLink label="Sign up" href="/(auth)/signup" />
           <NavLink label="Roadmap" onPress={onPressRoadmap} />
-          <NavLink label="About us" onPress={onPressAbout} />
+          
         </View>
       </View>
     </View>
