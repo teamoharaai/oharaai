@@ -60,10 +60,10 @@ export default function AboutPage() {
           </Typography>
 
           <View className="flex-row items-center gap-5">
+            <NavLink label="About Us" href="/about" />
             <NavLink label="Log in" href="/(auth)/login" />
             <NavLink label="Sign up" href="/(auth)/signup" />
             <NavLink label="Roadmap" href="/" />
-            <NavLink label="About Us" href="/about" />
           </View>
         </View>
       </View>
