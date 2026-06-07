@@ -94,19 +94,25 @@ function Header({
       }
     >
       <View className="mx-auto w-full max-w-6xl flex-row items-center justify-between rounded-full border border-white/10 bg-white/5 px-5 py-4">
-        <Typography variant="label" className="font-semibold text-base tracking-[0.24em] text-ink">
-          OharaAI
-        </Typography>
+  <Link href="/" asChild>
+    <TouchableOpacity>
+      <Typography
+        variant="label"
+        className="font-semibold text-base tracking-[0.24em] text-ink"
+      >
+        OharaAI
+      </Typography>
+    </TouchableOpacity>
+  </Link>
 
-        <View className="flex-row items-center gap-5">
-          <NavLink label="About us" href="/about" />
-          <NavLink label="Log in" href="/(auth)/login" />
-          <NavLink label="Sign up" href="/(auth)/signup" />
-          <NavLink label="Roadmap" onPress={onPressRoadmap} />
-          
-        </View>
-      </View>
-    </View>
+  <View className="flex-row items-center gap-5">
+    <NavLink label="About Us" href="/about" />
+    <NavLink label="Log in" href="/(auth)/login" />
+    <NavLink label="Sign up" href="/(auth)/signup" />
+    <NavLink label="Roadmap" onPress={onPressRoadmap} />
+  </View>
+</View>
+</View>
   );
 }
 
@@ -169,10 +175,8 @@ function Hero() {
 
 function Footer({
   onRoadmapLayout,
-  onAboutLayout,
 }: {
   onRoadmapLayout: (y: number) => void;
-  onAboutLayout: (y: number) => void;
 }) {
   return (
     <View className="border-t border-white/10 px-6 py-10">
@@ -191,19 +195,6 @@ function Footer({
           </Typography>
         </View>
 
-        <View
-          className="rounded-3xl border border-white/10 bg-white/[0.04] p-6"
-          onLayout={(event) => onAboutLayout(event.nativeEvent.layout.y)}
-        >
-          <Typography variant="caption" className="mb-2 font-medium uppercase tracking-[0.28em]">
-            About us
-          </Typography>
-          <Typography variant="body" className="leading-6">
-            OharaAI is presented here as a refined product demo: measured,
-            modern, and designed to communicate confidence without noise.
-          </Typography>
-        </View>
-
         <Typography variant="caption" className="text-center" style={{ opacity: 0.7 }}>
           © {new Date().getFullYear()} OharaAI
         </Typography>
@@ -215,7 +206,6 @@ function Footer({
 export default function LandingPage() {
   const scrollRef = useRef<ScrollView>(null);
   const [roadmapY, setRoadmapY] = useState<number>(0);
-  const [aboutY, setAboutY] = useState<number>(0);
 
   function scrollTo(y: number) {
     scrollRef.current?.scrollTo({ y: Math.max(y - 120, 0), animated: true });
@@ -267,7 +257,6 @@ export default function LandingPage() {
 
       <Header
         onPressRoadmap={() => scrollTo(roadmapY)}
-        onPressAbout={() => scrollTo(aboutY)}
       />
 
       <ScrollView
@@ -280,7 +269,6 @@ export default function LandingPage() {
           <Hero />
           <Footer
             onRoadmapLayout={setRoadmapY}
-            onAboutLayout={setAboutY}
           />
         </View>
       </ScrollView>
