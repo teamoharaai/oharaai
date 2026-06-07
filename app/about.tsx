@@ -52,21 +52,24 @@ export default function AboutPage() {
         }
       >
         <View className="mx-auto w-full max-w-6xl flex-row items-center justify-between rounded-full border border-white/10 bg-white/5 px-5 py-4">
-          <Typography
-            variant="label"
-            className="font-semibold text-base tracking-[0.24em] text-ink"
-          >
-            OharaAI
-          </Typography>
+  <Link href="/" asChild>
+    <TouchableOpacity>
+      <Typography
+        variant="label"
+        className="font-semibold text-base tracking-[0.24em] text-ink"
+      >
+        OharaAI
+      </Typography>
+    </TouchableOpacity>
+  </Link>
 
-          <View className="flex-row items-center gap-5">
-            <NavLink label="About Us" href="/about" />
-            <NavLink label="Log in" href="/(auth)/login" />
-            <NavLink label="Sign up" href="/(auth)/signup" />
-            <NavLink label="Roadmap" href="/" />
-          </View>
-        </View>
-      </View>
+  <View className="flex-row items-center gap-5">
+    <NavLink label="About Us" href="/about" />
+    <NavLink label="Log in" href="/(auth)/login" />
+    <NavLink label="Sign up" href="/(auth)/signup" />
+    <NavLink label="Roadmap" href="/" />
+  </View>
+</View>
 
       <ScrollView
         className="flex-1"
