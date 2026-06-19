@@ -1,4 +1,5 @@
 import { Link } from "expo-router";
+import type { Href } from "expo-router";
 import { useRef, useState } from "react";
 import {
   Image,
@@ -15,7 +16,7 @@ function NavLink({
   onPress,
 }: {
   label: string;
-  href?: string;
+  href?: Href;
   onPress?: () => void;
 }) {
   if (href) {
@@ -106,7 +107,7 @@ function Header({
   </Link>
 
   <View className="flex-row items-center gap-5">
-    <NavLink label="About Us" href="/about" />
+    <NavLink label="About Us" href={"/about" as Href} />
     <NavLink label="Log in" href="/(auth)/login" />
     <NavLink label="Sign up" href="/(auth)/signup" />
     <NavLink label="Roadmap" onPress={onPressRoadmap} />

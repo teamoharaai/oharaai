@@ -1,5 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-import supabase, { isDatabaseConfigured } from '@/lib/db/client';
+import supabase, { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 import { callEchoReflection } from '@/lib/ai/echo-client';
 import { buildEchoReflectionPrompt } from '@/lib/ai/prompts/echo-reflection';
 import { ECHO_INFERENCE_PROMPT } from '@/lib/ai/echo/prompts';
@@ -19,17 +18,6 @@ async function getAuthContext(request: Request) {
   } = await supabase.auth.getUser(token);
 
   return error || !user ? null : { userId: user.id, accessToken: token };
-}
-
-// --- Authed DB client (needed for RLS-gated writes) ---
-
-function createAuthedClient(accessToken: string) {
-  const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-  const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
-  return createClient(url, anonKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
-  });
 }
 
 // --- Reflection parser (mirrors reflect+api.ts — must stay in sync if that changes) ---

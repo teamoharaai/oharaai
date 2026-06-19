@@ -1,4 +1,5 @@
 import { Link } from "expo-router";
+import type { Href } from "expo-router";
 import { Platform, ScrollView, TouchableOpacity, View } from "react-native";
 import { Typography } from "@/components/ui/Typography";
 
@@ -7,7 +8,7 @@ function NavLink({
   href,
 }: {
   label: string;
-  href: string;
+  href: Href;
 }) {
   return (
     <Link href={href} asChild>
@@ -64,12 +65,13 @@ export default function AboutPage() {
   </Link>
 
   <View className="flex-row items-center gap-5">
-    <NavLink label="About Us" href="/about" />
+    <NavLink label="About Us" href={"/about" as Href} />
     <NavLink label="Log in" href="/(auth)/login" />
     <NavLink label="Sign up" href="/(auth)/signup" />
     <NavLink label="Roadmap" href="/" />
   </View>
 </View>
+      </View>
 
       <ScrollView
         className="flex-1"
