@@ -4,38 +4,37 @@ import { router, useLocalSearchParams } from 'expo-router';
 import supabase from '@/lib/db/client';
 
 export default function AuthCallbackScreen() {
-  const params = useLocalSearchParams<{ code?: string }>();
+  const { code } = useLocalSearchParams<{ code?: string | string[] }>();
 
   useEffect(() => {
     async function handleCallback() {
       try {
-        // PKCE flow: code in query params
-        if (params.code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(params.code);
-          if (error) throw error;
-          router.replace('/(app)/dashboard');
-          return;
-        }
+        const authCode = Array.isArray(code) ? code[0] : code;
 
-        // Implicit flow: access_token in hash fragment (web only)
-        if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
-          const { data, error } = await supabase.auth.getSession();
-          if (error) throw error;
-          if (data.session) {
-            router.replace('/(app)/dashboard');
+        if (authCode) {
+          const { error } = await supabase.auth.exchangeCodeForSession(authCode);
+          if (error) {
+            router.replace('/(auth)/login?error=verification_failed');
             return;
           }
         }
 
-        // Nothing found
-        throw new Error('No auth code or token found.');
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (session) {
+          router.replace('/(app)/dashboard');
+        } else {
+          router.replace('/(auth)/login?error=no_session');
+        }
       } catch {
-        router.replace('/(auth)/login?error=Verification+failed%2C+please+try+again.');
+        router.replace('/(auth)/login?error=verification_failed');
       }
     }
 
     handleCallback();
-  }, [params.code]);
+  }, [code]);
 
   return (
     <View className="flex-1 bg-cream justify-center items-center">

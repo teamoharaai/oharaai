@@ -1,4 +1,4 @@
-import supabase, { isDatabaseConfigured } from '@/lib/db/client';
+import supabase, { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 import { completeMeasurable, getGoalProgressById } from '@/lib/db/goals';
 
 type CompleteMeasurableRequest = {
@@ -26,6 +26,8 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const authedDb = createAuthedClient(token);
+
   let body: CompleteMeasurableRequest;
   try {
     body = (await request.json()) as CompleteMeasurableRequest;
@@ -41,8 +43,8 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    await completeMeasurable(measurableId, goalId, user.id);
-    const progress = await getGoalProgressById(goalId, user.id);
+    await completeMeasurable(measurableId, goalId, user.id, authedDb);
+    const progress = await getGoalProgressById(goalId, user.id, authedDb);
     return Response.json({ success: true, progress });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to complete measurable';

@@ -39,7 +39,7 @@ export default function SignupScreen() {
         data: {
           display_name: displayName,
         },
-        emailRedirectTo: 'https://oharaai.vercel.app/auth/callback',
+        emailRedirectTo: 'https://oharaai.vercel.app/callback',
       },
     });
     if (signUpError) {

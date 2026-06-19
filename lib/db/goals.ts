@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import supabase from './client';
 import type { GoalTheme } from '@/constants/themes';
 import type { GoalFinalizeResponse } from '@/lib/ai/schemas/goal-creation';
@@ -335,9 +336,10 @@ type DbEchoEntryForLinkRow = {
 export async function getActivityByGoalId(
   goalId: string,
   userId: string,
+  db: SupabaseClient = supabase,
 ): Promise<ActivityItem[]> {
   // 1. Echo entries for this goal (legacy echo_entries.goal_id path — preserved for backward compat)
-  const { data: echoData } = await supabase
+  const { data: echoData } = await db
     .from('echo_entries')
     .select('id, content, emotion, brt, created_at')
     .eq('goal_id', goalId)
@@ -361,7 +363,7 @@ export async function getActivityByGoalId(
   );
 
   // 2. Measurable completion logs (logs where value >= measurable target_value)
-  const { data: measurablesData } = await supabase
+  const { data: measurablesData } = await db
     .from('measurables')
     .select('id, title, target_value')
     .eq('goal_id', goalId);
@@ -378,7 +380,7 @@ export async function getActivityByGoalId(
       measurablesWithTarget.map((m) => [m.id, { title: m.title, target: m.target_value }]),
     );
 
-    const { data: logData } = await supabase
+    const { data: logData } = await db
       .from('measurable_logs')
       .select('id, value, logged_at, measurable_id')
       .in('measurable_id', measurableIds);
@@ -398,7 +400,7 @@ export async function getActivityByGoalId(
   }
 
   // 3. Goal created event
-  const { data: goalData } = await supabase
+  const { data: goalData } = await db
     .from('goals')
     .select('created_at')
     .eq('id', goalId)
@@ -418,7 +420,7 @@ export async function getActivityByGoalId(
   const vaultAddedItems: ActivityItem[] = [];
   const insightConfirmedItems: ActivityItem[] = [];
 
-  const { data: vaultRowData } = await supabase
+  const { data: vaultRowData } = await db
     .from('vaults')
     .select('id')
     .eq('goal_id', goalId)
@@ -428,7 +430,7 @@ export async function getActivityByGoalId(
   if (vaultRowData) {
     const vaultId = (vaultRowData as unknown as DbVaultRowForActivity).id;
 
-    const { data: vaultItemData } = await supabase
+    const { data: vaultItemData } = await db
       .from('vault_items')
       .select('id, item_type, title, content, metadata, created_at, updated_at')
       .eq('vault_id', vaultId)
@@ -471,7 +473,7 @@ export async function getActivityByGoalId(
   //    Timestamp is echo_goal_links.created_at (when linked), not echo_entries.created_at.
   const echoLinkedItems: ActivityItem[] = [];
 
-  const { data: linkData } = await supabase
+  const { data: linkData } = await db
     .from('echo_goal_links')
     .select('id, echo_entry_id, created_at')
     .eq('goal_id', goalId);
@@ -484,7 +486,7 @@ export async function getActivityByGoalId(
     const linkedEntryIds = newLinks.map((link) => link.echo_entry_id);
     const linkByEntryId = new Map(newLinks.map((link) => [link.echo_entry_id, link]));
 
-    const { data: linkedEchoData } = await supabase
+    const { data: linkedEchoData } = await db
       .from('echo_entries')
       .select('id, content, brt')
       .in('id', linkedEntryIds);
@@ -525,8 +527,9 @@ export async function completeMeasurable(
   measurableId: string,
   goalId: string,
   userId: string,
+  db: SupabaseClient = supabase,
 ): Promise<void> {
-  const { data: goalRow, error: goalError } = await supabase
+  const { data: goalRow, error: goalError } = await db
     .from('goals')
     .select('id')
     .eq('id', goalId)
@@ -537,7 +540,7 @@ export async function completeMeasurable(
     throw new Error('Goal not found');
   }
 
-  const { data: measurableRow, error: measurableError } = await supabase
+  const { data: measurableRow, error: measurableError } = await db
     .from('measurables')
     .select('id, title, target_value')
     .eq('id', measurableId)
@@ -552,7 +555,7 @@ export async function completeMeasurable(
     (measurableRow as DbMeasurableRow).target_value,
   );
 
-  const { error: insertLogError } = await supabase.from('measurable_logs').insert({
+  const { error: insertLogError } = await db.from('measurable_logs').insert({
     measurable_id: measurableId,
     value: completionValue,
     logged_at: new Date().toISOString(),
@@ -562,7 +565,7 @@ export async function completeMeasurable(
     throw new Error(insertLogError.message);
   }
 
-  const { data: measurablesData, error: measurablesError } = await supabase
+  const { data: measurablesData, error: measurablesError } = await db
     .from('measurables')
     .select('id, title, target_value')
     .eq('goal_id', goalId);
@@ -576,7 +579,7 @@ export async function completeMeasurable(
   let progress = 0;
 
   if (measurableIds.length > 0) {
-    const { data: logData, error: logError } = await supabase
+    const { data: logData, error: logError } = await db
       .from('measurable_logs')
       .select('id, value, logged_at, measurable_id')
       .in('measurable_id', measurableIds);
@@ -596,7 +599,7 @@ export async function completeMeasurable(
     progress = Math.round((completionCount / measurables.length) * 100);
   }
 
-  const { error: updateGoalError } = await supabase
+  const { error: updateGoalError } = await db
     .from('goals')
     .update({ progress })
     .eq('id', goalId)
@@ -618,8 +621,12 @@ export async function getProjectTitle(projectId: string): Promise<string | null>
   return (data as { title: string }).title;
 }
 
-export async function getGoalProgressById(goalId: string, userId: string): Promise<number> {
-  const { data, error } = await supabase
+export async function getGoalProgressById(
+  goalId: string,
+  userId: string,
+  db: SupabaseClient = supabase,
+): Promise<number> {
+  const { data, error } = await db
     .from('goals')
     .select('progress')
     .eq('id', goalId)

@@ -1,4 +1,4 @@
-import supabase, { isDatabaseConfigured } from '@/lib/db/client';
+import supabase, { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 import { getActivityByGoalId } from '@/lib/db/goals';
 
 export async function GET(request: Request): Promise<Response> {
@@ -27,6 +27,7 @@ export async function GET(request: Request): Promise<Response> {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const items = await getActivityByGoalId(goalId, user.id);
+  const authedDb = createAuthedClient(token);
+  const items = await getActivityByGoalId(goalId, user.id, authedDb);
   return Response.json({ items });
 }

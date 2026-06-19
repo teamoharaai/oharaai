@@ -1,4 +1,4 @@
-import supabase, { isDatabaseConfigured } from '@/lib/db/client';
+import supabase, { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 import type { ActionLog, ActionLogStatus } from '@/features/actions/types';
 
 const ACTION_LOG_STATUSES: readonly ActionLogStatus[] = ['pending', 'complete', 'skipped'];
@@ -62,6 +62,8 @@ export async function PATCH(
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const authedDb = createAuthedClient(token);
+
   const { id } = params;
   if (!id?.trim()) {
     return Response.json({ error: 'Action log ID is required' }, { status: 400 });
@@ -102,7 +104,7 @@ export async function PATCH(
     return Response.json({ error: 'No fields to update' }, { status: 400 });
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await authedDb
     .from('action_logs')
     .update(update)
     .eq('id', id.trim())

@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Added (2026-06-19 — Block 0.2: Anon-client RLS hardening)
+- Added `supabase/migrations/025_action_logs_rls_hardening.sql` to tighten `public.action_logs` RLS around both `user_id = auth.uid()` and owned `goal_id`, replacing the earlier user-id-only select/insert/update policies with explicit goal-ownership checks and an update `WITH CHECK`. This closes the anon-client RLS gap for the action routes without widening any access.
+
+### Changed (2026-06-19 — Block 0.2: Anon-client RLS hardening)
+- Audited `app/api/actions/index+api.ts`, `app/api/actions/[id]+api.ts`, `app/api/goals/activity+api.ts`, and `app/api/goals/complete-measurable+api.ts`. Confirmed Block 0.1 did not change these API auth paths; it only changed signup/callback flow in the auth screens.
+- Updated the four audited routes to run their actual Supabase reads/writes through `createAuthedClient(accessToken)` after token validation, so existing table RLS can enforce the caller boundary instead of relying on the shared anon client. Affected files: `app/api/actions/index+api.ts`, `app/api/actions/[id]+api.ts`, `app/api/goals/activity+api.ts`, `app/api/goals/complete-measurable+api.ts`.
+- Threaded an optional authed Supabase client through `getActivityByGoalId`, `completeMeasurable`, and `getGoalProgressById` in `lib/db/goals.ts` so the targeted goal routes can keep their current behavior while executing under the caller JWT.
+
+### Fixed (2026-06-19 — Block 0.2: Anon-client RLS hardening)
+- Repo-based RLS audit results: `action_logs`, `goals`, `measurables`, `measurable_logs`, `echo_entries`, `vaults`, `vault_items`, and `echo_goal_links` were reviewed for the four targeted routes. Matching repo policies already existed for all audited goal/activity tables; the missing hardening was on `action_logs`, whose prior policies did not enforce owned `goal_id`.
+- Verification performed: route/table audit completed from repo migrations and helper code; `npx tsc --noEmit` passed and `npx expo export -p web` passed. Live Supabase RLS inspection remains pending because the local repo only provides the public Supabase URL and anon key, not a DB connection string or service-role/admin credential for querying live policy metadata safely.
+- Manual DB checks still required when Supabase is reachable: apply `supabase/migrations/025_action_logs_rls_hardening.sql`, then verify user A can read/create/update only their own `action_logs`, cannot insert an `action_logs.goal_id` pointing at another user's goal, and that the authed `/api/goals/activity` and `/api/goals/complete-measurable` flows still succeed under RLS.
+- Remaining risk: until the new migration is applied to the live Supabase project, the database will continue using the older `action_logs` policies even though the route code is now RLS-compatible.
+
 ### Added (2026-04-08 — Conversation 3 Block 4: embedding_text Population + Write-Path Wiring)
 - Created `lib/ai/embedding-text.ts`: three pure helper functions with zero side effects — `buildEchoEmbeddingText(content)` returns trimmed content or null if below 40-word floor; `buildGoalEmbeddingText(title, description, milestones)` concatenates title + description + milestone titles, never returns null; `buildVaultItemEmbeddingText(content)` returns trimmed content or null if below floor. All import `EMBEDDING_MIN_WORD_COUNT` from `lib/ai/constants.ts`.
 - Created `scripts/backfill-embedding-text.ts`: idempotent backfill for existing `echo_entries`, `goals`, and `vault_items` where `embedding_text IS NULL`. Pure string computation — no API calls. Batches of 100 rows, parallel within batch. Uses Supabase service role client. For goals, joins `measurables(title)` via PostgREST nested select. Reports: "X echo entries, Y goals, Z vault items updated."
@@ -268,3 +282,25 @@ Excluded: H1–H6 items pending human review (store pattern decision, echo promp
 ### Changed (2026-04-06)
 - Extended `types/activity.ts` `ActivityItem` discriminated union with three new variants (on `kind` field). All new variants share the required `id` and `timestamp` base fields per union contract. No existing variant shapes modified.
 - Applied narrowing fix in `features/goals/components/ActivityFeed.tsx`: exhaustive switch on `kind` is now type-safe against the full `ActivityItem` union; previously unhandled variants no longer produce implicit `any` or dead-branch type errors. TSC clean after change.
+
+## Block 0.1 — Duplicate auth callback fix (2026-06-19)
+
+### Audited
+- Compared `app/(auth)/callback.tsx` and `app/auth/callback.tsx`, traced `/callback` and `/auth/callback` references, and confirmed signup was hardcoded to `https://oharaai.vercel.app/auth/callback` while repo context still flagged `/auth/callback` as the broken path.
+
+### Changed
+- Updated `app/(auth)/signup.tsx` to send Supabase email confirmations to `https://oharaai.vercel.app/callback`, matching the auth route-group callback path exposed by Expo Router.
+- Unified callback handling in `app/(auth)/callback.tsx` by normalizing the `code` param, exchanging PKCE codes, and verifying the resulting session before routing to dashboard or login.
+
+### Fixed
+- Removed the duplicate literal route `app/auth/callback.tsx` so the app now has a single callback implementation and a single public callback URL.
+
+### Verification
+- Verified route references with repo-wide search before edits.
+- Manual verification still required for the live Supabase email-confirmation round-trip.
+
+### Manual Test Required
+- Create a test account from the signup screen, open the confirmation email, confirm the browser lands on `/callback`, and verify the user is routed to the expected post-auth screen without a 404.
+
+### Risks
+- If Supabase dashboard redirect URL allowlists still only include `https://oharaai.vercel.app/auth/callback`, they must be updated to include `https://oharaai.vercel.app/callback` for email confirmation to succeed in production.

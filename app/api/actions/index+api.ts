@@ -1,4 +1,4 @@
-import supabase, { isDatabaseConfigured } from '@/lib/db/client';
+import supabase, { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 import type { ActionLog, ActionLogStatus } from '@/features/actions/types';
 
 const ACTION_LOG_STATUSES: readonly ActionLogStatus[] = ['pending', 'complete', 'skipped'];
@@ -52,7 +52,7 @@ function sanitizeOptionalDate(input: unknown): string | null {
 
 // ─── Auth helper ─────────────────────────────────────────────────────────────
 
-async function getUserFromRequest(request: Request) {
+async function getAuthContextFromRequest(request: Request) {
   const authHeader = request.headers.get('Authorization');
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
   if (!token) return null;
@@ -62,7 +62,7 @@ async function getUserFromRequest(request: Request) {
     error,
   } = await supabase.auth.getUser(token);
 
-  return error || !user ? null : user;
+  return error || !user ? null : { userId: user.id, accessToken: token };
 }
 
 // ─── GET /api/actions ─────────────────────────────────────────────────────────
@@ -73,8 +73,8 @@ export async function GET(request: Request): Promise<Response> {
     return Response.json({ error: 'Database not configured' }, { status: 503 });
   }
 
-  const user = await getUserFromRequest(request);
-  if (!user) {
+  const auth = await getAuthContextFromRequest(request);
+  if (!auth) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -95,11 +95,13 @@ export async function GET(request: Request): Promise<Response> {
   const rawLimit = url.searchParams.get('limit');
   const limit = rawLimit ? Math.min(Math.max(1, parseInt(rawLimit, 10) || DEFAULT_LIMIT), MAX_LIMIT) : DEFAULT_LIMIT;
 
-  let query = supabase
+  const authedDb = createAuthedClient(auth.accessToken);
+
+  let query = authedDb
     .from('action_logs')
     .select('*')
     .eq('goal_id', goalId.trim())
-    .eq('user_id', user.id)
+    .eq('user_id', auth.userId)
     .order('created_at', { ascending: false })
     .limit(limit);
 
@@ -130,8 +132,8 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: 'Database not configured' }, { status: 503 });
   }
 
-  const user = await getUserFromRequest(request);
-  if (!user) {
+  const auth = await getAuthContextFromRequest(request);
+  if (!auth) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -155,11 +157,13 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: message }, { status: 400 });
   }
 
-  const { data, error } = await supabase
+  const authedDb = createAuthedClient(auth.accessToken);
+
+  const { data, error } = await authedDb
     .from('action_logs')
     .insert({
       goal_id: goalId,
-      user_id: user.id,
+      user_id: auth.userId,
       action_text: actionText,
       status: 'pending',
       due_date: dueDate,
