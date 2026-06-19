@@ -108,6 +108,7 @@ export async function createGoalWithMeasurables(
   userId: string,
   aiData: GoalFinalizeResponse,
   options?: { requestId?: string; projectId?: string | null },
+  db: SupabaseClient = supabase,
 ): Promise<CreateGoalWithMeasurablesResult> {
   const requestId = options?.requestId ?? null;
 
@@ -159,7 +160,7 @@ export async function createGoalWithMeasurables(
     });
   }
 
-  const { data: goalRow, error: goalError } = await supabase
+  const { data: goalRow, error: goalError } = await db
     .from('goals')
     .insert(goalInsert)
     .select('id')
@@ -182,7 +183,7 @@ export async function createGoalWithMeasurables(
   const goalId = goalRow.id as string;
 
   if (measurableInserts.length > 0) {
-    const { error: measurableError } = await supabase.from('measurables').insert(
+    const { error: measurableError } = await db.from('measurables').insert(
       measurableInserts.map((row) => ({
         goal_id: goalId,
         ...row,
@@ -215,7 +216,7 @@ export async function createGoalWithMeasurables(
   try {
     const vector = await generateEmbedding(embeddingText, 'document');
     if (vector) {
-      await supabase
+      await db
         .from('goals')
         .update({
           embedding: vector as any, // pgvector accepts number[]
@@ -234,7 +235,7 @@ export async function createGoalWithMeasurables(
   }
 
   // Auto-create vault for this goal (non-blocking)
-  const { error: vaultError } = await supabase
+  const { error: vaultError } = await db
     .from('vaults')
     .insert({
       user_id: userId,
