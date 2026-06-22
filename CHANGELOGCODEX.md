@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+### Added (2026-06-22 — Block 1: API-layer goal creation + mode fix)
+- Created `lib/api/auth.ts` (`getAuthContext`) and `lib/api/contracts.ts` (`ApiResponse<T>`
+  envelope) as the first routes on the new shared API auth/contract pattern.
+- Created `app/api/goals/index+api.ts` (`POST /api/goals`), routing AI-finalized goal
+  persistence through `createGoalWithMeasurables` under an authed Supabase client instead of
+  calling the DB layer directly from `app/goals/create.tsx`.
+- Restored `mode: 'commitment' as const` in `lib/db/goals.ts` (`mapAiGoalDataToDbInserts`),
+  reverting the unreviewed H3 cleanup pass that dropped it and caused a NOT-NULL insert
+  failure in production.
+- Added `supabase/migrations/026_goals_mode_drop_exploration.sql`, tightening
+  `goals_mode_check` to `mode = 'commitment'` only ('exploration' was dead — never written or
+  read anywhere in the app).
+- Files touched: `lib/api/auth.ts` (new), `lib/api/contracts.ts` (new),
+  `app/api/goals/index+api.ts` (new), `lib/db/goals.ts`, `app/goals/create.tsx`,
+  `supabase/migrations/026_goals_mode_drop_exploration.sql` (new).
+- Verification: `POST /api/goals` returns 201 with a real `goalId`; DB row confirms
+  `mode: 'commitment'` persists; `npx tsc --noEmit` clean.
+- Closes H3 (see Cleanup, 2026-04-08, below) — that entry is now marked CLOSED.
+
 ### Changed (2026-06-19 — Block 0 Closeout: Verification and blocker cleanup)
 - Session `Block 0 Closeout — Verification and blocker cleanup`: audited the current Block 0.1 callback state, Block 0.2 RLS hardening migration and four audited routes, Block 0.3 Echo reconcile route, `package.json` scripts, and the known verification blockers before making any edits. Confirmed `app/(auth)/callback.tsx` exists, `app/auth/callback.tsx` is absent, signup still redirects to `https://oharaai.vercel.app/callback`, the four audited actions/goals routes still use `createAuthedClient(accessToken)` for their Supabase queries, and `app/api/echo/reconcile+api.ts` still imports the canonical helper from `lib/db/client.ts`.
 - Fixed the verification blockers with the smallest safe changes: closed the missing header wrapper `View` in `app/about.tsx` so TypeScript and Expo web bundling can parse the page again; tightened `expo-router` `Link` prop typing in `app/about.tsx` and `app/index.tsx`; registered the existing root `about` screen in `app/_layout.tsx`; added a targeted `Href` cast on the two `/about` links because the generated Expo typed-route file still omits that route in this repo; and repointed `expo.web.favicon` in `app.json` from missing `./assets/images/favicon.png` to the existing `./assets/images/icon.png` instead of inventing new branding.
@@ -71,7 +90,7 @@
 Passes: H1, H3, H6 (H5 flagged — see below). Batch D items confirmed complete from prior session.
 
 - **H1:** Deleted `store/vaults.ts` and `store/echo-links.ts`. Both confirmed zero live imports. Canonical data access remains via hook layer (`useVault.ts`, `useEchoTrail.ts`).
-- **H3:** Removed `mode: 'commitment' as const` from the goal insert block in `lib/db/goals.ts` (~line 68). DB column preserved; application no longer writes to it.
+- **H3:** Removed `mode: 'commitment' as const` from the goal insert block in `lib/db/goals.ts` (~line 68). DB column preserved; application no longer writes to it. **[CLOSED 2026-06-22]** — this removal caused a NOT-NULL insert failure in production; the write was restored and the column's CHECK constraint tightened. See "Added (2026-06-22 — Block 1: API-layer goal creation + mode fix)" above.
 - **H6:** Renamed `ActionLog` fields to camelCase in `features/actions/types.ts` (`goal_id → goalId`, `user_id → userId`, `action_text → actionText`, `due_date → dueDate`, `completed_at → completedAt`, `created_at → createdAt`). Added explicit `mapActionLog()` DB→TS mapping functions in both `app/api/actions/index+api.ts` and `app/api/actions/[id]+api.ts` so DB snake_case rows are properly converted before serialization. Updated `displayedAction.action_text → displayedAction.actionText` in `features/actions/components/NextActionSection.tsx` and `app/(app)/dashboard.tsx`. DB column names in Supabase queries unchanged.
 - **H5:** Created `features/projects/types.ts` with `ProjectStatus`, `Project`, and `ProjectWithGoals` (moved verbatim from `features/goals/types.ts`; `ProjectWithGoals` imports `GoalWithMeasurables` from `@/features/goals/types`). Removed all three types from `features/goals/types.ts`. Updated four import paths: `features/projects/store.ts`, `features/projects/services/project-service.ts`, `features/projects/components/ProjectCard.tsx`, `app/projects/[id].tsx`. `GoalWithMeasurables` import in project-service.ts preserved from `@/features/goals/types`. H5 completed: Project and ProjectWithGoals moved to features/projects/types.ts. Four import paths updated. tsc clean.
 - **Batch D (confirmed complete):** All D2–D6 items were applied in the prior session. Verified: `vaultIdToGoalId` rename in goal-service.ts, Bud color #4A7C5F in both CLAUDE.md files, `if (error) return null` in ActivityFeed.tsx, `onClose` wired to `closeSheet` in vault.tsx, pipeline removal note in lib/ai/CLAUDE.md.

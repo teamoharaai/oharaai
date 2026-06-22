@@ -1,0 +1,60 @@
+# OUTSTANDING.md
+
+> Scannable checklist of deferred/open items. Not a narrative log — see `docs/DECISIONS.md` for
+> the historical record and `CHANGELOGCODEX.md` for session-by-session changes. Check items off
+> in place; don't delete them (move resolved items to the relevant log entry instead).
+
+## Echo
+
+- [ ] **H2** — Echo prompt file duplication (`lib/ai/echo/prompts.ts` vs
+      `lib/ai/prompts/echo-reflection.ts`), both still imported live by `reflect+api.ts` and
+      `reconcile+api.ts`. Not duplicates (different pipeline stages), just split across
+      directories. Scope before any Phase 2 Echo work.
+- [ ] **H4** — `useEchoTrail` bypasses the API layer with a direct DB call
+      (`features/goals/hooks/useEchoTrail.ts` → `getEchoEntriesForGoal()`). Not a security
+      issue (RLS still scopes correctly via the browser's own session), but inconsistent with
+      the API-layer pattern — misses rate-limiting/structured logging. Scope before Phase 2
+      Echo work.
+- [ ] **BRTClassification vs EchoBrt** — two BRT-related types coexist (`types/global.ts`'s
+      `BRTClassification` and `features/echo/types.ts`'s `EchoBrt`, the latter also used by
+      `types/activity.ts` and `lib/db/goals.ts`). Audit whether identical or diverging;
+      consolidate to one definition if identical. Deferred since 2026-04 (docs/DECISIONS.md).
+- [ ] Echo AI reflections are generated and stored but never rendered in the UI.
+- [ ] EchoTrail links point to a screen that doesn't exist.
+
+## Goals / API layer
+
+- [ ] `/api/goals` returns HTTP 201 even when goal creation soft-fails (`goalId: null`,
+      `error` populated in body). Current consumer (`create.tsx`) already handles this
+      correctly by checking the body, so not urgent, but any future consumer trusting HTTP
+      status alone would be misled. Fix: have the route return 4xx/5xx when `result.goalId`
+      is `null`.
+- [ ] `getAuthContext()` in `lib/api/auth.ts` returns `null` for both "no token" and "DB not
+      configured," causing `/api/goals` to return 401 instead of 503 for the latter case —
+      inconsistent with the other un-migrated routes' behavior. Minor; fold into the eventual
+      backfill of those routes onto the shared auth helper.
+- [x] Live HTTP round-trip for `POST /api/goals/complete-measurable` and
+      `GET /api/goals/activity` — confirmed 2026-06-22 against goal
+      `0ce941b6-4230-4aff-8b3f-690a3193dbe7`. Both return 200 post-migration-026; `mode` CHECK
+      tightening causes no regression. See docs/DECISIONS.md.
+- [ ] Remaining 12 API routes still use local/inline auth logic, not `lib/api/auth.ts` or
+      `lib/api/contracts.ts`. Intentional per Block 1 scoping (backfill opportunistically as
+      routes are touched), not a bug — listed here so it isn't mistaken for forgotten work.
+- [ ] Whether `goals.mode` stays a fixed `'commitment'` default or gets real Phase 2 wiring
+      (open question for CTO, see docs/DECISIONS.md 2026-06-22 entry).
+
+## Actions
+
+- [ ] `action_logs.due_date` is client-generated (`new Date().toISOString().split('T')[0]`) —
+      known timezone bug: a user in UTC-8 at 11pm gets tomorrow's date. Originally flagged as
+      "revisit before action completion UI ships" (docs/DECISIONS.md, 2026-04-05) — that UI
+      (`NextActionSection`) has since shipped and is live, so this is no longer pre-launch debt,
+      it's an active unaddressed bug.
+
+## Phase 2 (explicitly deferred, no action needed yet)
+
+- [ ] `profile_embeddings` junction table — deferred to Phase 2, only needed for "smarter
+      candidate extraction context" retrieval (Qdrant-era use case). Blocks 1–4 deliver the
+      complete embedding pipeline without it.
+- [ ] Thorn → Goal suggestion loop — requires Discovery feature and pattern analysis layer,
+      Phase 2 only.

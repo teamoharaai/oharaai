@@ -203,20 +203,15 @@ the API layer is consistent.
    without it.
 
 
- Verified — bug fixed and confirmed live
+### 2026-06-22 — Block 1: goals.mode persistence fix verified live
 
-  - POST /api/goals → 201, goalId: 0ce941b6-4230-4aff-8b3f-690a3193dbe7
-  - DB row confirms mode: 'commitment' persisted correctly, no NOT-NULL/CHECK violation
-  - Same code path serves the 3-arg production call from create.tsx (createGoalWithMeasurables
-  → mapAiGoalDataToDbInserts), so that path is fixed too
-  - npx tsc --noEmit clean
-  - Cleaned up: killed the temporary Expo dev server I started on :8089, removed scratch test
-  scripts
-
-  Note: port 3002 (already running) is an unrelated Next.js/Clerk project, not Ohara — don't
-  target it for future Ohara API tests; use expo start --web on its own port.
-
-  One change worth logging in DECISIONS.md per your earlier ask: the mode write was previously
-  deleted in an unreviewed 2026-04-07 cleanup pass (H3 in CHANGELOGCODEX.md) — that's the
-  actual root cause of the prod outage. Restoring it here is the fix; the open question for CTO
-  is whether mode stays a fixed 'commitment' default or gets real Phase 2 wiring.
+**Decision:** Restore the `mode: 'commitment'` write dropped by the unreviewed 2026-04-07 H3 cleanup pass (CHANGELOGCODEX.md), and tighten `goals_mode_check` to `mode = 'commitment'` only via migration `026_goals_mode_drop_exploration.sql`, rather than dropping the column outright.
+**Reason:** The dropped write caused a NOT-NULL insert failure in production — every new goal creation was broken until restored. 'exploration' was confirmed dead (never written or read anywhere in the app), so the CHECK constraint was narrowed instead of leaving the column open to a value nothing uses.
+**Impact:**
+- `POST /api/goals` → 201, `goalId: 0ce941b6-4230-4aff-8b3f-690a3193dbe7`.
+- DB row confirms `mode: 'commitment'` persisted correctly, no NOT-NULL/CHECK violation.
+- Same code path serves the 3-arg production call from `create.tsx` (`createGoalWithMeasurables` → `mapAiGoalDataToDbInserts`), so that path is fixed too.
+- `npx tsc --noEmit` clean.
+- Cleaned up: killed the temporary Expo dev server started on `:8089`, removed scratch test scripts.
+- Note: port 3002 (already running) is an unrelated Next.js/Clerk project, not Ohara — don't target it for future Ohara API tests; use `expo start --web` on its own port.
+- Open question for CTO: whether `mode` stays a fixed `'commitment'` default or gets real Phase 2 wiring (tracked in OUTSTANDING.md).
