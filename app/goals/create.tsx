@@ -12,12 +12,13 @@ import {
 import { useState, useRef, useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import supabase from '@/lib/db/client';
-import { createGoalWithMeasurables } from '@/lib/db/goals';
 import { fetchGoalById } from '@/features/goals/services/goal-service';
 import { useGoalStore } from '@/features/goals/store';
 import { useProjectStore } from '@/features/projects/store';
 import type { GoalFinalizeResponse } from '@/lib/ai/schemas/goal-creation';
 import type { AiResponse } from '@/lib/ai/contracts';
+import type { ApiResponse } from '@/lib/api/contracts';
+import type { CreateGoalWithMeasurablesResult } from '@/lib/db/goals';
 import {
   ACTION_CAPTURE_PROMPT,
   ACTION_CAPTURE_CONFIRMATION,
@@ -198,11 +199,37 @@ export default function GoalCreateScreen() {
 
       if (data.isComplete && data.goalData) {
         setSavingGoal(true);
-        const saveResult = await createGoalWithMeasurables(user.id, data.goalData, {
-          requestId: data.requestId,
-          projectId: selectedProjectId,
+        const createRes = await fetch('/api/goals', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            aiData: data.goalData,
+            options: {
+              requestId: data.requestId,
+              projectId: selectedProjectId,
+            },
+          }),
         });
+        const createBody = (await createRes.json()) as ApiResponse<CreateGoalWithMeasurablesResult>;
         setSavingGoal(false);
+
+        if (!createBody.ok) {
+          console.error('[goal-finalize] persistence failed', {
+            requestId: data.requestId,
+            stage: 'persistence',
+            error: createBody.error.message,
+            finalizedBy: data.finalizedBy,
+          });
+          setError(
+            `Goal finalization succeeded, but persistence failed. ${createBody.error.message ?? 'Please try again.'} (Request ${data.requestId})`,
+          );
+          return;
+        }
+
+        const saveResult = createBody.data;
 
         if (saveResult.goalId) {
           console.info('[goal-finalize] persistence succeeded', {
@@ -541,7 +568,7 @@ export default function GoalCreateScreen() {
           {(['⚡ Quick', '◎ Deep', '✦ Reflect', '❋ Holistic'] as const).map((label) => (
             <TouchableOpacity
               key={label}
-              onPress={() => console.log('TODO: wire mode selection in Phase 2', label)}
+              onPress={() => {}}
               style={{
                 backgroundColor: '#FFFFFF',
                 borderWidth: 1,

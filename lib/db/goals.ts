@@ -74,6 +74,9 @@ function mapAiGoalDataToDbInserts(
       title: aiData.goal.title,
       description: aiData.goal.description,
       category: aiData.goal.category,
+      // Interim default until Phase 2 mode selection ships (app/goals/create.tsx pills are inert).
+      // 'commitment' fits a fully finalized AI goal; schema CHECK only allows 'exploration' | 'commitment'.
+      mode: 'commitment' as const,
       status: 'active' as const,
       smart_data: aiData.goal.smart,
       color_theme: colorTheme,
