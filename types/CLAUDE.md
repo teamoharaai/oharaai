@@ -8,6 +8,7 @@ Owner: CEO (Ariel). Cascade Level 3.
 - vault.ts: Vault, VaultItem, VaultItemType
 - space.ts: Space, SpaceType, SpaceRole, SpaceMember
 - echo-link.ts: EchoGoalLink, EchoLinkSource
+- brt.ts: EchoBrt (canonical Bud/Rose/Thorn shape, required string[] fields)
 
 ## Rules
 - All property names: camelCase (DB columns are snake_case, map at service layer)

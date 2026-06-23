@@ -271,6 +271,7 @@ export async function createGoalWithMeasurables(
 type DbEchoEntryRow = {
   id: string;
   content: string;
+  ai_response: string | null;
   emotion: EchoEmotion | null;
   brt: EchoBrt | null;
   created_at: string;
@@ -345,7 +346,7 @@ export async function getActivityByGoalId(
   // 1. Echo entries for this goal (legacy echo_entries.goal_id path — preserved for backward compat)
   const { data: echoData } = await db
     .from('echo_entries')
-    .select('id, content, emotion, brt, created_at')
+    .select('id, content, ai_response, emotion, brt, created_at')
     .eq('goal_id', goalId)
     .eq('user_id', userId);
 
@@ -359,6 +360,7 @@ export async function getActivityByGoalId(
         id: `echo-${row.id}`,
         entryId: row.id,
         preview: row.content.slice(0, 100),
+        aiResponse: row.ai_response,
         emotion: row.emotion,
         brt: row.brt,
         timestamp: row.created_at,

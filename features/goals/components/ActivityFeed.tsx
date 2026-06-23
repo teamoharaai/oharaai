@@ -1,5 +1,6 @@
 import { Pressable, Text, View, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
+import { ReflectionCard } from '@/components/ui/ReflectionCard';
 import type { ActivityItem, EchoEntryActivity, MilestoneCompletedActivity, GoalCreatedActivity } from '@/types/activity';
 
 interface ActivityFeedProps {
@@ -24,9 +25,26 @@ function GoalCreatedRow({ item }: { item: GoalCreatedActivity }) {
 }
 
 function EchoEntryCard({ item }: { item: EchoEntryActivity }) {
+  const onPress = () => router.push(`/(app)/echo/${item.entryId}` as never);
+
+  // Entry has a generated AI reflection — render it via the shared ReflectionCard.
+  if (item.aiResponse) {
+    return (
+      <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
+        <ReflectionCard
+          variant="compact"
+          timestamp={item.timestamp}
+          aiResponse={item.aiResponse}
+          brt={item.brt}
+        />
+      </Pressable>
+    );
+  }
+
+  // No reflection yet (unsummarized) — fall back to the raw content preview.
   return (
     <Pressable
-      onPress={() => router.push(`/(app)/echo/${item.entryId}` as never)}
+      onPress={onPress}
       style={({ pressed }) => ({
         backgroundColor: pressed ? '#F0EDE6' : '#F8F6F1',
         borderRadius: 12,

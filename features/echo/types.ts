@@ -1,8 +1,6 @@
-export type EchoBrt = {
-  bud: string[];
-  rose: string[];
-  thorn: string[];
-};
+import type { EchoBrt } from '@/types/brt';
+
+export type { EchoBrt };
 
 export type EchoEmotion = {
   valence: number;

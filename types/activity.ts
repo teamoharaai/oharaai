@@ -13,6 +13,7 @@ export interface EchoEntryActivity extends ActivityBase {
   kind: 'echo_entry';
   entryId: string;
   preview: string;      // truncated content, max 120 chars
+  aiResponse: string | null;
   emotion: EchoEmotion | null;
   brt: EchoBrt | null;
 }
