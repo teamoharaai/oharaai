@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { FEATURES } from '@/constants/features';
 import { EmptyStateCard } from '@/components/ui/EmptyStateCard';
 import {
@@ -153,6 +154,8 @@ function ComposerNotice({ kind }: { kind: SubmissionNoticeKind }) {
 }
 
 export function EchoScreen() {
+  const { goalId: routeGoalIdParam } = useLocalSearchParams<{ goalId?: string | string[] }>();
+  const routeGoalId = Array.isArray(routeGoalIdParam) ? routeGoalIdParam[0] : routeGoalIdParam;
   const { entries, isLoading, pickerGoals, saveEntry } = useEntries();
   const hasHydrated = useEchoDraftStore((state) => state.hasHydrated);
   const getDraft = useEchoDraftStore((state) => state.getDraft);
@@ -196,7 +199,10 @@ export function EchoScreen() {
   useEffect(() => {
     if (!hasHydrated || hasRestoredDraft) return;
 
-    const initialGoal = lastLinkedGoal;
+    const routeGoal = routeGoalId
+      ? pickerGoals.find((goal) => goal.id === routeGoalId) ?? { id: routeGoalId, title: '' }
+      : null;
+    const initialGoal = routeGoal ?? lastLinkedGoal;
     const initialContextKey = getEchoDraftContextKey(initialGoal?.id ?? null);
     const initialDraftText = getDraft(initialContextKey);
     previousContextKeyRef.current = initialContextKey;
@@ -204,7 +210,7 @@ export function EchoScreen() {
     setLinkedGoal(initialGoal);
     setText(initialDraftText);
     setHasRestoredDraft(true);
-  }, [getDraft, hasHydrated, hasRestoredDraft, lastLinkedGoal, syncLatestDraftSnapshot]);
+  }, [getDraft, hasHydrated, hasRestoredDraft, lastLinkedGoal, pickerGoals, routeGoalId, syncLatestDraftSnapshot]);
 
   useEffect(() => {
     if (!linkedGoal || !pickerGoals.length) return;

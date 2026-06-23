@@ -98,7 +98,7 @@ function EchoTrailCard({ entry, onConfirmLink, onDismissLink }: EchoTrailCardPro
       </View>
 
       {/* Content — tappable to navigate to echo entry */}
-      <Pressable onPress={() => router.push(`/echo/${entry.echoEntryId}` as never)}>
+      <Pressable onPress={() => router.push(`/(app)/echo/${entry.echoEntryId}` as never)}>
         <Text numberOfLines={2} className="text-[#1A1A1A] text-sm leading-relaxed">
           {entry.content}
         </Text>

@@ -145,6 +145,17 @@ export async function fetchEntries(userId: string): Promise<EchoEntry[]> {
   return (data as unknown as DbEchoEntry[]).map(mapEntry);
 }
 
+export async function getEntryById(entryId: string): Promise<EchoEntry | null> {
+  const { data, error } = await supabase
+    .from('echo_entries')
+    .select('*, goals(id, title)')
+    .eq('id', entryId)
+    .single();
+
+  if (error || !data) return null;
+  return mapEntry(data as unknown as DbEchoEntry);
+}
+
 export async function getEntriesByGoalId(goalId: string): Promise<EchoEntry[]> {
   const { data, error } = await supabase
     .from('echo_entries')
