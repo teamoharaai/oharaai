@@ -1,0 +1,1331 @@
+TABLE action_logs:
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  goal_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  action_text text NOT NULL,
+  status text DEFAULT 'pending'::text,
+  due_date date,
+  completed_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now()
+
+---
+
+TABLE ai_usage:
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  pipeline text NOT NULL,
+  model text NOT NULL,
+  input_tokens integer NOT NULL,
+  output_tokens integer NOT NULL,
+  latency_ms integer NOT NULL,
+  cached boolean NOT NULL DEFAULT false,
+  error text,
+  created_at timestamp with time zone NOT NULL DEFAULT now()
+
+---
+
+TABLE daily_ai_usage:
+  user_id uuid NOT NULL,
+  date date NOT NULL,
+  count integer NOT NULL DEFAULT 0
+
+---
+
+TABLE echo_entries:
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  goal_id uuid,
+  content text NOT NULL,
+  guide_response jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  media_url text,
+  ai_insight_requested boolean NOT NULL DEFAULT false,
+  confidence numeric,
+  themes ARRAY,
+  ai_response text,
+  processed_at timestamp with time zone,
+  brt jsonb,
+  emotion jsonb,
+  model_version text,
+  visibility text NOT NULL DEFAULT 'private'::text,
+  summarized boolean NOT NULL DEFAULT false,
+  embedding USER-DEFINED,
+  embedding_text text,
+  embedding_model text
+
+---
+
+TABLE echo_goal_links:
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  echo_entry_id uuid NOT NULL,
+  goal_id uuid NOT NULL,
+  link_source text NOT NULL DEFAULT 'manual'::text,
+  confidence numeric,
+  confirmed boolean NOT NULL DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT now()
+
+---
+
+TABLE echo_sessions:
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  goal_id uuid,
+  user_id uuid NOT NULL,
+  summary jsonb NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now()
+
+---
+
+TABLE goals:
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  title text NOT NULL,
+  category text NOT NULL,
+  mode text NOT NULL,
+  status text NOT NULL DEFAULT 'active'::text,
+  smart_data jsonb NOT NULL DEFAULT '{}'::jsonb,
+  is_private boolean NOT NULL DEFAULT true,
+  community_id uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  description text,
+  color_theme text NOT NULL DEFAULT 'ocean'::text,
+  deadline timestamp with time zone,
+  progress numeric NOT NULL DEFAULT 0,
+  ai_generated boolean NOT NULL DEFAULT false,
+  project_id uuid,
+  visibility text NOT NULL DEFAULT 'private'::text,
+  space_id uuid,
+  embedding USER-DEFINED,
+  embedding_text text,
+  embedding_model text
+
+---
+
+TABLE interests:
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  source_thorn_id uuid,
+  promoted_goal_id uuid,
+  name text NOT NULL,
+  status text NOT NULL DEFAULT 'suggested'::text,
+  created_at timestamp with time zone NOT NULL DEFAULT now()
+
+---
+
+TABLE measurable_logs:
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  measurable_id uuid NOT NULL,
+  value numeric NOT NULL DEFAULT 1,
+  note text,
+  logged_at timestamp with time zone NOT NULL DEFAULT now()
+
+---
+
+TABLE measurables:
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  goal_id uuid NOT NULL,
+  title text NOT NULL,
+  type text NOT NULL,
+  target_value numeric,
+  target_unit text,
+  frequency text,
+  current_value numeric NOT NULL DEFAULT 0,
+  is_ai_suggested boolean NOT NULL DEFAULT false,
+  sort_order integer NOT NULL DEFAULT 0,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now()
+
+---
+
+TABLE milestones:
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  goal_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  title text NOT NULL,
+  due_date date,
+  complete boolean NOT NULL DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT now()
+
+---
+
+TABLE profiles:
+  id uuid NOT NULL,
+  display_name text NOT NULL DEFAULT ''::text,
+  character_profile jsonb NOT NULL DEFAULT '{}'::jsonb,
+  interests jsonb NOT NULL DEFAULT '[]'::jsonb,
+  context jsonb NOT NULL DEFAULT '{}'::jsonb,
+  onboarding_complete boolean NOT NULL DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  last_summarized_at timestamp with time zone
+
+---
+
+TABLE projects:
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  title text NOT NULL,
+  description text,
+  status text NOT NULL DEFAULT 'active'::text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  space_id uuid
+
+---
+
+TABLE space_members:
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  space_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  role text NOT NULL,
+  status text NOT NULL DEFAULT 'active'::text,
+  joined_at timestamp with time zone NOT NULL DEFAULT now()
+
+---
+
+TABLE spaces:
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  type text NOT NULL,
+  owner_id uuid NOT NULL,
+  config jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now()
+
+---
+
+TABLE vault_items:
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  vault_id uuid NOT NULL,
+  item_type text NOT NULL,
+  title text,
+  content text,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  visibility text NOT NULL DEFAULT 'private'::text,
+  created_by uuid NOT NULL,
+  sort_order integer NOT NULL DEFAULT 0,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  embedding USER-DEFINED,
+  embedding_text text,
+  embedding_model text
+
+---
+
+TABLE vaults:
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  goal_id uuid NOT NULL,
+  space_id uuid,
+  vault_type text NOT NULL DEFAULT 'personal'::text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now()
+
+---
+
+CONSTRAINT ai_usage.ai_usage_pkey: PRIMARY KEY (id)
+
+---
+
+CONSTRAINT ai_usage.ai_usage_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT echo_sessions.starlog_sessions_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT profiles.profiles_pkey: PRIMARY KEY (id)
+
+---
+
+CONSTRAINT profiles.profiles_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT goals.goals_category_check: CHECK ((category = ANY (ARRAY['body'::text, 'mind'::text, 'money'::text, 'create'::text, 'connect'::text, 'contribute'::text])))
+
+---
+
+CONSTRAINT goals.goals_status_check: CHECK ((status = ANY (ARRAY['active'::text, 'complete'::text, 'stagnant'::text, 'discovered'::text])))
+
+---
+
+CONSTRAINT goals.goals_pkey: PRIMARY KEY (id)
+
+---
+
+CONSTRAINT goals.goals_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT milestones.milestones_pkey: PRIMARY KEY (id)
+
+---
+
+CONSTRAINT milestones.milestones_goal_id_fkey: FOREIGN KEY (goal_id) REFERENCES goals(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT milestones.milestones_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT echo_sessions.starlog_sessions_pkey: PRIMARY KEY (id)
+
+---
+
+CONSTRAINT echo_sessions.starlog_sessions_goal_id_fkey: FOREIGN KEY (goal_id) REFERENCES goals(id) ON DELETE SET NULL
+
+---
+
+CONSTRAINT echo_entries.starlog_entries_pkey: PRIMARY KEY (id)
+
+---
+
+CONSTRAINT echo_entries.starlog_entries_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT echo_entries.starlog_entries_goal_id_fkey: FOREIGN KEY (goal_id) REFERENCES goals(id) ON DELETE SET NULL
+
+---
+
+CONSTRAINT interests.interests_status_check: CHECK ((status = ANY (ARRAY['suggested'::text, 'exploring'::text, 'promoted'::text, 'dismissed'::text])))
+
+---
+
+CONSTRAINT interests.interests_pkey: PRIMARY KEY (id)
+
+---
+
+CONSTRAINT interests.interests_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT interests.interests_source_thorn_id_fkey: FOREIGN KEY (source_thorn_id) REFERENCES echo_entries(id) ON DELETE SET NULL
+
+---
+
+CONSTRAINT interests.interests_promoted_goal_id_fkey: FOREIGN KEY (promoted_goal_id) REFERENCES goals(id) ON DELETE SET NULL
+
+---
+
+CONSTRAINT measurables.measurables_type_check: CHECK ((type = ANY (ARRAY['counter'::text, 'habit'::text, 'checklist'::text])))
+
+---
+
+CONSTRAINT measurables.measurables_frequency_check: CHECK ((frequency = ANY (ARRAY['daily'::text, 'weekly'::text, 'monthly'::text, 'once'::text])))
+
+---
+
+CONSTRAINT measurables.measurables_pkey: PRIMARY KEY (id)
+
+---
+
+CONSTRAINT measurables.measurables_goal_id_fkey: FOREIGN KEY (goal_id) REFERENCES goals(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT measurable_logs.measurable_logs_pkey: PRIMARY KEY (id)
+
+---
+
+CONSTRAINT measurable_logs.measurable_logs_measurable_id_fkey: FOREIGN KEY (measurable_id) REFERENCES measurables(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT projects.projects_status_check: CHECK ((status = ANY (ARRAY['active'::text, 'complete'::text, 'archived'::text])))
+
+---
+
+CONSTRAINT projects.projects_pkey: PRIMARY KEY (id)
+
+---
+
+CONSTRAINT projects.projects_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT goals.goals_project_id_fkey: FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
+
+---
+
+CONSTRAINT echo_entries.echo_entries_visibility_check: CHECK ((visibility = ANY (ARRAY['private'::text, 'shared'::text])))
+
+---
+
+CONSTRAINT action_logs.action_logs_status_check: CHECK ((status = ANY (ARRAY['pending'::text, 'complete'::text, 'skipped'::text])))
+
+---
+
+CONSTRAINT action_logs.action_logs_pkey: PRIMARY KEY (id)
+
+---
+
+CONSTRAINT action_logs.action_logs_goal_id_fkey: FOREIGN KEY (goal_id) REFERENCES goals(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT action_logs.action_logs_user_id_fkey: FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT goals.goals_visibility_check: CHECK ((visibility = ANY (ARRAY['private'::text, 'circle'::text, 'public'::text])))
+
+---
+
+CONSTRAINT daily_ai_usage.daily_ai_usage_count_check: CHECK ((count >= 0))
+
+---
+
+CONSTRAINT daily_ai_usage.daily_ai_usage_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT spaces.spaces_type_check: CHECK ((type = ANY (ARRAY['personal'::text, 'team'::text, 'institutional'::text, 'community'::text])))
+
+---
+
+CONSTRAINT spaces.spaces_pkey: PRIMARY KEY (id)
+
+---
+
+CONSTRAINT spaces.spaces_user_id_fkey: FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT space_members.space_members_role_check: CHECK ((role = ANY (ARRAY['owner'::text, 'member'::text, 'admin'::text, 'instructor'::text, 'student'::text, 'organizer'::text, 'sponsor'::text, 'volunteer'::text])))
+
+---
+
+CONSTRAINT space_members.space_members_status_check: CHECK ((status = ANY (ARRAY['active'::text, 'archived'::text, 'invited'::text])))
+
+---
+
+CONSTRAINT space_members.space_members_pkey: PRIMARY KEY (id)
+
+---
+
+CONSTRAINT space_members.space_members_space_id_user_id_key: UNIQUE (space_id, user_id)
+
+---
+
+CONSTRAINT space_members.space_members_space_id_fkey: FOREIGN KEY (space_id) REFERENCES spaces(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT space_members.space_members_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT goals.goals_space_id_fkey: FOREIGN KEY (space_id) REFERENCES spaces(id) ON DELETE SET NULL
+
+---
+
+CONSTRAINT projects.projects_space_id_fkey: FOREIGN KEY (space_id) REFERENCES spaces(id) ON DELETE SET NULL
+
+---
+
+CONSTRAINT vaults.vaults_vault_type_check: CHECK ((vault_type = ANY (ARRAY['personal'::text, 'shared'::text, 'institutional'::text])))
+
+---
+
+CONSTRAINT vaults.vaults_pkey: PRIMARY KEY (id)
+
+---
+
+CONSTRAINT vaults.vaults_goal_id_key: UNIQUE (goal_id)
+
+---
+
+CONSTRAINT vaults.vaults_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT vaults.vaults_goal_id_fkey: FOREIGN KEY (goal_id) REFERENCES goals(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT vaults.vaults_space_id_fkey: FOREIGN KEY (space_id) REFERENCES spaces(id) ON DELETE SET NULL
+
+---
+
+CONSTRAINT vault_items.vault_items_item_type_check: CHECK ((item_type = ANY (ARRAY['note'::text, 'link'::text, 'document'::text, 'insight'::text, 'action_update'::text])))
+
+---
+
+CONSTRAINT vault_items.vault_items_visibility_check: CHECK ((visibility = ANY (ARRAY['private'::text, 'vault_members'::text, 'public'::text])))
+
+---
+
+CONSTRAINT vault_items.vault_items_pkey: PRIMARY KEY (id)
+
+---
+
+CONSTRAINT vault_items.vault_items_vault_id_fkey: FOREIGN KEY (vault_id) REFERENCES vaults(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT vault_items.vault_items_created_by_fkey: FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT echo_goal_links.echo_goal_links_link_source_check: CHECK ((link_source = ANY (ARRAY['manual'::text, 'ai_suggested'::text, 'ai_auto'::text])))
+
+---
+
+CONSTRAINT echo_goal_links.echo_goal_links_pkey: PRIMARY KEY (id)
+
+---
+
+CONSTRAINT echo_goal_links.echo_goal_links_echo_entry_id_goal_id_key: UNIQUE (echo_entry_id, goal_id)
+
+---
+
+CONSTRAINT echo_goal_links.echo_goal_links_echo_entry_id_fkey: FOREIGN KEY (echo_entry_id) REFERENCES echo_entries(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT echo_goal_links.echo_goal_links_goal_id_fkey: FOREIGN KEY (goal_id) REFERENCES goals(id) ON DELETE CASCADE
+
+---
+
+CONSTRAINT echo_goal_links.echo_goal_links_confidence_check: CHECK (((confidence IS NULL) OR (((confidence)::double precision >= (0)::double precision) AND ((confidence)::double precision <= (1)::double precision))))
+
+---
+
+CONSTRAINT goals.goals_mode_check: CHECK ((mode = 'commitment'::text))
+
+---
+
+INDEX: CREATE UNIQUE INDEX measurables_pkey ON public.measurables USING btree (id)
+
+---
+
+INDEX: CREATE INDEX idx_measurables_goal_id ON public.measurables USING btree (goal_id)
+
+---
+
+INDEX: CREATE UNIQUE INDEX measurable_logs_pkey ON public.measurable_logs USING btree (id)
+
+---
+
+INDEX: CREATE INDEX idx_measurable_logs_mid ON public.measurable_logs USING btree (measurable_id)
+
+---
+
+INDEX: CREATE UNIQUE INDEX ai_usage_pkey ON public.ai_usage USING btree (id)
+
+---
+
+INDEX: CREATE INDEX idx_ai_usage_user_id ON public.ai_usage USING btree (user_id)
+
+---
+
+INDEX: CREATE INDEX idx_ai_usage_pipeline ON public.ai_usage USING btree (pipeline)
+
+---
+
+INDEX: CREATE UNIQUE INDEX action_logs_pkey ON public.action_logs USING btree (id)
+
+---
+
+INDEX: CREATE INDEX idx_action_logs_goal_created ON public.action_logs USING btree (goal_id, created_at DESC)
+
+---
+
+INDEX: CREATE INDEX idx_action_logs_user_status ON public.action_logs USING btree (user_id, status)
+
+---
+
+INDEX: CREATE UNIQUE INDEX space_members_pkey ON public.space_members USING btree (id)
+
+---
+
+INDEX: CREATE UNIQUE INDEX space_members_space_id_user_id_key ON public.space_members USING btree (space_id, user_id)
+
+---
+
+INDEX: CREATE INDEX space_members_space_id_idx ON public.space_members USING btree (space_id)
+
+---
+
+INDEX: CREATE INDEX space_members_user_id_idx ON public.space_members USING btree (user_id)
+
+---
+
+INDEX: CREATE UNIQUE INDEX projects_pkey ON public.projects USING btree (id)
+
+---
+
+INDEX: CREATE INDEX idx_projects_user_id ON public.projects USING btree (user_id)
+
+---
+
+INDEX: CREATE INDEX idx_projects_status ON public.projects USING btree (status)
+
+---
+
+INDEX: CREATE INDEX projects_space_id_idx ON public.projects USING btree (space_id)
+
+---
+
+INDEX: CREATE UNIQUE INDEX spaces_pkey ON public.spaces USING btree (id)
+
+---
+
+INDEX: CREATE INDEX spaces_owner_id_idx ON public.spaces USING btree (owner_id)
+
+---
+
+INDEX: CREATE UNIQUE INDEX spaces_one_personal_per_user_idx ON public.spaces USING btree (owner_id) WHERE (type = 'personal'::text)
+
+---
+
+INDEX: CREATE UNIQUE INDEX vaults_pkey ON public.vaults USING btree (id)
+
+---
+
+INDEX: CREATE UNIQUE INDEX vaults_goal_id_key ON public.vaults USING btree (goal_id)
+
+---
+
+INDEX: CREATE INDEX vaults_user_id_idx ON public.vaults USING btree (user_id)
+
+---
+
+INDEX: CREATE INDEX vaults_goal_id_idx ON public.vaults USING btree (goal_id)
+
+---
+
+INDEX: CREATE INDEX vaults_space_id_idx ON public.vaults USING btree (space_id)
+
+---
+
+INDEX: CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)
+
+---
+
+INDEX: CREATE UNIQUE INDEX goals_pkey ON public.goals USING btree (id)
+
+---
+
+INDEX: CREATE INDEX idx_goals_status ON public.goals USING btree (status)
+
+---
+
+INDEX: CREATE INDEX idx_goals_project_id ON public.goals USING btree (project_id)
+
+---
+
+INDEX: CREATE INDEX idx_goals_visibility ON public.goals USING btree (visibility)
+
+---
+
+INDEX: CREATE INDEX goals_space_id_idx ON public.goals USING btree (space_id)
+
+---
+
+INDEX: CREATE INDEX idx_goals_embedding ON public.goals USING hnsw (embedding vector_cosine_ops) WITH (m='16', ef_construction='64')
+
+---
+
+INDEX: CREATE UNIQUE INDEX milestones_pkey ON public.milestones USING btree (id)
+
+---
+
+INDEX: CREATE UNIQUE INDEX starlog_sessions_pkey ON public.echo_sessions USING btree (id)
+
+---
+
+INDEX: CREATE UNIQUE INDEX interests_pkey ON public.interests USING btree (id)
+
+---
+
+INDEX: CREATE UNIQUE INDEX idx_daily_ai_usage_user_date ON public.daily_ai_usage USING btree (user_id, date)
+
+---
+
+INDEX: CREATE UNIQUE INDEX starlog_entries_pkey ON public.echo_entries USING btree (id)
+
+---
+
+INDEX: CREATE INDEX idx_starlog_goal_id ON public.echo_entries USING btree (goal_id)
+
+---
+
+INDEX: CREATE INDEX idx_echo_entries_embedding ON public.echo_entries USING hnsw (embedding vector_cosine_ops) WITH (m='16', ef_construction='64')
+
+---
+
+INDEX: CREATE UNIQUE INDEX vault_items_pkey ON public.vault_items USING btree (id)
+
+---
+
+INDEX: CREATE INDEX vault_items_vault_id_idx ON public.vault_items USING btree (vault_id)
+
+---
+
+INDEX: CREATE INDEX vault_items_vault_id_sort_order_idx ON public.vault_items USING btree (vault_id, sort_order)
+
+---
+
+INDEX: CREATE INDEX vault_items_created_by_idx ON public.vault_items USING btree (created_by)
+
+---
+
+INDEX: CREATE INDEX idx_vault_items_embedding ON public.vault_items USING hnsw (embedding vector_cosine_ops) WITH (m='16', ef_construction='64')
+
+---
+
+INDEX: CREATE INDEX idx_vault_items_needs_embedding ON public.vault_items USING btree (id) WHERE ((embedding IS NULL) AND (content IS NOT NULL) AND (length(content) > 200))
+
+---
+
+INDEX: CREATE UNIQUE INDEX echo_goal_links_pkey ON public.echo_goal_links USING btree (id)
+
+---
+
+INDEX: CREATE UNIQUE INDEX echo_goal_links_echo_entry_id_goal_id_key ON public.echo_goal_links USING btree (echo_entry_id, goal_id)
+
+---
+
+INDEX: CREATE INDEX echo_goal_links_echo_entry_id_idx ON public.echo_goal_links USING btree (echo_entry_id)
+
+---
+
+INDEX: CREATE INDEX echo_goal_links_goal_id_idx ON public.echo_goal_links USING btree (goal_id)
+
+---
+
+POLICY profiles.Users can read own profile (SELECT, roles={public}): qual=(id = auth.uid()) with_check=
+
+---
+
+POLICY profiles.Users can update own profile (UPDATE, roles={public}): qual=(id = auth.uid()) with_check=
+
+---
+
+POLICY profiles.Users can insert own profile (INSERT, roles={public}): qual= with_check=(id = auth.uid())
+
+---
+
+POLICY goals.Users can select own goals (SELECT, roles={public}): qual=(user_id = auth.uid()) with_check=
+
+---
+
+POLICY goals.Users can insert own goals (INSERT, roles={public}): qual= with_check=(user_id = auth.uid())
+
+---
+
+POLICY goals.Users can update own goals (UPDATE, roles={public}): qual=(user_id = auth.uid()) with_check=
+
+---
+
+POLICY goals.Users can delete own goals (DELETE, roles={public}): qual=(user_id = auth.uid()) with_check=
+
+---
+
+POLICY milestones.Users can select own milestones (SELECT, roles={public}): qual=(user_id = auth.uid()) with_check=
+
+---
+
+POLICY milestones.Users can insert own milestones (INSERT, roles={public}): qual= with_check=(user_id = auth.uid())
+
+---
+
+POLICY milestones.Users can update own milestones (UPDATE, roles={public}): qual=(user_id = auth.uid()) with_check=
+
+---
+
+POLICY milestones.Users can delete own milestones (DELETE, roles={public}): qual=(user_id = auth.uid()) with_check=
+
+---
+
+POLICY echo_sessions.Users can select own starlog sessions (SELECT, roles={public}): qual=(user_id = auth.uid()) with_check=
+
+---
+
+POLICY echo_sessions.Users can insert own starlog sessions (INSERT, roles={public}): qual= with_check=(user_id = auth.uid())
+
+---
+
+POLICY echo_sessions.Users can update own starlog sessions (UPDATE, roles={public}): qual=(user_id = auth.uid()) with_check=
+
+---
+
+POLICY echo_sessions.Users can delete own starlog sessions (DELETE, roles={public}): qual=(user_id = auth.uid()) with_check=
+
+---
+
+POLICY echo_entries.Users can select own starlog entries (SELECT, roles={public}): qual=(user_id = auth.uid()) with_check=
+
+---
+
+POLICY echo_entries.Users can insert own starlog entries (INSERT, roles={public}): qual= with_check=(user_id = auth.uid())
+
+---
+
+POLICY echo_entries.Users can update own starlog entries (UPDATE, roles={public}): qual=(user_id = auth.uid()) with_check=
+
+---
+
+POLICY echo_entries.Users can delete own starlog entries (DELETE, roles={public}): qual=(user_id = auth.uid()) with_check=
+
+---
+
+POLICY interests.Users can select own interests (SELECT, roles={public}): qual=(user_id = auth.uid()) with_check=
+
+---
+
+POLICY interests.Users can insert own interests (INSERT, roles={public}): qual= with_check=(user_id = auth.uid())
+
+---
+
+POLICY interests.Users can update own interests (UPDATE, roles={public}): qual=(user_id = auth.uid()) with_check=
+
+---
+
+POLICY interests.Users can delete own interests (DELETE, roles={public}): qual=(user_id = auth.uid()) with_check=
+
+---
+
+POLICY profiles.Users cannot delete profiles (DELETE, roles={public}): qual=false with_check=
+
+---
+
+POLICY measurables.Users can select measurables for own goals (SELECT, roles={public}): qual=(goal_id IN ( SELECT goals.id
+   FROM goals
+  WHERE (goals.user_id = auth.uid()))) with_check=
+
+---
+
+POLICY measurables.Users can insert measurables for own goals (INSERT, roles={public}): qual= with_check=(goal_id IN ( SELECT goals.id
+   FROM goals
+  WHERE (goals.user_id = auth.uid())))
+
+---
+
+POLICY daily_ai_usage.Users can select own daily AI usage (SELECT, roles={public}): qual=(auth.uid() = user_id) with_check=
+
+---
+
+POLICY measurables.Users can update measurables for own goals (UPDATE, roles={public}): qual=(goal_id IN ( SELECT goals.id
+   FROM goals
+  WHERE (goals.user_id = auth.uid()))) with_check=(goal_id IN ( SELECT goals.id
+   FROM goals
+  WHERE (goals.user_id = auth.uid())))
+
+---
+
+POLICY measurables.Users can delete measurables for own goals (DELETE, roles={public}): qual=(goal_id IN ( SELECT goals.id
+   FROM goals
+  WHERE (goals.user_id = auth.uid()))) with_check=
+
+---
+
+POLICY measurable_logs.Users can select own measurable logs (SELECT, roles={public}): qual=(measurable_id IN ( SELECT m.id
+   FROM (measurables m
+     JOIN goals g ON ((m.goal_id = g.id)))
+  WHERE (g.user_id = auth.uid()))) with_check=
+
+---
+
+POLICY measurable_logs.Users can insert own measurable logs (INSERT, roles={public}): qual= with_check=(measurable_id IN ( SELECT m.id
+   FROM (measurables m
+     JOIN goals g ON ((m.goal_id = g.id)))
+  WHERE (g.user_id = auth.uid())))
+
+---
+
+POLICY measurable_logs.Users can update own measurable logs (UPDATE, roles={public}): qual=(measurable_id IN ( SELECT m.id
+   FROM (measurables m
+     JOIN goals g ON ((m.goal_id = g.id)))
+  WHERE (g.user_id = auth.uid()))) with_check=(measurable_id IN ( SELECT m.id
+   FROM (measurables m
+     JOIN goals g ON ((m.goal_id = g.id)))
+  WHERE (g.user_id = auth.uid())))
+
+---
+
+POLICY measurable_logs.Users can delete own measurable logs (DELETE, roles={public}): qual=(measurable_id IN ( SELECT m.id
+   FROM (measurables m
+     JOIN goals g ON ((m.goal_id = g.id)))
+  WHERE (g.user_id = auth.uid()))) with_check=
+
+---
+
+POLICY ai_usage.Users cannot update AI usage (UPDATE, roles={public}): qual=false with_check=false
+
+---
+
+POLICY ai_usage.Users cannot delete AI usage (DELETE, roles={public}): qual=false with_check=
+
+---
+
+POLICY projects.Users can view own projects (SELECT, roles={public}): qual=(auth.uid() = user_id) with_check=
+
+---
+
+POLICY projects.Users can insert own projects (INSERT, roles={public}): qual= with_check=(auth.uid() = user_id)
+
+---
+
+POLICY projects.Users can update own projects (UPDATE, roles={public}): qual=(auth.uid() = user_id) with_check=
+
+---
+
+POLICY projects.Users can delete own projects (DELETE, roles={public}): qual=(auth.uid() = user_id) with_check=
+
+---
+
+POLICY vaults.Vault owners can read (SELECT, roles={public}): qual=(user_id = auth.uid()) with_check=
+
+---
+
+POLICY vaults.Goal owners can create vaults (INSERT, roles={public}): qual= with_check=(user_id = auth.uid())
+
+---
+
+POLICY vaults.Vault owners can update (UPDATE, roles={public}): qual=(user_id = auth.uid()) with_check=
+
+---
+
+POLICY vaults.Vault owners can delete (DELETE, roles={public}): qual=(user_id = auth.uid()) with_check=
+
+---
+
+POLICY vault_items.Users can read vault items they own (SELECT, roles={public}): qual=(EXISTS ( SELECT 1
+   FROM vaults v
+  WHERE ((v.id = vault_items.vault_id) AND (v.user_id = auth.uid())))) with_check=
+
+---
+
+POLICY vault_items.Item creators can update (UPDATE, roles={public}): qual=(created_by = auth.uid()) with_check=
+
+---
+
+POLICY vault_items.Item creators can delete (DELETE, roles={public}): qual=(created_by = auth.uid()) with_check=
+
+---
+
+POLICY echo_goal_links.Users can read their own echo links (SELECT, roles={public}): qual=(EXISTS ( SELECT 1
+   FROM echo_entries ee
+  WHERE ((ee.id = echo_goal_links.echo_entry_id) AND (ee.user_id = auth.uid())))) with_check=
+
+---
+
+POLICY echo_goal_links.Users can create echo links (INSERT, roles={public}): qual= with_check=(EXISTS ( SELECT 1
+   FROM echo_entries ee
+  WHERE ((ee.id = echo_goal_links.echo_entry_id) AND (ee.user_id = auth.uid()))))
+
+---
+
+POLICY echo_goal_links.Users can update their echo links (UPDATE, roles={public}): qual=(EXISTS ( SELECT 1
+   FROM echo_entries ee
+  WHERE ((ee.id = echo_goal_links.echo_entry_id) AND (ee.user_id = auth.uid())))) with_check=
+
+---
+
+POLICY echo_goal_links.Users can delete their echo links (DELETE, roles={public}): qual=(EXISTS ( SELECT 1
+   FROM echo_entries ee
+  WHERE ((ee.id = echo_goal_links.echo_entry_id) AND (ee.user_id = auth.uid())))) with_check=
+
+---
+
+POLICY vault_items.Users can create vault items in their vaults (INSERT, roles={public}): qual= with_check=((created_by = auth.uid()) AND (EXISTS ( SELECT 1
+   FROM vaults v
+  WHERE ((v.id = vault_items.vault_id) AND (v.user_id = auth.uid())))))
+
+---
+
+POLICY spaces.Users can read own and member spaces (SELECT, roles={public}): qual=((owner_id = auth.uid()) OR (EXISTS ( SELECT 1
+   FROM space_members sm
+  WHERE ((sm.space_id = spaces.id) AND (sm.user_id = auth.uid()))))) with_check=
+
+---
+
+POLICY spaces.Authenticated users can create spaces (INSERT, roles={public}): qual= with_check=(auth.uid() = owner_id)
+
+---
+
+POLICY spaces.Owners can update their spaces (UPDATE, roles={public}): qual=(owner_id = auth.uid()) with_check=
+
+---
+
+POLICY spaces.Owners can delete their spaces (DELETE, roles={public}): qual=(owner_id = auth.uid()) with_check=
+
+---
+
+POLICY space_members.Members can see their space members (SELECT, roles={public}): qual=((user_id = auth.uid()) OR (EXISTS ( SELECT 1
+   FROM spaces s
+  WHERE ((s.id = space_members.space_id) AND (s.owner_id = auth.uid()))))) with_check=
+
+---
+
+POLICY space_members.Space owners can manage members (INSERT, roles={public}): qual= with_check=(EXISTS ( SELECT 1
+   FROM spaces s
+  WHERE ((s.id = space_members.space_id) AND (s.owner_id = auth.uid()))))
+
+---
+
+POLICY space_members.Space owners can update members (UPDATE, roles={public}): qual=(EXISTS ( SELECT 1
+   FROM spaces s
+  WHERE ((s.id = space_members.space_id) AND (s.owner_id = auth.uid())))) with_check=
+
+---
+
+POLICY space_members.Space owners can remove members (DELETE, roles={public}): qual=(EXISTS ( SELECT 1
+   FROM spaces s
+  WHERE ((s.id = space_members.space_id) AND (s.owner_id = auth.uid())))) with_check=
+
+---
+
+POLICY action_logs.Users can view own action logs (SELECT, roles={public}): qual=((user_id = auth.uid()) AND (EXISTS ( SELECT 1
+   FROM goals g
+  WHERE ((g.id = action_logs.goal_id) AND (g.user_id = auth.uid()))))) with_check=
+
+---
+
+POLICY action_logs.Users can insert own action logs (INSERT, roles={public}): qual= with_check=((user_id = auth.uid()) AND (EXISTS ( SELECT 1
+   FROM goals g
+  WHERE ((g.id = action_logs.goal_id) AND (g.user_id = auth.uid())))))
+
+---
+
+POLICY action_logs.Users can update own action logs (UPDATE, roles={public}): qual=((user_id = auth.uid()) AND (EXISTS ( SELECT 1
+   FROM goals g
+  WHERE ((g.id = action_logs.goal_id) AND (g.user_id = auth.uid()))))) with_check=((user_id = auth.uid()) AND (EXISTS ( SELECT 1
+   FROM goals g
+  WHERE ((g.id = action_logs.goal_id) AND (g.user_id = auth.uid())))))
+
+---
+
+FUNCTION consume_daily_ai_quota:
+CREATE OR REPLACE FUNCTION public.consume_daily_ai_quota(p_date date, p_limit integer DEFAULT 30)
+ RETURNS TABLE(allowed boolean, count integer)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_count integer;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Authenticated user required';
+  END IF;
+
+  IF p_limit <= 0 THEN
+    RAISE EXCEPTION 'Daily AI limit must be positive';
+  END IF;
+
+  INSERT INTO public.daily_ai_usage (user_id, date, count)
+  VALUES (v_user_id, p_date, 1)
+  ON CONFLICT (user_id, date) DO UPDATE
+    SET count = public.daily_ai_usage.count + 1
+    WHERE public.daily_ai_usage.count < p_limit
+  RETURNING public.daily_ai_usage.count INTO v_count;
+
+  IF v_count IS NOT NULL THEN
+    RETURN QUERY SELECT true, v_count;
+    RETURN;
+  END IF;
+
+  SELECT daily_ai_usage.count
+  INTO v_count
+  FROM public.daily_ai_usage
+  WHERE daily_ai_usage.user_id = v_user_id
+    AND daily_ai_usage.date = p_date;
+
+  RETURN QUERY SELECT false, COALESCE(v_count, 0);
+END;
+$function$
+
+
+---
+
+FUNCTION handle_new_user_space:
+CREATE OR REPLACE FUNCTION public.handle_new_user_space()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  v_space_id uuid;
+begin
+  begin
+    insert into public.spaces (name, type, owner_id, config)
+    values ('Personal', 'personal', new.id, '{"llmTier":"haiku"}'::jsonb)
+    on conflict (owner_id) where (type = 'personal') do nothing;
+
+    select id into v_space_id
+    from public.spaces
+    where owner_id = new.id
+      and type = 'personal';
+
+    insert into public.space_members (space_id, user_id, role, status)
+    values (v_space_id, new.id, 'owner', 'active')
+    on conflict (space_id, user_id) do nothing;
+
+  exception when others then
+    raise warning '[handle_new_user_space] Failed to provision personal space for user %: %',
+      new.id, sqlerrm;
+  end;
+
+  return new;
+end;
+$function$
+
+
+---
+
+FUNCTION rls_auto_enable:
+CREATE OR REPLACE FUNCTION public.rls_auto_enable()
+ RETURNS event_trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'pg_catalog'
+AS $function$
+DECLARE
+  cmd record;
+BEGIN
+  FOR cmd IN
+    SELECT *
+    FROM pg_event_trigger_ddl_commands()
+    WHERE command_tag IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
+      AND object_type IN ('table','partitioned table')
+  LOOP
+     IF cmd.schema_name IS NOT NULL AND cmd.schema_name IN ('public') AND cmd.schema_name NOT IN ('pg_catalog','information_schema') AND cmd.schema_name NOT LIKE 'pg_toast%' AND cmd.schema_name NOT LIKE 'pg_temp%' THEN
+      BEGIN
+        EXECUTE format('alter table if exists %s enable row level security', cmd.object_identity);
+        RAISE LOG 'rls_auto_enable: enabled RLS on %', cmd.object_identity;
+      EXCEPTION
+        WHEN OTHERS THEN
+          RAISE LOG 'rls_auto_enable: failed to enable RLS on %', cmd.object_identity;
+      END;
+     ELSE
+        RAISE LOG 'rls_auto_enable: skip % (either system schema or not in enforced list: %.)', cmd.object_identity, cmd.schema_name;
+     END IF;
+  END LOOP;
+END;
+$function$
+
+
+---
+
+FUNCTION match_echo_entries:
+CREATE OR REPLACE FUNCTION public.match_echo_entries(query_embedding vector, match_user_id uuid, match_limit integer DEFAULT 5)
+ RETURNS TABLE(id uuid, user_id uuid, content text, goal_id uuid, brt jsonb, created_at timestamp with time zone, similarity double precision)
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'extensions'
+AS $function$
+  SELECT
+    e.id,
+    e.user_id,
+    e.content,
+    e.goal_id,
+    e.brt,
+    e.created_at,
+    1 - (e.embedding <=> query_embedding) AS similarity
+  FROM echo_entries e
+  WHERE e.user_id = match_user_id
+    AND e.embedding IS NOT NULL
+  ORDER BY e.embedding <=> query_embedding
+  LIMIT match_limit;
+$function$
+
+
+---
+
+FUNCTION match_goals:
+CREATE OR REPLACE FUNCTION public.match_goals(query_embedding vector, match_user_id uuid, match_limit integer DEFAULT 5)
+ RETURNS TABLE(id uuid, user_id uuid, title text, description text, category text, status text, smart_data jsonb, created_at timestamp with time zone, similarity double precision)
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'extensions'
+AS $function$
+  SELECT
+    g.id,
+    g.user_id,
+    g.title,
+    g.description,
+    g.category,
+    g.status,
+    g.smart_data,
+    g.created_at,
+    1 - (g.embedding <=> query_embedding) AS similarity
+  FROM goals g
+  WHERE g.user_id = match_user_id
+    AND g.embedding IS NOT NULL
+  ORDER BY g.embedding <=> query_embedding
+  LIMIT match_limit;
+$function$
+
+
+---
+
+FUNCTION match_vault_items:
+CREATE OR REPLACE FUNCTION public.match_vault_items(query_embedding vector, match_user_id uuid, match_limit integer DEFAULT 5)
+ RETURNS TABLE(id uuid, vault_id uuid, item_type text, title text, content text, created_by uuid, created_at timestamp with time zone, similarity double precision)
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'extensions'
+AS $function$
+  SELECT
+    v.id,
+    v.vault_id,
+    v.item_type,
+    v.title,
+    v.content,
+    v.created_by,
+    v.created_at,
+    1 - (v.embedding <=> query_embedding) AS similarity
+  FROM vault_items v
+  WHERE v.created_by = match_user_id
+    AND v.embedding IS NOT NULL
+  ORDER BY v.embedding <=> query_embedding
+  LIMIT match_limit;
+$function$
+
+
+---
+
+FUNCTION handle_updated_at:
+CREATE OR REPLACE FUNCTION public.handle_updated_at()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$function$
+
+
+---
+
+TRIGGER: CREATE TRIGGER spaces_updated_at BEFORE UPDATE ON public.spaces FOR EACH ROW EXECUTE FUNCTION handle_updated_at()
+
+---
+
+TRIGGER: CREATE TRIGGER vaults_updated_at BEFORE UPDATE ON public.vaults FOR EACH ROW EXECUTE FUNCTION handle_updated_at()
+
+---
+
+TRIGGER: CREATE TRIGGER vault_items_updated_at BEFORE UPDATE ON public.vault_items FOR EACH ROW EXECUTE FUNCTION handle_updated_at()
+
+---
+
+TRIGGER: CREATE TRIGGER projects_updated_at BEFORE UPDATE ON public.projects FOR EACH ROW EXECUTE FUNCTION handle_updated_at()
+
+---
+
+TRIGGER: CREATE TRIGGER on_profile_created_create_space AFTER INSERT ON public.profiles FOR EACH ROW EXECUTE FUNCTION handle_new_user_space()
+
+---
+
+EVENT TRIGGER issue_pg_graphql_access ON ddl_command_end EXEC grant_pg_graphql_access ENABLED=O
+
+---
+
+EVENT TRIGGER issue_graphql_placeholder ON sql_drop EXEC set_graphql_placeholder ENABLED=O
+
+---
+
+EVENT TRIGGER pgrst_ddl_watch ON ddl_command_end EXEC pgrst_ddl_watch ENABLED=O
+
+---
+
+EVENT TRIGGER pgrst_drop_watch ON sql_drop EXEC pgrst_drop_watch ENABLED=O
+
+---
+
+EVENT TRIGGER graphql_watch_ddl ON ddl_command_end EXEC graphql.increment_schema_version ENABLED=O
+
+---
+
+EVENT TRIGGER graphql_watch_drop ON sql_drop EXEC graphql.increment_schema_version ENABLED=O
+
+---
+
+EVENT TRIGGER issue_pg_cron_access ON ddl_command_end EXEC grant_pg_cron_access ENABLED=O
+
+---
+
+EVENT TRIGGER issue_pg_net_access ON ddl_command_end EXEC grant_pg_net_access ENABLED=O
+
+---
+
+EVENT TRIGGER ensure_rls ON ddl_command_end EXEC rls_auto_enable ENABLED=O
+
+---
+
+RLS measurables: enabled=true forced=false
+
+---
+
+RLS measurable_logs: enabled=true forced=false
+
+---
+
+RLS ai_usage: enabled=true forced=false
+
+---
+
+RLS action_logs: enabled=true forced=false
+
+---
+
+RLS space_members: enabled=true forced=false
+
+---
+
+RLS projects: enabled=true forced=false
+
+---
+
+RLS spaces: enabled=true forced=false
+
+---
+
+RLS vaults: enabled=true forced=false
+
+---
+
+RLS profiles: enabled=true forced=false
+
+---
+
+RLS goals: enabled=true forced=false
+
+---
+
+RLS milestones: enabled=true forced=false
+
+---
+
+RLS echo_sessions: enabled=true forced=false
+
+---
+
+RLS interests: enabled=true forced=false
+
+---
+
+RLS daily_ai_usage: enabled=true forced=false
+
+---
+
+RLS echo_entries: enabled=true forced=false
+
+---
+
+RLS vault_items: enabled=true forced=false
+
+---
+
+RLS echo_goal_links: enabled=true forced=false
