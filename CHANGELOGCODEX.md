@@ -480,6 +480,138 @@ Excluded: H1–H6 items pending human review (store pattern decision, echo promp
 - Extended `types/activity.ts` `ActivityItem` discriminated union with three new variants (on `kind` field). All new variants share the required `id` and `timestamp` base fields per union contract. No existing variant shapes modified.
 - Applied narrowing fix in `features/goals/components/ActivityFeed.tsx`: exhaustive switch on `kind` is now type-safe against the full `ActivityItem` union; previously unhandled variants no longer produce implicit `any` or dead-branch type errors. TSC clean after change.
 
+## Block 4 — goalTitle Fix + Cleanup (2026-06-25)
+
+### Fixed
+
+**`app/api/measurables/due-today+api.ts`** — `goalTitle` always returned `""`
+
+PostgREST returns the `goals!inner(title)` join as a plain object (`{ title: "..." }`) for this many-to-one FK (`measurables.goal_id → goals.id`). The route typed it as `{ title: string }[] | null` and accessed it as `row.goals?.[0]?.title`, which evaluated to `undefined` (index 0 on an object) and fell back to `''`.
+
+**Changes (2 lines):**
+1. `DbMeasurableRow.goals`: `{ title: string }[] | null` → `{ title: string } | null`
+2. Accessor: `row.goals?.[0]?.title` → `row.goals?.title`
+3. Cast on line 72 widened to `as unknown as DbMeasurableRow[]` because the Supabase client's inferred type for the join is still `{ title: any; }[]` (client inference doesn't reflect the actual many-to-one object shape); the `unknown` intermediate cast bridges the gap without affecting runtime behavior.
+
+**Re-verification:** `GET /api/measurables/due-today` with Goal A in scope now returns `"goalTitle": "Smoke Test Goal A (active+daily)"` — no longer empty.
+
+**tsc --noEmit:** clean.
+
+### Cleanup
+
+Test goals A, B, C deleted via authenticated REST API (HTTP 204 × 3). Cascade confirmed clean:
+- `measurables`: all 3 rows gone (no orphans)
+- `measurable_logs`: the 1 completion log row gone (no orphans)
+- Route returns `{"data":[]}` on the now-clean `team@oharaai.com` account
+
+Cascade behavior for `measurables → goals` and `measurable_logs → measurables` is working correctly. No entries needed in OUTSTANDING.md for this.
+
+**Files touched:** `app/api/measurables/due-today+api.ts`
+
+---
+
+## Block 4 — due-today Route Smoke Test (2026-06-25)
+
+### Verified
+
+Manual smoke test against live dev server (localhost:8081) using the `team@oharaai.com` session token. No code changes made.
+
+**Test data created** (account `6cdb5232-b1ba-4458-9043-9fc8415d81f8`, all rows inserted via authed Supabase REST API — same RLS path as the app, not raw SQL):
+
+| Row | ID | Purpose |
+|-----|----|---------|
+| Goal A | `afeb94ec-9745-491b-b63a-65044186a18f` | active, category=mind |
+| Goal B | `e5a34a72-94ac-49e0-9dce-188467ab866d` | active, category=mind |
+| Goal C | `c844f0ac-7c65-4956-99d2-a724f3acd5e8` | complete, category=mind |
+| Measurable A1 | `69dd59e2-837e-4f5e-aa41-f10d90d6debd` | daily habit on Goal A |
+| Measurable B1 | `1ae08858-c1fe-4bcf-9e54-3f6124a06726` | weekly counter on Goal B |
+| Measurable C1 | `3b6a4f49-4f57-44e9-93f8-5b42cb2d1121` | daily habit on Goal C |
+
+Completion log written to `measurable_logs` for Measurable A1 (`logged_at: 2026-06-25T16:39:01.180165+00:00`) to exercise the Step 2 re-run.
+
+**Cleanup:** delete Goals A, B, C from Supabase Table Editor — measurables and logs cascade.
+
+---
+
+#### Check results (6/6)
+
+| # | Check | Result |
+|---|-------|--------|
+| 1.1 | 200 response with shape `{ data: [{ goalId, goalTitle, measurables: [...] }] }` | **PASS** |
+| 1.2 | Weekly measurable (B1, `frequency=weekly`) absent from response | **PASS** |
+| 1.3 | Non-active goal (C, `status=complete`) and its daily measurable absent | **PASS** |
+| 1.4 | `lastCompletedAt` is `null` for Measurable A1 before any log | **PASS** |
+| 2.1 | After writing a `measurable_logs` row for A1, `lastCompletedAt` updates to `2026-06-25T16:39:01.180165+00:00` | **PASS** |
+| 2.2 | No-auth request → HTTP 401 `{"error":"Unauthorized"}` (not 500, not another user's data) | **PASS** |
+| 2.3 | Garbage Bearer token → HTTP 401 `{"error":"Unauthorized"}` (not 500, not another user's data) | **PASS** |
+
+**All 6 checks pass. The backend portion of Block 4 is verified end-to-end, not just type-checked.**
+
+---
+
+#### Side observation (non-blocking, fix required before UI wiring)
+
+`goalTitle` always returns `""` in every response. Root cause: PostgREST returns the `goals!inner(title)` join as a plain object `{ "title": "..." }` for this many-to-one FK (measurables.goal_id → goals.id), but the route types it as `{ title: string }[] | null` and accesses it as `row.goals?.[0]?.title`. That expression evaluates to `undefined` (index access on an object), which falls through to the `?? ''` default. Fix (in a future session): change `DbMeasurableRow.goals` to `{ title: string } | null` and the accessor to `row.goals?.title ?? ''`. Route is otherwise correct; this only affects the display field, not filtering or auth.
+
+---
+
+## Block 4 — due-today Route (2026-06-25)
+
+### Added
+
+**`app/api/measurables/due-today+api.ts`** — new file
+
+`GET /api/measurables/due-today` — read-only, authenticated via `Authorization: Bearer <token>`.
+
+Auth pattern matches existing routes (`supabase.auth.getUser(token)` → `user.id` from session, never from params; `createAuthedClient(token)` for all DB queries).
+
+**Query logic:**
+- Fetches all `measurables` where `frequency = 'daily'` joined to `goals` where `status = 'active'` and `goals.user_id = user.id` (RLS-enforced at both the query filter and the row-level policy).
+- Fetches `measurable_logs` for the returned set, ordered `logged_at DESC`. Builds a map of `measurable_id → most recent logged_at`. Timestamp column is `logged_at` (not `created_at`) per live schema audit.
+- Groups measurables by goal and returns the response shape described below.
+
+**Response shape:**
+```json
+{
+  "data": [
+    {
+      "goalId": "string",
+      "goalTitle": "string",
+      "measurables": [
+        {
+          "id": "string",
+          "title": "string",
+          "type": "counter | habit | checklist",
+          "targetValue": "number | null",
+          "targetUnit": "string | null",
+          "currentValue": "number",
+          "lastCompletedAt": "string | null"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Constraints respected:**
+- Read-only. No writes.
+- Strictly `frequency = 'daily'`. No weekly/monthly logic.
+- `action_logs`, Next Action component, and dashboard wiring untouched — this is an unwired API route only.
+- `tsc --noEmit`: clean.
+
+**DECISIONS.md entries appended (4):**
+1. Block 4.1 — due-today scoped to `frequency = 'daily'` only; weekly/monthly excluded pending anchor-day column design.
+2. Block 4.2 — existing measurables schema (`type` + nullable `target_value`/`target_unit` + `measurable_logs.note`) confirmed sufficient; no schema addition needed.
+3. Block 4 hard dependency — `handle_new_user()` fix (migration 008, profile row + timezone) pulled in as prerequisite; full signup-flow audit deferred.
+4. Next Action UI slot will be replaced by due-today measurables output (not shown alongside it); open question about action_logs capture step logged in new `docs/OUTSTANDING.md`.
+
+**Files touched:**
+- `app/api/measurables/due-today+api.ts` (new)
+- `docs/DECISIONS.md` (4 entries appended)
+- `docs/OUTSTANDING.md` (new — open question: action_logs post-goal-creation capture step)
+
+---
+
 ## Block 4 — Profile Creation Fix + Timezone Capture (2026-06-25)
 
 ### Added

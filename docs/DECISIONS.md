@@ -239,3 +239,27 @@ the API layer is consistent.
 **Decision:** Added a `title` column to `echo_entries` (migration `007`), fully wired end-to-end: composer UI input in `EchoScreen.tsx`, threaded through `saveEntry`/`createEntry`.
 **Reason:** User-written entry titles are optional metadata distinct from AI-generated content — not required for submission.
 **Impact:** Field is optional; stored as `null` if left empty, and submission is never blocked on it.
+
+### 2026-06-25 — Block 4.1: due-today scoped to daily frequency only
+
+**Decision:** `GET /api/measurables/due-today` returns only measurables where `frequency = 'daily'`. Weekly and monthly measurables are excluded.
+**Reason:** No anchor-day column exists on `measurables`. Determining whether a weekly or monthly measurable is "due today" requires knowing which day of the week / month it is anchored to — that column doesn't exist and was not added in this block. Building partial heuristics without an anchor column would produce incorrect due-dates for some users.
+**Impact:** Weekly and monthly measurables are invisible to the due-today surface until an anchor-day column and scheduling logic are designed and migrated. Revisit when that work is prioritized.
+
+### 2026-06-25 — Block 4.2: existing measurables schema sufficient for type-variable completion logging
+
+**Decision:** No schema addition needed to support type-variable completion logging (counter increment, habit check-off, checklist item). The existing `measurables` shape (`type` + nullable `target_value`/`target_unit`) plus `measurable_logs.note` (nullable) is sufficient.
+**Reason:** Confirmed via live schema audit: `measurables_type_check` constrains `type` to `counter | habit | checklist`; `target_value` and `target_unit` are nullable, accommodating checklist-type measurables that have no numeric target; `measurable_logs.note` is nullable for optional log commentary. The combination covers all three type variants without any new columns.
+**Impact:** No migration required for Block 4.2.
+
+### 2026-06-25 — Block 4 hard dependency: handle_new_user() trigger fix pulled in
+
+**Decision:** The minimal `handle_new_user()` fix (creates profiles row + captures timezone from `raw_user_meta_data`) was implemented as a hard dependency for Block 4 due-today logic. Full signup-flow audit (spaces trigger chain, onboarding state, etc.) remains deferred to its own session.
+**Reason:** `profiles.timezone` is required for correct per-user due-today scoping. Because no trigger was creating profiles rows at signup, no user would have had a timezone value, making the due-today route incorrect for all real users. The minimal fix (migration 008: add `timezone` column + create `handle_new_user` trigger) unblocks the route without performing a broader signup audit.
+**Impact:** Migration 008 applied live. `profiles.timezone` defaults to `'UTC'` for existing rows. New signups capture the browser's IANA timezone via `Intl.DateTimeFormat().resolvedOptions().timeZone` passed in `options.data` to `supabase.auth.signUp()`. Full signup-flow audit (H5-equivalent scope) deferred.
+
+### 2026-06-25 — Next Action UI slot will be replaced by due-today measurables output
+
+**Decision:** The existing Next Action UI slot (currently rendering `action_logs`-based output) will be replaced by due-today measurables output, not shown alongside it. The two surfaces will not coexist.
+**Reason:** Product decision to surface the measurables-first execution loop on the dashboard. The action_logs capture step (post-goal-creation "What's one action you can take today?") was designed for a slot that will no longer display action_logs.
+**Impact:** Open question logged in OUTSTANDING.md: whether the action_logs-based post-goal-creation capture step should also be deprecated since its output will no longer be displayed. No code change in this block — wiring the new route into the UI slot is a separate session.

@@ -38,6 +38,7 @@ export default function SignupScreen() {
       options: {
         data: {
           display_name: displayName,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
         emailRedirectTo: 'https://oharaai.vercel.app/callback',
       },
