@@ -95,22 +95,29 @@ export function Sidebar() {
 
       {/* Bottom items */}
       <View style={{ paddingBottom: 32, paddingHorizontal: 12 }}>
-        {(['Account', 'Settings'] as const).map((label) => (
-          <View
-            key={label}
-            style={{
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              borderRadius: 12,
-              marginBottom: 4,
-              opacity: 0.4,
-            }}
-          >
-            <Text style={{ color: '#A8C4AE', fontSize: 14, fontWeight: '500' }}>
-              {label}
-            </Text>
-          </View>
-        ))}
+        <TouchableOpacity
+          onPress={() => router.push('/(app)/account' as Parameters<typeof router.push>[0])}
+          style={{
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderRadius: 12,
+            marginBottom: 4,
+          }}
+          activeOpacity={0.7}
+        >
+          <Text style={{ color: '#A8C4AE', fontSize: 14, fontWeight: '500' }}>Account</Text>
+        </TouchableOpacity>
+        <View
+          style={{
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderRadius: 12,
+            marginBottom: 4,
+            opacity: 0.4,
+          }}
+        >
+          <Text style={{ color: '#A8C4AE', fontSize: 14, fontWeight: '500' }}>Settings</Text>
+        </View>
         <TouchableOpacity
           onPress={handleSignOut}
           style={{

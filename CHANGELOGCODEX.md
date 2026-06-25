@@ -4,6 +4,50 @@
 
 ---
 
+## Account Screen — v1 (2026-06-25)
+
+### Added
+
+**`app/api/profile/index+api.ts`** — new file
+
+`GET /api/profile` — returns `{ display_name, timezone }` only. Auth via `getAuthContext` + `createAuthedClient`. Scoped to session userId via `.eq('id', auth.userId)`. No other profile columns fetched or returned.
+
+`PATCH /api/profile` — accepts `display_name?` and `timezone?`. Validates `display_name` is a non-empty string if present; trims both before update. Only those two columns are ever written — the DB update object is built explicitly and cannot be widened by request body content. Returns the updated `{ display_name, timezone }` on success. Rejects empty-body requests (no valid fields).
+
+Both handlers use `ApiResponse<T>` envelope from `lib/api/contracts.ts`, matching the established pattern in `app/api/goals/index+api.ts`.
+
+**`app/(app)/account.tsx`** — new file
+
+Account screen. Fetches profile on mount via `GET /api/profile`. Form with `display_name` TextInput and `timezone` TextInput (plain text, v1). Save calls `PATCH /api/profile`. States: loading spinner, load-error fallback, save-in-progress (button disabled + spinner), inline error text, inline "Saved." confirmation. Follows EchoDetailScreen patterns (`active` ref for cleanup, `getAccessToken` helper, try/catch error handling). Theme-consistent (cream background, white cards, forest green accent, Inter font).
+
+### Changed
+
+**`components/layout/Sidebar.tsx`**
+
+Replaced the shared `(['Account', 'Settings'] as const).map()` stub with two separate items:
+- "Account": `TouchableOpacity` that navigates to `/(app)/account`.
+- "Settings": unchanged inert `View` at `opacity: 0.4`.
+
+**`app/(app)/_layout.tsx`**
+
+- Added `<Stack.Screen name="account" />` to the sidebar Stack so Account is reachable from web navigation.
+- Added `<Tabs.Screen name="account" options={{ href: null }} />` to the mobile Tabs layout to suppress it from the tab bar.
+
+### Verification
+
+- `npx tsc --noEmit`: clean.
+- GET returns only `display_name` and `timezone`; `character_profile`, `context`, `interests`, `onboarding_complete` are not selected, not returned.
+- PATCH update object built from an explicit `Partial<{ display_name, timezone }>` — other columns cannot be injected via request body.
+- Sidebar "Account" entry navigates to `/(app)/account`. "Settings" entry left exactly as-is.
+
+**Files touched:**
+- `app/api/profile/index+api.ts` (new)
+- `app/(app)/account.tsx` (new)
+- `components/layout/Sidebar.tsx`
+- `app/(app)/_layout.tsx`
+
+---
+
 ## Cross-Account Data Leak — Fix (2026-06-25)
 
 ### Fixed

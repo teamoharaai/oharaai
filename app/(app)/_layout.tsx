@@ -35,6 +35,7 @@ export default function AppLayout() {
             <Stack.Screen name="constellation" />
             <Stack.Screen name="explore" />
             <Stack.Screen name="about" />
+            <Stack.Screen name="account" />
           </Stack>
         </View>
       </View>
@@ -99,6 +100,7 @@ export default function AppLayout() {
           }}
         />
       ) : null}
+      <Tabs.Screen name="account" options={{ href: null }} />
     </Tabs>
   );
 }
