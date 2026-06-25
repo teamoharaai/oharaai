@@ -45,6 +45,7 @@ Replaced the shared `(['Account', 'Settings'] as const).map()` stub with two sep
 - `app/(app)/account.tsx` (new)
 - `components/layout/Sidebar.tsx`
 - `app/(app)/_layout.tsx`
+- `.expo/types/router.d.ts` (auto-generated — Expo Router picked up the new `/(app)/account` route)
 
 ---
 
