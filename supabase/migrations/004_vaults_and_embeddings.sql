@@ -1,7 +1,7 @@
 -- ============================================================================
 -- 004_vaults_and_embeddings.sql
 -- Narrative baseline migration 4 of 7, replacing original migrations 001-026.
--- DRAFT — not yet applied.
+-- Applied 2026-06-24 as part of migration squash; reconciled against live schema_migrations.
 --
 -- Scope: vaults, vault_items, embedding columns on vault_items, HNSW indexes
 -- (goals/echo_entries/vault_items), and the three match_* functions.

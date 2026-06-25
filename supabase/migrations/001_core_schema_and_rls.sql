@@ -1,7 +1,7 @@
 -- ============================================================================
 -- 001_core_schema_and_rls.sql
 -- Narrative baseline migration 1 of 7, replacing original migrations 001-026.
--- DRAFT — not yet applied. See OUTSTANDING.md / migration audit for context.
+-- Applied 2026-06-24 as part of migration squash; reconciled against live schema_migrations.
 --
 -- Scope: profiles, goals, milestones, measurables, measurable_logs,
 -- interests, base RLS, and the rls_auto_enable() safety-net trigger.

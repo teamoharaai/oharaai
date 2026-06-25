@@ -1,7 +1,7 @@
 -- ============================================================================
 -- 002_echo.sql
 -- Narrative baseline migration 2 of 7, replacing original migrations 001-026.
--- DRAFT — not yet applied.
+-- Applied 2026-06-24 as part of migration squash; reconciled against live schema_migrations.
 --
 -- Scope: echo_sessions, echo_entries (final shape), corrected echo_*-named
 -- constraints/indexes/policies, related RLS.

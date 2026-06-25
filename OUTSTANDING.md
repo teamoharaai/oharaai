@@ -21,6 +21,13 @@
       consolidate to one definition if identical. Deferred since 2026-04 (docs/DECISIONS.md).
 - [ ] Echo AI reflections are generated and stored but never rendered in the UI.
 - [ ] EchoTrail links point to a screen that doesn't exist.
+- [ ] Migrate 14 existing `brt` read-sites to the `brt_ai`/`brt_user` split (migration `007`,
+      see docs/DECISIONS.md 2026-06-24 "Echo BRT split"). `brt` is still the source of truth for
+      all reads; not yet migrated. Known read-sites: `components/ui/ReflectionCard.tsx`,
+      `features/goals/components/EchoTrail.tsx`, `features/goals/services/goal-service.ts`,
+      `lib/db/echo-goal-links.ts`, `features/echo/hooks/useEntries.ts`,
+      `features/echo/components/EchoDetailScreen.tsx`, `features/goals/components/ActivityFeed.tsx`,
+      `features/goals/hooks/useEchoTrail.ts`, `lib/db/embeddings.ts`, `lib/db/goals.ts`.
 
 ## Goals / API layer
 
@@ -50,6 +57,13 @@
       "revisit before action completion UI ships" (docs/DECISIONS.md, 2026-04-05) — that UI
       (`NextActionSection`) has since shipped and is live, so this is no longer pre-launch debt,
       it's an active unaddressed bug.
+
+## Vaults
+
+- [ ] `features/goals/hooks/useVault.ts` bypasses `app/api/vaults/[goalId]+api.ts`
+      (and `app/api/vaults/items/[itemId]+api.ts`) — vault item creation goes direct
+      client-to-DB, the same pattern goal creation used before Block 1's fix. Not yet
+      remediated.
 
 ## Phase 2 (explicitly deferred, no action needed yet)
 

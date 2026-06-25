@@ -215,3 +215,27 @@ the API layer is consistent.
 - Cleaned up: killed the temporary Expo dev server started on `:8089`, removed scratch test scripts.
 - Note: port 3002 (already running) is an unrelated Next.js/Clerk project, not Ohara — don't target it for future Ohara API tests; use `expo start --web` on its own port.
 - Open question for CTO: whether `mode` stays a fixed `'commitment'` default or gets real Phase 2 wiring (tracked in OUTSTANDING.md).
+
+### 2026-06-24 — Vault item type taxonomy — confirmed as-is
+
+**Decision:** Keep the existing live `vault_items.item_type` column and its values (`note`, `link`, `document`, `insight`, `action_update`) unchanged. Type remains user-selected only at creation time — no AI inference or suggestion on this field at this time.
+**Reason:** Block 3 planning had proposed a different five-value taxonomy (`resource`/`note`/`insight`/`reference`/`question`) before the live schema was checked. Auditing the live database confirmed `item_type` already exists with a `CHECK` constraint enforcing the five values above. This is a deliberate confirmation of the existing taxonomy for the record, not a correction — nothing was broken.
+**Impact:** No schema change, no column rename, no migration. Block 3 planning proceeds against the live taxonomy as-is.
+
+### 2026-06-24 — Future option: AI-suggested vault item type — precedent to follow if built
+
+**Decision:** If AI-suggested `item_type` is ever built, it should follow the same pattern already used elsewhere in this codebase: preserve the AI's original inference alongside a nullable human-override field, rather than overwriting the AI's suggestion when a user corrects it.
+**Reason:** This mirrors the shape already designed for the deferred `brt_ai`/`brt_user` split on `echo_entries` — keeping both values lets later analysis distinguish AI accuracy from user correction, instead of losing the AI's original inference on overwrite.
+**Impact:** Logged as a future option only. Nothing is being built now — no schema change, no new column, no writer.
+
+### 2026-06-24 — Echo BRT split: dual-write strategy
+
+**Decision:** Added `brt_ai`/`brt_user` columns (migration `007`) alongside the existing `brt` column on `echo_entries`. `brt_ai` is now dual-written at both real inference sites (`echo-service.ts` post-reflection update, `reconcile+api.ts` backfill path) with the identical value as `brt`. The original `brt` column and all 14 existing read-sites are untouched.
+**Reason:** Additive split lets future work distinguish the AI's original inference from a future nullable human override without breaking any current reader of `brt`. Cutting over reads now would require touching 14 call sites for no immediate benefit, since no override UI exists yet.
+**Impact:** `brt_user` has no writer yet — no override UI exists. Migrating read-sites to the new split columns is deferred to a separate future block rather than cutting over now (tracked in OUTSTANDING.md).
+
+### 2026-06-24 — Echo entry title field added
+
+**Decision:** Added a `title` column to `echo_entries` (migration `007`), fully wired end-to-end: composer UI input in `EchoScreen.tsx`, threaded through `saveEntry`/`createEntry`.
+**Reason:** User-written entry titles are optional metadata distinct from AI-generated content — not required for submission.
+**Impact:** Field is optional; stored as `null` if left empty, and submission is never blocked on it.

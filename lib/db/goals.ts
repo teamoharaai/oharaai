@@ -211,28 +211,29 @@ export async function createGoalWithMeasurables(
     }
   }
 
-  // Generate and store embedding for this goal (sync, isolated)
+  // Fire-and-forget embedding (non-blocking)
   // Goal is already saved — embedding failure must not affect the result.
-  try {
-    const vector = await generateEmbedding(embeddingText, 'document');
-    if (vector) {
-      await db
-        .from('goals')
-        .update({
-          embedding: vector as any, // pgvector accepts number[]
-          embedding_model: EMBEDDING_MODEL,
-        })
-        .eq('id', goalId);
-    }
-  } catch (err) {
-    console.error(JSON.stringify({
-      event: 'embedding_write_failed',
-      table: 'goals',
-      record_id: goalId,
-      error: err instanceof Error ? err.message : 'unknown',
-      timestamp: new Date().toISOString(),
-    }));
-  }
+  void generateEmbedding(embeddingText, 'document')
+    .then(async (vector) => {
+      if (vector) {
+        await db
+          .from('goals')
+          .update({
+            embedding: vector as any, // pgvector accepts number[]
+            embedding_model: EMBEDDING_MODEL,
+          })
+          .eq('id', goalId);
+      }
+    })
+    .catch((err) => {
+      console.error(JSON.stringify({
+        event: 'embedding_write_failed',
+        table: 'goals',
+        record_id: goalId,
+        error: err instanceof Error ? err.message : 'unknown',
+        timestamp: new Date().toISOString(),
+      }));
+    });
 
   // Auto-create vault for this goal (non-blocking)
   const { error: vaultError } = await db

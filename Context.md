@@ -21,7 +21,7 @@ Theme: cream #F5F1EA, white cards, forest green #3D5247, Inter + Lora
 `CHANGELOGCODEX.md` · `docs/context.md` (deprecated — root CONTEXT.md is canonical)
 
 ## Current State
-- Migrations: through 022 (spaces.user_id → owner_id rename)
+- Migrations: through 007 (squashed baseline 001-006, 2026-06-24) + 007 (echo_entries.title/brt_ai/brt_user, 2026-06-24), all confirmed applied live
 - `tsc --noEmit`: clean
 - RLS: verified across all tables
 - Auth: Supabase auth working; `/auth/callback` 404 parked (teammate has Auth0 solution)
@@ -61,7 +61,7 @@ Theme: cream #F5F1EA, white cards, forest green #3D5247, Inter + Lora
 - Visibility: `private / circle / public` — non-owner access conservative until social ships
 - vault_items has no milestone_id — milestone context not in schema yet
 - spaces.owner_id is the owner column (renamed from user_id in migration 022); space_members.user_id is unchanged
-- Next migration number: 023
+- Next migration number: 008
 
 ## Outstanding (Phase 1)
 - Dashboard redesign: Echo entry point, Ohara voice/Guide presence, badge fix
@@ -79,4 +79,4 @@ Theme: cream #F5F1EA, white cards, forest green #3D5247, Inter + Lora
 - Codex writes to CHANGELOGCODEX.md after every session
 - Run `npx tsc --noEmit` before and after every task
 
-last migration: 023, next: 024
+last migration: 007 — migrations squashed 2026-06-24 from original 001-026 into narrative baselines 001-006, all confirmed applied live via schema_migrations. Migration 007 (echo_entries.title, brt_ai, brt_user) added 2026-06-24 this session, confirmed applied live. Old numbers (e.g. 023, 026) are historical/archived only; next new migration is 008.

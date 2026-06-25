@@ -1,7 +1,7 @@
 -- ============================================================================
 -- 005_echo_goal_links.sql
 -- Narrative baseline migration 5 of 7, replacing original migrations 001-026.
--- DRAFT — not yet applied.
+-- Applied 2026-06-24 as part of migration squash; reconciled against live schema_migrations.
 --
 -- Scope: echo_goal_links bridge table (many-to-many, confidence numeric).
 -- Original migrations: 018 created confidence as double precision; 019

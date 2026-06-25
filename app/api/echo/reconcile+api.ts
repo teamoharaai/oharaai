@@ -142,6 +142,7 @@ export async function POST(request: Request): Promise<Response> {
             ai_response: parsed.reflection,
             emotion: parsed.emotion,
             brt: parsed.brt,
+            brt_ai: parsed.brt,
             confidence: parsed.confidence,
             model_version: AI_CONFIG.models.default,
             processed_at: new Date().toISOString(),

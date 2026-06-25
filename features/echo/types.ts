@@ -14,6 +14,7 @@ export interface EchoEntry {
   userId: string;
   goalId: string | null;
   goalTitle?: string;
+  title?: string;
   content: string;
   mediaUrl?: string;
   aiInsightRequested: boolean;

@@ -38,6 +38,7 @@ export function useEntries() {
     aiInsightRequested: boolean,
     brt: EchoBrt | null,
     emotion: EchoEmotion | null,
+    title: string | null,
   ): Promise<CreateEntryResult> => {
     let user;
     try {
@@ -58,6 +59,7 @@ export function useEntries() {
       aiInsightRequested,
       brt,
       emotion,
+      title,
     });
     if (result.entry) {
       prependEntry(result.entry);

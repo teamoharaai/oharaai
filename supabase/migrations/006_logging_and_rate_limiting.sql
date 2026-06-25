@@ -1,7 +1,7 @@
 -- ============================================================================
 -- 006_logging_and_rate_limiting.sql
 -- Narrative baseline migration 6 of 7, replacing original migrations 001-026.
--- DRAFT — not yet applied.
+-- Applied 2026-06-24 as part of migration squash; reconciled against live schema_migrations.
 --
 -- Scope: action_logs (with hardened, goal-ownership-enforced RLS as of
 -- original migration 025), daily_ai_usage, ai_usage, consume_daily_ai_quota().

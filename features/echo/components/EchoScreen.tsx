@@ -165,6 +165,7 @@ export function EchoScreen() {
   const setLastLinkedGoal = useEchoDraftStore((state) => state.setLastLinkedGoal);
 
   const [text, setText] = useState('');
+  const [titleText, setTitleText] = useState('');
   const [linkedGoal, setLinkedGoal] = useState<EchoDraftGoalRef | null>(null);
   const [aiInsightOn, setAiInsightOn] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -267,6 +268,13 @@ export function EchoScreen() {
     setSubmissionNotice(null);
   }
 
+  function handleTitleChange(value: string) {
+    if (submissionNotice) {
+      clearSubmissionNotice();
+    }
+    setTitleText(value);
+  }
+
   function handleTextChange(value: string) {
     if (submissionNotice) {
       clearSubmissionNotice();
@@ -286,7 +294,8 @@ export function EchoScreen() {
       flushDraft(activeContextKey, trimmedText);
 
       const aiRequested = FEATURES.INTELLIGENCE_ENABLED ? aiInsightOn : false;
-      const result = await saveEntry(trimmedText, linkedGoal?.id ?? null, aiRequested, null, null);
+      const trimmedTitle = titleText.trim() || null;
+      const result = await saveEntry(trimmedText, linkedGoal?.id ?? null, aiRequested, null, null, trimmedTitle);
 
       if (result.status === 'saved') {
         skipContextPersistRef.current = activeContextKey;
@@ -295,6 +304,7 @@ export function EchoScreen() {
         clearSubmissionNotice();
         clearDraft(activeContextKey);
         setText('');
+        setTitleText('');
         setLinkedGoal(null);
         setAiInsightOn(false);
       } else if (result.status === 'saved_without_summary' || result.status === 'rate_limited') {
@@ -303,6 +313,7 @@ export function EchoScreen() {
         lastPersistedDraftRef.current = { contextKey: activeContextKey, text: '' };
         clearDraft(activeContextKey);
         setText('');
+        setTitleText('');
         setLinkedGoal(null);
         setAiInsightOn(false);
         setSubmissionNotice(result.status);
@@ -337,6 +348,13 @@ export function EchoScreen() {
           }`}
         >
           <SectionLabel>Reflection</SectionLabel>
+          <TextInput
+            className="mb-2.5 rounded-xl border border-[#D8D2C8] bg-white px-3.5 py-3 font-sans text-base text-[#1C1C1E]"
+            placeholder="Title (optional)"
+            placeholderTextColor="#6B7280"
+            value={titleText}
+            onChangeText={handleTitleChange}
+          />
           <TextInput
             className={`min-h-[100px] rounded-xl border bg-white px-3.5 py-3 font-sans text-base text-[#1C1C1E] ${
               isComposerFocused ? 'border-[#3D5247]' : 'border-[#D8D2C8]'

@@ -14,6 +14,7 @@ type DbEchoEntry = {
   id: string;
   user_id: string;
   goal_id: string | null;
+  title: string | null;
   content: string;
   media_url: string | null;
   ai_insight_requested: boolean;
@@ -35,6 +36,7 @@ function mapEntry(row: DbEchoEntry): EchoEntry {
     userId: row.user_id,
     goalId: row.goal_id,
     goalTitle: row.goals?.title ?? undefined,
+    title: row.title ?? undefined,
     content: row.content,
     mediaUrl: row.media_url ?? undefined,
     aiInsightRequested: row.ai_insight_requested,
@@ -174,6 +176,7 @@ export async function createEntry(params: {
   aiInsightRequested: boolean;
   brt: EchoEntry['brt'] | null;
   emotion: EchoEntry['emotion'] | null;
+  title: string | null;
 }): Promise<CreateEntryResult> {
   const embeddingText = buildEchoEmbeddingText(params.content);
 
@@ -189,6 +192,7 @@ export async function createEntry(params: {
         ai_insight_requested: params.aiInsightRequested,
         brt: params.brt,
         emotion: params.emotion,
+        title: params.title,
         embedding_text: embeddingText,
       })
       .select('*, goals(id, title)')
@@ -348,6 +352,7 @@ export async function createEntry(params: {
       ai_response: reflectPayload.reflection,
       emotion: reflectPayload.emotion,
       brt: reflectPayload.brt,
+      brt_ai: reflectPayload.brt,
       confidence: reflectPayload.confidence,
       model_version: AI_CONFIG.models.default,
       processed_at: processedAt,

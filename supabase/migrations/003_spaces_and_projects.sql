@@ -1,7 +1,7 @@
 -- ============================================================================
 -- 003_spaces_and_projects.sql
 -- Narrative baseline migration 3 of 7, replacing original migrations 001-026.
--- DRAFT — not yet applied.
+-- Applied 2026-06-24 as part of migration squash; reconciled against live schema_migrations.
 --
 -- Scope: spaces (owner_id), space_members, on_profile_created_create_space
 -- trigger, projects, and the space_id FKs on goals/projects.
