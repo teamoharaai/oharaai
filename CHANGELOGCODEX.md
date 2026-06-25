@@ -2,6 +2,166 @@
 
 ## [Unreleased]
 
+---
+
+## Cross-Account Data Leak — Fix (2026-06-25)
+
+### Fixed
+
+**Root cause fixed: stale Zustand stores survive logout and block fresh fetch for new users.**
+
+#### Changes
+
+**`store/clearAllStores.ts`** — new file
+
+Central reset function. Resets all five stores to their initial data state in a single synchronous call. For `useEchoDraftStore` (the only persisted store), also calls `useEchoDraftStore.persist.clearStorage()` to remove the `'ohara-echo-drafts'` key from `localStorage` / `AsyncStorage` so the next user never hydrates a previous user's draft text. Actions/methods on each store are untouched — Zustand's `setState` does a shallow merge.
+
+**`components/layout/Sidebar.tsx`** — `handleSignOut`
+
+Added `clearAllStores()` call **before** `supabase.auth.signOut()` so there is no window where the signOut round-trip is in flight while stale data is still in memory. Both the Sidebar (primary logout path) and the goals screen fallback were fixed.
+
+**`app/goals/index.tsx`** — `handleLogout`
+
+Same fix: `clearAllStores()` before `supabase.auth.signOut()`. This was a second logout handler that had the same defect.
+
+**`features/goals/hooks/useGoals.ts`** — removed `goals.length === 0` guard
+
+Removed the `if (goals.length === 0 && !isLoading)` fetch guard. The hook now fetches unconditionally on mount, matching the existing `useEntries` (Echo) pattern. This is belt-and-suspenders: even if stores were somehow not cleared before logout, a fresh mount would still trigger a correct RLS-scoped fetch for the new user.
+
+#### Files touched
+- `store/clearAllStores.ts` (new)
+- `components/layout/Sidebar.tsx`
+- `app/goals/index.tsx`
+- `features/goals/hooks/useGoals.ts`
+
+#### Verification
+- `npx tsc --noEmit`: clean.
+
+#### Manual test required
+Log in as Account A; note a goal title. Log out. Sign up / log in as Account B. Confirm:
+1. Account B's dashboard never shows Account A's goal title, even momentarily.
+2. Echo composer has no leftover draft text from Account A.
+3. Account B's own goals (if any) load correctly.
+
+---
+
+## Cross-Account Data Leak — Audit (2026-06-25)
+
+### Finding: Client-side stale Zustand store — no fix applied yet
+
+**Reported symptom:** A brand-new account briefly rendered a previous account's goals on web after the previous session was logged out first.
+
+---
+
+#### STEP 0 — Client State Audit
+
+**1. Logout handler** (`components/layout/Sidebar.tsx:23–26`)
+
+`handleSignOut()` does exactly two things:
+
+```ts
+await supabase.auth.signOut();
+router.replace('/(auth)/login' as ...);
+```
+
+It does **not** reset any Zustand store. All in-memory store state from the previous user survives across the sign-out navigation.
+
+---
+
+**2. Goals Zustand store** (`features/goals/store.ts`)
+
+- Uses `create<GoalStore>()` — **no `persist` middleware**. No storage adapter, no key name.
+- The store is a module-level singleton. On web (SPA), the JS module is not unloaded between logout and a new login. Goals populated for User A remain in memory indefinitely.
+- Not persisted to `localStorage` or `AsyncStorage` — this is a **pure in-memory stale-state** issue, not a hydration-from-storage issue.
+
+---
+
+**3. Goals fetch on dashboard mount** (`features/goals/hooks/useGoals.ts:10–11`)
+
+```ts
+useEffect(() => {
+  if (goals.length === 0 && !isLoading) {
+    // fetch and populate store
+  }
+}, []);
+```
+
+This is the proximate cause of the bug. The effect has empty deps (`[]`) — it fires once on mount. The guard `goals.length === 0` means: **if the store is already populated, skip the fetch entirely.**
+
+Exact bug path:
+1. User A logs in → dashboard mounts → `goals.length === 0` → fetch fires → store populated with User A's goals.
+2. User A logs out → navigated to `/login` — **store is never cleared**.
+3. User B logs in → dashboard mounts → `useGoals()` runs → `goals.length > 0` (User A's data) → **guard short-circuits, no fetch fires** → dashboard renders User A's goals for User B. No error, no loading state, data just silently stays wrong.
+
+---
+
+**4. Other Zustand stores — same pattern**
+
+| Store file | Uses `persist`? | Fetch guard pattern | Cross-login risk |
+|---|---|---|---|
+| `features/goals/store.ts` | No | `goals.length === 0` — **skips fetch if stale** | **Critical** — stale data rendered indefinitely |
+| `features/profile/store.ts` | No | `insightFetched` boolean — **skips fetch once true** | **High** — User B's intelligence insight silently suppressed; User A's `cachedInsight` may display instead |
+| `features/echo/store.ts` | No | No length guard — unconditional fetch on mount | Low — self-corrects quickly; brief stale flash only |
+| `features/projects/store.ts` | No | `isLoading` guard only — unconditional re-fetch | Low — self-corrects quickly; brief stale flash only |
+| `features/auth/store.ts` | No | Managed by Supabase session callbacks | Minimal risk — auth state is tied to Supabase session |
+
+---
+
+**5. Echo draft store** (`features/echo/draft-store.ts`)
+
+- Uses **`persist` middleware** with key `'ohara-echo-drafts'`.
+- On web: `localStorage` via custom `webStorage` adapter. On native: `AsyncStorage`.
+- The storage key is **not scoped per user** — the same global key is used regardless of which account is logged in.
+- **Result:** User B logs in and immediately inherits User A's saved Echo drafts from `localStorage` (web) or `AsyncStorage` (native). These persist across logouts until the draft is cleared by usage or explicit key removal.
+- This is the only store using `persist`. The goals bug is not a `localStorage` hydration issue — it is purely in-memory stale state.
+
+---
+
+**Cross-platform scope**
+
+Goals store is shared Expo code. On **native**, a cold app restart kills the JS process, resetting all module-level Zustand state — the stale-goals bug is unlikely to manifest there unless the app was backgrounded without being killed. On **web SPA**, the module persists across navigations, making the bug reliably reproducible.
+
+The Echo draft `persist` bug (non-scoped key) affects **both platforms** equally: it writes to `AsyncStorage` on native and `localStorage` on web with the same global key.
+
+---
+
+#### STEP 1 — Server-Side Audit
+
+**RLS on `goals`** (`supabase/migrations/001_core_schema_and_rls.sql:120–129`)
+
+```sql
+alter table public.goals enable row level security;
+
+create policy "Users can select own goals" on public.goals
+  for select using (user_id = auth.uid());
+```
+
+- RLS is explicitly enabled (`alter table ... enable row level security` at line 120 — not just a policy, the enabled flag is set).
+- Select policy condition: `user_id = auth.uid()` — correct, scoped to the authenticated caller.
+- `rls_auto_enable()` event trigger (lines 263–298 of the same migration) fires on every `CREATE TABLE` in the public schema, auto-enabling RLS as an additional safety net.
+- CONTEXT.md corroborates: "RLS: verified across all tables."
+- A fresh Supabase query to `goals` for User B will only return User B's rows. **The server cannot leak goals across accounts.**
+
+---
+
+#### STEP 2 — Conclusion
+
+**This is a client-side issue only. Server-side RLS is not at fault.**
+
+The bug is a **stale in-memory Zustand store + guard-prevents-refetch** combination:
+
+1. **Root cause (goals, critical):** `useGoalStore` is not cleared on logout. `useGoals()` then skips refetch because `goals.length > 0`. User B sees User A's goals until the app is hard-reloaded.
+
+2. **Root cause (intelligence, high):** `useProfileStore.insightFetched` is not cleared on logout. The dashboard's intelligence `useEffect` exits early (`if (insightFetched) return`), permanently suppressing User B's insight fetch for the session and potentially surfacing User A's `cachedInsight`.
+
+3. **Additional risk (Echo drafts, medium):** `useEchoDraftStore` persists drafts to `localStorage`/`AsyncStorage` under global key `'ohara-echo-drafts'` — not user-scoped. User B inherits User A's draft text on login.
+
+4. **Minor risk (Echo entries, projects):** Both stores lack the fatal guard but also lack a logout reset. There is a brief window on login where stale User A data may flash before the mount-triggered refetch resolves. Self-correcting but visible.
+
+**No fix has been applied in this session.** Fixes should address: (a) resetting all stores on logout (goals, echo, profile, projects), and (b) scoping the Echo draft store key per user ID.
+
+---
+
 ### Added (2026-06-22 — Block 1: API-layer goal creation + mode fix)
 - Created `lib/api/auth.ts` (`getAuthContext`) and `lib/api/contracts.ts` (`ApiResponse<T>`
   envelope) as the first routes on the new shared API auth/contract pattern.
@@ -319,6 +479,178 @@ Excluded: H1–H6 items pending human review (store pattern decision, echo promp
 ### Changed (2026-04-06)
 - Extended `types/activity.ts` `ActivityItem` discriminated union with three new variants (on `kind` field). All new variants share the required `id` and `timestamp` base fields per union contract. No existing variant shapes modified.
 - Applied narrowing fix in `features/goals/components/ActivityFeed.tsx`: exhaustive switch on `kind` is now type-safe against the full `ActivityItem` union; previously unhandled variants no longer produce implicit `any` or dead-branch type errors. TSC clean after change.
+
+## Block 4 — Profile Creation Fix + Timezone Capture (2026-06-25)
+
+### Added
+- Created `supabase/migrations/008_profiles_timezone_and_user_trigger.sql`:
+  1. `ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS timezone text NOT NULL DEFAULT 'UTC'` — adds IANA timezone column to profiles, backfills existing rows with 'UTC'.
+  2. `CREATE OR REPLACE FUNCTION public.handle_new_user()` — SECURITY DEFINER, search_path locked to public. Inserts a profiles row (`id`, `display_name`, `timezone`) on `auth.users` INSERT, reading both fields from `NEW.raw_user_meta_data` with COALESCE fallbacks. EXCEPTION block logs a WARNING and returns NEW on failure so user signup is never blocked.
+  3. `CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.handle_new_user()` — wires the trigger.
+- Migration applied live (`supabase db push` confirmed); both trigger and column verified live via `pg_trigger` + `information_schema.columns` queries.
+
+### Changed
+- `app/(auth)/signup.tsx`: added `timezone: Intl.DateTimeFormat().resolvedOptions().timeZone` to `options.data` in the `supabase.auth.signUp()` call. The trigger reads this from `raw_user_meta_data` at signup time. No settings UI added — signup-only capture.
+
+### Confirmed unchanged
+- `on_profile_created_create_space` trigger on `public.profiles` was not touched. It will now fire correctly as a side effect each time `handle_new_user()` successfully inserts a profile row.
+
+### Verification
+- `npx tsc --noEmit`: clean.
+- Live DB: trigger `on_auth_user_created` confirmed in `pg_trigger` on `auth.users` pointing to `handle_new_user`.
+- Live DB: `profiles.timezone` confirmed as `text NOT NULL DEFAULT 'UTC'`.
+
+### Manual test required
+- Sign up a new test account; confirm a `public.profiles` row exists for the new user with a non-empty `timezone` value and that a personal Space row appears in `public.spaces`.
+
+---
+
+## Block 4 — Pre-Implementation Audit (2026-06-25)
+
+### Audit method
+Direct live schema introspection via `supabase db query --linked` using a scoped personal access token. All findings pulled from `information_schema.columns`, `pg_constraint`, `pg_trigger`, `pg_proc`, and `information_schema.routines` against project `rrgiqemscnyaqkculnmb`. Migration list confirmed all 7 migrations applied; no discrepancy between migration files and live DB.
+
+---
+
+### 1. `measurables` — Live column list
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| id | uuid | NO | gen_random_uuid() |
+| goal_id | uuid | NO | — |
+| title | text | NO | — |
+| type | text | NO | — |
+| target_value | numeric | **YES** | — |
+| target_unit | text | **YES** | — |
+| frequency | text | **YES** | — |
+| current_value | numeric | NO | 0 |
+| is_ai_suggested | boolean | NO | false |
+| sort_order | integer | NO | 0 |
+| created_at | timestamptz | NO | now() |
+| updated_at | timestamptz | NO | now() |
+
+**Check constraints:**
+- `measurables_type_check`: `type IN ('counter', 'habit', 'checklist')`
+- `measurables_frequency_check`: `frequency IN ('daily', 'weekly', 'monthly', 'once')`
+
+**Findings vs. last-confirmed spec (April):**
+- All 7 expected columns present and accounted for: `type`, `target_value`, `target_unit`, `frequency`, `current_value`, `is_ai_suggested`, `sort_order`. **No schema drift.**
+- `frequency` exists, nullable — checklist-type measurables can legally omit it.
+- `target_value` and `target_unit` both nullable — checklist items (no numeric target) are supported as-is.
+- **No `due_date`, `next_due_at`, or anchor-day column present.** These must be added in the next migration if scheduling work proceeds.
+
+---
+
+### 2. `measurable_logs` — Live column list
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| id | uuid | NO | gen_random_uuid() |
+| measurable_id | uuid | NO | — |
+| value | numeric | NO | 1 |
+| note | text | **YES** | — |
+| logged_at | timestamptz | NO | now() |
+
+**Findings:**
+- `note` exists and is nullable ✓ — optional log commentary supported.
+- Creation timestamp is `logged_at`, not `created_at`. Any code or query assuming `created_at` on this table will break.
+- No `user_id` column — ownership is inferred via `measurable_id → measurables.goal_id → goals.user_id`.
+
+---
+
+### 3. `profiles` — Live column list
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| id | uuid | NO | — |
+| display_name | text | NO | '' |
+| character_profile | jsonb | NO | {} |
+| interests | jsonb | NO | [] |
+| context | jsonb | NO | {} |
+| onboarding_complete | boolean | NO | false |
+| created_at | timestamptz | NO | now() |
+| updated_at | timestamptz | NO | now() |
+| last_summarized_at | timestamptz | YES | — |
+
+**Findings:**
+- Table exists live ✓.
+- **No `timezone` column present.** Must be added via migration before any frequency/anchor-day scheduling feature can store or use per-user timezone.
+- `last_summarized_at` nullable ✓ — used by Echo reconcile route, works as-is.
+
+---
+
+### 4. `handle_new_user()` — Trigger chain (confirmed still broken)
+
+**Functions in public schema:** `consume_daily_ai_quota`, `handle_new_user_space`, `handle_updated_at`, `match_echo_entries`, `match_goals`, `match_vault_items`, `rls_auto_enable`.
+
+**No `handle_new_user` function exists.** There is no trigger on `auth.users` that fires on INSERT — every trigger on that table is a Postgres referential integrity trigger (`RI_FKey_*`).
+
+**Actual trigger chain found:**
+1. `on_profile_created_create_space` → fires on `public.profiles` INSERT → calls `handle_new_user_space` → provisions personal Space + space_members row.
+
+**Consequence:** New user registration creates a row in `auth.users` but nothing automatically creates a `public.profiles` row. Because no profile row is inserted, the space-provisioning trigger never fires either. New pilots arrive with no profile and no personal Space. **This is confirmed still broken from the prior audit — no fix has landed.**
+
+---
+
+### 5. `action_logs` (the Next Action table) — Live column list
+
+There is **no `actions` table** in the live schema. The correct table name is `action_logs`.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| id | uuid | NO | gen_random_uuid() |
+| goal_id | uuid | NO | — |
+| user_id | uuid | NO | — |
+| action_text | text | NO | — |
+| status | text | YES | 'pending' |
+| due_date | date | YES | — |
+| completed_at | timestamptz | YES | — |
+| created_at | timestamptz | YES | now() |
+
+This is a real base table — not a view or alias. The API routes, hooks, and app code all reference it as `action_logs` correctly.
+
+**Bonus finding — ghost tables:** Two tables exist in the live DB that are undocumented in CONTEXT.md/CLAUDE.md:
+- `milestones` — 7 columns (`id`, `goal_id`, `user_id`, `title`, `due_date`, `complete`, `created_at`). FK to `goals(id)` and `auth.users(id)` ON DELETE CASCADE. This is a legacy schema artifact. No live app code appears to write to it; `measurables` is the canonical milestone store. The CLAUDE.md note "Milestones (UI rename of measurables, no schema change)" is accurate for the app layer — the ghost table is inert but should be dropped in a future cleanup migration to avoid confusion.
+- `echo_sessions` — exists but not documented in CONTEXT.md; not currently audited in depth (out of scope for this block).
+
+---
+
+### 6. Dashboard — Active Goal + Next Action rendering
+
+**File:** `app/(app)/dashboard.tsx`
+
+**Active Goal (Zone 1):**
+- Fed by `useGoals()` hook (`features/goals/hooks/useGoals.ts`).
+- Hook calls `fetchGoals(user.id)` from `features/goals/services/goal-service.ts`, which reads directly from Supabase via the anon client + RLS (not via an API route).
+- `activeGoal` selected client-side via `useMemo`: most recently updated goal where `status === 'active'`.
+- Rendered as `<ActiveGoalCard goal={activeGoal} />` (component defined inline in dashboard.tsx, ~lines 60–200).
+
+**Next Action:**
+- Fed by `useLatestAction(goalId)` hook (`features/actions/hooks/useLatestAction.ts`).
+- Hook fetches `GET /api/actions?goal_id=...&status=pending&limit=1` with `Authorization: Bearer <token>`.
+- API route reads from `action_logs` table via authed Supabase client.
+- Action rendered inside `<ActiveGoalCard>` via the hook's returned `action` state.
+
+**No direct Supabase reads on the `action_logs` table from the dashboard** — all Next Action data flows through the `/api/actions` route boundary ✓.
+
+---
+
+### Summary of flags for implementation planning
+
+| # | Item | Status |
+|---|------|--------|
+| 1 | `measurables` schema matches April spec | ✓ No drift |
+| 2 | `frequency` exists, nullable, enum: daily/weekly/monthly/once | ✓ |
+| 3 | `target_value` + `target_unit` nullable (checklist support) | ✓ |
+| 4 | No anchor-day / `due_date` / `next_due_at` on `measurables` | ⚠️ Must add in migration |
+| 5 | `measurable_logs.note` nullable, timestamp = `logged_at` | ✓ |
+| 6 | `profiles.timezone` column absent | ⚠️ Must add in migration |
+| 7 | No `handle_new_user` trigger on `auth.users` | 🔴 Still broken |
+| 8 | `action_logs` is the correct table name (no `actions` table) | ✓ Correctly named in code |
+| 9 | Ghost `milestones` table is inert but present | ⚠️ Schedule for drop |
+| 10 | Dashboard reads goals via direct Supabase client; Next Action via API route | ✓ Documented |
+
+---
 
 ## Block 0.1 — Duplicate auth callback fix (2026-06-19)
 

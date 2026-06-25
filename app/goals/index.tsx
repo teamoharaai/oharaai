@@ -1,9 +1,11 @@
 import { View, Text, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import supabase from '@/lib/db/client';
+import { clearAllStores } from '@/store/clearAllStores';
 
 export default function GoalsScreen() {
   async function handleLogout() {
+    clearAllStores();
     await supabase.auth.signOut();
     router.replace('/(auth)/login');
   }

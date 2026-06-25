@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { router, usePathname } from 'expo-router';
 import supabase from '@/lib/db/client';
 import { FEATURES } from '@/constants/features';
+import { clearAllStores } from '@/store/clearAllStores';
 
 type NavItem = {
   label: string;
@@ -21,6 +22,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   async function handleSignOut() {
+    clearAllStores();
     await supabase.auth.signOut();
     router.replace('/(auth)/login' as Parameters<typeof router.replace>[0]);
   }

@@ -7,20 +7,18 @@ export function useGoals() {
   const { goals, isLoading, setGoals, setIsLoading } = useGoalStore();
 
   useEffect(() => {
-    if (goals.length === 0 && !isLoading) {
-      async function load() {
-        setIsLoading(true);
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          setIsLoading(false);
-          return;
-        }
-        const data = await fetchGoals(user.id);
-        setGoals(data);
+    async function load() {
+      setIsLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         setIsLoading(false);
+        return;
       }
-      load();
+      const data = await fetchGoals(user.id);
+      setGoals(data);
+      setIsLoading(false);
     }
+    load();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
