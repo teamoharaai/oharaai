@@ -100,15 +100,20 @@ export async function POST(request: Request): Promise<Response> {
 
     const authedDb = createAuthedClient(auth.accessToken);
 
-    // Sole predicate: summarized = false AND ai_insight_requested = true.
-    // We do NOT filter by created_at > last_summarized_at — that would silently
-    // skip failed entries that predate the last successful summarization run.
+    // ai_status is the single gate. Two arms:
+    //   1. not_requested/pending — first attempt, no retry cap.
+    //   2. failed — retry eligible: fewer than 3 prior attempts AND cooldown
+    //      of 10 minutes since last attempt (or never attempted).
+    // summarized/ai_insight_requested are preserved elsewhere but no longer
+    // used as filters here.
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
     const { data: entries, error: fetchError } = await authedDb
       .from('echo_entries')
-      .select('id, content')
+      .select('id, content, retry_count')
       .eq('user_id', auth.userId)
-      .eq('summarized', false)
-      .eq('ai_insight_requested', true);
+      .or(
+        `ai_status.in.(not_requested,pending),and(ai_status.eq.failed,retry_count.lt.3,or(last_attempted_at.is.null,last_attempted_at.lt.${tenMinutesAgo}))`,
+      );
 
     if (fetchError) throw fetchError;
 
@@ -119,7 +124,7 @@ export async function POST(request: Request): Promise<Response> {
     let reconciled = 0;
     let failed = 0;
 
-    for (const entry of entries as Array<{ id: string; content: string }>) {
+    for (const entry of entries as Array<{ id: string; content: string; retry_count: number }>) {
       try {
         const llmResult = await callEchoReflection({
           userId: auth.userId,
@@ -131,7 +136,14 @@ export async function POST(request: Request): Promise<Response> {
         const parsed = parseReflection(llmResult.text);
 
         if (!parsed.summarized) {
-          // LLM returned but the response didn't parse into a valid reflection
+          void authedDb
+            .from('echo_entries')
+            .update({
+              ai_status: 'failed',
+              retry_count: entry.retry_count + 1,
+              last_attempted_at: new Date().toISOString(),
+            })
+            .eq('id', entry.id);
           failed++;
           continue;
         }
@@ -147,6 +159,7 @@ export async function POST(request: Request): Promise<Response> {
             model_version: AI_CONFIG.models.default,
             processed_at: new Date().toISOString(),
             summarized: true,
+            ai_status: 'completed',
           })
           .eq('id', entry.id);
 
@@ -155,6 +168,14 @@ export async function POST(request: Request): Promise<Response> {
             `[echo/reconcile] DB update failed for entry ${entry.id}:`,
             updateError.message,
           );
+          void authedDb
+            .from('echo_entries')
+            .update({
+              ai_status: 'failed',
+              retry_count: entry.retry_count + 1,
+              last_attempted_at: new Date().toISOString(),
+            })
+            .eq('id', entry.id);
           failed++;
         } else {
           reconciled++;
@@ -164,6 +185,14 @@ export async function POST(request: Request): Promise<Response> {
           `[echo/reconcile] Summarization failed for entry ${entry.id}:`,
           err instanceof Error ? err.message : String(err),
         );
+        void authedDb
+          .from('echo_entries')
+          .update({
+            ai_status: 'failed',
+            retry_count: entry.retry_count + 1,
+            last_attempted_at: new Date().toISOString(),
+          })
+          .eq('id', entry.id);
         failed++;
       }
     }

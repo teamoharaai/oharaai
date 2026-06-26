@@ -337,7 +337,10 @@ export async function createEntry(params: {
       session?.access_token ?? '',
     );
   } catch (error) {
-    void supabase.from('echo_entries').update({ ai_status: 'failed' }).eq('id', insertedEntry.id);
+    void supabase
+      .from('echo_entries')
+      .update({ ai_status: 'failed', retry_count: 1, last_attempted_at: new Date().toISOString() })
+      .eq('id', insertedEntry.id);
     if (error instanceof Error && error.name === 'RateLimitedEchoReflectionError') {
       return { status: 'rate_limited', entry: insertedEntry };
     }
@@ -346,7 +349,10 @@ export async function createEntry(params: {
   }
 
   if (!reflectPayload || !reflectPayload.summarized || !reflectPayload.reflection) {
-    void supabase.from('echo_entries').update({ ai_status: 'failed' }).eq('id', insertedEntry.id);
+    void supabase
+      .from('echo_entries')
+      .update({ ai_status: 'failed', retry_count: 1, last_attempted_at: new Date().toISOString() })
+      .eq('id', insertedEntry.id);
     return { status: 'saved_without_summary', entry: insertedEntry };
   }
 
@@ -369,7 +375,10 @@ export async function createEntry(params: {
     .single();
 
   if (updateError || !updatedData) {
-    void supabase.from('echo_entries').update({ ai_status: 'failed' }).eq('id', insertedEntry.id);
+    void supabase
+      .from('echo_entries')
+      .update({ ai_status: 'failed', retry_count: 1, last_attempted_at: new Date().toISOString() })
+      .eq('id', insertedEntry.id);
     return { status: 'saved_without_summary', entry: insertedEntry };
   }
 
