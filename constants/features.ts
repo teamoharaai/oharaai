@@ -2,7 +2,7 @@ export { GOAL_CATEGORIES } from '@/lib/goals/schema';
 
 export const FEATURES = {
   ECHO_ENABLED: true,
-  INTELLIGENCE_ENABLED: false,
+  INTELLIGENCE_ENABLED: true,
   DISCOVERY_ENABLED: false,
   CONSTELLATION_ENABLED: false,
   SOCIAL_ENABLED: false,

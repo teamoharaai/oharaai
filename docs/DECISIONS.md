@@ -233,7 +233,7 @@ mode column entirely if no other code path ever reads/writes it) via a new migra
 the iOS schema gets locked in. Don't carry a dead enum value into the SwiftUI rewrite.
 
 
-## 2026-05-25
+## 2026-06-25
 Entry — Daily-only due-today for v1:
 
 Block 4.1 ("measurable due today") scoped to frequency = 'daily' only. Weekly/monthly excluded until an anchor-day column and logic are designed. No due_date/next_due_at column added at this time — avoids guessing at undefined behavior. Revisit when weekly/monthly support is prioritized.
@@ -245,3 +245,6 @@ Existing measurables pattern (type + nullable target_value/target_unit + measura
 Entry — Scope amendment, profile-creation fix pulled into Block 4:
 
 The dedicated handle_new_user() fix session is still owed for a full audit of the broader signup flow, but the minimal fix (profile row + timezone capture) is pulled into Block 4 because due-today logic has a hard dependency on it. Scope limited to: trigger creation + timezone column. No other auth/signup behavior touched.
+
+## 2026-06-26
+Side effect of enabling INTELLIGENCE_ENABLED: also activates the dashboard Intelligence Zone (/api/intelligence), a separate AI-calling feature gated by the same flag. Both Echo AI insight and Intelligence Zone are now live with no paywall. Accepted as expected — re-gating both behind a real entitlement system is deferred to the future business-model session.

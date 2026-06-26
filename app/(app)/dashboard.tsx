@@ -517,9 +517,26 @@ export default function DashboardScreen() {
   useEffect(() => {
     if (reconcileInFlight.current) return;
     reconcileInFlight.current = true;
-    fetch('/api/echo/reconcile', { method: 'POST' })
-      .catch((err: unknown) => console.warn('Echo reconciliation failed silently:', err))
-      .finally(() => { reconcileInFlight.current = false; });
+
+    async function reconcile() {
+      try {
+        const token = await getAccessToken(); // throws if session not ready → skips fetch
+        const res = await fetch('/api/echo/reconcile', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          console.warn(`Echo reconcile: server responded with status ${res.status}`);
+        }
+      } catch (err: unknown) {
+        console.warn('Echo reconcile: fetch error:', err);
+      } finally {
+        reconcileInFlight.current = false;
+      }
+    }
+
+    void reconcile();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const {
     cachedInsight,
