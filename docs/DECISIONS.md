@@ -246,5 +246,9 @@ Entry — Scope amendment, profile-creation fix pulled into Block 4:
 
 The dedicated handle_new_user() fix session is still owed for a full audit of the broader signup flow, but the minimal fix (profile row + timezone capture) is pulled into Block 4 because due-today logic has a hard dependency on it. Scope limited to: trigger creation + timezone column. No other auth/signup behavior touched.
 
+## 2026-06-26 — ai_auto echo_goal_link Activity suppression: DROPPED
+
+Work to suppress unconfirmed `ai_auto` echo_goal_links from the Activity feed is dropped; the ai_auto keyword-heuristic linking mechanism is superseded by a completion-triggered reflection flow (checkmark on a measurable/task prompts an optional reflection), and UI/UX for that flow is undecided — this is a separate future session.
+
 ## 2026-06-26
 Side effect of enabling INTELLIGENCE_ENABLED: also activates the dashboard Intelligence Zone (/api/intelligence), a separate AI-calling feature gated by the same flag. Both Echo AI insight and Intelligence Zone are now live with no paywall. Accepted as expected — re-gating both behind a real entitlement system is deferred to the future business-model session.
