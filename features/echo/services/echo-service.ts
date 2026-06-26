@@ -194,6 +194,7 @@ export async function createEntry(params: {
         emotion: params.emotion,
         title: params.title,
         embedding_text: embeddingText,
+        ai_status: params.aiInsightRequested ? 'pending' : 'not_requested',
       })
       .select('*, goals(id, title)')
       .single();
@@ -334,6 +335,7 @@ export async function createEntry(params: {
       session?.access_token ?? '',
     );
   } catch (error) {
+    void supabase.from('echo_entries').update({ ai_status: 'failed' }).eq('id', insertedEntry.id);
     if (error instanceof Error && error.name === 'RateLimitedEchoReflectionError') {
       return { status: 'rate_limited', entry: insertedEntry };
     }
@@ -342,6 +344,7 @@ export async function createEntry(params: {
   }
 
   if (!reflectPayload || !reflectPayload.summarized || !reflectPayload.reflection) {
+    void supabase.from('echo_entries').update({ ai_status: 'failed' }).eq('id', insertedEntry.id);
     return { status: 'saved_without_summary', entry: insertedEntry };
   }
 
@@ -357,12 +360,14 @@ export async function createEntry(params: {
       model_version: AI_CONFIG.models.default,
       processed_at: processedAt,
       summarized: true,
+      ai_status: 'completed',
     })
     .eq('id', insertedEntry.id)
     .select('*, goals(id, title)')
     .single();
 
   if (updateError || !updatedData) {
+    void supabase.from('echo_entries').update({ ai_status: 'failed' }).eq('id', insertedEntry.id);
     return { status: 'saved_without_summary', entry: insertedEntry };
   }
 

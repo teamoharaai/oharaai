@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Added (2026-06-26 — Echo ai_status column)
+- Added `ai_status text NOT NULL DEFAULT 'not_requested' CHECK (ai_status IN ('not_requested', 'pending', 'completed', 'failed'))` to `echo_entries` via `supabase/migrations/009_echo_ai_status.sql`. Backfills `completed` where `summarized = true`; all other pre-existing rows stay `'not_requested'` (pre-squash rows had no way to distinguish failed from not-requested).
+- Wired writes in `features/echo/services/echo-service.ts`:
+  - INSERT payload: `ai_status: aiInsightRequested ? 'pending' : 'not_requested'` — covers both branches atomically at insert time, no separate round-trip.
+  - Catch block (requestEchoReflection throws — rate-limit or other): fire-and-forget UPDATE `'failed'` before returning `rate_limited` or `saved_without_summary`.
+  - `!reflectPayload.summarized` guard (covers reflect+api.ts non-rate-limit failure path, which returns `ok:true, summarized:false`): fire-and-forget UPDATE `'failed'`.
+  - Success UPDATE: `ai_status: 'completed'` added to the existing `summarized: true` UPDATE — no extra round-trip.
+  - `updateError` guard (AI call succeeded but DB UPDATE failed): fire-and-forget UPDATE `'failed'`.
+- `summarized` column untouched — still written and read by reconcile. `ai_status` is additive.
+- reflect+api.ts not modified — it has no entry ID in its request contract and cannot write ai_status directly. All failure paths propagate back to echo-service.ts where the entry ID is available.
+- Files touched: `supabase/migrations/009_echo_ai_status.sql` (new), `features/echo/services/echo-service.ts`, `CHANGELOGCODEX.md`.
+- Verification: `npx tsc --noEmit` clean.
+
 ### Fixed (2026-06-26 — Echo reconcile auth fix)
 - Fixed silent 401 swallow on the dashboard's mount-time Echo reconcile call in `app/(app)/dashboard.tsx`. The bare `fetch('/api/echo/reconcile', { method: 'POST' })` sent no `Authorization` header, so `reconcile+api.ts:getAuthContext()` returned null and the route returned 401. Because `fetch()` resolves normally on HTTP errors, the `.catch()` never fired and the 401 was silently swallowed with zero log output.
 - Replaced the promise chain with an async function matching the established `DueTodayZone` / intelligence-fetch pattern: calls `getAccessToken()` (throws if session not ready → fetch is skipped), sends `Authorization: Bearer <token>`, and checks `res.ok` after await — logging a distinct `console.warn(`Echo reconcile: server responded with status ${res.status}`)` on non-ok responses. Network/auth errors are caught and logged via a separate `console.warn('Echo reconcile: fetch error:', err)`. The `reconcileInFlight` ref reset is preserved in `finally`.
