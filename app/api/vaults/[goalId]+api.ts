@@ -150,7 +150,7 @@ export async function POST(
   }
 
   let itemType: VaultItemType;
-  let title: string;
+  let title: string | null;
   let content: string | null;
   let metadata: VaultItem['metadata'];
 
@@ -159,7 +159,7 @@ export async function POST(
       throw new Error(`itemType must be one of: ${VAULT_ITEM_TYPES.join(', ')}`);
     }
     itemType = body.itemType as VaultItemType;
-    title = sanitizeString(body.title, MAX_TITLE_LENGTH);
+    title = sanitizeOptionalString(body.title, MAX_TITLE_LENGTH);
     content = sanitizeOptionalString(body.content, MAX_CONTENT_LENGTH);
     metadata = sanitizeMetadata(body.metadata);
   } catch (error) {

@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+### Fixed (2026-06-26 — useVault API-layer bypass)
+- Rewired `features/goals/hooks/useVault.ts` to call API routes instead of `lib/db/vaults.ts` service functions directly from the client.
+- **Auth pattern source:** Copied from `features/goals/hooks/useActivity.ts` — `supabase.auth.getSession()` called per operation, guarded on `session?.access_token`, `Authorization: Bearer ${session.access_token}` header on every fetch.
+- **Operations rewired (5):**
+  - `refresh()` → `GET /api/vaults/[goalId]` (response shape: `{ vault, items }`)
+  - `addNote()` → `POST /api/vaults/[goalId]` (response shape: `{ item }`)
+  - `addLink()` → `POST /api/vaults/[goalId]` (response shape: `{ item }`)
+  - `updateItem()` → `PUT /api/vaults/items/[itemId]` (response shape: `{ item }`)
+  - `removeItem()` → `DELETE /api/vaults/items/[itemId]` (response shape: `{ success: true }`)
+- **Removed:** `lib/db/vaults.ts` imports (`getVaultWithItems`, `createVaultItem`, `updateVaultItem`, `deleteVaultItem`), `userIdRef` (userId no longer used client-side), direct `supabase.auth.getSession()` session caching pattern (only supabase import kept for per-call `getSession()`).
+- **Title validation fix:** `POST /api/vaults/[goalId]+api.ts` — changed `title` from `sanitizeString` (required, throws on empty) to `sanitizeOptionalString` (accepts null/empty, returns null). Final rule: **title is optional for all vault item types** — no item type (`note`, `link`, `document`, `insight`, `action_update`) requires a non-empty title at the schema level (`VaultItem.title: string | null`).
+- **Downstream title-rendering audit (VaultItemCard.tsx):** 5 access sites found, all already null-safe:
+  - `NoteCard` line 27: `deriveTitle()` — falls back to first 8 words of content, then `'Untitled'`
+  - `NoteCard` lines 40/52/58: `item.title ?? ''` — safe empty string for TextInput state
+  - `LinkCard` line 176: `item.title ?? domain ?? item.metadata?.url ?? 'Saved link'` — safe chain
+  - `ActionUpdateCard` line 295: `item.content ?? item.title ?? ''` — safe chain
+  - `FallbackCard` line 328: `item.title ?? item.content ?? 'Unknown item'` — safe chain
+  - `ActivityFeed.tsx` `vault_item_added` case: renders static string `"Added an item to Vault"` — does not access `item.title` at all.
+  - **Zero UI patches needed.**
+- **Ownership pre-check tightening confirmed:** `removeItem()` now routes through `DELETE /api/vaults/items/[itemId]`, which calls `getVaultItemByIdForUser` before deletion. The previous direct `deleteVaultItem` call bypassed this ownership check. Intentional tightening per "404 not 403" principle — non-owners now receive 404 instead of silently succeeding.
+- Files touched: `features/goals/hooks/useVault.ts`, `app/api/vaults/[goalId]+api.ts`, `CHANGELOGCODEX.md`.
+- Verification: `npx tsc --noEmit` clean.
+
 ### Fixed (2026-06-26 — BRT read fallback chain)
 - Applied `brt_user ?? brt_ai ?? brt` read-priority rule to all 5 consumer sites that access BRT values directly. This is forward-compatible scaffolding: produces identical results on all live rows today (brt_user always NULL; brt_ai equals brt when non-NULL) while correctly prioritising user overrides once brt_user write paths ship.
 - **Mapper sites (4):**
