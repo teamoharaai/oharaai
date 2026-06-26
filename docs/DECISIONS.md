@@ -203,63 +203,45 @@ the API layer is consistent.
    without it.
 
 
-### 2026-06-22 — Block 1: goals.mode persistence fix verified live
+ Verified — bug fixed and confirmed live
 
-**Decision:** Restore the `mode: 'commitment'` write dropped by the unreviewed 2026-04-07 H3 cleanup pass (CHANGELOGCODEX.md), and tighten `goals_mode_check` to `mode = 'commitment'` only via migration `026_goals_mode_drop_exploration.sql`, rather than dropping the column outright.
-**Reason:** The dropped write caused a NOT-NULL insert failure in production — every new goal creation was broken until restored. 'exploration' was confirmed dead (never written or read anywhere in the app), so the CHECK constraint was narrowed instead of leaving the column open to a value nothing uses.
-**Impact:**
-- `POST /api/goals` → 201, `goalId: 0ce941b6-4230-4aff-8b3f-690a3193dbe7`.
-- DB row confirms `mode: 'commitment'` persisted correctly, no NOT-NULL/CHECK violation.
-- Same code path serves the 3-arg production call from `create.tsx` (`createGoalWithMeasurables` → `mapAiGoalDataToDbInserts`), so that path is fixed too.
-- `npx tsc --noEmit` clean.
-- Cleaned up: killed the temporary Expo dev server started on `:8089`, removed scratch test scripts.
-- Note: port 3002 (already running) is an unrelated Next.js/Clerk project, not Ohara — don't target it for future Ohara API tests; use `expo start --web` on its own port.
-- Open question for CTO: whether `mode` stays a fixed `'commitment'` default or gets real Phase 2 wiring (tracked in OUTSTANDING.md).
+  - POST /api/goals → 201, goalId: 0ce941b6-4230-4aff-8b3f-690a3193dbe7
+  - DB row confirms mode: 'commitment' persisted correctly, no NOT-NULL/CHECK violation
+  - Same code path serves the 3-arg production call from create.tsx (createGoalWithMeasurables
+  → mapAiGoalDataToDbInserts), so that path is fixed too
+  - npx tsc --noEmit clean
+  - Cleaned up: killed the temporary Expo dev server I started on :8089, removed scratch test
+  scripts
 
-### 2026-06-24 — Vault item type taxonomy — confirmed as-is
+  Note: port 3002 (already running) is an unrelated Next.js/Clerk project, not Ohara — don't
+  target it for future Ohara API tests; use expo start --web on its own port.
 
-**Decision:** Keep the existing live `vault_items.item_type` column and its values (`note`, `link`, `document`, `insight`, `action_update`) unchanged. Type remains user-selected only at creation time — no AI inference or suggestion on this field at this time.
-**Reason:** Block 3 planning had proposed a different five-value taxonomy (`resource`/`note`/`insight`/`reference`/`question`) before the live schema was checked. Auditing the live database confirmed `item_type` already exists with a `CHECK` constraint enforcing the five values above. This is a deliberate confirmation of the existing taxonomy for the record, not a correction — nothing was broken.
-**Impact:** No schema change, no column rename, no migration. Block 3 planning proceeds against the live taxonomy as-is.
+  One change worth logging in DECISIONS.md per your earlier ask: the mode write was previously
+  deleted in an unreviewed 2026-04-07 cleanup pass (H3 in CHANGELOGCODEX.md) — that's the
+  actual root cause of the prod outage. Restoring it here is the fix; the open question for CTO
+  is whether mode stays a fixed 'commitment' default or gets real Phase 2 wiring.
 
-### 2026-06-24 — Future option: AI-suggested vault item type — precedent to follow if built
+**Resolution (2026-06-21):** `exploration` mode was originally scoped for a bored-user
+recommendation feature (Ohara suggesting new hobbies/passions to explore). That concept is
+superseded by Echo + Vaults, which can make better-grounded recommendations from real
+behavioral signal than a standalone exploration mode ever could. `exploration` is confirmed
+dead — not deferred, not planned. `mode: 'commitment'` is correct as the permanent value for
+all goals created via createGoalWithMeasurables, not just an interim placeholder.
 
-**Decision:** If AI-suggested `item_type` is ever built, it should follow the same pattern already used elsewhere in this codebase: preserve the AI's original inference alongside a nullable human-override field, rather than overwriting the AI's suggestion when a user corrects it.
-**Reason:** This mirrors the shape already designed for the deferred `brt_ai`/`brt_user` split on `echo_entries` — keeping both values lets later analysis distinguish AI accuracy from user correction, instead of losing the AI's original inference on overwrite.
-**Impact:** Logged as a future option only. Nothing is being built now — no schema change, no new column, no writer.
+**Follow-up:** Simplify the goals.mode CHECK constraint to drop 'exploration' (or drop the
+mode column entirely if no other code path ever reads/writes it) via a new migration, before
+the iOS schema gets locked in. Don't carry a dead enum value into the SwiftUI rewrite.
 
-### 2026-06-24 — Echo BRT split: dual-write strategy
 
-**Decision:** Added `brt_ai`/`brt_user` columns (migration `007`) alongside the existing `brt` column on `echo_entries`. `brt_ai` is now dual-written at both real inference sites (`echo-service.ts` post-reflection update, `reconcile+api.ts` backfill path) with the identical value as `brt`. The original `brt` column and all 14 existing read-sites are untouched.
-**Reason:** Additive split lets future work distinguish the AI's original inference from a future nullable human override without breaking any current reader of `brt`. Cutting over reads now would require touching 14 call sites for no immediate benefit, since no override UI exists yet.
-**Impact:** `brt_user` has no writer yet — no override UI exists. Migrating read-sites to the new split columns is deferred to a separate future block rather than cutting over now (tracked in OUTSTANDING.md).
+## 2026-05-25
+Entry — Daily-only due-today for v1:
 
-### 2026-06-24 — Echo entry title field added
+Block 4.1 ("measurable due today") scoped to frequency = 'daily' only. Weekly/monthly excluded until an anchor-day column and logic are designed. No due_date/next_due_at column added at this time — avoids guessing at undefined behavior. Revisit when weekly/monthly support is prioritized.
 
-**Decision:** Added a `title` column to `echo_entries` (migration `007`), fully wired end-to-end: composer UI input in `EchoScreen.tsx`, threaded through `saveEntry`/`createEntry`.
-**Reason:** User-written entry titles are optional metadata distinct from AI-generated content — not required for submission.
-**Impact:** Field is optional; stored as `null` if left empty, and submission is never blocked on it.
+Entry — Flexible completion-logging confirmed sufficient (4.2):
 
-### 2026-06-25 — Block 4.1: due-today scoped to daily frequency only
+Existing measurables pattern (type + nullable target_value/target_unit + measurable_logs.note) already supports type-variable completion logging without new tables. Example: a numeric measurable ("Run 5K," type counter, target_unit: "km") logs a value; a qualitative measurable ("Try a new recipe," type checklist, target_value/target_unit null) logs value: 1 as a done-toggle with the substance carried entirely in note ("felt confident, would repeat"). One flexible shape, branching only at the UI layer on type to decide numeric input vs. toggle vs. note-only. No schema addition needed for 4.2.
 
-**Decision:** `GET /api/measurables/due-today` returns only measurables where `frequency = 'daily'`. Weekly and monthly measurables are excluded.
-**Reason:** No anchor-day column exists on `measurables`. Determining whether a weekly or monthly measurable is "due today" requires knowing which day of the week / month it is anchored to — that column doesn't exist and was not added in this block. Building partial heuristics without an anchor column would produce incorrect due-dates for some users.
-**Impact:** Weekly and monthly measurables are invisible to the due-today surface until an anchor-day column and scheduling logic are designed and migrated. Revisit when that work is prioritized.
+Entry — Scope amendment, profile-creation fix pulled into Block 4:
 
-### 2026-06-25 — Block 4.2: existing measurables schema sufficient for type-variable completion logging
-
-**Decision:** No schema addition needed to support type-variable completion logging (counter increment, habit check-off, checklist item). The existing `measurables` shape (`type` + nullable `target_value`/`target_unit`) plus `measurable_logs.note` (nullable) is sufficient.
-**Reason:** Confirmed via live schema audit: `measurables_type_check` constrains `type` to `counter | habit | checklist`; `target_value` and `target_unit` are nullable, accommodating checklist-type measurables that have no numeric target; `measurable_logs.note` is nullable for optional log commentary. The combination covers all three type variants without any new columns.
-**Impact:** No migration required for Block 4.2.
-
-### 2026-06-25 — Block 4 hard dependency: handle_new_user() trigger fix pulled in
-
-**Decision:** The minimal `handle_new_user()` fix (creates profiles row + captures timezone from `raw_user_meta_data`) was implemented as a hard dependency for Block 4 due-today logic. Full signup-flow audit (spaces trigger chain, onboarding state, etc.) remains deferred to its own session.
-**Reason:** `profiles.timezone` is required for correct per-user due-today scoping. Because no trigger was creating profiles rows at signup, no user would have had a timezone value, making the due-today route incorrect for all real users. The minimal fix (migration 008: add `timezone` column + create `handle_new_user` trigger) unblocks the route without performing a broader signup audit.
-**Impact:** Migration 008 applied live. `profiles.timezone` defaults to `'UTC'` for existing rows. New signups capture the browser's IANA timezone via `Intl.DateTimeFormat().resolvedOptions().timeZone` passed in `options.data` to `supabase.auth.signUp()`. Full signup-flow audit (H5-equivalent scope) deferred.
-
-### 2026-06-25 — Next Action UI slot will be replaced by due-today measurables output
-
-**Decision:** The existing Next Action UI slot (currently rendering `action_logs`-based output) will be replaced by due-today measurables output, not shown alongside it. The two surfaces will not coexist.
-**Reason:** Product decision to surface the measurables-first execution loop on the dashboard. The action_logs capture step (post-goal-creation "What's one action you can take today?") was designed for a slot that will no longer display action_logs.
-**Impact:** Open question logged in OUTSTANDING.md: whether the action_logs-based post-goal-creation capture step should also be deprecated since its output will no longer be displayed. No code change in this block — wiring the new route into the UI slot is a separate session.
+The dedicated handle_new_user() fix session is still owed for a full audit of the broader signup flow, but the minimal fix (profile row + timezone capture) is pulled into Block 4 because due-today logic has a hard dependency on it. Scope limited to: trigger creation + timezone column. No other auth/signup behavior touched.

@@ -4,6 +4,47 @@
 
 ---
 
+## Dashboard Zone 1 — Due-Today Measurables (2026-06-26)
+
+### Changed
+
+**`app/(app)/dashboard.tsx`**
+
+Zone 1 replaced. The `activeGoal ? <ActiveGoalCard /> : <NoActiveGoalCard />` ternary is gone from Zone 1's render slot. In its place: `<DueTodayZone />`.
+
+**`DueTodayZone`** (new component, defined in `app/(app)/dashboard.tsx`):
+
+Fetches `GET /api/measurables/due-today` on mount using the existing `getAccessToken()` + `let isActive` cleanup pattern (matches the intelligence fetch pattern in the same file). Flattens the grouped API response (`data.flatMap(...)`) into a `DueTodayItem[]` flat list. Renders each row with:
+- `item.goalTitle` as a small secondary label (`text-[11px] text-[#9CAF9F]`)
+- `item.title` as primary text (muted `text-[#9CAF9F]` when done, dark `text-[#1A1F1C]` otherwise)
+- A 24×24 circle checkmark control (`border-[#3D5247]` + ✓ glyph when done; `border-[#C9D4CD]` + loading dot when in-flight; `border-[#C9D4CD]` + empty when pending)
+
+Completion: tapping an unchecked row calls `POST /api/goals/complete-measurable` with `{ measurableId, goalId }`. On success, sets `lastCompletedAt` to `new Date().toISOString()` in local state, which causes `isCompletedToday()` to return true and the row to switch to checked. Tapping an already-checked row is a no-op (guard at start of `handleComplete`; `disabled` prop on the control). No undo logic, no reverse endpoint.
+
+Loading state: two-row skeleton pulse. Empty state: "Nothing due today." (plain text, not reusing `NoActiveGoalCard`).
+
+**`isCompletedToday(lastCompletedAt)`** (new helper): compares year/month/date of `lastCompletedAt` to `new Date()` — pure client-side, no new API field.
+
+**Types added** (module-level, not exported): `DueTodayItem`, `DueTodayApiGroup`.
+
+**`activeGoal` memo removed** from `DashboardScreen` — was only consumed by the now-replaced Zone 1 ternary.
+
+**`ActiveGoalCard` and `NoActiveGoalCard` kept** in the file. Their imports (`useLatestAction`, `ActionLog`) are unchanged. Zone 2 onward is untouched.
+
+### Pre-write check reported
+
+`normalizeMeasurableTarget(null)` in `lib/db/goals.ts:522-528` returns `1` when `target_value` is null. Safe for checklist/qualitative measurables — the null path is explicitly handled and does not error.
+
+### Verification
+
+- `npx tsc --noEmit`: clean.
+- Zone 2 (`{/* Zone 2: Projects */}`), Zone 3, Zone 4, Zone 5: structurally and visually unchanged — confirmed by reading lines 633–676 post-edit.
+
+**Files touched:**
+- `app/(app)/dashboard.tsx`
+
+---
+
 ## Account Screen — v1 (2026-06-25)
 
 ### Added

@@ -57,7 +57,183 @@ async function getAccessToken(): Promise<string> {
   return session.access_token;
 }
 
-// --- Zone 1: Active Goal + Next Action ---
+// --- Zone 1: Today's Measurables ---
+
+type DueTodayItem = {
+  goalId: string;
+  goalTitle: string;
+  id: string;
+  title: string;
+  lastCompletedAt: string | null;
+};
+
+type DueTodayApiGroup = {
+  goalId: string;
+  goalTitle: string;
+  measurables: Array<{
+    id: string;
+    title: string;
+    lastCompletedAt: string | null;
+  }>;
+};
+
+function isCompletedToday(lastCompletedAt: string | null): boolean {
+  if (!lastCompletedAt) return false;
+  const last = new Date(lastCompletedAt);
+  const now = new Date();
+  return (
+    last.getFullYear() === now.getFullYear() &&
+    last.getMonth() === now.getMonth() &&
+    last.getDate() === now.getDate()
+  );
+}
+
+function DueTodayZone() {
+  const [items, setItems] = useState<DueTodayItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [completingIds, setCompletingIds] = useState(new Set<string>());
+
+  useEffect(() => {
+    let isActive = true;
+    async function load() {
+      try {
+        const token = await getAccessToken();
+        const res = await fetch('/api/measurables/due-today', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok || !isActive) return;
+        const body = (await res.json()) as { data: DueTodayApiGroup[] };
+        if (!isActive) return;
+        setItems(
+          body.data.flatMap((group) =>
+            group.measurables.map((m) => ({
+              goalId: group.goalId,
+              goalTitle: group.goalTitle,
+              id: m.id,
+              title: m.title,
+              lastCompletedAt: m.lastCompletedAt,
+            })),
+          ),
+        );
+      } catch {
+        // Fail silently — empty state shown
+      } finally {
+        if (isActive) setLoading(false);
+      }
+    }
+    void load();
+    return () => {
+      isActive = false;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleComplete(item: DueTodayItem) {
+    if (isCompletedToday(item.lastCompletedAt) || completingIds.has(item.id)) return;
+    setCompletingIds((prev) => new Set(prev).add(item.id));
+    try {
+      const token = await getAccessToken();
+      const res = await fetch('/api/goals/complete-measurable', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ measurableId: item.id, goalId: item.goalId }),
+      });
+      if (!res.ok) throw new Error('Request failed');
+      setItems((prev) =>
+        prev.map((m) =>
+          m.id === item.id ? { ...m, lastCompletedAt: new Date().toISOString() } : m,
+        ),
+      );
+    } catch {
+      // Fail silently — row stays unchecked
+    } finally {
+      setCompletingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+    }
+  }
+
+  if (loading) {
+    return (
+      <View className="rounded-2xl border border-[#EAE7E0] bg-white p-5">
+        <View className="mb-4 h-2.5 w-16 rounded-full bg-[#EAE7E0]" />
+        {[0, 1].map((i) => (
+          <View key={i} className="mb-3 flex-row items-center gap-3">
+            <View className="h-5 w-5 rounded-full bg-[#EAE7E0]" />
+            <View className="flex-1 gap-2">
+              <View className="h-2 w-14 rounded-full bg-[#F0EDE6]" />
+              <View className="h-3 w-3/4 rounded-full bg-[#EAE7E0]" />
+            </View>
+          </View>
+        ))}
+      </View>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <View className="rounded-2xl border border-[#EAE7E0] bg-white p-5">
+        <Text className="mb-3 font-sans text-[11px] font-medium uppercase tracking-[1.5px] text-[#6B7B6E]">
+          Today
+        </Text>
+        <Text className="font-sans text-[14px] text-[#9CAF9F]">
+          Nothing due today.
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View className="rounded-2xl border border-[#EAE7E0] bg-white p-5">
+      <Text className="mb-4 font-sans text-[11px] font-medium uppercase tracking-[1.5px] text-[#6B7B6E]">
+        Today
+      </Text>
+      <View className="gap-3">
+        {items.map((item) => {
+          const done = isCompletedToday(item.lastCompletedAt);
+          const completing = completingIds.has(item.id);
+          return (
+            <View key={item.id} className="flex-row items-center gap-3">
+              <TouchableOpacity
+                onPress={() => void handleComplete(item)}
+                disabled={done || completing}
+                className={`h-6 w-6 items-center justify-center rounded-full border-2 ${
+                  done ? 'border-[#3D5247]' : 'border-[#C9D4CD]'
+                }`}
+              >
+                {done && (
+                  <Text className="text-xs font-bold text-[#3D5247]">✓</Text>
+                )}
+                {completing && !done && (
+                  <View className="h-2 w-2 rounded-full bg-[#C9D4CD]" />
+                )}
+              </TouchableOpacity>
+              <View className="flex-1">
+                <Text className="font-sans text-[11px] text-[#9CAF9F]">
+                  {item.goalTitle}
+                </Text>
+                <Text
+                  className={`font-sans text-[14px] leading-5 ${
+                    done ? 'text-[#9CAF9F]' : 'text-[#1A1F1C]'
+                  }`}
+                >
+                  {item.title}
+                </Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+// --- ActiveGoalCard ---
 
 interface ActiveGoalCardProps {
   goal: GoalWithMeasurables;
@@ -397,15 +573,6 @@ export default function DashboardScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const activeGoal = useMemo<GoalWithMeasurables | null>(
-    () =>
-      [...goals]
-        .filter((g) => g.status === 'active')
-        .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0] ??
-      null,
-    [goals],
-  );
-
   const standaloneGoals = useMemo(
     () => goals.filter((g) => g.projectId === null),
     [goals],
@@ -460,12 +627,8 @@ export default function DashboardScreen() {
           <DashboardSkeleton />
         ) : (
           <View className="gap-3">
-            {/* Zone 1: Active Goal + Next Action */}
-            {activeGoal ? (
-              <ActiveGoalCard goal={activeGoal} />
-            ) : (
-              <NoActiveGoalCard />
-            )}
+            {/* Zone 1: Today's Measurables */}
+            <DueTodayZone />
 
             {/* Zone 2: Projects */}
             <View>
