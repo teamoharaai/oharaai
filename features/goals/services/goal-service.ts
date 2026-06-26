@@ -224,13 +224,14 @@ async function fetchGoalSignals(
     if (allEntryIds.length > 0) {
       const { data: entryRows } = await supabase
         .from('echo_entries')
-        .select('id, brt, created_at')
+        .select('id, brt, brt_ai, brt_user, created_at')
         .in('id', allEntryIds)
         .not('brt', 'is', null);
 
       const entryById = new Map<string, { brt: EchoBrt | null; created_at: string }>();
-      for (const e of (entryRows as Array<{ id: string; brt: EchoBrt | null; created_at: string }> ?? [])) {
-        entryById.set(e.id, { brt: e.brt, created_at: e.created_at });
+      for (const e of (entryRows as Array<{ id: string; brt: EchoBrt | null; brt_ai: EchoBrt | null; brt_user: EchoBrt | null; created_at: string }> ?? [])) {
+        const brtValue = e.brt_user ?? e.brt_ai ?? e.brt;
+        entryById.set(e.id, { brt: brtValue, created_at: e.created_at });
       }
 
       for (const [goalId, entryIds] of goalEntryMap.entries()) {

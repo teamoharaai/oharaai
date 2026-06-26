@@ -272,6 +272,8 @@ type DbEchoEntryRow = {
   ai_response: string | null;
   emotion: EchoEmotion | null;
   brt: EchoBrt | null;
+  brt_ai: EchoBrt | null;
+  brt_user: EchoBrt | null;
   created_at: string;
 };
 
@@ -326,6 +328,8 @@ type DbEchoEntryForLinkRow = {
   id: string;
   content: string;
   brt: EchoBrt | null;
+  brt_ai: EchoBrt | null;
+  brt_user: EchoBrt | null;
 };
 
 // NOTE: This function performs activity assembly and formatting logic
@@ -344,7 +348,7 @@ export async function getActivityByGoalId(
   // 1. Echo entries for this goal (legacy echo_entries.goal_id path — preserved for backward compat)
   const { data: echoData } = await db
     .from('echo_entries')
-    .select('id, content, ai_response, emotion, brt, created_at')
+    .select('id, content, ai_response, emotion, brt, brt_ai, brt_user, created_at')
     .eq('goal_id', goalId)
     .eq('user_id', userId);
 
@@ -360,7 +364,7 @@ export async function getActivityByGoalId(
         preview: row.content.slice(0, 100),
         aiResponse: row.ai_response,
         emotion: row.emotion,
-        brt: row.brt,
+        brt: row.brt_user ?? row.brt_ai ?? row.brt ?? null,
         timestamp: row.created_at,
       };
     },
@@ -492,7 +496,7 @@ export async function getActivityByGoalId(
 
     const { data: linkedEchoData } = await db
       .from('echo_entries')
-      .select('id, content, brt')
+      .select('id, content, brt, brt_ai, brt_user')
       .in('id', linkedEntryIds);
 
     for (const entry of (linkedEchoData as unknown as DbEchoEntryForLinkRow[] ?? [])) {
@@ -503,7 +507,7 @@ export async function getActivityByGoalId(
         id: `echo-linked-${link.id}`,
         echoEntryId: entry.id,
         preview: entry.content.slice(0, 100),
-        brt: entry.brt ?? null,
+        brt: entry.brt_user ?? entry.brt_ai ?? entry.brt ?? null,
         timestamp: link.created_at,
       });
     }

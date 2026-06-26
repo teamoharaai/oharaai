@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### Fixed (2026-06-26 — BRT read fallback chain)
+- Applied `brt_user ?? brt_ai ?? brt` read-priority rule to all 5 consumer sites that access BRT values directly. This is forward-compatible scaffolding: produces identical results on all live rows today (brt_user always NULL; brt_ai equals brt when non-NULL) while correctly prioritising user overrides once brt_user write paths ship.
+- **Mapper sites (4):**
+  - `features/echo/services/echo-service.ts`: added `brt_ai`, `brt_user` to `DbEchoEntry` type; updated `mapEntry` line 43. Query uses `*` — no SELECT change needed.
+  - `lib/db/echo-goal-links.ts`: added `brt_ai`, `brt_user` to `DbEchoEntryRow` type; updated `mapEchoEntry` line 60; added `brt_ai, brt_user` to named SELECT in `getEchoEntriesForGoal`.
+  - `lib/db/goals.ts:363` (`getActivityByGoalId` echo_entry path): added `brt_ai`, `brt_user` to `DbEchoEntryRow` type and to the `.select()` at line 347; updated inline mapper.
+  - `lib/db/goals.ts:506` (`getActivityByGoalId` echo_linked path): added `brt_ai`, `brt_user` to `DbEchoEntryForLinkRow` type and to the `.select()` at line 495; updated inline mapper.
+- **Direct-query site (1):**
+  - `features/goals/services/goal-service.ts:227` (`fetchGoalSignals`): added `brt_ai, brt_user` to SELECT; updated cast type; resolved priority into `brtValue` before storing in Map. Lines 241-242 unchanged — they read `entry.brt` which now holds the resolved value.
+- **Untouched downstream (8 sites inherit fix automatically):** `EchoDetailScreen.tsx:55`, `ActivityFeed.tsx:38`, `EchoTrail.tsx:97`, `useEchoTrail.ts:53` all consume `EchoEntry.brt` or `ActivityItem.brt` resolved by the fixed upstream mappers. No changes needed.
+- **OUT OF SCOPE (deferred):** `lib/db/embeddings.ts` / `match_echo_entries()` — semantic search not in production; requires DB-level function rewrite. Tracked separately.
+- **Dead code cleanup:** Deleted `lib/ai/prompts/summarizer.ts` — zero importers confirmed; pipeline that called it was already deleted.
+- Files touched: `features/echo/services/echo-service.ts`, `lib/db/echo-goal-links.ts`, `lib/db/goals.ts`, `features/goals/services/goal-service.ts`, `lib/ai/prompts/summarizer.ts` (deleted), `CHANGELOGCODEX.md`.
+- Verification: `npx tsc --noEmit` clean.
+
 ### Added (2026-06-26 — Echo ai_status column)
 - Added `ai_status text NOT NULL DEFAULT 'not_requested' CHECK (ai_status IN ('not_requested', 'pending', 'completed', 'failed'))` to `echo_entries` via `supabase/migrations/009_echo_ai_status.sql`. Backfills `completed` where `summarized = true`; all other pre-existing rows stay `'not_requested'` (pre-squash rows had no way to distinguish failed from not-requested).
 - Wired writes in `features/echo/services/echo-service.ts`:

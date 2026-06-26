@@ -19,6 +19,8 @@ type DbEchoEntry = {
   media_url: string | null;
   ai_insight_requested: boolean;
   brt: DbBrt;
+  brt_ai: DbBrt;
+  brt_user: DbBrt;
   emotion: DbEmotion;
   model_version: string | null;
   visibility: EchoEntry['visibility'];
@@ -40,7 +42,7 @@ function mapEntry(row: DbEchoEntry): EchoEntry {
     content: row.content,
     mediaUrl: row.media_url ?? undefined,
     aiInsightRequested: row.ai_insight_requested,
-    brt: row.brt ?? undefined,
+    brt: row.brt_user ?? row.brt_ai ?? row.brt ?? undefined,
     emotion: row.emotion ?? undefined,
     modelVersion: row.model_version ?? undefined,
     visibility: row.visibility,

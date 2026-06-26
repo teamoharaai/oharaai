@@ -25,6 +25,8 @@ type DbEchoEntryRow = {
   media_url: string | null;
   ai_insight_requested: boolean;
   brt: EchoEntry['brt'] | null;
+  brt_ai: EchoEntry['brt'] | null;
+  brt_user: EchoEntry['brt'] | null;
   emotion: EchoEntry['emotion'] | null;
   model_version: string | null;
   visibility: EchoEntry['visibility'];
@@ -57,7 +59,7 @@ function mapEchoEntry(row: DbEchoEntryRow): EchoEntry {
     content: row.content,
     mediaUrl: row.media_url ?? undefined,
     aiInsightRequested: row.ai_insight_requested,
-    brt: row.brt ?? undefined,
+    brt: row.brt_user ?? row.brt_ai ?? row.brt ?? undefined,
     emotion: row.emotion ?? undefined,
     modelVersion: row.model_version ?? undefined,
     visibility: row.visibility,
@@ -109,7 +111,7 @@ export async function getEchoEntriesForGoal(
 
   const { data, error } = await client
     .from('echo_entries')
-    .select('id, user_id, goal_id, content, media_url, ai_insight_requested, brt, emotion, model_version, visibility, confidence, themes, ai_response, processed_at, created_at')
+    .select('id, user_id, goal_id, content, media_url, ai_insight_requested, brt, brt_ai, brt_user, emotion, model_version, visibility, confidence, themes, ai_response, processed_at, created_at')
     .in('id', entryIds);
 
   if (error) throw new Error(error.message);
