@@ -7,6 +7,9 @@ export interface Profile {
   onboarding_complete: boolean;
   created_at: string;
   updated_at: string;
+  avatar_url: string | null;
+  bio: string | null;
+  intelligence_enabled: boolean;
 }
 
 export interface AuthUser {

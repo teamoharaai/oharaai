@@ -2,6 +2,124 @@
 
 ## [Unreleased]
 
+### Fixed (2026-07-01 — EchoScreen entry rows now navigate to detail view)
+- `EchoEntryListCard` in `features/echo/components/EchoScreen.tsx` had no tap handler, unlike
+  `ActivityFeed.tsx` and `EchoTrail.tsx`, which both already navigate to `/echo/[id]` via
+  `router.push(\`/(app)/echo/${id}\` as never)` (imported from `expo-router`). Applied the same
+  pattern: added `router` to the existing `expo-router` import, wrapped the row's outer `View` in
+  a `Pressable` (`onPress` → `router.push(\`/(app)/echo/${entry.id}\` as never)`, opacity dims to
+  0.85 while pressed, matching `ActivityFeed.tsx`'s press style). No data fetching, sorting,
+  filtering, or visual output changes — the inner `View`/content markup is untouched, only
+  wrapped. `npx tsc --noEmit` passes with no errors.
+
+### Added (2026-07-01 — Avatar menu replaces sidebar Account/Settings/Log out)
+- **Step 0 audit findings:**
+  - Sidebar (`components/layout/Sidebar.tsx`) previously had zero user-data access — no
+    display_name, no avatar anywhere in the file. Traced where that data could plausibly live:
+    `useAuthStore` (`features/auth/store.ts`) declares `user: AuthUser | null` and
+    `profile: Profile | null` with setters, but a repo-wide grep confirmed neither is ever
+    set anywhere — dead, always-null state. The only place that actually fetched
+    `display_name`/`avatar_url` was the old `app/(app)/account.tsx` route, via its own
+    `supabase.auth.getSession()` → `access_token` → `fetch('/api/profile', ...)`. All three new
+    components (`AvatarMenu`, `AccountModal`, `SettingsModal`) fetch profile data themselves
+    via that same pattern, since no populated store exists to read from.
+  - `expo-image-picker` was not installed — flagged and stopped per instruction; user confirmed
+    install. Added via `npx expo install expo-image-picker` (`~55.0.21`, SDK-matched). First use
+    of this package in the repo.
+  - No Supabase Storage upload example existed anywhere in the codebase (`storage.from(...)` /
+    `.upload(...)` grepped zero hits) despite the `avatars` bucket + RLS policies existing since
+    migration 011. Upload code in `AccountModal.tsx` written fresh against the documented
+    Supabase JS SDK API (`fetch(uri) → blob() → .storage.from('avatars').upload(path, blob, ...)`,
+    the standard Expo + Supabase pattern for RN).
+  - Image component in use: React Native's core `Image` (from `'react-native'`), confirmed via
+    `app/index.tsx`. `expo-image` is not a dependency.
+  - Modal pattern: `components/ui/Modal.tsx` — RN `Modal` (`transparent`, `animationType="fade"`)
+    wrapping a centered NativeWind-styled card, with optional cancel/confirm footer buttons.
+    Used directly for `AccountModal` (cancel/confirm shape fits) and `SettingsModal` (close-only
+    shape fits). The avatar dropdown itself doesn't fit that shape (menu list + required
+    tap-outside-to-dismiss, which the generic `Modal` doesn't support — its outer wrapper is a
+    plain `View`, not a `Pressable`) — built as its own transparent `Modal` in `AvatarMenu.tsx`
+    with a `Pressable` backdrop (`onPress` → close) and a nested no-op `Pressable` around the
+    card content to absorb taps so they don't bubble to the backdrop.
+  - Flagged the pre-existing `app/(app)/account.tsx` route (full-screen, display_name/timezone
+    only, would become an orphaned-but-still-reachable-by-URL duplicate once the sidebar stopped
+    linking to it) — user confirmed deletion. **Deleted** `app/(app)/account.tsx`.
+- **Added `components/ui/Avatar.tsx`:** shared circular avatar renderer + `getInitials()` helper
+  (first letter of up to first two words, uppercase). Renders the remote image via RN `Image`
+  when `avatarUrl` is set, otherwise a forest-green circle with initials. Used by `AvatarMenu`
+  (36px trigger, 44px in the dropdown header) and `AccountModal` (72px, with camera-icon overlay).
+- **Extended `components/ui/Input.tsx`** (previously unused anywhere in the codebase — safe,
+  non-breaking to extend) with optional `multiline` and `autoCapitalize` props, needed for the
+  Account modal's `bio` field.
+- **Added `components/layout/AvatarMenu.tsx`:** replaces the three static sidebar rows
+  (Account / Settings / Log out) with a single pressable avatar (36px, same row padding as the
+  removed items to match visual weight). Fetches `{ display_name, avatar_url }` from
+  `GET /api/profile` on mount (silent failure — falls back to initials/empty, non-blocking,
+  matches the codebase's existing "profile fetch never blocks chrome" convention). Tapping opens
+  a centered dropdown modal: avatar (44px) + display_name at top, then `Profile` → opens
+  `AccountModal`, `Settings` → opens `SettingsModal`, a divider, then `Log out` in red. Tapping
+  outside the card dismisses the menu.
+- **Added `components/layout/AccountModal.tsx`:** header "Account". 72px avatar with a
+  bottom-right camera-icon overlay; tapping it requests media-library permission
+  (`ImagePicker.requestMediaLibraryPermissionsAsync`), launches
+  `ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8, allowsEditing:
+  true, aspect: [1,1] })` (non-deprecated array form of `mediaTypes` — the enum
+  `MediaTypeOptions` is `@deprecated` in the installed `expo-image-picker` version), uploads the
+  selected image to `avatars/{user_id}/avatar.jpg` via the already-authenticated client-side
+  `supabase` singleton (client components carry a live persisted session already — unlike the
+  server-side RLS gap flagged in `OUTSTANDING.md` for `reflect+api.ts`, which is specifically an
+  API-route-using-the-client-singleton problem), then immediately `PATCH`es `avatar_url` with
+  the resulting public URL — this happens on image selection, independent of the Save button.
+  Below the avatar: `display_name`, `bio` (multiline, optional), `timezone` (plain text input,
+  no picker — v1 per spec), `interests_user` (comma-separated text, split/trimmed/filtered to a
+  `string[]` on save, joined with `, ` on load). Cancel dismisses without saving. Save `PATCH`es
+  `display_name`/`bio`/`timezone`/`interests_user` via the profile route, dismisses on success,
+  shows an inline error on failure. Never renders or sends `interests_ai`,
+  `intelligence_enabled`, `character_profile`, `context`, or `onboarding_complete`.
+- **Added `components/layout/SettingsModal.tsx`:** header "Settings". Single `Switch` bound to
+  `intelligence_enabled`, fetched from `GET /api/profile` on open. Toggling immediately `PATCH`es
+  `intelligence_enabled`; shows an `ActivityIndicator` in place of the switch during the request;
+  reverts the toggle to its previous value if the `PATCH` fails or the session token is missing.
+  Muted caption below: "When off, Echo entries are saved without AI analysis."
+- **Updated `components/layout/Sidebar.tsx`:** removed `handleSignOut`, the `Account` row, the
+  disabled `Settings` placeholder row (which previously had no handler at all), and the `Log out`
+  row. Replaced all three with `<AvatarMenu />`. Removed now-unused `supabase` and
+  `clearAllStores` imports (both moved into `AvatarMenu.tsx`). No other sidebar logic touched —
+  nav items (`Goals`/`Echo`/`Constellation`/`Explore`) unchanged.
+- **Log out sequence** (`AvatarMenu.tsx handleSignOut`), per spec, in order: `clearAllStores()` →
+  `supabase.auth.signOut({ scope: 'local' })` (previously plain `supabase.auth.signOut()` with no
+  scope, in the old `Sidebar.tsx` handler — this is an intentional behavior change per this
+  session's explicit instructions) → no avatar-cache clear (see `OUTSTANDING.md`, no API exists
+  for core RN `Image`) → `router.replace('/(auth)/login')` (same hard-reset-to-login pattern as
+  before, clearing the stack so back-navigation can't expose authenticated content).
+- **Out of scope, not touched:** any route/API beyond `profile/index+api.ts`, Echo/Goal/Vault
+  routes or screens, `handle_new_user()`/triggers, `touchLastSummarizedAt` or any other
+  pre-existing `OUTSTANDING.md` item, the reflect route or its retry logic.
+- Flagged to `OUTSTANDING.md`: `interests_user` comma-separated input (v1 only, tag/chip input is
+  the correct long-term pattern), avatar cache-clearing (no API available for core RN `Image`),
+  and `expo-image-picker` as a new dependency (first use in the repo).
+- Files touched: `components/ui/Avatar.tsx` (new), `components/ui/Input.tsx`,
+  `components/layout/AvatarMenu.tsx` (new), `components/layout/AccountModal.tsx` (new),
+  `components/layout/SettingsModal.tsx` (new), `components/layout/Sidebar.tsx`,
+  `app/(app)/account.tsx` (deleted), `package.json` / `package-lock.json` (added
+  `expo-image-picker`), `OUTSTANDING.md`, `CHANGELOGCODEX.md`.
+- Verification: `npx tsc --noEmit` clean.
+
+### Added (2026-07-01 — Profile GET/PATCH route, intelligence_enabled gate on reflect)
+- **Step 0 audit findings (see below for full detail) blocked literal Step 2 as drafted; user chose to proceed with a modified approach — flagged for a future architecture/audit session:**
+  - `app/api/echo/reflect+api.ts` does **not** follow the canonical `getAuthContext` (`lib/api/auth.ts`) + `createAuthedClient` (`lib/db/client.ts`) pattern used by `app/api/profile/index+api.ts`. It has its own duplicate inline `getAuthContextFromRequest` (identical logic to `getAuthContext`) and, for the `touchLastSummarizedAt` write, uses the raw `supabase` singleton from `lib/db/client.ts` (an anon-key client built for RN client-side session persistence) instead of a per-request authed client — meaning that write runs without the caller's JWT forwarded, so RLS scoped to `auth.uid()` likely evaluates as unauthenticated and silently affects 0 rows. **Not fixed this session per explicit user instruction** — left untouched, logged to `OUTSTANDING.md` as a separate RLS audit item.
+  - `ai_status` on `echo_entries` was never written server-side in `reflect+api.ts` — it's written entirely client-side in `features/echo/services/echo-service.ts` (`createEntry`). The reflect route also had no `echo_entry_id` in its request body, so it had no way to scope a DB write to a specific row.
+- **Resolution (user-approved):** added `echo_entry_id?: string` to `ReflectRequestBody` in `reflect+api.ts`; wired it through `requestEchoReflection()` and its call site in `createEntry()` (now passes `insertedEntry.id`).
+- Added the `intelligence_enabled` gate in `reflect+api.ts`: after auth is established and before any Haiku call, reads `profiles.intelligence_enabled` via `createAuthedClient(auth.accessToken)`. If `false`: updates `echo_entries.ai_status = 'not_requested'` for the given `echo_entry_id` (via the authed client, RLS-scoped), returns `200` with `{ reflection: null, summarized: false, disabled: true }`, does not call Haiku, does not touch `retry_count`. If `true`: existing logic runs unchanged.
+- **Second inconsistency found and fixed during Step 2 (user-approved):** `createEntry()`'s existing failure branch (`if (!reflectPayload || !reflectPayload.summarized || !reflectPayload.reflection)`) could not distinguish "intelligence disabled" from "Haiku actually failed" — both produce `summarized: false` — so it was about to immediately overwrite the fresh `ai_status = 'not_requested'` write with `ai_status = 'failed', retry_count: 1`, which would also cause the disabled entry to get swept into `reconcile+api.ts`'s retry queue (calling Haiku anyway, defeating the gate). Fixed by adding `disabled?: boolean` to the client-side `ReflectPayload` type and a new guard in `createEntry()`: `if (reflectPayload?.disabled) return { status: 'saved', entry: insertedEntry };` placed before the existing failure branch. No other ai_status transition logic changed.
+- Expanded `app/api/profile/index+api.ts` (pre-existing file, previously only `display_name`/`timezone`):
+  - `GET`: now returns `display_name, bio, avatar_url, interests_user, timezone, intelligence_enabled`. Excludes `interests_ai`, `character_profile`, `context`, `onboarding_complete`, all timestamps.
+  - `PATCH`: accepts the same 6 fields with validation (`display_name`/`avatar_url` non-empty trimmed strings, `bio` any string including empty, `interests_user` array, `intelligence_enabled` boolean). Update payload is built field-by-field from an explicit allowlist (never spread from the raw request body), so `interests_ai`/`character_profile`/`context`/`onboarding_complete`/`id`/timestamps are structurally impossible to write via this route regardless of what a client sends. Scoped to `auth.uid()` via `createAuthedClient`.
+- Updated `Profile` type in `features/auth/types.ts`: added `avatar_url: string | null`, `bio: string | null`, `intelligence_enabled: boolean`. Did **not** add `interests_ai` — schema-only, no client-side type.
+- **Out of scope, not touched:** any UI/component, other Echo routes, Goal routes, Vault routes, `handle_new_user()`/triggers, avatar upload itself, `touchLastSummarizedAt`'s RLS gap (see above).
+- Files touched: `app/api/profile/index+api.ts`, `app/api/echo/reflect+api.ts`, `features/echo/services/echo-service.ts`, `features/auth/types.ts`, `CHANGELOGCODEX.md`.
+- Verification: `npx tsc --noEmit` clean.
+
 ### Added (2026-07-01 — Profiles account expansion + avatars bucket)
 - Added `supabase/migrations/011_profiles_account_expansion.sql`:
   - `RENAME COLUMN public.profiles.interests TO interests_user` (disambiguates from the new system-inferred column).

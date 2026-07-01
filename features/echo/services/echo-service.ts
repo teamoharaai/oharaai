@@ -60,6 +60,7 @@ type ReflectPayload = {
   brt: EchoEntry['brt'] | null;
   confidence: number | null;
   summarized: boolean;
+  disabled?: boolean;
 };
 
 export type CreateEntryResultStatus =
@@ -97,6 +98,7 @@ async function requestEchoReflection(
   content: string,
   aiInsightRequested: boolean,
   accessToken: string,
+  echoEntryId: string,
 ): Promise<ReflectPayload | null> {
   if (!aiInsightRequested) {
     return null;
@@ -115,6 +117,7 @@ async function requestEchoReflection(
     body: JSON.stringify({
       content,
       aiInsightRequested,
+      echo_entry_id: echoEntryId,
     }),
   });
 
@@ -335,6 +338,7 @@ export async function createEntry(params: {
       params.content,
       params.aiInsightRequested,
       session?.access_token ?? '',
+      insertedEntry.id,
     );
   } catch (error) {
     void supabase
@@ -346,6 +350,10 @@ export async function createEntry(params: {
     }
 
     return { status: 'saved_without_summary', entry: insertedEntry };
+  }
+
+  if (reflectPayload?.disabled) {
+    return { status: 'saved', entry: insertedEntry };
   }
 
   if (!reflectPayload || !reflectPayload.summarized || !reflectPayload.reflection) {

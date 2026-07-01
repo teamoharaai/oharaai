@@ -5,9 +5,18 @@ interface InputProps {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
+  multiline?: boolean;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
 }
 
-export function Input({ label, value, onChangeText, placeholder }: InputProps) {
+export function Input({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  multiline = false,
+  autoCapitalize,
+}: InputProps) {
   return (
     <View>
       <Text className="text-sm font-medium text-near-black mb-1.5">{label}</Text>
@@ -17,6 +26,10 @@ export function Input({ label, value, onChangeText, placeholder }: InputProps) {
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor="#6B6B6B"
+        multiline={multiline}
+        numberOfLines={multiline ? 4 : undefined}
+        textAlignVertical={multiline ? 'top' : undefined}
+        autoCapitalize={autoCapitalize}
       />
     </View>
   );

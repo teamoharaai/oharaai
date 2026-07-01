@@ -1,8 +1,7 @@
 import { View, Text, TouchableOpacity } from 'react-native';
 import { router, usePathname } from 'expo-router';
-import supabase from '@/lib/db/client';
 import { FEATURES } from '@/constants/features';
-import { clearAllStores } from '@/store/clearAllStores';
+import { AvatarMenu } from './AvatarMenu';
 
 type NavItem = {
   label: string;
@@ -20,12 +19,6 @@ const NAV_ITEMS: NavItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
-
-  async function handleSignOut() {
-    clearAllStores();
-    await supabase.auth.signOut();
-    router.replace('/(auth)/login' as Parameters<typeof router.replace>[0]);
-  }
 
   return (
     <View
@@ -93,45 +86,9 @@ export function Sidebar() {
       {/* Spacer */}
       <View style={{ flex: 1 }} />
 
-      {/* Bottom items */}
+      {/* Bottom: avatar menu (Profile / Settings / Log out) */}
       <View style={{ paddingBottom: 32, paddingHorizontal: 12 }}>
-        <TouchableOpacity
-          onPress={() => router.push('/(app)/account' as Parameters<typeof router.push>[0])}
-          style={{
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            borderRadius: 12,
-            marginBottom: 4,
-          }}
-          activeOpacity={0.7}
-        >
-          <Text style={{ color: '#A8C4AE', fontSize: 14, fontWeight: '500' }}>Account</Text>
-        </TouchableOpacity>
-        <View
-          style={{
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            borderRadius: 12,
-            marginBottom: 4,
-            opacity: 0.4,
-          }}
-        >
-          <Text style={{ color: '#A8C4AE', fontSize: 14, fontWeight: '500' }}>Settings</Text>
-        </View>
-        <TouchableOpacity
-          onPress={handleSignOut}
-          style={{
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            borderRadius: 12,
-            marginBottom: 4,
-          }}
-          activeOpacity={0.7}
-        >
-          <Text style={{ color: '#A8C4AE', fontSize: 14, fontWeight: '500' }}>
-            Log out
-          </Text>
-        </TouchableOpacity>
+        <AvatarMenu />
       </View>
     </View>
   );

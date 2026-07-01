@@ -6,6 +6,17 @@
 
 ## Echo
 
+- [ ] **RLS gap in `app/api/echo/reflect+api.ts`** — the route does not follow the canonical
+      `getAuthContext` + `createAuthedClient` pattern (reference: `app/api/profile/index+api.ts`).
+      It reimplements its own inline `getAuthContextFromRequest` (duplicate of
+      `lib/api/auth.ts`'s `getAuthContext`), and `touchLastSummarizedAt()` writes to `profiles`
+      via the raw `supabase` singleton (`lib/db/client.ts`, an anon-key client built for RN
+      client-side session persistence) instead of a per-request authed client — the caller's JWT
+      is never forwarded on that write, so RLS scoped to `auth.uid()` likely evaluates as
+      unauthenticated and the update silently affects 0 rows. Found during 2026-07-01 profile
+      route session (see `CHANGELOGCODEX.md`); explicitly left unfixed that session per user
+      instruction. Needs its own audit/fix pass — likely also worth reconciling with the two
+      duplicate auth-context implementations.
 - [ ] **H2** — Echo prompt file duplication (`lib/ai/echo/prompts.ts` vs
       `lib/ai/prompts/echo-reflection.ts`), both still imported live by `reflect+api.ts` and
       `reconcile+api.ts`. Not duplicates (different pipeline stages), just split across
@@ -57,6 +68,27 @@
       "revisit before action completion UI ships" (docs/DECISIONS.md, 2026-04-05) — that UI
       (`NextActionSection`) has since shipped and is live, so this is no longer pre-launch debt,
       it's an active unaddressed bug.
+
+## Account / Sidebar
+
+- [ ] **`interests_user` comma-separated text input is v1 only.** `components/layout/AccountModal.tsx`
+      stores/edits `interests_user` as a single comma-separated `TextInput`, split/joined to and
+      from a `string[]` on load/save. A tag/chip input is the correct long-term pattern (clearer
+      affordance for adding/removing individual interests, no ambiguity around commas inside a
+      single interest). Added 2026-07-01, deferred to keep the Account modal scope to
+      wiring/validation rather than a new input component.
+- [ ] **No avatar image cache-clear on logout.** `components/layout/AvatarMenu.tsx`'s
+      `handleSignOut` cannot clear any cached avatar image on logout — the app uses React
+      Native's core `Image` component (`expo-image` is not installed), which has no
+      cross-platform cache-clear API (unlike `expo-image`'s `Image.clearDiskCache()` /
+      `clearMemoryCache()`). Practical impact should be minimal (avatar URLs are per-user paths
+      in the `avatars` bucket, so a stale cached image would only resurface if a *different* user
+      logs into the same device and somehow reuses the same URL, which the `{user_id}/avatar.jpg`
+      path scheme prevents) — but flagging since it was an explicit Step 4 requirement this
+      session and no fix was available. Revisit if the app ever adopts `expo-image`.
+- [ ] `expo-image-picker` (`~55.0.21`) was added as a new dependency 2026-07-01 for the Account
+      modal's avatar upload flow (`components/layout/AccountModal.tsx`). First use of this
+      package in the repo — no other picker/media patterns to cross-check against yet.
 
 ## Vaults
 

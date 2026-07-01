@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { FEATURES } from '@/constants/features';
 import { EmptyStateCard } from '@/components/ui/EmptyStateCard';
 import {
@@ -76,23 +76,30 @@ function SectionLabel({ children }: { children: string }) {
 }
 
 function EchoEntryListCard({ entry }: { entry: EchoEntry }) {
-  return (
-    <View className="mb-3 rounded-xl bg-white p-4 shadow-sm">
-      <Text className="font-sans text-sm leading-[21px] text-[#1C1C1E]" numberOfLines={2}>
-        {entry.content}
-      </Text>
+  const onPress = () => router.push(`/(app)/echo/${entry.id}` as never);
 
-      <View className="mt-3 flex-row items-center gap-2">
-        <Text className="font-sans text-xs text-[#6B7280]">{formatRelativeTime(entry.createdAt)}</Text>
-        {entry.emotion?.primary ? (
-          <View className="rounded-full bg-[#EEF2EF] px-2 py-1">
-            <Text className="font-sans text-[11px] font-medium text-[#3D5247]">
-              {formatPillLabel(entry.emotion.primary)}
-            </Text>
-          </View>
-        ) : null}
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+    >
+      <View className="mb-3 rounded-xl bg-white p-4 shadow-sm">
+        <Text className="font-sans text-sm leading-[21px] text-[#1C1C1E]" numberOfLines={2}>
+          {entry.content}
+        </Text>
+
+        <View className="mt-3 flex-row items-center gap-2">
+          <Text className="font-sans text-xs text-[#6B7280]">{formatRelativeTime(entry.createdAt)}</Text>
+          {entry.emotion?.primary ? (
+            <View className="rounded-full bg-[#EEF2EF] px-2 py-1">
+              <Text className="font-sans text-[11px] font-medium text-[#3D5247]">
+                {formatPillLabel(entry.emotion.primary)}
+              </Text>
+            </View>
+          ) : null}
+        </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 

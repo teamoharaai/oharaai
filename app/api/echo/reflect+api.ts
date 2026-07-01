@@ -5,12 +5,13 @@ import {
 import type { AiResponse } from '@/lib/ai/contracts';
 import { buildEchoReflectionPrompt } from '@/lib/ai/prompts/echo-reflection';
 import { ECHO_INFERENCE_PROMPT } from '@/lib/ai/echo/prompts';
-import supabase, { isDatabaseConfigured } from '@/lib/db/client';
+import supabase, { isDatabaseConfigured, createAuthedClient } from '@/lib/db/client';
 import type { EchoEmotion, EchoBrt } from '@/features/echo/types';
 
 interface ReflectRequestBody {
   content?: string;
   aiInsightRequested?: boolean;
+  echo_entry_id?: string;
 }
 
 async function getAuthContextFromRequest(request: Request) {
@@ -165,6 +166,28 @@ export async function POST(request: Request) {
   if (!auth) {
     const errBody: AiResponse<never> = { ok: false, data: null, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } };
     return Response.json(errBody, { status: 401 });
+  }
+
+  const authedDb = createAuthedClient(auth.accessToken);
+  const { data: profile } = await authedDb
+    .from('profiles')
+    .select('intelligence_enabled')
+    .eq('id', auth.userId)
+    .single();
+
+  if (profile?.intelligence_enabled === false) {
+    if (body.echo_entry_id) {
+      await authedDb
+        .from('echo_entries')
+        .update({ ai_status: 'not_requested' })
+        .eq('id', body.echo_entry_id);
+    }
+    const disabledBody: AiResponse<Pick<InferenceResult, 'reflection' | 'summarized'> & { disabled: true }> = {
+      ok: true,
+      data: { reflection: null, summarized: false, disabled: true },
+      error: null,
+    };
+    return Response.json(disabledBody);
   }
 
   let content: string;

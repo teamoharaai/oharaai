@@ -4,12 +4,33 @@ import type { ApiResponse } from '@/lib/api/contracts';
 
 interface ProfileData {
   display_name: string;
+  bio: string | null;
+  avatar_url: string | null;
+  interests_user: string[];
   timezone: string;
+  intelligence_enabled: boolean;
 }
 
 interface PatchBody {
   display_name?: unknown;
+  bio?: unknown;
+  avatar_url?: unknown;
+  interests_user?: unknown;
   timezone?: unknown;
+  intelligence_enabled?: unknown;
+}
+
+const PROFILE_SELECT = 'display_name, bio, avatar_url, interests_user, timezone, intelligence_enabled';
+
+function toProfileData(data: Record<string, unknown>): ProfileData {
+  return {
+    display_name: (data.display_name as string) ?? '',
+    bio: (data.bio as string | null) ?? null,
+    avatar_url: (data.avatar_url as string | null) ?? null,
+    interests_user: (data.interests_user as string[] | null) ?? [],
+    timezone: (data.timezone as string) ?? 'UTC',
+    intelligence_enabled: (data.intelligence_enabled as boolean) ?? true,
+  };
 }
 
 export async function GET(request: Request): Promise<Response> {
@@ -26,7 +47,7 @@ export async function GET(request: Request): Promise<Response> {
   const db = createAuthedClient(auth.accessToken);
   const { data, error } = await db
     .from('profiles')
-    .select('display_name, timezone')
+    .select(PROFILE_SELECT)
     .eq('id', auth.userId)
     .single();
 
@@ -41,7 +62,7 @@ export async function GET(request: Request): Promise<Response> {
 
   const body: ApiResponse<ProfileData> = {
     ok: true,
-    data: { display_name: data.display_name ?? '', timezone: data.timezone ?? 'UTC' },
+    data: toProfileData(data),
     error: null,
   };
   return Response.json(body, { status: 200 });
@@ -70,7 +91,18 @@ export async function PATCH(request: Request): Promise<Response> {
     return Response.json(body, { status: 400 });
   }
 
-  const updates: Partial<{ display_name: string; timezone: string }> = {};
+  // Only fields explicitly assigned below are ever written. Anything else on
+  // the payload (interests_ai, character_profile, context, onboarding_complete,
+  // id, created_at, updated_at, last_summarized_at, or unknown keys) is
+  // silently ignored rather than errored on.
+  const updates: Partial<{
+    display_name: string;
+    bio: string;
+    avatar_url: string;
+    interests_user: unknown[];
+    timezone: string;
+    intelligence_enabled: boolean;
+  }> = {};
 
   if (payload.display_name !== undefined) {
     if (typeof payload.display_name !== 'string' || payload.display_name.trim() === '') {
@@ -96,6 +128,54 @@ export async function PATCH(request: Request): Promise<Response> {
     updates.timezone = payload.timezone.trim();
   }
 
+  if (payload.bio !== undefined) {
+    if (typeof payload.bio !== 'string') {
+      const body: ApiResponse<never> = {
+        ok: false,
+        data: null,
+        error: { code: 'INVALID_INPUT', message: 'bio must be a string' },
+      };
+      return Response.json(body, { status: 400 });
+    }
+    updates.bio = payload.bio;
+  }
+
+  if (payload.avatar_url !== undefined) {
+    if (typeof payload.avatar_url !== 'string' || payload.avatar_url.trim() === '') {
+      const body: ApiResponse<never> = {
+        ok: false,
+        data: null,
+        error: { code: 'INVALID_INPUT', message: 'avatar_url must be a non-empty string' },
+      };
+      return Response.json(body, { status: 400 });
+    }
+    updates.avatar_url = payload.avatar_url.trim();
+  }
+
+  if (payload.interests_user !== undefined) {
+    if (!Array.isArray(payload.interests_user)) {
+      const body: ApiResponse<never> = {
+        ok: false,
+        data: null,
+        error: { code: 'INVALID_INPUT', message: 'interests_user must be an array' },
+      };
+      return Response.json(body, { status: 400 });
+    }
+    updates.interests_user = payload.interests_user;
+  }
+
+  if (payload.intelligence_enabled !== undefined) {
+    if (typeof payload.intelligence_enabled !== 'boolean') {
+      const body: ApiResponse<never> = {
+        ok: false,
+        data: null,
+        error: { code: 'INVALID_INPUT', message: 'intelligence_enabled must be a boolean' },
+      };
+      return Response.json(body, { status: 400 });
+    }
+    updates.intelligence_enabled = payload.intelligence_enabled;
+  }
+
   if (Object.keys(updates).length === 0) {
     const body: ApiResponse<never> = {
       ok: false,
@@ -110,7 +190,7 @@ export async function PATCH(request: Request): Promise<Response> {
     .from('profiles')
     .update(updates)
     .eq('id', auth.userId)
-    .select('display_name, timezone')
+    .select(PROFILE_SELECT)
     .single();
 
   if (error || !data) {
@@ -124,7 +204,7 @@ export async function PATCH(request: Request): Promise<Response> {
 
   const body: ApiResponse<ProfileData> = {
     ok: true,
-    data: { display_name: data.display_name ?? '', timezone: data.timezone ?? 'UTC' },
+    data: toProfileData(data),
     error: null,
   };
   return Response.json(body, { status: 200 });
