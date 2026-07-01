@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### Added (2026-07-01 — Profiles account expansion + avatars bucket)
+- Added `supabase/migrations/011_profiles_account_expansion.sql`:
+  - `RENAME COLUMN public.profiles.interests TO interests_user` (disambiguates from the new system-inferred column).
+  - Added `avatar_url text`, `bio text`, `interests_ai jsonb` (all nullable), and `intelligence_enabled boolean NOT NULL DEFAULT true` to `public.profiles`.
+  - Column comments documenting `interests_user` (Account-screen editable), `interests_ai` (schema-only, no writer yet — must not appear in any client-writable API route), and `intelligence_enabled` (reflect API should skip Haiku + set `ai_status = not_requested` when false — not wired in this session).
+  - Created the `avatars` public storage bucket (`storage.buckets` insert) with 4 RLS policies on `storage.objects`: public `select`, and owner-scoped `insert`/`update`/`delete` gated on `(storage.foldername(name))[1] = auth.uid()::text`. No prior bucket/policy pattern existed in this repo to copy from — followed standard Supabase storage RLS conventions instead.
+- **Step 0 audit (full codebase search for `profiles.interests` reads/writes) found zero live call sites** — no API route, hook, Zustand store, or component selects/inserts/updates/reads the column anywhere. The only match was a mirrored type field.
+- **Step 2 code update:** renamed `Profile.interests` → `Profile.interests_user` in `features/auth/types.ts` (the sole type reference to the DB column). Re-verified post-rename: zero remaining `.interests` property-access sites anywhere in the codebase.
+- **Flagged, not renamed (false positives caught during audit — confirmed unrelated to `profiles.interests`, left untouched):**
+  - `features/profile/types.ts:4` (`CharacterProfile.interests: string[]`) — models a key inside the separate `character_profile` JSONB blob (Intelligence feature), not the `profiles.interests` column.
+  - `lib/ai/isProfileSufficient.ts:15` and `lib/ai/prompts/intelligence.ts:61` (`raw['interests']`) — both read the same `character_profile` JSONB key, unrelated to the renamed column.
+  - `public.interests` (table, `001_core_schema_and_rls.sql:235`, FK'd in `002_echo.sql`) — a wholly separate thorn-pattern table with the same name; not touched.
+- **Out of scope, not touched this session:** `handle_new_user()` / `on_auth_user_created` (fixed manually via SQL Editor prior to this session per A1 audit), Echo routes, Goal routes, any screen/component beyond the one profile type. `interests_ai` was added schema-only — no read/write path wired to it anywhere.
+- Files touched: `supabase/migrations/011_profiles_account_expansion.sql` (new), `features/auth/types.ts`, `CHANGELOGCODEX.md`.
+- Verification: `npx tsc --noEmit` clean. `npx supabase db push` applied successfully to live Supabase (along with two previously-unpushed migrations, 009 and 010).
+
 ### Fixed (2026-06-26 — useVault API-layer bypass)
 - Rewired `features/goals/hooks/useVault.ts` to call API routes instead of `lib/db/vaults.ts` service functions directly from the client.
 - **Auth pattern source:** Copied from `features/goals/hooks/useActivity.ts` — `supabase.auth.getSession()` called per operation, guarded on `session?.access_token`, `Authorization: Bearer ${session.access_token}` header on every fetch.

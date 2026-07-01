@@ -2,7 +2,7 @@ export interface Profile {
   id: string;
   display_name: string;
   character_profile: Record<string, unknown>;
-  interests: unknown[];
+  interests_user: unknown[];
   context: Record<string, unknown>;
   onboarding_complete: boolean;
   created_at: string;
