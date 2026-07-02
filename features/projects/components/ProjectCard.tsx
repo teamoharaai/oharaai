@@ -15,7 +15,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
 
   return (
     <Pressable
-      onPress={() => router.push(`/projects/${project.id}`)}
+      onPress={() => router.push(`/(app)/projects/${project.id}` as never)}
       style={({ pressed }) => ({
         backgroundColor: '#FFFFFF',
         borderRadius: 16,

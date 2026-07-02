@@ -104,3 +104,9 @@
       complete embedding pipeline without it.
 - [ ] Thorn → Goal suggestion loop — requires Discovery feature and pattern analysis layer,
       Phase 2 only.
+
+## Known nav gaps
+
+- [ ] `app/goals/create.tsx` lives outside the `(app)` route group — same sidebar-loss bug
+      as the four routes fixed on 2026-07-02 (projects/[id], projects/create,
+      goals/[id]/index, goals/[id]/vault). Deliberately left out of scope for that session.

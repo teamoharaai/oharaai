@@ -291,7 +291,7 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
 
   return (
     <View className="rounded-2xl border border-[#EAE7E0] bg-white p-5">
-      <Pressable onPress={() => router.push(`/goals/${goal.id}`)}>
+      <Pressable onPress={() => router.push(`/(app)/goals/${goal.id}` as never)}>
         <Text className="mb-2 font-sans text-[11px] font-medium uppercase tracking-[1.5px] text-[#6B7B6E]">
           Active Goal
         </Text>
@@ -351,7 +351,7 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
         ) : (
           <Pressable
             className="self-start rounded-full bg-[#EEF4F0] px-4 py-2"
-            onPress={() => router.push(`/goals/${goal.id}`)}
+            onPress={() => router.push(`/(app)/goals/${goal.id}` as never)}
           >
             <Text className="text-sm font-semibold text-[#3D5247]">
               Set next action
@@ -634,7 +634,7 @@ export default function DashboardScreen() {
           </View>
           <Pressable
             className="pl-2 pt-0.5"
-            onPress={() => router.push('/projects/create')}
+            onPress={() => router.push('/(app)/projects/create' as never)}
           >
             <Text className="text-[22px] leading-7 text-[#4A7C5F]">+</Text>
           </Pressable>
@@ -653,7 +653,7 @@ export default function DashboardScreen() {
                 <Text className="font-sans text-[11px] font-medium uppercase tracking-[1.5px] text-[#6B7B6E]">
                   Projects
                 </Text>
-                <Pressable onPress={() => router.push('/projects/create')}>
+                <Pressable onPress={() => router.push('/(app)/projects/create' as never)}>
                   <Text className="text-[20px] leading-6 text-[#4A7C5F]">+</Text>
                 </Pressable>
               </View>

@@ -148,7 +148,7 @@ export function MeasurableCard({
         shadowRadius: 6,
         elevation: 1,
       }}
-      onPress={() => router.push(`/goals/${measurable.goalId}/vault`)}
+      onPress={() => router.push(`/(app)/goals/${measurable.goalId}/vault` as never)}
       onLongPress={() => {
         if (onDelete && !showDeleteConfirm) setShowDeleteConfirm(true);
       }}
@@ -186,7 +186,7 @@ export function MeasurableCard({
             selectTextOnFocus
           />
         ) : (
-          <Pressable style={{ flex: 1 }} onPress={() => router.push(`/goals/${measurable.goalId}/vault`)}>
+          <Pressable style={{ flex: 1 }} onPress={() => router.push(`/(app)/goals/${measurable.goalId}/vault` as never)}>
             <Text
               style={{
                 fontSize: 13,

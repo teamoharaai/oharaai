@@ -174,7 +174,7 @@ export default function GoalDetailScreen() {
       {goal.projectId && projectTitle ? (
         <Pressable
           onPress={() =>
-            router.push({ pathname: '/projects/[id]', params: { id: goal.projectId! } })
+            router.push({ pathname: '/(app)/projects/[id]' as never, params: { id: goal.projectId! } })
           }
           style={{
             flexDirection: 'row',
@@ -210,7 +210,7 @@ export default function GoalDetailScreen() {
 
       {/* Vault Summary Card */}
       <Pressable
-        onPress={() => router.push(`/goals/${goalId}/vault`)}
+        onPress={() => router.push(`/(app)/goals/${goalId}/vault` as never)}
         style={SUMMARY_CARD_STYLE}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>

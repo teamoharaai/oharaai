@@ -110,7 +110,7 @@ export default function GoalCreateScreen() {
 
         const navigateId = savedGoalId;
         setTimeout(() => {
-          router.replace(`/goals/${navigateId}`);
+          router.replace(`/(app)/goals/${navigateId}` as never);
         }, 1500);
       } finally {
         setIsLoading(false);

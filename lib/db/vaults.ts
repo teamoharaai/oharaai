@@ -263,7 +263,7 @@ export async function getVaultWithItems(
   return { vault, items };
 }
 
-// ── Legacy helpers (used by app/goals/[id]/vault.tsx and index.tsx) ───────────
+// ── Legacy helpers (used by app/(app)/goals/[id]/vault.tsx and index.tsx) ───────────
 
 /**
  * Returns the vault id for a goal, creating the vault if it does not exist.
