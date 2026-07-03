@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, ScrollView, Pressable, useWindowDimensions, SafeAreaView } from 'react-native';
+import { View, ScrollView, Pressable, useWindowDimensions, SafeAreaView } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, router } from 'expo-router';
 import { GOAL_THEMES } from '@/constants/themes';
 import { Typography } from '@/components/ui/Typography';
@@ -72,9 +72,9 @@ function GoalNotFound() {
         </Pressable>
       </View>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
-        <Text style={{ fontSize: 17, color: '#6B7B6E', textAlign: 'center', marginBottom: 16 }}>
+        <Typography variant="body" style={{ fontSize: 17, textAlign: 'center', marginBottom: 16 }}>
           This goal couldn't be found.
-        </Text>
+        </Typography>
         <Pressable onPress={() => router.back()}>
           <Typography variant="nav-back">← Go back</Typography>
         </Pressable>
@@ -188,7 +188,7 @@ export default function GoalDetailScreen() {
           <Typography variant="label">
             Part of: {projectTitle}
           </Typography>
-          <Text style={{ fontSize: 14, color: '#9CAF9F' }}>›</Text>
+          <Typography variant="caption" style={{ fontSize: 14 }}>›</Typography>
         </Pressable>
       ) : null}
 
@@ -215,11 +215,11 @@ export default function GoalDetailScreen() {
         style={SUMMARY_CARD_STYLE}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Text style={{ fontSize: 20, color: '#3D5247' }}>◫</Text>
+          <Typography variant="meta" style={{ fontSize: 20, color: '#3D5247' }}>◫</Typography>
           <View>
-            <Text style={{ fontFamily: 'Inter-SemiBold', fontSize: 14, color: '#1A1F1C' }}>
+            <Typography variant="emphasis-sm" style={{ color: '#1A1F1C' }}>
               Vault
-            </Text>
+            </Typography>
             <Typography variant="caption">
               {vaultItemCount === 0
                 ? 'No items yet'
@@ -227,7 +227,7 @@ export default function GoalDetailScreen() {
             </Typography>
           </View>
         </View>
-        <Text style={{ fontSize: 18, color: '#9CAF9F' }}>›</Text>
+        <Typography variant="caption" style={{ fontSize: 18 }}>›</Typography>
       </Pressable>
 
       {/* Echo Summary Card */}
@@ -238,17 +238,17 @@ export default function GoalDetailScreen() {
         style={SUMMARY_CARD_STYLE}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Text style={{ fontSize: 20, color: '#3D5247' }}>✦</Text>
+          <Typography variant="meta" style={{ fontSize: 20, color: '#3D5247' }}>✦</Typography>
           <View>
-            <Text style={{ fontFamily: 'Inter-SemiBold', fontSize: 14, color: '#1A1F1C' }}>
+            <Typography variant="emphasis-sm" style={{ color: '#1A1F1C' }}>
               Reflections
-            </Text>
+            </Typography>
             <Typography variant="caption">
               Tap to journal about this goal
             </Typography>
           </View>
         </View>
-        <Text style={{ fontSize: 18, color: '#9CAF9F' }}>›</Text>
+        <Typography variant="caption" style={{ fontSize: 18 }}>›</Typography>
       </Pressable>
 
       <ActivityFeed items={items} loading={activityLoading} error={activityError} />
@@ -280,7 +280,7 @@ export default function GoalDetailScreen() {
         <Pressable onPress={() => router.back()}>
           <Typography variant="nav-back">← Goals</Typography>
         </Pressable>
-        <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#9CAF9F', marginHorizontal: 8 }}>|</Text>
+        <Typography variant="nav-back" style={{ color: '#9CAF9F', marginHorizontal: 8 }}>|</Typography>
         <Typography variant="nav-title" style={{ flex: 1 }} numberOfLines={1}>
           {goal.title}
         </Typography>

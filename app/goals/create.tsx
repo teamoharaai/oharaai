@@ -1,6 +1,5 @@
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   ScrollView,
@@ -323,7 +322,7 @@ export default function GoalCreateScreen() {
           <Typography variant="nav-back">Goals</Typography>
         </TouchableOpacity>
         <View style={{ width: 1, height: 16, backgroundColor: '#EAE7E0', marginRight: 12 }} />
-        <Text style={{ color: '#1A1F1C', fontFamily: 'Inter-SemiBold', fontSize: 15 }}>New goal</Text>
+        <Typography variant="nav-title" style={{ fontFamily: 'Inter-SemiBold' }}>New goal</Typography>
         <View style={{ flex: 1 }} />
         <TouchableOpacity
           onPress={handleCreateGoal}
@@ -338,7 +337,7 @@ export default function GoalCreateScreen() {
           }}
           activeOpacity={0.7}
         >
-          <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'Inter-SemiBold' }}>Create goal</Text>
+          <Typography variant="emphasis-sm" style={{ color: '#FFFFFF', fontSize: 13 }}>Create goal</Typography>
         </TouchableOpacity>
       </View>
 
@@ -370,18 +369,14 @@ export default function GoalCreateScreen() {
                 justifyContent: 'center',
               }}
             >
-              <Text style={{ color: '#4A7C5F', fontSize: 20, fontFamily: 'Inter-Medium' }}>O</Text>
+              <Typography variant="label" style={{ color: '#4A7C5F', fontSize: 20 }}>O</Typography>
             </View>
-            <Text
-              style={{
-                color: '#1A1F1C',
-                fontSize: 22,
-                fontFamily: 'Inter-Medium',
-                textAlign: 'center',
-              }}
+            <Typography
+              variant="title"
+              style={{ fontSize: 22, textAlign: 'center' }}
             >
               What do you want to achieve?
-            </Text>
+            </Typography>
             <Typography variant="body" style={{ textAlign: 'center' }}>
               {'Describe your goal in plain words —\nI\'ll help you shape it.'}
             </Typography>
@@ -433,7 +428,8 @@ export default function GoalCreateScreen() {
                       : { maxWidth: '90%' }
                   }
                 >
-                  <Text
+                  <Typography
+                    variant="body"
                     style={{
                       color: msg.role === 'user' ? '#E8EDE9' : '#1A1F1C',
                       fontSize: 14,
@@ -441,7 +437,7 @@ export default function GoalCreateScreen() {
                     }}
                   >
                     {msg.content}
-                  </Text>
+                  </Typography>
                 </View>
               </View>
             ))}
@@ -483,7 +479,7 @@ export default function GoalCreateScreen() {
                   marginBottom: 8,
                 }}
               >
-                <Text style={{ color: '#C0483A', fontSize: 14 }}>{error}</Text>
+                <Typography variant="body" style={{ color: '#C0483A', fontSize: 14 }}>{error}</Typography>
               </View>
             )}
           </ScrollView>
@@ -542,7 +538,7 @@ export default function GoalCreateScreen() {
               }}
               activeOpacity={0.7}
             >
-              <Text style={{ color: '#FFFFFF', fontSize: 16, lineHeight: 18 }}>↑</Text>
+              <Typography variant="meta" style={{ color: '#FFFFFF', fontSize: 16, lineHeight: 18 }}>↑</Typography>
             </TouchableOpacity>
           )}
         </View>
@@ -573,7 +569,7 @@ export default function GoalCreateScreen() {
               }}
               activeOpacity={0.7}
             >
-              <Text style={{ color: '#4A7C5F', fontSize: 12, fontFamily: 'Inter-Medium' }}>{label}</Text>
+              <Typography variant="label" style={{ color: '#4A7C5F', fontSize: 12 }}>{label}</Typography>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -607,15 +603,12 @@ export default function GoalCreateScreen() {
                     }}
                     activeOpacity={0.7}
                   >
-                    <Text
-                      style={{
-                        color: isSelected ? '#E8EDE9' : '#6B7B6E',
-                        fontSize: 14,
-                        fontFamily: 'Inter-Medium',
-                      }}
+                    <Typography
+                      variant="label"
+                      style={{ color: isSelected ? '#E8EDE9' : '#6B7B6E' }}
                     >
                       {project.title}
-                    </Text>
+                    </Typography>
                   </TouchableOpacity>
                 );
               })}

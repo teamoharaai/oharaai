@@ -5,7 +5,6 @@ import {
   Pressable,
   SafeAreaView,
   ScrollView,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
@@ -51,16 +50,9 @@ type VaultPickerSheetProps = {
 function VaultPickerSheet({ onNote, onLink, onClose }: VaultPickerSheetProps) {
   return (
     <View>
-      <Text
-        style={{
-          fontFamily: 'Inter-SemiBold',
-          fontSize: 15,
-          color: '#1A1F1C',
-          marginBottom: 16,
-        }}
-      >
+      <Typography variant="nav-title" style={{ fontFamily: 'Inter-SemiBold', marginBottom: 16 }}>
         Add to Vault
-      </Text>
+      </Typography>
       <Pressable
         onPress={onNote}
         style={{
@@ -72,10 +64,10 @@ function VaultPickerSheet({ onNote, onLink, onClose }: VaultPickerSheetProps) {
           borderBottomColor: '#F0EDE6',
         }}
       >
-        <Text style={{ fontSize: 20 }}>📝</Text>
-        <Text style={{ fontFamily: 'Inter-Medium', fontSize: 14, color: '#1A1F1C' }}>
+        <Typography variant="meta" style={{ fontSize: 20 }}>📝</Typography>
+        <Typography variant="label" style={{ color: '#1A1F1C' }}>
           Add Note
-        </Text>
+        </Typography>
       </Pressable>
       <Pressable
         onPress={onLink}
@@ -88,16 +80,16 @@ function VaultPickerSheet({ onNote, onLink, onClose }: VaultPickerSheetProps) {
           borderBottomColor: '#F0EDE6',
         }}
       >
-        <Text style={{ fontSize: 20 }}>🔗</Text>
-        <Text style={{ fontFamily: 'Inter-Medium', fontSize: 14, color: '#1A1F1C' }}>
+        <Typography variant="meta" style={{ fontSize: 20 }}>🔗</Typography>
+        <Typography variant="label" style={{ color: '#1A1F1C' }}>
           Save Link
-        </Text>
+        </Typography>
       </Pressable>
       <Pressable
         onPress={onClose}
         style={{ paddingVertical: 14, alignItems: 'center' }}
       >
-        <Text style={{ fontFamily: 'Inter-Regular', fontSize: 14, color: '#6B7B6E' }}>Cancel</Text>
+        <Typography variant="body" style={{ fontFamily: 'Inter-Regular', fontSize: 14 }}>Cancel</Typography>
       </Pressable>
     </View>
   );
@@ -122,16 +114,9 @@ function AddNoteSheet({ onSave, onClose }: AddNoteSheetProps) {
 
   return (
     <View>
-      <Text
-        style={{
-          fontFamily: 'Inter-SemiBold',
-          fontSize: 15,
-          color: '#1A1F1C',
-          marginBottom: 14,
-        }}
-      >
+      <Typography variant="nav-title" style={{ fontFamily: 'Inter-SemiBold', marginBottom: 14 }}>
         Add Note
-      </Text>
+      </Typography>
       <TextInput
         style={[INPUT_STYLE, { marginBottom: 10 }]}
         placeholder="Title (optional)"
@@ -179,9 +164,9 @@ function AddNoteSheet({ onSave, onClose }: AddNoteSheetProps) {
           {saving ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={{ fontFamily: 'Inter-SemiBold', fontSize: 14, color: '#FFFFFF' }}>
+            <Typography variant="emphasis-sm" style={{ color: '#FFFFFF' }}>
               Save
-            </Text>
+            </Typography>
           )}
         </TouchableOpacity>
       </View>
@@ -208,16 +193,9 @@ function SaveLinkSheet({ onSave, onClose }: SaveLinkSheetProps) {
 
   return (
     <View>
-      <Text
-        style={{
-          fontFamily: 'Inter-SemiBold',
-          fontSize: 15,
-          color: '#1A1F1C',
-          marginBottom: 14,
-        }}
-      >
+      <Typography variant="nav-title" style={{ fontFamily: 'Inter-SemiBold', marginBottom: 14 }}>
         Save Link
-      </Text>
+      </Typography>
       <TextInput
         style={[INPUT_STYLE, { marginBottom: 10 }]}
         placeholder="https://…"
@@ -267,9 +245,9 @@ function SaveLinkSheet({ onSave, onClose }: SaveLinkSheetProps) {
           {saving ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={{ fontFamily: 'Inter-SemiBold', fontSize: 14, color: '#FFFFFF' }}>
+            <Typography variant="emphasis-sm" style={{ color: '#FFFFFF' }}>
               Save
-            </Text>
+            </Typography>
           )}
         </TouchableOpacity>
       </View>
@@ -330,9 +308,9 @@ export default function VaultScreen() {
         <Pressable onPress={() => router.back()}>
           <Typography variant="nav-back">← Back</Typography>
         </Pressable>
-        <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#9CAF9F', marginHorizontal: 8 }}>
+        <Typography variant="nav-back" style={{ color: '#9CAF9F', marginHorizontal: 8 }}>
           |
-        </Text>
+        </Typography>
         <Typography variant="nav-title" style={{ flex: 1 }}>
           Vault
         </Typography>
@@ -357,7 +335,7 @@ export default function VaultScreen() {
               Items{vault.items.length > 0 ? ` (${vault.items.length})` : ''}
             </Typography>
             <TouchableOpacity onPress={openSheet} hitSlop={8}>
-              <Text style={{ fontSize: 22, color: '#3D5247', lineHeight: 24 }}>＋</Text>
+              <Typography variant="meta" style={{ fontSize: 22, color: '#3D5247', lineHeight: 24 }}>＋</Typography>
             </TouchableOpacity>
           </View>
 
@@ -370,7 +348,7 @@ export default function VaultScreen() {
           )}
 
           {vault.error ? (
-            <Text style={{ fontSize: 13, color: '#EF4444', marginBottom: 8 }}>{vault.error}</Text>
+            <Typography variant="meta" style={{ color: '#EF4444', marginBottom: 8 }}>{vault.error}</Typography>
           ) : null}
 
           {!vault.loading && vault.items.length === 0 ? (
@@ -382,7 +360,7 @@ export default function VaultScreen() {
                 paddingVertical: 32,
               }}
             >
-              <Text style={{ fontSize: 30, marginBottom: 8 }}>◫</Text>
+              <Typography variant="meta" style={{ fontSize: 30, marginBottom: 8 }}>◫</Typography>
               <Typography
                 variant="meta"
                 style={{ color: '#9CAF9F', textAlign: 'center' }}
@@ -421,9 +399,9 @@ export default function VaultScreen() {
                 router.push(`/(app)/echo?goalId=${goalId}` as never)
               }
             >
-              <Text style={{ fontFamily: 'Inter-Medium', fontSize: 13, color: '#3D5247' }}>
+              <Typography variant="label" style={{ fontSize: 13, color: '#3D5247' }}>
                 Write in Echo
-              </Text>
+              </Typography>
             </Pressable>
           </View>
 
@@ -449,10 +427,10 @@ export default function VaultScreen() {
                 gap: 8,
               }}
             >
-              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 13, color: '#9CAF9F' }}>
+              <Typography variant="meta" style={{ color: '#9CAF9F' }}>
                 Journal about this goal in Echo
-              </Text>
-              <Text style={{ fontSize: 14, color: '#9CAF9F' }}>›</Text>
+              </Typography>
+              <Typography variant="caption" style={{ fontSize: 14 }}>›</Typography>
             </Pressable>
           ) : (
             <EchoTrail

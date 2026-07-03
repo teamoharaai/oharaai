@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Pressable, TextInput, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
 import { Badge } from '@/components/ui/Badge';
 import { Typography } from '@/components/ui/Typography';
@@ -172,7 +172,7 @@ export function MeasurableCard({
           disabled={!onComplete || isCompleted || isSaving}
         >
           {isCompleted ? (
-            <Text style={{ fontSize: 13, fontFamily: 'Inter-Bold', color: '#FFFFFF' }}>✓</Text>
+            <Typography variant="emphasis-sm" style={{ fontFamily: 'Inter-Bold', fontSize: 13, color: '#FFFFFF' }}>✓</Typography>
           ) : null}
         </TouchableOpacity>
         {editingField === 'title' ? (
@@ -188,22 +188,22 @@ export function MeasurableCard({
           />
         ) : (
           <Pressable style={{ flex: 1 }} onPress={() => router.push(`/(app)/goals/${measurable.goalId}/vault` as never)}>
-            <Text
+            <Typography
+              variant="label"
               style={{
                 fontSize: 13,
-                fontFamily: 'Inter-Medium',
                 color: isCompleted ? '#9CA89E' : '#1A1F1C',
                 textDecorationLine: isCompleted ? 'line-through' : 'none',
               }}
             >
               {measurable.title}
-            </Text>
+            </Typography>
           </Pressable>
         )}
 
         {measurable.isAiSuggested && <Badge label="AI" variant="ai" />}
         {measurable.frequency && (
-          <Text style={{ fontSize: 11, color: '#9CAF9F' }}>{measurable.frequency}</Text>
+          <Typography variant="caption" style={{ fontSize: 11 }}>{measurable.frequency}</Typography>
         )}
         {isSaving && <ActivityIndicator size="small" color={accentColor} />}
       </View>
@@ -268,7 +268,7 @@ export function MeasurableCard({
               }}
               disabled={isSaving}
             >
-              <Text style={{ fontSize: 16, fontFamily: 'Inter-SemiBold', color: accentColor }}>+</Text>
+              <Typography variant="emphasis-sm" style={{ fontSize: 16, color: accentColor }}>+</Typography>
             </TouchableOpacity>
           </View>
 
@@ -300,11 +300,11 @@ export function MeasurableCard({
               }}
               disabled={isSaving}
             >
-              {done && <Text style={{ fontSize: 13, fontFamily: 'Inter-Bold', color: accentColor }}>✓</Text>}
+              {done && <Typography variant="emphasis-sm" style={{ fontFamily: 'Inter-Bold', fontSize: 13, color: accentColor }}>✓</Typography>}
             </TouchableOpacity>
-            <Text style={{ fontSize: 12, color: done ? '#1A1F1C' : '#9CAF9F' }}>
+            <Typography variant="caption" style={{ color: done ? '#1A1F1C' : '#9CAF9F' }}>
               {done ? 'Done today' : 'Not done yet'}
-            </Text>
+            </Typography>
           </View>
         );
       })()}
@@ -331,19 +331,19 @@ export function MeasurableCard({
               }}
             >
               {done && (
-                <Text style={{ fontSize: 10, fontFamily: 'Inter-ExtraBold', color: '#FFFFFF' }}>✓</Text>
+                <Typography variant="emphasis-sm" style={{ fontFamily: 'Inter-ExtraBold', fontSize: 10, color: '#FFFFFF' }}>✓</Typography>
               )}
             </View>
-            <Text
+            <Typography
+              variant="caption"
               style={{
-                fontSize: 12,
                 flex: 1,
                 color: done ? '#9CA89E' : '#1A1F1C',
                 textDecorationLine: done ? 'line-through' : 'none',
               }}
             >
               {measurable.title}
-            </Text>
+            </Typography>
           </TouchableOpacity>
         );
       })()}
@@ -380,7 +380,7 @@ export function MeasurableCard({
               }}
               onPress={handleDelete}
             >
-              <Text style={{ fontSize: 12, fontFamily: 'Inter-Medium', color: '#EF4444' }}>Delete</Text>
+              <Typography variant="label" style={{ fontSize: 12, color: '#EF4444' }}>Delete</Typography>
             </TouchableOpacity>
           </View>
         </View>

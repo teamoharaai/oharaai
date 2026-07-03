@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable, ActivityIndicator, SafeAreaView, TextInput } from 'react-native';
+import { View, ScrollView, Pressable, ActivityIndicator, SafeAreaView, TextInput } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/Badge';
@@ -55,7 +55,7 @@ export default function ProjectDetailScreen() {
           <Pressable onPress={() => router.back()} style={{ marginBottom: 16 }}>
             <Typography variant="nav-back">← Back</Typography>
           </Pressable>
-          <Text style={{ fontSize: 17, color: '#6B7B6E' }}>Project not found.</Text>
+          <Typography variant="body" style={{ fontSize: 17 }}>Project not found.</Typography>
         </View>
       </SafeAreaView>
     );
@@ -181,46 +181,32 @@ export default function ProjectDetailScreen() {
               elevation: 2,
             }}
           >
-            <Text
-              style={{
-                fontFamily: 'Inter-Bold',
-                fontSize: 24,
-                color: '#1A1A1A',
-                lineHeight: 30,
-              }}
+            <Typography
+              variant="heading"
+              style={{ fontFamily: 'Inter-Bold', color: '#1A1A1A', lineHeight: 30 }}
             >
               {project.title}
-            </Text>
+            </Typography>
 
             {project.description && (
-              <Text
-                style={{
-                  fontFamily: 'Inter-Regular',
-                  fontSize: 14,
-                  color: '#6B7B6E',
-                  lineHeight: 20,
-                  marginTop: 8,
-                }}
+              <Typography
+                variant="body"
+                style={{ fontSize: 14, lineHeight: 20, marginTop: 8 }}
               >
                 {project.description}
-              </Text>
+              </Typography>
             )}
 
             <View style={{ marginTop: 16, alignItems: 'flex-start' }}>
               <Badge label={statusLabel} variant={statusVariant} />
             </View>
 
-            <Text
-              style={{
-                fontFamily: 'Inter-Italic',
-                fontSize: 12,
-                color: '#9CA3AF',
-                marginTop: 16,
-                marginBottom: 10,
-              }}
+            <Typography
+              variant="caption"
+              style={{ fontFamily: 'Inter-Italic', fontStyle: 'italic', color: '#9CA3AF', marginTop: 16, marginBottom: 10 }}
             >
               Long-term ambition
-            </Text>
+            </Typography>
 
             <View style={{ width: '100%', height: 8, borderRadius: 999, backgroundColor: '#E7E2D8', overflow: 'hidden' }}>
               <View
@@ -256,7 +242,7 @@ export default function ProjectDetailScreen() {
                   justifyContent: 'center',
                 }}
               >
-                <Text style={{ fontFamily: 'Inter-SemiBold', fontSize: 14, color: '#F5F1EA' }}>+ Add Goal</Text>
+                <Typography variant="emphasis-sm" style={{ color: '#F5F1EA' }}>+ Add Goal</Typography>
               </Pressable>
             </View>
 
@@ -290,7 +276,7 @@ export default function ProjectDetailScreen() {
                     paddingVertical: 12,
                   }}
                 >
-                  <Text style={{ fontFamily: 'Inter-SemiBold', fontSize: 15, color: '#E8EDE9' }}>+ Add Goal</Text>
+                  <Typography variant="emphasis-sm" style={{ fontSize: 15, color: '#E8EDE9' }}>+ Add Goal</Typography>
                 </Pressable>
               </View>
             ) : (
@@ -319,7 +305,7 @@ export default function ProjectDetailScreen() {
                   justifyContent: 'center',
                 }}
               >
-                <Text style={{ fontFamily: 'Inter-Regular', fontSize: 20, lineHeight: 22, color: '#F5F1EA' }}>+</Text>
+                <Typography variant="meta" style={{ fontSize: 20, lineHeight: 22, color: '#F5F1EA' }}>+</Typography>
               </Pressable>
             </View>
 
@@ -341,9 +327,9 @@ export default function ProjectDetailScreen() {
                 elevation: 1,
               }}
             >
-              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#6B7B6E', lineHeight: 22 }}>
+              <Typography variant="body" style={{ fontSize: 15, lineHeight: 22 }}>
                 Add project-level notes and resources
-              </Text>
+              </Typography>
             </View>
           </View>
 
@@ -368,9 +354,9 @@ export default function ProjectDetailScreen() {
                 elevation: 1,
               }}
             >
-              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#6B7B6E', lineHeight: 22 }}>
+              <Typography variant="body" style={{ fontSize: 15, lineHeight: 22 }}>
                 Activity will appear as you and your team make progress
-              </Text>
+              </Typography>
             </View>
           </View>
 
@@ -403,9 +389,9 @@ export default function ProjectDetailScreen() {
                   borderBottomColor: '#EFE9DE',
                 }}
               >
-                <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#1A1A1A' }}>
+                <Typography variant="nav-title" style={{ fontFamily: 'Inter-Regular', color: '#1A1A1A' }}>
                   Edit project name and description
-                </Text>
+                </Typography>
               </Pressable>
 
               {/* TODO: Manage members visibility requires space_id join — hidden until available */}
@@ -417,9 +403,9 @@ export default function ProjectDetailScreen() {
                   paddingVertical: 16,
                 }}
               >
-                <Text style={{ fontFamily: 'Inter-Medium', fontSize: 15, color: '#DC2626' }}>
+                <Typography variant="nav-title" style={{ color: '#DC2626' }}>
                   Delete project
-                </Text>
+                </Typography>
               </Pressable>
             </View>
           </View>
@@ -443,9 +429,9 @@ export default function ProjectDetailScreen() {
         <Typography variant="section-header" style={{ marginBottom: 10 }}>
           Edit project
         </Typography>
-        <Text style={{ fontFamily: 'Inter-Regular', fontSize: 14, lineHeight: 21, color: '#6B7B6E', marginBottom: 18 }}>
+        <Typography variant="body" style={{ fontSize: 14, lineHeight: 21, marginBottom: 18 }}>
           Update the project name and long-term intent.
-        </Text>
+        </Typography>
 
         <View style={{ marginBottom: 14 }}>
           <Typography variant="eyebrow" style={{ marginBottom: 8 }}>
@@ -485,9 +471,9 @@ export default function ProjectDetailScreen() {
         </View>
 
         {editError ? (
-          <Text style={{ marginTop: 12, fontSize: 13, lineHeight: 18, color: '#DC2626' }}>
+          <Typography variant="meta" style={{ marginTop: 12, lineHeight: 18, color: '#DC2626' }}>
             {editError}
-          </Text>
+          </Typography>
         ) : null}
       </Modal>
 
@@ -513,9 +499,9 @@ export default function ProjectDetailScreen() {
         <Typography variant="section-header" style={{ marginBottom: 10 }}>
           Delete project
         </Typography>
-        <Text style={{ fontFamily: 'Inter-Regular', fontSize: 14, lineHeight: 21, color: '#6B7B6E' }}>
+        <Typography variant="body" style={{ fontSize: 14, lineHeight: 21 }}>
           Are you sure you want to delete this project? This cannot be undone.
-        </Text>
+        </Typography>
       </Modal>
     </SafeAreaView>
   );
