@@ -69,8 +69,8 @@ export function ReflectionCard({ variant, timestamp, aiResponse, brt }: Reflecti
       <Text
         className={
           isFull
-            ? 'text-[#1A1A1A] text-base leading-relaxed'
-            : 'text-[#1A1A1A] text-sm leading-relaxed'
+            ? 'text-near-black text-base leading-relaxed'
+            : 'text-near-black text-sm leading-relaxed'
         }
       >
         {aiResponse}

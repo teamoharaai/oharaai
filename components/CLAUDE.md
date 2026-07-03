@@ -6,7 +6,7 @@ Owner: VP Product. Cascade Level 1 (visual), Level 2 (data fetching).
 - Page background: cream #F5F1EA
 - Cards: white #FFFFFF, rounded 12px, shadow (0 2px 8px rgba(0,0,0,0.06))
 - Accent: forest green #3D5247
-- Text: #1A1A1A body, #6B7B6E muted/secondary
+- Text: #1A1F1C body (Tailwind `near-black`), #6B7B6E muted/secondary
 - Typography: Inter for all UI, Lora for editorial moments only
 - BRT colors: Bud #4A7C5F, Rose #F59E0B, Thorn #EF4444
 

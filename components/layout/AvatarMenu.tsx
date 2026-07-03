@@ -116,7 +116,7 @@ export function AvatarMenu() {
                   marginLeft: 12,
                   fontFamily: 'Inter-SemiBold',
                   fontSize: 15,
-                  color: '#1A1A1A',
+                  color: '#1A1F1C',
                   flexShrink: 1,
                 }}
                 numberOfLines={1}
@@ -133,7 +133,7 @@ export function AvatarMenu() {
               style={{ paddingVertical: 12 }}
               activeOpacity={0.7}
             >
-              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#1A1A1A' }}>Profile</Text>
+              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#1A1F1C' }}>Profile</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -144,7 +144,7 @@ export function AvatarMenu() {
               style={{ paddingVertical: 12 }}
               activeOpacity={0.7}
             >
-              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#1A1A1A' }}>Settings</Text>
+              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#1A1F1C' }}>Settings</Text>
             </TouchableOpacity>
 
             <View style={{ height: 1, backgroundColor: '#E5E1D8', marginVertical: 4 }} />

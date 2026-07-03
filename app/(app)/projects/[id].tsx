@@ -183,7 +183,7 @@ export default function ProjectDetailScreen() {
           >
             <Typography
               variant="heading"
-              style={{ fontFamily: 'Inter-Bold', color: '#1A1A1A', lineHeight: 30 }}
+              style={{ fontFamily: 'Inter-Bold', color: '#1A1F1C', lineHeight: 30 }}
             >
               {project.title}
             </Typography>
@@ -389,7 +389,7 @@ export default function ProjectDetailScreen() {
                   borderBottomColor: '#EFE9DE',
                 }}
               >
-                <Typography variant="nav-title" style={{ fontFamily: 'Inter-Regular', color: '#1A1A1A' }}>
+                <Typography variant="nav-title" style={{ fontFamily: 'Inter-Regular', color: '#1A1F1C' }}>
                   Edit project name and description
                 </Typography>
               </Pressable>

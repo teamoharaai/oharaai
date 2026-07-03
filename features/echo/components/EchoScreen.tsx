@@ -85,7 +85,7 @@ function EchoEntryListCard({ entry }: { entry: EchoEntry }) {
       style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
     >
       <View className="mb-3 rounded-xl bg-white p-4 shadow-sm">
-        <Text className="font-sans text-sm leading-[21px] text-[#1C1C1E]" numberOfLines={2}>
+        <Text className="font-sans text-sm leading-[21px] text-near-black" numberOfLines={2}>
           {entry.content}
         </Text>
 
@@ -346,7 +346,7 @@ export function EchoScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View className="mb-6">
-          <Text className="font-sans text-2xl text-[#1C1C1E]" style={{ fontFamily: 'Inter-ExtraBold' }}>Echo</Text>
+          <Text className="font-sans text-2xl text-near-black" style={{ fontFamily: 'Inter-ExtraBold' }}>Echo</Text>
           <Typography variant="subtitle" className="mt-0.5">
             {formatHeaderDate(today)}
           </Typography>
@@ -359,14 +359,14 @@ export function EchoScreen() {
         >
           <SectionLabel>Reflection</SectionLabel>
           <TextInput
-            className="mb-2.5 rounded-xl border border-[#D8D2C8] bg-white px-3.5 py-3 font-sans text-base text-[#1C1C1E]"
+            className="mb-2.5 rounded-xl border border-[#D8D2C8] bg-white px-3.5 py-3 font-sans text-base text-near-black"
             placeholder="Title (optional)"
             placeholderTextColor="#6B7B6E"
             value={titleText}
             onChangeText={handleTitleChange}
           />
           <TextInput
-            className={`min-h-[100px] rounded-xl border bg-white px-3.5 py-3 font-sans text-base text-[#1C1C1E] ${
+            className={`min-h-[100px] rounded-xl border bg-white px-3.5 py-3 font-sans text-base text-near-black ${
               isComposerFocused ? 'border-[#3D5247]' : 'border-[#D8D2C8]'
             }`}
             placeholder="What's on your mind?"
@@ -464,7 +464,7 @@ export function EchoScreen() {
             className="max-h-[60%] rounded-t-2xl border-t border-[#D8D2C8] bg-white pb-10 pt-3"
           >
             <View className="mb-4 h-1 w-9 self-center rounded-full bg-[#D8D2C8]" />
-            <Text className="mb-3 px-5 font-sans text-base text-[#1C1C1E]" style={{ fontFamily: 'Inter-Bold' }}>Link a goal</Text>
+            <Text className="mb-3 px-5 font-sans text-base text-near-black" style={{ fontFamily: 'Inter-Bold' }}>Link a goal</Text>
             {pickerGoals.length === 0 ? (
               <Typography variant="subtitle" className="px-5">
                 No active goals found.
@@ -482,7 +482,7 @@ export function EchoScreen() {
                     className="border-b border-[#D8D2C8] px-5 py-3.5"
                     activeOpacity={0.7}
                   >
-                    <Text className="font-sans text-base text-[#1C1C1E]">{item.title}</Text>
+                    <Text className="font-sans text-base text-near-black">{item.title}</Text>
                   </TouchableOpacity>
                 )}
               />
