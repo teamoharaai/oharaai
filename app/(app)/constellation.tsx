@@ -106,7 +106,7 @@ export default function ConstellationScreen() {
             fontFamily: 'Inter-Regular',
             fontSize: 14,
             lineHeight: 21,
-            color: '#6B7280',
+            color: '#6B7B6E',
             textAlign: 'center',
             marginBottom: 40,
             maxWidth: 280,
@@ -124,7 +124,7 @@ export default function ConstellationScreen() {
               style={{
                 fontFamily: 'Inter-Regular',
                 fontSize: 12,
-                color: '#6B7280',
+                color: '#6B7B6E',
                 marginBottom: 6,
               }}
             >
@@ -155,7 +155,7 @@ export default function ConstellationScreen() {
               style={{
                 fontFamily: 'Inter-Regular',
                 fontSize: 12,
-                color: '#6B7280',
+                color: '#6B7B6E',
                 marginBottom: 6,
               }}
             >

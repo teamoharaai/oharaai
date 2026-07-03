@@ -20,7 +20,7 @@ export default function ExploreScreen() {
             fontFamily: 'Inter-Regular',
             fontSize: 14,
             lineHeight: 21,
-            color: '#6B7280',
+            color: '#6B7B6E',
             textAlign: 'center',
             maxWidth: 280,
           }}

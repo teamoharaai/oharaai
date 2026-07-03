@@ -25,7 +25,7 @@ export function AffiliateTeaser() {
         <Text
           style={{
             fontSize: 11,
-            fontWeight: '500',
+            fontFamily: 'Inter-Medium',
             color: '#6B7B6E',
             letterSpacing: 1.5,
             textTransform: 'uppercase',
@@ -46,7 +46,7 @@ export function AffiliateTeaser() {
           <Text
             style={{
               fontSize: 11,
-              fontWeight: '600',
+              fontFamily: 'Inter-SemiBold',
               color: '#3D5247',
             }}
           >
@@ -58,7 +58,7 @@ export function AffiliateTeaser() {
       <Text
         style={{
           fontSize: 20,
-          fontWeight: '600',
+          fontFamily: 'Inter-SemiBold',
           color: '#1A1F1C',
           marginBottom: 8,
         }}

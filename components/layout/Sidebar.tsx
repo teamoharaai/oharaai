@@ -34,7 +34,7 @@ export function Sidebar() {
         <Text
           style={{
             color: '#E8EDE9',
-            fontWeight: '600',
+            fontFamily: 'Inter-SemiBold',
             fontSize: 12,
             letterSpacing: 4,
           }}
@@ -73,7 +73,7 @@ export function Sidebar() {
                 style={{
                   color: isActive ? '#E8EDE9' : '#A8C4AE',
                   fontSize: 14,
-                  fontWeight: '500',
+                  fontFamily: 'Inter-Medium',
                 }}
               >
                 {item.label}

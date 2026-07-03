@@ -79,6 +79,7 @@ function NoteCard({ item, onUpdate }: VaultItemCardProps) {
       <View className="flex-row items-start justify-between">
         <Text
           className={`flex-1 text-sm font-medium pr-2 ${derived ? 'italic text-gray-400' : 'text-gray-800'}`}
+          style={derived ? { fontFamily: 'Inter-Italic' } : undefined}
           numberOfLines={expanded ? undefined : 1}
         >
           {titleText}

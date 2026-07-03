@@ -115,7 +115,7 @@ export function MeasurablesPanel({
       <Text
         style={{
           fontSize: 11,
-          fontWeight: '500',
+          fontFamily: 'Inter-Medium',
           color: '#6B7B6E',
           letterSpacing: 1.5,
           textTransform: 'uppercase',
@@ -143,7 +143,7 @@ export function MeasurablesPanel({
         >
           <Text style={{ fontSize: 12, color: '#EF4444', flex: 1, marginRight: 8 }}>{error}</Text>
           <TouchableOpacity onPress={onDismissError}>
-            <Text style={{ fontSize: 12, fontWeight: '600', color: '#EF4444' }}>Dismiss</Text>
+            <Text style={{ fontSize: 12, fontFamily: 'Inter-SemiBold', color: '#EF4444' }}>Dismiss</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -221,7 +221,7 @@ export function MeasurablesPanel({
                 <Text
                   style={{
                     fontSize: 12,
-                    fontWeight: '500',
+                    fontFamily: 'Inter-Medium',
                     color: addType === t ? accentColor : '#9CAF9F',
                   }}
                 >
@@ -286,7 +286,7 @@ export function MeasurablesPanel({
               {isAdding ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Text style={{ fontSize: 13, fontWeight: '600', color: '#FFFFFF' }}>Add</Text>
+                <Text style={{ fontSize: 13, fontFamily: 'Inter-SemiBold', color: '#FFFFFF' }}>Add</Text>
               )}
             </TouchableOpacity>
           </View>

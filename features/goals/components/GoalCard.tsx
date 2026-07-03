@@ -120,7 +120,7 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
         {/* Activity line — fixed-height wrapper prevents layout shift when signals are absent */}
         <View style={{ minHeight: 20, justifyContent: 'center', marginTop: 4, marginBottom: 4 }}>
           {(goal.vaultItemCount > 0 || goal.echoLinkCount > 0) && (
-            <Text style={{ fontSize: 12, color: '#6B7280' }}>
+            <Text style={{ fontSize: 12, color: '#6B7B6E' }}>
               {[
                 goal.vaultItemCount > 0 ? `${goal.vaultItemCount} item${goal.vaultItemCount !== 1 ? 's' : ''}` : null,
                 goal.echoLinkCount > 0 ? `${goal.echoLinkCount} reflection${goal.echoLinkCount !== 1 ? 's' : ''}` : null,

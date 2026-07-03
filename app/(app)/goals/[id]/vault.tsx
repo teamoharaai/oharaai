@@ -97,7 +97,7 @@ function VaultPickerSheet({ onNote, onLink, onClose }: VaultPickerSheetProps) {
         onPress={onClose}
         style={{ paddingVertical: 14, alignItems: 'center' }}
       >
-        <Text style={{ fontFamily: 'Inter-Regular', fontSize: 14, color: '#6B7280' }}>Cancel</Text>
+        <Text style={{ fontFamily: 'Inter-Regular', fontSize: 14, color: '#6B7B6E' }}>Cancel</Text>
       </Pressable>
     </View>
   );

@@ -31,7 +31,7 @@ export function Badge({ label, variant = 'active' }: BadgeProps) {
         alignSelf: 'flex-start',
       }}
     >
-      <Text style={{ color: style.text, fontSize: 11, fontWeight: '500' }}>
+      <Text style={{ color: style.text, fontSize: 11, fontFamily: 'Inter-Medium' }}>
         {prefix}{label}
       </Text>
     </View>

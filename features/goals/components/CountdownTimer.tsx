@@ -35,7 +35,7 @@ export function CountdownTimer({ deadline, accentColor }: CountdownTimerProps) {
   if (timeLeft.overdue) {
     return (
       <View>
-        <Text style={{ color: '#E85D04', fontSize: 13, fontWeight: '600', letterSpacing: 0.5 }}>
+        <Text style={{ color: '#E85D04', fontSize: 13, fontFamily: 'Inter-SemiBold', letterSpacing: 0.5 }}>
           Deadline passed
         </Text>
       </View>
@@ -48,19 +48,19 @@ export function CountdownTimer({ deadline, accentColor }: CountdownTimerProps) {
         <Text style={{ color: accentColor, fontSize: 44, fontFamily: 'Inter-Bold', lineHeight: 48 }}>
           {timeLeft.days}
         </Text>
-        <Text style={{ color: '#9CAF9F', fontSize: 10, fontWeight: '500', letterSpacing: 1.5, textTransform: 'uppercase' }}>
+        <Text style={{ color: '#9CAF9F', fontSize: 10, fontFamily: 'Inter-Medium', letterSpacing: 1.5, textTransform: 'uppercase' }}>
           days
         </Text>
       </View>
       <View style={{ alignItems: 'center', paddingBottom: 4 }}>
-        <Text style={{ color: '#6B7B6E', fontSize: 17, fontWeight: '500' }}>{timeLeft.hours}h</Text>
-        <Text style={{ color: '#9CAF9F', fontSize: 10, fontWeight: '500', letterSpacing: 1.5, textTransform: 'uppercase' }}>
+        <Text style={{ color: '#6B7B6E', fontSize: 17, fontFamily: 'Inter-Medium' }}>{timeLeft.hours}h</Text>
+        <Text style={{ color: '#9CAF9F', fontSize: 10, fontFamily: 'Inter-Medium', letterSpacing: 1.5, textTransform: 'uppercase' }}>
           hrs
         </Text>
       </View>
       <View style={{ alignItems: 'center', paddingBottom: 4 }}>
-        <Text style={{ color: '#6B7B6E', fontSize: 17, fontWeight: '500' }}>{timeLeft.minutes}m</Text>
-        <Text style={{ color: '#9CAF9F', fontSize: 10, fontWeight: '500', letterSpacing: 1.5, textTransform: 'uppercase' }}>
+        <Text style={{ color: '#6B7B6E', fontSize: 17, fontFamily: 'Inter-Medium' }}>{timeLeft.minutes}m</Text>
+        <Text style={{ color: '#9CAF9F', fontSize: 10, fontFamily: 'Inter-Medium', letterSpacing: 1.5, textTransform: 'uppercase' }}>
           min
         </Text>
       </View>

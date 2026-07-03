@@ -105,7 +105,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
       {isLoading ? (
         <ActivityIndicator size="small" color="#9CAF9F" />
       ) : loadError ? (
-        <Text className="text-sm text-[#6B7280]" style={{ fontFamily: 'Inter-Regular' }}>
+        <Text className="text-sm text-[#6B7B6E]" style={{ fontFamily: 'Inter-Regular' }}>
           Couldn't load your settings. Please try again.
         </Text>
       ) : (
@@ -129,7 +129,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
             )}
           </View>
           <Text
-            className="text-xs text-[#6B7280] mt-2"
+            className="text-xs text-[#6B7B6E] mt-2"
             style={{ fontFamily: 'Inter-Regular' }}
           >
             When off, Echo entries are saved without AI analysis.

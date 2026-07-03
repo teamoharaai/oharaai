@@ -58,14 +58,14 @@ export default function CreateProjectScreen() {
               <Text style={{ fontSize: 15, color: '#4A7C5F' }}>← Goals</Text>
             </Pressable>
             <Text style={{ fontSize: 15, color: '#9CAF9F' }}>|</Text>
-            <Text style={{ fontSize: 15, color: '#1A1F1C', marginLeft: 8, fontWeight: '500' }}>
+            <Text style={{ fontSize: 15, color: '#1A1F1C', marginLeft: 8, fontFamily: 'Inter-Medium' }}>
               New project
             </Text>
           </View>
 
           {/* Body — centered, max-width 480px on web */}
           <View style={{ alignSelf: 'center', width: '100%', maxWidth: 480 }}>
-            <Text style={{ fontSize: 24, fontWeight: '600', color: '#1A1F1C', marginBottom: 8 }}>
+            <Text style={{ fontSize: 24, fontFamily: 'Inter-SemiBold', color: '#1A1F1C', marginBottom: 8 }}>
               What are you working toward?
             </Text>
             <Text style={{ fontSize: 15, color: '#6B7B6E', lineHeight: 22, marginBottom: 32 }}>
@@ -77,7 +77,7 @@ export default function CreateProjectScreen() {
               <Text
                 style={{
                   fontSize: 11,
-                  fontWeight: '500',
+                  fontFamily: 'Inter-Medium',
                   color: '#6B7B6E',
                   letterSpacing: 1.5,
                   textTransform: 'uppercase',
@@ -102,7 +102,7 @@ export default function CreateProjectScreen() {
               <Text
                 style={{
                   fontSize: 11,
-                  fontWeight: '500',
+                  fontFamily: 'Inter-Medium',
                   color: '#6B7B6E',
                   letterSpacing: 1.5,
                   textTransform: 'uppercase',
@@ -133,7 +133,7 @@ export default function CreateProjectScreen() {
                 alignItems: 'center',
               }}
             >
-              <Text style={{ fontSize: 16, fontWeight: '600', color: '#E8EDE9' }}>
+              <Text style={{ fontSize: 16, fontFamily: 'Inter-SemiBold', color: '#E8EDE9' }}>
                 {isSubmitting ? 'Creating…' : 'Create project'}
               </Text>
             </Pressable>

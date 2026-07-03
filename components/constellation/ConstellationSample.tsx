@@ -4,7 +4,7 @@ import { COLORS, LIGHT_THEME } from '@/constants/colors';
 
 const FOREST = LIGHT_THEME.background.sidebar;
 const CREAM = LIGHT_THEME.background.page;
-const LABEL = '#6B7280';
+const LABEL = '#6B7B6E';
 const AMBER = COLORS.amber;
 
 function Line({

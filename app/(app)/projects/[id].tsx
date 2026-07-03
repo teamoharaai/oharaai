@@ -197,7 +197,7 @@ export default function ProjectDetailScreen() {
                 style={{
                   fontFamily: 'Inter-Regular',
                   fontSize: 14,
-                  color: '#6B7280',
+                  color: '#6B7B6E',
                   lineHeight: 20,
                   marginTop: 8,
                 }}
@@ -341,7 +341,7 @@ export default function ProjectDetailScreen() {
                 elevation: 1,
               }}
             >
-              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#6B7280', lineHeight: 22 }}>
+              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#6B7B6E', lineHeight: 22 }}>
                 Add project-level notes and resources
               </Text>
             </View>
@@ -368,7 +368,7 @@ export default function ProjectDetailScreen() {
                 elevation: 1,
               }}
             >
-              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#6B7280', lineHeight: 22 }}>
+              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#6B7B6E', lineHeight: 22 }}>
                 Activity will appear as you and your team make progress
               </Text>
             </View>
@@ -443,7 +443,7 @@ export default function ProjectDetailScreen() {
         <Typography variant="section-header" style={{ marginBottom: 10 }}>
           Edit project
         </Typography>
-        <Text style={{ fontFamily: 'Inter-Regular', fontSize: 14, lineHeight: 21, color: '#6B7280', marginBottom: 18 }}>
+        <Text style={{ fontFamily: 'Inter-Regular', fontSize: 14, lineHeight: 21, color: '#6B7B6E', marginBottom: 18 }}>
           Update the project name and long-term intent.
         </Text>
 
@@ -513,7 +513,7 @@ export default function ProjectDetailScreen() {
         <Typography variant="section-header" style={{ marginBottom: 10 }}>
           Delete project
         </Typography>
-        <Text style={{ fontFamily: 'Inter-Regular', fontSize: 14, lineHeight: 21, color: '#6B7280' }}>
+        <Text style={{ fontFamily: 'Inter-Regular', fontSize: 14, lineHeight: 21, color: '#6B7B6E' }}>
           Are you sure you want to delete this project? This cannot be undone.
         </Text>
       </Modal>

@@ -69,7 +69,7 @@ function formatRelativeTime(date: Date): string {
 
 function SectionLabel({ children }: { children: string }) {
   return (
-    <Text className="mb-2.5 font-sans text-xs font-semibold uppercase tracking-[1.2px] text-[#6B7280]">
+    <Text className="mb-2.5 font-sans text-xs font-semibold uppercase tracking-[1.2px] text-[#6B7B6E]">
       {children}
     </Text>
   );
@@ -89,7 +89,7 @@ function EchoEntryListCard({ entry }: { entry: EchoEntry }) {
         </Text>
 
         <View className="mt-3 flex-row items-center gap-2">
-          <Text className="font-sans text-xs text-[#6B7280]">{formatRelativeTime(entry.createdAt)}</Text>
+          <Text className="font-sans text-xs text-[#6B7B6E]">{formatRelativeTime(entry.createdAt)}</Text>
           {entry.emotion?.primary ? (
             <View className="rounded-full bg-[#EEF2EF] px-2 py-1">
               <Text className="font-sans text-[11px] font-medium text-[#3D5247]">
@@ -344,7 +344,7 @@ export function EchoScreen() {
       >
         <View className="mb-6">
           <Text className="font-sans text-2xl text-[#1C1C1E]" style={{ fontFamily: 'Inter-ExtraBold' }}>Echo</Text>
-          <Text className="mt-0.5 font-sans text-sm text-[#6B7280]">
+          <Text className="mt-0.5 font-sans text-sm text-[#6B7B6E]">
             {formatHeaderDate(today)}
           </Text>
         </View>
@@ -358,7 +358,7 @@ export function EchoScreen() {
           <TextInput
             className="mb-2.5 rounded-xl border border-[#D8D2C8] bg-white px-3.5 py-3 font-sans text-base text-[#1C1C1E]"
             placeholder="Title (optional)"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor="#6B7B6E"
             value={titleText}
             onChangeText={handleTitleChange}
           />
@@ -367,7 +367,7 @@ export function EchoScreen() {
               isComposerFocused ? 'border-[#3D5247]' : 'border-[#D8D2C8]'
             }`}
             placeholder="What's on your mind?"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor="#6B7B6E"
             multiline
             value={text}
             onChangeText={handleTextChange}
@@ -392,7 +392,7 @@ export function EchoScreen() {
                 className="flex-row items-center rounded-full border border-[#D8D2C8] px-3 py-1.5"
                 activeOpacity={0.7}
               >
-                <Text className="font-sans text-xs text-[#6B7280]">+ Link goal</Text>
+                <Text className="font-sans text-xs text-[#6B7B6E]">+ Link goal</Text>
               </TouchableOpacity>
             )}
 
@@ -403,14 +403,14 @@ export function EchoScreen() {
               }`}
               activeOpacity={0.7}
             >
-              <Text className={`font-sans text-xs ${aiInsightOn ? 'text-white' : 'text-[#6B7280]'}`}>
+              <Text className={`font-sans text-xs ${aiInsightOn ? 'text-white' : 'text-[#6B7B6E]'}`}>
                 AI insight
               </Text>
             </TouchableOpacity>
           </View>
 
           {aiInsightOn ? (
-            <Text className="mt-2 font-sans text-[11px] text-[#6B7280]">
+            <Text className="mt-2 font-sans text-[11px] text-[#6B7B6E]">
               Ohara AI will reflect on this entry
             </Text>
           ) : null}
@@ -425,7 +425,7 @@ export function EchoScreen() {
             }`}
             activeOpacity={0.8}
           >
-            <Text className={`font-sans text-sm font-semibold ${canSave ? 'text-white' : 'text-[#6B7280]'}`}>
+            <Text className={`font-sans text-sm font-semibold ${canSave ? 'text-white' : 'text-[#6B7B6E]'}`}>
               {isSaving ? 'Saving...' : 'Save Entry'}
             </Text>
           </TouchableOpacity>
@@ -463,7 +463,7 @@ export function EchoScreen() {
             <View className="mb-4 h-1 w-9 self-center rounded-full bg-[#D8D2C8]" />
             <Text className="mb-3 px-5 font-sans text-base text-[#1C1C1E]" style={{ fontFamily: 'Inter-Bold' }}>Link a goal</Text>
             {pickerGoals.length === 0 ? (
-              <Text className="px-5 font-sans text-sm text-[#6B7280]">
+              <Text className="px-5 font-sans text-sm text-[#6B7B6E]">
                 No active goals found.
               </Text>
             ) : (

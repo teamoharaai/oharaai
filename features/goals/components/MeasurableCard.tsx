@@ -177,7 +177,7 @@ export function MeasurableCard({
         </TouchableOpacity>
         {editingField === 'title' ? (
           <TextInput
-            style={[inputStyle, { flex: 1, fontSize: 13, fontWeight: '500' }]}
+            style={[inputStyle, { flex: 1, fontSize: 13, fontFamily: 'Inter-Medium' }]}
             value={draftTitle}
             onChangeText={setDraftTitle}
             onBlur={() => saveField('title')}
@@ -191,7 +191,7 @@ export function MeasurableCard({
             <Text
               style={{
                 fontSize: 13,
-                fontWeight: '500',
+                fontFamily: 'Inter-Medium',
                 color: isCompleted ? '#9CA89E' : '#1A1F1C',
                 textDecorationLine: isCompleted ? 'line-through' : 'none',
               }}
@@ -268,7 +268,7 @@ export function MeasurableCard({
               }}
               disabled={isSaving}
             >
-              <Text style={{ fontSize: 16, fontWeight: '600', color: accentColor }}>+</Text>
+              <Text style={{ fontSize: 16, fontFamily: 'Inter-SemiBold', color: accentColor }}>+</Text>
             </TouchableOpacity>
           </View>
 
@@ -380,7 +380,7 @@ export function MeasurableCard({
               }}
               onPress={handleDelete}
             >
-              <Text style={{ fontSize: 12, fontWeight: '500', color: '#EF4444' }}>Delete</Text>
+              <Text style={{ fontSize: 12, fontFamily: 'Inter-Medium', color: '#EF4444' }}>Delete</Text>
             </TouchableOpacity>
           </View>
         </View>

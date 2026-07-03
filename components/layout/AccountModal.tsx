@@ -207,7 +207,7 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
       {isLoading ? (
         <ActivityIndicator size="small" color="#9CAF9F" />
       ) : loadError ? (
-        <Text className="text-sm text-[#6B7280]" style={{ fontFamily: 'Inter-Regular' }}>
+        <Text className="text-sm text-[#6B7B6E]" style={{ fontFamily: 'Inter-Regular' }}>
           Couldn't load your profile. Please try again.
         </Text>
       ) : (

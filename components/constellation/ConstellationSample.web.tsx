@@ -3,7 +3,7 @@ import { COLORS, LIGHT_THEME } from '@/constants/colors';
 
 const FOREST = LIGHT_THEME.background.sidebar;
 const CREAM = LIGHT_THEME.background.page;
-const LABEL = '#6B7280';
+const LABEL = '#6B7B6E';
 const AMBER = COLORS.amber;
 
 export default function ConstellationSample() {
@@ -52,7 +52,7 @@ export default function ConstellationSample() {
         {/* @ts-ignore */}
         <circle cx="215" cy="185" r="16" fill={AMBER} />
         {/* @ts-ignore */}
-        <g fill={LABEL} fontFamily="Inter, system-ui, sans-serif" fontSize="11" textAnchor="middle">
+        <g fill={LABEL} fontFamily="Inter-Regular" fontSize="11" textAnchor="middle">
           {/* @ts-ignore */}
           <text x="160" y="80">Current Season</text>
           {/* @ts-ignore */}

@@ -323,7 +323,7 @@ export default function GoalCreateScreen() {
           <Typography variant="nav-back">Goals</Typography>
         </TouchableOpacity>
         <View style={{ width: 1, height: 16, backgroundColor: '#EAE7E0', marginRight: 12 }} />
-        <Text style={{ color: '#1A1F1C', fontWeight: '600', fontSize: 15 }}>New goal</Text>
+        <Text style={{ color: '#1A1F1C', fontFamily: 'Inter-SemiBold', fontSize: 15 }}>New goal</Text>
         <View style={{ flex: 1 }} />
         <TouchableOpacity
           onPress={handleCreateGoal}
@@ -338,7 +338,7 @@ export default function GoalCreateScreen() {
           }}
           activeOpacity={0.7}
         >
-          <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>Create goal</Text>
+          <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: 'Inter-SemiBold' }}>Create goal</Text>
         </TouchableOpacity>
       </View>
 
@@ -370,13 +370,13 @@ export default function GoalCreateScreen() {
                 justifyContent: 'center',
               }}
             >
-              <Text style={{ color: '#4A7C5F', fontSize: 20, fontWeight: '500' }}>O</Text>
+              <Text style={{ color: '#4A7C5F', fontSize: 20, fontFamily: 'Inter-Medium' }}>O</Text>
             </View>
             <Text
               style={{
                 color: '#1A1F1C',
                 fontSize: 22,
-                fontWeight: '500',
+                fontFamily: 'Inter-Medium',
                 textAlign: 'center',
               }}
             >
@@ -573,7 +573,7 @@ export default function GoalCreateScreen() {
               }}
               activeOpacity={0.7}
             >
-              <Text style={{ color: '#4A7C5F', fontSize: 12, fontWeight: '500' }}>{label}</Text>
+              <Text style={{ color: '#4A7C5F', fontSize: 12, fontFamily: 'Inter-Medium' }}>{label}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -611,7 +611,7 @@ export default function GoalCreateScreen() {
                       style={{
                         color: isSelected ? '#E8EDE9' : '#6B7B6E',
                         fontSize: 14,
-                        fontWeight: '500',
+                        fontFamily: 'Inter-Medium',
                       }}
                     >
                       {project.title}
