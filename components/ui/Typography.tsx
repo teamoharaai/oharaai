@@ -1,6 +1,6 @@
 import { Text, type TextProps, type StyleProp, type TextStyle } from 'react-native';
 
-type Variant = 'heading' | 'title' | 'body' | 'label' | 'field-label' | 'caption' | 'ai' | 'ai-italic' | 'eyebrow' | 'emphasis-sm' | 'meta' | 'content' | 'nav-back' | 'section-header' | 'nav-title' | 'subtitle' | 'hint' | 'description';
+type Variant = 'heading' | 'title' | 'body' | 'label' | 'field-label' | 'caption' | 'ai' | 'ai-italic' | 'eyebrow' | 'emphasis-sm' | 'meta' | 'content' | 'nav-back' | 'section-header' | 'nav-title' | 'subtitle' | 'hint' | 'description' | 'badge-text';
 
 const VARIANT_CLASSES: Record<Variant, string> = {
   heading:         'font-semibold text-2xl text-[#1A1F1C]',
@@ -21,6 +21,7 @@ const VARIANT_CLASSES: Record<Variant, string> = {
   subtitle:        'font-sans text-sm text-[#6B7B6E]',
   hint:            'font-sans text-xs text-[#6B7B6E]',
   description:     'font-sans text-[14px] leading-[21px] text-[#6B7B6E]',
+  'badge-text':    'font-sans text-[11px] font-medium',
 };
 
 interface TypographyProps extends Omit<TextProps, 'style'> {

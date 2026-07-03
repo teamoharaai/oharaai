@@ -1,4 +1,5 @@
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
+import { Typography } from './Typography';
 
 type BadgeVariant = 'new' | 'active' | 'complete' | 'ai' | 'category' | 'paused' | 'archived';
 
@@ -31,9 +32,9 @@ export function Badge({ label, variant = 'active' }: BadgeProps) {
         alignSelf: 'flex-start',
       }}
     >
-      <Text style={{ color: style.text, fontSize: 11, fontFamily: 'Inter-Medium' }}>
+      <Typography variant="badge-text" style={{ color: style.text }}>
         {prefix}{label}
-      </Text>
+      </Typography>
     </View>
   );
 }
