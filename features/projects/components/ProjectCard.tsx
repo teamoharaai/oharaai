@@ -1,5 +1,6 @@
 import { View, Text, Pressable } from 'react-native';
 import { router } from 'expo-router';
+import { Typography } from '@/components/ui/Typography';
 import type { Project } from '@/features/projects/types';
 
 interface ProjectCardProps {
@@ -38,25 +39,27 @@ export function ProjectCard({ project }: ProjectCardProps) {
             marginRight: 10,
           }}
         />
-        <Text
-          style={{ flex: 1, fontSize: 16, fontWeight: '600', color: '#1A1F1C' }}
+        <Typography
+          variant="title"
+          style={{ flex: 1 }}
           numberOfLines={1}
         >
           {project.title}
-        </Text>
+        </Typography>
       </View>
 
-      <Text style={{ marginTop: 6, fontSize: 12, color: '#9CA89E' }}>
+      <Typography variant="caption" style={{ marginTop: 6 }}>
         Last active {lastActive}
-      </Text>
+      </Typography>
 
       {project.description !== null && (
-        <Text
-          style={{ marginTop: 6, fontSize: 13, color: '#6B7B6E' }}
+        <Typography
+          variant="meta"
+          style={{ marginTop: 6, color: '#6B7B6E' }}
           numberOfLines={2}
         >
           {project.description}
-        </Text>
+        </Typography>
       )}
 
       <View

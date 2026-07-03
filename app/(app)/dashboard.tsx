@@ -207,7 +207,7 @@ function DueTodayZone() {
                 }`}
               >
                 {done && (
-                  <Text className="text-xs font-bold text-[#3D5247]">✓</Text>
+                  <Text className="text-xs font-semibold text-[#3D5247]">✓</Text>
                 )}
                 {completing && !done && (
                   <View className="h-2 w-2 rounded-full bg-[#C9D4CD]" />

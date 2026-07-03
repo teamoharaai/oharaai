@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
 import { Badge } from '@/components/ui/Badge';
+import { Typography } from '@/components/ui/Typography';
 import type { Measurable, MeasurableUpdates } from '../types';
 
 interface MeasurableCardProps {
@@ -226,11 +227,11 @@ export function MeasurableCard({
                 />
               ) : (
                 <Pressable onPress={() => canEdit && setEditingField('currentValue')}>
-                  <Text style={{ fontSize: 12, color: '#6B7B6E' }}>{currentValue}</Text>
+                  <Typography variant="label">{currentValue}</Typography>
                 </Pressable>
               )}
 
-              <Text style={{ fontSize: 12, color: '#9CAF9F' }}>/</Text>
+              <Typography variant="caption">/</Typography>
 
               {editingField === 'targetValue' ? (
                 <TextInput
@@ -246,14 +247,14 @@ export function MeasurableCard({
                 />
               ) : (
                 <Pressable onPress={() => canEdit && setEditingField('targetValue')}>
-                  <Text style={{ fontSize: 12, color: '#6B7B6E' }}>
+                  <Typography variant="label">
                     {measurable.targetValue ?? '—'}
-                  </Text>
+                  </Typography>
                 </Pressable>
               )}
 
               {measurable.targetUnit && (
-                <Text style={{ fontSize: 12, color: '#9CAF9F' }}> {measurable.targetUnit}</Text>
+                <Typography variant="caption"> {measurable.targetUnit}</Typography>
               )}
             </View>
 
@@ -360,13 +361,13 @@ export function MeasurableCard({
             justifyContent: 'space-between',
           }}
         >
-          <Text style={{ fontSize: 12, color: '#6B7B6E' }}>Delete this milestone?</Text>
+          <Typography variant="label">Delete this milestone?</Typography>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity
               style={{ paddingHorizontal: 12, paddingVertical: 6 }}
               onPress={() => setShowDeleteConfirm(false)}
             >
-              <Text style={{ fontSize: 12, color: '#9CAF9F' }}>Cancel</Text>
+              <Typography variant="caption">Cancel</Typography>
             </TouchableOpacity>
             <TouchableOpacity
               style={{
