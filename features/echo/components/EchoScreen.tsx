@@ -13,6 +13,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { FEATURES } from '@/constants/features';
 import { EmptyStateCard } from '@/components/ui/EmptyStateCard';
+import { Typography } from '@/components/ui/Typography';
 import {
   getEchoDraftContextKey,
   useEchoDraftStore,
@@ -89,7 +90,7 @@ function EchoEntryListCard({ entry }: { entry: EchoEntry }) {
         </Text>
 
         <View className="mt-3 flex-row items-center gap-2">
-          <Text className="font-sans text-xs text-[#6B7B6E]">{formatRelativeTime(entry.createdAt)}</Text>
+          <Typography variant="hint">{formatRelativeTime(entry.createdAt)}</Typography>
           {entry.emotion?.primary ? (
             <View className="rounded-full bg-[#EEF2EF] px-2 py-1">
               <Text className="font-sans text-[11px] font-medium text-[#3D5247]">
@@ -346,9 +347,9 @@ export function EchoScreen() {
       >
         <View className="mb-6">
           <Text className="font-sans text-2xl text-[#1C1C1E]" style={{ fontFamily: 'Inter-ExtraBold' }}>Echo</Text>
-          <Text className="mt-0.5 font-sans text-sm text-[#6B7B6E]">
+          <Typography variant="subtitle" className="mt-0.5">
             {formatHeaderDate(today)}
-          </Text>
+          </Typography>
         </View>
 
         <View
@@ -394,7 +395,7 @@ export function EchoScreen() {
                 className="flex-row items-center rounded-full border border-[#D8D2C8] px-3 py-1.5"
                 activeOpacity={0.7}
               >
-                <Text className="font-sans text-xs text-[#6B7B6E]">+ Link goal</Text>
+                <Typography variant="hint">+ Link goal</Typography>
               </TouchableOpacity>
             )}
 
@@ -465,9 +466,9 @@ export function EchoScreen() {
             <View className="mb-4 h-1 w-9 self-center rounded-full bg-[#D8D2C8]" />
             <Text className="mb-3 px-5 font-sans text-base text-[#1C1C1E]" style={{ fontFamily: 'Inter-Bold' }}>Link a goal</Text>
             {pickerGoals.length === 0 ? (
-              <Text className="px-5 font-sans text-sm text-[#6B7B6E]">
+              <Typography variant="subtitle" className="px-5">
                 No active goals found.
-              </Text>
+              </Typography>
             ) : (
               <FlatList
                 data={pickerGoals}

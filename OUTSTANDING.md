@@ -115,6 +115,18 @@
       audit/conversion session (2026-07-03); not touched then, since it's a separate file with
       its own conversion pass coming. Candidate for the same `content` + override treatment
       when `EntryCard.tsx` is converted.
+- [ ] `components/layout/AccountModal.tsx:210` and `components/layout/SettingsModal.tsx:108` —
+      raw `<Text className="text-sm text-[#6B7B6E]" style={{ fontFamily: 'Inter-Regular' }}>`
+      error-state copy, matches the new `subtitle` variant (`components/ui/Typography.tsx`,
+      added 2026-07-03 during the `EchoScreen.tsx` conversion pass, justified by this exact
+      cross-file signature repeating 4x across `EchoScreen.tsx`/`AccountModal.tsx`/
+      `SettingsModal.tsx`). Not converted this session — out of scope, own conversion pass
+      needed for those two files.
+- [ ] `components/layout/SettingsModal.tsx:132` — raw
+      `<Text className="text-xs text-[#6B7B6E] mt-2" style={{ fontFamily: 'Inter-Regular' }}>`
+      helper copy, matches the new `hint` variant (`components/ui/Typography.tsx`, added
+      2026-07-03 alongside `subtitle`, same conversion pass). Not converted this session —
+      out of scope, own conversion pass needed for `SettingsModal.tsx`.
 
 ## Known nav gaps
 
