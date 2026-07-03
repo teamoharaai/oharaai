@@ -13,7 +13,6 @@ module.exports = {
         "near-black": "#1A1A1A",
         "earth-green": "#2D6A4F",
         "earth-green-dark": "#1E4D38",
-        amber: "#E09F3E",
         "card-bg": "#F3F1EC",
         muted: "#6B6B6B",
         // Dark theme (app screens)

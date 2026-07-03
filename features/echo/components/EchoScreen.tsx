@@ -138,11 +138,13 @@ function ComposerNotice({ kind }: { kind: SubmissionNoticeKind }) {
       text: 'text-[#5F6B66]',
     },
     rate_limited: {
-      container: 'border-amber-200 bg-amber-50',
+      // container mirrors STATUS.pending (constants/colors.ts); text-amber-800 predates that
+      // token and is a shade darker (#92400E) than STATUS.pending.text (#B45309) — left as-is.
+      container: 'border-[#FDE68A] bg-[#FFFBEB]',
       text: 'text-amber-800',
     },
     offline: {
-      container: 'border-amber-200 bg-amber-50',
+      container: 'border-[#FDE68A] bg-[#FFFBEB]',
       text: 'text-amber-800',
     },
     unconfirmed: {

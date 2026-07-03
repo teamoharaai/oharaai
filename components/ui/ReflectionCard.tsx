@@ -35,7 +35,7 @@ function BrtPill({ brt }: { brt: 'Bud' | 'Rose' | 'Thorn' }) {
   if (brt === 'Rose') {
     return (
       <View className="bg-amber-100 px-2 py-0.5 rounded-full">
-        <Text className="text-xs font-medium text-amber-700">Rose</Text>
+        <Text className="text-xs font-medium" style={{ color: '#F59E0B' }}>Rose</Text>
       </View>
     );
   }

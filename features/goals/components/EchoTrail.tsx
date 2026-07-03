@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { STATUS } from '@/constants/colors';
 
 // ─── Exported type ────────────────────────────────────────────────────────────
 
@@ -40,7 +41,7 @@ function BrtBadge({ brt }: BrtBadgeProps) {
   if (brt === 'Rose') {
     return (
       <View className="bg-amber-100 px-2 py-0.5 rounded-full">
-        <Text className="text-xs font-medium text-amber-700">Rose</Text>
+        <Text className="text-xs font-medium" style={{ color: '#F59E0B' }}>Rose</Text>
       </View>
     );
   }
@@ -106,10 +107,13 @@ function EchoTrailCard({ entry, onConfirmLink, onDismissLink }: EchoTrailCardPro
 
       {/* Unconfirmed suggestion banner */}
       {!entry.confirmed && (
-        <View className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
+        <View
+          className="mt-3 rounded-lg border p-3"
+          style={{ backgroundColor: STATUS.pending.bg, borderColor: STATUS.pending.border }}
+        >
           <View className="flex-row items-center gap-1.5 mb-2">
-            <Ionicons name="link-outline" size={12} color="#B45309" />
-            <Text className="text-xs text-amber-700">
+            <Ionicons name="link-outline" size={12} color={STATUS.pending.text} />
+            <Text className="text-xs" style={{ color: STATUS.pending.text }}>
               Ohara thinks this relates to your goal
             </Text>
           </View>

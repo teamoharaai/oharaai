@@ -8,6 +8,14 @@ export const COLORS = {
   border: '#E8E5DF',
 } as const;
 
+export const STATUS = {
+  pending: {
+    bg: '#FFFBEB',
+    border: '#FDE68A',
+    text: '#B45309',
+  },
+} as const;
+
 export const THEME = {
   light: {
     text: '#000',
