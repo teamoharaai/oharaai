@@ -194,8 +194,6 @@ export default function GoalDetailScreen() {
 
       {/* Phase 3: Space badge — spaceId is not yet on GoalWithMeasurables */}
 
-      {/* Phase 2: NextActionSection */}
-
       <MeasurablesPanel
         measurables={goal.measurables}
         accentColor={theme.accent}
