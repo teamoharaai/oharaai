@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, Text, TextInput, TouchableOpacity, View }
 import { MeasurableCard } from './MeasurableCard';
 import type { Measurable, MeasurableInput, MeasurableUpdates, MeasurableType } from '../types';
 import { GOAL_MEASURABLE_TYPES } from '@/lib/goals/schema';
+import { Typography } from '@/components/ui/Typography';
 
 interface MeasurablesPanelProps {
   measurables: Measurable[];
@@ -112,18 +113,9 @@ export function MeasurablesPanel({
   return (
     <View style={SECTION_CARD_STYLE}>
       {/* Section header */}
-      <Text
-        style={{
-          fontSize: 11,
-          fontFamily: 'Inter-Medium',
-          color: '#6B7B6E',
-          letterSpacing: 1.5,
-          textTransform: 'uppercase',
-          marginBottom: 14,
-        }}
-      >
+      <Typography variant="eyebrow" className="mb-3.5">
         Milestones
-      </Text>
+      </Typography>
 
       {/* Error banner */}
       {error && (
@@ -141,7 +133,7 @@ export function MeasurablesPanel({
             justifyContent: 'space-between',
           }}
         >
-          <Text style={{ fontSize: 12, color: '#EF4444', flex: 1, marginRight: 8 }}>{error}</Text>
+          <Text style={{ fontFamily: 'Inter-Regular', fontSize: 12, color: '#EF4444', flex: 1, marginRight: 8 }}>{error}</Text>
           <TouchableOpacity onPress={onDismissError}>
             <Text style={{ fontSize: 12, fontFamily: 'Inter-SemiBold', color: '#EF4444' }}>Dismiss</Text>
           </TouchableOpacity>
@@ -151,19 +143,19 @@ export function MeasurablesPanel({
       {/* Empty state */}
       {measurables.length === 0 && !showAddForm && (
         <View style={{ paddingVertical: 16, paddingHorizontal: 4, marginBottom: 8 }}>
-          <Text style={{ fontSize: 14, color: '#6B7B6E', marginBottom: 4 }}>
+          <Typography variant="description" style={{ marginBottom: 4 }}>
             Track progress through milestones.
-          </Text>
-          <Text style={{ fontSize: 13, color: '#9CAF9F', lineHeight: 20 }}>
+          </Typography>
+          <Text style={{ fontFamily: 'Inter-Regular', fontSize: 13, color: '#9CAF9F', lineHeight: 20 }}>
             Add a counter, habit, or checklist to make progress on this goal visible.
           </Text>
         </View>
       )}
 
       {vaultItemCount > 0 && (
-        <Text style={{ fontSize: 12, color: '#9CAF9F', marginBottom: 8 }}>
+        <Typography variant="caption" style={{ marginBottom: 8 }}>
           {vaultItemCount} vault entries
-        </Text>
+        </Typography>
       )}
 
       {/* Milestone cards */}
@@ -254,7 +246,7 @@ export function MeasurablesPanel({
           </View>
 
           {addError && (
-            <Text style={{ fontSize: 12, color: '#EF4444', marginBottom: 8 }}>{addError}</Text>
+            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 12, color: '#EF4444', marginBottom: 8 }}>{addError}</Text>
           )}
 
           <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -270,7 +262,7 @@ export function MeasurablesPanel({
               onPress={resetAddForm}
               disabled={isAdding}
             >
-              <Text style={{ fontSize: 13, color: '#6B7B6E' }}>Cancel</Text>
+              <Typography variant="subtitle">Cancel</Typography>
             </TouchableOpacity>
             <TouchableOpacity
               style={{
@@ -308,7 +300,7 @@ export function MeasurablesPanel({
             }}
             onPress={() => setShowAddForm(true)}
           >
-            <Text style={{ fontSize: 13, color: '#9CAF9F' }}>＋ Add milestone</Text>
+            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 13, color: '#9CAF9F' }}>＋ Add milestone</Text>
           </TouchableOpacity>
         )
       )}

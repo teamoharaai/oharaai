@@ -127,6 +127,23 @@
       helper copy, matches the new `hint` variant (`components/ui/Typography.tsx`, added
       2026-07-03 alongside `subtitle`, same conversion pass). Not converted this session —
       out of scope, own conversion pass needed for `SettingsModal.tsx`.
+- [ ] `app/(app)/constellation.tsx:104-115`, `app/(app)/explore.tsx:18-29`, and
+      `components/AffiliateTeaser.tsx:69-77` — all match the new `description` variant
+      (`components/ui/Typography.tsx`, added 2026-07-03 during the `MeasurablesPanel.tsx`
+      conversion pass, justified by this signature repeating 5x across 5 files). Not converted
+      this session — out of scope, own conversion pass needed for each file.
+      `AffiliateTeaser.tsx:69-77` also currently has the zero-font-family bug (no `fontFamily`
+      declared at all), which the `description` variant conversion will fix as a side effect.
+- [ ] `features/goals/components/GoalDetailHeader.tsx:67-71` — also a `description` variant
+      candidate, but uses `lineHeight: 22` instead of the other 4 occurrences' `lineHeight: 21`
+      (variant is defined with `leading-[21px]`). Confirm whether 22 is an intentional
+      deviation or drift before converting — don't assume it should silently conform to 21.
+- [ ] `features/goals/components/GoalDetailHeader.tsx:87` — raw
+      `<Text style={{ fontSize: 13, color: '#9CAF9F' }}>No deadline set</Text>`, zero
+      font-family. Matches `MeasurablesPanel.tsx`'s "+ Add milestone" trigger label signature
+      exactly (13px, `#9CAF9F`, no lineHeight) — only 2 occurrences repo-wide as of 2026-07-03,
+      below the 3+ threshold for a new variant. Watch-list: re-run the cross-repo search if a
+      third occurrence turns up.
 
 ## Known nav gaps
 
