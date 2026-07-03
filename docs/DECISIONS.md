@@ -252,3 +252,7 @@ Work to suppress unconfirmed `ai_auto` echo_goal_links from the Activity feed is
 
 ## 2026-06-26
 Side effect of enabling INTELLIGENCE_ENABLED: also activates the dashboard Intelligence Zone (/api/intelligence), a separate AI-calling feature gated by the same flag. Both Echo AI insight and Intelligence Zone are now live with no paywall. Accepted as expected — re-gating both behind a real entitlement system is deferred to the future business-model session.
+
+## 2026-07-03 — 20px-Inter-Bold Typography variant: CLOSED, no variant needed
+
+Deleted `components/layout/Header.tsx` as dead code (zero callers repo-wide; Typography Phase 3 Group A cleanup). This removed one of the three sites in the "20px Inter-Bold" cluster flagged during the Phase 3 Group 2 audit — the other two are `+not-found.tsx` and `modal.tsx`. With Header.tsx gone, the cluster drops to 2 sites, below the 3+ recurrence threshold required to justify a new Typography variant. Status is closed as no-variant-needed, not deferred; do not revisit unless a third real site appears.
