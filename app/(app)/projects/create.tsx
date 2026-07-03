@@ -1,6 +1,5 @@
 import {
   View,
-  Text,
   TextInput,
   Pressable,
   ScrollView,
@@ -11,6 +10,7 @@ import {
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { useProjectStore } from '@/features/projects/store';
+import { Typography } from '@/components/ui/Typography';
 
 export default function CreateProjectScreen() {
   const [title, setTitle] = useState('');
@@ -54,38 +54,29 @@ export default function CreateProjectScreen() {
         >
           {/* Nav header */}
           <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: 16, marginBottom: 32 }}>
-            <Pressable onPress={() => router.back()} style={{ marginRight: 8 }}>
-              <Text style={{ fontSize: 15, color: '#4A7C5F' }}>← Goals</Text>
+            <Pressable onPress={() => router.back()}>
+              <Typography variant="nav-back">← Goals</Typography>
             </Pressable>
-            <Text style={{ fontSize: 15, color: '#9CAF9F' }}>|</Text>
-            <Text style={{ fontSize: 15, color: '#1A1F1C', marginLeft: 8, fontFamily: 'Inter-Medium' }}>
-              New project
-            </Text>
+            <Typography variant="nav-back" style={{ color: '#9CAF9F', marginHorizontal: 8 }}>
+              |
+            </Typography>
+            <Typography variant="nav-title">New project</Typography>
           </View>
 
           {/* Body — centered, max-width 480px on web */}
           <View style={{ alignSelf: 'center', width: '100%', maxWidth: 480 }}>
-            <Text style={{ fontSize: 24, fontFamily: 'Inter-SemiBold', color: '#1A1F1C', marginBottom: 8 }}>
+            <Typography variant="heading" style={{ marginBottom: 8 }}>
               What are you working toward?
-            </Text>
-            <Text style={{ fontSize: 15, color: '#6B7B6E', lineHeight: 22, marginBottom: 32 }}>
+            </Typography>
+            <Typography variant="body" style={{ fontSize: 15, lineHeight: 22, marginBottom: 32 }}>
               A project is a long-term ambition. Your goals will help you get there.
-            </Text>
+            </Typography>
 
             {/* Title input */}
             <View style={{ marginBottom: 20 }}>
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontFamily: 'Inter-Medium',
-                  color: '#6B7B6E',
-                  letterSpacing: 1.5,
-                  textTransform: 'uppercase',
-                  marginBottom: 8,
-                }}
-              >
+              <Typography variant="eyebrow" style={{ marginBottom: 8 }}>
                 Project name
-              </Text>
+              </Typography>
               <TextInput
                 style={inputStyle}
                 value={title}
@@ -99,18 +90,9 @@ export default function CreateProjectScreen() {
 
             {/* Description input */}
             <View style={{ marginBottom: 40 }}>
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontFamily: 'Inter-Medium',
-                  color: '#6B7B6E',
-                  letterSpacing: 1.5,
-                  textTransform: 'uppercase',
-                  marginBottom: 8,
-                }}
-              >
+              <Typography variant="eyebrow" style={{ marginBottom: 8 }}>
                 Long-term intent (optional)
-              </Text>
+              </Typography>
               <TextInput
                 style={[inputStyle, { minHeight: 80, maxHeight: 120, textAlignVertical: 'top' }]}
                 value={description}
@@ -133,9 +115,9 @@ export default function CreateProjectScreen() {
                 alignItems: 'center',
               }}
             >
-              <Text style={{ fontSize: 16, fontFamily: 'Inter-SemiBold', color: '#E8EDE9' }}>
+              <Typography variant="emphasis-sm" style={{ fontSize: 16, color: '#E8EDE9' }}>
                 {isSubmitting ? 'Creating…' : 'Create project'}
-              </Text>
+              </Typography>
             </Pressable>
           </View>
         </ScrollView>

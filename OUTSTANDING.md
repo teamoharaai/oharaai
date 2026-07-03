@@ -144,6 +144,13 @@
       exactly (13px, `#9CAF9F`, no lineHeight) — only 2 occurrences repo-wide as of 2026-07-03,
       below the 3+ threshold for a new variant. Watch-list: re-run the cross-repo search if a
       third occurrence turns up.
+- [ ] `app/(app)/dashboard.tsx:378` — raw `<Text className="mb-4 font-sans text-[15px]
+      text-[#6B7B6E]">No active goal yet.</Text>`, no `lineHeight`, no explicit `fontFamily`
+      override beyond the `font-sans` class. Incidental find during the `projects/create.tsx`
+      cross-repo search (2026-07-03) for the `body`+`{fontSize:15, lineHeight:22}` override
+      pattern (see `projects/[id].tsx:330`/`:357`, `projects/create.tsx:72`) — same fontSize/
+      color, missing lineHeight, so not confirmed as the same signature. Not chased further
+      this session; possible fourth occurrence if a future pass wants to fold it in.
 
 ## Known nav gaps
 
