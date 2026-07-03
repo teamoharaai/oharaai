@@ -1,4 +1,5 @@
-import { View, Text, TextInput } from 'react-native';
+import { View, TextInput } from 'react-native';
+import { Typography } from '@/components/ui/Typography';
 
 interface InputProps {
   label: string;
@@ -19,7 +20,7 @@ export function Input({
 }: InputProps) {
   return (
     <View>
-      <Text className="text-sm font-medium text-near-black mb-1.5">{label}</Text>
+      <Typography variant="field-label" className="mb-1.5">{label}</Typography>
       <TextInput
         className="bg-card-bg rounded-2xl px-4 py-3.5 text-base text-near-black border border-transparent"
         value={value}

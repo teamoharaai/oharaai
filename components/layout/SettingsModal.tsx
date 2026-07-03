@@ -3,6 +3,7 @@ import { ActivityIndicator, Switch, Text, View } from 'react-native';
 import supabase from '@/lib/db/client';
 import type { ApiResponse } from '@/lib/api/contracts';
 import { Modal } from '@/components/ui/Modal';
+import { Typography } from '@/components/ui/Typography';
 
 interface SettingsProfileData {
   intelligence_enabled: boolean;
@@ -105,9 +106,9 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
       {isLoading ? (
         <ActivityIndicator size="small" color="#9CAF9F" />
       ) : loadError ? (
-        <Text className="text-sm text-[#6B7B6E]" style={{ fontFamily: 'Inter-Regular' }}>
+        <Typography variant="subtitle">
           Couldn't load your settings. Please try again.
-        </Text>
+        </Typography>
       ) : (
         <View>
           <View className="flex-row items-center justify-between">
@@ -128,12 +129,9 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
               />
             )}
           </View>
-          <Text
-            className="text-xs text-[#6B7B6E] mt-2"
-            style={{ fontFamily: 'Inter-Regular' }}
-          >
+          <Typography variant="hint" className="mt-2">
             When off, Echo entries are saved without AI analysis.
-          </Text>
+          </Typography>
         </View>
       )}
     </Modal>

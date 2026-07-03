@@ -375,9 +375,9 @@ function NoActiveGoalCard() {
       <Typography variant="eyebrow" className="mb-2">
         Active Goal
       </Typography>
-      <Text className="mb-4 font-sans text-[15px] text-[#6B7B6E]">
+      <Typography variant="body" className="mb-4">
         No active goal yet.
-      </Text>
+      </Typography>
       <Pressable
         className="self-start rounded-full bg-[#3D5247] px-4 py-2.5"
         onPress={() => router.push('/goals/create')}

@@ -1,4 +1,5 @@
 import { Text, View } from 'react-native';
+import { Typography } from '@/components/ui/Typography';
 
 export function AffiliateTeaser() {
   return (
@@ -66,15 +67,9 @@ export function AffiliateTeaser() {
         Products & tools that moved the needle
       </Text>
 
-      <Text
-        style={{
-          fontSize: 14,
-          lineHeight: 21,
-          color: '#6B7B6E',
-        }}
-      >
+      <Typography variant="description">
         As you make progress, resources that others used on this path will appear here.
-      </Text>
+      </Typography>
     </View>
   );
 }

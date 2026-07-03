@@ -6,6 +6,7 @@ import type { ApiResponse } from '@/lib/api/contracts';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Avatar } from '@/components/ui/Avatar';
+import { Typography } from '@/components/ui/Typography';
 
 interface AccountProfileData {
   display_name: string;
@@ -207,9 +208,9 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
       {isLoading ? (
         <ActivityIndicator size="small" color="#9CAF9F" />
       ) : loadError ? (
-        <Text className="text-sm text-[#6B7B6E]" style={{ fontFamily: 'Inter-Regular' }}>
+        <Typography variant="subtitle">
           Couldn't load your profile. Please try again.
-        </Text>
+        </Typography>
       ) : (
         <View>
           <View className="items-center mb-5">

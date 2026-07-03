@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, SafeAreaView } from 'react-native';
 import ConstellationSample from '@/components/constellation/ConstellationSample';
+import { Typography } from '@/components/ui/Typography';
 import { LIGHT_THEME } from '@/constants/colors';
 import supabase from '@/lib/db/client';
 
@@ -101,12 +102,9 @@ export default function ConstellationScreen() {
         </Text>
 
         {/* Subtext */}
-        <Text
+        <Typography
+          variant="description"
           style={{
-            fontFamily: 'Inter-Regular',
-            fontSize: 14,
-            lineHeight: 21,
-            color: '#6B7B6E',
             textAlign: 'center',
             marginBottom: 40,
             maxWidth: 280,
@@ -114,7 +112,7 @@ export default function ConstellationScreen() {
         >
           As you set goals and reflect in Echo, Ohara maps your patterns into a
           personal Constellation — a living picture of who you&apos;re becoming.
-        </Text>
+        </Typography>
 
         {/* Progress gates */}
         <View style={{ width: '100%', maxWidth: 320, gap: 20 }}>
