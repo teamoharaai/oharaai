@@ -1,6 +1,7 @@
 import { Pressable, Text, View, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { ReflectionCard } from '@/components/ui/ReflectionCard';
+import { Typography } from '@/components/ui/Typography';
 import type { ActivityItem, EchoEntryActivity, MilestoneCompletedActivity, GoalCreatedActivity } from '@/types/activity';
 
 interface ActivityFeedProps {
@@ -17,9 +18,9 @@ function formatDate(timestamp: string): string {
 function GoalCreatedRow({ item }: { item: GoalCreatedActivity }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <Text style={{ fontSize: 11, color: '#9CAF9F' }}>◉</Text>
-      <Text style={{ fontSize: 13, color: '#9CAF9F', flex: 1 }}>Goal created</Text>
-      <Text style={{ fontFamily: 'Inter-Regular', fontSize: 12, color: '#9CAF9F' }}>{formatDate(item.timestamp)}</Text>
+      <Text style={{ fontFamily: 'Inter-Regular', fontSize: 11, color: '#9CAF9F' }}>◉</Text>
+      <Typography variant="meta" className="text-[#9CAF9F]" style={{ flex: 1 }}>Goal created</Typography>
+      <Typography variant="caption">{formatDate(item.timestamp)}</Typography>
     </View>
   );
 }
@@ -56,8 +57,8 @@ function EchoEntryCard({ item }: { item: EchoEntryActivity }) {
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Text style={{ fontSize: 11, color: '#9CAF9F' }}>✦</Text>
-          <Text style={{ fontSize: 12, color: '#9CAF9F' }}>{formatDate(item.timestamp)}</Text>
+          <Text style={{ fontFamily: 'Inter-Regular', fontSize: 11, color: '#9CAF9F' }}>✦</Text>
+          <Typography variant="caption">{formatDate(item.timestamp)}</Typography>
         </View>
         {item.emotion?.primary ? (
           <View
@@ -68,15 +69,15 @@ function EchoEntryCard({ item }: { item: EchoEntryActivity }) {
               paddingVertical: 2,
             }}
           >
-            <Text style={{ fontSize: 11, color: '#6B7B6E', textTransform: 'capitalize' }}>
+            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 11, color: '#6B7B6E', textTransform: 'capitalize' }}>
               {item.emotion.primary}
             </Text>
           </View>
         ) : null}
       </View>
-      <Text style={{ fontFamily: 'Inter-Regular', fontSize: 13, color: '#1A1F1C', lineHeight: 20 }} numberOfLines={3}>
+      <Typography variant="content" className="text-[13px] leading-5" numberOfLines={3}>
         {item.preview}
-      </Text>
+      </Typography>
     </Pressable>
   );
 }
@@ -84,11 +85,11 @@ function EchoEntryCard({ item }: { item: EchoEntryActivity }) {
 function MilestoneRow({ item }: { item: MilestoneCompletedActivity }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <Text style={{ fontSize: 13, color: '#3D5247' }}>✓</Text>
-      <Text style={{ fontSize: 13, color: '#1A1F1C', flex: 1 }} numberOfLines={1}>
+      <Text style={{ fontFamily: 'Inter-Regular', fontSize: 13, color: '#3D5247' }}>✓</Text>
+      <Typography variant="content" className="text-[13px]" style={{ flex: 1 }} numberOfLines={1}>
         {item.label}
-      </Text>
-      <Text style={{ fontSize: 12, color: '#9CAF9F' }}>{formatDate(item.timestamp)}</Text>
+      </Typography>
+      <Typography variant="caption">{formatDate(item.timestamp)}</Typography>
     </View>
   );
 }
@@ -105,25 +106,25 @@ function ActivityRow({ item, isLast }: { item: ActivityItem; isLast: boolean }) 
       case 'vault_item_added':
         return (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={{ fontSize: 11, color: '#9CAF9F' }}>◈</Text>
-            <Text style={{ fontSize: 13, color: '#9CAF9F', flex: 1 }}>Added an item to Vault</Text>
-            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 12, color: '#9CAF9F' }}>{formatDate(item.timestamp)}</Text>
+            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 11, color: '#9CAF9F' }}>◈</Text>
+            <Typography variant="meta" className="text-[#9CAF9F]" style={{ flex: 1 }}>Added an item to Vault</Typography>
+            <Typography variant="caption">{formatDate(item.timestamp)}</Typography>
           </View>
         );
       case 'insight_confirmed':
         return (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={{ fontSize: 11, color: '#9CAF9F' }}>✦</Text>
-            <Text style={{ fontSize: 13, color: '#9CAF9F', flex: 1 }}>Confirmed an insight</Text>
-            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 12, color: '#9CAF9F' }}>{formatDate(item.timestamp)}</Text>
+            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 11, color: '#9CAF9F' }}>✦</Text>
+            <Typography variant="meta" className="text-[#9CAF9F]" style={{ flex: 1 }}>Confirmed an insight</Typography>
+            <Typography variant="caption">{formatDate(item.timestamp)}</Typography>
           </View>
         );
       case 'echo_linked':
         return (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={{ fontSize: 11, color: '#9CAF9F' }}>✦</Text>
-            <Text style={{ fontSize: 13, color: '#9CAF9F', flex: 1 }}>Linked a reflection</Text>
-            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 12, color: '#9CAF9F' }}>{formatDate(item.timestamp)}</Text>
+            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 11, color: '#9CAF9F' }}>✦</Text>
+            <Typography variant="meta" className="text-[#9CAF9F]" style={{ flex: 1 }}>Linked a reflection</Typography>
+            <Typography variant="caption">{formatDate(item.timestamp)}</Typography>
           </View>
         );
     }
@@ -160,18 +161,9 @@ export function ActivityFeed({ items, loading, error }: ActivityFeedProps) {
         elevation: 1,
       }}
     >
-      <Text
-        style={{
-          fontFamily: 'Inter-Medium',
-          fontSize: 11,
-          color: '#6B7B6E',
-          letterSpacing: 1.5,
-          textTransform: 'uppercase',
-          marginBottom: 14,
-        }}
-      >
+      <Typography variant="eyebrow" style={{ marginBottom: 14 }}>
         Activity
-      </Text>
+      </Typography>
 
       {loading ? (
         <ActivityIndicator size="small" color="#9CAF9F" style={{ alignSelf: 'flex-start' }} />

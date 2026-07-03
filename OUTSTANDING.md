@@ -105,6 +105,17 @@
 - [ ] Thorn → Goal suggestion loop — requires Discovery feature and pattern analysis layer,
       Phase 2 only.
 
+## Typography (Phase 3 conversion)
+
+- [ ] `features/echo/components/EntryCard.tsx:25` — raw `<Text>` (`{ color: '#1A1F1C', fontSize: 14,
+      lineHeight: 20 }`, `numberOfLines={3}`, renders `entry.content`) is a near-identical
+      structural analog to the preview text converted in `ActivityFeed.tsx` (`item.preview`,
+      now `variant="content"` with a `text-[13px] leading-5` override) — same role (truncated
+      preview tied to a content item), 1px off in fontSize. Flagged during the ActivityFeed
+      audit/conversion session (2026-07-03); not touched then, since it's a separate file with
+      its own conversion pass coming. Candidate for the same `content` + override treatment
+      when `EntryCard.tsx` is converted.
+
 ## Known nav gaps
 
 - [ ] `app/goals/create.tsx` lives outside the `(app)` route group — same sidebar-loss bug
