@@ -14,6 +14,11 @@ export const STATUS = {
     border: '#FDE68A',
     text: '#B45309',
   },
+  error: {
+    bg: '#FEF3C7',
+    border: '#FCD34D',
+    text: '#92400E',
+  },
 } as const;
 
 export const THEME = {

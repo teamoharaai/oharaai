@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native';
 import { router } from 'expo-router';
+import { Typography } from '@/components/ui/Typography';
 import { useGoals } from '@/features/goals/hooks/useGoals';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useLatestAction } from '@/features/actions/hooks/useLatestAction';
@@ -11,6 +12,7 @@ import { useProjectStore } from '@/features/projects/store';
 import { GoalGrid } from '@/features/goals/components/GoalGrid';
 import { ProjectCard } from '@/features/projects/components/ProjectCard';
 import { FEATURES } from '@/constants/features';
+import { STATUS } from '@/constants/colors';
 import supabase from '@/lib/db/client';
 import type { AiResponse } from '@/lib/ai/contracts';
 import type { GoalWithMeasurables } from '@/features/goals/types';
@@ -178,9 +180,9 @@ function DueTodayZone() {
   if (items.length === 0) {
     return (
       <View className="rounded-2xl border border-[#EAE7E0] bg-white p-5">
-        <Text className="mb-3 font-sans text-[11px] font-medium uppercase tracking-[1.5px] text-[#6B7B6E]">
+        <Typography variant="eyebrow" className="mb-3">
           Today
-        </Text>
+        </Typography>
         <Text className="font-sans text-[14px] text-[#9CAF9F]">
           Nothing due today.
         </Text>
@@ -190,9 +192,9 @@ function DueTodayZone() {
 
   return (
     <View className="rounded-2xl border border-[#EAE7E0] bg-white p-5">
-      <Text className="mb-4 font-sans text-[11px] font-medium uppercase tracking-[1.5px] text-[#6B7B6E]">
+      <Typography variant="eyebrow" className="mb-4">
         Today
-      </Text>
+      </Typography>
       <View className="gap-3">
         {items.map((item) => {
           const done = isCompletedToday(item.lastCompletedAt);
@@ -217,13 +219,12 @@ function DueTodayZone() {
                 <Text className="font-sans text-[11px] text-[#9CAF9F]">
                   {item.goalTitle}
                 </Text>
-                <Text
-                  className={`font-sans text-[14px] leading-5 ${
-                    done ? 'text-[#9CAF9F]' : 'text-[#1A1F1C]'
-                  }`}
+                <Typography
+                  variant="content"
+                  className={done ? 'text-[#9CAF9F]' : ''}
                 >
                   {item.title}
-                </Text>
+                </Typography>
               </View>
             </View>
           );
@@ -292,21 +293,26 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
   return (
     <View className="rounded-2xl border border-[#EAE7E0] bg-white p-5">
       <Pressable onPress={() => router.push(`/(app)/goals/${goal.id}` as never)}>
-        <Text className="mb-2 font-sans text-[11px] font-medium uppercase tracking-[1.5px] text-[#6B7B6E]">
+        <Typography variant="eyebrow" className="mb-2">
           Active Goal
-        </Text>
+        </Typography>
         <Text className="mb-4 font-sans text-[17px] font-semibold leading-6 text-[#1A1F1C]">
           {goal.title}
         </Text>
       </Pressable>
 
       <View className="border-t border-[#F0EDE6] pt-4">
-        <Text className="mb-3 font-sans text-[11px] font-medium uppercase tracking-[1.5px] text-[#6B7B6E]">
+        <Typography variant="eyebrow" className="mb-3">
           Next Action
-        </Text>
+        </Typography>
 
         {mutationError ? (
-          <Text className="mb-2 text-xs text-[#B45309]">{mutationError}</Text>
+          <Text
+            className="mb-2 font-sans text-xs"
+            style={{ color: STATUS.error.text }}
+          >
+            {mutationError}
+          </Text>
         ) : null}
 
         {actionLoading && optimisticAction === undefined ? (
@@ -315,14 +321,14 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
             <View className="h-3 w-4/5 rounded-full bg-[#F0EDE6]" />
           </View>
         ) : actionError && optimisticAction === undefined ? (
-          <Text className="text-sm text-[#92400E]">
+          <Text className="font-sans text-sm" style={{ color: STATUS.error.text }}>
             Couldn&apos;t load next action.
           </Text>
         ) : displayedAction ? (
           <View>
-            <Text className="mb-4 font-sans text-[15px] leading-[22px] text-[#1A1F1C]">
+            <Typography variant="content" className="mb-4">
               {displayedAction.actionText}
-            </Text>
+            </Typography>
             <View className="flex-row gap-3">
               <TouchableOpacity
                 className={`flex-1 items-center rounded-full py-2.5 ${
@@ -331,9 +337,9 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
                 onPress={() => void handleUpdateStatus('complete')}
                 disabled={isMutating}
               >
-                <Text className="text-sm font-semibold text-white">
+                <Typography variant="emphasis-sm" className="text-white">
                   {isMutating ? 'Saving…' : 'Complete'}
-                </Text>
+                </Typography>
               </TouchableOpacity>
               <TouchableOpacity
                 className={`flex-1 items-center rounded-full border py-2.5 ${
@@ -344,7 +350,7 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
                 onPress={() => void handleUpdateStatus('skipped')}
                 disabled={isMutating}
               >
-                <Text className="text-sm font-medium text-[#6B7B6E]">Skip</Text>
+                <Typography variant="label">Skip</Typography>
               </TouchableOpacity>
             </View>
           </View>
@@ -353,9 +359,9 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
             className="self-start rounded-full bg-[#EEF4F0] px-4 py-2"
             onPress={() => router.push(`/(app)/goals/${goal.id}` as never)}
           >
-            <Text className="text-sm font-semibold text-[#3D5247]">
+            <Typography variant="emphasis-sm" className="text-[#3D5247]">
               Set next action
-            </Text>
+            </Typography>
           </Pressable>
         )}
       </View>
@@ -366,9 +372,9 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
 function NoActiveGoalCard() {
   return (
     <View className="rounded-2xl border border-[#EAE7E0] bg-white p-5">
-      <Text className="mb-2 font-sans text-[11px] font-medium uppercase tracking-[1.5px] text-[#6B7B6E]">
+      <Typography variant="eyebrow" className="mb-2">
         Active Goal
-      </Text>
+      </Typography>
       <Text className="mb-4 font-sans text-[15px] text-[#6B7B6E]">
         No active goal yet.
       </Text>
@@ -376,9 +382,9 @@ function NoActiveGoalCard() {
         className="self-start rounded-full bg-[#3D5247] px-4 py-2.5"
         onPress={() => router.push('/goals/create')}
       >
-        <Text className="text-sm font-semibold text-[#E8EDE9]">
+        <Typography variant="emphasis-sm" className="text-[#E8EDE9]">
           Create a goal
-        </Text>
+        </Typography>
       </Pressable>
     </View>
   );
@@ -399,38 +405,39 @@ function EchoZone({
 }: EchoZoneProps) {
   return (
     <View className="rounded-2xl border border-[#EAE7E0] bg-white p-5">
-      <Text className="mb-3 font-sans text-[11px] font-medium uppercase tracking-[1.5px] text-[#6B7B6E]">
+      <Typography variant="eyebrow" className="mb-3">
         Echo
-      </Text>
+      </Typography>
       <Pressable
         className="mb-4 self-start rounded-full bg-[#EEF4F0] px-4 py-2.5"
         onPress={() => router.push('/(app)/echo' as never)}
       >
-        <Text className="text-sm font-semibold text-[#3D5247]">
+        <Typography variant="emphasis-sm" className="text-[#3D5247]">
           Reflect in Echo
-        </Text>
+        </Typography>
       </Pressable>
 
       {echoLoading ? (
         <View className="h-3 w-1/2 rounded-full bg-[#EAE7E0]" />
       ) : latestEntryContent && latestEntryDate ? (
         <View>
-          <Text
-            className="mb-1.5 font-sans text-[13px] leading-5 text-[#4A5C4E]"
+          <Typography
+            variant="meta"
+            className="mb-1.5 text-[#4A5C4E]"
             numberOfLines={2}
           >
             {latestEntryContent.length > 100
               ? `${latestEntryContent.slice(0, 100)}\u2026`
               : latestEntryContent}
-          </Text>
-          <Text className="font-sans text-xs text-[#9CAF9F]">
+          </Typography>
+          <Typography variant="caption">
             Last reflected: {getRelativeDays(latestEntryDate)}
-          </Text>
+          </Typography>
         </View>
       ) : (
-        <Text className="font-sans text-[13px] leading-5 text-[#9CAF9F]">
+        <Typography variant="meta" className="text-[#9CAF9F]">
           Your reflections will appear here.
-        </Text>
+        </Typography>
       )}
     </View>
   );
@@ -455,21 +462,19 @@ function IntelligenceZone({ insight, isLoading }: IntelligenceZoneProps) {
   if (insight) {
     return (
       <View className="rounded-2xl border border-[#EAE7E0] bg-white p-5">
-        <Text className="mb-2 font-sans text-[11px] font-medium uppercase tracking-[1.5px] text-[#6B7B6E]">
+        <Typography variant="eyebrow" className="mb-2">
           Intelligence
-        </Text>
-        <Text className="font-sans text-[14px] leading-[21px] text-[#1A1F1C]">
-          {insight}
-        </Text>
+        </Typography>
+        <Typography variant="content">{insight}</Typography>
       </View>
     );
   }
 
   return (
     <View className="rounded-2xl bg-[#F0EDE6] px-5 py-4">
-      <Text className="text-center font-sans text-[13px] leading-5 text-[#9CAF9F]">
+      <Typography variant="meta" className="text-center text-[#9CAF9F]">
         Keep reflecting in Echo — Ohara is learning about you.
-      </Text>
+      </Typography>
     </View>
   );
 }
@@ -628,15 +633,15 @@ export default function DashboardScreen() {
             <Text className="font-sans text-[22px] font-medium text-[#1A1F1C]">
               {greeting}
             </Text>
-            <Text className="font-sans text-[13px] text-[#6B7B6E]">
+            <Typography variant="meta" className="text-[#6B7B6E]">
               {getDateLabel()}
-            </Text>
+            </Typography>
           </View>
           <Pressable
             className="pl-2 pt-0.5"
             onPress={() => router.push('/(app)/projects/create' as never)}
           >
-            <Text className="text-[22px] leading-7 text-[#4A7C5F]">+</Text>
+            <Text className="font-sans text-[22px] leading-7 text-[#4A7C5F]">+</Text>
           </Pressable>
         </View>
 
@@ -650,11 +655,11 @@ export default function DashboardScreen() {
             {/* Zone 2: Projects */}
             <View>
               <View className="mb-4 flex-row items-center justify-between">
-                <Text className="font-sans text-[11px] font-medium uppercase tracking-[1.5px] text-[#6B7B6E]">
+                <Typography variant="eyebrow">
                   Projects
-                </Text>
+                </Typography>
                 <Pressable onPress={() => router.push('/(app)/projects/create' as never)}>
-                  <Text className="text-[20px] leading-6 text-[#4A7C5F]">+</Text>
+                  <Text className="font-sans text-[20px] leading-6 text-[#4A7C5F]">+</Text>
                 </Pressable>
               </View>
               {hasProjects && projects.map((project) => (
@@ -666,11 +671,11 @@ export default function DashboardScreen() {
             {standaloneGoals.length > 0 && (
               <View>
                 <View className="mb-4 flex-row items-center justify-between">
-                  <Text className="font-sans text-[11px] font-medium uppercase tracking-[1.5px] text-[#6B7B6E]">
+                  <Typography variant="eyebrow">
                     Goals
-                  </Text>
+                  </Typography>
                   <Pressable onPress={() => router.push('/goals/create')}>
-                    <Text className="text-[20px] leading-6 text-[#4A7C5F]">+</Text>
+                    <Text className="font-sans text-[20px] leading-6 text-[#4A7C5F]">+</Text>
                   </Pressable>
                 </View>
                 <GoalGrid goals={standaloneGoals} newestId={newestId} />
