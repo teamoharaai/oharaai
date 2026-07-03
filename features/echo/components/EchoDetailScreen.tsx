@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { ReflectionCard } from '@/components/ui/ReflectionCard';
+import { Typography } from '@/components/ui/Typography';
 import { getEntryById } from '../services/echo-service';
 import type { EchoEntry } from '../types';
 
@@ -32,7 +33,7 @@ export function EchoDetailScreen({ entryId }: EchoDetailScreenProps) {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F1EA' }}>
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
         <Pressable onPress={() => router.back()}>
-          <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#4A7C5F' }}>← Back</Text>
+          <Typography variant="nav-back">← Back</Typography>
         </Pressable>
       </View>
 

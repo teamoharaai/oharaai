@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import supabase from '@/lib/db/client';
+import { Typography } from '@/components/ui/Typography';
 
 export default function AuthCallbackScreen() {
   const { code } = useLocalSearchParams<{ code?: string | string[] }>();
@@ -39,7 +40,7 @@ export default function AuthCallbackScreen() {
   return (
     <View className="flex-1 bg-cream justify-center items-center">
       <ActivityIndicator size="large" color="#1A1A1A" />
-      <Text className="text-base text-muted mt-4">Verifying your account...</Text>
+      <Typography variant="body" className="mt-4">Verifying your account...</Typography>
     </View>
   );
 }
