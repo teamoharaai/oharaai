@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { GOAL_THEMES } from '@/constants/themes';
 import { Badge } from '@/components/ui/Badge';
 import { ProgressRing } from '@/components/ui/ProgressRing';
+import { Typography } from '@/components/ui/Typography';
 import { CountdownTimer } from './CountdownTimer';
 import type { GoalWithMeasurables } from '../types';
 
@@ -64,12 +65,12 @@ export function GoalDetailHeader({ goal }: GoalDetailHeaderProps) {
       {/* Description (collapsible) */}
       {goal.description && (
         <TouchableOpacity onPress={() => setDescExpanded((v) => !v)} activeOpacity={0.7}>
-          <Text
-            style={{ fontFamily: 'Inter-Regular', fontSize: 14, color: '#6B7B6E', lineHeight: 22 }}
+          <Typography
+            variant="description"
             numberOfLines={descExpanded ? undefined : 2}
           >
             {goal.description}
-          </Text>
+          </Typography>
           {!descExpanded && goal.description.length > 100 && (
             <Text style={{ fontSize: 12, color: theme.accent, marginTop: 3 }}>Show more</Text>
           )}

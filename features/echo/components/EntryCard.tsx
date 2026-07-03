@@ -1,4 +1,5 @@
 import { View, Text } from 'react-native';
+import { Typography } from '@/components/ui/Typography';
 import type { EchoEntry } from '../types';
 
 function formatEntryDate(date: Date): string {
@@ -21,12 +22,13 @@ export function EntryCard({ entry }: { entry: EchoEntry }) {
         elevation: 2,
       }}
     >
-      <Text
-        style={{ color: '#1A1F1C', fontSize: 14, lineHeight: 20 }}
+      <Typography
+        variant="description"
+        style={{ color: '#1A1F1C' }}
         numberOfLines={3}
       >
         {entry.content}
-      </Text>
+      </Typography>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 8 }}>
         <Text style={{ color: '#9CAF9F', fontSize: 12 }}>
           {formatEntryDate(entry.createdAt)}
