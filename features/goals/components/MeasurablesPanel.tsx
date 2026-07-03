@@ -146,9 +146,9 @@ export function MeasurablesPanel({
           <Typography variant="description" style={{ marginBottom: 4 }}>
             Track progress through milestones.
           </Typography>
-          <Text style={{ fontFamily: 'Inter-Regular', fontSize: 13, color: '#9CAF9F', lineHeight: 20 }}>
+          <Typography variant="micro-label" style={{ lineHeight: 20 }}>
             Add a counter, habit, or checklist to make progress on this goal visible.
-          </Text>
+          </Typography>
         </View>
       )}
 
@@ -300,7 +300,7 @@ export function MeasurablesPanel({
             }}
             onPress={() => setShowAddForm(true)}
           >
-            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 13, color: '#9CAF9F' }}>＋ Add milestone</Text>
+            <Typography variant="micro-label">＋ Add milestone</Typography>
           </TouchableOpacity>
         )
       )}

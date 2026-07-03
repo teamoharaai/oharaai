@@ -85,7 +85,7 @@ export function GoalDetailHeader({ goal }: GoalDetailHeaderProps) {
         {goal.deadline ? (
           <CountdownTimer deadline={goal.deadline} accentColor={theme.accent} />
         ) : (
-          <Text style={{ fontSize: 13, color: '#9CAF9F' }}>No deadline set</Text>
+          <Typography variant="micro-label">No deadline set</Typography>
         )}
         <ProgressRing
           progress={goal.progress}
