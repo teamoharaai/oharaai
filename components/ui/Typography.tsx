@@ -1,12 +1,13 @@
 import { Text, type TextProps, type StyleProp, type TextStyle } from 'react-native';
 
-type Variant = 'heading' | 'title' | 'body' | 'label' | 'caption' | 'ai' | 'ai-italic' | 'eyebrow' | 'emphasis-sm' | 'meta' | 'content' | 'nav-back' | 'section-header' | 'nav-title' | 'subtitle' | 'hint' | 'description';
+type Variant = 'heading' | 'title' | 'body' | 'label' | 'field-label' | 'caption' | 'ai' | 'ai-italic' | 'eyebrow' | 'emphasis-sm' | 'meta' | 'content' | 'nav-back' | 'section-header' | 'nav-title' | 'subtitle' | 'hint' | 'description';
 
 const VARIANT_CLASSES: Record<Variant, string> = {
   heading:         'font-semibold text-2xl text-[#1A1F1C]',
   title:           'font-medium text-lg text-[#1A1F1C]',
   body:            'font-sans text-base text-[#6B7B6E]',
   label:           'font-medium text-sm text-[#6B7B6E]',
+  'field-label':   'font-sans text-sm font-medium text-[#1A1F1C]',
   caption:         'font-sans text-xs text-[#9CAF9F]',
   ai:              'font-serif text-base text-[#4A7C5F] leading-relaxed',
   'ai-italic':     'font-serif-italic text-base text-[#4A7C5F] leading-relaxed',

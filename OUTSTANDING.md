@@ -152,6 +152,22 @@
       color, missing lineHeight, so not confirmed as the same signature. Not chased further
       this session; possible fourth occurrence if a future pass wants to fold it in.
 
+- [ ] `app/(auth)/signup.tsx:79,85` and `app/(auth)/login.tsx:54` — error/success banner text
+      (`text-sm text-red-600` / `text-sm text-green-700`, both zero-font-family) uses raw
+      Tailwind semantic red/green, not the `STATUS.error`/`STATUS` tokens added 2026-07-0x in
+      `constants/colors.ts` (`STATUS.error.text: '#92400E'`, plus a `pending` entry that reads
+      like a mis-named `success` case — worth a second look). Flagged during the signup/login
+      Typography audit (2026-07-03) as a STATUS-token question, not a Typography-variant one —
+      out of scope for that pass. Needs its own decision: reconcile these banners onto
+      `STATUS`, or confirm `STATUS` isn't meant to cover this case at all.
+
+- [ ] `components/ui/Input.tsx:22` — raw `<Text className="text-sm font-medium text-near-black mb-1.5">{label}</Text>`
+      (used by `components/layout/AccountModal.tsx` for Display name/Bio/Timezone/Interests
+      labels) matches the new `field-label` variant (`components/ui/Typography.tsx`, added
+      2026-07-03 during the signup/login conversion pass, justified by this exact signature
+      repeating 3x across `signup.tsx`/`login.tsx`/`Input.tsx`). Not converted this session —
+      out of scope, own conversion pass needed for `Input.tsx`.
+
 ## Known nav gaps
 
 - [ ] `app/goals/create.tsx` lives outside the `(app)` route group — same sidebar-loss bug

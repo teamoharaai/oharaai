@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Link, router, useLocalSearchParams } from 'expo-router';
 import supabase from '@/lib/db/client';
+import { Typography } from '@/components/ui/Typography';
 
 export default function LoginScreen() {
   const params = useLocalSearchParams<{ error?: string }>();
@@ -44,19 +45,19 @@ export default function LoginScreen() {
         <Text className="text-3xl text-near-black tracking-tight mb-2" style={{ fontFamily: 'Inter-Bold' }}>
           Ohara
         </Text>
-        <Text className="text-base text-muted mb-10">
+        <Typography variant="body" className="mb-10">
           Welcome back.
-        </Text>
+        </Typography>
 
         {/* Error */}
         {error && (
           <View className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 mb-6">
-            <Text className="text-sm text-red-600">{error}</Text>
+            <Text className="text-sm text-red-600" style={{ fontFamily: 'Inter-Regular' }}>{error}</Text>
           </View>
         )}
 
         {/* Email */}
-        <Text className="text-sm font-medium text-near-black mb-1.5">Email</Text>
+        <Typography variant="field-label" className="mb-1.5">Email</Typography>
         <TextInput
           className="bg-card-bg rounded-2xl px-4 py-3.5 text-base text-near-black mb-4 border border-transparent"
           placeholder="you@example.com"
@@ -69,7 +70,7 @@ export default function LoginScreen() {
         />
 
         {/* Password */}
-        <Text className="text-sm font-medium text-near-black mb-1.5">Password</Text>
+        <Typography variant="field-label" className="mb-1.5">Password</Typography>
         <TextInput
           className="bg-card-bg rounded-2xl px-4 py-3.5 text-base text-near-black mb-6 border border-transparent"
           placeholder="••••••••"
@@ -89,16 +90,16 @@ export default function LoginScreen() {
           {loading ? (
             <ActivityIndicator color="#FAF9F6" />
           ) : (
-            <Text className="text-base text-cream font-semibold">Log in</Text>
+            <Text className="text-base text-cream font-semibold" style={{ fontFamily: 'Inter-SemiBold' }}>Log in</Text>
           )}
         </TouchableOpacity>
 
         {/* Sign up link */}
         <View className="flex-row justify-center">
-          <Text className="text-sm text-muted">Don't have an account? </Text>
+          <Typography variant="subtitle">Don't have an account? </Typography>
           <Link href="/(auth)/signup" asChild>
             <TouchableOpacity>
-              <Text className="text-sm text-near-black font-semibold">Sign up</Text>
+              <Typography variant="emphasis-sm" style={{ color: '#1A1F1C' }}>Sign up</Typography>
             </TouchableOpacity>
           </Link>
         </View>

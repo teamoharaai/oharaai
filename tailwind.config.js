@@ -10,11 +10,11 @@ module.exports = {
     extend: {
       colors: {
         cream: "#FAF9F6",
-        "near-black": "#1A1A1A",
+        "near-black": "#1A1F1C",
         "earth-green": "#2D6A4F",
         "earth-green-dark": "#1E4D38",
         "card-bg": "#F3F1EC",
-        muted: "#6B6B6B",
+        muted: "#6B7B6E",
         // Dark theme (app screens)
         "dark-bg": "#0A0A0F",
         "dark-card": "#14141F",
