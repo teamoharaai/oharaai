@@ -3,6 +3,7 @@ import { View, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { STATUS } from '@/constants/colors';
+import { Typography } from '@/components/ui/Typography';
 
 // ─── Exported type ────────────────────────────────────────────────────────────
 
@@ -94,7 +95,7 @@ function EchoTrailCard({ entry, onConfirmLink, onDismissLink }: EchoTrailCardPro
     <View className="bg-white rounded-xl p-4 mb-3 shadow-sm">
       {/* Top row: date + BRT badge */}
       <View className="flex-row items-center justify-between mb-2">
-        <Text className="text-xs text-gray-400">{formattedDate}</Text>
+        <Typography variant="caption">{formattedDate}</Typography>
         {entry.brt ? <BrtBadge brt={entry.brt} /> : null}
       </View>
 
@@ -134,9 +135,9 @@ function EchoTrailCard({ entry, onConfirmLink, onDismissLink }: EchoTrailCardPro
               disabled={confirming || dismissing}
               className={dismissing ? 'opacity-50' : ''}
             >
-              <Text className="text-xs text-gray-400">
+              <Typography variant="caption">
                 {dismissing ? 'Removing…' : 'Dismiss'}
-              </Text>
+              </Typography>
             </Pressable>
           </View>
         </View>

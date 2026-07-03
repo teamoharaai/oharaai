@@ -61,7 +61,7 @@ export function ReflectionCard({ variant, timestamp, aiResponse, brt }: Reflecti
   return (
     <View className={isFull ? 'bg-white rounded-xl p-6 shadow-sm' : 'bg-white rounded-xl p-4 shadow-sm'}>
       <View className="flex-row items-center justify-between mb-2">
-        <Text className={isFull ? 'text-sm text-gray-400' : 'text-xs text-gray-400'}>
+        <Text className={isFull ? 'text-sm text-[#9CAF9F]' : 'text-xs text-[#9CAF9F]'}>
           {formatTimestamp(timestamp)}
         </Text>
         {brtLabel ? <BrtPill brt={brtLabel} /> : null}
