@@ -66,7 +66,7 @@ export default function SignupScreen() {
     >
       <View className="flex-1 justify-center px-6" style={{ maxWidth: 420, width: '100%', alignSelf: 'center' }}>
         {/* Wordmark */}
-        <Text className="text-3xl font-bold text-near-black tracking-tight mb-2">
+        <Text className="text-3xl text-near-black tracking-tight mb-2" style={{ fontFamily: 'Inter-Bold' }}>
           Ohara
         </Text>
         <Text className="text-base text-muted mb-10">

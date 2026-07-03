@@ -200,14 +200,14 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
       confirmDisabled={isSaving || isLoading || !!loadError}
       showCloseButton={false}
     >
-      <Text className="text-xl font-semibold text-near-black mb-5" style={{ fontFamily: 'Inter' }}>
+      <Text className="text-xl text-near-black mb-5" style={{ fontFamily: 'Inter-SemiBold' }}>
         Account
       </Text>
 
       {isLoading ? (
         <ActivityIndicator size="small" color="#9CAF9F" />
       ) : loadError ? (
-        <Text className="text-sm text-[#6B7280]" style={{ fontFamily: 'Inter' }}>
+        <Text className="text-sm text-[#6B7280]" style={{ fontFamily: 'Inter-Regular' }}>
           Couldn't load your profile. Please try again.
         </Text>
       ) : (
@@ -270,7 +270,7 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
           </View>
 
           {error ? (
-            <Text className="text-sm text-[#EF4444] mt-2" style={{ fontFamily: 'Inter' }}>
+            <Text className="text-sm text-[#EF4444] mt-2" style={{ fontFamily: 'Inter-Regular' }}>
               {error}
             </Text>
           ) : null}

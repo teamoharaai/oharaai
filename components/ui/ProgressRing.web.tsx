@@ -50,7 +50,7 @@ export function ProgressRing({ progress, size = 64, strokeWidth = 5, color = '#5
           justifyContent: 'center',
         }}
       >
-        <Text style={{ color, fontSize: size * 0.22, fontWeight: '700' }}>
+        <Text style={{ color, fontSize: size * 0.22, fontFamily: 'Inter-Bold' }}>
           {Math.round(progress)}%
         </Text>
       </View>

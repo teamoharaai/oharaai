@@ -183,9 +183,8 @@ export default function ProjectDetailScreen() {
           >
             <Text
               style={{
-                fontFamily: 'Inter',
+                fontFamily: 'Inter-Bold',
                 fontSize: 24,
-                fontWeight: '700',
                 color: '#1A1A1A',
                 lineHeight: 30,
               }}
@@ -196,7 +195,7 @@ export default function ProjectDetailScreen() {
             {project.description && (
               <Text
                 style={{
-                  fontFamily: 'Inter',
+                  fontFamily: 'Inter-Regular',
                   fontSize: 14,
                   color: '#6B7280',
                   lineHeight: 20,
@@ -213,9 +212,8 @@ export default function ProjectDetailScreen() {
 
             <Text
               style={{
-                fontFamily: 'Inter',
+                fontFamily: 'Inter-Italic',
                 fontSize: 12,
-                fontStyle: 'italic',
                 color: '#9CA3AF',
                 marginTop: 16,
                 marginBottom: 10,
@@ -258,7 +256,7 @@ export default function ProjectDetailScreen() {
                   justifyContent: 'center',
                 }}
               >
-                <Text style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: '600', color: '#F5F1EA' }}>+ Add Goal</Text>
+                <Text style={{ fontFamily: 'Inter-SemiBold', fontSize: 14, color: '#F5F1EA' }}>+ Add Goal</Text>
               </Pressable>
             </View>
 
@@ -292,7 +290,7 @@ export default function ProjectDetailScreen() {
                     paddingVertical: 12,
                   }}
                 >
-                  <Text style={{ fontFamily: 'Inter', fontSize: 15, fontWeight: '600', color: '#E8EDE9' }}>+ Add Goal</Text>
+                  <Text style={{ fontFamily: 'Inter-SemiBold', fontSize: 15, color: '#E8EDE9' }}>+ Add Goal</Text>
                 </Pressable>
               </View>
             ) : (
@@ -321,7 +319,7 @@ export default function ProjectDetailScreen() {
                   justifyContent: 'center',
                 }}
               >
-                <Text style={{ fontFamily: 'Inter', fontSize: 20, lineHeight: 22, color: '#F5F1EA' }}>+</Text>
+                <Text style={{ fontFamily: 'Inter-Regular', fontSize: 20, lineHeight: 22, color: '#F5F1EA' }}>+</Text>
               </Pressable>
             </View>
 
@@ -343,7 +341,7 @@ export default function ProjectDetailScreen() {
                 elevation: 1,
               }}
             >
-              <Text style={{ fontFamily: 'Inter', fontSize: 15, color: '#6B7280', lineHeight: 22 }}>
+              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#6B7280', lineHeight: 22 }}>
                 Add project-level notes and resources
               </Text>
             </View>
@@ -370,7 +368,7 @@ export default function ProjectDetailScreen() {
                 elevation: 1,
               }}
             >
-              <Text style={{ fontFamily: 'Inter', fontSize: 15, color: '#6B7280', lineHeight: 22 }}>
+              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#6B7280', lineHeight: 22 }}>
                 Activity will appear as you and your team make progress
               </Text>
             </View>
@@ -405,7 +403,7 @@ export default function ProjectDetailScreen() {
                   borderBottomColor: '#EFE9DE',
                 }}
               >
-                <Text style={{ fontFamily: 'Inter', fontSize: 15, color: '#1A1A1A' }}>
+                <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#1A1A1A' }}>
                   Edit project name and description
                 </Text>
               </Pressable>
@@ -419,7 +417,7 @@ export default function ProjectDetailScreen() {
                   paddingVertical: 16,
                 }}
               >
-                <Text style={{ fontFamily: 'Inter', fontSize: 15, fontWeight: '500', color: '#DC2626' }}>
+                <Text style={{ fontFamily: 'Inter-Medium', fontSize: 15, color: '#DC2626' }}>
                   Delete project
                 </Text>
               </Pressable>
@@ -445,7 +443,7 @@ export default function ProjectDetailScreen() {
         <Typography variant="section-header" style={{ marginBottom: 10 }}>
           Edit project
         </Typography>
-        <Text style={{ fontFamily: 'Inter', fontSize: 14, lineHeight: 21, color: '#6B7280', marginBottom: 18 }}>
+        <Text style={{ fontFamily: 'Inter-Regular', fontSize: 14, lineHeight: 21, color: '#6B7280', marginBottom: 18 }}>
           Update the project name and long-term intent.
         </Text>
 
@@ -515,7 +513,7 @@ export default function ProjectDetailScreen() {
         <Typography variant="section-header" style={{ marginBottom: 10 }}>
           Delete project
         </Typography>
-        <Text style={{ fontFamily: 'Inter', fontSize: 14, lineHeight: 21, color: '#6B7280' }}>
+        <Text style={{ fontFamily: 'Inter-Regular', fontSize: 14, lineHeight: 21, color: '#6B7280' }}>
           Are you sure you want to delete this project? This cannot be undone.
         </Text>
       </Modal>

@@ -9,7 +9,7 @@ interface HeaderProps {
 export function Header({ title, rightAction }: HeaderProps) {
   return (
     <View className="flex-row items-center justify-between py-3">
-      <Text className="text-xl font-bold text-near-black">{title}</Text>
+      <Text className="text-xl text-near-black" style={{ fontFamily: 'Inter-Bold' }}>{title}</Text>
       {rightAction}
     </View>
   );

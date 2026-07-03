@@ -343,7 +343,7 @@ export function EchoScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View className="mb-6">
-          <Text className="font-sans text-2xl font-extrabold text-[#1C1C1E]">Echo</Text>
+          <Text className="font-sans text-2xl text-[#1C1C1E]" style={{ fontFamily: 'Inter-ExtraBold' }}>Echo</Text>
           <Text className="mt-0.5 font-sans text-sm text-[#6B7280]">
             {formatHeaderDate(today)}
           </Text>
@@ -461,7 +461,7 @@ export function EchoScreen() {
             className="max-h-[60%] rounded-t-2xl border-t border-[#D8D2C8] bg-white pb-10 pt-3"
           >
             <View className="mb-4 h-1 w-9 self-center rounded-full bg-[#D8D2C8]" />
-            <Text className="mb-3 px-5 font-sans text-base font-bold text-[#1C1C1E]">Link a goal</Text>
+            <Text className="mb-3 px-5 font-sans text-base text-[#1C1C1E]" style={{ fontFamily: 'Inter-Bold' }}>Link a goal</Text>
             {pickerGoals.length === 0 ? (
               <Text className="px-5 font-sans text-sm text-[#6B7280]">
                 No active goals found.

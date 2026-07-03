@@ -90,9 +90,8 @@ export default function ConstellationScreen() {
         {/* Headline */}
         <Text
           style={{
-            fontFamily: 'Inter',
+            fontFamily: 'Inter-SemiBold',
             fontSize: 22,
-            fontWeight: '600',
             color: '#1A1F1C',
             textAlign: 'center',
             marginBottom: 12,
@@ -104,7 +103,7 @@ export default function ConstellationScreen() {
         {/* Subtext */}
         <Text
           style={{
-            fontFamily: 'Inter',
+            fontFamily: 'Inter-Regular',
             fontSize: 14,
             lineHeight: 21,
             color: '#6B7280',
@@ -123,7 +122,7 @@ export default function ConstellationScreen() {
           <View>
             <Text
               style={{
-                fontFamily: 'Inter',
+                fontFamily: 'Inter-Regular',
                 fontSize: 12,
                 color: '#6B7280',
                 marginBottom: 6,
@@ -154,7 +153,7 @@ export default function ConstellationScreen() {
           <View>
             <Text
               style={{
-                fontFamily: 'Inter',
+                fontFamily: 'Inter-Regular',
                 fontSize: 12,
                 color: '#6B7280',
                 marginBottom: 6,
@@ -186,7 +185,7 @@ export default function ConstellationScreen() {
           {/* Status */}
           <Text
             style={{
-              fontFamily: 'Inter',
+              fontFamily: 'Inter-Regular',
               fontSize: 13,
               color: bothMet ? '#3D5247' : '#9CAF9F',
               textAlign: 'center',

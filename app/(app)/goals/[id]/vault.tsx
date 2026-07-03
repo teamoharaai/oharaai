@@ -53,9 +53,8 @@ function VaultPickerSheet({ onNote, onLink, onClose }: VaultPickerSheetProps) {
     <View>
       <Text
         style={{
-          fontFamily: 'Inter',
+          fontFamily: 'Inter-SemiBold',
           fontSize: 15,
-          fontWeight: '600',
           color: '#1A1F1C',
           marginBottom: 16,
         }}
@@ -74,7 +73,7 @@ function VaultPickerSheet({ onNote, onLink, onClose }: VaultPickerSheetProps) {
         }}
       >
         <Text style={{ fontSize: 20 }}>📝</Text>
-        <Text style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: '500', color: '#1A1F1C' }}>
+        <Text style={{ fontFamily: 'Inter-Medium', fontSize: 14, color: '#1A1F1C' }}>
           Add Note
         </Text>
       </Pressable>
@@ -90,7 +89,7 @@ function VaultPickerSheet({ onNote, onLink, onClose }: VaultPickerSheetProps) {
         }}
       >
         <Text style={{ fontSize: 20 }}>🔗</Text>
-        <Text style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: '500', color: '#1A1F1C' }}>
+        <Text style={{ fontFamily: 'Inter-Medium', fontSize: 14, color: '#1A1F1C' }}>
           Save Link
         </Text>
       </Pressable>
@@ -98,7 +97,7 @@ function VaultPickerSheet({ onNote, onLink, onClose }: VaultPickerSheetProps) {
         onPress={onClose}
         style={{ paddingVertical: 14, alignItems: 'center' }}
       >
-        <Text style={{ fontFamily: 'Inter', fontSize: 14, color: '#6B7280' }}>Cancel</Text>
+        <Text style={{ fontFamily: 'Inter-Regular', fontSize: 14, color: '#6B7280' }}>Cancel</Text>
       </Pressable>
     </View>
   );
@@ -125,9 +124,8 @@ function AddNoteSheet({ onSave, onClose }: AddNoteSheetProps) {
     <View>
       <Text
         style={{
-          fontFamily: 'Inter',
+          fontFamily: 'Inter-SemiBold',
           fontSize: 15,
-          fontWeight: '600',
           color: '#1A1F1C',
           marginBottom: 14,
         }}
@@ -181,7 +179,7 @@ function AddNoteSheet({ onSave, onClose }: AddNoteSheetProps) {
           {saving ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: '600', color: '#FFFFFF' }}>
+            <Text style={{ fontFamily: 'Inter-SemiBold', fontSize: 14, color: '#FFFFFF' }}>
               Save
             </Text>
           )}
@@ -212,9 +210,8 @@ function SaveLinkSheet({ onSave, onClose }: SaveLinkSheetProps) {
     <View>
       <Text
         style={{
-          fontFamily: 'Inter',
+          fontFamily: 'Inter-SemiBold',
           fontSize: 15,
-          fontWeight: '600',
           color: '#1A1F1C',
           marginBottom: 14,
         }}
@@ -270,7 +267,7 @@ function SaveLinkSheet({ onSave, onClose }: SaveLinkSheetProps) {
           {saving ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: '600', color: '#FFFFFF' }}>
+            <Text style={{ fontFamily: 'Inter-SemiBold', fontSize: 14, color: '#FFFFFF' }}>
               Save
             </Text>
           )}
@@ -333,7 +330,7 @@ export default function VaultScreen() {
         <Pressable onPress={() => router.back()}>
           <Typography variant="nav-back">← Back</Typography>
         </Pressable>
-        <Text style={{ fontFamily: 'Inter', fontSize: 15, color: '#9CAF9F', marginHorizontal: 8 }}>
+        <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#9CAF9F', marginHorizontal: 8 }}>
           |
         </Text>
         <Typography variant="nav-title" style={{ flex: 1 }}>
@@ -424,7 +421,7 @@ export default function VaultScreen() {
                 router.push(`/(app)/echo?goalId=${goalId}` as never)
               }
             >
-              <Text style={{ fontFamily: 'Inter', fontSize: 13, color: '#3D5247', fontWeight: '500' }}>
+              <Text style={{ fontFamily: 'Inter-Medium', fontSize: 13, color: '#3D5247' }}>
                 Write in Echo
               </Text>
             </Pressable>
@@ -452,7 +449,7 @@ export default function VaultScreen() {
                 gap: 8,
               }}
             >
-              <Text style={{ fontFamily: 'Inter', fontSize: 13, color: '#9CAF9F' }}>
+              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 13, color: '#9CAF9F' }}>
                 Journal about this goal in Echo
               </Text>
               <Text style={{ fontSize: 14, color: '#9CAF9F' }}>›</Text>

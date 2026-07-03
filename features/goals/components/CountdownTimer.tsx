@@ -45,7 +45,7 @@ export function CountdownTimer({ deadline, accentColor }: CountdownTimerProps) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 16 }}>
       <View style={{ alignItems: 'center' }}>
-        <Text style={{ color: accentColor, fontSize: 44, fontWeight: '700', lineHeight: 48 }}>
+        <Text style={{ color: accentColor, fontSize: 44, fontFamily: 'Inter-Bold', lineHeight: 48 }}>
           {timeLeft.days}
         </Text>
         <Text style={{ color: '#9CAF9F', fontSize: 10, fontWeight: '500', letterSpacing: 1.5, textTransform: 'uppercase' }}>

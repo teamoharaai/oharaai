@@ -51,7 +51,7 @@ function Label({
         left,
         top,
         color: LABEL,
-        fontFamily: 'Inter',
+        fontFamily: 'Inter-Regular',
         fontSize: 11,
         textAlign: 'center',
       }}

@@ -217,7 +217,7 @@ export default function GoalDetailScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <Text style={{ fontSize: 20, color: '#3D5247' }}>◫</Text>
           <View>
-            <Text style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: '600', color: '#1A1F1C' }}>
+            <Text style={{ fontFamily: 'Inter-SemiBold', fontSize: 14, color: '#1A1F1C' }}>
               Vault
             </Text>
             <Typography variant="caption">
@@ -240,7 +240,7 @@ export default function GoalDetailScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <Text style={{ fontSize: 20, color: '#3D5247' }}>✦</Text>
           <View>
-            <Text style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: '600', color: '#1A1F1C' }}>
+            <Text style={{ fontFamily: 'Inter-SemiBold', fontSize: 14, color: '#1A1F1C' }}>
               Reflections
             </Text>
             <Typography variant="caption">
@@ -280,7 +280,7 @@ export default function GoalDetailScreen() {
         <Pressable onPress={() => router.back()}>
           <Typography variant="nav-back">← Goals</Typography>
         </Pressable>
-        <Text style={{ fontFamily: 'Inter', fontSize: 15, color: '#9CAF9F', marginHorizontal: 8 }}>|</Text>
+        <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#9CAF9F', marginHorizontal: 8 }}>|</Text>
         <Typography variant="nav-title" style={{ flex: 1 }} numberOfLines={1}>
           {goal.title}
         </Typography>

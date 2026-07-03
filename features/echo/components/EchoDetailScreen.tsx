@@ -32,7 +32,7 @@ export function EchoDetailScreen({ entryId }: EchoDetailScreenProps) {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F1EA' }}>
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
         <Pressable onPress={() => router.back()}>
-          <Text style={{ fontFamily: 'Inter', fontSize: 15, color: '#4A7C5F' }}>← Back</Text>
+          <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#4A7C5F' }}>← Back</Text>
         </Pressable>
       </View>
 
@@ -42,7 +42,7 @@ export function EchoDetailScreen({ entryId }: EchoDetailScreenProps) {
         </View>
       ) : !entry ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
-          <Text style={{ fontFamily: 'Inter', fontSize: 15, color: '#6B7B6E', textAlign: 'center' }}>
+          <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#6B7B6E', textAlign: 'center' }}>
             This reflection couldn't be found.
           </Text>
         </View>

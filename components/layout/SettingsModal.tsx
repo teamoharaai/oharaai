@@ -98,22 +98,22 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
 
   return (
     <Modal visible={visible} onClose={onClose}>
-      <Text className="text-xl font-semibold text-near-black mb-5" style={{ fontFamily: 'Inter' }}>
+      <Text className="text-xl text-near-black mb-5" style={{ fontFamily: 'Inter-SemiBold' }}>
         Settings
       </Text>
 
       {isLoading ? (
         <ActivityIndicator size="small" color="#9CAF9F" />
       ) : loadError ? (
-        <Text className="text-sm text-[#6B7280]" style={{ fontFamily: 'Inter' }}>
+        <Text className="text-sm text-[#6B7280]" style={{ fontFamily: 'Inter-Regular' }}>
           Couldn't load your settings. Please try again.
         </Text>
       ) : (
         <View>
           <View className="flex-row items-center justify-between">
             <Text
-              className="text-base text-near-black font-medium"
-              style={{ fontFamily: 'Inter' }}
+              className="text-base text-near-black"
+              style={{ fontFamily: 'Inter-Medium' }}
             >
               AI Reflections
             </Text>
@@ -130,7 +130,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
           </View>
           <Text
             className="text-xs text-[#6B7280] mt-2"
-            style={{ fontFamily: 'Inter' }}
+            style={{ fontFamily: 'Inter-Regular' }}
           >
             When off, Echo entries are saved without AI analysis.
           </Text>

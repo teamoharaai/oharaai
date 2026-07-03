@@ -172,7 +172,7 @@ export function MeasurableCard({
           disabled={!onComplete || isCompleted || isSaving}
         >
           {isCompleted ? (
-            <Text style={{ fontSize: 13, fontWeight: '700', color: '#FFFFFF' }}>✓</Text>
+            <Text style={{ fontSize: 13, fontFamily: 'Inter-Bold', color: '#FFFFFF' }}>✓</Text>
           ) : null}
         </TouchableOpacity>
         {editingField === 'title' ? (
@@ -300,7 +300,7 @@ export function MeasurableCard({
               }}
               disabled={isSaving}
             >
-              {done && <Text style={{ fontSize: 13, fontWeight: '700', color: accentColor }}>✓</Text>}
+              {done && <Text style={{ fontSize: 13, fontFamily: 'Inter-Bold', color: accentColor }}>✓</Text>}
             </TouchableOpacity>
             <Text style={{ fontSize: 12, color: done ? '#1A1F1C' : '#9CAF9F' }}>
               {done ? 'Done today' : 'Not done yet'}
@@ -331,7 +331,7 @@ export function MeasurableCard({
               }}
             >
               {done && (
-                <Text style={{ fontSize: 10, fontWeight: '800', color: '#FFFFFF' }}>✓</Text>
+                <Text style={{ fontSize: 10, fontFamily: 'Inter-ExtraBold', color: '#FFFFFF' }}>✓</Text>
               )}
             </View>
             <Text

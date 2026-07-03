@@ -6,6 +6,9 @@ import {
   Inter_400Regular,
   Inter_500Medium,
   Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+  Inter_400Regular_Italic,
 } from '@expo-google-fonts/inter';
 import { Lora_400Regular, Lora_400Regular_Italic } from '@expo-google-fonts/lora';
 import supabase from '@/lib/db/client';
@@ -17,6 +20,9 @@ export default function RootLayout() {
     'Inter-Regular': Inter_400Regular,
     'Inter-Medium': Inter_500Medium,
     'Inter-SemiBold': Inter_600SemiBold,
+    'Inter-Bold': Inter_700Bold,
+    'Inter-ExtraBold': Inter_800ExtraBold,
+    'Inter-Italic': Inter_400Regular_Italic,
     'Lora-Regular': Lora_400Regular,
     'Lora-Italic': Lora_400Regular_Italic,
   });

@@ -114,9 +114,8 @@ export function AvatarMenu() {
               <Text
                 style={{
                   marginLeft: 12,
-                  fontFamily: 'Inter',
+                  fontFamily: 'Inter-SemiBold',
                   fontSize: 15,
-                  fontWeight: '600',
                   color: '#1A1A1A',
                   flexShrink: 1,
                 }}
@@ -134,7 +133,7 @@ export function AvatarMenu() {
               style={{ paddingVertical: 12 }}
               activeOpacity={0.7}
             >
-              <Text style={{ fontFamily: 'Inter', fontSize: 15, color: '#1A1A1A' }}>Profile</Text>
+              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#1A1A1A' }}>Profile</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -145,13 +144,13 @@ export function AvatarMenu() {
               style={{ paddingVertical: 12 }}
               activeOpacity={0.7}
             >
-              <Text style={{ fontFamily: 'Inter', fontSize: 15, color: '#1A1A1A' }}>Settings</Text>
+              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#1A1A1A' }}>Settings</Text>
             </TouchableOpacity>
 
             <View style={{ height: 1, backgroundColor: '#E5E1D8', marginVertical: 4 }} />
 
             <TouchableOpacity onPress={handleSignOut} style={{ paddingVertical: 12 }} activeOpacity={0.7}>
-              <Text style={{ fontFamily: 'Inter', fontSize: 15, color: '#DC2626' }}>Log out</Text>
+              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#DC2626' }}>Log out</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>

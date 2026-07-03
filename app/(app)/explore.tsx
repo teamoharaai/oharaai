@@ -6,9 +6,8 @@ export default function ExploreScreen() {
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 }}>
         <Text
           style={{
-            fontFamily: 'Inter',
+            fontFamily: 'Inter-SemiBold',
             fontSize: 22,
-            fontWeight: '600',
             color: '#1A1F1C',
             textAlign: 'center',
             marginBottom: 12,
@@ -18,7 +17,7 @@ export default function ExploreScreen() {
         </Text>
         <Text
           style={{
-            fontFamily: 'Inter',
+            fontFamily: 'Inter-Regular',
             fontSize: 14,
             lineHeight: 21,
             color: '#6B7280',

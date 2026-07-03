@@ -39,8 +39,7 @@ export function Avatar({ avatarUrl, displayName, size }: AvatarProps) {
       <Text
         style={{
           color: '#F5F1EA',
-          fontFamily: 'Inter',
-          fontWeight: '600',
+          fontFamily: 'Inter-SemiBold',
           fontSize: size * 0.4,
         }}
       >
