@@ -3,6 +3,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
+import { Typography } from '@/components/ui/Typography';
 import { deleteProject, fetchProjectWithGoals, updateProject } from '@/features/projects/services/project-service';
 import { GoalCard } from '@/features/goals/components/GoalCard';
 import type { ProjectWithGoals, ProjectStatus } from '@/features/projects/types';
@@ -52,7 +53,7 @@ export default function ProjectDetailScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F1EA' }}>
         <View style={{ padding: 20 }}>
           <Pressable onPress={() => router.back()} style={{ marginBottom: 16 }}>
-            <Text style={{ fontSize: 15, color: '#4A7C5F' }}>← Back</Text>
+            <Typography variant="nav-back">← Back</Typography>
           </Pressable>
           <Text style={{ fontSize: 17, color: '#6B7B6E' }}>Project not found.</Text>
         </View>
@@ -161,7 +162,7 @@ export default function ProjectDetailScreen() {
         <View style={{ width: '100%', maxWidth: 760, alignSelf: 'center' }}>
           {/* Back nav */}
           <Pressable onPress={() => router.back()} style={{ marginBottom: 20 }}>
-            <Text style={{ fontSize: 15, color: '#4A7C5F' }}>← Back</Text>
+            <Typography variant="nav-back">← Back</Typography>
           </Pressable>
 
           {/* Project hero */}
@@ -241,16 +242,9 @@ export default function ProjectDetailScreen() {
           <View style={{ marginBottom: 28 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }}>
-                <Text
-                  style={{
-                    fontFamily: 'Inter',
-                    fontSize: 18,
-                    fontWeight: '600',
-                    color: '#1A1A1A',
-                  }}
-                >
+                <Typography variant="section-header">
                   Goals
-                </Text>
+                </Typography>
                 <Badge label={`${project.goals.length}`} variant="category" />
               </View>
               <Pressable
@@ -283,17 +277,12 @@ export default function ProjectDetailScreen() {
                   elevation: 1,
                 }}
               >
-                <Text
-                  style={{
-                    fontFamily: 'Inter',
-                    fontSize: 15,
-                    color: '#6B7B6E',
-                    marginBottom: 16,
-                    textAlign: 'center',
-                  }}
+                <Typography
+                  variant="body"
+                  style={{ marginBottom: 16, textAlign: 'center' }}
                 >
                   Break this ambition into achievable goals
-                </Text>
+                </Typography>
                 <Pressable
                   onPress={() => router.push({ pathname: '/goals/create', params: { projectId: project.id } })}
                   style={{
@@ -318,16 +307,9 @@ export default function ProjectDetailScreen() {
           {/* Project Vault */}
           <View style={{ marginBottom: 28 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12 }}>
-              <Text
-                style={{
-                  fontFamily: 'Inter',
-                  fontSize: 18,
-                  fontWeight: '600',
-                  color: '#1A1A1A',
-                }}
-              >
+              <Typography variant="section-header">
                 Project Vault
-              </Text>
+              </Typography>
               <Pressable
                 onPress={() => {}}
                 style={{
@@ -369,17 +351,9 @@ export default function ProjectDetailScreen() {
 
           {/* Activity */}
           <View style={{ marginBottom: 28 }}>
-            <Text
-              style={{
-                fontFamily: 'Inter',
-                fontSize: 18,
-                fontWeight: '600',
-                color: '#1A1A1A',
-                marginBottom: 16,
-              }}
-            >
+            <Typography variant="section-header" style={{ marginBottom: 16 }}>
               Activity
-            </Text>
+            </Typography>
 
             <View
               style={{
@@ -404,17 +378,9 @@ export default function ProjectDetailScreen() {
 
           {/* Settings */}
           <View style={{ marginBottom: 28 }}>
-            <Text
-              style={{
-                fontFamily: 'Inter',
-                fontSize: 18,
-                fontWeight: '600',
-                color: '#1A1A1A',
-                marginBottom: 16,
-              }}
-            >
+            <Typography variant="section-header" style={{ marginBottom: 16 }}>
               Settings
-            </Text>
+            </Typography>
 
             <View
               style={{
@@ -476,26 +442,17 @@ export default function ProjectDetailScreen() {
         }}
         confirmDisabled={isSubmittingEdit}
       >
-        <Text style={{ fontFamily: 'Inter', fontSize: 18, fontWeight: '600', color: '#1A1A1A', marginBottom: 10 }}>
+        <Typography variant="section-header" style={{ marginBottom: 10 }}>
           Edit project
-        </Text>
+        </Typography>
         <Text style={{ fontFamily: 'Inter', fontSize: 14, lineHeight: 21, color: '#6B7280', marginBottom: 18 }}>
           Update the project name and long-term intent.
         </Text>
 
         <View style={{ marginBottom: 14 }}>
-          <Text
-            style={{
-              fontSize: 11,
-              fontWeight: '500',
-              color: '#6B7B6E',
-              letterSpacing: 1.5,
-              textTransform: 'uppercase',
-              marginBottom: 8,
-            }}
-          >
+          <Typography variant="eyebrow" style={{ marginBottom: 8 }}>
             Project name
-          </Text>
+          </Typography>
           <TextInput
             style={inputStyle}
             value={editTitle}
@@ -512,18 +469,9 @@ export default function ProjectDetailScreen() {
         </View>
 
         <View>
-          <Text
-            style={{
-              fontSize: 11,
-              fontWeight: '500',
-              color: '#6B7B6E',
-              letterSpacing: 1.5,
-              textTransform: 'uppercase',
-              marginBottom: 8,
-            }}
-          >
+          <Typography variant="eyebrow" style={{ marginBottom: 8 }}>
             Long-term intent (optional)
-          </Text>
+          </Typography>
           <TextInput
             style={[inputStyle, { minHeight: 88, maxHeight: 132, textAlignVertical: 'top' }]}
             value={editDescription}
@@ -564,9 +512,9 @@ export default function ProjectDetailScreen() {
         confirmDisabled={isDeleting}
         confirmVariant="destructive"
       >
-        <Text style={{ fontFamily: 'Inter', fontSize: 18, fontWeight: '600', color: '#1A1A1A', marginBottom: 10 }}>
+        <Typography variant="section-header" style={{ marginBottom: 10 }}>
           Delete project
-        </Text>
+        </Typography>
         <Text style={{ fontFamily: 'Inter', fontSize: 14, lineHeight: 21, color: '#6B7280' }}>
           Are you sure you want to delete this project? This cannot be undone.
         </Text>

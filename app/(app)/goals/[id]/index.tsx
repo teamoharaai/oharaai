@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, Pressable, useWindowDimensions, SafeAreaView } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, router } from 'expo-router';
 import { GOAL_THEMES } from '@/constants/themes';
+import { Typography } from '@/components/ui/Typography';
 import { useGoalDetail } from '@/features/goals/hooks/useGoalDetail';
 import { GoalDetailHeader } from '@/features/goals/components/GoalDetailHeader';
 import { MeasurablesPanel } from '@/features/goals/components/MeasurablesPanel';
@@ -67,7 +68,7 @@ function GoalNotFound() {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F1EA' }}>
       <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
         <Pressable onPress={() => router.back()}>
-          <Text style={{ fontSize: 15, color: '#4A7C5F' }}>← Goals</Text>
+          <Typography variant="nav-back">← Goals</Typography>
         </Pressable>
       </View>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
@@ -75,7 +76,7 @@ function GoalNotFound() {
           This goal couldn't be found.
         </Text>
         <Pressable onPress={() => router.back()}>
-          <Text style={{ fontSize: 15, color: '#4A7C5F' }}>← Go back</Text>
+          <Typography variant="nav-back">← Go back</Typography>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -184,9 +185,9 @@ export default function GoalDetailScreen() {
             paddingHorizontal: 2,
           }}
         >
-          <Text style={{ fontFamily: 'Inter', fontSize: 13, color: '#6B7B6E' }}>
+          <Typography variant="label">
             Part of: {projectTitle}
-          </Text>
+          </Typography>
           <Text style={{ fontSize: 14, color: '#9CAF9F' }}>›</Text>
         </Pressable>
       ) : null}
@@ -219,11 +220,11 @@ export default function GoalDetailScreen() {
             <Text style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: '600', color: '#1A1F1C' }}>
               Vault
             </Text>
-            <Text style={{ fontFamily: 'Inter', fontSize: 12, color: '#9CAF9F' }}>
+            <Typography variant="caption">
               {vaultItemCount === 0
                 ? 'No items yet'
                 : `${vaultItemCount} item${vaultItemCount !== 1 ? 's' : ''}`}
-            </Text>
+            </Typography>
           </View>
         </View>
         <Text style={{ fontSize: 18, color: '#9CAF9F' }}>›</Text>
@@ -242,9 +243,9 @@ export default function GoalDetailScreen() {
             <Text style={{ fontFamily: 'Inter', fontSize: 14, fontWeight: '600', color: '#1A1F1C' }}>
               Reflections
             </Text>
-            <Text style={{ fontFamily: 'Inter', fontSize: 12, color: '#9CAF9F' }}>
+            <Typography variant="caption">
               Tap to journal about this goal
-            </Text>
+            </Typography>
           </View>
         </View>
         <Text style={{ fontSize: 18, color: '#9CAF9F' }}>›</Text>
@@ -277,15 +278,12 @@ export default function GoalDetailScreen() {
         }}
       >
         <Pressable onPress={() => router.back()}>
-          <Text style={{ fontFamily: 'Inter', fontSize: 15, color: '#4A7C5F' }}>← Goals</Text>
+          <Typography variant="nav-back">← Goals</Typography>
         </Pressable>
         <Text style={{ fontFamily: 'Inter', fontSize: 15, color: '#9CAF9F', marginHorizontal: 8 }}>|</Text>
-        <Text
-          style={{ fontFamily: 'Inter', fontSize: 15, fontWeight: '500', color: '#1A1F1C', flex: 1 }}
-          numberOfLines={1}
-        >
+        <Typography variant="nav-title" style={{ flex: 1 }} numberOfLines={1}>
           {goal.title}
-        </Text>
+        </Typography>
       </View>
 
       {isDesktop ? (

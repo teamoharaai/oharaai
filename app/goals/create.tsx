@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Typography } from '@/components/ui/Typography';
 import supabase from '@/lib/db/client';
 import { fetchGoalById } from '@/features/goals/services/goal-service';
 import { useGoalStore } from '@/features/goals/store';
@@ -318,8 +319,8 @@ export default function GoalCreateScreen() {
           style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingRight: 12 }}
           activeOpacity={0.7}
         >
-          <Text style={{ color: '#4A7C5F', fontSize: 18 }}>←</Text>
-          <Text style={{ color: '#4A7C5F', fontSize: 14 }}>Goals</Text>
+          <Typography variant="nav-back">←</Typography>
+          <Typography variant="nav-back">Goals</Typography>
         </TouchableOpacity>
         <View style={{ width: 1, height: 16, backgroundColor: '#EAE7E0', marginRight: 12 }} />
         <Text style={{ color: '#1A1F1C', fontWeight: '600', fontSize: 15 }}>New goal</Text>
@@ -381,16 +382,9 @@ export default function GoalCreateScreen() {
             >
               What do you want to achieve?
             </Text>
-            <Text
-              style={{
-                color: '#6B7B6E',
-                fontSize: 14,
-                textAlign: 'center',
-                lineHeight: 22,
-              }}
-            >
+            <Typography variant="body" style={{ textAlign: 'center' }}>
               {'Describe your goal in plain words —\nI\'ll help you shape it.'}
-            </Text>
+            </Typography>
           </View>
         ) : (
           /* Chat history */
@@ -472,7 +466,7 @@ export default function GoalCreateScreen() {
                 />
                 <ActivityIndicator color="#4A7C5F" size="small" />
                 {savingGoal && (
-                  <Text style={{ color: '#6B7B6E', fontSize: 13 }}>Saving your goal…</Text>
+                  <Typography variant="label">Saving your goal…</Typography>
                 )}
               </View>
             )}
@@ -586,16 +580,9 @@ export default function GoalCreateScreen() {
 
         {showIntro && projects.length > 0 && (
           <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-            <Text
-              style={{
-                color: '#6B7B6E',
-                fontSize: 13,
-                fontWeight: '500',
-                marginBottom: 8,
-              }}
-            >
+            <Typography variant="label" style={{ marginBottom: 8 }}>
               Link to a project (optional)
-            </Text>
+            </Typography>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}

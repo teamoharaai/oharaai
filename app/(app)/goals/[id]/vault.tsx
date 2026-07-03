@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, router } from 'expo-router';
+import { Typography } from '@/components/ui/Typography';
 import { useVault } from '@/features/goals/hooks/useVault';
 import { useEchoTrail } from '@/features/goals/hooks/useEchoTrail';
 import { VaultItemCard } from '@/features/goals/components/VaultItemCard';
@@ -163,7 +164,7 @@ function AddNoteSheet({ onSave, onClose }: AddNoteSheetProps) {
           }}
           disabled={saving}
         >
-          <Text style={{ fontFamily: 'Inter', fontSize: 14, color: '#6B7B6E' }}>Cancel</Text>
+          <Typography variant="body">Cancel</Typography>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={handleSave}
@@ -252,7 +253,7 @@ function SaveLinkSheet({ onSave, onClose }: SaveLinkSheetProps) {
           }}
           disabled={saving}
         >
-          <Text style={{ fontFamily: 'Inter', fontSize: 14, color: '#6B7B6E' }}>Cancel</Text>
+          <Typography variant="body">Cancel</Typography>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={handleSave}
@@ -330,16 +331,14 @@ export default function VaultScreen() {
         }}
       >
         <Pressable onPress={() => router.back()}>
-          <Text style={{ fontFamily: 'Inter', fontSize: 15, color: '#4A7C5F' }}>← Back</Text>
+          <Typography variant="nav-back">← Back</Typography>
         </Pressable>
         <Text style={{ fontFamily: 'Inter', fontSize: 15, color: '#9CAF9F', marginHorizontal: 8 }}>
           |
         </Text>
-        <Text
-          style={{ fontFamily: 'Inter', fontSize: 15, fontWeight: '500', color: '#1A1F1C', flex: 1 }}
-        >
+        <Typography variant="nav-title" style={{ flex: 1 }}>
           Vault
-        </Text>
+        </Typography>
       </View>
 
       <ScrollView
@@ -357,18 +356,9 @@ export default function VaultScreen() {
               marginBottom: 12,
             }}
           >
-            <Text
-              style={{
-                fontFamily: 'Inter',
-                fontSize: 11,
-                fontWeight: '500',
-                color: '#6B7B6E',
-                letterSpacing: 1.5,
-                textTransform: 'uppercase',
-              }}
-            >
+            <Typography variant="eyebrow">
               Items{vault.items.length > 0 ? ` (${vault.items.length})` : ''}
-            </Text>
+            </Typography>
             <TouchableOpacity onPress={openSheet} hitSlop={8}>
               <Text style={{ fontSize: 22, color: '#3D5247', lineHeight: 24 }}>＋</Text>
             </TouchableOpacity>
@@ -396,17 +386,12 @@ export default function VaultScreen() {
               }}
             >
               <Text style={{ fontSize: 30, marginBottom: 8 }}>◫</Text>
-              <Text
-                style={{
-                  fontFamily: 'Inter',
-                  fontSize: 13,
-                  color: '#9CAF9F',
-                  textAlign: 'center',
-                  lineHeight: 20,
-                }}
+              <Typography
+                variant="meta"
+                style={{ color: '#9CAF9F', textAlign: 'center' }}
               >
                 Add notes, links, and resources{'\n'}to build your vault
-              </Text>
+              </Typography>
             </Pressable>
           ) : (
             vault.items.map((item) => (
@@ -431,18 +416,9 @@ export default function VaultScreen() {
               marginBottom: 12,
             }}
           >
-            <Text
-              style={{
-                fontFamily: 'Inter',
-                fontSize: 11,
-                fontWeight: '500',
-                color: '#6B7B6E',
-                letterSpacing: 1.5,
-                textTransform: 'uppercase',
-              }}
-            >
+            <Typography variant="eyebrow">
               Reflections
-            </Text>
+            </Typography>
             <Pressable
               onPress={() =>
                 router.push(`/(app)/echo?goalId=${goalId}` as never)
