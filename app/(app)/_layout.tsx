@@ -12,8 +12,6 @@ export default function AppLayout() {
           <Stack.Screen name="echo" />
           <Stack.Screen name="constellation" />
           <Stack.Screen name="explore" />
-          <Stack.Screen name="about" />
-          <Stack.Screen name="account" />
           <Stack.Screen name="projects/[id]" />
           <Stack.Screen name="projects/create" />
           <Stack.Screen name="goals/[id]/index" />
