@@ -41,7 +41,7 @@ interface UpdateActionBody {
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } },
+  params: Record<string, string>,
 ): Promise<Response> {
   if (!isDatabaseConfigured) {
     return Response.json({ error: 'Database not configured' }, { status: 503 });

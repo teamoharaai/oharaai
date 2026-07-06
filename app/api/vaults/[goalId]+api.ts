@@ -78,7 +78,7 @@ function sanitizeMetadata(input: unknown): VaultItem['metadata'] {
 
 export async function GET(
   request: Request,
-  { params }: { params: { goalId: string } },
+  params: Record<string, string>,
 ): Promise<Response> {
   if (!isDatabaseConfigured) {
     return Response.json({ error: 'Database not configured' }, { status: 503 });
@@ -123,7 +123,7 @@ interface CreateVaultItemBody {
 
 export async function POST(
   request: Request,
-  { params }: { params: { goalId: string } },
+  params: Record<string, string>,
 ): Promise<Response> {
   if (!isDatabaseConfigured) {
     return Response.json({ error: 'Database not configured' }, { status: 503 });

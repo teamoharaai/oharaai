@@ -38,7 +38,7 @@ function sanitizeString(input: unknown, maxLength: number): string {
 
 export async function GET(
   request: Request,
-  { params }: { params: { linkId: string } },
+  params: Record<string, string>,
 ): Promise<Response> {
   if (!isDatabaseConfigured) {
     return Response.json({ error: 'Database not configured' }, { status: 503 });
@@ -72,7 +72,7 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { linkId: string } },
+  params: Record<string, string>,
 ): Promise<Response> {
   if (!isDatabaseConfigured) {
     return Response.json({ error: 'Database not configured' }, { status: 503 });
@@ -111,7 +111,7 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { linkId: string } },
+  params: Record<string, string>,
 ): Promise<Response> {
   if (!isDatabaseConfigured) {
     return Response.json({ error: 'Database not configured' }, { status: 503 });

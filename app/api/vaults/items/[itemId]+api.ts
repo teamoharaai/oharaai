@@ -74,7 +74,7 @@ interface UpdateVaultItemBody {
 
 export async function PUT(
   request: Request,
-  { params }: { params: { itemId: string } },
+  params: Record<string, string>,
 ): Promise<Response> {
   if (!isDatabaseConfigured) {
     return Response.json({ error: 'Database not configured' }, { status: 503 });
@@ -138,7 +138,7 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { itemId: string } },
+  params: Record<string, string>,
 ): Promise<Response> {
   if (!isDatabaseConfigured) {
     return Response.json({ error: 'Database not configured' }, { status: 503 });
