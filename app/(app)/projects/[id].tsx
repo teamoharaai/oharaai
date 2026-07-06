@@ -288,33 +288,6 @@ export default function ProjectDetailScreen() {
             )}
           </View>
 
-          {/* Activity */}
-          <View style={{ marginBottom: 28 }}>
-            <Typography variant="section-header" style={{ marginBottom: 16 }}>
-              Activity
-            </Typography>
-
-            <View
-              style={{
-                backgroundColor: '#FFFFFF',
-                borderRadius: 8,
-                paddingHorizontal: 20,
-                paddingVertical: 22,
-                borderWidth: 1,
-                borderColor: '#E7E2D8',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.04,
-                shadowRadius: 8,
-                elevation: 1,
-              }}
-            >
-              <Typography variant="body" style={{ fontSize: 15, lineHeight: 22 }}>
-                Activity will appear as you and your team make progress
-              </Typography>
-            </View>
-          </View>
-
           {/* Settings */}
           <View style={{ marginBottom: 28 }}>
             <Typography variant="section-header" style={{ marginBottom: 16 }}>
