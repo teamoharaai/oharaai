@@ -173,3 +173,25 @@
 - [ ] `app/goals/create.tsx` lives outside the `(app)` route group — same sidebar-loss bug
       as the four routes fixed on 2026-07-02 (projects/[id], projects/create,
       goals/[id]/index, goals/[id]/vault). Deliberately left out of scope for that session.
+
+## Accessibility / Focus management
+
+- [ ] **`aria-hidden` focus violation on Modal open (console warning: "Blocked aria-hidden
+      on an element because its descendant retained focus").** Reproduces after clicking into
+      a project (triggers the Edit/Delete modals in `app/(app)/projects/[id].tsx`). Root cause:
+      react-native-web's `Modal` marks the background app container `aria-hidden` when opened,
+      but the `Pressable`/`TouchableOpacity` that triggered the modal (e.g. the Edit/Delete
+      button) never has its focus moved or blurred, so the browser flags a focused descendant
+      being hidden. No app code sets `aria-hidden` directly — this is RNWeb's own Modal
+      behavior. Most call sites (`projects/[id].tsx`, `goals/[id]/vault.tsx`,
+      `components/layout/SettingsModal.tsx`, `components/layout/AccountModal.tsx`) share the
+      wrapper `components/ui/Modal.tsx`, which has no focus management (no autofocus into the
+      modal, no blur-on-trigger). `features/echo/components/EchoScreen.tsx` bypasses the
+      wrapper and imports `Modal` directly from `react-native`, so a fix isn't contained to one
+      file. Needs its own session: (1) live repro in-browser to confirm the exact focused node,
+      (2) pick a fix pattern (e.g. `ref` + `tabIndex={-1}` + `.focus()` on the modal container
+      when `visible` becomes true) in `components/ui/Modal.tsx`, (3) decide whether
+      `EchoScreen.tsx` migrates to the shared wrapper or gets the same fix applied
+      independently, (4) manually verify each modal call site in-browser (no automated coverage
+      for this). Found during 2026-07-06 console-warning triage audit, deliberately left
+      unfixed (read-only pass).
