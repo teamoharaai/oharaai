@@ -288,51 +288,6 @@ export default function ProjectDetailScreen() {
             )}
           </View>
 
-          {/* Project Vault */}
-          <View style={{ marginBottom: 28 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12 }}>
-              <Typography variant="section-header">
-                Project Vault
-              </Typography>
-              <Pressable
-                onPress={() => {}}
-                style={{
-                  backgroundColor: '#3D5247',
-                  borderRadius: 12,
-                  width: 36,
-                  height: 36,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Typography variant="meta" style={{ fontSize: 20, lineHeight: 22, color: '#F5F1EA' }}>+</Typography>
-              </Pressable>
-            </View>
-
-            {/* TODO: Project-level vault support requires a schema change — add nullable project_id
-            // column to the vaults table (goal_id would remain nullable for goal-bound vaults).
-            // Until that migration ships, this section is a placeholder only. */}
-            <View
-              style={{
-                backgroundColor: '#FFFFFF',
-                borderRadius: 8,
-                paddingHorizontal: 20,
-                paddingVertical: 22,
-                borderWidth: 1,
-                borderColor: '#E7E2D8',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.04,
-                shadowRadius: 8,
-                elevation: 1,
-              }}
-            >
-              <Typography variant="body" style={{ fontSize: 15, lineHeight: 22 }}>
-                Add project-level notes and resources
-              </Typography>
-            </View>
-          </View>
-
           {/* Activity */}
           <View style={{ marginBottom: 28 }}>
             <Typography variant="section-header" style={{ marginBottom: 16 }}>
