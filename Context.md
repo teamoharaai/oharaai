@@ -21,7 +21,7 @@ Theme: cream #F5F1EA, white cards, forest green #3D5247, Inter + Lora
 `CHANGELOGCODEX.md` · `docs/context.md` (deprecated — root CONTEXT.md is canonical)
 
 ## Current State
-- Migrations: through 007 (squashed baseline 001-006, 2026-06-24) + 007 (echo_entries.title/brt_ai/brt_user, 2026-06-24), all confirmed applied live
+- Migrations: through 011 (squashed baseline 001-006, 2026-06-24; 007 echo_entries.title/brt_ai/brt_user; 008 profiles.timezone + handle_new_user()/on_auth_user_created trigger; 009 echo ai_status; 010 echo retry tracking; 011 profiles account expansion + avatars bucket), all applied live per npx supabase db push (CHANGELOGCODEX.md, 2026-07-01 session). Next migration number: 012.
 - `tsc --noEmit`: clean
 - RLS: verified across all tables
 - Auth: Supabase auth working; `/auth/callback` 404 parked (teammate has Auth0 solution)
@@ -61,7 +61,7 @@ Theme: cream #F5F1EA, white cards, forest green #3D5247, Inter + Lora
 - Visibility: `private / circle / public` — non-owner access conservative until social ships
 - vault_items has no milestone_id — milestone context not in schema yet
 - spaces.owner_id is the owner column (renamed from user_id in migration 022); space_members.user_id is unchanged
-- Next migration number: 008
+- Next migration number: 012
 
 ## Outstanding (Phase 1)
 - Dashboard redesign: Echo entry point, Ohara voice/Guide presence, badge fix
@@ -79,4 +79,4 @@ Theme: cream #F5F1EA, white cards, forest green #3D5247, Inter + Lora
 - Codex writes to CHANGELOGCODEX.md after every session
 - Run `npx tsc --noEmit` before and after every task
 
-last migration: 007 — migrations squashed 2026-06-24 from original 001-026 into narrative baselines 001-006, all confirmed applied live via schema_migrations. Migration 007 (echo_entries.title, brt_ai, brt_user) added 2026-06-24 this session, confirmed applied live. Old numbers (e.g. 023, 026) are historical/archived only; next new migration is 008.
+last migration: 011 — migrations squashed 2026-06-24 from original 001-026 into narrative baselines 001-006, all confirmed applied live via schema_migrations. Migration 007 (echo_entries.title, brt_ai, brt_user) added 2026-06-24, confirmed applied live. Migrations 008 (profiles.timezone + handle_new_user()/on_auth_user_created trigger), 009 (echo ai_status), 010 (echo retry tracking), and 011 (profiles account expansion + avatars bucket) added since, all applied live per npx supabase db push (CHANGELOGCODEX.md, 2026-07-01 session). Old numbers (e.g. 023, 026) are historical/archived only; next new migration is 012.
