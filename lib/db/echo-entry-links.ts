@@ -7,7 +7,7 @@ type DbClient = SupabaseClient;
 
 // ── DB row types ──────────────────────────────────────────────────────────────
 
-type DbEchoGoalLinkRow = {
+type DbEchoEntryLinkRow = {
   id: string;
   echo_entry_id: string;
   goal_id: string;
@@ -39,7 +39,7 @@ type DbEchoEntryRow = {
 
 // ── Mappers ───────────────────────────────────────────────────────────────────
 
-function mapLink(row: DbEchoGoalLinkRow): EchoGoalLink {
+function mapLink(row: DbEchoEntryLinkRow): EchoGoalLink {
   return {
     id: row.id,
     echoEntryId: row.echo_entry_id,
@@ -72,18 +72,21 @@ function mapEchoEntry(row: DbEchoEntryRow): EchoEntry {
 }
 
 // ── Service functions ─────────────────────────────────────────────────────────
+// All functions here operate on container_type = 'goal' rows only. Folder-side
+// equivalents (getEntriesForFolder, etc.) are Session 2+ scope.
 
 export async function getLinksForEchoEntry(
   echoEntryId: string,
   client: DbClient = supabase,
 ): Promise<EchoGoalLink[]> {
   const { data, error } = await client
-    .from('echo_goal_links')
+    .from('echo_entry_links')
     .select('id, echo_entry_id, goal_id, link_source, confidence, confirmed, created_at')
-    .eq('echo_entry_id', echoEntryId);
+    .eq('echo_entry_id', echoEntryId)
+    .eq('container_type', 'goal');
 
   if (error) throw new Error(error.message);
-  return (data as unknown as DbEchoGoalLinkRow[] ?? []).map(mapLink);
+  return (data as unknown as DbEchoEntryLinkRow[] ?? []).map(mapLink);
 }
 
 export async function getLinksForGoal(
@@ -91,12 +94,13 @@ export async function getLinksForGoal(
   client: DbClient = supabase,
 ): Promise<EchoGoalLink[]> {
   const { data, error } = await client
-    .from('echo_goal_links')
+    .from('echo_entry_links')
     .select('id, echo_entry_id, goal_id, link_source, confidence, confirmed, created_at')
-    .eq('goal_id', goalId);
+    .eq('goal_id', goalId)
+    .eq('container_type', 'goal');
 
   if (error) throw new Error(error.message);
-  return (data as unknown as DbEchoGoalLinkRow[] ?? []).map(mapLink);
+  return (data as unknown as DbEchoEntryLinkRow[] ?? []).map(mapLink);
 }
 
 export async function getEchoEntriesForGoal(
@@ -130,10 +134,11 @@ export async function createLink(
   client: DbClient = supabase,
 ): Promise<EchoGoalLink> {
   const { data, error } = await client
-    .from('echo_goal_links')
+    .from('echo_entry_links')
     .insert({
       echo_entry_id: echoEntryId,
       goal_id: goalId,
+      container_type: 'goal',
       link_source: source,
       confidence: confidence ?? null,
       confirmed: false,
@@ -143,7 +148,7 @@ export async function createLink(
 
   if (error) throw error;
   if (!data) throw new Error('Failed to create echo-goal link');
-  return mapLink(data as unknown as DbEchoGoalLinkRow);
+  return mapLink(data as unknown as DbEchoEntryLinkRow);
 }
 
 export async function confirmLink(
@@ -151,7 +156,7 @@ export async function confirmLink(
   client: DbClient = supabase,
 ): Promise<void> {
   const { error } = await client
-    .from('echo_goal_links')
+    .from('echo_entry_links')
     .update({ confirmed: true })
     .eq('id', linkId);
 
@@ -163,7 +168,7 @@ export async function dismissLink(
   client: DbClient = supabase,
 ): Promise<void> {
   const { error } = await client
-    .from('echo_goal_links')
+    .from('echo_entry_links')
     .delete()
     .eq('id', linkId);
 
@@ -185,13 +190,14 @@ export async function getUnconfirmedLinksForUserGoals(
   if (goalIds.length === 0) return [];
 
   const { data, error } = await client
-    .from('echo_goal_links')
+    .from('echo_entry_links')
     .select('id, echo_entry_id, goal_id, link_source, confidence, confirmed, created_at')
     .in('goal_id', goalIds)
+    .eq('container_type', 'goal')
     .eq('confirmed', false);
 
   if (error) throw error;
-  return (data as unknown as DbEchoGoalLinkRow[] ?? []).map(mapLink);
+  return (data as unknown as DbEchoEntryLinkRow[] ?? []).map(mapLink);
 }
 
 export async function getEchoLinkByIdForUserGoal(
@@ -200,15 +206,16 @@ export async function getEchoLinkByIdForUserGoal(
   client: DbClient = supabase,
 ): Promise<EchoGoalLink | null> {
   const { data: linkRow, error: linkError } = await client
-    .from('echo_goal_links')
+    .from('echo_entry_links')
     .select('id, echo_entry_id, goal_id, link_source, confidence, confirmed, created_at')
     .eq('id', linkId)
+    .eq('container_type', 'goal')
     .maybeSingle();
 
   if (linkError) throw linkError;
   if (!linkRow) return null;
 
-  const row = linkRow as unknown as DbEchoGoalLinkRow;
+  const row = linkRow as unknown as DbEchoEntryLinkRow;
   const { data: goal, error: goalError } = await client
     .from('goals')
     .select('id')

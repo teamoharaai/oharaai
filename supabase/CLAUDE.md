@@ -4,8 +4,8 @@ Owner: CTO. Cascade Level 3.
 
 ## Migration Conventions
 - supabase/migrations/ holds 6 narrative baseline files (001-006), squashed
-  2026-06-24 from the original 26 incremental migrations. 007-011 added since
-  the squash (see below). Next new migration: 012.
+  2026-06-24 from the original 26 incremental migrations. 007-012 added since
+  the squash (see below). Next new migration: 013.
 - The pre-squash files (original 001-026) are archived, untouched, in
   supabase/migrations_archive_pre_squash_2026-06-24/ for historical reference.
   Do not re-run or restore them — supabase_migrations.schema_migrations tracks
@@ -32,12 +32,17 @@ Owner: CTO. Cascade Level 3.
 - 011_profiles_account_expansion.sql: profiles.interests renamed to
   interests_user; adds avatar_url, bio, interests_ai, intelligence_enabled;
   creates the avatars storage bucket.
+- 012_echo_entry_links.sql: generalizes echo_goal_links into echo_entry_links
+  (renamed table) ahead of Echo Folders. Adds container_type ('goal' |
+  'folder'), makes goal_id nullable, adds folder_id (nullable, no FK yet —
+  Echo Folders table doesn't exist). No folder functionality built yet; this
+  is schema restructuring only. See migration header for details.
 - goals.mode column was dropped in the 2026-06-24 squash (was a single-value
   CHECK column, no longer carried). lib/db/goals.ts no longer inserts it.
 
 ## Rules
 - Nullable FKs for new columns on existing tables (no data migration needed).
-- echo_entries.goal_id is PRESERVED. Do not drop it. echo_goal_links is the canonical bridge.
+- echo_entries.goal_id is PRESERVED. Do not drop it. echo_entry_links (container_type='goal') is the canonical bridge.
 - Vault auto-creation: one vault per goal. Enforced by unique(goal_id) on vaults.
 - RLS: vaults scoped to owner_id. vault_items scoped to vault ownership.
 - RLS: spaces scoped to owner + members. space_members scoped to space membership.

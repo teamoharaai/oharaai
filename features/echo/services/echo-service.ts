@@ -237,18 +237,19 @@ export async function createEntry(params: {
     void (async () => {
       try {
         await supabase
-          .from('echo_goal_links')
+          .from('echo_entry_links')
           .upsert(
             {
               echo_entry_id: insertedEntry.id,
               goal_id: params.goalId,
+              container_type: 'goal',
               link_source: 'manual',
               confirmed: true,
             },
             { onConflict: 'echo_entry_id,goal_id', ignoreDuplicates: true },
           );
       } catch (err) {
-        console.error('[echo-goal-links] manual insert failed:', err);
+        console.error('[echo-entry-links] manual insert failed:', err);
       }
     })();
   }
@@ -297,11 +298,12 @@ export async function createEntry(params: {
 
         if (bestMatch) {
           await supabase
-            .from('echo_goal_links')
+            .from('echo_entry_links')
             .upsert(
               {
                 echo_entry_id: echoEntryId,
                 goal_id: bestMatch.goalId,
+                container_type: 'goal',
                 link_source: 'ai_auto',
                 confirmed: false,
               },
@@ -309,7 +311,7 @@ export async function createEntry(params: {
             );
         }
       } catch (err) {
-        console.error('[echo-goal-links] ai_auto failed:', err);
+        console.error('[echo-entry-links] ai_auto failed:', err);
       }
     })();
   }

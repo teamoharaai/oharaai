@@ -205,9 +205,10 @@ async function fetchGoalSignals(
 
     // 3. Echo-goal links — count + collect entry IDs
     const { data: linkRows } = await supabase
-      .from('echo_goal_links')
+      .from('echo_entry_links')
       .select('goal_id, echo_entry_id')
-      .in('goal_id', goalIds);
+      .in('goal_id', goalIds)
+      .eq('container_type', 'goal');
 
     const goalEntryMap = new Map<string, string[]>(); // goalId → [entryId, ...]
     const allEntryIds: string[] = [];

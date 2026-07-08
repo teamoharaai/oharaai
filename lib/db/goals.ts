@@ -475,16 +475,17 @@ export async function getActivityByGoalId(
     }
   }
 
-  // 5. Echo-goal links — reflections linked via echo_goal_links (many-to-many bridge).
+  // 5. Echo-goal links — reflections linked via echo_entry_links (many-to-many bridge).
   //    Entries already surfaced via the legacy echo_entries.goal_id path are excluded
   //    to prevent duplicate activity rows for the same underlying reflection.
-  //    Timestamp is echo_goal_links.created_at (when linked), not echo_entries.created_at.
+  //    Timestamp is echo_entry_links.created_at (when linked), not echo_entries.created_at.
   const echoLinkedItems: ActivityItem[] = [];
 
   const { data: linkData } = await db
-    .from('echo_goal_links')
+    .from('echo_entry_links')
     .select('id, echo_entry_id, created_at')
-    .eq('goal_id', goalId);
+    .eq('goal_id', goalId)
+    .eq('container_type', 'goal');
 
   const newLinks = (linkData as unknown as DbEchoLinkRow[] ?? []).filter(
     (link) => !legacyEchoEntryIds.has(link.echo_entry_id),

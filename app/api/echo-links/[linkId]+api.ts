@@ -3,7 +3,7 @@ import {
   confirmLink,
   dismissLink,
   getEchoLinkByIdForUserGoal,
-} from '@/lib/db/echo-goal-links';
+} from '@/lib/db/echo-entry-links';
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 

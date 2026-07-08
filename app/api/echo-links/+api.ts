@@ -3,7 +3,7 @@ import {
   getUnconfirmedLinksForUserGoals,
   createLinkForUserGoal,
   confirmLink,
-} from '@/lib/db/echo-goal-links';
+} from '@/lib/db/echo-entry-links';
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
@@ -44,7 +44,7 @@ function isDuplicateLinkError(error: unknown): error is { code: string; constrai
   const constraint = (error as { constraint?: unknown }).constraint;
   return code === '23505' && (
     constraint === undefined ||
-    constraint === 'echo_goal_links_echo_entry_id_goal_id_key'
+    constraint === 'echo_entry_links_echo_entry_id_goal_id_key'
   );
 }
 

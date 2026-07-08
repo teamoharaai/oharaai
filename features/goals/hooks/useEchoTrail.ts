@@ -4,7 +4,7 @@
 
 import { useState, useCallback } from 'react';
 import supabase from '@/lib/db/client';
-import { getEchoEntriesForGoal } from '@/lib/db/echo-goal-links';
+import { getEchoEntriesForGoal } from '@/lib/db/echo-entry-links';
 import type { EchoBrt } from '@/features/echo/types';
 import type { EchoTrailEntry } from '@/features/goals/components/EchoTrail';
 
