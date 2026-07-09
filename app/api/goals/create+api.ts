@@ -12,7 +12,7 @@ import {
   parseGoalFinalizeResponse,
   type GoalFinalizeResponse,
 } from '@/lib/ai/schemas/goal-creation';
-import supabase, { isDatabaseConfigured } from '@/lib/db/client';
+import { withAuth, type AuthContext } from '@/lib/api/auth';
 
 type ConversationMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -33,17 +33,9 @@ interface CreateResponse {
   finalizedBy?: 'assistant' | 'user';
 }
 
-async function getAuthContextFromRequest(request: Request) {
-  const authHeader = request.headers.get('Authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token || !isDatabaseConfigured) return null;
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser(token);
-
-  return error || !user ? null : { userId: user.id, accessToken: token };
+function unauthorizedResponse(): Response {
+  const errBody: AiResponse<never> = { ok: false, data: null, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } };
+  return Response.json(errBody, { status: 401 });
 }
 
 function rateLimitedResponse(error: { message: string }): Response {
@@ -602,11 +594,22 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json(errBody, { status: 400 });
   }
 
-  const auth = await getAuthContextFromRequest(request);
-  if (!auth) {
-    const errBody: AiResponse<never> = { ok: false, data: null, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } };
-    return Response.json(errBody, { status: 401 });
-  }
+  return withAuth(
+    (_req, _params, auth) =>
+      handleAuthedCreate({ requestId, userMessage, conversationHistory, finalizeRequested, projectId, auth }),
+    { onUnauthorized: unauthorizedResponse },
+  )(request);
+}
+
+async function handleAuthedCreate(params: {
+  requestId: string;
+  userMessage: string | null;
+  conversationHistory: ConversationMessage[];
+  finalizeRequested: boolean;
+  projectId: string | null;
+  auth: AuthContext;
+}): Promise<Response> {
+  const { requestId, userMessage, conversationHistory, finalizeRequested, projectId, auth } = params;
 
   const history: ConversationMessage[] = [
     ...conversationHistory,

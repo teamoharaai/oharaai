@@ -1,4 +1,5 @@
-import supabase, { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
+import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
+import { withAuth, type AuthContext } from '@/lib/api/auth';
 import { completeMeasurable, getGoalProgressById } from '@/lib/db/goals';
 
 type CompleteMeasurableRequest = {
@@ -10,23 +11,11 @@ export async function POST(request: Request): Promise<Response> {
   if (!isDatabaseConfigured) {
     return Response.json({ error: 'Database not configured' }, { status: 503 });
   }
+  return withAuth(handlePost)(request);
+}
 
-  const authHeader = request.headers.get('Authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser(token);
-
-  if (authError || !user) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const authedDb = createAuthedClient(token);
+async function handlePost(request: Request, _params: Record<string, string>, auth: AuthContext): Promise<Response> {
+  const authedDb = createAuthedClient(auth.accessToken);
 
   let body: CompleteMeasurableRequest;
   try {
@@ -43,8 +32,8 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    await completeMeasurable(measurableId, goalId, user.id, authedDb);
-    const progress = await getGoalProgressById(goalId, user.id, authedDb);
+    await completeMeasurable(measurableId, goalId, auth.userId, authedDb);
+    const progress = await getGoalProgressById(goalId, auth.userId, authedDb);
     return Response.json({ success: true, progress });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to complete measurable';

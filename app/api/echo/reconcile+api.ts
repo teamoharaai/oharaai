@@ -1,24 +1,10 @@
-import supabase, { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
+import { createAuthedClient } from '@/lib/db/client';
+import { withAuth, type AuthContext } from '@/lib/api/auth';
 import { callEchoReflection } from '@/lib/ai/echo-client';
 import { buildEchoReflectionPrompt } from '@/lib/ai/prompts/echo-reflection';
 import { ECHO_INFERENCE_PROMPT } from '@/lib/ai/echo/prompts';
 import { AI_CONFIG } from '@/lib/ai/config';
 import type { EchoEmotion, EchoBrt } from '@/features/echo/types';
-
-// --- Auth ---
-
-async function getAuthContext(request: Request) {
-  const authHeader = request.headers.get('Authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token || !isDatabaseConfigured) return null;
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser(token);
-
-  return error || !user ? null : { userId: user.id, accessToken: token };
-}
 
 // --- Reflection parser (mirrors reflect+api.ts — must stay in sync if that changes) ---
 
@@ -92,12 +78,15 @@ function parseReflection(rawText: string): ParsedReflection {
 type ReconcileResult = { reconciled: number; failed?: number };
 
 export async function POST(request: Request): Promise<Response> {
-  try {
-    const auth = await getAuthContext(request);
-    if (!auth) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  return withAuth(handlePost)(request);
+}
 
+async function handlePost(
+  _request: Request,
+  _params: Record<string, string>,
+  auth: AuthContext,
+): Promise<Response> {
+  try {
     const authedDb = createAuthedClient(auth.accessToken);
 
     // ai_status is the single gate. Two arms:

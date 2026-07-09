@@ -1,6 +1,15 @@
-import { getAuthContext } from '@/lib/api/auth';
+import { withAuth, type AuthContext } from '@/lib/api/auth';
 import { createAuthedClient } from '@/lib/db/client';
 import type { ApiResponse } from '@/lib/api/contracts';
+
+function unauthorizedResponse(): Response {
+  const body: ApiResponse<never> = {
+    ok: false,
+    data: null,
+    error: { code: 'UNAUTHORIZED', message: 'Unauthorized' },
+  };
+  return Response.json(body, { status: 401 });
+}
 
 interface ProfileData {
   display_name: string;
@@ -34,16 +43,10 @@ function toProfileData(data: Record<string, unknown>): ProfileData {
 }
 
 export async function GET(request: Request): Promise<Response> {
-  const auth = await getAuthContext(request);
-  if (!auth) {
-    const body: ApiResponse<never> = {
-      ok: false,
-      data: null,
-      error: { code: 'UNAUTHORIZED', message: 'Unauthorized' },
-    };
-    return Response.json(body, { status: 401 });
-  }
+  return withAuth(handleGet, { onUnauthorized: unauthorizedResponse })(request);
+}
 
+async function handleGet(_request: Request, _params: Record<string, string>, auth: AuthContext): Promise<Response> {
   const db = createAuthedClient(auth.accessToken);
   const { data, error } = await db
     .from('profiles')
@@ -69,16 +72,10 @@ export async function GET(request: Request): Promise<Response> {
 }
 
 export async function PATCH(request: Request): Promise<Response> {
-  const auth = await getAuthContext(request);
-  if (!auth) {
-    const body: ApiResponse<never> = {
-      ok: false,
-      data: null,
-      error: { code: 'UNAUTHORIZED', message: 'Unauthorized' },
-    };
-    return Response.json(body, { status: 401 });
-  }
+  return withAuth(handlePatch, { onUnauthorized: unauthorizedResponse })(request);
+}
 
+async function handlePatch(request: Request, _params: Record<string, string>, auth: AuthContext): Promise<Response> {
   let payload: PatchBody;
   try {
     payload = (await request.json()) as PatchBody;

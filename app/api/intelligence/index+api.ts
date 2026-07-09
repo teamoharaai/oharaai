@@ -3,24 +3,17 @@ import { isAIRateLimitError } from '@/lib/ai/errors';
 import type { AiResponse } from '@/lib/ai/contracts';
 import { isProfileSufficient } from '@/lib/ai/isProfileSufficient';
 import { FEATURES } from '@/constants/features';
-import supabase, { isDatabaseConfigured } from '@/lib/db/client';
+import supabase from '@/lib/db/client';
+import { withAuth, type AuthContext } from '@/lib/api/auth';
 
 type IntelligenceData = {
   insight: string | null;
   sufficient: boolean;
 };
 
-async function getAuthContextFromRequest(request: Request) {
-  const authHeader = request.headers.get('Authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token || !isDatabaseConfigured) return null;
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser(token);
-
-  return error || !user ? null : { userId: user.id, accessToken: token };
+function unauthorizedResponse(): Response {
+  const errBody: AiResponse<never> = { ok: false, data: null, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } };
+  return Response.json(errBody, { status: 401 });
 }
 
 /**
@@ -48,13 +41,10 @@ export async function POST(request: Request) {
     };
     return Response.json(errBody, { status: 503 });
   }
+  return withAuth(handlePost, { onUnauthorized: unauthorizedResponse })(request);
+}
 
-  const auth = await getAuthContextFromRequest(request);
-  if (!auth) {
-    const errBody: AiResponse<never> = { ok: false, data: null, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } };
-    return Response.json(errBody, { status: 401 });
-  }
-
+async function handlePost(_request: Request, _params: Record<string, string>, auth: AuthContext): Promise<Response> {
   const { data, error: dbError } = await supabase
     .from('profiles')
     .select('character_profile')

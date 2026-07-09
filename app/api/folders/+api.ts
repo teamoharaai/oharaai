@@ -1,20 +1,6 @@
-import supabase, { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
+import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
+import { withAuth, type AuthContext } from '@/lib/api/auth';
 import { getFoldersForUser, createFolderForUser } from '@/lib/db/echo-folders';
-
-// ─── Auth ─────────────────────────────────────────────────────────────────────
-
-async function getAuthContextFromRequest(request: Request) {
-  const authHeader = request.headers.get('Authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token || !isDatabaseConfigured) return null;
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser(token);
-
-  return error || !user ? null : { userId: user.id, accessToken: token };
-}
 
 // ─── Input sanitization ───────────────────────────────────────────────────────
 
@@ -37,12 +23,10 @@ export async function GET(request: Request): Promise<Response> {
   if (!isDatabaseConfigured) {
     return Response.json({ error: 'Database not configured' }, { status: 503 });
   }
+  return withAuth(handleGet)(request);
+}
 
-  const auth = await getAuthContextFromRequest(request);
-  if (!auth) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+async function handleGet(_request: Request, _params: Record<string, string>, auth: AuthContext): Promise<Response> {
   try {
     const authedDb = createAuthedClient(auth.accessToken);
     const folders = await getFoldersForUser(auth.userId, authedDb);
@@ -65,12 +49,10 @@ export async function POST(request: Request): Promise<Response> {
   if (!isDatabaseConfigured) {
     return Response.json({ error: 'Database not configured' }, { status: 503 });
   }
+  return withAuth(handlePost)(request);
+}
 
-  const auth = await getAuthContextFromRequest(request);
-  if (!auth) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+async function handlePost(request: Request, _params: Record<string, string>, auth: AuthContext): Promise<Response> {
   let body: CreateFolderBody;
   try {
     body = (await request.json()) as CreateFolderBody;

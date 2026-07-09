@@ -1,31 +1,20 @@
 import supabase, { isDatabaseConfigured } from '@/lib/db/client';
+import { withAuth, type AuthContext } from '@/lib/api/auth';
 
 export async function GET(request: Request): Promise<Response> {
   if (!isDatabaseConfigured) {
     return Response.json({ error: 'Database not configured' }, { status: 503 });
   }
+  return withAuth(handleGet)(request);
+}
 
-  const authHeader = request.headers.get('Authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser(token);
-
-  if (authError || !user) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+async function handleGet(_request: Request, _params: Record<string, string>, auth: AuthContext): Promise<Response> {
   const [goalsResult, echoResult] = await Promise.all([
-    supabase.from('goals').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+    supabase.from('goals').select('id', { count: 'exact', head: true }).eq('user_id', auth.userId),
     supabase
       .from('echo_entries')
       .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id),
+      .eq('user_id', auth.userId),
   ]);
 
   return Response.json({

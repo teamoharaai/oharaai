@@ -2,6 +2,45 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-09 — Session 4.4 follow-up: withAuth migrated to all remaining routes)
+- **Context:** follow-up to the "first cut" below, which deliberately migrated only one
+  route (`entries/[id]/move+api.ts`) as a demo and left the other 18 for incremental
+  adoption. Migrated the rest of them now, in one pass.
+- **18 route files migrated to `withAuth`:** `actions/[id]`, `actions/index`,
+  `dashboard/summary`, `echo-links/index`, `echo-links/[linkId]`, `echo/reconcile`,
+  `echo/reflect`, `folders/index`, `folders/[id]`, `goals/activity`,
+  `goals/complete-measurable`, `goals/create`, `goals/index`, `intelligence/index`,
+  `measurables/due-today`, `profile/index`, `vaults/[goalId]`, `vaults/items/[itemId]`.
+  All 12 files that had copy-pasted their own local `getAuthContext`/
+  `getAuthContextFromRequest` are gone; the 5 files that hand-rolled the
+  header-parse-and-`getUser()` check inline (`goals/activity`, `goals/complete-measurable`,
+  `dashboard/summary`, `measurables/due-today`, plus `echo/reconcile`'s locally-shadowed
+  `getAuthContext`) are also converted. `goals/index` and `profile/index` already used the
+  shared `getAuthContext` export (no duplication) but not the `withAuth` wrapper — migrated
+  for full consistency so every route now goes through the same helper. Net: -154 lines
+  across 19 files (this pass + the earlier `move+api.ts` demo).
+- **`withAuth` extended with an optional `onUnauthorized` hook** (`lib/api/auth.ts`): three
+  routes (`goals/create`, `goals/index`, `intelligence/index`, `profile/index`) are
+  documented as returning the `AiResponse`/`ApiResponse` envelope on 401
+  (`{ok:false, data:null, error:{code:'UNAUTHORIZED', ...}}`), not the plain
+  `{error:'Unauthorized'}` body the other routes return. `withAuth` defaults to the plain
+  shape and takes `{ onUnauthorized: () => Response }` to preserve the documented envelope
+  exactly on those four — de-duplicating the auth check without silently changing a
+  response contract (root CLAUDE.md marks AI output contracts L3/team-decision).
+- **One behavior-preserving structural note:** `echo/reflect+api.ts`'s `POST` has an early
+  return (`aiInsightRequested === false`) that runs *before* the auth check even in the
+  original code — i.e. that one path was reachable without a valid session. Preserved
+  exactly: the JSON-body parse and that early return still happen before `withAuth` is
+  invoked; only the remainder of the handler moved into an auth-wrapped function. Flagged
+  here since it's easy to accidentally "fix" (move auth first) while refactoring, which
+  would be an authorization behavior change, not a dedup — out of scope for this pass.
+  Similarly, `goals/activity+api.ts` previously checked `goalId` presence (400) before
+  checking auth (401); migrating flips that order (auth now runs first, matching every
+  other route) — a minor, intentional consistency fix rather than a preserved quirk, since
+  no legitimate caller is affected (a real client always sends a token).
+- `npx tsc --noEmit` clean after the full pass.
+- Files touched: the 18 route files listed above, `lib/api/auth.ts`, `CHANGELOGCODEX.md`.
+
 ### Added (2026-07-09 — Session 4.4: app-wide 401 handling, first cut)
 - **Context:** follows the Step 0 read-only 401-handling audit this session, which found no
   app-wide interceptor — three divergent client-side reactions to auth failure
