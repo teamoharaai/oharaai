@@ -90,8 +90,9 @@
 ### Changed (2026-07-09 — Cleanup: remove dead client `entry.folderId`)
 - Removed the dead client-only `folderId` field from `features/echo/types.ts`'s `EchoEntry` and
   deleted the matching optimistic write-only assignments in `features/echo/store.ts`,
-  `features/echo/hooks/useMoveEntry.ts`, and `features/echo/services/echo-service.ts` after a
-  fresh grep re-verified there were still no read/render sites for `entry.folderId`.
+  `features/echo/hooks/useMoveEntry.ts`, and `features/echo/services/echo-service.ts` (including
+  the rebased `createEntry()` General-folder container payload) after a fresh grep re-verified
+  there were still no read/render sites for `entry.folderId`.
 
 ### Added (2026-07-09 — Session 4.2: Anchored entry action popover)
 - Added `components/ui/AnchoredPopover.tsx`, a reusable `Modal transparent`-backed popover

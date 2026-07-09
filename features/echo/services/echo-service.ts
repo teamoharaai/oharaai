@@ -422,7 +422,7 @@ export async function createEntry(params: {
         // The General folder's name is server-enforced immutable ("The
         // General folder cannot be renamed" — app/api/folders/[id]+api.ts),
         // so it's safe to hardcode here rather than issuing a second query.
-        confirmedContainer = { type: 'folder', folderId, folderName: 'General' };
+        confirmedContainer = { type: 'folder', folderName: 'General' };
       }
     } catch (err) {
       console.error('[echo-entry-links] general-folder assignment failed:', err);
