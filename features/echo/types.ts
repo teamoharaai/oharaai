@@ -14,6 +14,8 @@ export interface EchoEntry {
   userId: string;
   goalId: string | null;
   goalTitle?: string;
+  folderId?: string | null;
+  folderName?: string;
   title?: string;
   content: string;
   mediaUrl?: string;
