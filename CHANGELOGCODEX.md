@@ -40,6 +40,14 @@
   **401 is intentionally left as existing behavior** (surface the message) — Step 0 confirmed there
   is **no app-wide 401/re-auth interceptor** to reuse (`onAuthStateChange` in `_layout`, ad-hoc
   `setError('Unauthorized')` in `useVault`), so no one-off flow was invented here. **Gap flagged.**
+- **Session outcome:** originated from a read-only Opus code review of merged PR #7 (6 findings
+  across the new `echo_entry_links` read, tap isolation, error handling, orphaned fields, the
+  store action, and a preselect race). Findings #1/#3/#4/#5/#6 were fixed above and shipped as
+  **PR #9 (merged, merge commit `8a13075`)**; `main` synced local + remote. `tsc --noEmit` clean;
+  no live-DB/app runtime verification was possible (no Supabase creds in-repo). Deferred/flagged
+  items (General-folder-on-save design question, `createEntry` legacy dual-write, orphaned
+  `folderId`, the 401 gap, string-based 404 disambiguation, Edit/Delete actions, and applying
+  migration `016`) are tracked in `OUTSTANDING.md` → Echo.
 
 ### Added (2026-07-09 — Session 4: Entry Action Menu + Move-to-Folder Picker)
 - **Step 0 audit (read-only, done before any code):**
