@@ -2,6 +2,48 @@
 
 ## [Unreleased]
 
+### Fixed (2026-07-09 — Service role key leaking into client web bundle)
+- **Pre-check for Session 3 live verification** (`SUPABASE_SERVICE_ROLE_KEY` newly added to
+  `.env.local` to unblock test-user creation) found `createServiceRoleClient()` shipping into
+  the client web bundle. Root cause: `lib/db/client.ts` mixed client-safe exports (`supabase`,
+  `createAuthedClient`, `isDatabaseConfigured`) with the server-only
+  `createServiceRoleClient()` in one module. Metro doesn't tree-shake at export granularity —
+  any client-side import from the file (`supabase`/`createAuthedClient`) pulled the whole
+  module graph, including the server-only function body, into
+  `client/_expo/static/js/web/entry-*.js`.
+- **Verified before fixing:** `.env.local` is gitignored (`.env*.local`); no `EXPO_PUBLIC_`
+  variant of the key exists anywhere in the repo; the only importer of
+  `createServiceRoleClient` was `lib/db/echo-folders.ts` → `getOrCreateGeneralFolderId`,
+  reachable solely from three server-only `+api.ts` routes (`app/api/folders/+api.ts`,
+  `app/api/folders/[id]+api.ts`, `app/api/entries/[id]/move+api.ts`), never from a
+  screen/component/hook. Ran `npx expo export --platform web` and grepped the actual
+  `client/_expo/static/**` output (not the server bundle): the literal string
+  `SUPABASE_SERVICE_ROLE_KEY` and the `service_role` substring were present (2 hits, in the
+  function source), but the **actual key value was never present** (zero matches) — the
+  browser's `process.env` polyfill only sets `NODE_ENV`, so the runtime lookup resolves to
+  `undefined` and the existing fail-closed guard (throws if the key is missing) meant nothing
+  ever actually leaked. Still a real gap: safety depended entirely on that polyfill behavior
+  rather than the module boundary itself.
+- **Fix:** moved `createServiceRoleClient()` out of `lib/db/client.ts` into a new
+  `lib/db/service-client.ts` — self-contained (derives its own `supabaseUrl` from
+  `EXPO_PUBLIC_SUPABASE_URL` rather than importing it, so it has zero coupling back to
+  `client.ts`), fail-closed guard and server-only comment carried over unchanged. Updated the
+  sole importer, `lib/db/echo-folders.ts`, to pull `supabase` from `./client` and
+  `createServiceRoleClient` from `./service-client`. `lib/db/client.ts`'s other exports
+  untouched — pure move, not a refactor.
+- **Re-verified after the fix:** rebuilt with `npx expo export --platform web`; grepped
+  `client/_expo/static/**` for `SUPABASE_SERVICE_ROLE_KEY`, the actual key value, and
+  `service_role` (case-insensitive) — zero matches on all three (previously 2 hits on the
+  first and third). Confirmed the three `+api.ts` routes still resolve correctly (only
+  `app/api/folders/[id]+api.ts` calls `getOrCreateGeneralFolderId`, via `deleteFolderReassign`'s
+  `folder_only` mode; `move+api.ts` only ever used `getFolderByIdForUser`, unaffected).
+- **Out of scope, not touched:** test-user creation and the rest of Session 3 live
+  verification — paused per instruction until this came back clean; no other `lib/db/client.ts`
+  exports.
+- Files touched: `lib/db/service-client.ts` (new), `lib/db/client.ts`, `lib/db/echo-folders.ts`,
+  `CHANGELOGCODEX.md`.
+- Verification: `npx tsc --noEmit` clean. Client bundle grep clean (see above).
+
 ### Fixed (2026-07-01 — EchoScreen entry rows now navigate to detail view)
 - `EchoEntryListCard` in `features/echo/components/EchoScreen.tsx` had no tap handler, unlike
   `ActivityFeed.tsx` and `EchoTrail.tsx`, which both already navigate to `/echo/[id]` via
