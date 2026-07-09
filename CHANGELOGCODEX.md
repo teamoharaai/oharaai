@@ -2,6 +2,45 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-09 — Session 4.1: Move-to-Folder bug-fix pass, per Opus code review)
+- **Step 0 audit:** `get_or_create_general_folder()` fires **only** from the folder DELETE-reassign
+  path (`app/api/folders/[id]+api.ts`), never on entry save (`createEntry` writes no folder link)
+  and never on folder list (`GET /api/folders` is a plain SELECT). A user who has only saved
+  entries has **no** General folder — this is why manual-checklist item 9 had no General target.
+  Whether container-less entries *should* auto-land in General is a product-design question and a
+  write-path change; **deferred** to the migration-squash session, not touched here. No Supabase
+  credentials exist in-repo, so the "has this user saved a container-less entry" DB check was not
+  runnable — but the code makes it moot (nothing auto-provisions General on save regardless).
+- **Canonical container read (Opus finding #4 — cross-reload pill staleness):**
+  `features/echo/services/echo-service.ts` now overlays each entry's pill from its **confirmed
+  `echo_entry_links` row** (`fetchConfirmedContainers`, batched, same `confirmed = true`
+  single-container scoping as `getEntryContainer`) in both `fetchEntries` and `getEntryById`,
+  instead of trusting the legacy `echo_entries.goal_id → goals()` join. A move only rewrites
+  `echo_entry_links`, so pre-fix a moved-to-folder entry showed its **old goal pill** after reload.
+  `mapEntry`'s legacy join is retained as a fallback for entries with no confirmed link (so
+  never-linked entries → no pill, freshly-created entries still show their pill immediately) — the
+  **write path (`createEntry`) is deliberately untouched**, this is a read-side fix only. This
+  supersedes the Session 4 note below that "`fetchEntries`/`getEntryById` still only join `goals`."
+  `setEntryContainer` was **kept** (not removed): it is *not* redundant — it is the in-session
+  optimistic update; the canonical read only corrects the picture on the next fetch/reload.
+- **Confirmed-row invariant (Opus finding #1):** added `supabase/migrations/
+  016_echo_entry_links_one_confirmed.sql` — a partial unique index enforcing at most one
+  `confirmed = true` row per `echo_entry_id`, codifying "an entry is never in both a goal and a
+  folder at once" that `.maybeSingle()` already assumed.
+- **Rapid-switch preselect race + save-state guards (Opus finding #6):** `useMoveEntry.open` now
+  captures the requested entry id in a ref and drops a late-resolving fetch if a newer `open`/
+  `close` superseded it (no more wrong checkmark when switching entries fast). `MoveEntryModal`
+  blocks backdrop / hardware-back dismissal while `isSaving`, and dims + `disabled`s the picker
+  rows during an in-flight move.
+- **Differentiated move-error UX (Opus finding #3, scoped):** `moveEntryRequest` now returns a
+  typed `kind` (`entry_not_found` | `target_not_found` | `offline` | `server` | `generic`).
+  `useMoveEntry.confirm` acts on it: 404-entry-gone → remove the entry from the list (`removeEntry`,
+  new store action) and close; 404-target-gone → refresh the picker options (folders in-hook, goals
+  via `reloadPickerGoals`) and keep the modal open with friendly copy; 500 → generic retry copy.
+  **401 is intentionally left as existing behavior** (surface the message) — Step 0 confirmed there
+  is **no app-wide 401/re-auth interceptor** to reuse (`onAuthStateChange` in `_layout`, ad-hoc
+  `setError('Unauthorized')` in `useVault`), so no one-off flow was invented here. **Gap flagged.**
+
 ### Added (2026-07-09 — Session 4: Entry Action Menu + Move-to-Folder Picker)
 - **Step 0 audit (read-only, done before any code):**
   - No edit-entry flow exists anywhere — no edit-composer route, no update-entry API route.
@@ -39,8 +78,12 @@
   querying `echo_folders` directly, since it's the same server route Session 3 already built and
   auth-checks), `moveEntryRequest` (calls `PATCH /api/entries/[id]/move`, maps all response shapes
   to a typed `MoveEntryResult`).
-- **`features/echo/store.ts`:** added `setEntryContainer` action — same async-action-then-`set`
-  shape as `features/goals/store.ts`'s `deleteGoal` — updates the moved entry's `goalId`/
+- **`features/echo/store.ts`:** added `setEntryContainer` action — a **pure synchronous setter**
+  (no `await`/service call inside the store), with all async orchestration living in the
+  `useMoveEntry` hook. This follows `features/CLAUDE.md`'s services-pure / hooks-wire-services
+  convention, and is **not** the same shape as `features/goals/store.ts`'s `deleteGoal` (which
+  co-locates an `await deleteGoalRecord(...)` *and* `set(...)` inside the store action). Only the
+  local-state map/`set` step is shared between them. It updates the moved entry's `goalId`/
   `goalTitle` or `folderId`/`folderName` locally (clearing the other pair) so the card reflects
   its new destination immediately without a full refetch.
 - **`features/echo/types.ts`:** added optional `folderId?: string | null` and `folderName?: string`

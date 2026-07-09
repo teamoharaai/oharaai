@@ -17,6 +17,7 @@ interface EchoStore {
   openSession: () => void;
   closeSession: () => void;
   setEntryContainer: (entryId: string, container: EntryContainerUpdate) => void;
+  removeEntry: (entryId: string) => void;
 }
 
 export const useEchoStore = create<EchoStore>((set) => ({
@@ -51,5 +52,9 @@ export const useEchoStore = create<EchoStore>((set) => ({
                 folderName: container.folderName,
               },
       ),
+    })),
+  removeEntry: (entryId) =>
+    set((state) => ({
+      entries: state.entries.filter((entry) => entry.id !== entryId),
     })),
 }));

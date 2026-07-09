@@ -32,6 +32,14 @@ export function useEntries() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Re-fetch just the goal picker options — used when a move target turns out
+  // to no longer exist, so a deleted goal drops out of the picker.
+  const reloadPickerGoals = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    setPickerGoals(await fetchActiveGoalsForPicker(user.id));
+  }, []);
+
   const saveEntry = useCallback(async (
     content: string,
     goalId: string | null,
@@ -68,5 +76,5 @@ export function useEntries() {
     return result;
   }, [prependEntry]);
 
-  return { entries, isLoading, pickerGoals, saveEntry };
+  return { entries, isLoading, pickerGoals, saveEntry, reloadPickerGoals };
 }

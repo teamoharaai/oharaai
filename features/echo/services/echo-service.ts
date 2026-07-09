@@ -55,6 +55,120 @@ function mapEntry(row: DbEchoEntry): EchoEntry {
   };
 }
 
+// ─── Canonical container overlay (Session 4.1) ─────────────────────────────
+// The pill an entry shows must come from its confirmed echo_entry_links row —
+// the canonical container — NOT the legacy echo_entries.goal_id join baked
+// into mapEntry. A move only rewrites echo_entry_links (never echo_entries.
+// goal_id), so on reload the legacy join is stale (still shows the old goal).
+// fetchConfirmedContainers reads the same confirmed=true, single-container-
+// per-entry shape getEntryContainer uses, batched to avoid N+1, and resolves
+// the display name (goal title / folder name). applyContainer then overlays
+// it onto a mapped entry. Entries with no confirmed link fall back to
+// mapEntry's legacy-derived pill (which is null → no pill for never-linked
+// entries), so the UI degrades sensibly and never crashes.
+
+type ConfirmedContainerDisplay =
+  | { type: 'goal'; goalId: string; goalTitle?: string }
+  | { type: 'folder'; folderId: string; folderName?: string };
+
+type DbConfirmedLinkRow = {
+  echo_entry_id: string;
+  container_type: 'goal' | 'folder';
+  goal_id: string | null;
+  folder_id: string | null;
+};
+
+async function fetchConfirmedContainers(
+  entryIds: string[],
+): Promise<Map<string, ConfirmedContainerDisplay>> {
+  const result = new Map<string, ConfirmedContainerDisplay>();
+  if (entryIds.length === 0) return result;
+
+  // RLS scopes echo_entry_links via echo_entries.user_id = auth.uid(), so the
+  // session client only ever sees the caller's own links.
+  const { data: linkData, error } = await supabase
+    .from('echo_entry_links')
+    .select('echo_entry_id, container_type, goal_id, folder_id')
+    .in('echo_entry_id', entryIds)
+    .eq('confirmed', true);
+
+  if (error || !linkData) return result;
+  const links = linkData as unknown as DbConfirmedLinkRow[];
+
+  const goalIds = [
+    ...new Set(
+      links.filter((l) => l.container_type === 'goal' && l.goal_id).map((l) => l.goal_id as string),
+    ),
+  ];
+  const folderIds = [
+    ...new Set(
+      links
+        .filter((l) => l.container_type === 'folder' && l.folder_id)
+        .map((l) => l.folder_id as string),
+    ),
+  ];
+
+  // Batch-resolve display names (two-step lookup, matching the codebase's
+  // existing echo_entry_links pattern rather than a PostgREST embed).
+  const [goalRes, folderRes] = await Promise.all([
+    goalIds.length
+      ? supabase.from('goals').select('id, title').in('id', goalIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; title: string }> }),
+    folderIds.length
+      ? supabase.from('echo_folders').select('id, name').in('id', folderIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
+  ]);
+
+  const goalTitleById = new Map(
+    ((goalRes.data as Array<{ id: string; title: string }>) ?? []).map((g) => [g.id, g.title]),
+  );
+  const folderNameById = new Map(
+    ((folderRes.data as Array<{ id: string; name: string }>) ?? []).map((f) => [f.id, f.name]),
+  );
+
+  for (const link of links) {
+    // At most one confirmed row per entry (enforced by migration 016). If a
+    // duplicate ever slips through, keep the first and ignore the rest rather
+    // than picking arbitrarily per render.
+    if (result.has(link.echo_entry_id)) continue;
+    if (link.container_type === 'goal' && link.goal_id) {
+      result.set(link.echo_entry_id, {
+        type: 'goal',
+        goalId: link.goal_id,
+        goalTitle: goalTitleById.get(link.goal_id),
+      });
+    } else if (link.container_type === 'folder' && link.folder_id) {
+      result.set(link.echo_entry_id, {
+        type: 'folder',
+        folderId: link.folder_id,
+        folderName: folderNameById.get(link.folder_id),
+      });
+    }
+  }
+
+  return result;
+}
+
+function applyContainer(entry: EchoEntry, container: ConfirmedContainerDisplay | undefined): EchoEntry {
+  if (!container) return entry; // no confirmed link → keep mapEntry's legacy pill
+  if (container.type === 'folder') {
+    return {
+      ...entry,
+      goalId: null,
+      goalTitle: undefined,
+      folderId: container.folderId,
+      folderName: container.folderName,
+    };
+  }
+  return {
+    ...entry,
+    goalId: container.goalId,
+    goalTitle: container.goalTitle,
+    folderId: null,
+    folderName: undefined,
+  };
+}
+
 type ReflectPayload = {
   reflection: string | null;
   emotion: EchoEntry['emotion'] | null;
@@ -150,7 +264,9 @@ export async function fetchEntries(userId: string): Promise<EchoEntry[]> {
     .order('created_at', { ascending: false });
 
   if (error || !data) return [];
-  return (data as unknown as DbEchoEntry[]).map(mapEntry);
+  const entries = (data as unknown as DbEchoEntry[]).map(mapEntry);
+  const containers = await fetchConfirmedContainers(entries.map((e) => e.id));
+  return entries.map((e) => applyContainer(e, containers.get(e.id)));
 }
 
 export async function getEntryById(entryId: string): Promise<EchoEntry | null> {
@@ -161,7 +277,9 @@ export async function getEntryById(entryId: string): Promise<EchoEntry | null> {
     .single();
 
   if (error || !data) return null;
-  return mapEntry(data as unknown as DbEchoEntry);
+  const entry = mapEntry(data as unknown as DbEchoEntry);
+  const containers = await fetchConfirmedContainers([entry.id]);
+  return applyContainer(entry, containers.get(entry.id));
 }
 
 export async function createEntry(params: {
@@ -447,9 +565,24 @@ export async function fetchFolders(accessToken: string): Promise<EchoFolder[]> {
   }
 }
 
+// error kinds drive differentiated UI behavior (not just distinct copy):
+//  - entry_not_found (404, entry gone): caller removes it from the list
+//  - target_not_found (404, goal/folder vanished): caller refreshes the picker
+//  - offline / server / generic: show copy, keep the modal as-is
+// 401 is intentionally mapped to 'generic' with the server message — there is
+// no app-wide re-auth interceptor to hand off to (see Session 4.1 notes), so
+// we preserve the pre-existing "show the message" behavior rather than
+// inventing a one-off flow here.
+export type MoveEntryErrorKind =
+  | 'entry_not_found'
+  | 'target_not_found'
+  | 'offline'
+  | 'server'
+  | 'generic';
+
 export type MoveEntryResult =
   | { status: 'success' }
-  | { status: 'error'; message: string };
+  | { status: 'error'; kind: MoveEntryErrorKind; message: string };
 
 export async function moveEntryRequest(
   entryId: string,
@@ -457,7 +590,7 @@ export async function moveEntryRequest(
   accessToken: string,
 ): Promise<MoveEntryResult> {
   if (!accessToken.trim()) {
-    return { status: 'error', message: 'Missing access token for move request' };
+    return { status: 'error', kind: 'generic', message: 'Move failed. Please try again.' };
   }
 
   let response: Response;
@@ -471,19 +604,54 @@ export async function moveEntryRequest(
       body: JSON.stringify({ target_type: target.type, target_id: target.id }),
     });
   } catch {
-    return { status: 'error', message: "You're offline. Try again once you're back online." };
+    return {
+      status: 'error',
+      kind: 'offline',
+      message: "You're offline. Try again once you're back online.",
+    };
   }
 
   let body: { success?: boolean; error?: string };
   try {
     body = (await response.json()) as { success?: boolean; error?: string };
   } catch {
-    return { status: 'error', message: 'Move failed. Please try again.' };
+    return { status: 'error', kind: 'generic', message: 'Move failed. Please try again.' };
   }
 
-  if (!response.ok || !body.success) {
-    return { status: 'error', message: body.error ?? 'Move failed. Please try again.' };
+  if (response.ok && body.success) {
+    return { status: 'success' };
   }
 
-  return { status: 'success' };
+  // Both "entry gone" and "target gone" surface as 404; the server
+  // distinguishes them only by message text ('Not found' vs 'Target ...').
+  if (response.status === 404) {
+    if (/target/i.test(body.error ?? '')) {
+      return {
+        status: 'error',
+        kind: 'target_not_found',
+        message: 'That destination no longer exists — it may have been deleted. Pick another.',
+      };
+    }
+    return {
+      status: 'error',
+      kind: 'entry_not_found',
+      message: 'This entry no longer exists.',
+    };
+  }
+
+  if (response.status === 500) {
+    return {
+      status: 'error',
+      kind: 'server',
+      message: 'Something went wrong. Please try again.',
+    };
+  }
+
+  // 401 / 400 / 503 / anything else: keep existing behavior (surface the
+  // server-provided message, falling back to generic copy).
+  return {
+    status: 'error',
+    kind: 'generic',
+    message: body.error ?? 'Move failed. Please try again.',
+  };
 }

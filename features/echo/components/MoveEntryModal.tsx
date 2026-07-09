@@ -42,9 +42,15 @@ export function MoveEntryModal({
     ...folders.map((folder): MoveListItem => ({ kind: 'folder', id: folder.id, title: folder.name })),
   ];
 
+  // Block dismissal while a move is in flight so the user can't close (or
+  // hardware-back out of) the modal mid-request and miss the outcome.
+  const handleDismiss = () => {
+    if (!isSaving) onClose();
+  };
+
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable className="flex-1 justify-end bg-black/40" onPress={onClose}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleDismiss}>
+      <Pressable className="flex-1 justify-end bg-black/40" onPress={handleDismiss}>
         <Pressable className="max-h-[75%] rounded-t-2xl border-t border-[#D8D2C8] bg-white pb-8 pt-3">
           <View className="mb-4 h-1 w-9 self-center rounded-full bg-[#D8D2C8]" />
           <Text
@@ -76,12 +82,13 @@ export function MoveEntryModal({
                 const selected = isSelected(item.kind, item.id);
                 return (
                   <Pressable
+                    disabled={isSaving}
                     onPress={() =>
                       !isSaving && onConfirm({ type: item.kind, id: item.id, title: item.title })
                     }
                     className={`flex-row items-center justify-between border-b border-[#D8D2C8] px-5 py-3.5 ${
                       selected ? 'bg-[#EEF2EF]' : ''
-                    }`}
+                    } ${isSaving ? 'opacity-40' : ''}`}
                   >
                     <Text className="font-sans text-base text-near-black">{item.title}</Text>
                     {selected ? (
