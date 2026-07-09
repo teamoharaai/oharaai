@@ -20,6 +20,9 @@ import {
   type EchoDraftGoalRef,
 } from '../draft-store';
 import { useEntries } from '../hooks/useEntries';
+import { useMoveEntry } from '../hooks/useMoveEntry';
+import { EntryActionMenu } from './EntryActionMenu';
+import { MoveEntryModal } from './MoveEntryModal';
 import type { CreateEntryResultStatus } from '../services/echo-service';
 import type { EchoEntry } from '../types';
 
@@ -76,31 +79,54 @@ function SectionLabel({ children }: { children: string }) {
   );
 }
 
-function EchoEntryListCard({ entry }: { entry: EchoEntry }) {
+function EchoEntryListCard({
+  entry,
+  onOpenMoveMenu,
+}: {
+  entry: EchoEntry;
+  onOpenMoveMenu: () => void;
+}) {
   const onPress = () => router.push(`/(app)/echo/${entry.id}` as never);
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
-    >
-      <View className="mb-3 rounded-xl bg-white p-4 shadow-sm">
-        <Text className="font-sans text-sm leading-[21px] text-near-black" numberOfLines={2}>
-          {entry.content}
-        </Text>
+    <View className="relative mb-3">
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+      >
+        <View className="rounded-xl bg-white p-4 shadow-sm">
+          <Text className="pr-6 font-sans text-sm leading-[21px] text-near-black" numberOfLines={2}>
+            {entry.content}
+          </Text>
 
-        <View className="mt-3 flex-row items-center gap-2">
-          <Typography variant="hint">{formatRelativeTime(entry.createdAt)}</Typography>
-          {entry.emotion?.primary ? (
-            <View className="rounded-full bg-[#EEF2EF] px-2 py-1">
-              <Text className="font-sans text-[11px] font-medium text-[#3D5247]">
-                {formatPillLabel(entry.emotion.primary)}
-              </Text>
-            </View>
-          ) : null}
+          <View className="mt-3 flex-row items-center gap-2">
+            <Typography variant="hint">{formatRelativeTime(entry.createdAt)}</Typography>
+            {entry.emotion?.primary ? (
+              <View className="rounded-full bg-[#EEF2EF] px-2 py-1">
+                <Text className="font-sans text-[11px] font-medium text-[#3D5247]">
+                  {formatPillLabel(entry.emotion.primary)}
+                </Text>
+              </View>
+            ) : null}
+            {entry.folderName ? (
+              <View className="rounded-full bg-[#F5F1EA] px-2 py-1">
+                <Text className="font-sans text-[11px] font-medium text-[#6B7B6E]">
+                  {entry.folderName}
+                </Text>
+              </View>
+            ) : entry.goalTitle ? (
+              <View className="rounded-full bg-[#EEF2EF] px-2 py-1">
+                <Text className="font-sans text-[11px] font-medium text-[#3D5247]">
+                  {entry.goalTitle}
+                </Text>
+              </View>
+            ) : null}
+          </View>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+
+      <EntryActionMenu onMoveToFolder={onOpenMoveMenu} />
+    </View>
   );
 }
 
@@ -167,6 +193,7 @@ export function EchoScreen() {
   const { goalId: routeGoalIdParam } = useLocalSearchParams<{ goalId?: string | string[] }>();
   const routeGoalId = Array.isArray(routeGoalIdParam) ? routeGoalIdParam[0] : routeGoalIdParam;
   const { entries, isLoading, pickerGoals, saveEntry } = useEntries();
+  const moveEntry = useMoveEntry();
   const hasHydrated = useEchoDraftStore((state) => state.hasHydrated);
   const getDraft = useEchoDraftStore((state) => state.getDraft);
   const setDraft = useEchoDraftStore((state) => state.setDraft);
@@ -445,7 +472,11 @@ export function EchoScreen() {
           </View>
         ) : (
           entries.map((entry) => (
-            <EchoEntryListCard key={entry.id} entry={entry} />
+            <EchoEntryListCard
+              key={entry.id}
+              entry={entry}
+              onOpenMoveMenu={() => moveEntry.open(entry.id)}
+            />
           ))
         )}
       </ScrollView>
@@ -490,6 +521,18 @@ export function EchoScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <MoveEntryModal
+        visible={moveEntry.activeEntryId !== null}
+        isLoading={moveEntry.isLoading}
+        isSaving={moveEntry.isSaving}
+        error={moveEntry.error}
+        goals={pickerGoals}
+        folders={moveEntry.folders}
+        currentContainer={moveEntry.currentContainer}
+        onClose={moveEntry.close}
+        onConfirm={moveEntry.confirm}
+      />
     </SafeAreaView>
   );
 }

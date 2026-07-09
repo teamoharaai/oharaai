@@ -4,6 +4,7 @@ import type { AiResponse } from '@/lib/ai/contracts';
 import { buildEchoEmbeddingText } from '@/lib/ai/embedding-text';
 import { generateEmbedding } from '@/lib/ai/embeddings';
 import { EMBEDDING_MODEL } from '@/lib/ai/constants';
+import type { EchoFolder } from '@/types/echo-folder';
 import type { EchoEntry } from '../types';
 
 type DbGoalRef = { id: string; title: string } | null;
@@ -396,4 +397,93 @@ export async function fetchActiveGoalsForPicker(
 
   if (error || !data) return [];
   return data as Array<{ id: string; title: string }>;
+}
+
+// ─── Move to folder/goal (Session 4) ───────────────────────────────────────
+
+export type EntryContainer =
+  | { type: 'goal'; id: string }
+  | { type: 'folder'; id: string };
+
+type DbEntryContainerRow = {
+  container_type: 'goal' | 'folder';
+  goal_id: string | null;
+  folder_id: string | null;
+};
+
+// Reads the entry's current confirmed container row directly (RLS-scoped via
+// echo_entries.user_id = auth.uid(), same ownership check moveEntryContainer
+// relies on server-side). Only touches the confirmed row, matching the move
+// endpoint's semantics.
+export async function getEntryContainer(entryId: string): Promise<EntryContainer | null> {
+  const { data, error } = await supabase
+    .from('echo_entry_links')
+    .select('container_type, goal_id, folder_id')
+    .eq('echo_entry_id', entryId)
+    .eq('confirmed', true)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const row = data as unknown as DbEntryContainerRow;
+  if (row.container_type === 'goal' && row.goal_id) return { type: 'goal', id: row.goal_id };
+  if (row.container_type === 'folder' && row.folder_id) return { type: 'folder', id: row.folder_id };
+  return null;
+}
+
+export async function fetchFolders(accessToken: string): Promise<EchoFolder[]> {
+  if (!accessToken.trim()) return [];
+
+  try {
+    const response = await fetch('/api/folders', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) return [];
+
+    const body = (await response.json()) as { folders?: EchoFolder[] };
+    return body.folders ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export type MoveEntryResult =
+  | { status: 'success' }
+  | { status: 'error'; message: string };
+
+export async function moveEntryRequest(
+  entryId: string,
+  target: EntryContainer,
+  accessToken: string,
+): Promise<MoveEntryResult> {
+  if (!accessToken.trim()) {
+    return { status: 'error', message: 'Missing access token for move request' };
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`/api/entries/${entryId}/move`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ target_type: target.type, target_id: target.id }),
+    });
+  } catch {
+    return { status: 'error', message: "You're offline. Try again once you're back online." };
+  }
+
+  let body: { success?: boolean; error?: string };
+  try {
+    body = (await response.json()) as { success?: boolean; error?: string };
+  } catch {
+    return { status: 'error', message: 'Move failed. Please try again.' };
+  }
+
+  if (!response.ok || !body.success) {
+    return { status: 'error', message: body.error ?? 'Move failed. Please try again.' };
+  }
+
+  return { status: 'success' };
 }
