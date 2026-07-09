@@ -1,6 +1,6 @@
 import type { EchoEntry } from '@/features/echo/types';
 
-export type EchoLinkSource = 'manual' | 'ai_suggested' | 'ai_auto';
+export type EchoLinkSource = 'manual' | 'ai_suggested' | 'ai_auto' | 'system_default';
 
 export interface EchoGoalLink {
   id: string;

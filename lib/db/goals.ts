@@ -7,7 +7,7 @@ import { generateEmbedding } from '@/lib/ai/embeddings';
 import { EMBEDDING_MODEL } from '@/lib/ai/constants';
 import type { ActivityItem } from '@/types/activity';
 import type { VaultItemType } from '@/types/vault';
-import type { EchoEmotion, EchoBrt } from '@/features/echo/types';
+import type { EchoBrt } from '@/features/echo/types';
 
 export interface CreateGoalWithMeasurablesResult {
   goalId: string | null;
@@ -266,17 +266,6 @@ export async function createGoalWithMeasurables(
 
 // ─── DB row types for activity query ─────────────────────────────────────────
 
-type DbEchoEntryRow = {
-  id: string;
-  content: string;
-  ai_response: string | null;
-  emotion: EchoEmotion | null;
-  brt: EchoBrt | null;
-  brt_ai: EchoBrt | null;
-  brt_user: EchoBrt | null;
-  created_at: string;
-};
-
 type DbMeasurableRow = {
   id: string;
   title: string;
@@ -345,32 +334,7 @@ export async function getActivityByGoalId(
   userId: string,
   db: SupabaseClient = supabase,
 ): Promise<ActivityItem[]> {
-  // 1. Echo entries for this goal (legacy echo_entries.goal_id path — preserved for backward compat)
-  const { data: echoData } = await db
-    .from('echo_entries')
-    .select('id, content, ai_response, emotion, brt, brt_ai, brt_user, created_at')
-    .eq('goal_id', goalId)
-    .eq('user_id', userId);
-
-  // Track IDs surfaced via legacy path to avoid duplicate echo_linked rows for the same entry
-  const legacyEchoEntryIds = new Set<string>();
-  const echoItems: ActivityItem[] = (echoData as unknown as DbEchoEntryRow[] ?? []).map(
-    (row) => {
-      legacyEchoEntryIds.add(row.id);
-      return {
-        kind: 'echo_entry' as const,
-        id: `echo-${row.id}`,
-        entryId: row.id,
-        preview: row.content.slice(0, 100),
-        aiResponse: row.ai_response,
-        emotion: row.emotion,
-        brt: row.brt_user ?? row.brt_ai ?? row.brt ?? null,
-        timestamp: row.created_at,
-      };
-    },
-  );
-
-  // 2. Measurable completion logs (logs where value >= measurable target_value)
+  // 1. Measurable completion logs (logs where value >= measurable target_value)
   const { data: measurablesData } = await db
     .from('measurables')
     .select('id, title, target_value')
@@ -407,7 +371,7 @@ export async function getActivityByGoalId(
       }));
   }
 
-  // 3. Goal created event
+  // 2. Goal created event
   const { data: goalData } = await db
     .from('goals')
     .select('created_at')
@@ -422,7 +386,7 @@ export async function getActivityByGoalId(
       ?? new Date().toISOString(),
   };
 
-  // 4. Vault items — note/link additions (user-initiated types only)
+  // 3. Vault items — note/link additions (user-initiated types only)
   //    insight and action_update types are excluded: insights get their own kind below;
   //    action_updates are system-generated events, not user-initiated additions.
   const vaultAddedItems: ActivityItem[] = [];
@@ -475,9 +439,10 @@ export async function getActivityByGoalId(
     }
   }
 
-  // 5. Echo-goal links — reflections linked via echo_entry_links (many-to-many bridge).
-  //    Entries already surfaced via the legacy echo_entries.goal_id path are excluded
-  //    to prevent duplicate activity rows for the same underlying reflection.
+  // 4. Echo-goal links — reflections linked via echo_entry_links (many-to-many bridge),
+  //    now the sole source for goal-linked reflections: createEntry() no longer writes
+  //    echo_entries.goal_id on new inserts (see echo-service.ts), so this table is
+  //    canonical rather than a supplement to a legacy join.
   //    Timestamp is echo_entry_links.created_at (when linked), not echo_entries.created_at.
   const echoLinkedItems: ActivityItem[] = [];
 
@@ -487,13 +452,11 @@ export async function getActivityByGoalId(
     .eq('goal_id', goalId)
     .eq('container_type', 'goal');
 
-  const newLinks = (linkData as unknown as DbEchoLinkRow[] ?? []).filter(
-    (link) => !legacyEchoEntryIds.has(link.echo_entry_id),
-  );
+  const links = (linkData as unknown as DbEchoLinkRow[] ?? []);
 
-  if (newLinks.length > 0) {
-    const linkedEntryIds = newLinks.map((link) => link.echo_entry_id);
-    const linkByEntryId = new Map(newLinks.map((link) => [link.echo_entry_id, link]));
+  if (links.length > 0) {
+    const linkedEntryIds = links.map((link) => link.echo_entry_id);
+    const linkByEntryId = new Map(links.map((link) => [link.echo_entry_id, link]));
 
     const { data: linkedEchoData } = await db
       .from('echo_entries')
@@ -515,7 +478,6 @@ export async function getActivityByGoalId(
   }
 
   return [
-    ...echoItems,
     ...milestoneItems,
     goalCreatedItem,
     ...vaultAddedItems,

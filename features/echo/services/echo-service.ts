@@ -1,4 +1,5 @@
 import supabase from '@/lib/db/client';
+import { getGeneralFolderId } from '@/lib/db/echo-folders';
 import { AI_CONFIG } from '@/lib/ai/config';
 import type { AiResponse } from '@/lib/ai/contracts';
 import { buildEchoEmbeddingText } from '@/lib/ai/embedding-text';
@@ -301,7 +302,10 @@ export async function createEntry(params: {
       .insert({
         user_id: params.userId,
         content: params.content,
-        goal_id: params.goalId,
+        // goal_id is intentionally omitted (defaults to null) — container
+        // assignment now goes exclusively through echo_entry_links, below.
+        // The column itself is preserved (root CLAUDE.md: "echo_entries.goal_id
+        // is PRESERVED. Do not drop it"); only new-insert writes stop.
         ai_insight_requested: params.aiInsightRequested,
         brt: params.brt,
         emotion: params.emotion,
@@ -350,32 +354,91 @@ export async function createEntry(params: {
       });
   }
 
-  // STEP 2 — Manual goal linking (non-blocking)
-  // Fires only when a goalId was explicitly provided. Must never block the response.
+  // STEP 2 — Container resolution (blocking — must complete before we return,
+  // now that echo_entries.goal_id is no longer written on insert and the
+  // legacy FK join in mapEntry can no longer supply goalId/goalTitle).
+  //
+  // Explicit goalId: confirmed link to that goal (manual).
+  // No goalId: confirmed link to the caller's General folder — unconditional,
+  // not gated on whether STEP 3's keyword heuristic below finds a match. An
+  // unconfirmed ai_auto suggestion is advisory, not a container (migration
+  // 016 only caps confirmed rows at one-per-entry; unconfirmed rows are
+  // unconstrained), so both can coexist: the entry has a real confirmed home
+  // in General while a pending suggestion still surfaces for the user to act
+  // on separately.
+  //
+  // getGeneralFolderId() is a plain RLS-scoped read, not
+  // getOrCreateGeneralFolderId() — that RPC is service_role-only (migration
+  // 014) and this file executes client-side (called directly from
+  // useEntries.ts), so it must never pull in the service-role client. Every
+  // user's General folder is guaranteed to exist by signup time via the
+  // eager provisioning trigger (migration 017); if it's still missing (a
+  // failed/legacy provisioning), the container is skipped rather than
+  // blocking the save, matching the non-blocking pattern used throughout.
+  let confirmedContainer: ConfirmedContainerDisplay | undefined;
+
   if (params.goalId) {
-    void (async () => {
-      try {
+    try {
+      await supabase
+        .from('echo_entry_links')
+        .upsert(
+          {
+            echo_entry_id: insertedEntry.id,
+            goal_id: params.goalId,
+            container_type: 'goal',
+            link_source: 'manual',
+            confirmed: true,
+          },
+          { onConflict: 'echo_entry_id,goal_id', ignoreDuplicates: true },
+        );
+
+      const { data: goalRow } = await supabase
+        .from('goals')
+        .select('title')
+        .eq('id', params.goalId)
+        .maybeSingle();
+
+      confirmedContainer = {
+        type: 'goal',
+        goalId: params.goalId,
+        goalTitle: (goalRow as { title: string } | null)?.title,
+      };
+    } catch (err) {
+      console.error('[echo-entry-links] manual insert failed:', err);
+    }
+  } else {
+    try {
+      const folderId = await getGeneralFolderId(params.userId);
+      if (folderId) {
         await supabase
           .from('echo_entry_links')
           .upsert(
             {
               echo_entry_id: insertedEntry.id,
-              goal_id: params.goalId,
-              container_type: 'goal',
-              link_source: 'manual',
+              folder_id: folderId,
+              container_type: 'folder',
+              link_source: 'system_default',
               confirmed: true,
             },
-            { onConflict: 'echo_entry_id,goal_id', ignoreDuplicates: true },
+            { onConflict: 'echo_entry_id,folder_id', ignoreDuplicates: true },
           );
-      } catch (err) {
-        console.error('[echo-entry-links] manual insert failed:', err);
+        // The General folder's name is server-enforced immutable ("The
+        // General folder cannot be renamed" — app/api/folders/[id]+api.ts),
+        // so it's safe to hardcode here rather than issuing a second query.
+        confirmedContainer = { type: 'folder', folderId, folderName: 'General' };
       }
-    })();
+    } catch (err) {
+      console.error('[echo-entry-links] general-folder assignment failed:', err);
+    }
   }
 
-  // STEP 3 — AI auto-linking (keyword match, non-blocking)
+  const containedEntry = applyContainer(insertedEntry, confirmedContainer);
+
+  // STEP 3 — AI auto-linking (keyword match, non-blocking, advisory only)
   // Fires only when no goalId was provided. No AI calls — keyword heuristic only.
-  // Phase 2: swap this IIFE body for an AI-backed classifier.
+  // Phase 2: swap this IIFE body for an AI-backed classifier. Independent of
+  // the General-folder assignment above — see the STEP 2 comment for why
+  // both can coexist on the same entry.
   if (!params.goalId) {
     const echoContent = params.content;
     const userId = params.userId;
@@ -436,7 +499,7 @@ export async function createEntry(params: {
   }
 
   if (!params.aiInsightRequested) {
-    return { status: 'saved', entry: insertedEntry };
+    return { status: 'saved', entry: containedEntry };
   }
 
   let reflectPayload: ReflectPayload | null;
@@ -456,14 +519,14 @@ export async function createEntry(params: {
       .update({ ai_status: 'failed', retry_count: 1, last_attempted_at: new Date().toISOString() })
       .eq('id', insertedEntry.id);
     if (error instanceof Error && error.name === 'RateLimitedEchoReflectionError') {
-      return { status: 'rate_limited', entry: insertedEntry };
+      return { status: 'rate_limited', entry: containedEntry };
     }
 
-    return { status: 'saved_without_summary', entry: insertedEntry };
+    return { status: 'saved_without_summary', entry: containedEntry };
   }
 
   if (reflectPayload?.disabled) {
-    return { status: 'saved', entry: insertedEntry };
+    return { status: 'saved', entry: containedEntry };
   }
 
   if (!reflectPayload || !reflectPayload.summarized || !reflectPayload.reflection) {
@@ -471,7 +534,7 @@ export async function createEntry(params: {
       .from('echo_entries')
       .update({ ai_status: 'failed', retry_count: 1, last_attempted_at: new Date().toISOString() })
       .eq('id', insertedEntry.id);
-    return { status: 'saved_without_summary', entry: insertedEntry };
+    return { status: 'saved_without_summary', entry: containedEntry };
   }
 
   const processedAt = new Date().toISOString();
@@ -497,10 +560,13 @@ export async function createEntry(params: {
       .from('echo_entries')
       .update({ ai_status: 'failed', retry_count: 1, last_attempted_at: new Date().toISOString() })
       .eq('id', insertedEntry.id);
-    return { status: 'saved_without_summary', entry: insertedEntry };
+    return { status: 'saved_without_summary', entry: containedEntry };
   }
 
-  return { status: 'saved', entry: mapEntry(updatedData as unknown as DbEchoEntry) };
+  return {
+    status: 'saved',
+    entry: applyContainer(mapEntry(updatedData as unknown as DbEchoEntry), confirmedContainer),
+  };
 }
 
 export async function fetchActiveGoalsForPicker(

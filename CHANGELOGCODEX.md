@@ -2,6 +2,67 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-09 — Session 4.3: General Folder eager provisioning + createEntry() cutover)
+- **Context:** follows the Step 0 read-only audit and the Opus architectural review of this
+  session (General-folder eager-provisioning + `createEntry()` cutover sequencing). Zero
+  production data (pre-pilot), so this lands as one coordinated change rather than a staged
+  migration.
+- **Eager General-folder provisioning:** added `supabase/migrations/
+  017_eager_general_folder_provisioning.sql` — a new `AFTER INSERT ON public.profiles` trigger
+  (`handle_new_profile_general_folder()`) calling `get_or_create_general_folder()`, mirroring
+  `handle_new_user_space()`'s (003) try/exception non-blocking shape. Kept as a separate trigger
+  function rather than folded into `handle_new_user_space()`, so each provisioning concern stays
+  independently auditable. Not independently verified against a live Supabase instance (no
+  credentials in this environment) — flagged in the migration header as the one thing that
+  deserves a live signup smoke test, specifically the SECURITY DEFINER-calling-a-service-role-
+  locked-RPC interaction.
+- **`getActivityByGoalId` cutover (`lib/db/goals.ts`):** removed the legacy direct
+  `echo_entries.goal_id` query branch and its `legacyEchoEntryIds` dedup-against-`echo_entry_links`
+  logic entirely. The function now reads `echo_entry_links` exclusively for goal-linked
+  reflections. The now-unused `DbEchoEntryRow` type and its `EchoEmotion` import were removed.
+  Note: this makes `ActivityKind: 'echo_entry'` (`types/activity.ts`) and its renderer
+  (`EchoEntryCard` in `features/goals/components/ActivityFeed.tsx`) permanently dead — never
+  emitted by this function anymore. Left both in place (out of scope for this pass; `types/*` is
+  CEO-owned and `components/*` is VP-Product-owned) — flagging as Codex cleanup candidates.
+- **`createEntry()` cutover (`features/echo/services/echo-service.ts`):** the insert no longer
+  writes `echo_entries.goal_id` (column preserved per root CLAUDE.md, just no longer populated on
+  new rows). STEP 2 (previously "manual goal linking", fire-and-forget) is now "container
+  resolution" and is **awaited**, not fire-and-forget: with the legacy FK join gone, it's the only
+  way the returned entry can carry an accurate `goalId`/`goalTitle` or `folderId`/`folderName`
+  immediately. When `goalId` is provided: writes the confirmed goal link as before, plus a
+  one-off `goals.title` lookup (the FK-embed join that used to supply this is now always null).
+  When `goalId` is null: unconditionally resolves and assigns a confirmed `echo_entry_links` row
+  to the caller's General folder — **not gated on STEP 3's keyword heuristic finding a match**,
+  per the architectural review's Question A resolution (an unconfirmed `ai_auto` suggestion is
+  advisory, not a container; migration 016 only caps *confirmed* rows at one-per-entry, so both
+  coexist). STEP 3 (keyword auto-link) is unchanged in logic and still fire-and-forget/advisory-only.
+  The response entry is built via `applyContainer()` (the same overlay `fetchEntries`/`getEntryById`
+  already use) against the container just resolved, applied to every return path including the
+  post-AI-reflection re-map.
+- **Client/service-role boundary fix:** the General-folder resolution deliberately does **not**
+  call `getOrCreateGeneralFolderId()` (service_role-only RPC, migration 014) — `echo-service.ts`
+  executes client-side (called directly from `useEntries.ts`), and importing that function would
+  pull `service-client.ts` into the client bundle, violating `lib/db/CLAUDE.md`'s explicit "never
+  import from client-bundled code" rule. Added `getGeneralFolderId()` (`lib/db/echo-folders.ts`)
+  instead: a plain RLS-scoped read (`echo_folders` where `is_general = true`), safe client-side,
+  relying on migration 017's eager provisioning to guarantee the row exists by the time any user
+  can call `createEntry()`. If it's ever missing, the container is skipped (non-blocking), same
+  pattern used everywhere else in this codebase.
+- **New link source:** added `'system_default'` to `EchoLinkSource` (`types/echo-link.ts`,
+  extending the union per `types/CLAUDE.md`) and widened `echo_entry_links.link_source`'s DB check
+  constraint (`supabase/migrations/018_echo_entry_links_system_default_source.sql`) to allow it —
+  the General-folder fallback assignment is neither a user's manual choice nor an AI suggestion,
+  so labeling it `'manual'` would misrepresent it. The migration drops the check constraint
+  defensively under both its pre-rename and post-rename possible names (`echo_goal_links_..._check`
+  / `echo_entry_links_..._check`) since 012's table rename didn't explicitly rename it and this
+  wasn't checked against a live schema — flagged in the migration header.
+- **Not touched, per scope:** `entry.folderId` dead-code removal (separate follow-up), menu
+  redesign, Edit/Delete backend, 401 handling, migration squash, `handle_new_user()` itself.
+- Files touched: `supabase/migrations/017_eager_general_folder_provisioning.sql` (new),
+  `supabase/migrations/018_echo_entry_links_system_default_source.sql` (new), `lib/db/goals.ts`,
+  `lib/db/echo-folders.ts`, `features/echo/services/echo-service.ts`, `types/echo-link.ts`,
+  `CHANGELOGCODEX.md`.
+
 ### Added (2026-07-09 — Session 4.2: Anchored entry action popover)
 - Added `components/ui/AnchoredPopover.tsx`, a reusable `Modal transparent`-backed popover
   primitive that positions itself from a measured trigger rect, right-edge-aligns to the anchor,
