@@ -1,4 +1,5 @@
-import supabase, { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
+import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
+import { withAuth, type AuthContext } from '@/lib/api/auth';
 import type { ActionLog, ActionLogStatus } from '@/features/actions/types';
 
 const ACTION_LOG_STATUSES: readonly ActionLogStatus[] = ['pending', 'complete', 'skipped'];
@@ -50,21 +51,6 @@ function sanitizeOptionalDate(input: unknown): string | null {
   return trimmed;
 }
 
-// ─── Auth helper ─────────────────────────────────────────────────────────────
-
-async function getAuthContextFromRequest(request: Request) {
-  const authHeader = request.headers.get('Authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token) return null;
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser(token);
-
-  return error || !user ? null : { userId: user.id, accessToken: token };
-}
-
 // ─── GET /api/actions ─────────────────────────────────────────────────────────
 // Query params: goal_id (required), status (optional), limit (optional, default 10)
 
@@ -72,12 +58,10 @@ export async function GET(request: Request): Promise<Response> {
   if (!isDatabaseConfigured) {
     return Response.json({ error: 'Database not configured' }, { status: 503 });
   }
+  return withAuth(handleGet)(request);
+}
 
-  const auth = await getAuthContextFromRequest(request);
-  if (!auth) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+async function handleGet(request: Request, _params: Record<string, string>, auth: AuthContext): Promise<Response> {
   const url = new URL(request.url);
   const goalId = url.searchParams.get('goal_id');
   if (!goalId?.trim()) {
@@ -131,12 +115,10 @@ export async function POST(request: Request): Promise<Response> {
   if (!isDatabaseConfigured) {
     return Response.json({ error: 'Database not configured' }, { status: 503 });
   }
+  return withAuth(handlePost)(request);
+}
 
-  const auth = await getAuthContextFromRequest(request);
-  if (!auth) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+async function handlePost(request: Request, _params: Record<string, string>, auth: AuthContext): Promise<Response> {
   let body: CreateActionBody;
   try {
     body = (await request.json()) as CreateActionBody;

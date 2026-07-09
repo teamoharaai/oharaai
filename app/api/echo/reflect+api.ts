@@ -5,7 +5,8 @@ import {
 import type { AiResponse } from '@/lib/ai/contracts';
 import { buildEchoReflectionPrompt } from '@/lib/ai/prompts/echo-reflection';
 import { ECHO_INFERENCE_PROMPT } from '@/lib/ai/echo/prompts';
-import supabase, { isDatabaseConfigured, createAuthedClient } from '@/lib/db/client';
+import supabase, { createAuthedClient } from '@/lib/db/client';
+import { withAuth, type AuthContext } from '@/lib/api/auth';
 import type { EchoEmotion, EchoBrt } from '@/features/echo/types';
 
 interface ReflectRequestBody {
@@ -14,17 +15,9 @@ interface ReflectRequestBody {
   echo_entry_id?: string;
 }
 
-async function getAuthContextFromRequest(request: Request) {
-  const authHeader = request.headers.get('Authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token || !isDatabaseConfigured) return null;
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser(token);
-
-  return error || !user ? null : { userId: user.id, accessToken: token };
+function unauthorizedResponse(): Response {
+  const errBody: AiResponse<never> = { ok: false, data: null, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } };
+  return Response.json(errBody, { status: 401 });
 }
 
 async function touchLastSummarizedAt(userId: string): Promise<void> {
@@ -162,12 +155,17 @@ export async function POST(request: Request) {
     return Response.json(noAiBody);
   }
 
-  const auth = await getAuthContextFromRequest(request);
-  if (!auth) {
-    const errBody: AiResponse<never> = { ok: false, data: null, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } };
-    return Response.json(errBody, { status: 401 });
-  }
+  return withAuth(
+    (req, _params, auth) => handleAuthedReflect(req, auth, body),
+    { onUnauthorized: unauthorizedResponse },
+  )(request);
+}
 
+async function handleAuthedReflect(
+  request: Request,
+  auth: AuthContext,
+  body: ReflectRequestBody,
+): Promise<Response> {
   const authedDb = createAuthedClient(auth.accessToken);
   const { data: profile } = await authedDb
     .from('profiles')

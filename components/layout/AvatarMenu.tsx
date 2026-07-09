@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, Text, TouchableOpacity, View } from 'react-native';
-import { router } from 'expo-router';
-import supabase from '@/lib/db/client';
+import { authedFetch, signOutAndRedirect } from '@/lib/api/client';
 import type { ApiResponse } from '@/lib/api/contracts';
-import { clearAllStores } from '@/store/clearAllStores';
 import { Avatar } from '@/components/ui/Avatar';
 import { AccountModal } from './AccountModal';
 import { SettingsModal } from './SettingsModal';
@@ -11,13 +9,6 @@ import { SettingsModal } from './SettingsModal';
 interface ProfileSummary {
   display_name: string;
   avatar_url: string | null;
-}
-
-async function getAccessToken(): Promise<string | null> {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  return session?.access_token ?? null;
 }
 
 export function AvatarMenu() {
@@ -30,13 +21,9 @@ export function AvatarMenu() {
     let active = true;
 
     async function load() {
-      const token = await getAccessToken();
-      if (!token || !active) return;
-
       try {
-        const res = await fetch('/api/profile', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await authedFetch('/api/profile');
+        if (!active) return;
         const body = (await res.json()) as ApiResponse<ProfileSummary>;
         if (active && body.ok) {
           setProfile({ display_name: body.data.display_name, avatar_url: body.data.avatar_url });
@@ -44,6 +31,8 @@ export function AvatarMenu() {
       } catch {
         // Silent — avatar falls back to initials/empty. Non-blocking, matches
         // the rest of the app's "never let a profile fetch block chrome" convention.
+        // (A genuinely expired/invalid session still redirects to login via
+        // authedFetch — this only swallows network/other failures.)
       }
     }
 
@@ -55,12 +44,10 @@ export function AvatarMenu() {
 
   async function handleSignOut() {
     setMenuOpen(false);
-    clearAllStores();
-    await supabase.auth.signOut({ scope: 'local' });
     // RN's core Image component (in use here — expo-image is not installed) has
     // no cross-platform cache-clear API, unlike expo-image's clearDiskCache/
     // clearMemoryCache. Nothing to call. Flagged in OUTSTANDING.md.
-    router.replace('/(auth)/login' as Parameters<typeof router.replace>[0]);
+    await signOutAndRedirect();
   }
 
   const displayName = profile?.display_name ?? '';

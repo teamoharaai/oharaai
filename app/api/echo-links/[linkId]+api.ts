@@ -1,24 +1,10 @@
-import supabase, { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
+import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
+import { withAuth, type AuthContext } from '@/lib/api/auth';
 import {
   confirmLink,
   dismissLink,
   getEchoLinkByIdForUserGoal,
 } from '@/lib/db/echo-entry-links';
-
-// ─── Auth ─────────────────────────────────────────────────────────────────────
-
-async function getAuthContextFromRequest(request: Request) {
-  const authHeader = request.headers.get('Authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token || !isDatabaseConfigured) return null;
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser(token);
-
-  return error || !user ? null : { userId: user.id, accessToken: token };
-}
 
 const MAX_ID_LENGTH = 255;
 
@@ -42,12 +28,14 @@ export async function PUT(
   if (!isDatabaseConfigured) {
     return Response.json({ error: 'Database not configured' }, { status: 503 });
   }
+  return withAuth(handlePut)(request, params);
+}
 
-  const auth = await getAuthContextFromRequest(request);
-  if (!auth) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+async function handlePut(
+  _request: Request,
+  params: Record<string, string>,
+  auth: AuthContext,
+): Promise<Response> {
   let linkId: string;
   try {
     linkId = sanitizeString(params.linkId, MAX_ID_LENGTH);
@@ -81,12 +69,14 @@ export async function DELETE(
   if (!isDatabaseConfigured) {
     return Response.json({ error: 'Database not configured' }, { status: 503 });
   }
+  return withAuth(handleDelete)(request, params);
+}
 
-  const auth = await getAuthContextFromRequest(request);
-  if (!auth) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+async function handleDelete(
+  _request: Request,
+  params: Record<string, string>,
+  auth: AuthContext,
+): Promise<Response> {
   let linkId: string;
   try {
     linkId = sanitizeString(params.linkId, MAX_ID_LENGTH);

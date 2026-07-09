@@ -2,6 +2,176 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-09 — Session 4.4 follow-up: authedFetch migrated to screens/components; sign-out unified)
+- **Context:** third and final follow-up to the 401-handling work. Closes out the six
+  non-hook call sites flagged as out-of-scope in the previous pass:
+  `app/(app)/dashboard.tsx`, `app/(app)/constellation.tsx`, `app/goals/create.tsx`,
+  `components/layout/{SettingsModal,AccountModal,AvatarMenu}.tsx`.
+- **`dashboard.tsx`:** its local `getAccessToken()` helper (reused across 5 call sites —
+  `DueTodayZone`'s load/complete, `ActiveGoalCard`'s status update, the background Echo
+  reconcile, and the Intelligence insight fetch) is gone; all 5 now use `authedFetch`.
+  The reconcile/insight calls were previously "fail silently" on any error, including a
+  missing session — they now redirect-to-login specifically on a genuine 401, same as
+  everywhere else, while still swallowing non-auth failures silently (network errors,
+  5xx) exactly as before.
+- **`constellation.tsx`, `SettingsModal.tsx`:** straightforward `getAccessToken` →
+  `authedFetch` swaps, same pattern.
+- **`AccountModal.tsx`:** split its `getAccessTokenAndUserId()` helper — the avatar
+  upload's Supabase Storage call needs `userId` only (storage calls use the ambient
+  client session, never a manual Bearer header) via a slimmed `getUserId()`; the actual
+  `/api/profile` GET/PATCH calls (load, avatar-url patch, save) now go through
+  `authedFetch` and no longer need a token threaded in at all.
+- **`goals/create.tsx`:** the `/api/goals/create` and `/api/goals` POST calls (gated
+  behind an explicit `getUser()`+`getSession()` check before this change) now use
+  `authedFetch`, which subsumes that gate. **Deliberately NOT migrated:** the
+  `/api/actions` POST in the post-finalization "action capture" turn — its own comment
+  says "action is a bonus, not a gate," and it already sends the request even with no
+  token, treating a non-ok response as a non-fatal warning so the user still navigates
+  to their new goal. Migrating this one to `authedFetch` would turn a soft, non-blocking
+  failure into a hard redirect-to-login at exactly the moment a goal was just
+  successfully created — preserved as-is, same reasoning as `echo/reflect`'s pre-auth
+  early return in the previous pass.
+- **`AvatarMenu.tsx` — also closes out audit finding #2:** the original Step-0 audit
+  named this file's manual sign-out (`clearAllStores` + `signOut({scope:'local'})` +
+  redirect) as one of three original divergent 401/session-end behaviors. `lib/api/client.ts`'s
+  internal sequence for the same steps is now exported as `signOutAndRedirect()` and
+  reused directly here — the profile-chrome fetch also moved to `authedFetch`. All three
+  originally-catalogued sites (`onAuthStateChange`, `AvatarMenu`'s sign-out, and
+  Vault's local error state) now share one implementation.
+- `npx tsc --noEmit` clean. Net: -112 lines across 7 files. Sweep of the whole client
+  tree confirms no manual `Authorization: Bearer` header construction remains outside
+  the one deliberately-preserved `goals/create.tsx` action-capture call.
+- Files touched: `app/(app)/dashboard.tsx`, `app/(app)/constellation.tsx`,
+  `app/goals/create.tsx`, `components/layout/{SettingsModal,AccountModal,AvatarMenu}.tsx`,
+  `lib/api/client.ts`, `CHANGELOGCODEX.md`.
+
+### Changed (2026-07-09 — Session 4.4 follow-up: authedFetch migrated to all remaining hooks)
+- **Context:** second follow-up to the 401-handling work. The server side (all 19 API
+  routes on `withAuth`) was finished in the previous pass; this pass finishes the client
+  side named in the original audit: `useVault`, `useGoalDetail`, `useActivity`,
+  `useEchoTrail`, `useLatestAction`, and `fetchFolders`/`getEntryContainer` in
+  `echo-service.ts`.
+- **`features/goals/hooks/useVault.ts`:** all five methods (`refresh`, `addNote`,
+  `addLink`, `updateItem`, `removeItem`) now call `authedFetch` instead of each
+  independently fetching the session and building the `Authorization` header. Previously
+  `refresh` was the only method that surfaced `setError('Unauthorized')` on a missing
+  session — the other four silently no-op'd; now all five converge on `authedFetch`'s
+  redirect-to-login instead of three different behaviors in one file.
+- **`features/goals/hooks/useGoalDetail.ts`:** `onCompleteMeasurable`'s manual
+  session-check-then-fetch replaced with `authedFetch`; kept the friendlier "You need to
+  be signed in..." message by catching `UnauthorizedError` specifically. The unrelated
+  `load()` effect (direct `supabase.auth.getUser()` + `lib/db` service calls, no `/api/*`
+  fetch involved) is untouched — out of scope for this wrapper.
+- **`features/goals/hooks/useActivity.ts`, `features/actions/hooks/useLatestAction.ts`:**
+  same pattern — manual session-check-then-fetch replaced with `authedFetch`;
+  `useLatestAction` had this duplicated twice in the same file (initial load effect +
+  `mutate`), both fixed.
+- **`features/goals/hooks/useEchoTrail.ts`:** `confirmLink`/`dismissLink` migrated;
+  `refresh` (which calls `lib/db/echo-entry-links` directly, not `/api/*`) untouched.
+- **`features/echo/services/echo-service.ts`:** `requestEchoReflection` (used by
+  `createEntry`) and `fetchFolders` migrated to `authedFetch`, dropping their
+  `accessToken` parameters — the session is now fetched internally by `authedFetch`
+  rather than threaded in by every caller.
+- **`features/echo/hooks/useMoveEntry.ts`:** its local `getAccessToken` helper (built on
+  `supabase.auth.getSession()`) is gone entirely now that `fetchFolders()` no longer
+  needs a token passed in — both call sites (`open`, and the `target_not_found` retry in
+  `confirm`) simplified accordingly.
+- **Not migrated (out of scope — these are screens/components, not the hooks the audit
+  named):** `app/(app)/dashboard.tsx`, `app/(app)/constellation.tsx`,
+  `app/goals/create.tsx`, `components/layout/{SettingsModal,AccountModal,AvatarMenu}.tsx`
+  still build their own `Bearer` header inline. Candidates for a further pass.
+- `npx tsc --noEmit` clean. Net: -137 lines across 7 files.
+- Files touched: `features/goals/hooks/{useVault,useGoalDetail,useActivity,useEchoTrail}.ts`,
+  `features/actions/hooks/useLatestAction.ts`, `features/echo/services/echo-service.ts`,
+  `features/echo/hooks/useMoveEntry.ts`, `CHANGELOGCODEX.md`.
+
+### Changed (2026-07-09 — Session 4.4 follow-up: withAuth migrated to all remaining routes)
+- **Context:** follow-up to the "first cut" below, which deliberately migrated only one
+  route (`entries/[id]/move+api.ts`) as a demo and left the other 18 for incremental
+  adoption. Migrated the rest of them now, in one pass.
+- **18 route files migrated to `withAuth`:** `actions/[id]`, `actions/index`,
+  `dashboard/summary`, `echo-links/index`, `echo-links/[linkId]`, `echo/reconcile`,
+  `echo/reflect`, `folders/index`, `folders/[id]`, `goals/activity`,
+  `goals/complete-measurable`, `goals/create`, `goals/index`, `intelligence/index`,
+  `measurables/due-today`, `profile/index`, `vaults/[goalId]`, `vaults/items/[itemId]`.
+  All 12 files that had copy-pasted their own local `getAuthContext`/
+  `getAuthContextFromRequest` are gone; the 5 files that hand-rolled the
+  header-parse-and-`getUser()` check inline (`goals/activity`, `goals/complete-measurable`,
+  `dashboard/summary`, `measurables/due-today`, plus `echo/reconcile`'s locally-shadowed
+  `getAuthContext`) are also converted. `goals/index` and `profile/index` already used the
+  shared `getAuthContext` export (no duplication) but not the `withAuth` wrapper — migrated
+  for full consistency so every route now goes through the same helper. Net: -154 lines
+  across 19 files (this pass + the earlier `move+api.ts` demo).
+- **`withAuth` extended with an optional `onUnauthorized` hook** (`lib/api/auth.ts`): three
+  routes (`goals/create`, `goals/index`, `intelligence/index`, `profile/index`) are
+  documented as returning the `AiResponse`/`ApiResponse` envelope on 401
+  (`{ok:false, data:null, error:{code:'UNAUTHORIZED', ...}}`), not the plain
+  `{error:'Unauthorized'}` body the other routes return. `withAuth` defaults to the plain
+  shape and takes `{ onUnauthorized: () => Response }` to preserve the documented envelope
+  exactly on those four — de-duplicating the auth check without silently changing a
+  response contract (root CLAUDE.md marks AI output contracts L3/team-decision).
+- **One behavior-preserving structural note:** `echo/reflect+api.ts`'s `POST` has an early
+  return (`aiInsightRequested === false`) that runs *before* the auth check even in the
+  original code — i.e. that one path was reachable without a valid session. Preserved
+  exactly: the JSON-body parse and that early return still happen before `withAuth` is
+  invoked; only the remainder of the handler moved into an auth-wrapped function. Flagged
+  here since it's easy to accidentally "fix" (move auth first) while refactoring, which
+  would be an authorization behavior change, not a dedup — out of scope for this pass.
+  Similarly, `goals/activity+api.ts` previously checked `goalId` presence (400) before
+  checking auth (401); migrating flips that order (auth now runs first, matching every
+  other route) — a minor, intentional consistency fix rather than a preserved quirk, since
+  no legitimate caller is affected (a real client always sends a token).
+- `npx tsc --noEmit` clean after the full pass.
+- Files touched: the 18 route files listed above, `lib/api/auth.ts`, `CHANGELOGCODEX.md`.
+
+### Added (2026-07-09 — Session 4.4: app-wide 401 handling, first cut)
+- **Context:** follows the Step 0 read-only 401-handling audit this session, which found no
+  app-wide interceptor — three divergent client-side reactions to auth failure
+  (`onAuthStateChange` redirect, `AvatarMenu`'s manual sign-out, `useVault`'s local
+  `setError('Unauthorized')`), a fourth flagged-but-deferred gap in `moveEntryRequest`
+  (explicit placeholder comment referencing this exact audit), and the server-side identity
+  check (`getAuthContext`) duplicated locally in 12 of 14 route files instead of imported from
+  `lib/api/auth.ts`. Full cutover this session (not incremental) per explicit instruction —
+  pre-pilot, no live-data migration risk.
+- **`lib/api/client.ts` (new):** `authedFetch(path, init)` — attaches the current session's
+  Bearer token and, on a 401 (missing session or server-rejected token), clears all Zustand
+  stores, nulls the auth store's session, calls `supabase.auth.signOut({ scope: 'local' })`, and
+  redirects to `/(auth)/login` — converging with what `onAuthStateChange` already does for
+  refresh-token expiry, so both paths now produce the same visible behavior instead of a third
+  one being invented. Non-401 statuses (404, 500, ...) are returned to the caller unchanged;
+  this wrapper only owns the "is this request authenticated" concern.
+- **`lib/api/auth.ts`:** added `withAuth(handler)` — wraps a route handler with the existing
+  `getAuthContext` check so route files stop hand-rolling `if (!auth) return 401`. Only 2 of 14
+  route files used the shared `getAuthContext` export before this; the other 12 are unchanged
+  for now (see below) and remain candidates for a follow-up mechanical migration.
+- **Retrofit demo (one route + one hook, per audit's minimum-viable-retrofit recommendation):**
+  - `app/api/entries/[id]/move+api.ts`: replaced its locally-duplicated
+    `getAuthContextFromRequest` with `withAuth`. The pre-existing `isDatabaseConfigured` 503
+    check is kept as an outer gate before `withAuth` runs (rather than folded into it), since
+    `getAuthContext` itself collapses "not configured" into a 401 — keeping 503 distinct here
+    is strictly more correct than the two existing `getAuthContext` call sites (`goals/index`,
+    `profile/index`), which don't separate the two.
+  - `features/echo/services/echo-service.ts`'s `moveEntryRequest`: now calls `authedFetch`
+    instead of building its own `Authorization` header from a passed-in `accessToken`, and its
+    401 branch no longer maps to `'generic'` with a stale "no interceptor exists yet" comment —
+    401 now can't reach this function's response-handling logic at all (authedFetch intercepts
+    and redirects first); the `catch` only needs to distinguish `UnauthorizedError` (session
+    expired — user is already being redirected) from a genuine network failure (`'offline'`).
+  - `features/echo/hooks/useMoveEntry.ts`: `confirm()` no longer fetches an access token before
+    calling `moveEntryRequest` (that's now internal to `authedFetch`); the token is still
+    fetched locally for the `target_not_found` retry path, which calls `fetchFolders`
+    (unmigrated — takes a token directly, out of scope this session).
+- **Explicitly not done this session (per instruction):** the other 11 route files' local
+  `getAuthContext` duplicates, and the remaining client hooks (`useVault`, `useGoalDetail`,
+  `useActivity`, `useEchoTrail`, `useLatestAction`, `fetchFolders`/`getEntryContainer` in
+  `echo-service.ts`) that still hand-roll session-fetch + header-build + `res.ok` checks. These
+  are mechanical follow-ups once this pattern has been reviewed — new code should adopt
+  `authedFetch`/`withAuth` directly; old call sites migrate opportunistically, not on a
+  deadline, since the old and new patterns don't conflict in the meantime.
+- Files touched: `lib/api/client.ts` (new), `lib/api/auth.ts`,
+  `app/api/entries/[id]/move+api.ts`, `features/echo/services/echo-service.ts`,
+  `features/echo/hooks/useMoveEntry.ts`, `CHANGELOGCODEX.md`.
+
 ### Changed (2026-07-09 — Session 4.3 follow-up: backfill + constraint-name fix)
 - **Pre-existing-profile backfill (migration 017, amended in place — pre-pilot, not yet merged):**
   the eager-provisioning trigger only covers profiles inserted from the migration forward; any

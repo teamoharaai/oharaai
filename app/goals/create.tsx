@@ -12,6 +12,7 @@ import { useState, useRef, useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
 import supabase from '@/lib/db/client';
+import { authedFetch } from '@/lib/api/client';
 import { fetchGoalById } from '@/features/goals/services/goal-service';
 import { useGoalStore } from '@/features/goals/store';
 import { useProjectStore } from '@/features/projects/store';
@@ -133,36 +134,9 @@ export default function GoalCreateScreen() {
     setIsLoading(true);
 
     try {
-      const [
-        {
-          data: { user },
-        },
-        {
-          data: { session },
-        },
-      ] = await Promise.all([
-        supabase.auth.getUser(),
-        supabase.auth.getSession(),
-      ]);
-
-      if (!user) {
-        setError('Not authenticated. Please log in again.');
-        setIsLoading(false);
-        return;
-      }
-
-      if (!session?.access_token) {
-        setError('Not authenticated. Please log in again.');
-        setIsLoading(false);
-        return;
-      }
-
-      const response = await fetch('/api/goals/create', {
+      const response = await authedFetch('/api/goals/create', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...(text ? { userMessage: text } : {}),
           conversationHistory: messages,
@@ -199,12 +173,9 @@ export default function GoalCreateScreen() {
 
       if (data.isComplete && data.goalData) {
         setSavingGoal(true);
-        const createRes = await fetch('/api/goals', {
+        const createRes = await authedFetch('/api/goals', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             aiData: data.goalData,
             options: {

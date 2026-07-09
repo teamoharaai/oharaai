@@ -3,6 +3,7 @@ import { useGoalStore } from '../store';
 import { fetchGoalById, fetchGoals, createMeasurable, updateMeasurable, deleteMeasurable } from '../services/goal-service';
 import type { GoalWithMeasurables, MeasurableInput, MeasurableUpdates } from '../types';
 import supabase from '@/lib/db/client';
+import { authedFetch, UnauthorizedError } from '@/lib/api/client';
 
 export function useGoalDetail(goalId: string): {
   goal: GoalWithMeasurables | null;
@@ -126,27 +127,10 @@ export function useGoalDetail(goalId: string): {
       setMeasurableError(null);
       setCompletedIds((prev) => new Set(prev).add(measurableId));
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session?.access_token) {
-        setCompletedIds((prev) => {
-          const next = new Set(prev);
-          next.delete(measurableId);
-          return next;
-        });
-        setMeasurableError('You need to be signed in to complete a milestone.');
-        return;
-      }
-
       try {
-        const response = await fetch('/api/goals/complete-measurable', {
+        const response = await authedFetch('/api/goals/complete-measurable', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ measurableId, goalId }),
         });
 
@@ -170,7 +154,11 @@ export function useGoalDetail(goalId: string): {
           return next;
         });
         setMeasurableError(
-          error instanceof Error ? error.message : 'Failed to complete milestone',
+          error instanceof UnauthorizedError
+            ? 'You need to be signed in to complete a milestone.'
+            : error instanceof Error
+              ? error.message
+              : 'Failed to complete milestone',
         );
       }
     },

@@ -1,4 +1,5 @@
-import supabase, { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
+import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
+import { withAuth, type AuthContext } from '@/lib/api/auth';
 import {
   getVaultByGoalIdForUser,
   getVaultItems,
@@ -17,21 +18,6 @@ const VAULT_ITEM_TYPES: readonly VaultItemType[] = [
 const MAX_ID_LENGTH = 255;
 const MAX_TITLE_LENGTH = 200;
 const MAX_CONTENT_LENGTH = 10000;
-
-// ─── Auth ─────────────────────────────────────────────────────────────────────
-
-async function getAuthContextFromRequest(request: Request) {
-  const authHeader = request.headers.get('Authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token || !isDatabaseConfigured) return null;
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser(token);
-
-  return error || !user ? null : { userId: user.id, accessToken: token };
-}
 
 // ─── Input sanitization ───────────────────────────────────────────────────────
 
@@ -83,12 +69,14 @@ export async function GET(
   if (!isDatabaseConfigured) {
     return Response.json({ error: 'Database not configured' }, { status: 503 });
   }
+  return withAuth(handleGet)(request, params);
+}
 
-  const auth = await getAuthContextFromRequest(request);
-  if (!auth) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+async function handleGet(
+  _request: Request,
+  params: Record<string, string>,
+  auth: AuthContext,
+): Promise<Response> {
   let goalId: string;
   try {
     goalId = sanitizeString(params.goalId, MAX_ID_LENGTH);
@@ -128,12 +116,14 @@ export async function POST(
   if (!isDatabaseConfigured) {
     return Response.json({ error: 'Database not configured' }, { status: 503 });
   }
+  return withAuth(handlePost)(request, params);
+}
 
-  const auth = await getAuthContextFromRequest(request);
-  if (!auth) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+async function handlePost(
+  request: Request,
+  params: Record<string, string>,
+  auth: AuthContext,
+): Promise<Response> {
   let goalId: string;
   try {
     goalId = sanitizeString(params.goalId, MAX_ID_LENGTH);

@@ -1,4 +1,5 @@
-import supabase, { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
+import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
+import { withAuth, type AuthContext } from '@/lib/api/auth';
 
 type MeasurableType = 'counter' | 'habit' | 'checklist';
 
@@ -38,23 +39,11 @@ export async function GET(request: Request): Promise<Response> {
   if (!isDatabaseConfigured) {
     return Response.json({ error: 'Database not configured' }, { status: 503 });
   }
+  return withAuth(handleGet)(request);
+}
 
-  const authHeader = request.headers.get('Authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser(token);
-
-  if (authError || !user) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const authedDb = createAuthedClient(token);
+async function handleGet(_request: Request, _params: Record<string, string>, auth: AuthContext): Promise<Response> {
+  const authedDb = createAuthedClient(auth.accessToken);
 
   // Fetch all daily measurables on active goals for this user
   const { data: measurableRows, error: measurablesError } = await authedDb
@@ -62,7 +51,7 @@ export async function GET(request: Request): Promise<Response> {
     .select('id, title, type, target_value, target_unit, current_value, goal_id, goals!inner(title)')
     .eq('frequency', 'daily')
     .eq('goals.status', 'active')
-    .eq('goals.user_id', user.id);
+    .eq('goals.user_id', auth.userId);
 
   if (measurablesError) {
     console.error('[due-today] measurables fetch error', measurablesError);

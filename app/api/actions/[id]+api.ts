@@ -1,4 +1,5 @@
-import supabase, { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
+import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
+import { withAuth, type AuthContext } from '@/lib/api/auth';
 import type { ActionLog, ActionLogStatus } from '@/features/actions/types';
 
 const ACTION_LOG_STATUSES: readonly ActionLogStatus[] = ['pending', 'complete', 'skipped'];
@@ -46,23 +47,15 @@ export async function PATCH(
   if (!isDatabaseConfigured) {
     return Response.json({ error: 'Database not configured' }, { status: 503 });
   }
+  return withAuth(handlePatch)(request, params);
+}
 
-  const authHeader = request.headers.get('Authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser(token);
-
-  if (authError || !user) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const authedDb = createAuthedClient(token);
+async function handlePatch(
+  request: Request,
+  params: Record<string, string>,
+  auth: AuthContext,
+): Promise<Response> {
+  const authedDb = createAuthedClient(auth.accessToken);
 
   const { id } = params;
   if (!id?.trim()) {
@@ -108,7 +101,7 @@ export async function PATCH(
     .from('action_logs')
     .update(update)
     .eq('id', id.trim())
-    .eq('user_id', user.id)
+    .eq('user_id', auth.userId)
     .select()
     .single();
 

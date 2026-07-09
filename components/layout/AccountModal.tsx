@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import supabase from '@/lib/db/client';
+import { authedFetch } from '@/lib/api/client';
 import type { ApiResponse } from '@/lib/api/contracts';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
@@ -17,12 +18,14 @@ interface AccountProfileData {
   intelligence_enabled: boolean;
 }
 
-async function getAccessTokenAndUserId(): Promise<{ token: string; userId: string } | null> {
+// Only needed for the Supabase Storage upload path below (avatars/<userId>/avatar.jpg),
+// which uses the ambient client session directly rather than a Bearer header. All
+// /api/* calls go through authedFetch instead, which resolves its own token.
+async function getUserId(): Promise<string | null> {
   const {
     data: { session },
   } = await supabase.auth.getSession();
-  if (!session?.access_token || !session.user?.id) return null;
-  return { token: session.access_token, userId: session.user.id };
+  return session?.user?.id ?? null;
 }
 
 interface AccountModalProps {
@@ -51,13 +54,9 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
     setError(null);
 
     async function load() {
-      const auth = await getAccessTokenAndUserId();
-      if (!auth || !active) return;
-
       try {
-        const res = await fetch('/api/profile', {
-          headers: { Authorization: `Bearer ${auth.token}` },
-        });
+        const res = await authedFetch('/api/profile');
+        if (!active) return;
         const body = (await res.json()) as ApiResponse<AccountProfileData>;
         if (!active) return;
 
@@ -101,8 +100,8 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
 
     if (result.canceled || !result.assets?.[0]) return;
 
-    const auth = await getAccessTokenAndUserId();
-    if (!auth) {
+    const userId = await getUserId();
+    if (!userId) {
       setError('Session expired. Please log in again.');
       return;
     }
@@ -113,7 +112,7 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
       const fetched = await fetch(uri);
       const blob = await fetched.blob();
 
-      const path = `${auth.userId}/avatar.jpg`;
+      const path = `${userId}/avatar.jpg`;
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(path, blob, { contentType: 'image/jpeg', upsert: true });
@@ -121,12 +120,9 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
 
       const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(path);
 
-      const patchRes = await fetch('/api/profile', {
+      const patchRes = await authedFetch('/api/profile', {
         method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${auth.token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ avatar_url: publicUrlData.publicUrl }),
       });
       const patchBody = (await patchRes.json()) as ApiResponse<AccountProfileData>;
@@ -149,12 +145,6 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
       return;
     }
 
-    const auth = await getAccessTokenAndUserId();
-    if (!auth) {
-      setError('Session expired. Please log in again.');
-      return;
-    }
-
     const interestsArray = interestsText
       .split(',')
       .map((item) => item.trim())
@@ -162,12 +152,9 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
 
     setIsSaving(true);
     try {
-      const res = await fetch('/api/profile', {
+      const res = await authedFetch('/api/profile', {
         method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${auth.token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           display_name: displayName.trim(),
           bio,

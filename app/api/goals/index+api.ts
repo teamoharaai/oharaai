@@ -1,4 +1,4 @@
-import { getAuthContext } from '@/lib/api/auth';
+import { withAuth, type AuthContext } from '@/lib/api/auth';
 import { createAuthedClient } from '@/lib/db/client';
 import { createGoalWithMeasurables } from '@/lib/db/goals';
 import { validateGoalFinalizeResponse } from '@/lib/ai/schemas/goal-creation';
@@ -9,17 +9,20 @@ interface CreateGoalRequestBody {
   options?: { requestId?: string; projectId?: string | null };
 }
 
-export async function POST(request: Request): Promise<Response> {
-  const auth = await getAuthContext(request);
-  if (!auth) {
-    const errBody: ApiResponse<never> = {
-      ok: false,
-      data: null,
-      error: { code: 'UNAUTHORIZED', message: 'Unauthorized' },
-    };
-    return Response.json(errBody, { status: 401 });
-  }
+function unauthorizedResponse(): Response {
+  const errBody: ApiResponse<never> = {
+    ok: false,
+    data: null,
+    error: { code: 'UNAUTHORIZED', message: 'Unauthorized' },
+  };
+  return Response.json(errBody, { status: 401 });
+}
 
+export async function POST(request: Request): Promise<Response> {
+  return withAuth(handlePost, { onUnauthorized: unauthorizedResponse })(request);
+}
+
+async function handlePost(request: Request, _params: Record<string, string>, auth: AuthContext): Promise<Response> {
   let payload: CreateGoalRequestBody;
   try {
     payload = (await request.json()) as CreateGoalRequestBody;
