@@ -2,6 +2,110 @@
 
 ## [Unreleased]
 
+### Added (2026-07-09 — Session 3: Folder CRUD API Routes, live-verified)
+- **Pre-check (per session brief):** confirmed `echo_entry_links.echo_entry_id → echo_entries.id`
+  is `ON DELETE CASCADE` (set in `005_echo_goal_links.sql`, carried through the `012` rename
+  unchanged) — contrasts with the deliberate `ON DELETE RESTRICT` on `folder_id`
+  (`013_echo_folders.sql`). This meant `delete_contents` only needs to delete `echo_entries`
+  rows; the DB cascades their `echo_entry_links` rows automatically before the folder row is
+  removed.
+- **Routes added**, matching the existing `echo-links` route's conventions (local
+  `getAuthContextFromRequest`, `sanitizeString`, flat `{error}`/`{data}` JSON shapes — the most
+  recently-touched same-domain code at the time):
+  - `GET/POST /api/folders` (`app/api/folders/+api.ts`) — list, create. `POST` rejects
+    client-supplied `is_general` (server-controlled only).
+  - `PATCH/DELETE /api/folders/[id]` (`app/api/folders/[id]+api.ts`) — rename, delete.
+    Ownership + `is_general` checked before any mutation (403, not a silent no-op). Delete body
+    `{ mode: 'delete_contents' | 'folder_only' }`.
+  - `PATCH /api/entries/[id]/move` (`app/api/entries/[id]/move+api.ts`, new `entries` resource —
+    none existed before) — body `{ target_type: 'goal' | 'folder', target_id }`. Verifies entry
+    ownership, then target ownership (`isGoalOwnedByUser` / `getFolderByIdForUser`), before
+    calling `moveEntryContainer`, which repoints only the entry's single *confirmed* link row —
+    unconfirmed `ai_suggested` goal-link rows are left untouched by design.
+- **Migration `015_folder_delete_functions.sql`:** two `SECURITY INVOKER` plpgsql functions,
+  `delete_folder_reassign` and `delete_folder_with_contents`, so each `DELETE` mode runs as one
+  atomic transaction (supabase-js has no multi-statement transaction support over PostgREST).
+  Both re-verify folder ownership/`is_general` internally via `auth.uid()` on top of RLS.
+- **Supporting lib/db changes:** `lib/db/echo-folders.ts` (new — folder CRUD +
+  `getOrCreateGeneralFolderId`, `deleteFolderReassign`, `deleteFolderWithContents`);
+  `lib/db/echo-entry-links.ts` (`isEntryOwnedByUser`, `moveEntryContainer`); `lib/db/goals.ts`
+  (`isGoalOwnedByUser`); `types/echo-folder.ts` (new); `.env.example`
+  (`SUPABASE_SERVICE_ROLE_KEY`, server-only, documented). A `createServiceRoleClient()` was
+  first added directly to `lib/db/client.ts`, then extracted mid-session into its own
+  `lib/db/service-client.ts` to close a client-bundle leak risk — see the "Service role key
+  leaking into client web bundle" entry below for that fix's own detail.
+- **Live verification (real dev server + real JWTs, not tsc-only):** ran `expo start --web`
+  and hit the actual route code over HTTP with two real Supabase test users (created/deleted
+  via the admin API for this run only), cross-checking DB state directly via a service-role
+  client rather than trusting API responses alone.
+  - **Bug found and fixed:** migration `015` had never been applied to the live project — only
+    `001`–`014` were tracked in `supabase_migrations.schema_migrations` — so both new RPCs were
+    missing (`PGRST202`) and every `DELETE /api/folders/[id]` call 500'd. Applied the migration
+    directly via `psql` (using `SUPABASE_DB_PASSWORD`, newly added to `.env.local` for this),
+    then recorded it in the tracking table. Re-confirmed both functions are `SECURITY INVOKER`
+    (`prosecdef = f`) as designed.
+  - **23/23 checks passed** after the fix: `delete_contents` cascade (entries, links, and
+    folder row all confirmed gone via direct query); `folder_only` reassignment (entries
+    survived, all links' `folder_id` confirmed *equal to* the resolved General folder id, not
+    just non-null; original folder row gone); General-folder rename/delete guards (403 on all
+    three route paths, DB confirms untouched); cross-user ownership on folder rename/delete
+    (404, DB confirms untouched); cross-user ownership on the move endpoint — moving another
+    user's entry, moving into another user's folder, and moving into another user's goal all
+    rejected with 404, DB confirms untouched, with a positive control (same-user move) verified
+    to still succeed (200) so the endpoint isn't just failing closed universally; single call
+    site for `get_or_create_general_folder` (`app/api/folders/[id]+api.ts:162`) confirmed to
+    source `p_user_id` exclusively from `auth.userId` (server-side session), never the request
+    body.
+  - Test users, test folders/entries, and the throwaway verification/probe/cleanup scripts
+    used for this run were all removed afterward; dev server stopped.
+- Files touched: `app/api/folders/+api.ts` (new), `app/api/folders/[id]+api.ts` (new),
+  `app/api/entries/[id]/move+api.ts` (new), `supabase/migrations/015_folder_delete_functions.sql`
+  (new, applied live), `lib/db/echo-folders.ts` (new), `lib/db/echo-entry-links.ts`,
+  `lib/db/goals.ts`, `types/echo-folder.ts` (new), `.env.example`, `CHANGELOGCODEX.md`.
+- Verification: `npx tsc --noEmit` clean throughout. Live HTTP + direct-DB verification per
+  above (23/23 passed).
+- Out of scope, not touched: `handle_new_user()`, the migration squash, any frontend/UI wiring
+  for folders (Session 4+).
+
+### Fixed (2026-07-09 — lib/db/CLAUDE.md was a stray duplicate of components/CLAUDE.md)
+- **What it was:** `lib/db/CLAUDE.md` contained component/theming content (NativeWind rules,
+  GoalCard/VaultItemCard/etc. component list, BRT hex colors) instead of directory-scoped
+  context for `lib/db/`. `git log --follow` showed this wasn't a move/rename gone wrong — the
+  file was created from scratch in commit `c27ecf6` (Add Vault route and milestone-tap
+  navigation) as a verbatim copy-paste of the already-existing `components/CLAUDE.md`,
+  mislabeled from the moment of creation (its header still read
+  `# components/CLAUDE.md — Component Rules`). Two later commits (`54a4c68`, `d24932e`)
+  applied identical color-token fixes to both files — a grep-replace pattern run across all
+  `CLAUDE.md` files without checking each file's actual scope, which is what kept the
+  duplicate looking "maintained" instead of surfacing it as dead weight.
+- **Fix:** discarded the copied content; wrote a real `lib/db/CLAUDE.md` covering
+  `client.ts`/`service-client.ts`'s anon-vs-service-role split, each service module
+  (`goals.ts`, `spaces.ts`, `vaults.ts`, `echo-folders.ts`, `echo-entry-links.ts`,
+  `embeddings.ts`), and the row-mapping/RLS conventions used throughout. `components/CLAUDE.md`
+  was untouched — it already had correct, currently-maintained content (in fact slightly ahead
+  of what had been copied, e.g. the `#1A1F1C` near-black fix in `439bb08`).
+- **Follow-up cleanup — audited all CLAUDE.md files repo-wide** to check for the same pattern
+  elsewhere:
+  - `CLAUDE.md` (root) is a symlink to `docs/CLAUDE.md` — the two being byte-identical across
+    history is by design, not a duplicate.
+  - `components/CLAUDE.md`, `features/CLAUDE.md`, `supabase/CLAUDE.md` — scope matches their
+    directories.
+  - `lib/ai/CLAUDE.md` — scope correct, but references `vault-insights.ts`, which has never
+    existed in git history (root `CLAUDE.md`/`docs/CLAUDE.md` references it too). Stale
+    aspirational content, not a duplication issue — flagged, not fixed this pass.
+  - `supabase/CLAUDE.md` — says "Next new migration: 013" but 013–015 already exist. Staleness,
+    not duplication — flagged, not fixed this pass.
+  - `types/CLAUDE.md` — has a stray paragraph (added in commit `26a7e4b`) entirely about
+    `components/ui/Modal.tsx`'s confirm/cancel API, instructing that it be documented in
+    "CLAUDE.md for components." It was never acted on: `components/CLAUDE.md` has no Modal
+    documentation and `Modal.tsx` has no such comment. Misplaced content, not duplication —
+    flagged, not fixed this pass (out of scope for this session; needs its own pass).
+  - Added a short scope-guard note to `docs/CLAUDE.md` (root `CLAUDE.md`'s symlink target),
+    under "File Ownership": nested CLAUDE.md files are directory-scoped and must not be edited
+    via blanket find/replace across all CLAUDE.md files — repo-wide patterns (like a
+    color-token rename) need to be applied per-file, scope-checked, not copy-propagated.
+- Files touched: `lib/db/CLAUDE.md`, `docs/CLAUDE.md`, `CHANGELOGCODEX.md`.
+
 ### Fixed (2026-07-09 — Service role key leaking into client web bundle)
 - **Pre-check for Session 3 live verification** (`SUPABASE_SERVICE_ROLE_KEY` newly added to
   `.env.local` to unblock test-user creation) found `createServiceRoleClient()` shipping into

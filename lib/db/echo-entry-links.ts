@@ -256,3 +256,70 @@ export async function getUnconfirmedLinksForUser(
 ): Promise<EchoGoalLink[]> {
   return getUnconfirmedLinksForUserGoals(userId, client);
 }
+
+// ── Move (Session 3: Folder CRUD) ───────────────────────────────────────────
+// "Move" repoints an entry's primary (confirmed) container row — the one
+// representing where the entry currently lives — to a new goal or folder.
+// It intentionally only ever touches the confirmed row: unconfirmed
+// ai_suggested goal-link rows are a separate advisory concern (the
+// echo-links review flow) and are left untouched by explicit user moves.
+// If an entry has more than one confirmed row (shouldn't happen under the
+// container model), .maybeSingle() below throws rather than picking one
+// silently.
+
+export type MoveTarget =
+  | { type: 'goal'; id: string }
+  | { type: 'folder'; id: string };
+
+export async function isEntryOwnedByUser(
+  entryId: string,
+  userId: string,
+  client: DbClient = supabase,
+): Promise<boolean> {
+  const { data, error } = await client
+    .from('echo_entries')
+    .select('id')
+    .eq('id', entryId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return Boolean(data);
+}
+
+export async function moveEntryContainer(
+  entryId: string,
+  target: MoveTarget,
+  client: DbClient = supabase,
+): Promise<void> {
+  const { data: existing, error: fetchError } = await client
+    .from('echo_entry_links')
+    .select('id')
+    .eq('echo_entry_id', entryId)
+    .eq('confirmed', true)
+    .maybeSingle();
+
+  if (fetchError) throw fetchError;
+
+  const containerFields = target.type === 'goal'
+    ? { container_type: 'goal' as const, goal_id: target.id, folder_id: null }
+    : { container_type: 'folder' as const, goal_id: null, folder_id: target.id };
+
+  if (existing) {
+    const { error } = await client
+      .from('echo_entry_links')
+      .update(containerFields)
+      .eq('id', (existing as unknown as { id: string }).id);
+    if (error) throw error;
+    return;
+  }
+
+  const { error } = await client.from('echo_entry_links').insert({
+    echo_entry_id: entryId,
+    link_source: 'manual',
+    confidence: null,
+    confirmed: true,
+    ...containerFields,
+  });
+  if (error) throw error;
+}

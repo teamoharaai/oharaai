@@ -66,6 +66,13 @@ Modules imported at _layout.tsx top level must NEVER throw at module load time.
 - VP Product: components/*, app/(app)/*, app/goals/*, app/projects/*, features/*
 - CFO: legal, outreach, pilot coordination
 
+Nested CLAUDE.md files (components/, lib/ai/, lib/db/, supabase/, types/,
+features/) are directory-scoped to their own file ownership above — never
+edit them via a blanket find/replace across all CLAUDE.md files. A repo-wide
+pattern (e.g. a color-token rename) must be applied per-file, checking that
+file's actual directory scope, not copy-propagated from wherever it was first
+written.
+
 ## Key Files
 - API_CONTRACT.md, AI_RESPONSE_SCHEMA.md, ARCHITECTURE.md, DECISIONS.md
 - CONTEXT.md (15-line session opener, read first)

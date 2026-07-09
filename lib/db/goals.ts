@@ -648,3 +648,19 @@ export async function getGoalProgressById(
 
   return toNumber((data as DbGoalProgressRow).progress, 0);
 }
+
+export async function isGoalOwnedByUser(
+  goalId: string,
+  userId: string,
+  db: SupabaseClient = supabase,
+): Promise<boolean> {
+  const { data, error } = await db
+    .from('goals')
+    .select('id')
+    .eq('id', goalId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return Boolean(data);
+}

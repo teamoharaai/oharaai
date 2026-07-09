@@ -262,3 +262,83 @@ Deleted `components/layout/Header.tsx` as dead code (zero callers repo-wide; Typ
 The "dedicated handle_new_user() fix session" owed since the 2026-06-25 entry above is closed. No code, trigger, or migration changes were made this session. Migration 008 (2026-06-25/26) already created `handle_new_user()` + the `on_auth_user_created` trigger, and `CHANGELOGCODEX.md` (2026-07-01 session, migration 011) separately notes the trigger was fixed manually via SQL Editor prior to that session "per A1 audit." A prior read-only audit this session (static file review only — no live DB credentials available, no query run) flagged that these two accounts don't fully reconcile: it's not independently confirmed from this session that the live function body matches `008_profiles_timezone_and_user_trigger.sql` verbatim.
 
 A Session 0 Closeout report supplied to this session asserted, as already-verified ground truth, that: the live `handle_new_user()` body matches migration 008 exactly, both `on_auth_user_created` and `on_profile_created_create_space` are attached and enabled, and existing `profiles` rows have `created_at` and a provisioned personal space populated for real signups. That report's underlying query output was not shown to this session, so this closure is recorded as **reported verified, not independently re-confirmed here**. If this becomes load-bearing again, re-run `pg_get_functiondef('public.handle_new_user'::regproc)` and a trigger-catalog check against live Supabase before relying on it further.
+
+# Decisions Log
+
+## Session 1 — Echo Folders Redesign, Data Model Audit
+- **Decision: Option A over Option B.** Generalize the existing `echo_goal_links` 
+  table into `echo_entry_links` (container_type discriminator, nullable goal_id/
+  folder_id) rather than adding a separate `echo_folder_links` table. Rationale: 
+  no live production data exists (pre-pilot), so the live-data migration risk that 
+  would normally favor Option B doesn't apply. Option A is the cleaner long-term 
+  shape.
+- **Finding: composite unique constraints don't dedup nullable columns.** 
+  NULL ≠ NULL in SQL, so a single composite unique constraint across goal_id/
+  folder_id silently fails to prevent duplicate links. Resolved with two separate 
+  plain unique constraints, one per container column.
+
+## Session 2 — echo_folders Schema
+- **Decision: folder_id FK is ON DELETE RESTRICT, not CASCADE.** Deliberate — 
+  folder deletion requires an explicit user choice (cascade contents vs. reassign 
+  to General) that wasn't built yet at the time. RESTRICT makes deletion impossible 
+  at the DB level until that logic exists.
+- **Decision: General folder resolution via `get_or_create_general_folder`, 
+  SECURITY DEFINER, called service-role-only.** Written in plpgsql so it can later 
+  be called directly from a repaired `handle_new_user()` trigger with zero call-site 
+  changes.
+- **Finding/Fix: Postgres grants EXECUTE to PUBLIC by default**, and Supabase/
+  PostgREST exposes public-schema functions as client-callable RPCs unless 
+  explicitly revoked. `get_or_create_general_folder` was callable directly by any 
+  authenticated client with an arbitrary `p_user_id`, bypassing the API route. 
+  Fixed via `REVOKE EXECUTE ... FROM PUBLIC, anon, authenticated; GRANT ... TO 
+  service_role`. Verified live against `information_schema.routine_privileges`.
+- **Hard constraint carried forward:** `p_user_id` for this function must be 
+  sourced server-side only, from the authenticated session — never from client 
+  payload. The function has no internal identity binding by design (to keep the 
+  future `handle_new_user()` path clean), so the calling API route is the only 
+  remaining enforcement layer.
+
+## Session 3 — Folder CRUD API Routes
+- **Decision: move is a single unified endpoint**, not separate goal/folder move 
+  routes. `echo_entry_links`' container_type discriminator makes both moves the 
+  same underlying write (which nullable column is populated).
+- **Product rule confirmed: an entry is never linked to both a folder and a goal 
+  simultaneously.** Goal-linked entries are labeled under the project name instead. 
+  This means `delete_contents` never needs to special-case dual-linked entries.
+- **Finding: `echo_entry_links.echo_entry_id → echo_entries.id` is ON DELETE 
+  CASCADE** (from migration 005, unchanged by the 012 rename) — contrasts with the 
+  deliberate RESTRICT on `folder_id`. `delete_contents` deletes `echo_entries` rows 
+  directly; cascade clears their links automatically before the folder row is 
+  removed.
+- **Decision: delete operations run as SECURITY INVOKER plpgsql functions** 
+  (`delete_folder_reassign`, `delete_folder_with_contents`), each wrapping its mode 
+  in one atomic transaction, since supabase-js has no client-side multi-statement 
+  transaction support over PostgREST. Kept INVOKER (not DEFINER) with an internal 
+  ownership/is_general re-check as defense-in-depth on top of RLS — deliberately 
+  not repeating the Session 2 RPC-exposure pattern.
+- **Decision: `moveEntryContainer` only touches the confirmed link row**, leaving 
+  unconfirmed `ai_suggested` goal links untouched — consistent with `ai_suggested` 
+  being logged as UNDECIDED, not dead, and not something to disturb via unrelated 
+  feature work.
+
+## Still open / unresolved
+- `ai_suggested` link-source: UNDECIDED. Revisit after Block 2 (Echo Output Loop) 
+  ships, contingent on whether BRT classification gets wired to consume pgvector 
+  embeddings.
+- `brt_user` write path scope: not yet decided.
+- `handle_new_user()` P0 fix: unscheduled, separate session.
+- Migration squash: planned, not yet executed.
+
+## Session 3 — Folder CRUD API Routes (addendum)
+
+- **Finding/Fix: Metro doesn't tree-shake at export granularity.** Server-only code 
+  co-located in the same module as client-safe exports ships into the client bundle 
+  in full — including function bodies — even when nothing client-side actually calls 
+  it. The fail-closed runtime guard (throws on missing env var) prevented the secret 
+  *value* from leaking, but the code path itself was still present client-side, which 
+  is a gap independent of whether the guard holds.
+- **Principle: any service-role / privileged-credential code must live in its own 
+  module, never co-located with client-safe exports in the same file.** Applied here 
+  via `lib/db/service-client.ts`, split out of `lib/db/client.ts`. This is the pattern 
+  to follow for any future server-only utility, not a one-off fix — check new server-
+  only helpers against this before adding them to a shared file.
