@@ -2,6 +2,54 @@
 
 ## [Unreleased]
 
+### Added (2026-07-09 — Session 4.4: app-wide 401 handling, first cut)
+- **Context:** follows the Step 0 read-only 401-handling audit this session, which found no
+  app-wide interceptor — three divergent client-side reactions to auth failure
+  (`onAuthStateChange` redirect, `AvatarMenu`'s manual sign-out, `useVault`'s local
+  `setError('Unauthorized')`), a fourth flagged-but-deferred gap in `moveEntryRequest`
+  (explicit placeholder comment referencing this exact audit), and the server-side identity
+  check (`getAuthContext`) duplicated locally in 12 of 14 route files instead of imported from
+  `lib/api/auth.ts`. Full cutover this session (not incremental) per explicit instruction —
+  pre-pilot, no live-data migration risk.
+- **`lib/api/client.ts` (new):** `authedFetch(path, init)` — attaches the current session's
+  Bearer token and, on a 401 (missing session or server-rejected token), clears all Zustand
+  stores, nulls the auth store's session, calls `supabase.auth.signOut({ scope: 'local' })`, and
+  redirects to `/(auth)/login` — converging with what `onAuthStateChange` already does for
+  refresh-token expiry, so both paths now produce the same visible behavior instead of a third
+  one being invented. Non-401 statuses (404, 500, ...) are returned to the caller unchanged;
+  this wrapper only owns the "is this request authenticated" concern.
+- **`lib/api/auth.ts`:** added `withAuth(handler)` — wraps a route handler with the existing
+  `getAuthContext` check so route files stop hand-rolling `if (!auth) return 401`. Only 2 of 14
+  route files used the shared `getAuthContext` export before this; the other 12 are unchanged
+  for now (see below) and remain candidates for a follow-up mechanical migration.
+- **Retrofit demo (one route + one hook, per audit's minimum-viable-retrofit recommendation):**
+  - `app/api/entries/[id]/move+api.ts`: replaced its locally-duplicated
+    `getAuthContextFromRequest` with `withAuth`. The pre-existing `isDatabaseConfigured` 503
+    check is kept as an outer gate before `withAuth` runs (rather than folded into it), since
+    `getAuthContext` itself collapses "not configured" into a 401 — keeping 503 distinct here
+    is strictly more correct than the two existing `getAuthContext` call sites (`goals/index`,
+    `profile/index`), which don't separate the two.
+  - `features/echo/services/echo-service.ts`'s `moveEntryRequest`: now calls `authedFetch`
+    instead of building its own `Authorization` header from a passed-in `accessToken`, and its
+    401 branch no longer maps to `'generic'` with a stale "no interceptor exists yet" comment —
+    401 now can't reach this function's response-handling logic at all (authedFetch intercepts
+    and redirects first); the `catch` only needs to distinguish `UnauthorizedError` (session
+    expired — user is already being redirected) from a genuine network failure (`'offline'`).
+  - `features/echo/hooks/useMoveEntry.ts`: `confirm()` no longer fetches an access token before
+    calling `moveEntryRequest` (that's now internal to `authedFetch`); the token is still
+    fetched locally for the `target_not_found` retry path, which calls `fetchFolders`
+    (unmigrated — takes a token directly, out of scope this session).
+- **Explicitly not done this session (per instruction):** the other 11 route files' local
+  `getAuthContext` duplicates, and the remaining client hooks (`useVault`, `useGoalDetail`,
+  `useActivity`, `useEchoTrail`, `useLatestAction`, `fetchFolders`/`getEntryContainer` in
+  `echo-service.ts`) that still hand-roll session-fetch + header-build + `res.ok` checks. These
+  are mechanical follow-ups once this pattern has been reviewed — new code should adopt
+  `authedFetch`/`withAuth` directly; old call sites migrate opportunistically, not on a
+  deadline, since the old and new patterns don't conflict in the meantime.
+- Files touched: `lib/api/client.ts` (new), `lib/api/auth.ts`,
+  `app/api/entries/[id]/move+api.ts`, `features/echo/services/echo-service.ts`,
+  `features/echo/hooks/useMoveEntry.ts`, `CHANGELOGCODEX.md`.
+
 ### Changed (2026-07-09 — Session 4.3 follow-up: backfill + constraint-name fix)
 - **Pre-existing-profile backfill (migration 017, amended in place — pre-pilot, not yet merged):**
   the eager-provisioning trigger only covers profiles inserted from the migration forward; any

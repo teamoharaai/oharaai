@@ -1,4 +1,5 @@
 import supabase from '@/lib/db/client';
+import { authedFetch, UnauthorizedError } from '@/lib/api/client';
 import { getGeneralFolderId } from '@/lib/db/echo-folders';
 import { AI_CONFIG } from '@/lib/ai/config';
 import type { AiResponse } from '@/lib/ai/contracts';
@@ -632,10 +633,9 @@ export async function fetchFolders(accessToken: string): Promise<EchoFolder[]> {
 //  - entry_not_found (404, entry gone): caller removes it from the list
 //  - target_not_found (404, goal/folder vanished): caller refreshes the picker
 //  - offline / server / generic: show copy, keep the modal as-is
-// 401 is intentionally mapped to 'generic' with the server message — there is
-// no app-wide re-auth interceptor to hand off to (see Session 4.1 notes), so
-// we preserve the pre-existing "show the message" behavior rather than
-// inventing a one-off flow here.
+// 401 never reaches this branch logic — authedFetch intercepts it, clears
+// local session state, and redirects to login before this function sees a
+// response. We just need to stop this promise chain from continuing.
 export type MoveEntryErrorKind =
   | 'entry_not_found'
   | 'target_not_found'
@@ -650,23 +650,22 @@ export type MoveEntryResult =
 export async function moveEntryRequest(
   entryId: string,
   target: EntryContainer,
-  accessToken: string,
 ): Promise<MoveEntryResult> {
-  if (!accessToken.trim()) {
-    return { status: 'error', kind: 'generic', message: 'Move failed. Please try again.' };
-  }
-
   let response: Response;
   try {
-    response = await fetch(`/api/entries/${entryId}/move`, {
+    response = await authedFetch(`/api/entries/${entryId}/move`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ target_type: target.type, target_id: target.id }),
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return {
+        status: 'error',
+        kind: 'generic',
+        message: 'Your session expired. Redirecting to sign in...',
+      };
+    }
     return {
       status: 'error',
       kind: 'offline',
@@ -710,8 +709,8 @@ export async function moveEntryRequest(
     };
   }
 
-  // 401 / 400 / 503 / anything else: keep existing behavior (surface the
-  // server-provided message, falling back to generic copy).
+  // 400 / 503 / anything else: surface the server-provided message, falling
+  // back to generic copy.
   return {
     status: 'error',
     kind: 'generic',

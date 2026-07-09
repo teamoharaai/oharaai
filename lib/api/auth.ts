@@ -17,3 +17,23 @@ export async function getAuthContext(request: Request): Promise<AuthContext | nu
 
   return error || !user ? null : { userId: user.id, accessToken: token };
 }
+
+export type AuthedRouteHandler = (
+  request: Request,
+  params: Record<string, string>,
+  auth: AuthContext,
+) => Promise<Response>;
+
+// Wraps an API route handler with the identity check every route needs before
+// touching auth.userId/accessToken, so route files stop reimplementing
+// getAuthContext locally. `params` defaults to {} for routes with no dynamic
+// segments (e.g. index+api.ts handlers called as just `(request)`).
+export function withAuth(handler: AuthedRouteHandler) {
+  return async (request: Request, params: Record<string, string> = {}): Promise<Response> => {
+    const auth = await getAuthContext(request);
+    if (!auth) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    return handler(request, params, auth);
+  };
+}

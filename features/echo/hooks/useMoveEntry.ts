@@ -85,8 +85,7 @@ export function useMoveEntry({ onEntryGone, onTargetsStale }: UseMoveEntryOption
       setIsSaving(true);
       setError(null);
       try {
-        const accessToken = await getAccessToken();
-        const result = await moveEntryRequest(entryId, target, accessToken);
+        const result = await moveEntryRequest(entryId, target);
 
         if (result.status === 'error') {
           if (result.kind === 'entry_not_found') {
@@ -100,6 +99,7 @@ export function useMoveEntry({ onEntryGone, onTargetsStale }: UseMoveEntryOption
             // goals via callback) and keep the modal open so the user re-picks.
             onTargetsStale?.();
             try {
+              const accessToken = await getAccessToken();
               const refreshedFolders = await fetchFolders(accessToken);
               if (activeRequestRef.current === entryId) setFolders(refreshedFolders);
             } catch {
