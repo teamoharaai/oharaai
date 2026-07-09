@@ -87,6 +87,12 @@
   `lib/db/echo-folders.ts`, `features/echo/services/echo-service.ts`, `types/echo-link.ts`,
   `CHANGELOGCODEX.md`.
 
+### Changed (2026-07-09 — Cleanup: remove dead client `entry.folderId`)
+- Removed the dead client-only `folderId` field from `features/echo/types.ts`'s `EchoEntry` and
+  deleted the matching optimistic write-only assignments in `features/echo/store.ts`,
+  `features/echo/hooks/useMoveEntry.ts`, and `features/echo/services/echo-service.ts` after a
+  fresh grep re-verified there were still no read/render sites for `entry.folderId`.
+
 ### Added (2026-07-09 — Session 4.2: Anchored entry action popover)
 - Added `components/ui/AnchoredPopover.tsx`, a reusable `Modal transparent`-backed popover
   primitive that positions itself from a measured trigger rect, right-edge-aligns to the anchor,

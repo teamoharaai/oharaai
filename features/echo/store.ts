@@ -3,7 +3,7 @@ import type { EchoEntry } from './types';
 
 export type EntryContainerUpdate =
   | { type: 'goal'; goalId: string; goalTitle: string }
-  | { type: 'folder'; folderId: string; folderName: string };
+  | { type: 'folder'; folderName: string };
 
 interface EchoStore {
   entries: EchoEntry[];
@@ -41,14 +41,12 @@ export const useEchoStore = create<EchoStore>((set) => ({
                 ...entry,
                 goalId: container.goalId,
                 goalTitle: container.goalTitle,
-                folderId: null,
                 folderName: undefined,
               }
             : {
                 ...entry,
                 goalId: null,
                 goalTitle: undefined,
-                folderId: container.folderId,
                 folderName: container.folderName,
               },
       ),

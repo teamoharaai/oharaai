@@ -70,7 +70,7 @@ function mapEntry(row: DbEchoEntry): EchoEntry {
 
 type ConfirmedContainerDisplay =
   | { type: 'goal'; goalId: string; goalTitle?: string }
-  | { type: 'folder'; folderId: string; folderName?: string };
+  | { type: 'folder'; folderName?: string };
 
 type DbConfirmedLinkRow = {
   echo_entry_id: string;
@@ -141,7 +141,6 @@ async function fetchConfirmedContainers(
     } else if (link.container_type === 'folder' && link.folder_id) {
       result.set(link.echo_entry_id, {
         type: 'folder',
-        folderId: link.folder_id,
         folderName: folderNameById.get(link.folder_id),
       });
     }
@@ -157,7 +156,6 @@ function applyContainer(entry: EchoEntry, container: ConfirmedContainerDisplay |
       ...entry,
       goalId: null,
       goalTitle: undefined,
-      folderId: container.folderId,
       folderName: container.folderName,
     };
   }
@@ -165,7 +163,6 @@ function applyContainer(entry: EchoEntry, container: ConfirmedContainerDisplay |
     ...entry,
     goalId: container.goalId,
     goalTitle: container.goalTitle,
-    folderId: null,
     folderName: undefined,
   };
 }
