@@ -10,23 +10,37 @@
 -- same category of action as get_or_create_general_folder() itself.
 -- Existing values are untouched; this only widens the allowed set.
 --
--- Constraint-name note: link_source's check constraint was defined inline
--- in 005_echo_goal_links.sql (table named echo_goal_links at the time), so
--- Postgres auto-named it echo_goal_links_link_source_check. 012_echo_entry_
--- links.sql renamed the table to echo_entry_links but only explicitly
--- renamed the primary key, two indexes, and the (echo_entry_id, goal_id)
--- unique constraint — it did not mention this check constraint, and table
--- RENAME does not auto-rename constraint names in Postgres. The constraint
--- is therefore presumed still named echo_goal_links_link_source_check, but
--- this was not confirmed against a live schema (no Supabase credentials in
--- this environment) — both possible names are dropped defensively below via
--- IF EXISTS so this migration applies correctly regardless of which one is
--- actually live. Flagging this as the one thing worth a live
--- \d echo_entry_links check before/after applying.
+-- Constraint-name resolution: link_source's check constraint was defined
+-- inline in 005_echo_goal_links.sql (table named echo_goal_links at the
+-- time), so Postgres auto-named it echo_goal_links_link_source_check.
+-- 012_echo_entry_links.sql renamed the table to echo_entry_links but only
+-- explicitly renamed the primary key, two indexes, and the (echo_entry_id,
+-- goal_id) unique constraint — it did not mention this check constraint,
+-- and table RENAME does not auto-rename constraint names in Postgres. An
+-- earlier version of this migration guessed between the two plausible names
+-- via two DROP CONSTRAINT IF EXISTS statements. Replaced with a dynamic
+-- lookup instead: query pg_constraint directly for whatever check
+-- constraint currently references link_source and drop that, by its actual
+-- name, whatever it turns out to be. This makes the migration correct
+-- regardless of which name is live, without requiring a live schema check
+-- to confirm it first — the discovery happens at apply time, against
+-- whatever the real schema is.
 -- ============================================================================
 
-alter table public.echo_entry_links drop constraint if exists echo_goal_links_link_source_check;
-alter table public.echo_entry_links drop constraint if exists echo_entry_links_link_source_check;
+do $$
+declare
+  v_constraint_name text;
+begin
+  select conname into v_constraint_name
+  from pg_constraint
+  where conrelid = 'public.echo_entry_links'::regclass
+    and contype = 'c'
+    and pg_get_constraintdef(oid) ilike '%link_source%';
+
+  if v_constraint_name is not null then
+    execute format('alter table public.echo_entry_links drop constraint %I', v_constraint_name);
+  end if;
+end $$;
 
 alter table public.echo_entry_links
   add constraint echo_entry_links_link_source_check

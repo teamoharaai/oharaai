@@ -40,6 +40,12 @@
 -- live signup smoke test before this is considered fully verified, same
 -- caveat already on record for handle_new_user_space() itself in
 -- supabase/CLAUDE.md.
+--
+-- Also includes a one-time backfill (below the trigger) provisioning a
+-- General folder for every profile that already existed before this
+-- migration landed — the trigger alone only covers profiles inserted from
+-- here forward. See the backfill's own comment for why this is plain SQL
+-- rather than a per-row function call.
 -- ============================================================================
 
 create or replace function public.handle_new_profile_general_folder()
@@ -63,3 +69,33 @@ $$;
 create trigger on_profile_created_create_general_folder
   after insert on public.profiles
   for each row execute function public.handle_new_profile_general_folder();
+
+-- Backfill ---------------------------------------------------------------
+-- The trigger above only covers profiles inserted from this point forward.
+-- Any profile that already existed when this migration runs would otherwise
+-- have no General folder and no path to get one: getGeneralFolderId()
+-- (lib/db/echo-folders.ts) is a plain read with no creation fallback by
+-- design (client-side, RLS-scoped — see echo-service.ts's createEntry()).
+-- This is a one-time data backfill, not ongoing provisioning logic, so it's
+-- plain SQL rather than a per-row call into get_or_create_general_folder().
+--
+-- Same idempotent shape as get_or_create_general_folder() itself: insert
+-- against echo_folders_one_general_per_user (013) with ON CONFLICT ... DO
+-- NOTHING, safe to re-run. The NOT EXISTS filter is a scoping optimization,
+-- not a correctness requirement — it just avoids generating a row (and
+-- immediately conflicting on it) for every profile that already has one.
+--
+-- Pre-pilot / zero production data at time of writing, per session
+-- instructions — this is expected to be a no-op or near-no-op today, but is
+-- included for correctness against any environment where profiles already
+-- exist ahead of this migration landing.
+insert into public.echo_folders (user_id, name, is_general)
+select p.id, 'General', true
+from public.profiles p
+where not exists (
+  select 1
+  from public.echo_folders f
+  where f.user_id = p.id
+    and f.is_general = true
+)
+on conflict (user_id) where (is_general = true) do nothing;

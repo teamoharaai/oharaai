@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-09 — Session 4.3 follow-up: backfill + constraint-name fix)
+- **Pre-existing-profile backfill (migration 017, amended in place — pre-pilot, not yet merged):**
+  the eager-provisioning trigger only covers profiles inserted from the migration forward; any
+  profile that already existed at migration time would otherwise have no General folder and no
+  path to get one (`getGeneralFolderId()` is a read-only, client-side lookup with no creation
+  fallback, by design). Added a one-time backfill directly below the trigger: `INSERT ... SELECT`
+  over `public.profiles` with a `NOT EXISTS` scoping filter, guarded by the same `ON CONFLICT
+  (user_id) WHERE (is_general = true) DO NOTHING` idempotent shape `get_or_create_general_folder()`
+  itself uses. Plain SQL rather than a per-row function call, since this is a one-time data
+  operation, not ongoing provisioning logic.
+- **Migration 018 constraint-name fix:** the previous version guessed between the two plausible
+  names for `link_source`'s check constraint (`echo_goal_links_..._check` pre-rename vs.
+  `echo_entry_links_..._check` post-rename) via two defensive `DROP CONSTRAINT IF EXISTS`
+  statements. Replaced with a dynamic lookup: a `DO` block queries `pg_constraint` for whatever
+  check constraint on `echo_entry_links` currently references `link_source` and drops it by its
+  actual (discovered) name. This makes the migration correct regardless of which name turns out
+  to be live, without requiring a live schema check to confirm it in advance — still no live
+  Supabase credentials in this environment, so this was verified by careful read of the query
+  logic only, not by running it; worth a live apply-and-verify pass (or `\d echo_entry_links`
+  before/after) as part of CTO sign-off, but the migration no longer depends on a guess.
+- Files touched: `supabase/migrations/017_eager_general_folder_provisioning.sql` (amended),
+  `supabase/migrations/018_echo_entry_links_system_default_source.sql` (rewritten),
+  `CHANGELOGCODEX.md`.
+
 ### Changed (2026-07-09 — Session 4.3: General Folder eager provisioning + createEntry() cutover)
 - **Context:** follows the Step 0 read-only audit and the Opus architectural review of this
   session (General-folder eager-provisioning + `createEntry()` cutover sequencing). Zero
