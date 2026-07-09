@@ -3,7 +3,7 @@
 // Mutations (confirmLink, dismissLink) use the API routes — same Bearer pattern as useActivity.
 
 import { useState, useCallback } from 'react';
-import supabase from '@/lib/db/client';
+import { authedFetch } from '@/lib/api/client';
 import { getEchoEntriesForGoal } from '@/lib/db/echo-entry-links';
 import type { EchoBrt } from '@/features/echo/types';
 import type { EchoTrailEntry } from '@/features/goals/components/EchoTrail';
@@ -62,17 +62,9 @@ export function useEchoTrail(goalId: string): UseEchoTrailResult {
 
   // PUT /api/echo-links/:linkId — marks link confirmed: true
   const confirmLink = useCallback(async (linkId: string) => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session?.access_token) return;
-
-    await fetch(`/api/echo-links/${linkId}`, {
+    await authedFetch(`/api/echo-links/${linkId}`, {
       method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
     });
 
     setEntries((prev) =>
@@ -82,15 +74,7 @@ export function useEchoTrail(goalId: string): UseEchoTrailResult {
 
   // DELETE /api/echo-links/:linkId — removes the link row
   const dismissLink = useCallback(async (linkId: string) => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session?.access_token) return;
-
-    await fetch(`/api/echo-links/${linkId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
+    await authedFetch(`/api/echo-links/${linkId}`, { method: 'DELETE' });
 
     setEntries((prev) => prev.filter((e) => e.linkId !== linkId));
   }, []);

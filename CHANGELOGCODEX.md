@@ -2,6 +2,46 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-09 — Session 4.4 follow-up: authedFetch migrated to all remaining hooks)
+- **Context:** second follow-up to the 401-handling work. The server side (all 19 API
+  routes on `withAuth`) was finished in the previous pass; this pass finishes the client
+  side named in the original audit: `useVault`, `useGoalDetail`, `useActivity`,
+  `useEchoTrail`, `useLatestAction`, and `fetchFolders`/`getEntryContainer` in
+  `echo-service.ts`.
+- **`features/goals/hooks/useVault.ts`:** all five methods (`refresh`, `addNote`,
+  `addLink`, `updateItem`, `removeItem`) now call `authedFetch` instead of each
+  independently fetching the session and building the `Authorization` header. Previously
+  `refresh` was the only method that surfaced `setError('Unauthorized')` on a missing
+  session — the other four silently no-op'd; now all five converge on `authedFetch`'s
+  redirect-to-login instead of three different behaviors in one file.
+- **`features/goals/hooks/useGoalDetail.ts`:** `onCompleteMeasurable`'s manual
+  session-check-then-fetch replaced with `authedFetch`; kept the friendlier "You need to
+  be signed in..." message by catching `UnauthorizedError` specifically. The unrelated
+  `load()` effect (direct `supabase.auth.getUser()` + `lib/db` service calls, no `/api/*`
+  fetch involved) is untouched — out of scope for this wrapper.
+- **`features/goals/hooks/useActivity.ts`, `features/actions/hooks/useLatestAction.ts`:**
+  same pattern — manual session-check-then-fetch replaced with `authedFetch`;
+  `useLatestAction` had this duplicated twice in the same file (initial load effect +
+  `mutate`), both fixed.
+- **`features/goals/hooks/useEchoTrail.ts`:** `confirmLink`/`dismissLink` migrated;
+  `refresh` (which calls `lib/db/echo-entry-links` directly, not `/api/*`) untouched.
+- **`features/echo/services/echo-service.ts`:** `requestEchoReflection` (used by
+  `createEntry`) and `fetchFolders` migrated to `authedFetch`, dropping their
+  `accessToken` parameters — the session is now fetched internally by `authedFetch`
+  rather than threaded in by every caller.
+- **`features/echo/hooks/useMoveEntry.ts`:** its local `getAccessToken` helper (built on
+  `supabase.auth.getSession()`) is gone entirely now that `fetchFolders()` no longer
+  needs a token passed in — both call sites (`open`, and the `target_not_found` retry in
+  `confirm`) simplified accordingly.
+- **Not migrated (out of scope — these are screens/components, not the hooks the audit
+  named):** `app/(app)/dashboard.tsx`, `app/(app)/constellation.tsx`,
+  `app/goals/create.tsx`, `components/layout/{SettingsModal,AccountModal,AvatarMenu}.tsx`
+  still build their own `Bearer` header inline. Candidates for a further pass.
+- `npx tsc --noEmit` clean. Net: -137 lines across 7 files.
+- Files touched: `features/goals/hooks/{useVault,useGoalDetail,useActivity,useEchoTrail}.ts`,
+  `features/actions/hooks/useLatestAction.ts`, `features/echo/services/echo-service.ts`,
+  `features/echo/hooks/useMoveEntry.ts`, `CHANGELOGCODEX.md`.
+
 ### Changed (2026-07-09 — Session 4.4 follow-up: withAuth migrated to all remaining routes)
 - **Context:** follow-up to the "first cut" below, which deliberately migrated only one
   route (`entries/[id]/move+api.ts`) as a demo and left the other 18 for incremental

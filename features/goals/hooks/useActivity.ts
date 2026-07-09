@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import supabase from '@/lib/db/client';
+import { authedFetch, UnauthorizedError } from '@/lib/api/client';
 import type { ActivityItem } from '@/types/activity';
 
 type ActivityResponse = {
@@ -24,29 +24,12 @@ export function useActivity(goalId: string): {
       setLoading(true);
       setError(null);
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session?.access_token) {
-        if (isActive) {
-          setError('Not authenticated');
-          setLoading(false);
-        }
-        return;
-      }
-
       let response: Response;
       try {
-        response = await fetch(
-          `/api/goals/activity?goalId=${encodeURIComponent(goalId)}`,
-          {
-            headers: { Authorization: `Bearer ${session.access_token}` },
-          },
-        );
-      } catch {
+        response = await authedFetch(`/api/goals/activity?goalId=${encodeURIComponent(goalId)}`);
+      } catch (error) {
         if (isActive) {
-          setError('Failed to load activity');
+          setError(error instanceof UnauthorizedError ? 'Not authenticated' : 'Failed to load activity');
           setLoading(false);
         }
         return;

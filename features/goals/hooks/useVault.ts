@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import supabase from '@/lib/db/client';
+import { authedFetch } from '@/lib/api/client';
 import type { VaultItem } from '@/types/vault';
 
 type UseVaultResult = {
@@ -25,16 +25,7 @@ export function useVault(goalId: string): UseVaultResult {
     setLoading(true);
     setError(null);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        setError('Unauthorized');
-        return;
-      }
-      const res = await fetch(`/api/vaults/${goalId}`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const res = await authedFetch(`/api/vaults/${goalId}`);
       if (!res.ok) throw new Error(`Failed to load vault: ${res.status}`);
       const data = await res.json();
       setVaultId(data.vault?.id ?? null);
@@ -49,16 +40,9 @@ export function useVault(goalId: string): UseVaultResult {
   const addNote = useCallback(
     async (title: string, content: string) => {
       if (!vaultId) return;
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.access_token) return;
-      const res = await fetch(`/api/vaults/${goalId}`, {
+      const res = await authedFetch(`/api/vaults/${goalId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ itemType: 'note', title: title.trim() || null, content }),
       });
       if (!res.ok) throw new Error(`Failed to add note: ${res.status}`);
@@ -71,16 +55,9 @@ export function useVault(goalId: string): UseVaultResult {
   const addLink = useCallback(
     async (url: string, annotation?: string) => {
       if (!vaultId) return;
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.access_token) return;
-      const res = await fetch(`/api/vaults/${goalId}`, {
+      const res = await authedFetch(`/api/vaults/${goalId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ itemType: 'link', title: null, content: null, metadata: { url, annotation } }),
       });
       if (!res.ok) throw new Error(`Failed to add link: ${res.status}`);
@@ -91,16 +68,9 @@ export function useVault(goalId: string): UseVaultResult {
   );
 
   const updateItem = useCallback(async (itemId: string, updates: Partial<VaultItem>) => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session?.access_token) return;
-    const res = await fetch(`/api/vaults/items/${itemId}`, {
+    const res = await authedFetch(`/api/vaults/items/${itemId}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${session.access_token}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
     });
     if (!res.ok) throw new Error(`Failed to update item: ${res.status}`);
@@ -109,14 +79,7 @@ export function useVault(goalId: string): UseVaultResult {
   }, []);
 
   const removeItem = useCallback(async (itemId: string) => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session?.access_token) return;
-    const res = await fetch(`/api/vaults/items/${itemId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
+    const res = await authedFetch(`/api/vaults/items/${itemId}`, { method: 'DELETE' });
     if (!res.ok) throw new Error(`Failed to remove item: ${res.status}`);
     setItems((prev) => prev.filter((i) => i.id !== itemId));
   }, []);

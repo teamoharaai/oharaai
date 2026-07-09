@@ -211,23 +211,15 @@ export function getSubmissionFailureStatus(error: unknown): SubmissionFailureSta
 async function requestEchoReflection(
   content: string,
   aiInsightRequested: boolean,
-  accessToken: string,
   echoEntryId: string,
 ): Promise<ReflectPayload | null> {
   if (!aiInsightRequested) {
     return null;
   }
 
-  if (!accessToken.trim()) {
-    throw new Error('Missing access token for Echo reflection request');
-  }
-
-  const response = await fetch('/api/echo/reflect', {
+  const response = await authedFetch('/api/echo/reflect', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       content,
       aiInsightRequested,
@@ -502,13 +494,9 @@ export async function createEntry(params: {
 
   let reflectPayload: ReflectPayload | null;
   try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
     reflectPayload = await requestEchoReflection(
       params.content,
       params.aiInsightRequested,
-      session?.access_token ?? '',
       insertedEntry.id,
     );
   } catch (error) {
@@ -613,13 +601,9 @@ export async function getEntryContainer(entryId: string): Promise<EntryContainer
   return null;
 }
 
-export async function fetchFolders(accessToken: string): Promise<EchoFolder[]> {
-  if (!accessToken.trim()) return [];
-
+export async function fetchFolders(): Promise<EchoFolder[]> {
   try {
-    const response = await fetch('/api/folders', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+    const response = await authedFetch('/api/folders');
     if (!response.ok) return [];
 
     const body = (await response.json()) as { folders?: EchoFolder[] };

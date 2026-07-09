@@ -1,5 +1,4 @@
 import { useCallback, useRef, useState } from 'react';
-import supabase from '@/lib/db/client';
 import type { EchoFolder } from '@/types/echo-folder';
 import { useEchoStore } from '../store';
 import {
@@ -39,34 +38,23 @@ export function useMoveEntry({ onEntryGone, onTargetsStale }: UseMoveEntryOption
   // can't overwrite B's folders/currentContainer with stale data.
   const activeRequestRef = useRef<string | null>(null);
 
-  const getAccessToken = useCallback(async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    return session?.access_token ?? '';
+  const open = useCallback(async (entryId: string) => {
+    activeRequestRef.current = entryId;
+    setActiveEntryId(entryId);
+    setError(null);
+    setIsLoading(true);
+    try {
+      const [folderList, container] = await Promise.all([
+        fetchFolders(),
+        getEntryContainer(entryId),
+      ]);
+      if (activeRequestRef.current !== entryId) return; // superseded — drop stale result
+      setFolders(folderList);
+      setCurrentContainer(container);
+    } finally {
+      if (activeRequestRef.current === entryId) setIsLoading(false);
+    }
   }, []);
-
-  const open = useCallback(
-    async (entryId: string) => {
-      activeRequestRef.current = entryId;
-      setActiveEntryId(entryId);
-      setError(null);
-      setIsLoading(true);
-      try {
-        const accessToken = await getAccessToken();
-        const [folderList, container] = await Promise.all([
-          fetchFolders(accessToken),
-          getEntryContainer(entryId),
-        ]);
-        if (activeRequestRef.current !== entryId) return; // superseded — drop stale result
-        setFolders(folderList);
-        setCurrentContainer(container);
-      } finally {
-        if (activeRequestRef.current === entryId) setIsLoading(false);
-      }
-    },
-    [getAccessToken],
-  );
 
   const close = useCallback(() => {
     activeRequestRef.current = null;
@@ -99,8 +87,7 @@ export function useMoveEntry({ onEntryGone, onTargetsStale }: UseMoveEntryOption
             // goals via callback) and keep the modal open so the user re-picks.
             onTargetsStale?.();
             try {
-              const accessToken = await getAccessToken();
-              const refreshedFolders = await fetchFolders(accessToken);
+              const refreshedFolders = await fetchFolders();
               if (activeRequestRef.current === entryId) setFolders(refreshedFolders);
             } catch {
               // leave the stale folder list rather than blanking the picker
@@ -123,7 +110,7 @@ export function useMoveEntry({ onEntryGone, onTargetsStale }: UseMoveEntryOption
         setIsSaving(false);
       }
     },
-    [activeEntryId, getAccessToken, setEntryContainer, close, onEntryGone, onTargetsStale],
+    [activeEntryId, setEntryContainer, close, onEntryGone, onTargetsStale],
   );
 
   return {

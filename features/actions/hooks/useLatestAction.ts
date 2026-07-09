@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import supabase from '@/lib/db/client';
+import { authedFetch } from '@/lib/api/client';
 import type { ActionLog } from '../types';
 
 interface ActionsResponse {
@@ -34,21 +34,8 @@ export function useLatestAction(goalId: string): {
       setIsError(false);
 
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (!session?.access_token) {
-          throw new Error('Not authenticated');
-        }
-
-        const response = await fetch(
+        const response = await authedFetch(
           `/api/actions?goal_id=${encodeURIComponent(goalId)}&status=pending&limit=1`,
-          {
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
-          },
         );
 
         if (!response.ok) {
@@ -86,21 +73,8 @@ export function useLatestAction(goalId: string): {
       setIsError(false);
 
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (!session?.access_token) {
-          throw new Error('Not authenticated');
-        }
-
-        const response = await fetch(
+        const response = await authedFetch(
           `/api/actions?goal_id=${encodeURIComponent(goalId)}&status=pending&limit=1`,
-          {
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
-          },
         );
 
         if (!response.ok) {
