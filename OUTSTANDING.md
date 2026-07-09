@@ -40,6 +40,45 @@
       `features/echo/components/EchoDetailScreen.tsx`, `features/goals/components/ActivityFeed.tsx`,
       `features/goals/hooks/useEchoTrail.ts`, `lib/db/embeddings.ts`, `lib/db/goals.ts`.
 
+### Echo Folders — Move-to-Folder (Session 4.1, 2026-07-09)
+
+- [ ] **General folder is never auto-provisioned on entry save or folder list.**
+      `get_or_create_general_folder()` fires *only* from the folder DELETE-reassign path
+      (`app/api/folders/[id]+api.ts`); `createEntry` writes no folder link and `GET /api/folders`
+      (`getFoldersForUser`) is a plain SELECT. So a user who has only saved entries has no General
+      folder — container-less entries just float with no confirmed link (→ no pill). **Open design
+      question (CTO + VP Product):** should container-less entries auto-land in General? If yes,
+      `createEntry`'s write path needs a General-link write. Deferred to the migration-squash
+      session (write-path change). Blocks manual-checklist item 9 (General as a move target).
+- [ ] **`createEntry` legacy dual-write to `echo_entries.goal_id`.** Session 4.1 made the *read*
+      path canonical (pills now come from the confirmed `echo_entry_links` row, not the
+      `echo_entries.goal_id → goals()` join). The *write* path still sets both `echo_entries.goal_id`
+      and the `echo_entry_links` row. Reconcile/remove the legacy `goal_id` write during the
+      migration-squash session — deliberately untouched in 4.1 (read-only fix).
+- [ ] **Apply migration `016_echo_entry_links_one_confirmed.sql` to the live DB, and first verify
+      no existing flow can now hit its unique index.** The new partial unique index enforces ≤1
+      `confirmed = true` row per `echo_entry_id`. Before applying to prod, confirm the echo-links
+      review confirm flow (`confirmLink`) cannot set a second confirmed row on an entry that
+      already has a confirmed container — that INSERT/UPDATE would now fail with a unique
+      violation. Believed unreachable today, but unverified against live data.
+- [ ] **Orphaned `folderId` field on `EchoEntry`.** `features/echo/types.ts`'s `folderId` is now
+      populated (canonical read + optimistic `setEntryContainer`) but read by no UI — only
+      `folderName` renders. Kept for symmetry with `goalId`. Remove it, or consume it when a
+      folder-detail view lands.
+- [ ] **No app-wide 401 / re-auth interceptor.** `PATCH /api/entries/[id]/move`'s 401 is surfaced
+      as a generic message with no session-recovery path; same ad-hoc pattern in
+      `features/goals/hooks/useVault.ts` (`setError('Unauthorized')`). Needs a dedicated
+      auth-handling pass (unified 401 → refresh/re-auth), then wire the move flow (and others)
+      into it. Flagged in the Opus review of PR #7.
+- [ ] **404 entry-vs-target disambiguation is string-based.** `moveEntryRequest`
+      (`features/echo/services/echo-service.ts`) distinguishes "entry gone" from "target gone" by
+      matching `/target/i` against the server's error message (both are HTTP 404). Fragile — a
+      structured error `code` from `PATCH /api/entries/[id]/move` would be robust. Deferred (would
+      require touching the move route's response contract).
+- [ ] **No Edit / Delete entry actions.** `EntryActionMenu` exposes only "Move to folder"; there is
+      still no update-entry or delete-entry API route / DB function (confirmed in Session 4's Step 0
+      audit). Separate session when that backend is built.
+
 ## Goals / API layer
 
 - [ ] `/api/goals` returns HTTP 201 even when goal creation soft-fails (`goalId: null`,
