@@ -97,11 +97,41 @@ export async function renameFolder(
   return mapFolder(data as unknown as DbEchoFolderRow);
 }
 
+// Read-only, RLS-scoped lookup of the caller's already-provisioned General
+// folder — never creates one. Unlike getOrCreateGeneralFolderId, this is
+// safe to call from client-executed code (a plain user-scoped select, same
+// "Users can select own echo folders" policy as getFoldersForUser), which is
+// exactly why it exists: createEntry()'s container-less save path
+// (features/echo/services/echo-service.ts) runs in the browser/app bundle,
+// so it cannot call the service-role-only RPC (migration 014) without
+// pulling service-client.ts into client-bundled code. Every user's General
+// folder is guaranteed to exist by the time they can call createEntry(), via
+// the eager profiles-insert trigger (migration 017) — if it's still missing
+// (a failed/legacy provisioning), this returns null and the caller should
+// skip the container rather than block the save, per the non-blocking
+// pattern used elsewhere in this codebase.
+export async function getGeneralFolderId(
+  userId: string,
+  client: DbClient = supabase,
+): Promise<string | null> {
+  const { data, error } = await client
+    .from('echo_folders')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('is_general', true)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? (data as unknown as { id: string }).id : null;
+}
+
 // Resolves (lazily creating if needed) the caller's General folder id.
 // get_or_create_general_folder() is locked to service_role (migration 014) —
 // this always mints its own service-role client rather than accepting one,
 // so callers can't accidentally pass an authed/anon client that would just
-// fail on the revoked grant.
+// fail on the revoked grant. Server-side-only callers (e.g. the folder
+// DELETE-reassign route) still use this to guarantee creation; client-side
+// callers should use getGeneralFolderId above instead.
 export async function getOrCreateGeneralFolderId(userId: string): Promise<string> {
   const serviceDb = createServiceRoleClient();
   const { data, error } = await serviceDb.rpc('get_or_create_general_folder', {
