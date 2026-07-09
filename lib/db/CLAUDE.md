@@ -1,27 +1,48 @@
-# components/CLAUDE.md — Component Rules
+# lib/db/CLAUDE.md — Data Access Layer
 
-Owner: VP Product. Cascade Level 1 (visual), Level 2 (data fetching).
+Owner: CTO. Cascade Level 2 (data fetching), Level 3 for schema-shaped changes
+(row/domain type contracts shared with app/api/*).
 
-## Theme (enforced everywhere)
-- Page background: cream #F5F1EA
-- Cards: white #FFFFFF, rounded 12px, shadow (0 2px 8px rgba(0,0,0,0.06))
-- Accent: forest green #3D5247
-- Text: #1A1A1A body, #6B7B6E muted/secondary
-- Typography: Inter for all UI, Lora for editorial moments only
-- BRT colors: Bud #4A7C5F, Rose #F59E0B, Thorn #EF4444
+## Client setup
+- `client.ts`: anon-key Supabase client (`supabase`). Module-init is SSR-safe —
+  falls back to `''` env vars and `isDatabaseConfigured` rather than throwing
+  (Layer 1). `createAuthedClient(accessToken)` builds a per-request client for
+  routes that need to act as a specific user.
+- `service-client.ts`: `createServiceRoleClient()` — server-only, throws at
+  call time (Layer 2, not module init) if `SUPABASE_SERVICE_ROLE_KEY` is
+  missing. Never import from client-bundled code. Used only where RLS must be
+  bypassed (e.g. `get_or_create_general_folder`, locked to `service_role` by
+  migration 014).
+- Every service function takes an optional `client: DbClient = supabase`
+  param so callers can swap in an authed or service-role client without
+  changing the function body.
 
-## Key Components
-- GoalCard.tsx: shows title, status, progress, vault activity line, BRT micro-dots
-- ProjectCard.tsx: shows project title, description, child goal count, aggregate progress
-- VaultItemCard.tsx: renders vault items by type (note/link/insight/action_update/document)
-- EchoTrail.tsx: filtered echo entries for a goal, read-only, tap navigates to Echo
-- ConstellationPreview.tsx: sample SVG graph + progress indicator (Phase 1 preview)
-- Typography.tsx: shared typography component (components/ui/Typography.tsx)
+## Modules
+- `goals.ts`: goal CRUD, milestone persistence, embedding generation on
+  create/update via `lib/ai/embeddings.ts`.
+- `spaces.ts`: Spaces CRUD and membership (`space_members`).
+- `vaults.ts`: vault + vault_items CRUD, one vault per goal (auto-created,
+  non-blocking on failure per root CLAUDE.md).
+- `echo-folders.ts`: Echo Folders CRUD. `getOrCreateGeneralFolderId` always
+  mints its own service-role client (RPC is service_role-only); folder delete
+  RPCs (`delete_folder_reassign`, `delete_folder_with_contents`, migration
+  015) must be called with an authed client since they rely on `auth.uid()`.
+- `echo-entry-links.ts`: many-to-many Echo↔container links
+  (`echo_entry_links`, generalized from `echo_goal_links`). All service
+  functions here filter `container_type = 'goal'`; folder-side equivalents
+  are separate scope. `moveEntryContainer` only ever repoints the single
+  confirmed row for an entry — unconfirmed `ai_suggested` links are left
+  untouched.
+- `embeddings.ts`: pgvector similarity search (echo entries, goals, vault
+  items) via generated-column embeddings.
 
-## Rules
-- NativeWind for all styling. No inline style objects unless NativeWind cannot express it.
-- fontFamily: 'Inter' must be set explicitly on any Text not using Typography component.
-- No heavy third-party UI libraries. Lightweight custom components preferred.
-- Bottom sheets: simple Modal or custom component. No react-native-bottom-sheet.
-- All components must work on both web and mobile (Platform-aware when needed).
-- Optimistic UI for mutations. Update state immediately, revert on error.
+## Conventions
+- Row types are `DbXRow` (snake_case, mirrors Postgres), mapped to camelCase
+  domain types via a local `mapX()` function. Never leak `DbXRow` shapes past
+  the module boundary.
+- `userId` passed into these functions must already have been resolved from
+  the server-side session by the caller — these modules don't re-derive it.
+- Throw on Supabase `error`; return `null`/`[]` for legitimate not-found
+  cases (`maybeSingle()` → `null`), not for errors.
+- RLS is the default; only reach for `service-client.ts` when a specific RPC
+  or table grant requires it, and say why in a comment.
