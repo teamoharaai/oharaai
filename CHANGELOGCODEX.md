@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### Added (2026-07-09 — Session 4.2: Anchored entry action popover)
+- Added `components/ui/AnchoredPopover.tsx`, a reusable `Modal transparent`-backed popover
+  primitive that positions itself from a measured trigger rect, right-edge-aligns to the anchor,
+  clamps to the viewport with a small margin, and flips upward when there is not enough room
+  below. This keeps the interaction lightweight and web/native-safe without adding a popover
+  dependency.
+
+### Changed (2026-07-09 — Session 4.2: EntryActionMenu anchored-menu adoption)
+- Replaced `features/echo/components/EntryActionMenu.tsx`'s bottom-anchored sheet with the new
+  anchored popover so the existing single "Move to folder" row now opens adjacent to the `···`
+  trigger instead of consuming the bottom of the screen. The trigger captures its rect via
+  web `getBoundingClientRect()` when available and falls back to `measureInWindow()` without
+  changing the existing `onMoveToFolder` wiring. Files touched: `components/ui/AnchoredPopover.tsx`,
+  `features/echo/components/EntryActionMenu.tsx`, `CHANGELOGCODEX.md`.
+
 ### Changed (2026-07-09 — Session 4.1: Move-to-Folder bug-fix pass, per Opus code review)
 - **Step 0 audit:** `get_or_create_general_folder()` fires **only** from the folder DELETE-reassign
   path (`app/api/folders/[id]+api.ts`), never on entry save (`createEntry` writes no folder link)
