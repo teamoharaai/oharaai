@@ -21,6 +21,7 @@ import {
 } from '../draft-store';
 import { useEntries } from '../hooks/useEntries';
 import { useMoveEntry } from '../hooks/useMoveEntry';
+import { useEchoStore } from '../store';
 import { EntryActionMenu } from './EntryActionMenu';
 import { MoveEntryModal } from './MoveEntryModal';
 import type { CreateEntryResultStatus } from '../services/echo-service';
@@ -192,8 +193,12 @@ function ComposerNotice({ kind }: { kind: SubmissionNoticeKind }) {
 export function EchoScreen() {
   const { goalId: routeGoalIdParam } = useLocalSearchParams<{ goalId?: string | string[] }>();
   const routeGoalId = Array.isArray(routeGoalIdParam) ? routeGoalIdParam[0] : routeGoalIdParam;
-  const { entries, isLoading, pickerGoals, saveEntry } = useEntries();
-  const moveEntry = useMoveEntry();
+  const { entries, isLoading, pickerGoals, saveEntry, reloadPickerGoals } = useEntries();
+  const removeEntry = useEchoStore((state) => state.removeEntry);
+  const moveEntry = useMoveEntry({
+    onEntryGone: removeEntry,
+    onTargetsStale: reloadPickerGoals,
+  });
   const hasHydrated = useEchoDraftStore((state) => state.hasHydrated);
   const getDraft = useEchoDraftStore((state) => state.getDraft);
   const setDraft = useEchoDraftStore((state) => state.setDraft);
