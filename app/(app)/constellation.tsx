@@ -3,17 +3,10 @@ import { View, Text, ScrollView, SafeAreaView } from 'react-native';
 import ConstellationSample from '@/components/constellation/ConstellationSample';
 import { Typography } from '@/components/ui/Typography';
 import { LIGHT_THEME } from '@/constants/colors';
-import supabase from '@/lib/db/client';
+import { authedFetch } from '@/lib/api/client';
 
 const GOAL_GATE = 3;
 const ECHO_GATE = 10;
-
-async function getAccessToken(): Promise<string | null> {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  return session?.access_token ?? null;
-}
 
 export default function ConstellationScreen() {
   const [goalCount, setGoalCount] = useState<number | null>(null);
@@ -23,13 +16,8 @@ export default function ConstellationScreen() {
     let active = true;
 
     async function load() {
-      const token = await getAccessToken();
-      if (!token || !active) return;
-
       try {
-        const res = await fetch('/api/dashboard/summary', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await authedFetch('/api/dashboard/summary');
         if (!res.ok || !active) return;
         const body = (await res.json()) as { goalCount: number; echoCount: number };
         if (active) {

@@ -14,7 +14,10 @@ export class UnauthorizedError extends Error {
   }
 }
 
-async function handleSessionExpired(): Promise<void> {
+// Shared by authedFetch (on a 401) and any call site that signs the user out
+// directly (e.g. a "Log out" menu item) — one implementation for the
+// clear-state/sign-out/redirect sequence instead of each site reimplementing it.
+export async function signOutAndRedirect(): Promise<void> {
   clearAllStores();
   useAuthStore.getState().setSession(null);
   await supabase.auth.signOut({ scope: 'local' });
@@ -37,7 +40,7 @@ export async function authedFetch(path: string, init: RequestInit = {}): Promise
   } = await supabase.auth.getSession();
 
   if (!session?.access_token) {
-    await handleSessionExpired();
+    await signOutAndRedirect();
     throw new UnauthorizedError();
   }
 
@@ -47,7 +50,7 @@ export async function authedFetch(path: string, init: RequestInit = {}): Promise
   const response = await fetch(path, { ...init, headers });
 
   if (response.status === 401) {
-    await handleSessionExpired();
+    await signOutAndRedirect();
     throw new UnauthorizedError();
   }
 

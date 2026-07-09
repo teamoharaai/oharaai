@@ -2,6 +2,49 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-09 — Session 4.4 follow-up: authedFetch migrated to screens/components; sign-out unified)
+- **Context:** third and final follow-up to the 401-handling work. Closes out the six
+  non-hook call sites flagged as out-of-scope in the previous pass:
+  `app/(app)/dashboard.tsx`, `app/(app)/constellation.tsx`, `app/goals/create.tsx`,
+  `components/layout/{SettingsModal,AccountModal,AvatarMenu}.tsx`.
+- **`dashboard.tsx`:** its local `getAccessToken()` helper (reused across 5 call sites —
+  `DueTodayZone`'s load/complete, `ActiveGoalCard`'s status update, the background Echo
+  reconcile, and the Intelligence insight fetch) is gone; all 5 now use `authedFetch`.
+  The reconcile/insight calls were previously "fail silently" on any error, including a
+  missing session — they now redirect-to-login specifically on a genuine 401, same as
+  everywhere else, while still swallowing non-auth failures silently (network errors,
+  5xx) exactly as before.
+- **`constellation.tsx`, `SettingsModal.tsx`:** straightforward `getAccessToken` →
+  `authedFetch` swaps, same pattern.
+- **`AccountModal.tsx`:** split its `getAccessTokenAndUserId()` helper — the avatar
+  upload's Supabase Storage call needs `userId` only (storage calls use the ambient
+  client session, never a manual Bearer header) via a slimmed `getUserId()`; the actual
+  `/api/profile` GET/PATCH calls (load, avatar-url patch, save) now go through
+  `authedFetch` and no longer need a token threaded in at all.
+- **`goals/create.tsx`:** the `/api/goals/create` and `/api/goals` POST calls (gated
+  behind an explicit `getUser()`+`getSession()` check before this change) now use
+  `authedFetch`, which subsumes that gate. **Deliberately NOT migrated:** the
+  `/api/actions` POST in the post-finalization "action capture" turn — its own comment
+  says "action is a bonus, not a gate," and it already sends the request even with no
+  token, treating a non-ok response as a non-fatal warning so the user still navigates
+  to their new goal. Migrating this one to `authedFetch` would turn a soft, non-blocking
+  failure into a hard redirect-to-login at exactly the moment a goal was just
+  successfully created — preserved as-is, same reasoning as `echo/reflect`'s pre-auth
+  early return in the previous pass.
+- **`AvatarMenu.tsx` — also closes out audit finding #2:** the original Step-0 audit
+  named this file's manual sign-out (`clearAllStores` + `signOut({scope:'local'})` +
+  redirect) as one of three original divergent 401/session-end behaviors. `lib/api/client.ts`'s
+  internal sequence for the same steps is now exported as `signOutAndRedirect()` and
+  reused directly here — the profile-chrome fetch also moved to `authedFetch`. All three
+  originally-catalogued sites (`onAuthStateChange`, `AvatarMenu`'s sign-out, and
+  Vault's local error state) now share one implementation.
+- `npx tsc --noEmit` clean. Net: -112 lines across 7 files. Sweep of the whole client
+  tree confirms no manual `Authorization: Bearer` header construction remains outside
+  the one deliberately-preserved `goals/create.tsx` action-capture call.
+- Files touched: `app/(app)/dashboard.tsx`, `app/(app)/constellation.tsx`,
+  `app/goals/create.tsx`, `components/layout/{SettingsModal,AccountModal,AvatarMenu}.tsx`,
+  `lib/api/client.ts`, `CHANGELOGCODEX.md`.
+
 ### Changed (2026-07-09 — Session 4.4 follow-up: authedFetch migrated to all remaining hooks)
 - **Context:** second follow-up to the 401-handling work. The server side (all 19 API
   routes on `withAuth`) was finished in the previous pass; this pass finishes the client

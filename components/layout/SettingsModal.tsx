@@ -1,19 +1,12 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Switch, Text, View } from 'react-native';
-import supabase from '@/lib/db/client';
+import { authedFetch } from '@/lib/api/client';
 import type { ApiResponse } from '@/lib/api/contracts';
 import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
 
 interface SettingsProfileData {
   intelligence_enabled: boolean;
-}
-
-async function getAccessToken(): Promise<string | null> {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  return session?.access_token ?? null;
 }
 
 interface SettingsModalProps {
@@ -34,13 +27,9 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
     setLoadError(false);
 
     async function load() {
-      const token = await getAccessToken();
-      if (!token || !active) return;
-
       try {
-        const res = await fetch('/api/profile', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await authedFetch('/api/profile');
+        if (!active) return;
         const body = (await res.json()) as ApiResponse<SettingsProfileData>;
         if (!active) return;
 
@@ -67,20 +56,10 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
     setIntelligenceEnabled(next);
     setIsSaving(true);
 
-    const token = await getAccessToken();
-    if (!token) {
-      setIntelligenceEnabled(previous);
-      setIsSaving(false);
-      return;
-    }
-
     try {
-      const res = await fetch('/api/profile', {
+      const res = await authedFetch('/api/profile', {
         method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ intelligence_enabled: next }),
       });
       const body = (await res.json()) as ApiResponse<SettingsProfileData>;

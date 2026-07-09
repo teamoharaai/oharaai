@@ -13,7 +13,7 @@ import { GoalGrid } from '@/features/goals/components/GoalGrid';
 import { ProjectCard } from '@/features/projects/components/ProjectCard';
 import { FEATURES } from '@/constants/features';
 import { STATUS } from '@/constants/colors';
-import supabase from '@/lib/db/client';
+import { authedFetch } from '@/lib/api/client';
 import type { AiResponse } from '@/lib/ai/contracts';
 import type { GoalWithMeasurables } from '@/features/goals/types';
 import type { ActionLog } from '@/features/actions/types';
@@ -49,14 +49,6 @@ function getRelativeDays(date: Date): string {
   if (diffDays === 0) return 'today';
   if (diffDays === 1) return '1 day ago';
   return `${diffDays} days ago`;
-}
-
-async function getAccessToken(): Promise<string> {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session?.access_token) throw new Error('Not authenticated');
-  return session.access_token;
 }
 
 // --- Zone 1: Today's Measurables ---
@@ -99,10 +91,7 @@ function DueTodayZone() {
     let isActive = true;
     async function load() {
       try {
-        const token = await getAccessToken();
-        const res = await fetch('/api/measurables/due-today', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await authedFetch('/api/measurables/due-today');
         if (!res.ok || !isActive) return;
         const body = (await res.json()) as { data: DueTodayApiGroup[] };
         if (!isActive) return;
@@ -134,13 +123,9 @@ function DueTodayZone() {
     if (isCompletedToday(item.lastCompletedAt) || completingIds.has(item.id)) return;
     setCompletingIds((prev) => new Set(prev).add(item.id));
     try {
-      const token = await getAccessToken();
-      const res = await fetch('/api/goals/complete-measurable', {
+      const res = await authedFetch('/api/goals/complete-measurable', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ measurableId: item.id, goalId: item.goalId }),
       });
       if (!res.ok) throw new Error('Request failed');
@@ -263,13 +248,9 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
     setIsMutating(true);
 
     try {
-      const token = await getAccessToken();
-      const res = await fetch(`/api/actions/${current.id}`, {
+      const res = await authedFetch(`/api/actions/${current.id}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
       if (!res.ok) throw new Error('Failed to update action');
@@ -525,11 +506,7 @@ export default function DashboardScreen() {
 
     async function reconcile() {
       try {
-        const token = await getAccessToken(); // throws if session not ready → skips fetch
-        const res = await fetch('/api/echo/reconcile', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await authedFetch('/api/echo/reconcile', { method: 'POST' });
         if (!res.ok) {
           console.warn(`Echo reconcile: server responded with status ${res.status}`);
         }
@@ -566,11 +543,7 @@ export default function DashboardScreen() {
       setInsightFetched(true);
 
       try {
-        const token = await getAccessToken();
-        const res = await fetch('/api/intelligence', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await authedFetch('/api/intelligence', { method: 'POST' });
 
         if (!res.ok || !isActive) return;
 
