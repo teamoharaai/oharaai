@@ -2,6 +2,72 @@
 
 ## [Unreleased]
 
+### Added (2026-07-09 — Session 4: Entry Action Menu + Move-to-Folder Picker)
+- **Step 0 audit (read-only, done before any code):**
+  - No edit-entry flow exists anywhere — no edit-composer route, no update-entry API route.
+  - No delete-entry API route or DB function exists (`lib/db/echo-entry-links.ts`'s only
+    `.delete()` is `dismissLink`, which removes an unconfirmed AI-suggested link row, not an
+    entry). Per instruction, the action menu omits Edit/Delete entirely rather than wiring dead
+    buttons, and no delete/edit backend was created this session.
+  - No existing query read the *full* confirmed `echo_entry_links` row — `moveEntryContainer`
+    (Session 3) only ever selected `id` from it, to decide update-vs-insert. Added a new read
+    (`getEntryContainer`) rather than duplicating that logic, relying on the same RLS ownership
+    path (`echo_entries.user_id = auth.uid()`, `005_echo_goal_links.sql`) already used by
+    `fetchEntries`/`getEntryById`.
+- **Entry action menu:** `features/echo/components/EntryActionMenu.tsx` (new) — an always-visible
+  "···" button, rendered as an absolutely-positioned **sibling** of `EchoEntryListCard`'s existing
+  `Pressable` (not nested inside it), so opening the menu can never trigger the card's
+  navigate-to-detail `onPress` — no `stopPropagation()` needed, identical behavior on web and
+  native. Tapping it opens a small bottom-sheet `Modal` (matching the existing bottom-sheet
+  pattern in `EchoScreen.tsx`'s "Link a goal" picker) with a single row, "Move to folder" —
+  Edit/Delete rows are omitted per the Step 0 findings above.
+- **Move-to-folder/goal picker:** `features/echo/components/MoveEntryModal.tsx` (new) — single-
+  select list with two sections: "Projects" (reuses `fetchActiveGoalsForPicker`,
+  `echo-service.ts:387-399`, unchanged — not duplicated) and "Echo Folders" (`GET /api/folders`,
+  general-folder-first per its existing ordering). On open, preselects/highlights the entry's
+  current confirmed container. Confirm calls `PATCH /api/entries/[id]/move` and surfaces all of
+  its documented response cases as user-facing text (200 success; 404 `Not found` / `Target goal
+  not found` / `Target folder not found`; 401; 500) — no silent error swallowing.
+- **New hook:** `features/echo/hooks/useMoveEntry.ts` — orchestrates opening the picker for a
+  given entry id (fetches folders + current container in parallel via `supabase.auth.getSession()`
+  → access token, same pattern as `createEntry`'s Echo-reflect call), confirming a move, and
+  closing. Keeps `MoveEntryModal`/`EntryActionMenu` purely presentational per `features/CLAUDE.md`
+  rule 3 (components receive data as props; only hooks/services touch Supabase or fetch).
+- **`features/echo/services/echo-service.ts` additions:** `getEntryContainer` (direct
+  `echo_entry_links` read, confirmed row only), `fetchFolders` (calls `GET /api/folders` with a
+  bearer token, mirroring `requestEchoReflection`'s fetch-with-token convention rather than
+  querying `echo_folders` directly, since it's the same server route Session 3 already built and
+  auth-checks), `moveEntryRequest` (calls `PATCH /api/entries/[id]/move`, maps all response shapes
+  to a typed `MoveEntryResult`).
+- **`features/echo/store.ts`:** added `setEntryContainer` action — same async-action-then-`set`
+  shape as `features/goals/store.ts`'s `deleteGoal` — updates the moved entry's `goalId`/
+  `goalTitle` or `folderId`/`folderName` locally (clearing the other pair) so the card reflects
+  its new destination immediately without a full refetch.
+- **`features/echo/types.ts`:** added optional `folderId?: string | null` and `folderName?: string`
+  to `EchoEntry`. This is a feature-local type (`features/echo/types.ts`, VP-Product-owned per
+  root `CLAUDE.md`'s file ownership, distinct from the CEO-owned top-level `types/` — confirmed
+  before extending it) — not a schema or `types/*` L3 change. Entries don't currently carry
+  `folder_id` from any fetch (`fetchEntries`/`getEntryById` still only join `goals`, not
+  `echo_entry_links`); these fields are populated purely by the optimistic local update above,
+  not by any query, and only after a successful folder move.
+- **`features/echo/components/EchoScreen.tsx`:** `EchoEntryListCard` now takes an
+  `onOpenMoveMenu` prop, renders `EntryActionMenu`, and shows a small pill for `entry.folderName`
+  (falling back to the pre-existing `entry.goalTitle`) next to the relative-time/emotion row —
+  the only visible container indicator added to the card. `EchoScreen` wires `useMoveEntry` and
+  renders `MoveEntryModal` alongside the existing "Link a goal" `Modal`.
+- **Explicitly out of scope, not touched:** `EchoDetailScreen.tsx`, `ReflectionCard.tsx` (per
+  instruction), and the composer's existing "+Link goal" / "AI insight" controls + bottom-sheet
+  modal (`EchoScreen.tsx`'s pre-existing picker, a separate net-new entry point from this one).
+  No delete-entry or edit-entry backend route was created, even though Step 0 found both missing.
+- Files touched: `features/echo/components/EntryActionMenu.tsx` (new),
+  `features/echo/components/MoveEntryModal.tsx` (new), `features/echo/hooks/useMoveEntry.ts`
+  (new), `features/echo/components/EchoScreen.tsx`, `features/echo/services/echo-service.ts`,
+  `features/echo/store.ts`, `features/echo/types.ts`, `CHANGELOGCODEX.md`.
+- Verification: `npx tsc --noEmit` clean before and after (zero new errors). Not yet manually
+  exercised in a running app — flagged as the test plan on the PR.
+- Shipped as PR #7 (`worktree-echo-folders-session4` → `main`), merged same session; branch
+  deleted (remote + local) after merge.
+
 ### Added (2026-07-09 — Session 3: Folder CRUD API Routes, live-verified)
 - **Pre-check (per session brief):** confirmed `echo_entry_links.echo_entry_id → echo_entries.id`
   is `ON DELETE CASCADE` (set in `005_echo_goal_links.sql`, carried through the `012` rename
