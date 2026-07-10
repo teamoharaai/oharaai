@@ -715,3 +715,77 @@ export async function moveEntryRequest(
     message: body.error ?? 'Move failed. Please try again.',
   };
 }
+
+// ─── Edit entry (content / title) ──────────────────────────────────────────
+// PATCHes /api/entries/:id. The route does the content update AND the re-embed
+// server-side (and resets a stale reflection when content changed on an
+// insight-requested entry) — this client fn only ships the fields, same shape
+// as moveEntryRequest. Send content and/or title; omit a field to leave it
+// unchanged, or pass title: null to clear it.
+
+export type UpdateEntryErrorKind = 'entry_not_found' | 'offline' | 'server' | 'generic';
+
+export type UpdateEntryResult =
+  | { status: 'success' }
+  | { status: 'error'; kind: UpdateEntryErrorKind; message: string };
+
+export async function updateEntry(
+  entryId: string,
+  changes: { content?: string; title?: string | null },
+): Promise<UpdateEntryResult> {
+  let response: Response;
+  try {
+    response = await authedFetch(`/api/entries/${entryId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(changes),
+    });
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return {
+        status: 'error',
+        kind: 'generic',
+        message: 'Your session expired. Redirecting to sign in...',
+      };
+    }
+    return {
+      status: 'error',
+      kind: 'offline',
+      message: "You're offline. Try again once you're back online.",
+    };
+  }
+
+  let body: { success?: boolean; error?: string };
+  try {
+    body = (await response.json()) as { success?: boolean; error?: string };
+  } catch {
+    return { status: 'error', kind: 'generic', message: 'Save failed. Please try again.' };
+  }
+
+  if (response.ok && body.success) {
+    return { status: 'success' };
+  }
+
+  if (response.status === 404) {
+    return {
+      status: 'error',
+      kind: 'entry_not_found',
+      message: 'This entry no longer exists.',
+    };
+  }
+
+  if (response.status === 500) {
+    return {
+      status: 'error',
+      kind: 'server',
+      message: 'Something went wrong. Please try again.',
+    };
+  }
+
+  // 400 / 503 / anything else: surface the server-provided message.
+  return {
+    status: 'error',
+    kind: 'generic',
+    message: body.error ?? 'Save failed. Please try again.',
+  };
+}
