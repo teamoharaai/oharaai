@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { deleteEntry as deleteEntryRecord } from './services/echo-service';
 import type { EchoEntry } from './types';
 
 export type EntryContainerUpdate =
@@ -18,6 +19,7 @@ interface EchoStore {
   closeSession: () => void;
   setEntryContainer: (entryId: string, container: EntryContainerUpdate) => void;
   removeEntry: (entryId: string) => void;
+  deleteEntry: (entryId: string) => Promise<void>;
 }
 
 export const useEchoStore = create<EchoStore>((set) => ({
@@ -55,4 +57,14 @@ export const useEchoStore = create<EchoStore>((set) => ({
     set((state) => ({
       entries: state.entries.filter((entry) => entry.id !== entryId),
     })),
+  // Mirrors goal-store.deleteGoal: persist first (throws on failure so the
+  // caller can surface an error), then drop the row from the list. Reuses the
+  // same filter as removeEntry — which stays a standalone optimistic remove for
+  // the move flow's "entry gone server-side" (404) path.
+  deleteEntry: async (entryId) => {
+    await deleteEntryRecord(entryId);
+    set((state) => ({
+      entries: state.entries.filter((entry) => entry.id !== entryId),
+    }));
+  },
 }));

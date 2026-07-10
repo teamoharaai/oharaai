@@ -4,6 +4,7 @@ import { AnchoredPopover, type AnchorRect } from '@/components/ui/AnchoredPopove
 
 interface EntryActionMenuProps {
   onMoveToFolder: () => void;
+  onDelete: () => void;
 }
 
 function createAnchorRect(x: number, y: number, width: number, height: number): AnchorRect {
@@ -35,7 +36,7 @@ function getWebAnchorRect(event: GestureResponderEvent): AnchorRect | null {
 // Sits as an absolutely-positioned sibling to the card's own Pressable (not
 // nested inside it) so opening the menu never triggers the card's onPress —
 // no stopPropagation() needed, and behavior is identical on web and native.
-export function EntryActionMenu({ onMoveToFolder }: EntryActionMenuProps) {
+export function EntryActionMenu({ onMoveToFolder, onDelete }: EntryActionMenuProps) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [anchorRect, setAnchorRect] = useState<AnchorRect | null>(null);
   const triggerRef = useRef<View | null>(null);
@@ -102,6 +103,15 @@ export function EntryActionMenu({ onMoveToFolder }: EntryActionMenuProps) {
             className="px-4 py-3"
           >
             <Text className="font-sans text-base text-near-black">Move to folder</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              closeMenu();
+              onDelete();
+            }}
+            className="px-4 py-3"
+          >
+            <Text className="font-sans text-base text-[#C0483A]">Delete</Text>
           </Pressable>
         </View>
       </AnchoredPopover>
