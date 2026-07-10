@@ -1,6 +1,6 @@
 import { Text, type TextProps, type StyleProp, type TextStyle } from 'react-native';
 
-type Variant = 'heading' | 'title' | 'body' | 'label' | 'field-label' | 'caption' | 'ai' | 'ai-italic' | 'eyebrow' | 'emphasis-sm' | 'meta' | 'content' | 'nav-back' | 'section-header' | 'nav-title' | 'subtitle' | 'hint' | 'description' | 'badge-text' | 'micro-label';
+type Variant = 'heading' | 'title' | 'body' | 'label' | 'field-label' | 'caption' | 'ai' | 'ai-italic' | 'eyebrow' | 'section-eyebrow' | 'greeting' | 'emphasis-sm' | 'meta' | 'content' | 'nav-back' | 'section-header' | 'nav-title' | 'subtitle' | 'hint' | 'description' | 'badge-text' | 'micro-label';
 
 const VARIANT_CLASSES: Record<Variant, string> = {
   heading:         'font-semibold text-2xl text-[#211F1A]',
@@ -12,6 +12,8 @@ const VARIANT_CLASSES: Record<Variant, string> = {
   ai:              'font-serif text-base text-[#4A7C5F] leading-relaxed',
   'ai-italic':     'font-serif-italic text-base text-[#4A7C5F] leading-relaxed',
   eyebrow:         'font-sans text-[11px] font-medium uppercase tracking-[1.5px] text-[#8A8172]',
+  'section-eyebrow':'font-semibold text-[11px] uppercase tracking-[2px] text-teal-soft',
+  greeting:        'font-serif-italic-semibold text-[27px] tracking-[-0.2px] text-[#211F1A]',
   'emphasis-sm':   'text-sm font-semibold',
   meta:            'font-sans text-[13px] leading-5',
   content:         'font-sans text-[14px] leading-[21px] text-[#211F1A]',

@@ -43,10 +43,13 @@ module.exports = {
         sans: ['Inter-Regular', 'System', 'sans-serif'],
         medium: ['Inter-Medium', 'System', 'sans-serif'],
         semibold: ['Inter-SemiBold', 'System', 'sans-serif'],
+        bold: ['Inter-Bold', 'System', 'sans-serif'],
         serif: ['Lora-Regular', 'Georgia', 'serif'],
         'serif-italic': ['Lora-Italic', 'Georgia', 'serif'],
+        'serif-italic-semibold': ['Lora-SemiBold-Italic', 'Georgia', 'serif'],
       },
       fontSize: {
+        '3xs': ['9px', { lineHeight: '12px' }],
         '2xs': ['10px', { lineHeight: '14px' }],
         xs:    ['12px', { lineHeight: '16px' }],
         sm:    ['13px', { lineHeight: '18px' }],
