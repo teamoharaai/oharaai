@@ -31,14 +31,14 @@ export function Avatar({ avatarUrl, displayName, size }: AvatarProps) {
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: '#3D5247',
+        backgroundColor: '#1E3226',
         alignItems: 'center',
         justifyContent: 'center',
       }}
     >
       <Text
         style={{
-          color: '#F5F1EA',
+          color: '#F8F4EC',
           fontFamily: 'Inter-SemiBold',
           fontSize: size * 0.4,
         }}

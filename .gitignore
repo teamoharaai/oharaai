@@ -21,6 +21,9 @@ out/
 # Expo local cache
 .expo/
 
+# Local design scratch — not tracked
+design/
+
 # OS & editor clutter
 .DS_Store
 Thumbs.db

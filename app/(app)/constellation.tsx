@@ -45,7 +45,7 @@ export default function ConstellationScreen() {
     goalCount >= GOAL_GATE && echoCount >= ECHO_GATE;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F1EA' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC' }}>
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
@@ -81,7 +81,7 @@ export default function ConstellationScreen() {
           style={{
             fontFamily: 'Inter-SemiBold',
             fontSize: 22,
-            color: '#1A1F1C',
+            color: '#211F1A',
             textAlign: 'center',
             marginBottom: 12,
           }}
@@ -110,7 +110,7 @@ export default function ConstellationScreen() {
               style={{
                 fontFamily: 'Inter-Regular',
                 fontSize: 12,
-                color: '#6B7B6E',
+                color: '#8A8172',
                 marginBottom: 6,
               }}
             >
@@ -128,7 +128,7 @@ export default function ConstellationScreen() {
                 style={{
                   width: `${goalFill}%`,
                   height: 4,
-                  backgroundColor: '#3D5247',
+                  backgroundColor: '#1E3226',
                   borderRadius: 2,
                 }}
               />
@@ -141,7 +141,7 @@ export default function ConstellationScreen() {
               style={{
                 fontFamily: 'Inter-Regular',
                 fontSize: 12,
-                color: '#6B7B6E',
+                color: '#8A8172',
                 marginBottom: 6,
               }}
             >
@@ -161,7 +161,7 @@ export default function ConstellationScreen() {
                 style={{
                   width: `${echoFill}%`,
                   height: 4,
-                  backgroundColor: '#3D5247',
+                  backgroundColor: '#1E3226',
                   borderRadius: 2,
                 }}
               />
@@ -173,7 +173,7 @@ export default function ConstellationScreen() {
             style={{
               fontFamily: 'Inter-Regular',
               fontSize: 13,
-              color: bothMet ? '#3D5247' : '#9CAF9F',
+              color: bothMet ? '#1E3226' : '#A79E8E',
               textAlign: 'center',
               marginTop: 4,
             }}

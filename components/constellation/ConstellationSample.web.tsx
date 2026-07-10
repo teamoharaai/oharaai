@@ -3,7 +3,7 @@ import { COLORS, LIGHT_THEME } from '@/constants/colors';
 
 const FOREST = LIGHT_THEME.background.sidebar;
 const CREAM = LIGHT_THEME.background.page;
-const LABEL = '#6B7B6E';
+const LABEL = '#8A8172';
 const AMBER = COLORS.amber;
 
 export default function ConstellationSample() {

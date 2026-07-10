@@ -30,8 +30,8 @@ const CARD_STYLE = {
 
 const INPUT_STYLE = {
   fontSize: 14,
-  color: '#1A1F1C',
-  backgroundColor: '#F5F1EA',
+  color: '#211F1A',
+  backgroundColor: '#F8F4EC',
   borderRadius: 10,
   borderWidth: 1,
   borderColor: '#EAE7E0',
@@ -65,7 +65,7 @@ function VaultPickerSheet({ onNote, onLink, onClose }: VaultPickerSheetProps) {
         }}
       >
         <Typography variant="meta" style={{ fontSize: 20 }}>📝</Typography>
-        <Typography variant="label" style={{ color: '#1A1F1C' }}>
+        <Typography variant="label" style={{ color: '#211F1A' }}>
           Add Note
         </Typography>
       </Pressable>
@@ -81,7 +81,7 @@ function VaultPickerSheet({ onNote, onLink, onClose }: VaultPickerSheetProps) {
         }}
       >
         <Typography variant="meta" style={{ fontSize: 20 }}>🔗</Typography>
-        <Typography variant="label" style={{ color: '#1A1F1C' }}>
+        <Typography variant="label" style={{ color: '#211F1A' }}>
           Save Link
         </Typography>
       </Pressable>
@@ -120,7 +120,7 @@ function AddNoteSheet({ onSave, onClose }: AddNoteSheetProps) {
       <TextInput
         style={[INPUT_STYLE, { marginBottom: 10 }]}
         placeholder="Title (optional)"
-        placeholderTextColor="#9CAF9F"
+        placeholderTextColor="#A79E8E"
         value={title}
         onChangeText={setTitle}
         returnKeyType="next"
@@ -128,7 +128,7 @@ function AddNoteSheet({ onSave, onClose }: AddNoteSheetProps) {
       <TextInput
         style={[INPUT_STYLE, { minHeight: 100, textAlignVertical: 'top', marginBottom: 14 }]}
         placeholder="Write your note…"
-        placeholderTextColor="#9CAF9F"
+        placeholderTextColor="#A79E8E"
         value={content}
         onChangeText={setContent}
         multiline
@@ -156,7 +156,7 @@ function AddNoteSheet({ onSave, onClose }: AddNoteSheetProps) {
             alignItems: 'center',
             paddingVertical: 10,
             borderRadius: 10,
-            backgroundColor: '#3D5247',
+            backgroundColor: '#1E3226',
             opacity: saving || !content.trim() ? 0.5 : 1,
           }}
           disabled={saving || !content.trim()}
@@ -199,7 +199,7 @@ function SaveLinkSheet({ onSave, onClose }: SaveLinkSheetProps) {
       <TextInput
         style={[INPUT_STYLE, { marginBottom: 10 }]}
         placeholder="https://…"
-        placeholderTextColor="#9CAF9F"
+        placeholderTextColor="#A79E8E"
         value={url}
         onChangeText={setUrl}
         autoCapitalize="none"
@@ -209,7 +209,7 @@ function SaveLinkSheet({ onSave, onClose }: SaveLinkSheetProps) {
       <TextInput
         style={[INPUT_STYLE, { marginBottom: 14 }]}
         placeholder="Note about this link (optional)"
-        placeholderTextColor="#9CAF9F"
+        placeholderTextColor="#A79E8E"
         value={annotation}
         onChangeText={setAnnotation}
         returnKeyType="done"
@@ -237,7 +237,7 @@ function SaveLinkSheet({ onSave, onClose }: SaveLinkSheetProps) {
             alignItems: 'center',
             paddingVertical: 10,
             borderRadius: 10,
-            backgroundColor: '#3D5247',
+            backgroundColor: '#1E3226',
             opacity: saving || !url.trim() ? 0.5 : 1,
           }}
           disabled={saving || !url.trim()}
@@ -294,7 +294,7 @@ export default function VaultScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F1EA' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC' }}>
       {/* Nav bar */}
       <View
         style={{
@@ -308,7 +308,7 @@ export default function VaultScreen() {
         <Pressable onPress={() => router.back()}>
           <Typography variant="nav-back">← Back</Typography>
         </Pressable>
-        <Typography variant="nav-back" style={{ color: '#9CAF9F', marginHorizontal: 8 }}>
+        <Typography variant="nav-back" style={{ color: '#A79E8E', marginHorizontal: 8 }}>
           |
         </Typography>
         <Typography variant="nav-title" style={{ flex: 1 }}>
@@ -335,14 +335,14 @@ export default function VaultScreen() {
               Items{vault.items.length > 0 ? ` (${vault.items.length})` : ''}
             </Typography>
             <TouchableOpacity onPress={openSheet} hitSlop={8}>
-              <Typography variant="meta" style={{ fontSize: 22, color: '#3D5247', lineHeight: 24 }}>＋</Typography>
+              <Typography variant="meta" style={{ fontSize: 22, color: '#1E3226', lineHeight: 24 }}>＋</Typography>
             </TouchableOpacity>
           </View>
 
           {vault.loading && (
             <ActivityIndicator
               size="small"
-              color="#9CAF9F"
+              color="#A79E8E"
               style={{ alignSelf: 'flex-start', marginBottom: 8 }}
             />
           )}
@@ -363,7 +363,7 @@ export default function VaultScreen() {
               <Typography variant="meta" style={{ fontSize: 30, marginBottom: 8 }}>◫</Typography>
               <Typography
                 variant="meta"
-                style={{ color: '#9CAF9F', textAlign: 'center' }}
+                style={{ color: '#A79E8E', textAlign: 'center' }}
               >
                 Add notes, links, and resources{'\n'}to build your vault
               </Typography>
@@ -399,7 +399,7 @@ export default function VaultScreen() {
                 router.push(`/(app)/echo?goalId=${goalId}` as never)
               }
             >
-              <Typography variant="label" style={{ fontSize: 13, color: '#3D5247' }}>
+              <Typography variant="label" style={{ fontSize: 13, color: '#1E3226' }}>
                 Write in Echo
               </Typography>
             </Pressable>
@@ -408,7 +408,7 @@ export default function VaultScreen() {
           {echoTrail.loading && (
             <ActivityIndicator
               size="small"
-              color="#9CAF9F"
+              color="#A79E8E"
               style={{ alignSelf: 'flex-start', marginBottom: 8 }}
             />
           )}
@@ -427,7 +427,7 @@ export default function VaultScreen() {
                 gap: 8,
               }}
             >
-              <Typography variant="meta" style={{ color: '#9CAF9F' }}>
+              <Typography variant="meta" style={{ color: '#A79E8E' }}>
                 Journal about this goal in Echo
               </Typography>
               <Typography variant="caption" style={{ fontSize: 14 }}>›</Typography>

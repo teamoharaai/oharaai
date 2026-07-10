@@ -168,7 +168,7 @@ function DueTodayZone() {
         <Typography variant="eyebrow" className="mb-3">
           Today
         </Typography>
-        <Text className="font-sans text-[14px] text-[#9CAF9F]">
+        <Text className="font-sans text-[14px] text-[#A79E8E]">
           Nothing due today.
         </Text>
       </View>
@@ -190,23 +190,23 @@ function DueTodayZone() {
                 onPress={() => void handleComplete(item)}
                 disabled={done || completing}
                 className={`h-6 w-6 items-center justify-center rounded-full border-2 ${
-                  done ? 'border-[#3D5247]' : 'border-[#C9D4CD]'
+                  done ? 'border-[#1E3226]' : 'border-[#C9D4CD]'
                 }`}
               >
                 {done && (
-                  <Text className="text-xs font-semibold text-[#3D5247]">✓</Text>
+                  <Text className="text-xs font-semibold text-[#1E3226]">✓</Text>
                 )}
                 {completing && !done && (
                   <View className="h-2 w-2 rounded-full bg-[#C9D4CD]" />
                 )}
               </TouchableOpacity>
               <View className="flex-1">
-                <Text className="font-sans text-[11px] text-[#9CAF9F]">
+                <Text className="font-sans text-[11px] text-[#A79E8E]">
                   {item.goalTitle}
                 </Text>
                 <Typography
                   variant="content"
-                  className={done ? 'text-[#9CAF9F]' : ''}
+                  className={done ? 'text-[#A79E8E]' : ''}
                 >
                   {item.title}
                 </Typography>
@@ -277,7 +277,7 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
         <Typography variant="eyebrow" className="mb-2">
           Active Goal
         </Typography>
-        <Text className="mb-4 font-sans text-[17px] font-semibold leading-6 text-[#1A1F1C]">
+        <Text className="mb-4 font-sans text-[17px] font-semibold leading-6 text-[#211F1A]">
           {goal.title}
         </Text>
       </Pressable>
@@ -313,7 +313,7 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
             <View className="flex-row gap-3">
               <TouchableOpacity
                 className={`flex-1 items-center rounded-full py-2.5 ${
-                  isMutating ? 'bg-[#C9D4CD]' : 'bg-[#3D5247]'
+                  isMutating ? 'bg-[#C9D4CD]' : 'bg-[#1E3226]'
                 }`}
                 onPress={() => void handleUpdateStatus('complete')}
                 disabled={isMutating}
@@ -340,7 +340,7 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
             className="self-start rounded-full bg-[#EEF4F0] px-4 py-2"
             onPress={() => router.push(`/(app)/goals/${goal.id}` as never)}
           >
-            <Typography variant="emphasis-sm" className="text-[#3D5247]">
+            <Typography variant="emphasis-sm" className="text-[#1E3226]">
               Set next action
             </Typography>
           </Pressable>
@@ -360,10 +360,10 @@ function NoActiveGoalCard() {
         No active goal yet.
       </Typography>
       <Pressable
-        className="self-start rounded-full bg-[#3D5247] px-4 py-2.5"
+        className="self-start rounded-full bg-[#1E3226] px-4 py-2.5"
         onPress={() => router.push('/goals/create')}
       >
-        <Typography variant="emphasis-sm" className="text-[#E8EDE9]">
+        <Typography variant="emphasis-sm" className="text-[#EDE7DA]">
           Create a goal
         </Typography>
       </Pressable>
@@ -393,7 +393,7 @@ function EchoZone({
         className="mb-4 self-start rounded-full bg-[#EEF4F0] px-4 py-2.5"
         onPress={() => router.push('/(app)/echo' as never)}
       >
-        <Typography variant="emphasis-sm" className="text-[#3D5247]">
+        <Typography variant="emphasis-sm" className="text-[#1E3226]">
           Reflect in Echo
         </Typography>
       </Pressable>
@@ -416,7 +416,7 @@ function EchoZone({
           </Typography>
         </View>
       ) : (
-        <Typography variant="meta" className="text-[#9CAF9F]">
+        <Typography variant="meta" className="text-[#A79E8E]">
           Your reflections will appear here.
         </Typography>
       )}
@@ -453,7 +453,7 @@ function IntelligenceZone({ insight, isLoading }: IntelligenceZoneProps) {
 
   return (
     <View className="rounded-2xl bg-[#F0EDE6] px-5 py-4">
-      <Typography variant="meta" className="text-center text-[#9CAF9F]">
+      <Typography variant="meta" className="text-center text-[#A79E8E]">
         Keep reflecting in Echo — Ohara is learning about you.
       </Typography>
     </View>
@@ -591,7 +591,7 @@ export default function DashboardScreen() {
     : `${getGreeting()}.`;
 
   return (
-    <SafeAreaView className="flex-1 bg-[#F5F1EA]">
+    <SafeAreaView className="flex-1 bg-[#F8F4EC]">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
@@ -603,10 +603,10 @@ export default function DashboardScreen() {
         {/* Header */}
         <View className="mb-6 flex-row items-start justify-between">
           <View>
-            <Text className="font-sans text-[22px] font-medium text-[#1A1F1C]">
+            <Text className="font-sans text-[22px] font-medium text-[#211F1A]">
               {greeting}
             </Text>
-            <Typography variant="meta" className="text-[#6B7B6E]">
+            <Typography variant="meta" className="text-[#8A8172]">
               {getDateLabel()}
             </Typography>
           </View>
@@ -636,7 +636,11 @@ export default function DashboardScreen() {
                 </Pressable>
               </View>
               {hasProjects && projects.map((project) => (
-                <ProjectCard key={project.id} project={project} />
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  goals={goals.filter((g) => g.projectId === project.id)}
+                />
               ))}
             </View>
 

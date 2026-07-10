@@ -196,7 +196,7 @@ function LinkCard({ item }: VaultItemCardProps) {
   return (
     <Pressable
       className="bg-white rounded-xl p-4 mb-3 shadow-sm overflow-hidden"
-      style={{ borderLeftWidth: 4, borderLeftColor: '#3D5247' }}
+      style={{ borderLeftWidth: 4, borderLeftColor: '#1E3226' }}
       onPress={handlePress}
     >
       <View className="flex-row items-start justify-between">

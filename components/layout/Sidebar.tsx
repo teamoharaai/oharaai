@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { router, usePathname } from 'expo-router';
 import { FEATURES } from '@/constants/features';
+import { LIGHT_THEME } from '@/constants/colors';
 import { AvatarMenu } from './AvatarMenu';
 
 type NavItem = {
@@ -19,29 +21,91 @@ const NAV_ITEMS: NavItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
     <View
       style={{
-        width: 220,
-        backgroundColor: '#3D5247',
+        width: collapsed ? 76 : 220,
+        backgroundColor: '#1E3226',
         flexDirection: 'column',
         alignSelf: 'stretch',
       }}
     >
-      {/* Logo */}
-      <View style={{ paddingTop: 32, paddingHorizontal: 24, paddingBottom: 8 }}>
-        <Text
-          style={{
-            color: '#E8EDE9',
-            fontFamily: 'Inter-SemiBold',
-            fontSize: 12,
-            letterSpacing: 4,
-          }}
-        >
-          OHARA
-        </Text>
+      {/* Logo + collapse toggle */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: collapsed ? 'center' : 'space-between',
+          paddingTop: 32,
+          paddingHorizontal: collapsed ? 0 : 24,
+          paddingBottom: 8,
+        }}
+      >
+        {!collapsed && (
+          <Text
+            style={{
+              color: '#EDE7DA',
+              fontFamily: 'Inter-SemiBold',
+              fontSize: 12,
+              letterSpacing: 4,
+            }}
+          >
+            OHARA
+          </Text>
+        )}
+        {collapsed && (
+          <Text
+            style={{
+              color: '#EDE7DA',
+              fontFamily: 'Inter-Bold',
+              fontSize: 14,
+              letterSpacing: 1,
+            }}
+          >
+            O
+          </Text>
+        )}
+        {!collapsed && (
+          <TouchableOpacity
+            onPress={() => setCollapsed((c) => !c)}
+            accessibilityLabel="Collapse sidebar"
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 11,
+              backgroundColor: 'rgba(255,255,255,0.08)',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={{ color: LIGHT_THEME.border.toggleGlyph, fontSize: 13, lineHeight: 13 }}>‹</Text>
+          </TouchableOpacity>
+        )}
       </View>
+
+      {/* Expand toggle (own row when collapsed, so it stays reachable) */}
+      {collapsed && (
+        <View style={{ alignItems: 'center', paddingTop: 12 }}>
+          <TouchableOpacity
+            onPress={() => setCollapsed((c) => !c)}
+            accessibilityLabel="Expand sidebar"
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 11,
+              backgroundColor: 'rgba(255,255,255,0.08)',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={{ color: LIGHT_THEME.border.toggleGlyph, fontSize: 13, lineHeight: 13 }}>›</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Nav items */}
       <View style={{ paddingTop: 16 }}>
@@ -59,24 +123,25 @@ export function Sidebar() {
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                paddingHorizontal: 16,
+                justifyContent: collapsed ? 'center' : 'flex-start',
+                paddingHorizontal: collapsed ? 0 : 16,
                 paddingVertical: 12,
                 borderRadius: 12,
                 marginHorizontal: 12,
                 marginBottom: 4,
-                backgroundColor: isActive ? '#2E4238' : 'transparent',
+                backgroundColor: isActive ? '#2A4436' : 'transparent',
                 opacity: item.enabled ? 1 : 0.4,
               }}
               activeOpacity={0.7}
             >
               <Text
                 style={{
-                  color: isActive ? '#E8EDE9' : '#A8C4AE',
+                  color: isActive ? '#EDE7DA' : '#8FA294',
                   fontSize: 14,
                   fontFamily: 'Inter-Medium',
                 }}
               >
-                {item.label}
+                {collapsed ? item.label.charAt(0) : item.label}
               </Text>
             </TouchableOpacity>
           );
@@ -87,7 +152,13 @@ export function Sidebar() {
       <View style={{ flex: 1 }} />
 
       {/* Bottom: avatar menu (Profile / Settings / Log out) */}
-      <View style={{ paddingBottom: 32, paddingHorizontal: 12 }}>
+      <View
+        style={{
+          paddingBottom: 32,
+          paddingHorizontal: 12,
+          alignItems: collapsed ? 'center' : 'stretch',
+        }}
+      >
         <AvatarMenu />
       </View>
     </View>

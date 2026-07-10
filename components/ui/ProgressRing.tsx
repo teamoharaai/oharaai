@@ -1,14 +1,19 @@
 import { View, Text } from 'react-native';
+import { LIGHT_THEME } from '@/constants/colors';
 
 interface ProgressRingProps {
   progress: number;
   size?: number;
   strokeWidth?: number;
   color?: string;
+  // 'default' keeps stroke-matched percentage text; 'warm' uses ink text to
+  // match the dashboard redesign treatment.
+  variant?: 'default' | 'warm';
 }
 
 // Native fallback: simple bordered circle with percentage text
-export function ProgressRing({ progress, size = 64, strokeWidth = 5, color = '#5FA8D3' }: ProgressRingProps) {
+export function ProgressRing({ progress, size = 64, strokeWidth = 5, color = '#5FA8D3', variant = 'default' }: ProgressRingProps) {
+  const textColor = variant === 'warm' ? LIGHT_THEME.text.primary : color;
   return (
     <View
       style={{
@@ -21,7 +26,7 @@ export function ProgressRing({ progress, size = 64, strokeWidth = 5, color = '#5
         justifyContent: 'center',
       }}
     >
-      <Text style={{ color, fontSize: size * 0.22, fontFamily: 'Inter-Bold' }}>
+      <Text style={{ color: textColor, fontSize: size * 0.22, fontFamily: 'Inter-Bold' }}>
         {Math.round(progress)}%
       </Text>
     </View>

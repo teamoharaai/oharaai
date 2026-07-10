@@ -56,7 +56,7 @@ export function Modal({
             <View className="mt-5 flex-row justify-end gap-3">
               {cancelText ? (
                 <TouchableOpacity
-                  className={`rounded-xl bg-[#F5F1EA] px-4 py-3 ${closeDisabled || cancelDisabled ? 'opacity-60' : ''}`}
+                  className={`rounded-xl bg-[#F8F4EC] px-4 py-3 ${closeDisabled || cancelDisabled ? 'opacity-60' : ''}`}
                   onPress={handleCancel}
                   disabled={closeDisabled || cancelDisabled}
                 >
@@ -66,7 +66,7 @@ export function Modal({
 
               {confirmText ? (
                 <TouchableOpacity
-                  className={`rounded-xl px-4 py-3 ${confirmVariant === 'destructive' ? 'bg-[#DC2626]' : 'bg-[#3D5247]'} ${confirmDisabled ? 'opacity-60' : ''}`}
+                  className={`rounded-xl px-4 py-3 ${confirmVariant === 'destructive' ? 'bg-[#DC2626]' : 'bg-[#1E3226]'} ${confirmDisabled ? 'opacity-60' : ''}`}
                   onPress={onConfirm}
                   disabled={confirmDisabled}
                 >

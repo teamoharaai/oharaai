@@ -13,7 +13,7 @@ import { getProjectTitle } from '@/lib/db/goals';
 
 function GoalDetailLoadingState() {
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F1EA' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC' }}>
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
         <View style={{ height: 14, width: 72, borderRadius: 999, backgroundColor: '#EAE7E0' }} />
       </View>
@@ -65,7 +65,7 @@ function GoalDetailLoadingState() {
 
 function GoalNotFound() {
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F1EA' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC' }}>
       <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
         <Pressable onPress={() => router.back()}>
           <Typography variant="nav-back">← Goals</Typography>
@@ -213,9 +213,9 @@ export default function GoalDetailScreen() {
         style={SUMMARY_CARD_STYLE}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Typography variant="meta" style={{ fontSize: 20, color: '#3D5247' }}>◫</Typography>
+          <Typography variant="meta" style={{ fontSize: 20, color: '#1E3226' }}>◫</Typography>
           <View>
-            <Typography variant="emphasis-sm" style={{ color: '#1A1F1C' }}>
+            <Typography variant="emphasis-sm" style={{ color: '#211F1A' }}>
               Vault
             </Typography>
             <Typography variant="caption">
@@ -236,9 +236,9 @@ export default function GoalDetailScreen() {
         style={SUMMARY_CARD_STYLE}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Typography variant="meta" style={{ fontSize: 20, color: '#3D5247' }}>✦</Typography>
+          <Typography variant="meta" style={{ fontSize: 20, color: '#1E3226' }}>✦</Typography>
           <View>
-            <Typography variant="emphasis-sm" style={{ color: '#1A1F1C' }}>
+            <Typography variant="emphasis-sm" style={{ color: '#211F1A' }}>
               Reflections
             </Typography>
             <Typography variant="caption">
@@ -264,7 +264,7 @@ export default function GoalDetailScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F1EA' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC' }}>
       {/* Nav bar */}
       <View
         style={{
@@ -278,7 +278,7 @@ export default function GoalDetailScreen() {
         <Pressable onPress={() => router.back()}>
           <Typography variant="nav-back">← Goals</Typography>
         </Pressable>
-        <Typography variant="nav-back" style={{ color: '#9CAF9F', marginHorizontal: 8 }}>|</Typography>
+        <Typography variant="nav-back" style={{ color: '#A79E8E', marginHorizontal: 8 }}>|</Typography>
         <Typography variant="nav-title" style={{ flex: 1 }} numberOfLines={1}>
           {goal.title}
         </Typography>

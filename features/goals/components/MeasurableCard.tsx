@@ -124,7 +124,7 @@ export function MeasurableCard({
 
   const inputStyle = {
     fontSize: 12,
-    color: '#1A1F1C',
+    color: '#211F1A',
     backgroundColor: '#F0EDE6',
     borderWidth: 1,
     borderColor: '#EAE7E0',
@@ -166,8 +166,8 @@ export function MeasurableCard({
             borderWidth: 2,
             alignItems: 'center',
             justifyContent: 'center',
-            borderColor: isCompleted ? '#3D5247' : '#DDD6CA',
-            backgroundColor: isCompleted ? '#3D5247' : 'transparent',
+            borderColor: isCompleted ? '#1E3226' : '#DDD6CA',
+            backgroundColor: isCompleted ? '#1E3226' : 'transparent',
           }}
           disabled={!onComplete || isCompleted || isSaving}
         >
@@ -192,7 +192,7 @@ export function MeasurableCard({
               variant="label"
               style={{
                 fontSize: 13,
-                color: isCompleted ? '#9CA89E' : '#1A1F1C',
+                color: isCompleted ? '#9CA89E' : '#211F1A',
                 textDecorationLine: isCompleted ? 'line-through' : 'none',
               }}
             >
@@ -302,7 +302,7 @@ export function MeasurableCard({
             >
               {done && <Typography variant="emphasis-sm" style={{ fontFamily: 'Inter-Bold', fontSize: 13, color: accentColor }}>✓</Typography>}
             </TouchableOpacity>
-            <Typography variant="caption" style={{ color: done ? '#1A1F1C' : '#9CAF9F' }}>
+            <Typography variant="caption" style={{ color: done ? '#211F1A' : '#A79E8E' }}>
               {done ? 'Done today' : 'Not done yet'}
             </Typography>
           </View>
@@ -338,7 +338,7 @@ export function MeasurableCard({
               variant="caption"
               style={{
                 flex: 1,
-                color: done ? '#9CA89E' : '#1A1F1C',
+                color: done ? '#9CA89E' : '#211F1A',
                 textDecorationLine: done ? 'line-through' : 'none',
               }}
             >

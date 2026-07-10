@@ -27,7 +27,7 @@ export function AffiliateTeaser() {
           style={{
             fontSize: 11,
             fontFamily: 'Inter-Medium',
-            color: '#6B7B6E',
+            color: '#8A8172',
             letterSpacing: 1.5,
             textTransform: 'uppercase',
             flex: 1,
@@ -48,7 +48,7 @@ export function AffiliateTeaser() {
             style={{
               fontSize: 11,
               fontFamily: 'Inter-SemiBold',
-              color: '#3D5247',
+              color: '#1E3226',
             }}
           >
             Coming soon
@@ -60,7 +60,7 @@ export function AffiliateTeaser() {
         style={{
           fontSize: 20,
           fontFamily: 'Inter-SemiBold',
-          color: '#1A1F1C',
+          color: '#211F1A',
           marginBottom: 8,
         }}
       >

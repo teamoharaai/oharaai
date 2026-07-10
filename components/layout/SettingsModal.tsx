@@ -83,7 +83,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
       </Text>
 
       {isLoading ? (
-        <ActivityIndicator size="small" color="#9CAF9F" />
+        <ActivityIndicator size="small" color="#A79E8E" />
       ) : loadError ? (
         <Typography variant="subtitle">
           Couldn't load your settings. Please try again.
@@ -98,12 +98,12 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
               AI Reflections
             </Text>
             {isSaving ? (
-              <ActivityIndicator size="small" color="#9CAF9F" />
+              <ActivityIndicator size="small" color="#A79E8E" />
             ) : (
               <Switch
                 value={intelligenceEnabled}
                 onValueChange={handleToggle}
-                trackColor={{ false: '#D1D5DB', true: '#3D5247' }}
+                trackColor={{ false: '#D1D5DB', true: '#1E3226' }}
                 thumbColor="#FFFFFF"
               />
             )}

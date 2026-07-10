@@ -42,15 +42,15 @@ export default function ProjectDetailScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F1EA', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color="#3D5247" />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color="#1E3226" />
       </SafeAreaView>
     );
   }
 
   if (!project) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F1EA' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC' }}>
         <View style={{ padding: 20 }}>
           <Pressable onPress={() => router.back()} style={{ marginBottom: 16 }}>
             <Typography variant="nav-back">← Back</Typography>
@@ -79,7 +79,7 @@ export default function ProjectDetailScreen() {
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#1A1F1C',
+    color: '#211F1A',
   } as const;
 
   const openEditModal = () => {
@@ -154,7 +154,7 @@ export default function ProjectDetailScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F1EA' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC' }}>
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40, paddingTop: 16 }}
@@ -171,7 +171,7 @@ export default function ProjectDetailScreen() {
               backgroundColor: '#FFFFFF',
               borderRadius: 12,
               borderLeftWidth: 4,
-              borderLeftColor: '#3D5247',
+              borderLeftColor: '#1E3226',
               padding: 20,
               marginBottom: 24,
               shadowColor: '#000',
@@ -183,7 +183,7 @@ export default function ProjectDetailScreen() {
           >
             <Typography
               variant="heading"
-              style={{ fontFamily: 'Inter-Bold', color: '#1A1F1C', lineHeight: 30 }}
+              style={{ fontFamily: 'Inter-Bold', color: '#211F1A', lineHeight: 30 }}
             >
               {project.title}
             </Typography>
@@ -213,7 +213,7 @@ export default function ProjectDetailScreen() {
                 style={{
                   width: `${aggregateProgress}%`,
                   height: '100%',
-                  backgroundColor: '#3D5247',
+                  backgroundColor: '#1E3226',
                   borderRadius: 999,
                 }}
               />
@@ -234,7 +234,7 @@ export default function ProjectDetailScreen() {
               <Pressable
                 onPress={() => router.push({ pathname: '/goals/create', params: { projectId: project.id } })}
                 style={{
-                  backgroundColor: '#3D5247',
+                  backgroundColor: '#1E3226',
                   borderRadius: 12,
                   paddingHorizontal: 16,
                   paddingVertical: 10,
@@ -242,7 +242,7 @@ export default function ProjectDetailScreen() {
                   justifyContent: 'center',
                 }}
               >
-                <Typography variant="emphasis-sm" style={{ color: '#F5F1EA' }}>+ Add Goal</Typography>
+                <Typography variant="emphasis-sm" style={{ color: '#F8F4EC' }}>+ Add Goal</Typography>
               </Pressable>
             </View>
 
@@ -270,13 +270,13 @@ export default function ProjectDetailScreen() {
                 <Pressable
                   onPress={() => router.push({ pathname: '/goals/create', params: { projectId: project.id } })}
                   style={{
-                    backgroundColor: '#3D5247',
+                    backgroundColor: '#1E3226',
                     borderRadius: 12,
                     paddingHorizontal: 20,
                     paddingVertical: 12,
                   }}
                 >
-                  <Typography variant="emphasis-sm" style={{ fontSize: 15, color: '#E8EDE9' }}>+ Add Goal</Typography>
+                  <Typography variant="emphasis-sm" style={{ fontSize: 15, color: '#EDE7DA' }}>+ Add Goal</Typography>
                 </Pressable>
               </View>
             ) : (
@@ -317,7 +317,7 @@ export default function ProjectDetailScreen() {
                   borderBottomColor: '#EFE9DE',
                 }}
               >
-                <Typography variant="nav-title" style={{ fontFamily: 'Inter-Regular', color: '#1A1F1C' }}>
+                <Typography variant="nav-title" style={{ fontFamily: 'Inter-Regular', color: '#211F1A' }}>
                   Edit project name and description
                 </Typography>
               </Pressable>
@@ -373,7 +373,7 @@ export default function ProjectDetailScreen() {
               if (editError) setEditError(null);
             }}
             placeholder="e.g. Build financial independence"
-            placeholderTextColor="#9CAF9F"
+            placeholderTextColor="#A79E8E"
             editable={!isSubmittingEdit}
             autoFocus
             returnKeyType="next"
@@ -392,7 +392,7 @@ export default function ProjectDetailScreen() {
               if (editError) setEditError(null);
             }}
             placeholder="Describe what achieving this means to you..."
-            placeholderTextColor="#9CAF9F"
+            placeholderTextColor="#A79E8E"
             editable={!isSubmittingEdit}
             multiline
           />

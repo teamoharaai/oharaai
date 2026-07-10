@@ -62,7 +62,7 @@ export function MoveEntryModal({
 
           {isLoading ? (
             <View className="items-center py-8">
-              <ActivityIndicator size="small" color="#9CAF9F" />
+              <ActivityIndicator size="small" color="#A79E8E" />
             </View>
           ) : (
             <FlatList
@@ -73,7 +73,7 @@ export function MoveEntryModal({
               renderItem={({ item }) => {
                 if (item.kind === 'header') {
                   return (
-                    <Text className="px-5 pb-2 pt-4 font-sans text-xs font-semibold uppercase tracking-[1.2px] text-[#6B7B6E]">
+                    <Text className="px-5 pb-2 pt-4 font-sans text-xs font-semibold uppercase tracking-[1.2px] text-[#8A8172]">
                       {item.label}
                     </Text>
                   );
@@ -92,7 +92,7 @@ export function MoveEntryModal({
                   >
                     <Text className="font-sans text-base text-near-black">{item.title}</Text>
                     {selected ? (
-                      <Text className="font-sans text-base text-[#3D5247]">{'✓'}</Text>
+                      <Text className="font-sans text-base text-[#1E3226]">{'✓'}</Text>
                     ) : null}
                   </Pressable>
                 );
@@ -111,7 +111,7 @@ export function MoveEntryModal({
 
           {isSaving ? (
             <View className="items-center py-3">
-              <ActivityIndicator size="small" color="#9CAF9F" />
+              <ActivityIndicator size="small" color="#A79E8E" />
             </View>
           ) : null}
         </Pressable>

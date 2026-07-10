@@ -83,7 +83,7 @@ export function EntryActionMenu({ onEdit, onMoveToFolder, onDelete }: EntryActio
         hitSlop={10}
         style={{ position: 'absolute', top: 6, right: 6, padding: 8, zIndex: 1 }}
       >
-        <Text style={{ fontSize: 18, lineHeight: 18, color: '#6B7B6E', fontFamily: 'Inter-Bold' }}>
+        <Text style={{ fontSize: 18, lineHeight: 18, color: '#8A8172', fontFamily: 'Inter-Bold' }}>
           {'···'}
         </Text>
       </Pressable>

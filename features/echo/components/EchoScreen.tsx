@@ -78,7 +78,7 @@ function formatRelativeTime(date: Date): string {
 
 function SectionLabel({ children }: { children: string }) {
   return (
-    <Text className="mb-2.5 font-sans text-xs font-semibold uppercase tracking-[1.2px] text-[#6B7B6E]">
+    <Text className="mb-2.5 font-sans text-xs font-semibold uppercase tracking-[1.2px] text-[#8A8172]">
       {children}
     </Text>
   );
@@ -106,20 +106,20 @@ function EchoEntryListCard({
           <Typography variant="hint">{formatRelativeTime(entry.createdAt)}</Typography>
           {entry.emotion?.primary ? (
             <View className="rounded-full bg-[#EEF2EF] px-2 py-1">
-              <Text className="font-sans text-[11px] font-medium text-[#3D5247]">
+              <Text className="font-sans text-[11px] font-medium text-[#1E3226]">
                 {formatPillLabel(entry.emotion.primary)}
               </Text>
             </View>
           ) : null}
           {entry.folderName ? (
-            <View className="rounded-full bg-[#F5F1EA] px-2 py-1">
-              <Text className="font-sans text-[11px] font-medium text-[#6B7B6E]">
+            <View className="rounded-full bg-[#F8F4EC] px-2 py-1">
+              <Text className="font-sans text-[11px] font-medium text-[#8A8172]">
                 {entry.folderName}
               </Text>
             </View>
           ) : entry.goalTitle ? (
             <View className="rounded-full bg-[#EEF2EF] px-2 py-1">
-              <Text className="font-sans text-[11px] font-medium text-[#3D5247]">
+              <Text className="font-sans text-[11px] font-medium text-[#1E3226]">
                 {entry.goalTitle}
               </Text>
             </View>
@@ -407,7 +407,7 @@ export function EchoScreen() {
   const canSave = text.trim().length > 0 && !isSaving;
 
   return (
-    <SafeAreaView className="flex-1 bg-[#F5F1EA]">
+    <SafeAreaView className="flex-1 bg-[#F8F4EC]">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40, paddingTop: 16 }}
@@ -422,23 +422,23 @@ export function EchoScreen() {
 
         <View
           className={`mb-6 rounded-xl border bg-white p-4 shadow-sm ${
-            isComposerFocused ? 'border-[#3D5247]' : 'border-[#D8D2C8]'
+            isComposerFocused ? 'border-[#1E3226]' : 'border-[#D8D2C8]'
           }`}
         >
           <SectionLabel>Reflection</SectionLabel>
           <TextInput
             className="mb-2.5 rounded-xl border border-[#D8D2C8] bg-white px-3.5 py-3 font-sans text-base text-near-black"
             placeholder="Title (optional)"
-            placeholderTextColor="#6B7B6E"
+            placeholderTextColor="#8A8172"
             value={titleText}
             onChangeText={handleTitleChange}
           />
           <TextInput
             className={`min-h-[100px] rounded-xl border bg-white px-3.5 py-3 font-sans text-base text-near-black ${
-              isComposerFocused ? 'border-[#3D5247]' : 'border-[#D8D2C8]'
+              isComposerFocused ? 'border-[#1E3226]' : 'border-[#D8D2C8]'
             }`}
             placeholder="What's on your mind?"
-            placeholderTextColor="#6B7B6E"
+            placeholderTextColor="#8A8172"
             multiline
             value={text}
             onChangeText={handleTextChange}
@@ -454,8 +454,8 @@ export function EchoScreen() {
                 className="flex-row items-center gap-1.5 rounded-full bg-[#EEF2EF] px-3 py-1.5"
                 activeOpacity={0.7}
               >
-                <Text className="font-sans text-xs text-[#3D5247]">{linkedGoal.title}</Text>
-                <Text className="font-sans text-sm leading-4 text-[#3D5247]">×</Text>
+                <Text className="font-sans text-xs text-[#1E3226]">{linkedGoal.title}</Text>
+                <Text className="font-sans text-sm leading-4 text-[#1E3226]">×</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
@@ -470,18 +470,18 @@ export function EchoScreen() {
             <TouchableOpacity
               onPress={() => setAiInsightOn((value) => !value)}
               className={`rounded-full px-3 py-1.5 ${
-                aiInsightOn ? 'bg-[#3D5247]' : 'bg-[#F5F1EA]'
+                aiInsightOn ? 'bg-[#1E3226]' : 'bg-[#F8F4EC]'
               }`}
               activeOpacity={0.7}
             >
-              <Text className={`font-sans text-xs ${aiInsightOn ? 'text-white' : 'text-[#6B7B6E]'}`}>
+              <Text className={`font-sans text-xs ${aiInsightOn ? 'text-white' : 'text-[#8A8172]'}`}>
                 AI insight
               </Text>
             </TouchableOpacity>
           </View>
 
           {aiInsightOn ? (
-            <Text className="mt-2 font-sans text-[11px] text-[#6B7B6E]">
+            <Text className="mt-2 font-sans text-[11px] text-[#8A8172]">
               Ohara AI will reflect on this entry
             </Text>
           ) : null}
@@ -492,11 +492,11 @@ export function EchoScreen() {
             onPress={handleSave}
             disabled={!canSave}
             className={`mt-4 items-center rounded-xl py-3 ${
-              canSave ? 'bg-[#3D5247]' : 'bg-[#D8D2C8]'
+              canSave ? 'bg-[#1E3226]' : 'bg-[#D8D2C8]'
             }`}
             activeOpacity={0.8}
           >
-            <Text className={`font-sans text-sm font-semibold ${canSave ? 'text-white' : 'text-[#6B7B6E]'}`}>
+            <Text className={`font-sans text-sm font-semibold ${canSave ? 'text-white' : 'text-[#8A8172]'}`}>
               {isSaving ? 'Saving...' : 'Save Entry'}
             </Text>
           </TouchableOpacity>
