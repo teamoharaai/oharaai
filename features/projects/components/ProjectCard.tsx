@@ -43,13 +43,13 @@ export function ProjectCard({ project }: ProjectCardProps) {
 
         {/* Title + description stacked */}
         <View style={{ flex: 1 }}>
-          <Typography variant="title" numberOfLines={1}>
+          <Typography variant="card-title" numberOfLines={1}>
             {project.title}
           </Typography>
           {project.description !== null && (
             <Typography
-              variant="meta"
-              style={{ marginTop: 3, color: LIGHT_THEME.text.secondary }}
+              variant="card-description"
+              style={{ marginTop: 3 }}
               numberOfLines={2}
             >
               {project.description}

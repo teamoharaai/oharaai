@@ -63,11 +63,7 @@ export function GoalRingCard({
           <View style={{ marginBottom: 7 }}>
             <Badge label={category} variant="category" />
           </View>
-          <Typography
-            variant="emphasis-sm"
-            style={{ color: LIGHT_THEME.text.primary, lineHeight: 19 }}
-            numberOfLines={2}
-          >
+          <Typography variant="goal-title" numberOfLines={2}>
             {title}
           </Typography>
         </View>

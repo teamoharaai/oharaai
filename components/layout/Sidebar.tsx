@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { router, usePathname } from 'expo-router';
 import { FEATURES } from '@/constants/features';
+import { LIGHT_THEME } from '@/constants/colors';
 import { AvatarMenu } from './AvatarMenu';
 
 type NavItem = {
@@ -80,7 +81,7 @@ export function Sidebar() {
             }}
             activeOpacity={0.7}
           >
-            <Text style={{ color: '#8FA294', fontSize: 13, lineHeight: 13 }}>‹</Text>
+            <Text style={{ color: LIGHT_THEME.border.toggleGlyph, fontSize: 13, lineHeight: 13 }}>‹</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -101,7 +102,7 @@ export function Sidebar() {
             }}
             activeOpacity={0.7}
           >
-            <Text style={{ color: '#8FA294', fontSize: 13, lineHeight: 13 }}>›</Text>
+            <Text style={{ color: LIGHT_THEME.border.toggleGlyph, fontSize: 13, lineHeight: 13 }}>›</Text>
           </TouchableOpacity>
         </View>
       )}

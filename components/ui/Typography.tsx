@@ -1,6 +1,6 @@
 import { Text, type TextProps, type StyleProp, type TextStyle } from 'react-native';
 
-type Variant = 'heading' | 'title' | 'body' | 'label' | 'field-label' | 'caption' | 'ai' | 'ai-italic' | 'eyebrow' | 'section-eyebrow' | 'greeting' | 'emphasis-sm' | 'meta' | 'content' | 'nav-back' | 'section-header' | 'nav-title' | 'subtitle' | 'hint' | 'description' | 'badge-text' | 'micro-label';
+type Variant = 'heading' | 'title' | 'body' | 'label' | 'field-label' | 'caption' | 'ai' | 'ai-italic' | 'eyebrow' | 'section-eyebrow' | 'greeting' | 'emphasis-sm' | 'meta' | 'content' | 'nav-back' | 'section-header' | 'nav-title' | 'subtitle' | 'hint' | 'description' | 'badge-text' | 'micro-label' | 'card-title' | 'card-description' | 'goal-title';
 
 const VARIANT_CLASSES: Record<Variant, string> = {
   heading:         'font-semibold text-2xl text-[#211F1A]',
@@ -25,6 +25,9 @@ const VARIANT_CLASSES: Record<Variant, string> = {
   description:     'font-sans text-[14px] leading-[21px] text-[#8A8172]',
   'badge-text':    'font-sans text-[11px] font-medium',
   'micro-label':   'font-sans text-[13px] text-[#A79E8E]',
+  'card-title':      'font-medium text-[15.5px] text-[#211F1A]', // ProjectCard title (exact spec)
+  'card-description':'font-sans text-[12px] leading-[18px] text-[#8A8172]', // ProjectCard description (exact spec)
+  'goal-title':      'font-semibold text-[14.5px] leading-[19px] text-[#211F1A]', // GoalRingCard title (exact spec)
 };
 
 interface TypographyProps extends Omit<TextProps, 'style'> {

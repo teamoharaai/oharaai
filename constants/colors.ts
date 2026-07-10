@@ -61,6 +61,7 @@ export const LIGHT_THEME = {
     accent: '#4A7C5F',
     warm: '#EDE6D8', // new: warm border (cards / dividers)
     warmSubtle: '#EFE9DC', // new: warm border (goal ring card)
+    toggleGlyph: '#A8C4AE', // new: sidebar collapse/expand toggle chevron glyph
   },
   accent: {
     primary: '#4A7C5F',
