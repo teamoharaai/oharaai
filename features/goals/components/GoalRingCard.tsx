@@ -8,7 +8,12 @@ interface GoalRingCardProps {
   title: string;
   /** Category label shown in the chip (e.g. "Fitness"). */
   category: string;
-  /** 0–100 completion, drives the ring fill and centered percentage. */
+  /**
+   * 0–100, drives the ring fill and centered percentage. Caller resolves the
+   * meaning: for goals with a deadline this is typically time-elapsed toward
+   * the deadline (see features/goals/utils/ringProgress.ts), falling back to
+   * measurable-completion progress when there's no deadline.
+   */
   progress: number;
   /** Goal's category/theme accent (from GOAL_THEMES) — the ring's progress stroke. */
   accentColor: string;

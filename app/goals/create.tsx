@@ -38,7 +38,27 @@ export default function GoalCreateScreen() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     typeof incomingProjectId === 'string' ? incomingProjectId : null,
   );
+  const [deadlineInput, setDeadlineInput] = useState('');
+  const [deadlineError, setDeadlineError] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
+
+  // Manual deadline override (YYYY-MM-DD). Empty input means "let the AI
+  // infer it from conversation" — returns null with no error in that case.
+  function resolveManualDeadline(): { iso: string | null } | { error: string } {
+    const trimmed = deadlineInput.trim();
+    if (!trimmed) return { iso: null };
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return { error: 'Use the format YYYY-MM-DD' };
+    }
+    const parsed = new Date(`${trimmed}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) {
+      return { error: 'That date is not valid' };
+    }
+    if (parsed.getTime() < Date.now()) {
+      return { error: 'Deadline must be in the future' };
+    }
+    return { iso: parsed.toISOString() };
+  }
 
   useEffect(() => {
     scrollRef.current?.scrollToEnd({ animated: true });
@@ -55,8 +75,9 @@ export default function GoalCreateScreen() {
     }
   }, [incomingProjectId]);
 
-  async function submitGoalChat(options?: { finalize?: boolean }) {
+  async function submitGoalChat(options?: { finalize?: boolean; manualDeadlineIso?: string | null }) {
     const finalize = options?.finalize === true;
+    const manualDeadlineIso = options?.manualDeadlineIso ?? null;
     const text = input.trim();
     if (isLoading || savingGoal) return;
     if (!finalize && !text) return;
@@ -171,11 +192,16 @@ export default function GoalCreateScreen() {
 
       if (data.isComplete && data.goalData) {
         setSavingGoal(true);
+        // A manually entered deadline overrides whatever the AI inferred
+        // (or didn't infer) from conversation.
+        const goalDataToSave: GoalFinalizeResponse = manualDeadlineIso
+          ? { ...data.goalData, goal: { ...data.goalData.goal, deadline: manualDeadlineIso } }
+          : data.goalData;
         const createRes = await authedFetch('/api/goals', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            aiData: data.goalData,
+            aiData: goalDataToSave,
             options: {
               requestId: data.requestId,
               projectId: selectedProjectId,
@@ -263,7 +289,13 @@ export default function GoalCreateScreen() {
   }
 
   async function handleCreateGoal() {
-    await submitGoalChat({ finalize: true });
+    const manualDeadline = resolveManualDeadline();
+    if ('error' in manualDeadline) {
+      setDeadlineError(manualDeadline.error);
+      return;
+    }
+    setDeadlineError(null);
+    await submitGoalChat({ finalize: true, manualDeadlineIso: manualDeadline.iso });
   }
 
   const showIntro = messages.length === 0 && input.trim().length === 0;
@@ -538,6 +570,40 @@ export default function GoalCreateScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        {showIntro && (
+          <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+            <Typography variant="label" style={{ marginBottom: 8 }}>
+              Deadline (optional)
+            </Typography>
+            <TextInput
+              style={{
+                backgroundColor: '#FFFFFF',
+                borderWidth: 1,
+                borderColor: deadlineError ? '#C0483A' : '#EAE7E0',
+                borderRadius: 999,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                color: '#211F1A',
+                fontSize: 13,
+                maxWidth: 160,
+              }}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor="#A79E8E"
+              value={deadlineInput}
+              onChangeText={(text) => {
+                setDeadlineInput(text);
+                if (deadlineError) setDeadlineError(null);
+              }}
+              editable={!isLoading && !savingGoal}
+            />
+            {deadlineError && (
+              <Typography variant="body" style={{ color: '#C0483A', fontSize: 12, marginTop: 4 }}>
+                {deadlineError}
+              </Typography>
+            )}
+          </View>
+        )}
 
         {showIntro && projects.length > 0 && (
           <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>

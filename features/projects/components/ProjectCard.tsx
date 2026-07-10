@@ -3,6 +3,7 @@ import { View, Text, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
 import { GoalRingCard } from '@/features/goals/components/GoalRingCard';
+import { getGoalRingProgress } from '@/features/goals/utils/ringProgress';
 import { GOAL_THEMES, CATEGORY_THEME_MAP } from '@/constants/themes';
 import { LIGHT_THEME } from '@/constants/colors';
 import type { Project } from '@/features/projects/types';
@@ -157,7 +158,7 @@ export function ProjectCard({ project, goals }: ProjectCardProps) {
                     <GoalRingCard
                       title={goal.title}
                       category={goal.category}
-                      progress={goal.progress}
+                      progress={getGoalRingProgress(goal)}
                       accentColor={GOAL_THEMES[theme].accent}
                       activityLabel={resolveActivityLabel(goal)}
                       dueDateLabel={dueDateLabel}
