@@ -2,6 +2,35 @@
 
 ## [Unreleased]
 
+### Added (2026-07-10 — Echo entry edit from the action menu)
+- **Context:** the delete-consolidation patch shipped Delete but deferred Edit (no edit surface
+  existed at the time). The server PATCH route (`/api/entries/[id]`) and its client wrapper
+  `updateEntry()` in `echo-service.ts` landed separately (content update + re-embed + stale-
+  reflection reset are all server-side). This patch adds the missing **Edit** UI on top of them.
+- **`features/echo/store.ts`:** new `updateEntryFields(entryId, { content?, title? })` action —
+  an optimistic field patch applied after a successful save. Mirrors `setEntryContainer`'s
+  map-and-merge shape; only overwrites supplied fields (`title: null` clears the title back to
+  `undefined`). Does not touch container assignment — that stays `setEntryContainer`'s job.
+- **`features/echo/hooks/useEditEntry.ts` (new):** owns the edit flow the way `useMoveEntry` owns
+  the move flow — runs `updateEntry()` (PATCH) → `updateEntryFields()` (optimistic patch),
+  tracking `activeEntry` / `isSaving` / `error`. On a `entry_not_found` (404) it calls
+  `onEntryGone` (wired to the store's `removeEntry`) and closes; offline/server/generic errors
+  keep the sheet open with the message. Keeps service calls out of the component (features/ rule 3).
+- **`features/echo/components/EditEntryModal.tsx` (new):** presentational bottom-sheet, pre-filled
+  from the entry's content/title, calling no services itself. Reuses the composer's title/content
+  `TextInput` styling but none of its draft-persistence / linked-goal logic (doesn't apply to a
+  saved entry). Cancel + Save buttons; Save disabled while empty or in flight; dismissal blocked
+  mid-save. Does not edit container assignment — that's Move's job.
+- **`features/echo/components/EntryActionMenu.tsx`:** added an `onEdit` prop and a third **Edit**
+  `<Pressable>` row (above Move / Delete), same styling as the existing rows; no popover
+  positioning changes.
+- **`features/echo/components/EchoScreen.tsx`:** instantiates `useEditEntry({ onEntryGone:
+  removeEntry })`, threads `onEdit` through `EchoEntryListCard` alongside the existing
+  `onOpenMoveMenu`/`onDelete`, and renders `EditEntryModal` next to `MoveEntryModal`. No new route
+  — the sheet lives inside `EchoScreen`.
+- `npx tsc --noEmit` clean. Files: `store.ts`, `hooks/useEditEntry.ts`, `components/EditEntryModal.tsx`,
+  `components/EntryActionMenu.tsx`, `components/EchoScreen.tsx`.
+
 ### Fixed (2026-07-10 — Consolidate entry delete onto the server route; remove the duplicate)
 - **Context / correcting the record:** two Echo-delete implementations landed independently.
   Task 1 ("Entry Delete / hard delete") shipped the **server** route `DELETE /api/entries/[id]`

@@ -21,9 +21,11 @@ import {
   useEchoDraftStore,
   type EchoDraftGoalRef,
 } from '../draft-store';
+import { useEditEntry } from '../hooks/useEditEntry';
 import { useEntries } from '../hooks/useEntries';
 import { useMoveEntry } from '../hooks/useMoveEntry';
 import { useEchoStore } from '../store';
+import { EditEntryModal } from './EditEntryModal';
 import { EntryActionMenu } from './EntryActionMenu';
 import { MoveEntryModal } from './MoveEntryModal';
 import type { CreateEntryResultStatus } from '../services/echo-service';
@@ -84,10 +86,12 @@ function SectionLabel({ children }: { children: string }) {
 
 function EchoEntryListCard({
   entry,
+  onEdit,
   onOpenMoveMenu,
   onDelete,
 }: {
   entry: EchoEntry;
+  onEdit: () => void;
   onOpenMoveMenu: () => void;
   onDelete: () => void;
 }) {
@@ -130,7 +134,7 @@ function EchoEntryListCard({
         </View>
       </Pressable>
 
-      <EntryActionMenu onMoveToFolder={onOpenMoveMenu} onDelete={onDelete} />
+      <EntryActionMenu onEdit={onEdit} onMoveToFolder={onOpenMoveMenu} onDelete={onDelete} />
     </View>
   );
 }
@@ -204,6 +208,7 @@ export function EchoScreen() {
     onEntryGone: removeEntry,
     onTargetsStale: reloadPickerGoals,
   });
+  const editEntry = useEditEntry({ onEntryGone: removeEntry });
   const hasHydrated = useEchoDraftStore((state) => state.hasHydrated);
   const getDraft = useEchoDraftStore((state) => state.getDraft);
   const setDraft = useEchoDraftStore((state) => state.setDraft);
@@ -518,6 +523,7 @@ export function EchoScreen() {
             <EchoEntryListCard
               key={entry.id}
               entry={entry}
+              onEdit={() => editEntry.open(entry)}
               onOpenMoveMenu={() => moveEntry.open(entry.id)}
               onDelete={() => handleDeleteEntry(entry.id)}
             />
@@ -576,6 +582,15 @@ export function EchoScreen() {
         currentContainer={moveEntry.currentContainer}
         onClose={moveEntry.close}
         onConfirm={moveEntry.confirm}
+      />
+
+      <EditEntryModal
+        visible={editEntry.activeEntry !== null}
+        entry={editEntry.activeEntry}
+        isSaving={editEntry.isSaving}
+        error={editEntry.error}
+        onClose={editEntry.close}
+        onSave={editEntry.save}
       />
     </SafeAreaView>
   );

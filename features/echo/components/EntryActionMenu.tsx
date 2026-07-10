@@ -3,6 +3,7 @@ import { Pressable, Text, View, type GestureResponderEvent } from 'react-native'
 import { AnchoredPopover, type AnchorRect } from '@/components/ui/AnchoredPopover';
 
 interface EntryActionMenuProps {
+  onEdit: () => void;
   onMoveToFolder: () => void;
   onDelete: () => void;
 }
@@ -36,7 +37,7 @@ function getWebAnchorRect(event: GestureResponderEvent): AnchorRect | null {
 // Sits as an absolutely-positioned sibling to the card's own Pressable (not
 // nested inside it) so opening the menu never triggers the card's onPress —
 // no stopPropagation() needed, and behavior is identical on web and native.
-export function EntryActionMenu({ onMoveToFolder, onDelete }: EntryActionMenuProps) {
+export function EntryActionMenu({ onEdit, onMoveToFolder, onDelete }: EntryActionMenuProps) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [anchorRect, setAnchorRect] = useState<AnchorRect | null>(null);
   const triggerRef = useRef<View | null>(null);
@@ -95,6 +96,15 @@ export function EntryActionMenu({ onMoveToFolder, onDelete }: EntryActionMenuPro
         contentStyle={{ zIndex: 10 }}
       >
         <View>
+          <Pressable
+            onPress={() => {
+              closeMenu();
+              onEdit();
+            }}
+            className="px-4 py-3"
+          >
+            <Text className="font-sans text-base text-near-black">Edit</Text>
+          </Pressable>
           <Pressable
             onPress={() => {
               closeMenu();
