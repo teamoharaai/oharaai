@@ -273,18 +273,29 @@ export async function getEntryById(entryId: string): Promise<EchoEntry | null> {
   return applyContainer(entry, containers.get(entry.id));
 }
 
-// Deletes an echo entry. RLS-scoped via echo_entries.user_id = auth.uid(), so
-// the session client can only delete the caller's own entries. echo_entry_links
-// rows cascade on the FK (echo_entry_id ... on delete cascade, migration 005).
-// Mirrors goal-service.deleteGoal:
-// throws on error so the caller can surface a failure and keep the row.
+// Deletes an echo entry through the server route DELETE /api/entries/:id
+// (withAuth + isEntryOwnedByUser → 404), the same server-side path Move/Edit use
+// — NOT a direct RLS-scoped Supabase delete. Ownership is enforced server-side;
+// the route cascades echo_entry_links and nulls interests.source_thorn_id.
+// Keeps the Promise<void> / throw-on-failure contract the store's deleteEntry
+// action and EchoScreen's try/catch depend on (same authedFetch mechanics as
+// moveEntryRequest/updateEntry, minus the result-object return those need for
+// their differentiated UX).
 export async function deleteEntry(entryId: string): Promise<void> {
-  const { error } = await supabase
-    .from('echo_entries')
-    .delete()
-    .eq('id', entryId);
+  const response = await authedFetch(`/api/entries/${entryId}`, {
+    method: 'DELETE',
+  });
 
-  if (error) throw error;
+  if (!response.ok) {
+    let message = 'Delete failed';
+    try {
+      const body = (await response.json()) as { error?: string };
+      if (body.error) message = body.error;
+    } catch {
+      // non-JSON body — keep the generic message
+    }
+    throw new Error(message);
+  }
 }
 
 export async function createEntry(params: {

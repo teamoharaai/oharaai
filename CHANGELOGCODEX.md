@@ -2,6 +2,32 @@
 
 ## [Unreleased]
 
+### Fixed (2026-07-10 — Consolidate entry delete onto the server route; remove the duplicate)
+- **Context / correcting the record:** two Echo-delete implementations landed independently.
+  Task 1 ("Entry Delete / hard delete") shipped the **server** route `DELETE /api/entries/[id]`
+  (`withAuth` + `isEntryOwnedByUser` → 404) — the approved pattern, mirroring Move, chosen
+  specifically because server-side ownership enforcement is stronger than goal-delete's bare-RLS
+  approach. Task 4 ("Echo entry delete from the action menu") then separately added a **client-side**
+  `deleteEntry()` in `echo-service.ts` doing a direct RLS-scoped Supabase delete
+  (`supabase.from('echo_entries').delete().eq('id', ...)`), modeled on `goal-service.deleteGoal`
+  — the pattern we had deliberately decided *not* to use here. That direct-delete bypassed the
+  Task 1 route entirely. **There was no instruction to skip the server route or to prefer
+  goal-delete's pattern; the earlier changelog framing of the client delete as the intended path
+  was incorrect.** The Delete menu's network call now goes through the server route.
+- **`features/echo/services/echo-service.ts`:** `deleteEntry(entryId)` no longer talks to Supabase
+  directly. It now issues a thin `authedFetch('/api/entries/:id', { method: 'DELETE' })` to the
+  Task 1 route (same `authedFetch` mechanics as `moveEntryRequest`/`updateEntry`). It keeps its
+  `Promise<void>` / throw-on-failure contract — the store's `deleteEntry` action and
+  `EchoScreen.handleDeleteEntry`'s try/catch depend on the throw — so it throws on a non-`ok`
+  response (surfacing the server `error` message when present) rather than returning a result
+  object. Ownership is now enforced server-side; `echo_entry_links` cascade and the
+  `interests.source_thorn_id` `ON DELETE SET NULL` behavior are handled by the route.
+- **Unchanged:** `store.ts`'s `deleteEntry` action (still persists-then-filters; its underlying
+  call now routes through the corrected service fn), and `EntryActionMenu`'s Delete confirmation
+  flow (`window.confirm`/`Alert.alert`, "This cannot be undone", Cancel/Delete) — only the
+  underlying network call changed.
+- `npx tsc --noEmit` clean. Files touched: `features/echo/services/echo-service.ts`.
+
 ### Added (2026-07-10 — Echo entry delete from the action menu)
 - **Context:** the Echo list's per-entry `···` menu (`EntryActionMenu`) only offered
   "Move to folder". Added an in-menu **Delete** action. Scope was originally "Edit + Delete"
