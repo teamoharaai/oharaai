@@ -4,7 +4,7 @@
 ## What Ohara Is
 Goal-first personal growth platform. Social operating system.
 Stack: Expo (RN Web, SSR), Vercel, Supabase, Anthropic API, NativeWind, Zustand, TS strict.
-Theme: cream (#F5F1EA) base, white (#FFFFFF) cards, forest green (#3D5247) accent, Inter + Lora.
+Theme (post-redesign warm ramp, Sessions 1–4c): warm cream (#F8F4EC) page base, white (#FFFFFF) cards, earth green (#4A7C5F) accent, deep-emerald (#1E3226) sidebar, warm ink text (#211F1A primary / #8A8172 secondary / #A79E8E muted), warm borders (#EDE6D8), Inter + Lora. Canonical tokens live in constants/colors.ts (LIGHT_THEME). The old #F5F1EA / #3D5247 / #1A1F1C / #6B7B6E values are retired.
 
 ## Data Model (Current)
 - **Spaces**: contained environments (personal | team | institutional | community). Every user has a personal space. goals and projects have nullable space_id FK.

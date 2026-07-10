@@ -70,4 +70,7 @@ export const LIGHT_THEME = {
     tealMid: '#2F8F6D', // new: mid teal (today-ring, project dot, streak number)
     tealSoft: '#9FD9C4', // new: soft teal (mint labels on dark, filled streak ring)
   },
+  feedback: {
+    danger: '#C0483A', // new: overdue due-dates, destructive actions, error text
+  },
 } as const;

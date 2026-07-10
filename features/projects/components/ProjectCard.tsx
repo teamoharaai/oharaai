@@ -14,10 +14,6 @@ interface ProjectCardProps {
   goals: GoalWithMeasurables[];
 }
 
-// Overdue reuses the established literal already used in GoalCard for "Overdue".
-// There is no named danger token in LIGHT_THEME yet — see Session 5b due-date decision.
-const OVERDUE_COLOR = '#C0483A';
-
 function resolveDueDate(deadline: Date | null): {
   label?: string;
   color: string;
@@ -32,7 +28,7 @@ function resolveDueDate(deadline: Date | null): {
 
   let color: string;
   if (days < 0) {
-    color = OVERDUE_COLOR; // overdue
+    color = LIGHT_THEME.feedback.danger; // overdue
   } else if (days <= 14) {
     color = LIGHT_THEME.text.secondary; // soon — #8A8172 (replaces retired #6B7B6E)
   } else {
