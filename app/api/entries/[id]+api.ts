@@ -147,6 +147,15 @@ async function handlePatch(
       if (!embeddingText) {
         update.embedding = null;
         update.embedding_model = null;
+        // The null here is by design (content fell under EMBEDDING_MIN_WORD_COUNT),
+        // not an embedding failure. Log it so a future audit doesn't mistake the
+        // intentional null for a swallowed error — the failure path is logged below.
+        console.debug(JSON.stringify({
+          event: 'embedding_skipped',
+          reason: 'below_min_word_count',
+          record_id: entryId,
+          word_count: (newContent as string).trim().split(/\s+/).filter(Boolean).length,
+        }));
       }
 
       // Only a content change invalidates a prior reflection. And only reset it

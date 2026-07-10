@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Added (2026-07-10 — Log the intentional embedding-skip in PATCH /api/entries/:id)
+- **Context:** a live audit flagged `echo_entries.embedding_text` as null after a content-changing
+  edit. Root cause was benign: `buildEchoEmbeddingText` returns null when content falls under
+  `EMBEDDING_MIN_WORD_COUNT` (40 words), so the PATCH handler correctly clears `embedding_text`
+  and the vector. Not a regression — the re-embed is awaited and its failure path is already
+  logged; the confusion was that the *by-design* null had no log line, so it looked like a
+  swallowed failure.
+- **`app/api/entries/[id]+api.ts`:** in the `contentChanged` block, when `embeddingText` is null,
+  emit `console.debug({ event: 'embedding_skipped', reason: 'below_min_word_count', record_id,
+  word_count })`. Pure observability — no behavior change. The embedding *failure* path
+  (`embedding_write_failed`) was already logged and is untouched.
+- `npx tsc --noEmit` clean.
+
 ### Removed (2026-07-10 — Delete the `/echo/[id]` detail route and all tap-nav call sites)
 - **Context:** with `EntryActionMenu` (Edit/Move/Delete) now the way to act on an echo card, the
   read-only `/echo/[id]` detail screen no longer earns its keep. This removes the route, its
