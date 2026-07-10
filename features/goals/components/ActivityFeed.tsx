@@ -1,5 +1,4 @@
-import { Pressable, Text, View, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
+import { Text, View, ActivityIndicator } from 'react-native';
 import { ReflectionCard } from '@/components/ui/ReflectionCard';
 import { Typography } from '@/components/ui/Typography';
 import type { ActivityItem, EchoEntryActivity, MilestoneCompletedActivity, GoalCreatedActivity } from '@/types/activity';
@@ -26,34 +25,30 @@ function GoalCreatedRow({ item }: { item: GoalCreatedActivity }) {
 }
 
 function EchoEntryCard({ item }: { item: EchoEntryActivity }) {
-  const onPress = () => router.push(`/(app)/echo/${item.entryId}` as never);
-
   // Entry has a generated AI reflection — render it via the shared ReflectionCard.
+  // View-only (no tap-through; see OUTSTANDING.md EntryActionMenu extraction).
   if (item.aiResponse) {
     return (
-      <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
-        <ReflectionCard
-          variant="compact"
-          timestamp={item.timestamp}
-          aiResponse={item.aiResponse}
-          brt={item.brt}
-        />
-      </Pressable>
+      <ReflectionCard
+        variant="compact"
+        timestamp={item.timestamp}
+        aiResponse={item.aiResponse}
+        brt={item.brt}
+      />
     );
   }
 
   // No reflection yet (unsummarized) — fall back to the raw content preview.
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => ({
-        backgroundColor: pressed ? '#F0EDE6' : '#F8F6F1',
+    <View
+      style={{
+        backgroundColor: '#F8F6F1',
         borderRadius: 12,
         borderWidth: 1,
         borderColor: '#EAE7E0',
         paddingHorizontal: 14,
         paddingVertical: 12,
-      })}
+      }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -78,7 +73,7 @@ function EchoEntryCard({ item }: { item: EchoEntryActivity }) {
       <Typography variant="content" className="text-[13px] leading-5" numberOfLines={3}>
         {item.preview}
       </Typography>
-    </Pressable>
+    </View>
   );
 }
 

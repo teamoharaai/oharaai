@@ -2,6 +2,34 @@
 
 ## [Unreleased]
 
+### Removed (2026-07-10 — Delete the `/echo/[id]` detail route and all tap-nav call sites)
+- **Context:** with `EntryActionMenu` (Edit/Move/Delete) now the way to act on an echo card, the
+  read-only `/echo/[id]` detail screen no longer earns its keep. This removes the route, its
+  screen, the service function that fed it, and every tap-through that navigated to it.
+- **Deleted:** `app/(app)/echo/[id].tsx` (route — the `app/(app)/echo/` dir is now empty),
+  `features/echo/components/EchoDetailScreen.tsx` (its only consumer), and `getEntryById()` in
+  `features/echo/services/echo-service.ts` (confirmed sole consumer was `EchoDetailScreen`).
+- **`features/echo/components/EchoScreen.tsx`:** removed the `Pressable` wrapper (not just its
+  `onPress`) around the list card — `EntryActionMenu` is now the only way to act on this card.
+  Dropped the now-unused `router` import (`Pressable` stays; still used by the goal-picker modal).
+- **`features/goals/components/EchoTrail.tsx`:** the content `Pressable` is now a plain `Text` —
+  the card is view-only. Dropped the now-unused `router` import (`Pressable` stays; still used by
+  the Confirm/Dismiss suggestion buttons).
+- **`features/goals/components/ActivityFeed.tsx`:** removed the `Pressable` wrapper from both
+  branches of `EchoEntryCard` (bare `ReflectionCard` for the AI-reflection path; the raw-preview
+  fallback is now a static `View` with the former non-pressed style values). Dropped the unused
+  `router` and `Pressable` imports.
+- **Decision (Ariel):** goal-trail and activity-feed echo cards are intentionally inert (no tap,
+  no action menu) for now — `EntryActionMenu` lives in `features/echo/` and `features/CLAUDE.md`'s
+  no-cross-feature-import rule blocks `features/goals/` from importing it. Extracting it to
+  `components/ui/` (same move `ReflectionCard` made in Block 2) is logged to OUTSTANDING.md as a
+  follow-up, not built this session. Also checked off OUTSTANDING's "EchoTrail links point to a
+  screen that doesn't exist" — resolved by this removal.
+- `npx tsc --noEmit` clean. Files: deleted `app/(app)/echo/[id].tsx`,
+  `features/echo/components/EchoDetailScreen.tsx`; edited `features/echo/services/echo-service.ts`,
+  `features/echo/components/EchoScreen.tsx`, `features/goals/components/EchoTrail.tsx`,
+  `features/goals/components/ActivityFeed.tsx`.
+
 ### Added (2026-07-10 — Echo entry edit from the action menu)
 - **Context:** the delete-consolidation patch shipped Delete but deferred Edit (no edit surface
   existed at the time). The server PATCH route (`/api/entries/[id]`) and its client wrapper

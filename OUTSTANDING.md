@@ -31,7 +31,19 @@
       `types/activity.ts` and `lib/db/goals.ts`). Audit whether identical or diverging;
       consolidate to one definition if identical. Deferred since 2026-04 (docs/DECISIONS.md).
 - [ ] Echo AI reflections are generated and stored but never rendered in the UI.
-- [ ] EchoTrail links point to a screen that doesn't exist.
+- [x] EchoTrail links point to a screen that doesn't exist. — Resolved 2026-07-10: the
+      `/echo/[id]` detail route, `EchoDetailScreen.tsx`, and `getEntryById()` were deleted;
+      the tap-through `Pressable` wrappers were removed from EchoTrail, ActivityFeed, and the
+      EchoScreen list card (see CHANGELOGCODEX.md). EchoTrail/ActivityFeed cards are now
+      view-only.
+- [ ] **Extract `EntryActionMenu` to `components/ui/` so goal-trail + activity-feed echo cards
+      can act on entries (edit/move/delete), not just view them.** As of 2026-07-10 the
+      `/echo/[id]` detail route is gone and `EntryActionMenu` is the only way to act on an echo
+      card — but it lives in `features/echo/` and `features/CLAUDE.md`'s no-cross-feature-import
+      rule blocks `features/goals/` (EchoTrail, ActivityFeed) from importing it. Those two sites
+      are intentionally inert (view-only, no tap, no menu) until the menu is extracted to
+      `components/ui/` — the same move `ReflectionCard` already made in Block 2, for the same
+      reason. Decision (Ariel): deferred, not built the session the route was removed.
 - [ ] Migrate 14 existing `brt` read-sites to the `brt_ai`/`brt_user` split (migration `007`,
       see docs/DECISIONS.md 2026-06-24 "Echo BRT split"). `brt` is still the source of truth for
       all reads; not yet migrated. Known read-sites: `components/ui/ReflectionCard.tsx`,

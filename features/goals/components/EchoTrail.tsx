@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import { STATUS } from '@/constants/colors';
 import { Typography } from '@/components/ui/Typography';
 
@@ -99,12 +98,10 @@ function EchoTrailCard({ entry, onConfirmLink, onDismissLink }: EchoTrailCardPro
         {entry.brt ? <BrtBadge brt={entry.brt} /> : null}
       </View>
 
-      {/* Content — tappable to navigate to echo entry */}
-      <Pressable onPress={() => router.push(`/(app)/echo/${entry.echoEntryId}` as never)}>
-        <Text numberOfLines={2} className="text-near-black text-sm leading-relaxed">
-          {entry.content}
-        </Text>
-      </Pressable>
+      {/* Content — view-only (no tap-through; see OUTSTANDING.md EntryActionMenu extraction) */}
+      <Text numberOfLines={2} className="text-near-black text-sm leading-relaxed">
+        {entry.content}
+      </Text>
 
       {/* Unconfirmed suggestion banner */}
       {!entry.confirmed && (

@@ -260,19 +260,6 @@ export async function fetchEntries(userId: string): Promise<EchoEntry[]> {
   return entries.map((e) => applyContainer(e, containers.get(e.id)));
 }
 
-export async function getEntryById(entryId: string): Promise<EchoEntry | null> {
-  const { data, error } = await supabase
-    .from('echo_entries')
-    .select('*, goals(id, title)')
-    .eq('id', entryId)
-    .single();
-
-  if (error || !data) return null;
-  const entry = mapEntry(data as unknown as DbEchoEntry);
-  const containers = await fetchConfirmedContainers([entry.id]);
-  return applyContainer(entry, containers.get(entry.id));
-}
-
 // Deletes an echo entry through the server route DELETE /api/entries/:id
 // (withAuth + isEntryOwnedByUser → 404), the same server-side path Move/Edit use
 // — NOT a direct RLS-scoped Supabase delete. Ownership is enforced server-side;
