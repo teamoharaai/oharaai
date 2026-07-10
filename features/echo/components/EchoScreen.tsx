@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   FlatList,
   Modal,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -83,9 +85,11 @@ function SectionLabel({ children }: { children: string }) {
 function EchoEntryListCard({
   entry,
   onOpenMoveMenu,
+  onDelete,
 }: {
   entry: EchoEntry;
   onOpenMoveMenu: () => void;
+  onDelete: () => void;
 }) {
   const onPress = () => router.push(`/(app)/echo/${entry.id}` as never);
 
@@ -126,7 +130,7 @@ function EchoEntryListCard({
         </View>
       </Pressable>
 
-      <EntryActionMenu onMoveToFolder={onOpenMoveMenu} />
+      <EntryActionMenu onMoveToFolder={onOpenMoveMenu} onDelete={onDelete} />
     </View>
   );
 }
@@ -195,6 +199,7 @@ export function EchoScreen() {
   const routeGoalId = Array.isArray(routeGoalIdParam) ? routeGoalIdParam[0] : routeGoalIdParam;
   const { entries, isLoading, pickerGoals, saveEntry, reloadPickerGoals } = useEntries();
   const removeEntry = useEchoStore((state) => state.removeEntry);
+  const deleteEntry = useEchoStore((state) => state.deleteEntry);
   const moveEntry = useMoveEntry({
     onEntryGone: removeEntry,
     onTargetsStale: reloadPickerGoals,
@@ -367,6 +372,39 @@ export function EchoScreen() {
     }
   }
 
+  // Mirrors GoalCard's web-native confirmation split exactly: window.confirm on
+  // web, Alert.alert elsewhere, "This cannot be undone" / Cancel / Delete.
+  async function handleDeleteEntry(entryId: string) {
+    const confirmed = Platform.OS === 'web'
+      ? window.confirm('Delete entry? This cannot be undone.')
+      : await new Promise<boolean>((resolve) =>
+          Alert.alert(
+            'Delete entry',
+            'This cannot be undone.',
+            [
+              {
+                text: 'Cancel',
+                style: 'cancel',
+                onPress: () => resolve(false),
+              },
+              {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: () => resolve(true),
+              },
+            ],
+          )
+        );
+
+    if (!confirmed) return;
+
+    try {
+      await deleteEntry(entryId);
+    } catch {
+      Alert.alert('Could not delete entry', 'Please try again.');
+    }
+  }
+
   const today = new Date();
   const canSave = text.trim().length > 0 && !isSaving;
 
@@ -481,6 +519,7 @@ export function EchoScreen() {
               key={entry.id}
               entry={entry}
               onOpenMoveMenu={() => moveEntry.open(entry.id)}
+              onDelete={() => handleDeleteEntry(entry.id)}
             />
           ))
         )}

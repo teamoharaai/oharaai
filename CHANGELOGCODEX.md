@@ -2,6 +2,31 @@
 
 ## [Unreleased]
 
+### Added (2026-07-10 — Echo entry delete from the action menu)
+- **Context:** the Echo list's per-entry `···` menu (`EntryActionMenu`) only offered
+  "Move to folder". Added an in-menu **Delete** action. Scope was originally "Edit + Delete"
+  but Edit was deferred: the repo has no Echo-entry edit surface (`EchoDetailScreen` is
+  read-only, no update endpoint), so an "Edit" row would either duplicate the card tap or
+  require a new edit flow beyond this patch. Product decision: ship Delete only now.
+- **`features/echo/services/echo-service.ts`:** new `deleteEntry(entryId)` — a client-side,
+  RLS-scoped `supabase.from('echo_entries').delete().eq('id', entryId)` that throws on error.
+  Mirrors `goal-service.deleteGoal`. `echo_entry_links` rows cascade via the FK
+  (`echo_entry_id ... on delete cascade`, migration 005).
+- **`features/echo/store.ts`:** new async `deleteEntry(entryId)` store action mirroring
+  `goal-store.deleteGoal` — persists first (throws on failure), then filters the row out of
+  `entries`. The existing `removeEntry` stays a standalone optimistic remove for the move
+  flow's "entry gone server-side" (404) path.
+- **`features/echo/components/EntryActionMenu.tsx`:** added `onDelete` prop and a second
+  `<Pressable>` row inside the existing `AnchoredPopover` (destructive `#C0483A`, matching
+  `GoalCard`'s delete color). No positioning changes — the popover re-measures via `onLayout`.
+- **`features/echo/components/EchoScreen.tsx`:** threaded `onDelete` through `EchoEntryListCard`
+  the same way `onOpenMoveMenu` is. New `handleDeleteEntry` mirrors `GoalCard`'s web/native
+  confirmation split exactly (`window.confirm` on web, `Alert.alert` elsewhere; "This cannot be
+  undone", Cancel/Delete), then calls the store's `deleteEntry`; failures surface an alert.
+- `npx tsc --noEmit` clean. Files touched: `features/echo/services/echo-service.ts`,
+  `features/echo/store.ts`, `features/echo/components/EntryActionMenu.tsx`,
+  `features/echo/components/EchoScreen.tsx`.
+
 ### Changed (2026-07-10 — Sign-out consolidation cleanup)
 - **Context:** closes out audit finding #3 from the 401-handling work: two separate
   sign-out implementations existed (`lib/api/client.ts`'s `signOutAndRedirect()` and
