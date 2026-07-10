@@ -1,6 +1,7 @@
 import { View, Text, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
+import { LIGHT_THEME } from '@/constants/colors';
 import type { Project } from '@/features/projects/types';
 
 interface ProjectCardProps {
@@ -8,68 +9,68 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
-  const lastActive = new Date(project.updated_at).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-  });
-  const statusDotColor = project.status === 'active' ? '#1E3226' : '#9CA89E';
-
   return (
     <Pressable
       onPress={() => router.push(`/(app)/projects/${project.id}` as never)}
       style={({ pressed }) => ({
-        backgroundColor: '#FFFFFF',
+        backgroundColor: LIGHT_THEME.background.card,
         borderRadius: 16,
+        borderWidth: 1,
+        borderColor: LIGHT_THEME.border.warm,
         marginBottom: 12,
-        padding: 16,
-        shadowColor: '#000',
-        shadowOpacity: pressed ? 0.06 : 0.04,
-        shadowRadius: 8,
+        paddingVertical: 18,
+        paddingHorizontal: 20,
+        shadowColor: 'rgb(30,25,15)',
+        shadowOpacity: 0.04,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 2 },
         elevation: 1,
-        opacity: pressed ? 0.95 : 1,
+        opacity: pressed ? 0.96 : 1,
       })}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+        {/* Teal status dot */}
         <View
           style={{
-            width: 8,
-            height: 8,
+            width: 7,
+            height: 7,
             borderRadius: 999,
-            backgroundColor: statusDotColor,
+            backgroundColor: LIGHT_THEME.accent.tealMid,
             marginRight: 10,
+            marginTop: 6,
           }}
         />
-        <Typography
-          variant="title"
-          style={{ flex: 1 }}
-          numberOfLines={1}
+
+        {/* Title + description stacked */}
+        <View style={{ flex: 1 }}>
+          <Typography variant="title" numberOfLines={1}>
+            {project.title}
+          </Typography>
+          {project.description !== null && (
+            <Typography
+              variant="meta"
+              style={{ marginTop: 3, color: LIGHT_THEME.text.secondary }}
+              numberOfLines={2}
+            >
+              {project.description}
+            </Typography>
+          )}
+        </View>
+
+        {/* Chevron affordance (rotated to collapsed state) */}
+        <Text
+          style={{
+            color: LIGHT_THEME.text.muted,
+            fontSize: 18,
+            lineHeight: 18,
+            marginLeft: 8,
+            marginTop: 2,
+            transform: [{ rotate: '-90deg' }],
+          }}
         >
-          {project.title}
-        </Typography>
+          ›
+        </Text>
       </View>
-
-      <Typography variant="caption" style={{ marginTop: 6 }}>
-        Last active {lastActive}
-      </Typography>
-
-      {project.description !== null && (
-        <Typography
-          variant="meta"
-          style={{ marginTop: 6, color: '#8A8172' }}
-          numberOfLines={2}
-        >
-          {project.description}
-        </Typography>
-      )}
-
-      <View
-        style={{
-          marginTop: 12,
-          height: 3,
-          borderRadius: 2,
-          backgroundColor: '#EDE8E0',
-        }}
-      />
     </Pressable>
   );
 }
