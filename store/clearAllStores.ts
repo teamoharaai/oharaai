@@ -3,6 +3,7 @@ import { useProfileStore } from '@/features/profile/store';
 import { useEchoStore } from '@/features/echo/store';
 import { useEchoDraftStore } from '@/features/echo/draft-store';
 import { useProjectStore } from '@/features/projects/store';
+import { useUIStore } from '@/store/uiStore';
 
 /**
  * Reset every Zustand store to its initial data state.
@@ -36,4 +37,9 @@ export function clearAllStores(): void {
   // so the next user never hydrates stale drafts.
   useEchoDraftStore.setState({ draftsByContext: {}, lastLinkedGoal: null, hasHydrated: false });
   useEchoDraftStore.persist.clearStorage();
+
+  // Reset UI prefs (e.g. sidebar collapse) so they don't leak across users
+  // on a shared device.
+  useUIStore.setState({ sidebarCollapsed: false });
+  useUIStore.persist.clearStorage();
 }

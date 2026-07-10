@@ -1,8 +1,8 @@
-import { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { router, usePathname } from 'expo-router';
 import { FEATURES } from '@/constants/features';
 import { LIGHT_THEME } from '@/constants/colors';
+import { useUIStore } from '@/store/uiStore';
 import { AvatarMenu } from './AvatarMenu';
 
 type NavItem = {
@@ -21,7 +21,8 @@ const NAV_ITEMS: NavItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const collapsed = useUIStore((state) => state.sidebarCollapsed);
+  const toggleSidebarCollapsed = useUIStore((state) => state.toggleSidebarCollapsed);
 
   return (
     <View
@@ -69,7 +70,7 @@ export function Sidebar() {
         )}
         {!collapsed && (
           <TouchableOpacity
-            onPress={() => setCollapsed((c) => !c)}
+            onPress={toggleSidebarCollapsed}
             accessibilityLabel="Collapse sidebar"
             style={{
               width: 22,
@@ -90,7 +91,7 @@ export function Sidebar() {
       {collapsed && (
         <View style={{ alignItems: 'center', paddingTop: 12 }}>
           <TouchableOpacity
-            onPress={() => setCollapsed((c) => !c)}
+            onPress={toggleSidebarCollapsed}
             accessibilityLabel="Expand sidebar"
             style={{
               width: 22,
