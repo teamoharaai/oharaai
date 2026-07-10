@@ -137,7 +137,7 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
           {days !== null && (
             <Typography
               variant="caption"
-              style={{ color: days > 0 ? (days > 14 ? '#6B7B6E' : '#C0483A') : '#C0483A' }}
+              style={{ color: days > 0 ? (days > 14 ? '#8A8172' : '#C0483A') : '#C0483A' }}
             >
               {days > 0 ? `${days}d left` : 'Overdue'}
             </Typography>
@@ -169,7 +169,7 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
                 hitSlop={8}
                 onPress={() => setMenuOpen(true)}
               >
-                <Typography variant="caption" style={{ fontSize: 18, lineHeight: 20, color: '#9CAF9F' }}>⋯</Typography>
+                <Typography variant="caption" style={{ fontSize: 18, lineHeight: 20, color: '#A79E8E' }}>⋯</Typography>
               </Pressable>
             </View>
           </View>

@@ -39,11 +39,11 @@ export default function CreateProjectScreen() {
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#1A1F1C',
+    color: '#211F1A',
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F1EA' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC' }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -57,7 +57,7 @@ export default function CreateProjectScreen() {
             <Pressable onPress={() => router.back()}>
               <Typography variant="nav-back">← Goals</Typography>
             </Pressable>
-            <Typography variant="nav-back" style={{ color: '#9CAF9F', marginHorizontal: 8 }}>
+            <Typography variant="nav-back" style={{ color: '#A79E8E', marginHorizontal: 8 }}>
               |
             </Typography>
             <Typography variant="nav-title">New project</Typography>
@@ -82,7 +82,7 @@ export default function CreateProjectScreen() {
                 value={title}
                 onChangeText={setTitle}
                 placeholder="e.g. Build financial independence"
-                placeholderTextColor="#9CAF9F"
+                placeholderTextColor="#A79E8E"
                 autoFocus
                 returnKeyType="next"
               />
@@ -98,7 +98,7 @@ export default function CreateProjectScreen() {
                 value={description}
                 onChangeText={setDescription}
                 placeholder="Describe what achieving this means to you..."
-                placeholderTextColor="#9CAF9F"
+                placeholderTextColor="#A79E8E"
                 multiline
               />
             </View>
@@ -108,14 +108,14 @@ export default function CreateProjectScreen() {
               onPress={handleSubmit}
               disabled={!canSubmit}
               style={{
-                backgroundColor: canSubmit ? '#3D5247' : '#9CAF9F',
+                backgroundColor: canSubmit ? '#1E3226' : '#A79E8E',
                 borderRadius: 12,
                 paddingHorizontal: 24,
                 paddingVertical: 16,
                 alignItems: 'center',
               }}
             >
-              <Typography variant="emphasis-sm" style={{ fontSize: 16, color: '#E8EDE9' }}>
+              <Typography variant="emphasis-sm" style={{ fontSize: 16, color: '#EDE7DA' }}>
                 {isSubmitting ? 'Creating…' : 'Create project'}
               </Typography>
             </Pressable>

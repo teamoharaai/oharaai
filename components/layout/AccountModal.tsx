@@ -193,7 +193,7 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
       </Text>
 
       {isLoading ? (
-        <ActivityIndicator size="small" color="#9CAF9F" />
+        <ActivityIndicator size="small" color="#A79E8E" />
       ) : loadError ? (
         <Typography variant="subtitle">
           Couldn't load your profile. Please try again.
@@ -213,7 +213,7 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
                   width: 26,
                   height: 26,
                   borderRadius: 13,
-                  backgroundColor: '#3D5247',
+                  backgroundColor: '#1E3226',
                   alignItems: 'center',
                   justifyContent: 'center',
                   borderWidth: 2,

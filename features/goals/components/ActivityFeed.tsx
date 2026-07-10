@@ -17,8 +17,8 @@ function formatDate(timestamp: string): string {
 function GoalCreatedRow({ item }: { item: GoalCreatedActivity }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <Text style={{ fontFamily: 'Inter-Regular', fontSize: 11, color: '#9CAF9F' }}>◉</Text>
-      <Typography variant="meta" className="text-[#9CAF9F]" style={{ flex: 1 }}>Goal created</Typography>
+      <Text style={{ fontFamily: 'Inter-Regular', fontSize: 11, color: '#A79E8E' }}>◉</Text>
+      <Typography variant="meta" className="text-[#A79E8E]" style={{ flex: 1 }}>Goal created</Typography>
       <Typography variant="caption">{formatDate(item.timestamp)}</Typography>
     </View>
   );
@@ -52,7 +52,7 @@ function EchoEntryCard({ item }: { item: EchoEntryActivity }) {
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Text style={{ fontFamily: 'Inter-Regular', fontSize: 11, color: '#9CAF9F' }}>✦</Text>
+          <Text style={{ fontFamily: 'Inter-Regular', fontSize: 11, color: '#A79E8E' }}>✦</Text>
           <Typography variant="caption">{formatDate(item.timestamp)}</Typography>
         </View>
         {item.emotion?.primary ? (
@@ -64,7 +64,7 @@ function EchoEntryCard({ item }: { item: EchoEntryActivity }) {
               paddingVertical: 2,
             }}
           >
-            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 11, color: '#6B7B6E', textTransform: 'capitalize' }}>
+            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 11, color: '#8A8172', textTransform: 'capitalize' }}>
               {item.emotion.primary}
             </Text>
           </View>
@@ -80,7 +80,7 @@ function EchoEntryCard({ item }: { item: EchoEntryActivity }) {
 function MilestoneRow({ item }: { item: MilestoneCompletedActivity }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <Text style={{ fontFamily: 'Inter-Regular', fontSize: 13, color: '#3D5247' }}>✓</Text>
+      <Text style={{ fontFamily: 'Inter-Regular', fontSize: 13, color: '#1E3226' }}>✓</Text>
       <Typography variant="content" className="text-[13px]" style={{ flex: 1 }} numberOfLines={1}>
         {item.label}
       </Typography>
@@ -101,24 +101,24 @@ function ActivityRow({ item, isLast }: { item: ActivityItem; isLast: boolean }) 
       case 'vault_item_added':
         return (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 11, color: '#9CAF9F' }}>◈</Text>
-            <Typography variant="meta" className="text-[#9CAF9F]" style={{ flex: 1 }}>Added an item to Vault</Typography>
+            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 11, color: '#A79E8E' }}>◈</Text>
+            <Typography variant="meta" className="text-[#A79E8E]" style={{ flex: 1 }}>Added an item to Vault</Typography>
             <Typography variant="caption">{formatDate(item.timestamp)}</Typography>
           </View>
         );
       case 'insight_confirmed':
         return (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 11, color: '#9CAF9F' }}>✦</Text>
-            <Typography variant="meta" className="text-[#9CAF9F]" style={{ flex: 1 }}>Confirmed an insight</Typography>
+            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 11, color: '#A79E8E' }}>✦</Text>
+            <Typography variant="meta" className="text-[#A79E8E]" style={{ flex: 1 }}>Confirmed an insight</Typography>
             <Typography variant="caption">{formatDate(item.timestamp)}</Typography>
           </View>
         );
       case 'echo_linked':
         return (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 11, color: '#9CAF9F' }}>✦</Text>
-            <Typography variant="meta" className="text-[#9CAF9F]" style={{ flex: 1 }}>Linked a reflection</Typography>
+            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 11, color: '#A79E8E' }}>✦</Text>
+            <Typography variant="meta" className="text-[#A79E8E]" style={{ flex: 1 }}>Linked a reflection</Typography>
             <Typography variant="caption">{formatDate(item.timestamp)}</Typography>
           </View>
         );
@@ -161,7 +161,7 @@ export function ActivityFeed({ items, loading, error }: ActivityFeedProps) {
       </Typography>
 
       {loading ? (
-        <ActivityIndicator size="small" color="#9CAF9F" style={{ alignSelf: 'flex-start' }} />
+        <ActivityIndicator size="small" color="#A79E8E" style={{ alignSelf: 'flex-start' }} />
       ) : (
         items.map((item, index) => (
           <ActivityRow key={item.id} item={item} isLast={index === items.length - 1} />

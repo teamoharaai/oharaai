@@ -99,7 +99,7 @@ export default function LoginScreen() {
           <Typography variant="subtitle">Don't have an account? </Typography>
           <Link href="/(auth)/signup" asChild>
             <TouchableOpacity>
-              <Typography variant="emphasis-sm" style={{ color: '#1A1F1C' }}>Sign up</Typography>
+              <Typography variant="emphasis-sm" style={{ color: '#211F1A' }}>Sign up</Typography>
             </TouchableOpacity>
           </Link>
         </View>

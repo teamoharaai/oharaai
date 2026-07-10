@@ -54,7 +54,7 @@ export function GoalDetailHeader({ goal }: GoalDetailHeaderProps) {
         style={{
           fontFamily: 'Inter-SemiBold',
           fontSize: 26,
-          color: '#1A1F1C',
+          color: '#211F1A',
           lineHeight: 32,
           marginBottom: goal.description ? 10 : 0,
         }}

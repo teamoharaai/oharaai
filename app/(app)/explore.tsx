@@ -3,13 +3,13 @@ import { Typography } from '@/components/ui/Typography';
 
 export default function ExploreScreen() {
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F1EA' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC' }}>
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 }}>
         <Text
           style={{
             fontFamily: 'Inter-SemiBold',
             fontSize: 22,
-            color: '#1A1F1C',
+            color: '#211F1A',
             textAlign: 'center',
             marginBottom: 12,
           }}

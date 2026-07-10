@@ -12,7 +12,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
     month: 'short',
     day: 'numeric',
   });
-  const statusDotColor = project.status === 'active' ? '#3D5247' : '#9CA89E';
+  const statusDotColor = project.status === 'active' ? '#1E3226' : '#9CA89E';
 
   return (
     <Pressable
@@ -55,7 +55,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
       {project.description !== null && (
         <Typography
           variant="meta"
-          style={{ marginTop: 6, color: '#6B7B6E' }}
+          style={{ marginTop: 6, color: '#8A8172' }}
           numberOfLines={2}
         >
           {project.description}

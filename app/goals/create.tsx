@@ -271,7 +271,7 @@ export default function GoalCreateScreen() {
   const showIntro = messages.length === 0 && input.trim().length === 0;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F1EA' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC' }}>
       {/* Nav bar */}
       <View
         style={{
@@ -281,7 +281,7 @@ export default function GoalCreateScreen() {
           paddingVertical: 10,
           borderBottomWidth: 0.5,
           borderBottomColor: '#EAE7E0',
-          backgroundColor: '#F5F1EA',
+          backgroundColor: '#F8F4EC',
         }}
       >
         <TouchableOpacity
@@ -333,7 +333,7 @@ export default function GoalCreateScreen() {
                 width: 56,
                 height: 56,
                 borderRadius: 28,
-                backgroundColor: '#E8EDE9',
+                backgroundColor: '#EDE7DA',
                 borderWidth: 1,
                 borderColor: 'rgba(74,124,95,0.2)',
                 alignItems: 'center',
@@ -402,7 +402,7 @@ export default function GoalCreateScreen() {
                   <Typography
                     variant="body"
                     style={{
-                      color: msg.role === 'user' ? '#E8EDE9' : '#1A1F1C',
+                      color: msg.role === 'user' ? '#EDE7DA' : '#211F1A',
                       fontSize: 14,
                       lineHeight: 22,
                     }}
@@ -481,13 +481,13 @@ export default function GoalCreateScreen() {
             style={{
               flex: 1,
               backgroundColor: 'transparent',
-              color: '#1A1F1C',
+              color: '#211F1A',
               fontSize: 14,
               maxHeight: 120,
               padding: 0,
             }}
             placeholder="Tell me about your goal..."
-            placeholderTextColor="#9CAF9F"
+            placeholderTextColor="#A79E8E"
             value={input}
             onChangeText={setInput}
             multiline
@@ -565,7 +565,7 @@ export default function GoalCreateScreen() {
                       setSelectedProjectId((current) => (current === project.id ? null : project.id))
                     }
                     style={{
-                      backgroundColor: isSelected ? '#3D5247' : '#FFFFFF',
+                      backgroundColor: isSelected ? '#1E3226' : '#FFFFFF',
                       borderWidth: isSelected ? 0 : 1,
                       borderColor: '#EAE7E0',
                       borderRadius: 999,
@@ -576,7 +576,7 @@ export default function GoalCreateScreen() {
                   >
                     <Typography
                       variant="label"
-                      style={{ color: isSelected ? '#E8EDE9' : '#6B7B6E' }}
+                      style={{ color: isSelected ? '#EDE7DA' : '#8A8172' }}
                     >
                       {project.title}
                     </Typography>

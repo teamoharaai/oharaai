@@ -64,7 +64,7 @@ export function EditEntryModal({
             <TextInput
               className="mb-2.5 rounded-xl border border-[#D8D2C8] bg-white px-3.5 py-3 font-sans text-base text-near-black"
               placeholder="Title (optional)"
-              placeholderTextColor="#6B7B6E"
+              placeholderTextColor="#8A8172"
               value={title}
               onChangeText={setTitle}
               editable={!isSaving}
@@ -72,7 +72,7 @@ export function EditEntryModal({
             <TextInput
               className="min-h-[120px] rounded-xl border border-[#D8D2C8] bg-white px-3.5 py-3 font-sans text-base text-near-black"
               placeholder="What's on your mind?"
-              placeholderTextColor="#6B7B6E"
+              placeholderTextColor="#8A8172"
               multiline
               value={content}
               onChangeText={setContent}
@@ -93,19 +93,19 @@ export function EditEntryModal({
                 }`}
                 activeOpacity={0.8}
               >
-                <Text className="font-sans text-sm font-semibold text-[#6B7B6E]">Cancel</Text>
+                <Text className="font-sans text-sm font-semibold text-[#8A8172]">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSave}
                 disabled={!canSave}
                 className={`flex-1 items-center rounded-xl py-3 ${
-                  canSave ? 'bg-[#3D5247]' : 'bg-[#D8D2C8]'
+                  canSave ? 'bg-[#1E3226]' : 'bg-[#D8D2C8]'
                 }`}
                 activeOpacity={0.8}
               >
                 <Text
                   className={`font-sans text-sm font-semibold ${
-                    canSave ? 'text-white' : 'text-[#6B7B6E]'
+                    canSave ? 'text-white' : 'text-[#8A8172]'
                   }`}
                 >
                   {isSaving ? 'Saving...' : 'Save'}

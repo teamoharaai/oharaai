@@ -24,7 +24,7 @@ export function Sidebar() {
     <View
       style={{
         width: 220,
-        backgroundColor: '#3D5247',
+        backgroundColor: '#1E3226',
         flexDirection: 'column',
         alignSelf: 'stretch',
       }}
@@ -33,7 +33,7 @@ export function Sidebar() {
       <View style={{ paddingTop: 32, paddingHorizontal: 24, paddingBottom: 8 }}>
         <Text
           style={{
-            color: '#E8EDE9',
+            color: '#EDE7DA',
             fontFamily: 'Inter-SemiBold',
             fontSize: 12,
             letterSpacing: 4,
@@ -64,14 +64,14 @@ export function Sidebar() {
                 borderRadius: 12,
                 marginHorizontal: 12,
                 marginBottom: 4,
-                backgroundColor: isActive ? '#2E4238' : 'transparent',
+                backgroundColor: isActive ? '#2A4436' : 'transparent',
                 opacity: item.enabled ? 1 : 0.4,
               }}
               activeOpacity={0.7}
             >
               <Text
                 style={{
-                  color: isActive ? '#E8EDE9' : '#A8C4AE',
+                  color: isActive ? '#EDE7DA' : '#8FA294',
                   fontSize: 14,
                   fontFamily: 'Inter-Medium',
                 }}

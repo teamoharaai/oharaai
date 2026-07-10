@@ -38,7 +38,7 @@ const SECTION_CARD_STYLE = {
 
 const inputStyle = {
   fontSize: 13,
-  color: '#1A1F1C',
+  color: '#211F1A',
   backgroundColor: '#F0EDE6',
   borderWidth: 1,
   borderColor: '#EAE7E0',
@@ -175,7 +175,7 @@ export function MeasurablesPanel({
       {showAddForm ? (
         <View
           style={{
-            backgroundColor: '#F5F1EA',
+            backgroundColor: '#F8F4EC',
             borderRadius: 12,
             borderWidth: 1,
             borderColor: '#EAE7E0',
@@ -187,7 +187,7 @@ export function MeasurablesPanel({
           <TextInput
             style={[inputStyle, { marginBottom: 10 }]}
             placeholder="Milestone name"
-            placeholderTextColor="#9CAF9F"
+            placeholderTextColor="#A79E8E"
             value={addTitle}
             onChangeText={setAddTitle}
             autoFocus
@@ -214,7 +214,7 @@ export function MeasurablesPanel({
                   style={{
                     fontSize: 12,
                     fontFamily: 'Inter-Medium',
-                    color: addType === t ? accentColor : '#9CAF9F',
+                    color: addType === t ? accentColor : '#A79E8E',
                   }}
                 >
                   {TYPE_LABELS[t]}
@@ -228,7 +228,7 @@ export function MeasurablesPanel({
             <TextInput
               style={[inputStyle, { flex: 1 }]}
               placeholder="Target (e.g. 10)"
-              placeholderTextColor="#9CAF9F"
+              placeholderTextColor="#A79E8E"
               value={addTarget}
               onChangeText={setAddTarget}
               keyboardType="numeric"
@@ -237,7 +237,7 @@ export function MeasurablesPanel({
             <TextInput
               style={[inputStyle, { flex: 1 }]}
               placeholder="Unit (e.g. km)"
-              placeholderTextColor="#9CAF9F"
+              placeholderTextColor="#A79E8E"
               value={addUnit}
               onChangeText={setAddUnit}
               returnKeyType="done"

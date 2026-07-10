@@ -89,7 +89,7 @@ export function AvatarMenu() {
           <Pressable
             onPress={() => {}}
             style={{
-              backgroundColor: '#F5F1EA',
+              backgroundColor: '#F8F4EC',
               borderRadius: 16,
               padding: 20,
               width: '100%',
@@ -103,7 +103,7 @@ export function AvatarMenu() {
                   marginLeft: 12,
                   fontFamily: 'Inter-SemiBold',
                   fontSize: 15,
-                  color: '#1A1F1C',
+                  color: '#211F1A',
                   flexShrink: 1,
                 }}
                 numberOfLines={1}
@@ -120,7 +120,7 @@ export function AvatarMenu() {
               style={{ paddingVertical: 12 }}
               activeOpacity={0.7}
             >
-              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#1A1F1C' }}>Profile</Text>
+              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#211F1A' }}>Profile</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -131,7 +131,7 @@ export function AvatarMenu() {
               style={{ paddingVertical: 12 }}
               activeOpacity={0.7}
             >
-              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#1A1F1C' }}>Settings</Text>
+              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#211F1A' }}>Settings</Text>
             </TouchableOpacity>
 
             <View style={{ height: 1, backgroundColor: '#E5E1D8', marginVertical: 4 }} />
