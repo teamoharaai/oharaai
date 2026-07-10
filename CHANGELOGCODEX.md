@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-10 — Sign-out consolidation cleanup)
+- **Context:** closes out audit finding #3 from the 401-handling work: two separate
+  sign-out implementations existed (`lib/api/client.ts`'s `signOutAndRedirect()` and
+  `features/auth/services/auth-service.ts`'s `signOut()`). Decision (product): local-scope
+  sign-out only — signing out on one device must not kill sessions on the user's other
+  devices — and `signOutAndRedirect()` is the single implementation going forward.
+- **`features/auth/services/auth-service.ts`:** removed the dead `signOut()` export.
+  Confirmed via repo-wide grep immediately before deletion that it had zero callers
+  (`AvatarMenu.tsx` already calls `signOutAndRedirect()` directly, not this). `signIn`,
+  `signUp`, and `getSession` in this file are unrelated and untouched; the `supabase`
+  import stays since those three still use it.
+- No changes to `signOutAndRedirect()` or `AvatarMenu.tsx` — both were already correct.
+- If "sign out of all other devices" is needed later, that should be a new,
+  explicitly-named function (e.g. `signOutAllDevices()`) built when actually scoped, not
+  a reason this dead function should have been kept speculatively.
+- `npx tsc --noEmit` clean. Files touched: `features/auth/services/auth-service.ts`,
+  `CHANGELOGCODEX.md`.
+
 ### Changed (2026-07-09 — Session 4.4 follow-up: authedFetch migrated to screens/components; sign-out unified)
 - **Context:** third and final follow-up to the 401-handling work. Closes out the six
   non-hook call sites flagged as out-of-scope in the previous pass:
