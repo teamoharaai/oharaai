@@ -1,18 +1,24 @@
 import { View, Text } from 'react-native';
+import { LIGHT_THEME } from '@/constants/colors';
 
 interface ProgressRingProps {
   progress: number;
   size?: number;
   strokeWidth?: number;
   color?: string;
+  // 'default' keeps the legacy dark track + stroke-matched percentage text.
+  // 'warm' opts into the dashboard redesign: warm-neutral track + ink percentage.
+  variant?: 'default' | 'warm';
 }
 
 // Web version: proper SVG arc ring with animated fill
-export function ProgressRing({ progress, size = 64, strokeWidth = 5, color = '#5FA8D3' }: ProgressRingProps) {
+export function ProgressRing({ progress, size = 64, strokeWidth = 5, color = '#5FA8D3', variant = 'default' }: ProgressRingProps) {
   const radius = (size - strokeWidth * 2) / 2;
   const circumference = radius * 2 * Math.PI;
   const offset = circumference - (Math.min(100, Math.max(0, progress)) / 100) * circumference;
   const center = size / 2;
+  const trackColor = variant === 'warm' ? LIGHT_THEME.border.warm : '#1E1E2E';
+  const textColor = variant === 'warm' ? LIGHT_THEME.text.primary : color;
 
   return (
     <View style={{ width: size, height: size }}>
@@ -23,7 +29,7 @@ export function ProgressRing({ progress, size = 64, strokeWidth = 5, color = '#5
           cx={center}
           cy={center}
           r={radius}
-          stroke="#1E1E2E"
+          stroke={trackColor}
           strokeWidth={strokeWidth}
           fill="none"
         />
@@ -50,7 +56,7 @@ export function ProgressRing({ progress, size = 64, strokeWidth = 5, color = '#5
           justifyContent: 'center',
         }}
       >
-        <Text style={{ color, fontSize: size * 0.22, fontFamily: 'Inter-Bold' }}>
+        <Text style={{ color: textColor, fontSize: size * 0.22, fontFamily: 'Inter-Bold' }}>
           {Math.round(progress)}%
         </Text>
       </View>
