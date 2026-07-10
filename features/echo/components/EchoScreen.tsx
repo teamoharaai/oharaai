@@ -3,7 +3,6 @@ import {
   Alert,
   FlatList,
   Modal,
-  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -370,29 +369,8 @@ export function EchoScreen() {
     }
   }
 
-  // Mirrors GoalCard's web-native confirmation split exactly: window.confirm on
-  // web, Alert.alert elsewhere, "This cannot be undone" / Cancel / Delete.
   async function handleDeleteEntry(entryId: string) {
-    const confirmed = Platform.OS === 'web'
-      ? window.confirm('Delete entry? This cannot be undone.')
-      : await new Promise<boolean>((resolve) =>
-          Alert.alert(
-            'Delete entry',
-            'This cannot be undone.',
-            [
-              {
-                text: 'Cancel',
-                style: 'cancel',
-                onPress: () => resolve(false),
-              },
-              {
-                text: 'Delete',
-                style: 'destructive',
-                onPress: () => resolve(true),
-              },
-            ],
-          )
-        );
+    const confirmed = window.confirm('Delete entry? This cannot be undone.');
 
     if (!confirmed) return;
 

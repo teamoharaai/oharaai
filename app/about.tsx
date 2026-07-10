@@ -1,6 +1,6 @@
 import { Link } from "expo-router";
 import type { Href } from "expo-router";
-import { Platform, ScrollView, TouchableOpacity, View } from "react-native";
+import { ScrollView, TouchableOpacity, View } from "react-native";
 import { Typography } from "@/components/ui/Typography";
 
 function NavLink({
@@ -27,11 +27,9 @@ export default function AboutPage() {
         <View
           className="absolute left-1/2 top-1/2 h-72 w-72 -translate-x-36 -translate-y-36 rounded-full bg-white/10"
           style={
-            Platform.OS === "web"
-              ? ({
-                  filter: "blur(120px)",
-                } as any)
-              : undefined
+            {
+              filter: "blur(120px)",
+            } as any
           }
         />
         <View className="absolute inset-0 bg-dark-bg/78" />
@@ -41,15 +39,13 @@ export default function AboutPage() {
       <View
         className="px-6 pt-6"
         style={
-          Platform.OS === "web"
-            ? ({
-                position: "sticky",
-                top: 0,
-                zIndex: 50,
-                backdropFilter: "blur(18px)",
-                WebkitBackdropFilter: "blur(18px)",
-              } as any)
-            : undefined
+          {
+            position: "sticky",
+            top: 0,
+            zIndex: 50,
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+          } as any
         }
       >
         <View className="mx-auto w-full max-w-6xl flex-row items-center justify-between rounded-full border border-white/10 bg-white/5 px-5 py-4">
@@ -84,13 +80,11 @@ export default function AboutPage() {
             variant="heading"
             className="mb-6 text-center"
             style={
-              Platform.OS === "web"
-                ? ({
-                    fontSize: "clamp(3.5rem, 9vw, 6.5rem)",
-                    lineHeight: 1,
-                    letterSpacing: -3,
-                  } as any)
-                : { fontSize: 52, lineHeight: 52, letterSpacing: -2 }
+              {
+                fontSize: "clamp(3.5rem, 9vw, 6.5rem)",
+                lineHeight: 1,
+                letterSpacing: -3,
+              } as any
             }
           >
             About OHARA

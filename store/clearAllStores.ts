@@ -32,7 +32,7 @@ export function clearAllStores(): void {
 
   useProjectStore.setState({ projects: [], isLoading: false, error: null });
 
-  // In-memory reset then remove the persisted localStorage / AsyncStorage key
+  // In-memory reset then remove the persisted localStorage key
   // so the next user never hydrates stale drafts.
   useEchoDraftStore.setState({ draftsByContext: {}, lastLinkedGoal: null, hasHydrated: false });
   useEchoDraftStore.persist.clearStorage();

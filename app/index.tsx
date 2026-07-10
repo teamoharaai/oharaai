@@ -3,7 +3,6 @@ import type { Href } from "expo-router";
 import { useRef, useState } from "react";
 import {
   Image,
-  Platform,
   ScrollView,
   TouchableOpacity,
   View,
@@ -57,13 +56,11 @@ function ActionButton({
       <TouchableOpacity
         className={`${baseClassName} rounded-full px-6 py-3.5`}
         style={
-          Platform.OS === "web"
-            ? ({
-                cursor: "pointer",
-                transition:
-                  "transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease",
-              } as any)
-            : undefined
+          {
+            cursor: "pointer",
+            transition:
+              "transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease",
+          } as any
         }
       >
         <Typography variant="label" className="font-semibold" style={{ color: textColor }}>
@@ -83,15 +80,13 @@ function Header({
     <View
       className="px-6 pt-6"
       style={
-        Platform.OS === "web"
-          ? ({
-              position: "sticky",
-              top: 0,
-              zIndex: 50,
-              backdropFilter: "blur(18px)",
-              WebkitBackdropFilter: "blur(18px)",
-            } as any)
-          : undefined
+        {
+          position: "sticky",
+          top: 0,
+          zIndex: 50,
+          backdropFilter: "blur(18px)",
+          WebkitBackdropFilter: "blur(18px)",
+        } as any
       }
     >
       <View className="mx-auto w-full max-w-6xl flex-row items-center justify-between rounded-full border border-white/10 bg-white/5 px-5 py-4">
@@ -121,7 +116,7 @@ function Hero() {
   return (
     <View
       className="items-center justify-center px-6 pb-20 pt-16"
-      style={{ minHeight: Platform.OS === "web" ? "78vh" : undefined } as any}
+      style={{ minHeight: "78vh" } as any}
     >
       <View className="items-center" style={{ maxWidth: 720 }}>
         <View className="mb-8 rounded-full border border-white/10 bg-white/5 px-4 py-2">
@@ -131,22 +126,19 @@ function Hero() {
         </View>
 
         {/*
-         * Hero title: uses CSS clamp() for fluid responsive sizing on web.
-         * React Native's style system doesn't support clamp(), so we apply it
-         * only on web via an inline style override and fall back to a fixed
-         * native size. This is intentional — do not replace with a Tailwind class.
+         * Hero title: uses CSS clamp() for fluid responsive sizing.
+         * Applied via inline style override — intentional, do not replace
+         * with a Tailwind class.
          */}
         <Typography
           variant="heading"
           className="mb-6 text-center"
           style={
-            Platform.OS === "web"
-              ? ({
-                  fontSize: "clamp(3.5rem, 9vw, 6.5rem)",
-                  lineHeight: 1,
-                  letterSpacing: -3,
-                } as any)
-              : { fontSize: 52, lineHeight: 52, letterSpacing: -2 }
+            {
+              fontSize: "clamp(3.5rem, 9vw, 6.5rem)",
+              lineHeight: 1,
+              letterSpacing: -3,
+            } as any
           }
         >
           OharaAI
@@ -218,42 +210,32 @@ export default function LandingPage() {
         <View
           className="absolute left-1/2 top-1/2 h-72 w-72 -translate-x-36 -translate-y-36 rounded-full bg-white/10"
           style={
-            Platform.OS === "web"
-              ? ({
-                  filter: "blur(120px)",
-                } as any)
-              : undefined
+            {
+              filter: "blur(120px)",
+            } as any
           }
         />
         <Image
           source={require("../assets/images/icon.png")}
           resizeMode="contain"
-          blurRadius={Platform.OS === "ios" || Platform.OS === "android" ? 14 : 0}
           className="absolute left-1/2 top-1/2 h-[440px] w-[440px]"
           style={
-            Platform.OS === "web"
-              ? ({
-                  filter: "blur(20px)",
-                  opacity: 0.16,
-                  transform: "translate(-220px, -220px)",
-                } as any)
-              : ({
-                  opacity: 0.16,
-                  transform: [{ translateX: -220 }, { translateY: -220 }],
-                } as any)
+            {
+              filter: "blur(20px)",
+              opacity: 0.16,
+              transform: "translate(-220px, -220px)",
+            } as any
           }
         />
         <View className="absolute inset-0 bg-dark-bg/78" />
-        {Platform.OS === "web" ? (
-          <View
-            className="absolute inset-0"
-            style={{
-              backgroundColor: "transparent",
-              backgroundImage:
-                "radial-gradient(circle at top, rgba(255,255,255,0.08), transparent 36%)",
-            } as any}
-          />
-        ) : null}
+        <View
+          className="absolute inset-0"
+          style={{
+            backgroundColor: "transparent",
+            backgroundImage:
+              "radial-gradient(circle at top, rgba(255,255,255,0.08), transparent 36%)",
+          } as any}
+        />
       </View>
 
       <Header

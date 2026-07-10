@@ -4,8 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
 } from 'react-native';
 import { Link, router, useLocalSearchParams } from 'expo-router';
@@ -36,10 +34,7 @@ export default function LoginScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1 bg-cream"
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <View className="flex-1 bg-cream">
       <View className="flex-1 justify-center px-6" style={{ maxWidth: 420, width: '100%', alignSelf: 'center' }}>
         {/* Wordmark */}
         <Text className="text-3xl text-near-black tracking-tight mb-2" style={{ fontFamily: 'Inter-Bold' }}>
@@ -104,6 +99,6 @@ export default function LoginScreen() {
           </Link>
         </View>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }

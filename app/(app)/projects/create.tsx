@@ -3,8 +3,6 @@ import {
   TextInput,
   Pressable,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   SafeAreaView,
 } from 'react-native';
 import { useState } from 'react';
@@ -44,10 +42,7 @@ export default function CreateProjectScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC' }}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      <View style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20, paddingBottom: 40 }}
           keyboardShouldPersistTaps="handled"
@@ -121,7 +116,7 @@ export default function CreateProjectScreen() {
             </Pressable>
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }

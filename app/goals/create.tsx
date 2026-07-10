@@ -4,8 +4,6 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   SafeAreaView,
 } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
@@ -312,11 +310,7 @@ export default function GoalCreateScreen() {
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
-      >
+      <View style={{ flex: 1 }}>
         {/* Intro state */}
         {showIntro ? (
           <View
@@ -586,7 +580,7 @@ export default function GoalCreateScreen() {
             </ScrollView>
           </View>
         )}
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }

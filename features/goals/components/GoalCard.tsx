@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Pressable, Alert, StyleSheet, Platform } from 'react-native';
+import { View, Pressable, Alert, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { GOAL_THEMES } from '@/constants/themes';
 import { Badge } from '@/components/ui/Badge';
@@ -29,26 +29,7 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
         : null;
 
   const handleDelete = async () => {
-    const confirmed = Platform.OS === 'web'
-      ? window.confirm('Delete goal? This cannot be undone.')
-      : await new Promise<boolean>((resolve) =>
-          Alert.alert(
-            'Delete goal',
-            'This cannot be undone.',
-            [
-              {
-                text: 'Cancel',
-                style: 'cancel',
-                onPress: () => resolve(false),
-              },
-              {
-                text: 'Delete',
-                style: 'destructive',
-                onPress: () => resolve(true),
-              },
-            ],
-          )
-        );
+    const confirmed = window.confirm('Delete goal? This cannot be undone.');
 
     if (!confirmed) return;
 

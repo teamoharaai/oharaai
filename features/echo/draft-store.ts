@@ -1,5 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
 import { create } from 'zustand';
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
 
@@ -34,7 +32,7 @@ const webStorage: StateStorage = {
   },
 };
 
-const echoDraftStorage = Platform.OS === 'web' ? webStorage : AsyncStorage;
+const echoDraftStorage = webStorage;
 
 export function getEchoDraftContextKey(goalId: string | null) {
   return goalId ? `goal:${goalId}` : 'global';
