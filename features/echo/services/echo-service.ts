@@ -273,6 +273,20 @@ export async function getEntryById(entryId: string): Promise<EchoEntry | null> {
   return applyContainer(entry, containers.get(entry.id));
 }
 
+// Deletes an echo entry. RLS-scoped via echo_entries.user_id = auth.uid(), so
+// the session client can only delete the caller's own entries. echo_entry_links
+// rows cascade on the FK (echo_entry_id ... on delete cascade, migration 005).
+// Mirrors goal-service.deleteGoal:
+// throws on error so the caller can surface a failure and keep the row.
+export async function deleteEntry(entryId: string): Promise<void> {
+  const { error } = await supabase
+    .from('echo_entries')
+    .delete()
+    .eq('id', entryId);
+
+  if (error) throw error;
+}
+
 export async function createEntry(params: {
   userId: string;
   content: string;

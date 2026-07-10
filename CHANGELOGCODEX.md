@@ -2,6 +2,54 @@
 
 ## [Unreleased]
 
+### Added (2026-07-10 — Echo entry delete from the action menu)
+- **Context:** the Echo list's per-entry `···` menu (`EntryActionMenu`) only offered
+  "Move to folder". Added an in-menu **Delete** action. Scope was originally "Edit + Delete"
+  but Edit was deferred: the repo has no Echo-entry edit surface (`EchoDetailScreen` is
+  read-only, no update endpoint), so an "Edit" row would either duplicate the card tap or
+  require a new edit flow beyond this patch. Product decision: ship Delete only now.
+- **`features/echo/services/echo-service.ts`:** new `deleteEntry(entryId)` — a client-side,
+  RLS-scoped `supabase.from('echo_entries').delete().eq('id', entryId)` that throws on error.
+  Mirrors `goal-service.deleteGoal`. `echo_entry_links` rows cascade via the FK
+  (`echo_entry_id ... on delete cascade`, migration 005).
+- **`features/echo/store.ts`:** new async `deleteEntry(entryId)` store action mirroring
+  `goal-store.deleteGoal` — persists first (throws on failure), then filters the row out of
+  `entries`. The existing `removeEntry` stays a standalone optimistic remove for the move
+  flow's "entry gone server-side" (404) path.
+- **`features/echo/components/EntryActionMenu.tsx`:** added `onDelete` prop and a second
+  `<Pressable>` row inside the existing `AnchoredPopover` (destructive `#C0483A`, matching
+  `GoalCard`'s delete color). No positioning changes — the popover re-measures via `onLayout`.
+- **`features/echo/components/EchoScreen.tsx`:** threaded `onDelete` through `EchoEntryListCard`
+  the same way `onOpenMoveMenu` is. New `handleDeleteEntry` mirrors `GoalCard`'s web/native
+  confirmation split exactly (`window.confirm` on web, `Alert.alert` elsewhere; "This cannot be
+  undone", Cancel/Delete), then calls the store's `deleteEntry`; failures surface an alert.
+- `npx tsc --noEmit` clean. Files touched: `features/echo/services/echo-service.ts`,
+  `features/echo/store.ts`, `features/echo/components/EntryActionMenu.tsx`,
+  `features/echo/components/EchoScreen.tsx`.
+### Added (2026-07-10 — Entry Delete / hard delete)
+- **`app/api/entries/[id]+api.ts`:** new route exporting `DELETE`. Hard-deletes an
+  Echo entry the caller owns. Coexists with the sibling `app/api/entries/[id]/move+api.ts`
+  (different file, no route conflict — `/api/entries/:id` DELETE vs `/api/entries/:id/move`
+  PATCH). Shape is a byte-for-byte mirror of the Move route: `isDatabaseConfigured` 503
+  guard → `withAuth` → `sanitizeString(params.id)` (400 on bad id) → `createAuthedClient` →
+  `isEntryOwnedByUser` (404 if not owned) → `.from('echo_entries').delete().eq('id', entryId)`
+  → `{ success: true }`. Same local `sanitizeString` helper and same try/catch 500 shape.
+- **Client:** no new store action — the existing `removeEntry(entryId)` in
+  `features/echo/store.ts` handles optimistic removal.
+- **Provenance note (documented, not changed):** `interests.source_thorn_id` FK is
+  `ON DELETE SET NULL` (`supabase/migrations/002_echo.sql:83`). Deleting a thorn-sourced
+  entry nulls that provenance pointer on any derived `interests` row without deleting the
+  row. Confirmed non-blocking: repo-wide grep found **zero** application-code consumers of
+  `source_thorn_id` (lib/app/hooks/features/components/types), so nothing assumes it is
+  populated. Behavior left as-is.
+
+### Smoke-test checklist
+- DELETE `/api/entries/:id` for an owned entry → 200 `{ success: true }`, row gone.
+- DELETE another user's entry id → 404 `Not found` (no delete).
+- DELETE with DB unconfigured → 503; malformed/empty id → 400.
+- Delete a thorn-sourced entry that seeded an `interests` row → interests row survives with
+  `source_thorn_id` nulled.
+
 ### Changed (2026-07-10 — Sign-out consolidation cleanup)
 - **Context:** closes out audit finding #3 from the 401-handling work: two separate
   sign-out implementations existed (`lib/api/client.ts`'s `signOutAndRedirect()` and
