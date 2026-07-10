@@ -1091,3 +1091,35 @@ Excluded: H1–H6 items pending human review (store pattern decision, echo promp
 
 ### Risks
 - If Supabase dashboard redirect URL allowlists still only include `https://oharaai.vercel.app/auth/callback`, they must be updated to include `https://oharaai.vercel.app/callback` for email confirmation to succeed in production.
+
+## Entry Edit backend — server-side PATCH + re-embed (2026-07-10)
+
+### Added
+- New `PATCH /api/entries/:id` route (`app/api/entries/[id]+api.ts`): server-side
+  content/title edit for echo entries. `withAuth` → `isEntryOwnedByUser()` → 404 if
+  not owned (same gate as Move). Sanitizes + length-caps `content` (20000) and
+  `title` (200) with the same `sanitizeString` discipline Move uses — deliberately
+  NOT copying `createEntry`'s unbounded-content gap. `title` is clearable (null /
+  empty → null).
+- Reads the current entry first to detect a real content change and to check
+  `ai_insight_requested`. **Only when `content` actually changed**: re-embeds inline
+  server-side via `buildEchoEmbeddingText` → `generateEmbedding` (createEntry's STEP 1
+  logic, ported off the client), and — if `ai_insight_requested` — flips
+  `ai_status='pending'` (existing `echo/reconcile` job picks it up, untouched) and
+  clears the now-stale reflection fields (`ai_response`, `summarized`, `processed_at`,
+  `brt`, `brt_ai`, `emotion`, `confidence`, `model_version`; plus `retry_count`/
+  `last_attempted_at` reset for a clean retry budget). Title-only edits touch nothing
+  else. Embedding write is non-blocking (edit already committed).
+- Client `updateEntry()` service fn in `features/echo/services/echo-service.ts`,
+  same shape as `moveEntryRequest` (authedFetch + typed error kinds).
+
+### Reconciliation note
+- Task described this PATCH as living in `app/api/entries/[id]+api.ts` "same file as
+  Delete's DELETE export" and adapting a route-handler `createEntry`. In this repo no
+  such file/DELETE exists (only `entries/[id]/move+api.ts`) and `createEntry` is a
+  client-side service. Created the file fresh with just the PATCH (natural home;
+  DELETE can be added later) and ported createEntry's client-side embedding logic to
+  the server, per the task's stated server-side intent.
+
+### Validation
+- `npx tsc --noEmit` clean.
