@@ -636,7 +636,11 @@ export default function DashboardScreen() {
                 </Pressable>
               </View>
               {hasProjects && projects.map((project) => (
-                <ProjectCard key={project.id} project={project} />
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  goals={goals.filter((g) => g.projectId === project.id)}
+                />
               ))}
             </View>
 
