@@ -233,28 +233,21 @@ export function EchoComposer({
 
   return (
     <View className="flex-1 px-8 py-7">
-      <Text
-        className="font-sans"
-        style={{
-          color: LIGHT_THEME.text.primary,
-          fontFamily: 'Inter-ExtraBold',
-          fontSize: 20,
-          lineHeight: 26,
-        }}
-      >
-        New Echo
-      </Text>
+      <View className="flex-row items-center justify-between gap-4">
+        <Text
+          className="min-w-0 flex-1 font-sans"
+          style={{
+            color: LIGHT_THEME.text.primary,
+            fontFamily: 'Inter-ExtraBold',
+            fontSize: 20,
+            lineHeight: 26,
+          }}
+        >
+          New Echo
+        </Text>
+      </View>
 
-      <TextInput
-        className="mt-5 rounded-xl border bg-white px-3.5 py-3 font-sans text-base"
-        placeholder="Title (optional)"
-        placeholderTextColor={LIGHT_THEME.text.secondary}
-        value={titleText}
-        onChangeText={handleTitleChange}
-        style={{ borderColor: LIGHT_THEME.border.input, color: LIGHT_THEME.text.primary }}
-      />
-
-      <View className="mt-3">
+      <View className="mt-5">
         {linkedGoal ? (
           <View className="rounded-xl border bg-white px-3.5 py-3" style={{ borderColor: LIGHT_THEME.border.input }}>
             <Text className="font-sans text-xs" style={{ color: LIGHT_THEME.text.secondary }}>
@@ -311,27 +304,38 @@ export function EchoComposer({
         ) : null}
       </View>
 
-      <TextInput
-        className="mt-3 min-h-[220px] rounded-xl border bg-white px-3.5 py-3 font-sans text-base"
-        placeholder="What's on your mind?"
-        placeholderTextColor={LIGHT_THEME.text.secondary}
-        multiline
-        numberOfLines={10}
-        value={text}
-        onChangeText={handleTextChange}
-        textAlignVertical="top"
-        style={{ borderColor: LIGHT_THEME.border.input, color: LIGHT_THEME.text.primary, lineHeight: 22 }}
-      />
-
-      <TouchableOpacity
-        className="mt-3 items-center rounded-xl border px-4 py-3"
-        style={{ borderColor: LIGHT_THEME.border.input, borderStyle: 'dashed' }}
-        activeOpacity={0.75}
+      <View
+        className="mt-4 min-h-[320px] flex-1 overflow-hidden rounded-xl border bg-white"
+        style={{ borderColor: LIGHT_THEME.border.input }}
       >
-        <Text className="font-sans text-sm" style={{ color: LIGHT_THEME.text.secondary }}>
-          Attach photo or voice note
-        </Text>
-      </TouchableOpacity>
+        <TextInput
+          className="px-4 pb-3 pt-4 font-sans"
+          placeholder="Title (optional)"
+          placeholderTextColor={LIGHT_THEME.text.secondary}
+          value={titleText}
+          onChangeText={handleTitleChange}
+          style={{
+            borderBottomColor: LIGHT_THEME.border.divider,
+            borderBottomWidth: 1,
+            color: LIGHT_THEME.text.primary,
+            fontFamily: 'Inter-ExtraBold',
+            fontSize: 22,
+            lineHeight: 28,
+          }}
+        />
+
+        <TextInput
+          className="flex-1 px-4 py-4 font-sans text-base"
+          placeholder="What's on your mind?"
+          placeholderTextColor={LIGHT_THEME.text.secondary}
+          multiline
+          numberOfLines={18}
+          value={text}
+          onChangeText={handleTextChange}
+          textAlignVertical="top"
+          style={{ color: LIGHT_THEME.text.primary, lineHeight: 22 }}
+        />
+      </View>
 
       {submissionNotice ? <ComposerNotice kind={submissionNotice} /> : null}
 

@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-11 — Session 7: Echo composer internal editor layout)
+- **`features/echo/components/EchoComposer.tsx`:** redesigned the inline right-pane composer
+  around a combined title/body editor panel with a larger flexing plain-text body area, while
+  preserving the existing mount path, `Link a goal` picker integration, draft/link state, and
+  save payload contract. Removed the inactive attachment affordance so the composer remains a
+  plain-text entry surface.
+- Verification: `npx tsc --noEmit` clean.
+
 ### Changed (2026-07-11 — Follow-up: add Echo tree view and loosen pane resizing)
 - **`features/echo/components/EchoContainerTree.tsx` (new) and `EchoScreen.tsx`:** added a
   middle-pane tree toggle beside the filter pill, showing folders and project-grouped goals as
