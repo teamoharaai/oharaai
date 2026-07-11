@@ -3,11 +3,12 @@ import { Typography } from '@/components/ui/Typography';
 import { LIGHT_THEME } from '@/constants/colors';
 import { resolveBrt } from '@/lib/utils/resolveBrt';
 import { EchoComposer } from './EchoComposer';
+import { EchoEntryEditForm } from './EchoEntryEditForm';
 import type { CreateEntryResult } from '../services/echo-service';
 import type { EchoBrt, EchoEmotion, EchoEntry, EchoGoalOption } from '../types';
 
 type EchoDetailPaneProps = {
-  mode: 'empty' | 'view' | 'add';
+  mode: 'empty' | 'view' | 'add' | 'edit';
   entry: EchoEntry | null;
   goals: EchoGoalOption[];
   initialGoalId?: string | null;
@@ -21,6 +22,10 @@ type EchoDetailPaneProps = {
   ) => Promise<CreateEntryResult>;
   onCancelAdd: () => void;
   onSaved: (entry: EchoEntry | undefined) => void;
+  editIsSaving: boolean;
+  editError: string | null;
+  onSaveEdit: (changes: { content: string; title: string | null }) => void;
+  onCancelEdit: () => void;
 };
 
 function formatEntryDate(date: Date): string {
@@ -57,6 +62,10 @@ export function EchoDetailPane({
   saveEntry,
   onCancelAdd,
   onSaved,
+  editIsSaving,
+  editError,
+  onSaveEdit,
+  onCancelEdit,
 }: EchoDetailPaneProps) {
   if (mode === 'add') {
     return (
@@ -66,6 +75,18 @@ export function EchoDetailPane({
         saveEntry={saveEntry}
         onCancel={onCancelAdd}
         onSaved={onSaved}
+      />
+    );
+  }
+
+  if (mode === 'edit' && entry) {
+    return (
+      <EchoEntryEditForm
+        entry={entry}
+        isSaving={editIsSaving}
+        error={editError}
+        onSave={onSaveEdit}
+        onCancel={onCancelEdit}
       />
     );
   }

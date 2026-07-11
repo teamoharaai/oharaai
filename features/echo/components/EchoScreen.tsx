@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Dimensions, Pressable, SafeAreaView, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,7 +9,6 @@ import { useEditEntry } from '../hooks/useEditEntry';
 import { useEntries } from '../hooks/useEntries';
 import { useMoveEntry } from '../hooks/useMoveEntry';
 import { useEchoStore } from '../store';
-import { EditEntryModal } from './EditEntryModal';
 import { EchoContainerTree } from './EchoContainerTree';
 import { EchoDetailPane } from './EchoDetailPane';
 import { EchoEntryList } from './EchoEntryList';
@@ -49,7 +48,7 @@ export function EchoScreen() {
 
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [selectedScope, setSelectedScope] = useState<EchoFilterScope>(ALL_SCOPE);
-  const [detailMode, setDetailMode] = useState<'empty' | 'view' | 'add'>('empty');
+  const [detailMode, setDetailMode] = useState<'empty' | 'view' | 'add' | 'edit'>('empty');
 
   const selectedEntry = selectedEntryId
     ? entries.find((entry) => entry.id === selectedEntryId) ?? null
@@ -115,8 +114,19 @@ export function EchoScreen() {
   }
 
   function handleEditEntry(entry: EchoEntry) {
+    setSelectedEntryId(entry.id);
     editEntry.open(entry);
+    setDetailMode('edit');
   }
+
+  // Save success, entry-vanished (404), and Cancel all resolve to
+  // editEntry.activeEntry going back to null — react to that instead of
+  // threading a distinct completion signal out of the hook.
+  useEffect(() => {
+    if (detailMode === 'edit' && editEntry.activeEntry === null) {
+      setDetailMode(selectedEntry ? 'view' : 'empty');
+    }
+  }, [detailMode, editEntry.activeEntry, selectedEntry]);
 
   function handleComposerSaved(entry: EchoEntry | undefined) {
     if (!entry) {
@@ -214,6 +224,10 @@ export function EchoScreen() {
             saveEntry={saveEntry}
             onCancelAdd={() => setDetailMode(selectedEntry ? 'view' : 'empty')}
             onSaved={handleComposerSaved}
+            editIsSaving={editEntry.isSaving}
+            editError={editEntry.error}
+            onSaveEdit={editEntry.save}
+            onCancelEdit={editEntry.close}
           />
         </View>
       </View>
@@ -228,15 +242,6 @@ export function EchoScreen() {
         currentContainer={moveEntry.currentContainer}
         onClose={moveEntry.close}
         onConfirm={moveEntry.confirm}
-      />
-
-      <EditEntryModal
-        visible={editEntry.activeEntry !== null}
-        entry={editEntry.activeEntry}
-        isSaving={editEntry.isSaving}
-        error={editEntry.error}
-        onClose={editEntry.close}
-        onSave={editEntry.save}
       />
     </SafeAreaView>
   );

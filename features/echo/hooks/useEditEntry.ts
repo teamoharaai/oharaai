@@ -11,9 +11,9 @@ interface UseEditEntryOptions {
 }
 
 // Owns the edit flow the way useMoveEntry owns the move flow: the presentational
-// EditEntryModal stays free of service calls (features/ rule 3), and this hook
+// inline edit form stays free of service calls (features/ rule 3), and this hook
 // runs the updateEntry() PATCH → updateEntryFields() optimistic-patch sequence,
-// tracking the active entry / isSaving / error the modal renders.
+// tracking the active entry / isSaving / error the form renders.
 export function useEditEntry({ onEntryGone }: UseEditEntryOptions = {}) {
   const updateEntryFields = useEchoStore((state) => state.updateEntryFields);
 
