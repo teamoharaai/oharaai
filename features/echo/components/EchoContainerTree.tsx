@@ -62,7 +62,21 @@ export function EchoContainerTree({
   onSelectEntry,
 }: EchoContainerTreeProps) {
   const { goalGroups } = useContainerGrouping(goals, folders);
+  const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(() => new Set());
   const [expandedGoalIds, setExpandedGoalIds] = useState<Set<string>>(() => new Set());
+  const entriesByFolderId = useMemo(() => {
+    const groupedEntries = new Map<string, EchoEntry[]>();
+    for (const entry of entries) {
+      if (!entry.folderId) continue;
+      const folderEntries = groupedEntries.get(entry.folderId);
+      if (folderEntries) {
+        folderEntries.push(entry);
+      } else {
+        groupedEntries.set(entry.folderId, [entry]);
+      }
+    }
+    return groupedEntries;
+  }, [entries]);
   const entriesByGoalId = useMemo(() => {
     const groupedEntries = new Map<string, EchoEntry[]>();
     for (const entry of entries) {
@@ -76,6 +90,18 @@ export function EchoContainerTree({
     }
     return groupedEntries;
   }, [entries]);
+
+  function toggleFolderEntries(folderId: string) {
+    setExpandedFolderIds((current) => {
+      const next = new Set(current);
+      if (next.has(folderId)) {
+        next.delete(folderId);
+      } else {
+        next.add(folderId);
+      }
+      return next;
+    });
+  }
 
   function toggleGoalEntries(goalId: string) {
     setExpandedGoalIds((current) => {
@@ -118,27 +144,95 @@ export function EchoContainerTree({
         <SectionLabel>Echo Folders</SectionLabel>
         {folders.map((folder) => {
           const selected = selectedScope.type === 'folder' && selectedScope.id === folder.id;
+          const folderEntries = entriesByFolderId.get(folder.id) ?? [];
+          const hasEntries = folderEntries.length > 0;
+          const expanded = expandedFolderIds.has(folder.id);
           return (
-            <Pressable
-              key={folder.id}
-              onPress={() => onSelectScope({ type: 'folder', id: folder.id, label: folder.name })}
-              className="mx-2 flex-row items-center gap-2 rounded-lg px-3 py-3"
-              style={{ backgroundColor: selected ? LIGHT_THEME.background.selectedRow : 'transparent' }}
-            >
-              <SelectionDot selected={selected} />
-              <Text
-                numberOfLines={1}
-                className="min-w-0 flex-1 font-sans"
+            <View key={folder.id}>
+              <View
+                className="mx-2 flex-row items-center rounded-lg px-1"
                 style={{
-                  color: LIGHT_THEME.text.primary,
-                  fontFamily: selected ? 'Inter-Bold' : 'Inter-Medium',
-                  fontSize: 13.5,
-                  lineHeight: 18,
+                  backgroundColor: selected ? LIGHT_THEME.background.selectedRow : 'transparent',
                 }}
               >
-                {folder.name}
-              </Text>
-            </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={expanded ? `Hide entries for ${folder.name}` : `Show entries for ${folder.name}`}
+                  disabled={!hasEntries}
+                  hitSlop={6}
+                  onPress={() => toggleFolderEntries(folder.id)}
+                  style={{
+                    alignItems: 'center',
+                    height: 30,
+                    justifyContent: 'center',
+                    opacity: hasEntries ? 1 : 0,
+                    width: 20,
+                  }}
+                >
+                  <Ionicons
+                    name={expanded ? 'chevron-down' : 'chevron-forward'}
+                    size={13}
+                    color={LIGHT_THEME.text.muted}
+                  />
+                </Pressable>
+
+                <Pressable
+                  onPress={() => onSelectScope({ type: 'folder', id: folder.id, label: folder.name })}
+                  className="min-w-0 flex-1 flex-row items-center gap-2 py-3 pr-3"
+                >
+                  <SelectionDot selected={selected} />
+                  <Text
+                    numberOfLines={1}
+                    className="min-w-0 flex-1 font-sans"
+                    style={{
+                      color: LIGHT_THEME.text.primary,
+                      fontFamily: selected ? 'Inter-Bold' : 'Inter-Medium',
+                      fontSize: 13.5,
+                      lineHeight: 18,
+                    }}
+                  >
+                    {folder.name}
+                  </Text>
+                </Pressable>
+              </View>
+
+              {expanded ? (
+                <View className="pb-0.5">
+                  {folderEntries.map((entry) => {
+                    const entrySelected = selectedEntryId === entry.id;
+                    return (
+                      <Pressable
+                        key={entry.id}
+                        onPress={() => onSelectEntry(entry.id)}
+                        className="mx-2 ml-9 flex-row items-center gap-2 rounded-lg px-3 py-2"
+                        style={{
+                          backgroundColor: entrySelected
+                            ? LIGHT_THEME.background.selectedRow
+                            : 'transparent',
+                        }}
+                      >
+                        <View
+                          className="h-[5px] w-[5px] rounded-full"
+                          style={{ backgroundColor: LIGHT_THEME.text.muted }}
+                        />
+                        <Text
+                          numberOfLines={1}
+                          className="min-w-0 flex-1 font-sans"
+                          style={{
+                            color: LIGHT_THEME.text.primary,
+                            fontFamily: entrySelected ? 'Inter-Bold' : 'Inter-Regular',
+                            fontSize: 12.5,
+                            lineHeight: 17,
+                          }}
+                        >
+                          {getEntryTitle(entry)}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ) : null}
+            </View>
           );
         })}
 

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-11 — Follow-up: expand Echo folder entries)
+- **`features/echo/components/EchoContainerTree.tsx`:** added the same on-demand child-entry
+  dropdown behavior to Echo folder rows that goal rows already use, keeping folders visible
+  while revealing their linked Echo entries only after the folder chevron is clicked.
+- Verification: `npx tsc --noEmit` clean.
+
 ### Changed (2026-07-11 — Follow-up: expand Echo tree goal entries)
 - **`features/echo/components/EchoContainerTree.tsx` and `EchoScreen.tsx`:** kept project
   headings and their goal rows visible in Echo tree mode, while adding a per-goal chevron that
