@@ -1,10 +1,10 @@
 import { View } from 'react-native';
-import { COLORS, LIGHT_THEME } from '@/constants/colors';
+import { LIGHT_THEME } from '@/constants/colors';
 
 const FOREST = LIGHT_THEME.background.sidebar;
 const CREAM = LIGHT_THEME.background.page;
 const LABEL = '#8A8172';
-const AMBER = COLORS.amber;
+const AMBER = LIGHT_THEME.brt.rose;
 
 export default function ConstellationSample() {
   return (
