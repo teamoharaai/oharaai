@@ -14,6 +14,12 @@
 - Verification: `npx tsc --noEmit` clean. Live smoke for EchoTrail labels, goal-card
   dots, and ReflectionCard labels still requires a real signed-in dev-server session.
 
+### Added (2026-07-11 — Phase 1: Echo redesign color tokens)
+- **`constants/colors.ts`:** added the locked Echo redesign tokens only:
+  `LIGHT_THEME.brt.{bud,rose,thorn}`, `LIGHT_THEME.border.input`,
+  `LIGHT_THEME.border.divider`, and `LIGHT_THEME.background.selectedRow`.
+- Verification: `npx tsc --noEmit` clean.
+
 ### Added (2026-07-10 — Log the intentional embedding-skip in PATCH /api/entries/:id)
 - **Context:** a live audit flagged `echo_entries.embedding_text` as null after a content-changing
   edit. Root cause was benign: `buildEchoEmbeddingText` returns null when content falls under

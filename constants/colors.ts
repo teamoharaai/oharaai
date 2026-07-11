@@ -46,6 +46,7 @@ export const LIGHT_THEME = {
     input: '#F0EDE6',
     subtle: '#EAE7E0',
     goalCard: '#FCFAF4', // new: goal ring card surface
+    selectedRow: '#EEF2EF',
   },
   text: {
     primary: '#211F1A', // reconciled: was #1A1F1C (warm ink)
@@ -61,7 +62,14 @@ export const LIGHT_THEME = {
     accent: '#4A7C5F',
     warm: '#EDE6D8', // new: warm border (cards / dividers)
     warmSubtle: '#EFE9DC', // new: warm border (goal ring card)
+    input: '#D8D2C8',
+    divider: '#E8E5DF',
     toggleGlyph: '#A8C4AE', // new: sidebar collapse/expand toggle chevron glyph
+  },
+  brt: {
+    bud: '#4A7C5F',
+    rose: '#F59E0B',
+    thorn: '#EF4444',
   },
   accent: {
     primary: '#4A7C5F',
