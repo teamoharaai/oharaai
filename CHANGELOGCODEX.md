@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-11 — Follow-up: reuse Echo entry actions in tree)
+- **`features/echo/components/EchoEntryRow.tsx`, `EchoContainerTree.tsx`, and
+  `EchoScreen.tsx`:** reused the shared Echo entry row/action-menu path for child entries in
+  tree view, so tree entries now expose the same Edit, Move to folder, and Delete actions as
+  the calendar/list view without duplicating action-menu logic.
+- **`features/echo/components/EchoEntryList.tsx` and `features/echo/utils/entryDisplay.ts`:**
+  moved shared entry title/snippet/date/container display helpers into one Echo utility used
+  by the entry row/list surfaces.
+- Verification: `npx tsc --noEmit` clean.
+
 ### Changed (2026-07-11 — Follow-up: expand Echo folder entries)
 - **`features/echo/components/EchoContainerTree.tsx`:** added the same on-demand child-entry
   dropdown behavior to Echo folder rows that goal rows already use, keeping folders visible

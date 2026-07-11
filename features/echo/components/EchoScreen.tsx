@@ -250,6 +250,9 @@ export function EchoScreen() {
               selectedEntryId={selectedEntryId}
               onSelectScope={handleScopeChange}
               onSelectEntry={handleSelectEntry}
+              onEditEntry={handleEditEntry}
+              onMoveEntry={moveEntry.open}
+              onDeleteEntry={handleDeleteEntry}
             />
           ) : (
             <EchoEntryList

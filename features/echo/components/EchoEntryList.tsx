@@ -3,6 +3,7 @@ import { EmptyStateCard } from '@/components/ui/EmptyStateCard';
 import { LIGHT_THEME } from '@/constants/colors';
 import { EchoEntryRow } from './EchoEntryRow';
 import type { EchoEntry } from '../types';
+import { formatEntryDate, getContainerCaption } from '../utils/entryDisplay';
 
 type EchoEntryListProps = {
   entries: EchoEntry[];
@@ -21,14 +22,6 @@ type EntryGroup = {
   label: string;
   entries: EchoEntry[];
 };
-
-function formatEntryDate(date: Date): string {
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
 
 function getDateKey(date: Date): string {
   return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
@@ -63,10 +56,6 @@ function groupEntriesByDate(entries: EchoEntry[]): EntryGroup[] {
   }
 
   return groups;
-}
-
-function getContainerCaption(entry: EchoEntry): string {
-  return entry.folderName || entry.goalTitle || 'Unassigned';
 }
 
 function EchoLoadingState() {

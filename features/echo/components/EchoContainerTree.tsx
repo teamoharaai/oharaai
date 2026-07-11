@@ -5,6 +5,7 @@ import { LIGHT_THEME } from '@/constants/colors';
 import type { EchoFolder } from '@/types/echo-folder';
 import type { EchoEntry, EchoGoalOption } from '../types';
 import { useContainerGrouping } from '../hooks/useContainerGrouping';
+import { EchoEntryRow } from './EchoEntryRow';
 import type { EchoFilterScope } from './EchoFilterPill';
 
 type EchoContainerTreeProps = {
@@ -15,6 +16,9 @@ type EchoContainerTreeProps = {
   selectedEntryId: string | null;
   onSelectScope: (scope: EchoFilterScope) => void;
   onSelectEntry: (id: string) => void;
+  onEditEntry: (entry: EchoEntry) => void;
+  onMoveEntry: (entryId: string) => void;
+  onDeleteEntry: (entryId: string) => void;
 };
 
 function SectionLabel({ children }: { children: string }) {
@@ -44,14 +48,6 @@ function SelectionDot({ selected }: { selected: boolean }) {
   );
 }
 
-function getEntryTitle(entry: EchoEntry): string {
-  const title = entry.title?.trim();
-  if (title) return title;
-
-  const firstLine = entry.content.split('\n').find((line) => line.trim().length > 0)?.trim();
-  return firstLine || 'Untitled Echo';
-}
-
 export function EchoContainerTree({
   entries,
   goals,
@@ -60,6 +56,9 @@ export function EchoContainerTree({
   selectedEntryId,
   onSelectScope,
   onSelectEntry,
+  onEditEntry,
+  onMoveEntry,
+  onDeleteEntry,
 }: EchoContainerTreeProps) {
   const { goalGroups } = useContainerGrouping(goals, folders);
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(() => new Set());
@@ -198,38 +197,21 @@ export function EchoContainerTree({
 
               {expanded ? (
                 <View className="pb-0.5">
-                  {folderEntries.map((entry) => {
-                    const entrySelected = selectedEntryId === entry.id;
-                    return (
-                      <Pressable
-                        key={entry.id}
-                        onPress={() => onSelectEntry(entry.id)}
-                        className="mx-2 ml-9 flex-row items-center gap-2 rounded-lg px-3 py-2"
-                        style={{
-                          backgroundColor: entrySelected
-                            ? LIGHT_THEME.background.selectedRow
-                            : 'transparent',
-                        }}
-                      >
-                        <View
-                          className="h-[5px] w-[5px] rounded-full"
-                          style={{ backgroundColor: LIGHT_THEME.text.muted }}
-                        />
-                        <Text
-                          numberOfLines={1}
-                          className="min-w-0 flex-1 font-sans"
-                          style={{
-                            color: LIGHT_THEME.text.primary,
-                            fontFamily: entrySelected ? 'Inter-Bold' : 'Inter-Regular',
-                            fontSize: 12.5,
-                            lineHeight: 17,
-                          }}
-                        >
-                          {getEntryTitle(entry)}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
+                  {folderEntries.map((entry) => (
+                    <EchoEntryRow
+                      key={entry.id}
+                      entry={entry}
+                      selected={selectedEntryId === entry.id}
+                      showCaption={false}
+                      showSnippet={false}
+                      treeIndent={36}
+                      variant="tree"
+                      onSelect={() => onSelectEntry(entry.id)}
+                      onEdit={() => onEditEntry(entry)}
+                      onMoveToFolder={() => onMoveEntry(entry.id)}
+                      onDelete={() => onDeleteEntry(entry.id)}
+                    />
+                  ))}
                 </View>
               ) : null}
             </View>
@@ -307,38 +289,21 @@ export function EchoContainerTree({
 
                   {expanded ? (
                     <View className="pb-0.5">
-                      {goalEntries.map((entry) => {
-                        const entrySelected = selectedEntryId === entry.id;
-                        return (
-                          <Pressable
-                            key={entry.id}
-                            onPress={() => onSelectEntry(entry.id)}
-                            className="mx-2 ml-14 flex-row items-center gap-2 rounded-lg px-3 py-2"
-                            style={{
-                              backgroundColor: entrySelected
-                                ? LIGHT_THEME.background.selectedRow
-                                : 'transparent',
-                            }}
-                          >
-                            <View
-                              className="h-[5px] w-[5px] rounded-full"
-                              style={{ backgroundColor: LIGHT_THEME.text.muted }}
-                            />
-                            <Text
-                              numberOfLines={1}
-                              className="min-w-0 flex-1 font-sans"
-                              style={{
-                                color: LIGHT_THEME.text.primary,
-                                fontFamily: entrySelected ? 'Inter-Bold' : 'Inter-Regular',
-                                fontSize: 12.5,
-                                lineHeight: 17,
-                              }}
-                            >
-                              {getEntryTitle(entry)}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
+                      {goalEntries.map((entry) => (
+                        <EchoEntryRow
+                          key={entry.id}
+                          entry={entry}
+                          selected={selectedEntryId === entry.id}
+                          showCaption={false}
+                          showSnippet={false}
+                          treeIndent={56}
+                          variant="tree"
+                          onSelect={() => onSelectEntry(entry.id)}
+                          onEdit={() => onEditEntry(entry)}
+                          onMoveToFolder={() => onMoveEntry(entry.id)}
+                          onDelete={() => onDeleteEntry(entry.id)}
+                        />
+                      ))}
                     </View>
                   ) : null}
                 </View>
