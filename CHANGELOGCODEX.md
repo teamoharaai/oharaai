@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-11 — Phase 2: date-grouped Echo list and canonical filter)
+- **`features/echo/services/echo-service.ts`, `features/echo/hooks/useEntries.ts`,
+  `features/echo/types.ts`, `features/echo/store.ts`, `features/echo/hooks/useMoveEntry.ts`:**
+  threaded canonical goal/folder options into the Echo screen and preserved folder ids on
+  confirmed folder links so later scoped filtering can use stable ids.
+- **`features/echo/components/EchoEntryRow.tsx`, `EchoEntryList.tsx`,
+  `EchoFilterPill.tsx` (new):** added the Phase 2 middle-column list surface with date
+  grouping, BRT dots, selected-row styling, container/date captions, action-menu carryover,
+  loading/empty states, and the canonical filter dropdown.
+- **`features/echo/components/EchoScreen.tsx`:** replaced the old single-scroll
+  composer-on-top screen with the Phase 2 list column plus placeholder detail column.
+- Verification: `npx tsc --noEmit` clean. Live render smoke for grouping/dots/dropdown still
+  needs a real signed-in dev-server session.
+
 ### Changed (2026-07-11 — Phase 0: canonical BRT resolver)
 - **`lib/utils/resolveBrt.ts` (new):** added the canonical dominant-BRT resolver over
   `EchoBrt`, using count majority with explicit thorn -> rose -> bud tie-breaking and

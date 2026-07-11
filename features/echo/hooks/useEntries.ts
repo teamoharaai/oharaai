@@ -3,16 +3,17 @@ import { useEchoStore } from '../store';
 import {
   fetchEntries,
   createEntry,
-  fetchActiveGoalsForPicker,
+  fetchContainerOptions,
   getSubmissionFailureStatus,
   type CreateEntryResult,
 } from '../services/echo-service';
 import supabase from '@/lib/db/client';
-import type { EchoBrt, EchoEmotion } from '../types';
+import type { EchoBrt, EchoContainerOption, EchoEmotion, EchoGoalOption } from '../types';
 
 export function useEntries() {
   const { entries, isLoading, setEntries, prependEntry, setIsLoading } = useEchoStore();
-  const [pickerGoals, setPickerGoals] = useState<Array<{ id: string; title: string }>>([]);
+  const [pickerGoals, setPickerGoals] = useState<EchoGoalOption[]>([]);
+  const [containerOptions, setContainerOptions] = useState<EchoContainerOption[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -20,12 +21,13 @@ export function useEntries() {
       if (!user) return;
 
       setIsLoading(true);
-      const [fetchedEntries, goals] = await Promise.all([
+      const [fetchedEntries, containers] = await Promise.all([
         fetchEntries(user.id),
-        fetchActiveGoalsForPicker(user.id),
+        fetchContainerOptions(user.id),
       ]);
       setEntries(fetchedEntries);
-      setPickerGoals(goals);
+      setPickerGoals(containers.goals);
+      setContainerOptions(containers.options);
       setIsLoading(false);
     }
     load();
@@ -37,7 +39,9 @@ export function useEntries() {
   const reloadPickerGoals = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    setPickerGoals(await fetchActiveGoalsForPicker(user.id));
+    const containers = await fetchContainerOptions(user.id);
+    setPickerGoals(containers.goals);
+    setContainerOptions(containers.options);
   }, []);
 
   const saveEntry = useCallback(async (
@@ -76,5 +80,5 @@ export function useEntries() {
     return result;
   }, [prependEntry]);
 
-  return { entries, isLoading, pickerGoals, saveEntry, reloadPickerGoals };
+  return { entries, isLoading, pickerGoals, containerOptions, saveEntry, reloadPickerGoals };
 }

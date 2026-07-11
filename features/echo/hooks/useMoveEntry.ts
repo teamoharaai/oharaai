@@ -103,7 +103,7 @@ export function useMoveEntry({ onEntryGone, onTargetsStale }: UseMoveEntryOption
           entryId,
           target.type === 'goal'
             ? { type: 'goal', goalId: target.id, goalTitle: target.title }
-            : { type: 'folder', folderName: target.title },
+            : { type: 'folder', folderId: target.id, folderName: target.title },
         );
         close();
       } finally {

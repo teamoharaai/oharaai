@@ -14,6 +14,7 @@ export interface EchoEntry {
   userId: string;
   goalId: string | null;
   goalTitle?: string;
+  folderId?: string;
   folderName?: string;
   title?: string;
   content: string;
@@ -37,3 +38,27 @@ export interface InsightRequest {
   entryId: string;
   status: 'pending' | 'processing' | 'complete' | 'error';
 }
+
+export type EchoGoalOption = {
+  id: string;
+  title: string;
+  projectId: string | null;
+  projectTitle: string | null;
+};
+
+export type EchoContainerOption =
+  | {
+      type: 'goal';
+      id: string;
+      label: string;
+      title: string;
+      projectId: string | null;
+      projectTitle: string | null;
+    }
+  | {
+      type: 'folder';
+      id: string;
+      label: string;
+      name: string;
+      isGeneral: boolean;
+    };
