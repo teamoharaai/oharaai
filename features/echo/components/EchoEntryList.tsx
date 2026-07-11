@@ -109,8 +109,12 @@ export function EchoEntryList({
     return (
       <View className="flex-1 justify-center px-3">
         <EmptyStateCard
-          title="No Echo entries yet."
-          description="Add a reflection to start building your Echo."
+          title={groupBy === 'none' ? 'No entries here yet.' : 'No Echo entries yet.'}
+          description={
+            groupBy === 'none'
+              ? 'This container does not have any Echo entries yet.'
+              : 'Add a reflection to start building your Echo.'
+          }
         />
       </View>
     );
@@ -148,6 +152,7 @@ export function EchoEntryList({
               entry={entry}
               caption={groupBy === 'date' ? getContainerCaption(entry) : formatEntryDate(entry.createdAt)}
               selected={entry.id === selectedEntryId}
+              showSnippet={groupBy === 'date'}
               onSelect={() => onSelectEntry(entry.id)}
               onEdit={() => onEditEntry(entry)}
               onMoveToFolder={() => onMoveEntry(entry.id)}

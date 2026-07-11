@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-11 — Phase 5: scoped flat Echo list)
+- **`features/echo/components/EchoScreen.tsx`:** selecting a canonical goal/folder filter now
+  filters the already-loaded entries by `goalId` or `folderId`, clears the active detail, and
+  switches the list from date-grouped mode to flat scoped mode.
+- **`features/echo/components/EchoEntryList.tsx` and `EchoEntryRow.tsx`:** flat scoped mode
+  hides date headers, uses date captions, and switches rows to the titles-only variant while
+  retaining the same selected-row and action-menu behavior.
+- Verification: `npx tsc --noEmit` clean. Live smoke for scoped filtering, empty scoped
+  containers, and restoring All/date grouping still needs a real signed-in dev-server session.
+
 ### Changed (2026-07-11 — Phase 4: right detail/composer pane and persisted resize)
 - **`features/echo/components/EchoComposer.tsx` (new):** moved the new-entry form into the
   right pane, preserving body draft persistence and save-result handling while submitting

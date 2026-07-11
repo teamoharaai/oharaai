@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Alert, Dimensions, SafeAreaView, Text, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { LIGHT_THEME } from '@/constants/colors';
@@ -52,6 +52,14 @@ export function EchoScreen() {
   const selectedEntry = selectedEntryId
     ? entries.find((entry) => entry.id === selectedEntryId) ?? null
     : null;
+  const listGroupBy = selectedScope.type === 'all' ? 'date' : 'none';
+  const visibleEntries = useMemo(() => {
+    if (selectedScope.type === 'all') return entries;
+    if (selectedScope.type === 'goal') {
+      return entries.filter((entry) => entry.goalId === selectedScope.id);
+    }
+    return entries.filter((entry) => entry.folderId === selectedScope.id);
+  }, [entries, selectedScope]);
 
   const clampRightPaneWidth = useCallback(
     (width: number) => {
@@ -163,9 +171,10 @@ export function EchoScreen() {
           </View>
 
           <EchoEntryList
-            entries={entries}
+            entries={visibleEntries}
             isLoading={isLoading}
-            groupBy="date"
+            groupBy={listGroupBy}
+            scopeId={selectedScope.type === 'all' ? undefined : selectedScope.id}
             selectedEntryId={selectedEntryId}
             onSelectEntry={handleSelectEntry}
             onEditEntry={handleEditEntry}

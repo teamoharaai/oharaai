@@ -8,6 +8,7 @@ type EchoEntryRowProps = {
   entry: EchoEntry;
   caption: string;
   selected: boolean;
+  showSnippet?: boolean;
   onSelect: () => void;
   onEdit: () => void;
   onMoveToFolder: () => void;
@@ -30,6 +31,7 @@ export function EchoEntryRow({
   entry,
   caption,
   selected,
+  showSnippet = true,
   onSelect,
   onEdit,
   onMoveToFolder,
@@ -66,20 +68,22 @@ export function EchoEntryRow({
           >
             {getEntryTitle(entry)}
           </Text>
+          {showSnippet ? (
+            <Text
+              numberOfLines={1}
+              className="mt-0.5 font-sans"
+              style={{
+                color: LIGHT_THEME.text.secondary,
+                fontSize: 12,
+                lineHeight: 16,
+              }}
+            >
+              {getEntrySnippet(entry)}
+            </Text>
+          ) : null}
           <Text
             numberOfLines={1}
-            className="mt-0.5 font-sans"
-            style={{
-              color: LIGHT_THEME.text.secondary,
-              fontSize: 12,
-              lineHeight: 16,
-            }}
-          >
-            {getEntrySnippet(entry)}
-          </Text>
-          <Text
-            numberOfLines={1}
-            className="mt-1 font-sans"
+            className={`${showSnippet ? 'mt-1' : 'mt-0.5'} font-sans`}
             style={{
               color: LIGHT_THEME.text.muted,
               fontFamily: 'Inter-Medium',
