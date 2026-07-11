@@ -128,7 +128,7 @@ export default function SignupScreen() {
           {loading ? (
             <ActivityIndicator color="#FAF9F6" />
           ) : (
-            <Text className="text-base text-cream font-semibold" style={{ fontFamily: 'Inter-SemiBold' }}>Create account</Text>
+            <Text className="text-base text-cream font-inter-semibold" style={{ fontFamily: 'Inter-SemiBold' }}>Create account</Text>
           )}
         </TouchableOpacity>
 

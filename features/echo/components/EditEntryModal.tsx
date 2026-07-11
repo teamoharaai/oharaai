@@ -93,7 +93,7 @@ export function EditEntryModal({
                 }`}
                 activeOpacity={0.8}
               >
-                <Text className="font-sans text-sm font-semibold text-[#8A8172]">Cancel</Text>
+                <Text className="font-sans text-sm font-inter-semibold text-[#8A8172]">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSave}
@@ -104,7 +104,7 @@ export function EditEntryModal({
                 activeOpacity={0.8}
               >
                 <Text
-                  className={`font-sans text-sm font-semibold ${
+                  className={`font-sans text-sm font-inter-semibold ${
                     canSave ? 'text-white' : 'text-[#8A8172]'
                   }`}
                 >

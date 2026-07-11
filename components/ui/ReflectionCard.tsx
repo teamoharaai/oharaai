@@ -22,20 +22,20 @@ function BrtPill({ brt }: { brt: 'Bud' | 'Rose' | 'Thorn' }) {
   if (brt === 'Bud') {
     return (
       <View className="bg-green-100 px-2 py-0.5 rounded-full">
-        <Text className="text-xs font-medium text-green-700">Bud</Text>
+        <Text className="text-xs font-inter-medium text-green-700">Bud</Text>
       </View>
     );
   }
   if (brt === 'Rose') {
     return (
       <View className="bg-amber-100 px-2 py-0.5 rounded-full">
-        <Text className="text-xs font-medium" style={{ color: '#F59E0B' }}>Rose</Text>
+        <Text className="text-xs font-inter-medium" style={{ color: '#F59E0B' }}>Rose</Text>
       </View>
     );
   }
   return (
     <View className="bg-red-100 px-2 py-0.5 rounded-full">
-      <Text className="text-xs font-medium text-red-700">Thorn</Text>
+      <Text className="text-xs font-inter-medium text-red-700">Thorn</Text>
     </View>
   );
 }

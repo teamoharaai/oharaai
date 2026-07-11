@@ -18,7 +18,7 @@ export function EmptyStateCard({
       <View className="mb-4 h-12 w-12 items-center justify-center rounded-full border border-[#1B7A5A]/50 bg-[#1B7A5A]/10">
         <View className="h-2.5 w-2.5 rounded-full bg-[#6FDFB8]" />
       </View>
-      <Text className="text-center text-lg font-semibold text-near-black">{title}</Text>
+      <Text className="text-center text-lg font-inter-semibold text-near-black">{title}</Text>
       <Text className="mt-2 max-w-[260px] text-center text-sm leading-6 text-muted">
         {description}
       </Text>
@@ -28,7 +28,7 @@ export function EmptyStateCard({
           onPress={onActionPress}
           activeOpacity={0.8}
         >
-          <Text className="text-sm font-semibold text-[#6FDFB8]">{actionLabel}</Text>
+          <Text className="text-sm font-inter-semibold text-[#6FDFB8]">{actionLabel}</Text>
         </TouchableOpacity>
       ) : null}
     </View>

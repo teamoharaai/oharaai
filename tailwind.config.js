@@ -41,9 +41,10 @@ module.exports = {
       },
       fontFamily: {
         sans: ['Inter-Regular', 'System', 'sans-serif'],
-        medium: ['Inter-Medium', 'System', 'sans-serif'],
-        semibold: ['Inter-SemiBold', 'System', 'sans-serif'],
-        bold: ['Inter-Bold', 'System', 'sans-serif'],
+        'inter-medium': ['Inter-Medium', 'System', 'sans-serif'],
+        'inter-semibold': ['Inter-SemiBold', 'System', 'sans-serif'],
+        'inter-bold': ['Inter-Bold', 'System', 'sans-serif'],
+        'inter-extrabold': ['Inter-ExtraBold', 'System', 'sans-serif'],
         serif: ['Lora-Regular', 'Georgia', 'serif'],
         'serif-italic': ['Lora-Italic', 'Georgia', 'serif'],
         'serif-italic-semibold': ['Lora-SemiBold-Italic', 'Georgia', 'serif'],
@@ -59,6 +60,14 @@ module.exports = {
         '2xl': ['24px', { lineHeight: '32px' }],
         '3xl': ['30px', { lineHeight: '38px' }],
         '4xl': ['36px', { lineHeight: '44px' }],
+        // Echo type scale (exact pixel values from EchoEntryRow/EchoScreen/EchoDetailPane)
+        'echo-2xs':      ['10.5px', { lineHeight: '14px' }], // entry-list meta / timestamp caption
+        'echo-xs':       ['12px',   { lineHeight: '16px' }], // entry-list preview / detail meta
+        'echo-sm':       ['13.5px', { lineHeight: '18px' }], // entry-list title / add-entry button
+        'echo-sm-loose': ['13.5px', { lineHeight: '20px' }], // detail empty-state subtitle
+        'echo-base':     ['15px',   { lineHeight: '27px' }], // detail body copy
+        'echo-md':       ['16px',   { lineHeight: '22px' }], // detail empty-state title
+        'echo-lg':       ['26px',   { lineHeight: '34px' }], // detail entry title
       },
     },
   },

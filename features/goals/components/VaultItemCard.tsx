@@ -118,7 +118,7 @@ function NoteCard({ item, onUpdate }: VaultItemCardProps) {
                 startEdit();
               }}
             >
-              <Text className="text-xs font-medium" style={{ color: LIGHT_THEME.text.accent }}>Edit</Text>
+              <Text className="text-xs font-inter-medium" style={{ color: LIGHT_THEME.text.accent }}>Edit</Text>
             </Pressable>
           </View>
         </>
@@ -261,7 +261,7 @@ function InsightCard({ item, onUpdate, onDelete }: VaultItemCardProps) {
       <View className="flex-row items-center gap-2 mb-2">
         <Ionicons name="bulb-outline" size={14} color={STATUS.pending.text} />
         <Text
-          className="text-xs font-semibold uppercase tracking-widest"
+          className="text-xs font-inter-semibold uppercase tracking-widest"
           style={{ color: STATUS.pending.text }}
         >
           Ohara Insight
@@ -275,7 +275,7 @@ function InsightCard({ item, onUpdate, onDelete }: VaultItemCardProps) {
 
       {/* Actions */}
       {isConfirmed ? (
-        <Text className="text-xs font-medium" style={{ color: LIGHT_THEME.text.accent }}>Confirmed ✓</Text>
+        <Text className="text-xs font-inter-medium" style={{ color: LIGHT_THEME.text.accent }}>Confirmed ✓</Text>
       ) : (
         <View className="flex-row gap-3">
           <Pressable

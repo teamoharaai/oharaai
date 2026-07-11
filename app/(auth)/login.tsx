@@ -85,7 +85,7 @@ export default function LoginScreen() {
           {loading ? (
             <ActivityIndicator color="#FAF9F6" />
           ) : (
-            <Text className="text-base text-cream font-semibold" style={{ fontFamily: 'Inter-SemiBold' }}>Log in</Text>
+            <Text className="text-base text-cream font-inter-semibold" style={{ fontFamily: 'Inter-SemiBold' }}>Log in</Text>
           )}
         </TouchableOpacity>
 

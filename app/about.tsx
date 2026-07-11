@@ -53,7 +53,7 @@ export default function AboutPage() {
     <TouchableOpacity>
       <Typography
         variant="label"
-        className="font-semibold text-base tracking-[0.24em] text-ink"
+        className="font-inter-semibold text-base tracking-[0.24em] text-ink"
       >
         OharaAI
       </Typography>
@@ -102,7 +102,7 @@ export default function AboutPage() {
           <View className="mb-10 rounded-3xl border border-white/10 bg-white/[0.04] p-8 items-center">
             <Typography
               variant="caption"
-              className="mb-4 text-center font-medium uppercase tracking-[0.28em]"
+              className="mb-4 text-center font-inter-medium uppercase tracking-[0.28em]"
             >
               Why We Exist
             </Typography>
@@ -131,7 +131,7 @@ export default function AboutPage() {
           <View className="mb-10 rounded-3xl border border-white/10 bg-white/[0.04] p-8 items-center">
             <Typography
               variant="caption"
-              className="mb-4 text-center font-medium uppercase tracking-[0.28em]"
+              className="mb-4 text-center font-inter-medium uppercase tracking-[0.28em]"
             >
               What Makes OHARA Different
             </Typography>
@@ -159,7 +159,7 @@ export default function AboutPage() {
           <View className="mb-16 rounded-3xl border border-white/10 bg-white/[0.04] p-8 items-center">
             <Typography
               variant="caption"
-              className="mb-4 text-center font-medium uppercase tracking-[0.28em]"
+              className="mb-4 text-center font-inter-medium uppercase tracking-[0.28em]"
             >
               Long-Term Vision
             </Typography>

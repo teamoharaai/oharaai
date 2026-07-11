@@ -60,7 +60,7 @@ export function Modal({
                   onPress={handleCancel}
                   disabled={closeDisabled || cancelDisabled}
                 >
-                  <Text className="text-sm font-medium text-[#4B5563]">{cancelText}</Text>
+                  <Text className="text-sm font-inter-medium text-[#4B5563]">{cancelText}</Text>
                 </TouchableOpacity>
               ) : null}
 
@@ -70,7 +70,7 @@ export function Modal({
                   onPress={onConfirm}
                   disabled={confirmDisabled}
                 >
-                  <Text className="text-sm font-semibold text-white">{confirmText}</Text>
+                  <Text className="text-sm font-inter-semibold text-white">{confirmText}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>

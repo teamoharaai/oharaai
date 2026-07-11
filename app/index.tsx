@@ -63,7 +63,7 @@ function ActionButton({
           } as any
         }
       >
-        <Typography variant="label" className="font-semibold" style={{ color: textColor }}>
+        <Typography variant="label" className="font-inter-semibold" style={{ color: textColor }}>
           {label}
         </Typography>
       </TouchableOpacity>
@@ -94,7 +94,7 @@ function Header({
     <TouchableOpacity>
       <Typography
         variant="label"
-        className="font-semibold text-base tracking-[0.24em] text-ink"
+        className="font-inter-semibold text-base tracking-[0.24em] text-ink"
       >
         OharaAI
       </Typography>
@@ -120,7 +120,7 @@ function Hero() {
     >
       <View className="items-center" style={{ maxWidth: 720 }}>
         <View className="mb-8 rounded-full border border-white/10 bg-white/5 px-4 py-2">
-          <Typography variant="caption" className="font-medium uppercase tracking-[0.28em]">
+          <Typography variant="caption" className="font-inter-medium uppercase tracking-[0.28em]">
             Premium demo presentation
           </Typography>
         </View>
@@ -178,7 +178,7 @@ function Footer({
           className="rounded-3xl border border-white/10 bg-white/[0.04] p-6"
           onLayout={(event) => onRoadmapLayout(event.nativeEvent.layout.y)}
         >
-          <Typography variant="caption" className="mb-2 font-medium uppercase tracking-[0.28em]">
+          <Typography variant="caption" className="mb-2 font-inter-medium uppercase tracking-[0.28em]">
             Roadmap
           </Typography>
           <Typography variant="body" className="leading-6">

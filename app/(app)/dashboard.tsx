@@ -194,7 +194,7 @@ function DueTodayZone() {
                 }`}
               >
                 {done && (
-                  <Text className="text-xs font-semibold text-[#1E3226]">✓</Text>
+                  <Text className="text-xs font-inter-semibold text-[#1E3226]">✓</Text>
                 )}
                 {completing && !done && (
                   <View className="h-2 w-2 rounded-full bg-[#C9D4CD]" />
@@ -277,9 +277,9 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
         <Typography variant="eyebrow" className="mb-2">
           Active Goal
         </Typography>
-        <Text className="mb-4 font-sans text-[17px] font-semibold leading-6 text-[#211F1A]">
+        <Typography variant="active-goal-title" className="mb-4">
           {goal.title}
-        </Text>
+        </Typography>
       </Pressable>
 
       <View className="border-t border-[#F0EDE6] pt-4">
@@ -603,9 +603,9 @@ export default function DashboardScreen() {
         {/* Header */}
         <View className="mb-6 flex-row items-start justify-between">
           <View>
-            <Text className="font-sans text-[22px] font-medium text-[#211F1A]">
+            <Typography variant="greeting">
               {greeting}
-            </Text>
+            </Typography>
             <Typography variant="meta" className="text-[#8A8172]">
               {getDateLabel()}
             </Typography>
