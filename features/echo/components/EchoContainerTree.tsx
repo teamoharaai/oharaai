@@ -1,15 +1,20 @@
+import { useMemo, useState } from 'react';
 import { ScrollView, Text, View, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { LIGHT_THEME } from '@/constants/colors';
 import type { EchoFolder } from '@/types/echo-folder';
-import type { EchoGoalOption } from '../types';
+import type { EchoEntry, EchoGoalOption } from '../types';
 import { useContainerGrouping } from '../hooks/useContainerGrouping';
 import type { EchoFilterScope } from './EchoFilterPill';
 
 type EchoContainerTreeProps = {
+  entries: EchoEntry[];
   goals: EchoGoalOption[];
   folders: EchoFolder[];
   selectedScope: EchoFilterScope;
+  selectedEntryId: string | null;
   onSelectScope: (scope: EchoFilterScope) => void;
+  onSelectEntry: (id: string) => void;
 };
 
 function SectionLabel({ children }: { children: string }) {
@@ -39,13 +44,50 @@ function SelectionDot({ selected }: { selected: boolean }) {
   );
 }
 
+function getEntryTitle(entry: EchoEntry): string {
+  const title = entry.title?.trim();
+  if (title) return title;
+
+  const firstLine = entry.content.split('\n').find((line) => line.trim().length > 0)?.trim();
+  return firstLine || 'Untitled Echo';
+}
+
 export function EchoContainerTree({
+  entries,
   goals,
   folders,
   selectedScope,
+  selectedEntryId,
   onSelectScope,
+  onSelectEntry,
 }: EchoContainerTreeProps) {
   const { goalGroups } = useContainerGrouping(goals, folders);
+  const [expandedGoalIds, setExpandedGoalIds] = useState<Set<string>>(() => new Set());
+  const entriesByGoalId = useMemo(() => {
+    const groupedEntries = new Map<string, EchoEntry[]>();
+    for (const entry of entries) {
+      if (!entry.goalId) continue;
+      const goalEntries = groupedEntries.get(entry.goalId);
+      if (goalEntries) {
+        goalEntries.push(entry);
+      } else {
+        groupedEntries.set(entry.goalId, [entry]);
+      }
+    }
+    return groupedEntries;
+  }, [entries]);
+
+  function toggleGoalEntries(goalId: string) {
+    setExpandedGoalIds((current) => {
+      const next = new Set(current);
+      if (next.has(goalId)) {
+        next.delete(goalId);
+      } else {
+        next.add(goalId);
+      }
+      return next;
+    });
+  }
 
   return (
     <View className="flex-1" style={{ backgroundColor: LIGHT_THEME.background.page }}>
@@ -117,29 +159,95 @@ export function EchoContainerTree({
             </Text>
             {group.goals.map((goal) => {
               const selected = selectedScope.type === 'goal' && selectedScope.id === goal.id;
+              const goalEntries = entriesByGoalId.get(goal.id) ?? [];
+              const hasEntries = goalEntries.length > 0;
+              const expanded = expandedGoalIds.has(goal.id);
               return (
-                <Pressable
-                  key={goal.id}
-                  onPress={() => onSelectScope({ type: 'goal', id: goal.id, label: goal.title })}
-                  className="mx-2 ml-7 flex-row items-center gap-2 rounded-lg px-3 py-2.5"
-                  style={{
-                    backgroundColor: selected ? LIGHT_THEME.background.selectedRow : 'transparent',
-                  }}
-                >
-                  <SelectionDot selected={selected} />
-                  <Text
-                    numberOfLines={1}
-                    className="min-w-0 flex-1 font-sans"
+                <View key={goal.id}>
+                  <View
+                    className="mx-2 ml-7 flex-row items-center rounded-lg px-1"
                     style={{
-                      color: LIGHT_THEME.text.primary,
-                      fontFamily: selected ? 'Inter-Bold' : 'Inter-Regular',
-                      fontSize: 13,
-                      lineHeight: 18,
+                      backgroundColor: selected ? LIGHT_THEME.background.selectedRow : 'transparent',
                     }}
                   >
-                    {goal.title}
-                  </Text>
-                </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={expanded ? `Hide entries for ${goal.title}` : `Show entries for ${goal.title}`}
+                      disabled={!hasEntries}
+                      hitSlop={6}
+                      onPress={() => toggleGoalEntries(goal.id)}
+                      style={{
+                        alignItems: 'center',
+                        height: 28,
+                        justifyContent: 'center',
+                        opacity: hasEntries ? 1 : 0,
+                        width: 20,
+                      }}
+                    >
+                      <Ionicons
+                        name={expanded ? 'chevron-down' : 'chevron-forward'}
+                        size={13}
+                        color={LIGHT_THEME.text.muted}
+                      />
+                    </Pressable>
+
+                    <Pressable
+                      onPress={() => onSelectScope({ type: 'goal', id: goal.id, label: goal.title })}
+                      className="min-w-0 flex-1 flex-row items-center gap-2 py-2.5 pr-3"
+                    >
+                      <SelectionDot selected={selected} />
+                      <Text
+                        numberOfLines={1}
+                        className="min-w-0 flex-1 font-sans"
+                        style={{
+                          color: LIGHT_THEME.text.primary,
+                          fontFamily: selected ? 'Inter-Bold' : 'Inter-Regular',
+                          fontSize: 13,
+                          lineHeight: 18,
+                        }}
+                      >
+                        {goal.title}
+                      </Text>
+                    </Pressable>
+                  </View>
+
+                  {expanded ? (
+                    <View className="pb-0.5">
+                      {goalEntries.map((entry) => {
+                        const entrySelected = selectedEntryId === entry.id;
+                        return (
+                          <Pressable
+                            key={entry.id}
+                            onPress={() => onSelectEntry(entry.id)}
+                            className="mx-2 ml-14 flex-row items-center gap-2 rounded-lg px-3 py-2"
+                            style={{
+                              backgroundColor: entrySelected
+                                ? LIGHT_THEME.background.selectedRow
+                                : 'transparent',
+                            }}
+                          >
+                            <View
+                              className="h-[5px] w-[5px] rounded-full"
+                              style={{ backgroundColor: LIGHT_THEME.text.muted }}
+                            />
+                            <Text
+                              numberOfLines={1}
+                              className="min-w-0 flex-1 font-sans"
+                              style={{
+                                color: LIGHT_THEME.text.primary,
+                                fontFamily: entrySelected ? 'Inter-Bold' : 'Inter-Regular',
+                                fontSize: 12.5,
+                                lineHeight: 17,
+                              }}
+                            >
+                              {getEntryTitle(entry)}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  ) : null}
+                </View>
               );
             })}
           </View>

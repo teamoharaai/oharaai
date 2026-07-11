@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-11 — Follow-up: expand Echo tree goal entries)
+- **`features/echo/components/EchoContainerTree.tsx` and `EchoScreen.tsx`:** kept project
+  headings and their goal rows visible in Echo tree mode, while adding a per-goal chevron that
+  reveals only that goal's child Echo entries on demand. The change reuses the already-loaded
+  Echo entries and does not touch backend/container fetching logic.
+- Verification: `npx tsc --noEmit` clean.
+
 ### Changed (2026-07-11 — Session 7: Echo composer internal editor layout)
 - **`features/echo/components/EchoComposer.tsx`:** redesigned the inline right-pane composer
   around a combined title/body editor panel with a larger flexing plain-text body area, while

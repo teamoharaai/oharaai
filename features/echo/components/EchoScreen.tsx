@@ -243,10 +243,13 @@ export function EchoScreen() {
 
           {middleMode === 'tree' ? (
             <EchoContainerTree
+              entries={entries}
               goals={pickerGoals}
               folders={pickerFolders}
               selectedScope={selectedScope}
+              selectedEntryId={selectedEntryId}
               onSelectScope={handleScopeChange}
+              onSelectEntry={handleSelectEntry}
             />
           ) : (
             <EchoEntryList
