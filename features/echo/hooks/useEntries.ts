@@ -8,11 +8,13 @@ import {
   type CreateEntryResult,
 } from '../services/echo-service';
 import supabase from '@/lib/db/client';
+import type { EchoFolder } from '@/types/echo-folder';
 import type { EchoBrt, EchoContainerOption, EchoEmotion, EchoGoalOption } from '../types';
 
 export function useEntries() {
   const { entries, isLoading, setEntries, prependEntry, setIsLoading } = useEchoStore();
   const [pickerGoals, setPickerGoals] = useState<EchoGoalOption[]>([]);
+  const [pickerFolders, setPickerFolders] = useState<EchoFolder[]>([]);
   const [containerOptions, setContainerOptions] = useState<EchoContainerOption[]>([]);
 
   useEffect(() => {
@@ -27,6 +29,7 @@ export function useEntries() {
       ]);
       setEntries(fetchedEntries);
       setPickerGoals(containers.goals);
+      setPickerFolders(containers.folders);
       setContainerOptions(containers.options);
       setIsLoading(false);
     }
@@ -41,6 +44,7 @@ export function useEntries() {
     if (!user) return;
     const containers = await fetchContainerOptions(user.id);
     setPickerGoals(containers.goals);
+    setPickerFolders(containers.folders);
     setContainerOptions(containers.options);
   }, []);
 
@@ -80,5 +84,13 @@ export function useEntries() {
     return result;
   }, [prependEntry]);
 
-  return { entries, isLoading, pickerGoals, containerOptions, saveEntry, reloadPickerGoals };
+  return {
+    entries,
+    isLoading,
+    pickerGoals,
+    pickerFolders,
+    containerOptions,
+    saveEntry,
+    reloadPickerGoals,
+  };
 }

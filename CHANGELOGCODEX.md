@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-11 — Phase 4: right detail/composer pane and persisted resize)
+- **`features/echo/components/EchoComposer.tsx` (new):** moved the new-entry form into the
+  right pane, preserving body draft persistence and save-result handling while submitting
+  through the existing `saveEntry(text, goalId|null, aiRequested, brt, emotion, title)`
+  contract. The composer uses `GoalFolderPicker` in goal-only mode because the create path
+  still cannot persist an arbitrary folder id without changing that contract.
+- **`features/echo/components/EchoDetailPane.tsx` (new):** added empty, read-only entry, and
+  add/composer states with resolved container/date captions and neutral-grey null-BRT dots.
+- **`features/echo/components/EchoPaneResizer.tsx` (new), `store/uiStore.ts`,
+  `store/clearAllStores.ts`:** added right-pane resize/collapse controls plus persisted
+  `rightPaneWidth` and `rightPaneCollapsed`, including the `partialize` whitelist.
+- **`features/echo/components/EchoScreen.tsx`, `features/echo/hooks/useEntries.ts`,
+  `features/echo/components/GoalFolderPicker.tsx`:** wired three-pane orchestration,
+  add/view selection state, route-goal draft restoration, and goal-only picker mode for the
+  composer.
+- Verification: `npx tsc --noEmit` clean. Live smoke for composer save, row detail view,
+  resize clamps, and width/collapse refresh persistence still needs a real signed-in
+  dev-server session/JWT.
+
 ### Changed (2026-07-11 — Phase 3: shared Goal/Folder picker)
 - **`features/echo/components/GoalFolderPicker.tsx` (new):** added the reusable two-section
   container picker: goals grouped under project headers with an explicit Ungrouped group,

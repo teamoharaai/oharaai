@@ -15,6 +15,7 @@ type GoalFolderPickerProps = {
   selected: { type: 'goal' | 'folder'; id: string } | null;
   disabled?: boolean;
   maxHeight?: number;
+  showFolders?: boolean;
   onSelect: (value: GoalFolderPickerValue) => void;
 };
 
@@ -98,10 +99,12 @@ export function GoalFolderPicker({
   selected,
   disabled = false,
   maxHeight,
+  showFolders = true,
   onSelect,
 }: GoalFolderPickerProps) {
   const goalGroups = groupGoalsByProject(goals);
-  const hasTargets = goals.length > 0 || folders.length > 0;
+  const visibleFolders = showFolders ? folders : [];
+  const hasTargets = goals.length > 0 || visibleFolders.length > 0;
 
   if (!hasTargets) {
     return (
@@ -156,34 +159,38 @@ export function GoalFolderPicker({
         ))
       )}
 
-      <SectionHeader label="Echo Folders" />
-      {folders.map((folder) => {
-        const isSelected = selected?.type === 'folder' && selected.id === folder.id;
-        return (
-          <Pressable
-            key={folder.id}
-            disabled={disabled}
-            onPress={() => onSelect({ type: 'folder', id: folder.id, displayName: folder.name })}
-            className="mx-2 rounded-lg px-4 py-3"
-            style={{
-              backgroundColor: isSelected ? LIGHT_THEME.background.selectedRow : 'transparent',
-              opacity: disabled ? 0.45 : 1,
-            }}
-          >
-            <Text
-              className="font-sans"
-              style={{
-                color: LIGHT_THEME.text.primary,
-                fontFamily: isSelected ? 'Inter-Bold' : 'Inter-Regular',
-                fontSize: 13,
-                lineHeight: 18,
-              }}
-            >
-              {folder.name}
-            </Text>
-          </Pressable>
-        );
-      })}
+      {showFolders ? (
+        <>
+          <SectionHeader label="Echo Folders" />
+          {visibleFolders.map((folder) => {
+            const isSelected = selected?.type === 'folder' && selected.id === folder.id;
+            return (
+              <Pressable
+                key={folder.id}
+                disabled={disabled}
+                onPress={() => onSelect({ type: 'folder', id: folder.id, displayName: folder.name })}
+                className="mx-2 rounded-lg px-4 py-3"
+                style={{
+                  backgroundColor: isSelected ? LIGHT_THEME.background.selectedRow : 'transparent',
+                  opacity: disabled ? 0.45 : 1,
+                }}
+              >
+                <Text
+                  className="font-sans"
+                  style={{
+                    color: LIGHT_THEME.text.primary,
+                    fontFamily: isSelected ? 'Inter-Bold' : 'Inter-Regular',
+                    fontSize: 13,
+                    lineHeight: 18,
+                  }}
+                >
+                  {folder.name}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </>
+      ) : null}
     </ScrollView>
   );
 }

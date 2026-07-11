@@ -3,8 +3,13 @@ import { createJSONStorage, persist, type StateStorage } from 'zustand/middlewar
 
 interface UIStore {
   sidebarCollapsed: boolean;
+  rightPaneWidth: number;
+  rightPaneCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
   toggleSidebarCollapsed: () => void;
+  setRightPaneWidth: (width: number) => void;
+  setRightPaneCollapsed: (collapsed: boolean) => void;
+  toggleRightPaneCollapsed: () => void;
 }
 
 const webStorage: StateStorage = {
@@ -26,14 +31,24 @@ export const useUIStore = create<UIStore>()(
   persist(
     (set) => ({
       sidebarCollapsed: false,
+      rightPaneWidth: 420,
+      rightPaneCollapsed: false,
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
       toggleSidebarCollapsed: () =>
         set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+      setRightPaneWidth: (width) => set({ rightPaneWidth: width }),
+      setRightPaneCollapsed: (collapsed) => set({ rightPaneCollapsed: collapsed }),
+      toggleRightPaneCollapsed: () =>
+        set((state) => ({ rightPaneCollapsed: !state.rightPaneCollapsed })),
     }),
     {
       name: 'ohara-ui-state',
       storage: createJSONStorage(() => webStorage),
-      partialize: (state) => ({ sidebarCollapsed: state.sidebarCollapsed }),
+      partialize: (state) => ({
+        sidebarCollapsed: state.sidebarCollapsed,
+        rightPaneWidth: state.rightPaneWidth,
+        rightPaneCollapsed: state.rightPaneCollapsed,
+      }),
     }
   )
 );
