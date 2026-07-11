@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-11 — Follow-up: extend Echo entry list rail)
+- **`features/echo/components/EchoEntryList.tsx` and `EchoEntryRow.tsx`:** changed the entry
+  list from content-height-feeling rows into a full-height vertical list rail with
+  full-width entry bands, so a single entry no longer reads as a small isolated tile.
+- Verification: `npx tsc --noEmit` clean.
+
 ### Changed (2026-07-11 — Follow-up: remove Echo detail collapse arrow)
 - **`features/echo/components/EchoPaneResizer.tsx` and `EchoScreen.tsx`:** removed the
   right-pane collapse/expand arrow and docked strip behavior, leaving only the draggable

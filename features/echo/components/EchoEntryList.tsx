@@ -125,42 +125,52 @@ export function EchoEntryList({
     : [{ key: 'all', label: '', entries }];
 
   return (
-    <ScrollView
+    <View
       className="flex-1"
-      contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 24, paddingTop: 4 }}
-      keyboardShouldPersistTaps="handled"
+      style={{ backgroundColor: LIGHT_THEME.background.card }}
     >
-      {groups.map((group) => (
-        <View key={group.key} className="mb-3">
-          {groupBy === 'date' ? (
-            <Text
-              className="mb-1.5 px-3 font-sans"
-              style={{
-                color: LIGHT_THEME.text.secondary,
-                fontFamily: 'Inter-Bold',
-                fontSize: 10.5,
-                letterSpacing: 0.63,
-                lineHeight: 14,
-              }}
-            >
-              {group.label}
-            </Text>
-          ) : null}
-          {group.entries.map((entry) => (
-            <EchoEntryRow
-              key={entry.id}
-              entry={entry}
-              caption={groupBy === 'date' ? getContainerCaption(entry) : formatEntryDate(entry.createdAt)}
-              selected={entry.id === selectedEntryId}
-              showSnippet={groupBy === 'date'}
-              onSelect={() => onSelectEntry(entry.id)}
-              onEdit={() => onEditEntry(entry)}
-              onMoveToFolder={() => onMoveEntry(entry.id)}
-              onDelete={() => onDeleteEntry(entry.id)}
-            />
-          ))}
-        </View>
-      ))}
-    </ScrollView>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingBottom: 24,
+          paddingTop: 4,
+        }}
+        keyboardShouldPersistTaps="handled"
+      >
+        {groups.map((group) => (
+          <View key={group.key}>
+            {groupBy === 'date' ? (
+              <Text
+                className="mb-1.5 px-3 pt-3 font-sans"
+                style={{
+                  color: LIGHT_THEME.text.secondary,
+                  fontFamily: 'Inter-Bold',
+                  fontSize: 10.5,
+                  letterSpacing: 0.63,
+                  lineHeight: 14,
+                }}
+              >
+                {group.label}
+              </Text>
+            ) : null}
+            {group.entries.map((entry) => (
+              <EchoEntryRow
+                key={entry.id}
+                entry={entry}
+                caption={groupBy === 'date' ? getContainerCaption(entry) : formatEntryDate(entry.createdAt)}
+                selected={entry.id === selectedEntryId}
+                showSnippet={groupBy === 'date'}
+                onSelect={() => onSelectEntry(entry.id)}
+                onEdit={() => onEditEntry(entry)}
+                onMoveToFolder={() => onMoveEntry(entry.id)}
+                onDelete={() => onDeleteEntry(entry.id)}
+              />
+            ))}
+          </View>
+        ))}
+        <View className="flex-1" />
+      </ScrollView>
+    </View>
   );
 }

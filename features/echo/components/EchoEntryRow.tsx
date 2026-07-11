@@ -44,7 +44,7 @@ export function EchoEntryRow({
     <View className="relative">
       <Pressable
         onPress={onSelect}
-        className="flex-row gap-2.5 rounded-lg px-3 py-2.5"
+        className="min-h-[74px] flex-row gap-2.5 px-3 py-3"
         style={{
           backgroundColor: selected ? LIGHT_THEME.background.selectedRow : 'transparent',
           borderBottomColor: LIGHT_THEME.border.divider,
