@@ -99,7 +99,7 @@ export function EchoEntryList({
 
   if (isLoading) {
     return (
-      <View className="flex-1 px-3">
+      <View className="flex-1 px-3" style={{ backgroundColor: LIGHT_THEME.background.page }}>
         <EchoLoadingState />
       </View>
     );
@@ -127,7 +127,7 @@ export function EchoEntryList({
   return (
     <View
       className="flex-1"
-      style={{ backgroundColor: LIGHT_THEME.background.card }}
+      style={{ backgroundColor: LIGHT_THEME.background.page }}
     >
       <ScrollView
         className="flex-1"

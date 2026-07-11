@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-11 — Follow-up: add Echo tree view and loosen pane resizing)
+- **`features/echo/components/EchoContainerTree.tsx` (new) and `EchoScreen.tsx`:** added a
+  middle-pane tree toggle beside the filter pill, showing folders and project-grouped goals as
+  selectable scope targets in the main Echo column.
+- **`features/echo/components/EchoScreen.tsx`:** loosened the right-pane resize clamp
+  (`280px` detail minimum, `220px` middle-column floor) so the divider can travel farther
+  left and right.
+- **`features/echo/components/EchoEntryList.tsx`:** moved the entry list rail onto the same
+  warm page background so short entry lists do not leave awkward blocks of mismatched color.
+- Verification: `npx tsc --noEmit` clean.
+
 ### Changed (2026-07-11 — Follow-up: extend Echo entry list rail)
 - **`features/echo/components/EchoEntryList.tsx` and `EchoEntryRow.tsx`:** changed the entry
   list from content-height-feeling rows into a full-height vertical list rail with

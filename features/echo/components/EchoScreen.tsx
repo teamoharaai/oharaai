@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Dimensions, SafeAreaView, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, Pressable, SafeAreaView, Text, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { LIGHT_THEME } from '@/constants/colors';
 import { useUIStore } from '@/store/uiStore';
 import { useEditEntry } from '../hooks/useEditEntry';
@@ -8,6 +9,7 @@ import { useEntries } from '../hooks/useEntries';
 import { useMoveEntry } from '../hooks/useMoveEntry';
 import { useEchoStore } from '../store';
 import { EditEntryModal } from './EditEntryModal';
+import { EchoContainerTree } from './EchoContainerTree';
 import { EchoDetailPane } from './EchoDetailPane';
 import { EchoEntryList } from './EchoEntryList';
 import { EchoFilterPill, type EchoFilterScope } from './EchoFilterPill';
@@ -16,8 +18,8 @@ import { MoveEntryModal } from './MoveEntryModal';
 import type { EchoEntry } from '../types';
 
 const ALL_SCOPE: EchoFilterScope = { type: 'all', id: 'all', label: 'All' };
-const RIGHT_PANE_MIN_WIDTH = 340;
-const MIDDLE_COLUMN_MIN_WIDTH = 280;
+const RIGHT_PANE_MIN_WIDTH = 280;
+const MIDDLE_COLUMN_MIN_WIDTH = 220;
 
 export function EchoScreen() {
   const { goalId: routeGoalIdParam } = useLocalSearchParams<{ goalId?: string | string[] }>();
@@ -26,6 +28,7 @@ export function EchoScreen() {
     entries,
     isLoading,
     pickerGoals,
+    pickerFolders,
     containerOptions,
     saveEntry,
     reloadPickerGoals,
@@ -44,6 +47,7 @@ export function EchoScreen() {
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [selectedScope, setSelectedScope] = useState<EchoFilterScope>(ALL_SCOPE);
   const [detailMode, setDetailMode] = useState<'empty' | 'view' | 'add'>('empty');
+  const [middleMode, setMiddleMode] = useState<'list' | 'tree'>('list');
 
   const selectedEntry = selectedEntryId
     ? entries.find((entry) => entry.id === selectedEntryId) ?? null
@@ -129,7 +133,7 @@ export function EchoScreen() {
     <SafeAreaView className="flex-1" style={{ backgroundColor: LIGHT_THEME.background.page }}>
       <View className="flex-1 flex-row">
         <View
-          className="min-w-[280px] flex-1 bg-white"
+          className="min-w-[220px] flex-1"
           style={{ borderRightColor: LIGHT_THEME.border.divider, borderRightWidth: 1 }}
         >
           <View className="px-3 pb-3 pt-4">
@@ -152,26 +156,54 @@ export function EchoScreen() {
               </Text>
             </TouchableOpacity>
 
-            <View className="mt-3 flex-row items-center">
+            <View className="mt-3 flex-row items-center justify-between gap-2">
               <EchoFilterPill
                 options={containerOptions}
                 selectedScope={selectedScope}
                 onSelectScope={handleScopeChange}
               />
+              <Pressable
+                onPress={() => setMiddleMode((mode) => (mode === 'list' ? 'tree' : 'list'))}
+                accessibilityLabel={middleMode === 'list' ? 'Show folder tree' : 'Show entry list'}
+                style={{
+                  alignItems: 'center',
+                  borderColor: LIGHT_THEME.border.input,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  height: 30,
+                  justifyContent: 'center',
+                  width: 30,
+                }}
+              >
+                <Ionicons
+                  name={middleMode === 'list' ? 'git-branch-outline' : 'calendar-outline'}
+                  size={16}
+                  color={LIGHT_THEME.text.secondary}
+                />
+              </Pressable>
             </View>
           </View>
 
-          <EchoEntryList
-            entries={visibleEntries}
-            isLoading={isLoading}
-            groupBy={listGroupBy}
-            scopeId={selectedScope.type === 'all' ? undefined : selectedScope.id}
-            selectedEntryId={selectedEntryId}
-            onSelectEntry={handleSelectEntry}
-            onEditEntry={handleEditEntry}
-            onMoveEntry={moveEntry.open}
-            onDeleteEntry={handleDeleteEntry}
-          />
+          {middleMode === 'tree' ? (
+            <EchoContainerTree
+              goals={pickerGoals}
+              folders={pickerFolders}
+              selectedScope={selectedScope}
+              onSelectScope={handleScopeChange}
+            />
+          ) : (
+            <EchoEntryList
+              entries={visibleEntries}
+              isLoading={isLoading}
+              groupBy={listGroupBy}
+              scopeId={selectedScope.type === 'all' ? undefined : selectedScope.id}
+              selectedEntryId={selectedEntryId}
+              onSelectEntry={handleSelectEntry}
+              onEditEntry={handleEditEntry}
+              onMoveEntry={moveEntry.open}
+              onDeleteEntry={handleDeleteEntry}
+            />
+          )}
         </View>
 
         <View
