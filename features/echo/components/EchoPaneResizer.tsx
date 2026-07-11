@@ -1,5 +1,5 @@
-import { useMemo, useRef } from 'react';
-import { PanResponder, View } from 'react-native';
+import { useRef } from 'react';
+import { View } from 'react-native';
 import { LIGHT_THEME } from '@/constants/colors';
 
 type EchoPaneResizerProps = {
@@ -12,25 +12,41 @@ export function EchoPaneResizer({
   onResize,
 }: EchoPaneResizerProps) {
   const startWidthRef = useRef(width);
+  const startXRef = useRef(0);
+  const draggingRef = useRef(false);
 
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: () => {
-          startWidthRef.current = width;
-        },
-        onPanResponderMove: (_event, gestureState) => {
-          onResize(startWidthRef.current - gestureState.dx);
-        },
-      }),
-    [onResize, width],
-  );
+  const handlePointerDown = (e: any) => {
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    startWidthRef.current = width;
+    startXRef.current = e.clientX;
+    draggingRef.current = true;
+    if (typeof document !== 'undefined') {
+      document.body.style.userSelect = 'none';
+    }
+    e.preventDefault();
+  };
+
+  const handlePointerMove = (e: any) => {
+    if (!draggingRef.current) return;
+    const dx = e.clientX - startXRef.current;
+    onResize(startWidthRef.current - dx);
+  };
+
+  const endDrag = (e: any) => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+    if (typeof document !== 'undefined') {
+      document.body.style.userSelect = '';
+    }
+  };
 
   return (
     <View
-      {...panResponder.panHandlers}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
       style={{
         alignItems: 'center',
         bottom: 0,
