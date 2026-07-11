@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-11 — Phase 3: shared Goal/Folder picker)
+- **`features/echo/components/GoalFolderPicker.tsx` (new):** added the reusable two-section
+  container picker: goals grouped under project headers with an explicit Ungrouped group,
+  plus flat Echo folders including General as a normal selectable folder.
+- **`features/echo/components/MoveEntryModal.tsx`:** replaced the old inline
+  "Projects"/folders list with `GoalFolderPicker`, correcting the goal section label to
+  "Goals" while preserving the existing single-row move path through `onConfirm`.
+- Verification: `npx tsc --noEmit` clean. Live move/write smoke for goal and folder targets,
+  including General and one-confirmed-row behavior, still needs a real signed-in dev-server
+  session/JWT.
+
 ### Changed (2026-07-11 — Phase 2: date-grouped Echo list and canonical filter)
 - **`features/echo/services/echo-service.ts`, `features/echo/hooks/useEntries.ts`,
   `features/echo/types.ts`, `features/echo/store.ts`, `features/echo/hooks/useMoveEntry.ts`:**
