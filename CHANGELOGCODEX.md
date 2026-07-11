@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-11 — Phase 0: canonical BRT resolver)
+- **`lib/utils/resolveBrt.ts` (new):** added the canonical dominant-BRT resolver over
+  `EchoBrt`, using count majority with explicit thorn -> rose -> bud tie-breaking and
+  lowercase category output.
+- **`features/goals/services/goal-service.ts`:** retired the local `deriveBrtTag`
+  first-non-empty heuristic and now uses `resolveBrt()` for goal-card BRT signal tags.
+- **`features/goals/hooks/useEchoTrail.ts` and `components/ui/ReflectionCard.tsx`:**
+  removed local title-case dominant-BRT mirrors and title-case the canonical lowercase
+  category at the UI boundary.
+- Verification: `npx tsc --noEmit` clean. Live smoke for EchoTrail labels, goal-card
+  dots, and ReflectionCard labels still requires a real signed-in dev-server session.
+
 ### Added (2026-07-10 — Log the intentional embedding-skip in PATCH /api/entries/:id)
 - **Context:** a live audit flagged `echo_entries.embedding_text` as null after a content-changing
   edit. Root cause was benign: `buildEchoEmbeddingText` returns null when content falls under

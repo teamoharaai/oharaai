@@ -1,4 +1,5 @@
 import supabase from '@/lib/db/client';
+import { resolveBrt } from '@/lib/utils/resolveBrt';
 import type { EchoBrt } from '@/types/brt';
 import type { Goal, GoalWithMeasurables, Measurable, MeasurableType, MeasurableFrequency, GoalStatus, MeasurableInput, MeasurableUpdates } from '../types';
 import type { GoalTheme } from '@/constants/themes';
@@ -146,17 +147,6 @@ export function mapGoal(row: DbGoal): GoalWithMeasurables {
   };
 }
 
-// UI heuristic: compress multi-dimensional BRT into single tag
-// Priority: bud → rose → thorn
-// Temporary — Phase 2 may replace with richer signal model
-function deriveBrtTag(brt: EchoBrt | null): 'bud' | 'rose' | 'thorn' | null {
-  if (!brt) return null;
-  if (brt.bud.length > 0) return 'bud';
-  if (brt.rose.length > 0) return 'rose';
-  if (brt.thorn.length > 0) return 'thorn';
-  return null;
-}
-
 /**
  * Fetches per-goal activity signals in bulk (no N+1).
  * Returns maps: goalId → vaultItemCount, echoLinkCount, latestBrtTags.
@@ -241,7 +231,7 @@ async function fetchGoalSignals(
         for (const entryId of entryIds) {
           const entry = entryById.get(entryId);
           if (!entry?.brt) continue;
-          const tag = deriveBrtTag(entry.brt);
+          const tag = resolveBrt(entry.brt);
           if (tag) tagged.push({ tag, created_at: entry.created_at });
         }
 

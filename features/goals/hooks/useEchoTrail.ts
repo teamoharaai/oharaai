@@ -5,22 +5,19 @@
 import { useState, useCallback } from 'react';
 import { authedFetch } from '@/lib/api/client';
 import { getEchoEntriesForGoal } from '@/lib/db/echo-entry-links';
-import type { EchoBrt } from '@/features/echo/types';
+import { resolveBrt, type BrtCategory } from '@/lib/utils/resolveBrt';
 import type { EchoTrailEntry } from '@/features/goals/components/EchoTrail';
 
 export type { EchoTrailEntry };
 
-// Derives a single dominant BRT label from the structured BRT object returned by AI.
-// Picks whichever category has the most entries; falls back to null if all are empty.
-function deriveBrtLabel(brt: EchoBrt | undefined): 'Bud' | 'Rose' | 'Thorn' | null {
-  if (!brt) return null;
-  const scores: Array<['Bud' | 'Rose' | 'Thorn', number]> = [
-    ['Bud', brt.bud.length],
-    ['Rose', brt.rose.length],
-    ['Thorn', brt.thorn.length],
-  ];
-  const best = scores.reduce((a, b) => (b[1] > a[1] ? b : a));
-  return best[1] > 0 ? best[0] : null;
+const BRT_LABELS: Record<BrtCategory, 'Bud' | 'Rose' | 'Thorn'> = {
+  bud: 'Bud',
+  rose: 'Rose',
+  thorn: 'Thorn',
+};
+
+function formatBrtLabel(category: BrtCategory | null): 'Bud' | 'Rose' | 'Thorn' | null {
+  return category ? BRT_LABELS[category] : null;
 }
 
 type UseEchoTrailResult = {
@@ -50,7 +47,7 @@ export function useEchoTrail(goalId: string): UseEchoTrailResult {
           confirmed: e.linkMetadata.confirmed,
           createdAt: e.createdAt.toISOString(),
           content: e.content,
-          brt: deriveBrtLabel(e.brt),
+          brt: formatBrtLabel(resolveBrt(e.brt)),
         })),
       );
     } catch (e) {
