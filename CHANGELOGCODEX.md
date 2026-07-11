@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-11 — Echo sidebar logo)
+- **`assets/brand/echo-logo.png` and `components/layout/Sidebar.tsx`:** added the
+  Figma-exported Echo symbol as a local sidebar asset, rendering it beside the Echo label when
+  expanded and by itself for the Echo nav item when the sidebar is collapsed.
+
 ### Changed (2026-07-11 — Follow-up: reuse Echo entry actions in tree)
 - **`features/echo/components/EchoEntryRow.tsx`, `EchoContainerTree.tsx`, and
   `EchoScreen.tsx`:** reused the shared Echo entry row/action-menu path for child entries in

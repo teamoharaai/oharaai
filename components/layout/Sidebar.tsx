@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity } from 'react-native';
+import { Image, View, Text, TouchableOpacity, type ImageSourcePropType } from 'react-native';
 import { router, usePathname } from 'expo-router';
 import { FEATURES } from '@/constants/features';
 import { LIGHT_THEME } from '@/constants/colors';
@@ -10,11 +10,14 @@ type NavItem = {
   href: string;
   match: string;
   enabled: boolean;
+  icon?: ImageSourcePropType;
 };
+
+const ECHO_LOGO = require('../../assets/brand/echo-logo.png') as ImageSourcePropType;
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Goals',         href: '/(app)/dashboard',     match: '/dashboard',     enabled: true },
-  { label: 'Echo',          href: '/(app)/echo',          match: '/echo',          enabled: FEATURES.ECHO_ENABLED },
+  { label: 'Echo',          href: '/(app)/echo',          match: '/echo',          enabled: FEATURES.ECHO_ENABLED, icon: ECHO_LOGO },
   { label: 'Constellation', href: '/(app)/constellation', match: '/constellation', enabled: FEATURES.CONSTELLATION_ENABLED },
   { label: 'Explore',       href: '/(app)/explore',       match: '/explore',       enabled: FEATURES.DISCOVERY_ENABLED },
 ];
@@ -135,15 +138,28 @@ export function Sidebar() {
               }}
               activeOpacity={0.7}
             >
-              <Text
-                style={{
-                  color: isActive ? '#EDE7DA' : '#8FA294',
-                  fontSize: 14,
-                  fontFamily: 'Inter-Medium',
-                }}
-              >
-                {collapsed ? item.label.charAt(0) : item.label}
-              </Text>
+              {item.icon && (
+                <Image
+                  source={item.icon}
+                  resizeMode="contain"
+                  style={{
+                    height: collapsed ? 24 : 20,
+                    marginRight: collapsed ? 0 : 10,
+                    width: collapsed ? 24 : 20,
+                  }}
+                />
+              )}
+              {(!collapsed || !item.icon) && (
+                <Text
+                  style={{
+                    color: isActive ? '#EDE7DA' : '#8FA294',
+                    fontSize: 14,
+                    fontFamily: 'Inter-Medium',
+                  }}
+                >
+                  {collapsed ? item.label.charAt(0) : item.label}
+                </Text>
+              )}
             </TouchableOpacity>
           );
         })}
