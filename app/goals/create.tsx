@@ -571,7 +571,7 @@ export default function GoalCreateScreen() {
           ))}
         </ScrollView>
 
-        {showIntro && (
+        {messages.length === 0 && savedGoalId === null && (
           <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
             <Typography variant="label" style={{ marginBottom: 8 }}>
               Deadline (optional)

@@ -110,6 +110,7 @@ export default function GoalDetailScreen() {
     onDeleteMeasurable,
     onAddMeasurable,
     onCompleteMeasurable,
+    onUpdateDeadline,
     completedIds,
     measurableError,
     clearMeasurableError,
@@ -169,7 +170,7 @@ export default function GoalDetailScreen() {
 
   const mainWorkspace = (
     <>
-      <GoalDetailHeader goal={goal} />
+      <GoalDetailHeader goal={goal} onUpdateDeadline={onUpdateDeadline} />
 
       {/* Parent project row */}
       {goal.projectId && projectTitle ? (

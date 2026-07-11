@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useGoalStore } from '../store';
-import { fetchGoalById, fetchGoals, createMeasurable, updateMeasurable, deleteMeasurable } from '../services/goal-service';
+import { fetchGoalById, fetchGoals, createMeasurable, updateMeasurable, deleteMeasurable, updateGoal } from '../services/goal-service';
 import type { GoalWithMeasurables, MeasurableInput, MeasurableUpdates } from '../types';
 import supabase from '@/lib/db/client';
 import { authedFetch, UnauthorizedError } from '@/lib/api/client';
@@ -12,6 +12,7 @@ export function useGoalDetail(goalId: string): {
   onDeleteMeasurable: (measurableId: string) => Promise<void>;
   onAddMeasurable: (input: MeasurableInput) => Promise<void>;
   onCompleteMeasurable: (measurableId: string) => Promise<void>;
+  onUpdateDeadline: (deadline: Date | null) => Promise<boolean>;
   completedIds: Set<string>;
   measurableError: string | null;
   clearMeasurableError: () => void;
@@ -165,6 +166,26 @@ export function useGoalDetail(goalId: string): {
     [completedIds, goalId, goals, upsertGoal],
   );
 
+  const onUpdateDeadline = useCallback(
+    async (deadline: Date | null): Promise<boolean> => {
+      const current = goals.find((g) => g.id === goalId);
+      if (!current) return false;
+
+      // Optimistic update
+      upsertGoal({ ...current, deadline });
+
+      const saved = await updateGoal(goalId, { deadline });
+      if (!saved) {
+        // Rollback
+        upsertGoal(current);
+        return false;
+      }
+      upsertGoal(saved);
+      return true;
+    },
+    [goalId, goals, upsertGoal],
+  );
+
   return {
     goal,
     isLoading,
@@ -172,6 +193,7 @@ export function useGoalDetail(goalId: string): {
     onDeleteMeasurable,
     onAddMeasurable,
     onCompleteMeasurable,
+    onUpdateDeadline,
     completedIds,
     measurableError,
     clearMeasurableError,
