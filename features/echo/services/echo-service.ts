@@ -711,6 +711,35 @@ export async function fetchFolders(): Promise<EchoFolder[]> {
   }
 }
 
+export async function createFolderRequest(name: string): Promise<EchoFolder> {
+  let response: Response;
+  try {
+    response = await authedFetch('/api/folders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      throw new Error('Your session expired. Redirecting to sign in...');
+    }
+    throw new Error("You're offline. Try again once you're back online.");
+  }
+
+  let body: { folder?: EchoFolder; error?: string };
+  try {
+    body = (await response.json()) as { folder?: EchoFolder; error?: string };
+  } catch {
+    body = {};
+  }
+
+  if (response.ok && body.folder) {
+    return body.folder;
+  }
+
+  throw new Error(body.error ?? 'Could not create folder. Please try again.');
+}
+
 // error kinds drive differentiated UI behavior (not just distinct copy):
 //  - entry_not_found (404, entry gone): caller removes it from the list
 //  - target_not_found (404, goal/folder vanished): caller refreshes the picker

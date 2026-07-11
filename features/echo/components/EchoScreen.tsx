@@ -10,6 +10,7 @@ import { useEntries } from '../hooks/useEntries';
 import { useMoveEntry } from '../hooks/useMoveEntry';
 import { useEchoStore } from '../store';
 import { EchoContainerTree } from './EchoContainerTree';
+import { CreateFolderModal } from './CreateFolderModal';
 import { EchoDetailPane } from './EchoDetailPane';
 import { EchoEntryList } from './EchoEntryList';
 import { EchoFilterPill, type EchoFilterScope } from './EchoFilterPill';
@@ -31,6 +32,7 @@ export function EchoScreen() {
     pickerFolders,
     containerOptions,
     saveEntry,
+    createFolder,
     reloadPickerGoals,
   } = useEntries();
   const removeEntry = useEchoStore((state) => state.removeEntry);
@@ -49,6 +51,9 @@ export function EchoScreen() {
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [selectedScope, setSelectedScope] = useState<EchoFilterScope>(ALL_SCOPE);
   const [detailMode, setDetailMode] = useState<'empty' | 'view' | 'add' | 'edit'>('empty');
+  const [createFolderOpen, setCreateFolderOpen] = useState(false);
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [createFolderError, setCreateFolderError] = useState<string | null>(null);
 
   const selectedEntry = selectedEntryId
     ? entries.find((entry) => entry.id === selectedEntryId) ?? null
@@ -91,6 +96,36 @@ export function EchoScreen() {
   function handleAddEntry() {
     setSelectedEntryId(null);
     setDetailMode('add');
+  }
+
+  function handleOpenCreateFolder() {
+    setCreateFolderError(null);
+    setCreateFolderOpen(true);
+  }
+
+  function handleCloseCreateFolder() {
+    if (isCreatingFolder) return;
+    setCreateFolderOpen(false);
+    setCreateFolderError(null);
+  }
+
+  async function handleCreateFolder(name: string) {
+    if (isCreatingFolder) return;
+
+    setIsCreatingFolder(true);
+    setCreateFolderError(null);
+    try {
+      const folder = await createFolder(name);
+      setSelectedScope({ type: 'folder', id: folder.id, label: folder.name });
+      setSelectedEntryId(null);
+      setDetailMode('empty');
+      setCreateFolderOpen(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not create folder. Please try again.';
+      setCreateFolderError(message);
+    } finally {
+      setIsCreatingFolder(false);
+    }
   }
 
   function handleSelectEntry(entryId: string) {
@@ -156,13 +191,35 @@ export function EchoScreen() {
             </TouchableOpacity>
 
             <View className="mt-3 flex-row items-center justify-between gap-2">
-              <EchoFilterPill
-                options={containerOptions}
-                selectedScope={selectedScope}
-                onSelectScope={handleScopeChange}
-              />
+              <View className="min-w-0 flex-1 flex-row items-center gap-2">
+                <EchoFilterPill
+                  options={containerOptions}
+                  selectedScope={selectedScope}
+                  onSelectScope={handleScopeChange}
+                />
+                <Pressable
+                  onPress={handleOpenCreateFolder}
+                  accessibilityRole="button"
+                  accessibilityLabel="Create Echo folder"
+                  hitSlop={6}
+                  style={{
+                    alignItems: 'center',
+                    borderColor: LIGHT_THEME.border.input,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    height: 30,
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    width: 30,
+                  }}
+                >
+                  <Ionicons name="add" size={17} color={LIGHT_THEME.text.secondary} />
+                </Pressable>
+              </View>
+
               <Pressable
                 onPress={() => setMiddleMode(middleMode === 'list' ? 'tree' : 'list')}
+                accessibilityRole="button"
                 accessibilityLabel={middleMode === 'list' ? 'Show folder tree' : 'Show entry list'}
                 style={{
                   alignItems: 'center',
@@ -171,6 +228,7 @@ export function EchoScreen() {
                   borderWidth: 1,
                   height: 30,
                   justifyContent: 'center',
+                  flexShrink: 0,
                   width: 30,
                 }}
               >
@@ -242,6 +300,14 @@ export function EchoScreen() {
         currentContainer={moveEntry.currentContainer}
         onClose={moveEntry.close}
         onConfirm={moveEntry.confirm}
+      />
+
+      <CreateFolderModal
+        visible={createFolderOpen}
+        isSaving={isCreatingFolder}
+        error={createFolderError}
+        onClose={handleCloseCreateFolder}
+        onCreate={handleCreateFolder}
       />
     </SafeAreaView>
   );

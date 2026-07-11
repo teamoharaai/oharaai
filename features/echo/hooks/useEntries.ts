@@ -3,6 +3,7 @@ import { useEchoStore } from '../store';
 import {
   fetchEntries,
   createEntry,
+  createFolderRequest,
   fetchContainerOptions,
   getSubmissionFailureStatus,
   type CreateEntryResult,
@@ -11,11 +12,32 @@ import supabase from '@/lib/db/client';
 import type { EchoFolder } from '@/types/echo-folder';
 import type { EchoBrt, EchoContainerOption, EchoEmotion, EchoGoalOption } from '../types';
 
+type ContainerPickerState = {
+  goals: EchoGoalOption[];
+  folders: EchoFolder[];
+  options: EchoContainerOption[];
+};
+
 export function useEntries() {
   const { entries, isLoading, setEntries, prependEntry, setIsLoading } = useEchoStore();
   const [pickerGoals, setPickerGoals] = useState<EchoGoalOption[]>([]);
   const [pickerFolders, setPickerFolders] = useState<EchoFolder[]>([]);
   const [containerOptions, setContainerOptions] = useState<EchoContainerOption[]>([]);
+
+  const applyContainerPickerState = useCallback((containers: ContainerPickerState) => {
+    setPickerGoals(containers.goals);
+    setPickerFolders(containers.folders);
+    setContainerOptions(containers.options);
+  }, []);
+
+  const reloadContainers = useCallback(async (): Promise<ContainerPickerState | null> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const containers = await fetchContainerOptions(user.id);
+    applyContainerPickerState(containers);
+    return containers;
+  }, [applyContainerPickerState]);
 
   useEffect(() => {
     async function load() {
@@ -28,25 +50,24 @@ export function useEntries() {
         fetchContainerOptions(user.id),
       ]);
       setEntries(fetchedEntries);
-      setPickerGoals(containers.goals);
-      setPickerFolders(containers.folders);
-      setContainerOptions(containers.options);
+      applyContainerPickerState(containers);
       setIsLoading(false);
     }
     load();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [applyContainerPickerState]);
 
-  // Re-fetch just the goal picker options — used when a move target turns out
-  // to no longer exist, so a deleted goal drops out of the picker.
+  // Re-fetch container picker options — used when a move target turns out
+  // to no longer exist, so a deleted goal/folder drops out of the picker.
   const reloadPickerGoals = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const containers = await fetchContainerOptions(user.id);
-    setPickerGoals(containers.goals);
-    setPickerFolders(containers.folders);
-    setContainerOptions(containers.options);
-  }, []);
+    await reloadContainers();
+  }, [reloadContainers]);
+
+  const createFolder = useCallback(async (name: string): Promise<EchoFolder> => {
+    const folder = await createFolderRequest(name);
+    await reloadContainers();
+    return folder;
+  }, [reloadContainers]);
 
   const saveEntry = useCallback(async (
     content: string,
@@ -91,6 +112,7 @@ export function useEntries() {
     pickerFolders,
     containerOptions,
     saveEntry,
+    createFolder,
     reloadPickerGoals,
   };
 }

@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { Pressable, ScrollView, Text, View, type GestureResponderEvent } from 'react-native';
+import { AnchoredPopover, type AnchorRect } from '@/components/ui/AnchoredPopover';
 import { LIGHT_THEME } from '@/constants/colors';
 import type { EchoContainerOption } from '../types';
 
@@ -14,6 +15,33 @@ type EchoFilterPillProps = {
 };
 
 const ALL_SCOPE: EchoFilterScope = { type: 'all', id: 'all', label: 'All' };
+const MENU_MAX_HEIGHT = 300;
+
+function createAnchorRect(x: number, y: number, width: number, height: number): AnchorRect {
+  return {
+    x,
+    y,
+    width,
+    height,
+    top: y,
+    left: x,
+    right: x + width,
+    bottom: y + height,
+  };
+}
+
+function getWebAnchorRect(event: GestureResponderEvent): AnchorRect | null {
+  const currentTarget = (event as GestureResponderEvent & {
+    currentTarget?: { getBoundingClientRect?: () => DOMRect };
+  }).currentTarget;
+
+  const domRect = currentTarget?.getBoundingClientRect?.();
+  if (!domRect) {
+    return null;
+  }
+
+  return createAnchorRect(domRect.left, domRect.top, domRect.width, domRect.height);
+}
 
 export function EchoFilterPill({
   options,
@@ -21,6 +49,8 @@ export function EchoFilterPill({
   onSelectScope,
 }: EchoFilterPillProps) {
   const [open, setOpen] = useState(false);
+  const [anchorRect, setAnchorRect] = useState<AnchorRect | null>(null);
+  const triggerRef = useRef<View | null>(null);
   const scopes = useMemo<EchoFilterScope[]>(
     () => [
       ALL_SCOPE,
@@ -33,17 +63,59 @@ export function EchoFilterPill({
     [options],
   );
 
+  function closeMenu() {
+    setOpen(false);
+    setAnchorRect(null);
+  }
+
+  function toggleMenu(event: GestureResponderEvent) {
+    if (open) {
+      closeMenu();
+      return;
+    }
+
+    const webAnchorRect = getWebAnchorRect(event);
+    if (webAnchorRect) {
+      setAnchorRect(webAnchorRect);
+      setOpen(true);
+      return;
+    }
+
+    const triggerNode = triggerRef.current as
+      | (View & {
+          measureInWindow?: (
+            callback: (x: number, y: number, width: number, height: number) => void
+          ) => void;
+        })
+      | null;
+
+    if (triggerNode?.measureInWindow) {
+      triggerNode.measureInWindow((x, y, width, height) => {
+        setAnchorRect(createAnchorRect(x, y, width, height));
+        setOpen(true);
+      });
+      return;
+    }
+
+    const { pageX, pageY } = event.nativeEvent;
+    setAnchorRect(createAnchorRect(pageX ?? 0, pageY ?? 0, 0, 0));
+    setOpen(true);
+  }
+
   function selectScope(scope: EchoFilterScope) {
     onSelectScope(scope);
-    setOpen(false);
+    closeMenu();
   }
 
   return (
-    <View style={{ position: 'relative', zIndex: open ? 40 : 1 }}>
+    <>
       <Pressable
-        onPress={() => setOpen((value) => !value)}
+        ref={triggerRef}
+        onPress={toggleMenu}
+        accessibilityRole="button"
+        accessibilityLabel={`Filter Echo entries. Current filter: ${selectedScope.label}`}
         className="flex-row items-center rounded-full px-3.5 py-1.5"
-        style={{ backgroundColor: LIGHT_THEME.background.sidebar }}
+        style={{ backgroundColor: LIGHT_THEME.background.sidebar, flexShrink: 1 }}
       >
         <Text
           numberOfLines={1}
@@ -66,59 +138,46 @@ export function EchoFilterPill({
         </Text>
       </Pressable>
 
-      {open ? (
-        <>
-          <Pressable
-            onPress={() => setOpen(false)}
-            style={{
-              position: 'fixed' as 'absolute',
-              inset: 0,
-              zIndex: 20,
-            }}
-          />
-          <View
-            className="rounded-[10px] border bg-white py-1 shadow-sm"
-            style={{
-              borderColor: LIGHT_THEME.border.divider,
-              left: 0,
-              minWidth: 220,
-              maxHeight: 300,
-              position: 'absolute',
-              top: 36,
-              zIndex: 30,
-            }}
-          >
-            <ScrollView keyboardShouldPersistTaps="handled">
-              {scopes.map((scope) => {
-                const selected = selectedScope.type === scope.type && selectedScope.id === scope.id;
-                return (
-                  <Pressable
-                    key={`${scope.type}-${scope.id}`}
-                    onPress={() => selectScope(scope)}
-                    className="px-3.5 py-2.5"
-                    style={{
-                      backgroundColor: selected ? LIGHT_THEME.background.selectedRow : 'transparent',
-                    }}
-                  >
-                    <Text
-                      numberOfLines={1}
-                      className="font-sans"
-                      style={{
-                        color: LIGHT_THEME.text.primary,
-                        fontFamily: selected ? 'Inter-Bold' : 'Inter-Medium',
-                        fontSize: 13,
-                        lineHeight: 18,
-                      }}
-                    >
-                      {scope.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
-        </>
-      ) : null}
-    </View>
+      <AnchoredPopover
+        visible={open}
+        anchorRect={anchorRect}
+        onDismiss={closeMenu}
+        contentClassName="rounded-[10px] border bg-white py-1 shadow-sm"
+        contentStyle={{
+          borderColor: LIGHT_THEME.border.divider,
+          maxHeight: MENU_MAX_HEIGHT,
+          minWidth: 220,
+        }}
+      >
+        <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: MENU_MAX_HEIGHT }}>
+          {scopes.map((scope) => {
+            const selected = selectedScope.type === scope.type && selectedScope.id === scope.id;
+            return (
+              <Pressable
+                key={`${scope.type}-${scope.id}`}
+                onPress={() => selectScope(scope)}
+                className="px-3.5 py-2.5"
+                style={{
+                  backgroundColor: selected ? LIGHT_THEME.background.selectedRow : 'transparent',
+                }}
+              >
+                <Text
+                  numberOfLines={1}
+                  className="font-sans"
+                  style={{
+                    color: LIGHT_THEME.text.primary,
+                    fontFamily: selected ? 'Inter-Bold' : 'Inter-Medium',
+                    fontSize: 13,
+                    lineHeight: 18,
+                  }}
+                >
+                  {scope.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </AnchoredPopover>
+    </>
   );
 }
