@@ -3,8 +3,12 @@ import { createJSONStorage, persist, type StateStorage } from 'zustand/middlewar
 
 interface UIStore {
   sidebarCollapsed: boolean;
+  rightPaneWidth: number;
+  echoMiddleMode: 'list' | 'tree';
   setSidebarCollapsed: (collapsed: boolean) => void;
   toggleSidebarCollapsed: () => void;
+  setRightPaneWidth: (width: number) => void;
+  setEchoMiddleMode: (mode: 'list' | 'tree') => void;
 }
 
 const webStorage: StateStorage = {
@@ -26,14 +30,22 @@ export const useUIStore = create<UIStore>()(
   persist(
     (set) => ({
       sidebarCollapsed: false,
+      rightPaneWidth: 420,
+      echoMiddleMode: 'list',
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
       toggleSidebarCollapsed: () =>
         set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+      setRightPaneWidth: (width) => set({ rightPaneWidth: width }),
+      setEchoMiddleMode: (mode) => set({ echoMiddleMode: mode }),
     }),
     {
       name: 'ohara-ui-state',
       storage: createJSONStorage(() => webStorage),
-      partialize: (state) => ({ sidebarCollapsed: state.sidebarCollapsed }),
+      partialize: (state) => ({
+        sidebarCollapsed: state.sidebarCollapsed,
+        rightPaneWidth: state.rightPaneWidth,
+        echoMiddleMode: state.echoMiddleMode,
+      }),
     }
   )
 );

@@ -7,7 +7,7 @@ import { buildEchoEmbeddingText } from '@/lib/ai/embedding-text';
 import { generateEmbedding } from '@/lib/ai/embeddings';
 import { EMBEDDING_MODEL } from '@/lib/ai/constants';
 import type { EchoFolder } from '@/types/echo-folder';
-import type { EchoEntry } from '../types';
+import type { EchoContainerOption, EchoEntry, EchoGoalOption } from '../types';
 
 type DbGoalRef = { id: string; title: string } | null;
 type DbBrt = EchoEntry['brt'] | null;
@@ -71,7 +71,7 @@ function mapEntry(row: DbEchoEntry): EchoEntry {
 
 type ConfirmedContainerDisplay =
   | { type: 'goal'; goalId: string; goalTitle?: string }
-  | { type: 'folder'; folderName?: string };
+  | { type: 'folder'; folderId: string; folderName?: string };
 
 type DbConfirmedLinkRow = {
   echo_entry_id: string;
@@ -142,6 +142,7 @@ async function fetchConfirmedContainers(
     } else if (link.container_type === 'folder' && link.folder_id) {
       result.set(link.echo_entry_id, {
         type: 'folder',
+        folderId: link.folder_id,
         folderName: folderNameById.get(link.folder_id),
       });
     }
@@ -157,6 +158,7 @@ function applyContainer(entry: EchoEntry, container: ConfirmedContainerDisplay |
       ...entry,
       goalId: null,
       goalTitle: undefined,
+      folderId: container.folderId,
       folderName: container.folderName,
     };
   }
@@ -164,6 +166,7 @@ function applyContainer(entry: EchoEntry, container: ConfirmedContainerDisplay |
     ...entry,
     goalId: container.goalId,
     goalTitle: container.goalTitle,
+    folderId: undefined,
     folderName: undefined,
   };
 }
@@ -427,7 +430,7 @@ export async function createEntry(params: {
         // The General folder's name is server-enforced immutable ("The
         // General folder cannot be renamed" — app/api/folders/[id]+api.ts),
         // so it's safe to hardcode here rather than issuing a second query.
-        confirmedContainer = { type: 'folder', folderName: 'General' };
+        confirmedContainer = { type: 'folder', folderId, folderName: 'General' };
       }
     } catch (err) {
       console.error('[echo-entry-links] general-folder assignment failed:', err);
@@ -567,18 +570,101 @@ export async function createEntry(params: {
   };
 }
 
-export async function fetchActiveGoalsForPicker(
+export async function fetchGoalsForPicker(
   userId: string,
-): Promise<Array<{ id: string; title: string }>> {
+): Promise<EchoGoalOption[]> {
   const { data, error } = await supabase
     .from('goals')
-    .select('id, title')
+    .select('id, title, project_id')
     .eq('user_id', userId)
-    .eq('status', 'active')
     .order('created_at', { ascending: false });
 
   if (error || !data) return [];
-  return data as Array<{ id: string; title: string }>;
+  const goalRows = data as Array<{ id: string; title: string; project_id: string | null }>;
+  const projectIds = [
+    ...new Set(
+      goalRows
+        .map((goal) => goal.project_id)
+        .filter((projectId): projectId is string => Boolean(projectId)),
+    ),
+  ];
+
+  let projectTitleById = new Map<string, string>();
+  if (projectIds.length > 0) {
+    const { data: projectRows } = await supabase
+      .from('projects')
+      .select('id, title')
+      .in('id', projectIds);
+
+    projectTitleById = new Map(
+      ((projectRows as Array<{ id: string; title: string }> | null) ?? []).map((project) => [
+        project.id,
+        project.title,
+      ]),
+    );
+  }
+
+  return goalRows.map((goal) => ({
+    id: goal.id,
+    title: goal.title,
+    projectId: goal.project_id,
+    projectTitle: goal.project_id ? projectTitleById.get(goal.project_id) ?? null : null,
+  }));
+}
+
+export async function fetchContainerOptions(userId: string): Promise<{
+  goals: EchoGoalOption[];
+  folders: EchoFolder[];
+  options: EchoContainerOption[];
+}> {
+  const [goals, folderResult] = await Promise.all([
+    fetchGoalsForPicker(userId),
+    supabase
+      .from('echo_folders')
+      .select('id, user_id, name, is_general, created_at, updated_at')
+      .eq('user_id', userId)
+      .order('is_general', { ascending: false })
+      .order('name', { ascending: true }),
+  ]);
+
+  const folders =
+    folderResult.error || !folderResult.data
+      ? []
+      : (folderResult.data as Array<{
+          id: string;
+          user_id: string;
+          name: string;
+          is_general: boolean;
+          created_at: string;
+          updated_at: string;
+        }>).map((folder) => ({
+          id: folder.id,
+          userId: folder.user_id,
+          name: folder.name,
+          isGeneral: folder.is_general,
+          createdAt: folder.created_at,
+          updatedAt: folder.updated_at,
+        }));
+
+  const options: EchoContainerOption[] = [
+    ...goals.map((goal): EchoContainerOption => ({
+      type: 'goal',
+      id: goal.id,
+      label: goal.title,
+      title: goal.title,
+      projectId: goal.projectId,
+      projectTitle: goal.projectTitle,
+    })),
+    ...folders.map((folder): EchoContainerOption => ({
+      type: 'folder',
+      id: folder.id,
+      label: folder.name,
+      name: folder.name,
+      isGeneral: folder.isGeneral,
+    })),
+  ];
+
+  return { goals, folders, options };
 }
 
 // ─── Move to folder/goal (Session 4) ───────────────────────────────────────

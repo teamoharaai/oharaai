@@ -40,6 +40,9 @@ export function clearAllStores(): void {
 
   // Reset UI prefs (e.g. sidebar collapse) so they don't leak across users
   // on a shared device.
-  useUIStore.setState({ sidebarCollapsed: false });
+  useUIStore.setState({
+    sidebarCollapsed: false,
+    rightPaneWidth: 420,
+  });
   useUIStore.persist.clearStorage();
 }

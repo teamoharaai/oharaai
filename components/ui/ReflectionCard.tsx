@@ -1,4 +1,5 @@
 import { View, Text } from 'react-native';
+import { resolveBrt, type BrtCategory } from '@/lib/utils/resolveBrt';
 import type { EchoBrt } from '@/types/brt';
 
 export type ReflectionCardVariant = 'compact' | 'full';
@@ -10,18 +11,11 @@ export interface ReflectionCardProps {
   brt: EchoBrt | null;
 }
 
-// Mirrors features/goals/hooks/useEchoTrail.ts's deriveBrtLabel — same priority
-// (bud → rose → thorn), kept local since this component must stay cross-feature-safe.
-function deriveBrtLabel(brt: EchoBrt | null): 'Bud' | 'Rose' | 'Thorn' | null {
-  if (!brt) return null;
-  const scores: Array<['Bud' | 'Rose' | 'Thorn', number]> = [
-    ['Bud', brt.bud.length],
-    ['Rose', brt.rose.length],
-    ['Thorn', brt.thorn.length],
-  ];
-  const best = scores.reduce((a, b) => (b[1] > a[1] ? b : a));
-  return best[1] > 0 ? best[0] : null;
-}
+const BRT_LABELS: Record<BrtCategory, 'Bud' | 'Rose' | 'Thorn'> = {
+  bud: 'Bud',
+  rose: 'Rose',
+  thorn: 'Thorn',
+};
 
 // Matches EchoTrail.tsx's BrtBadge exactly — same colors, same shape.
 function BrtPill({ brt }: { brt: 'Bud' | 'Rose' | 'Thorn' }) {
@@ -55,7 +49,8 @@ function formatTimestamp(value: string): string {
 }
 
 export function ReflectionCard({ variant, timestamp, aiResponse, brt }: ReflectionCardProps) {
-  const brtLabel = deriveBrtLabel(brt);
+  const brtCategory = resolveBrt(brt);
+  const brtLabel = brtCategory ? BRT_LABELS[brtCategory] : null;
   const isFull = variant === 'full';
 
   return (

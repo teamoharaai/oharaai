@@ -22,7 +22,7 @@ out/
 .expo/
 
 # Local design scratch — not tracked
-design/
+#design/
 
 # OS & editor clutter
 .DS_Store

@@ -2,6 +2,108 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-11 — Follow-up: add Echo tree view and loosen pane resizing)
+- **`features/echo/components/EchoContainerTree.tsx` (new) and `EchoScreen.tsx`:** added a
+  middle-pane tree toggle beside the filter pill, showing folders and project-grouped goals as
+  selectable scope targets in the main Echo column.
+- **`features/echo/components/EchoScreen.tsx`:** loosened the right-pane resize clamp
+  (`280px` detail minimum, `220px` middle-column floor) so the divider can travel farther
+  left and right.
+- **`features/echo/components/EchoEntryList.tsx`:** moved the entry list rail onto the same
+  warm page background so short entry lists do not leave awkward blocks of mismatched color.
+- Verification: `npx tsc --noEmit` clean.
+
+### Changed (2026-07-11 — Follow-up: extend Echo entry list rail)
+- **`features/echo/components/EchoEntryList.tsx` and `EchoEntryRow.tsx`:** changed the entry
+  list from content-height-feeling rows into a full-height vertical list rail with
+  full-width entry bands, so a single entry no longer reads as a small isolated tile.
+- Verification: `npx tsc --noEmit` clean.
+
+### Changed (2026-07-11 — Follow-up: remove Echo detail collapse arrow)
+- **`features/echo/components/EchoPaneResizer.tsx` and `EchoScreen.tsx`:** removed the
+  right-pane collapse/expand arrow and docked strip behavior, leaving only the draggable
+  vertical resizer between the entry list and detail view.
+- **`store/uiStore.ts` and `store/clearAllStores.ts`:** removed the now-unused persisted
+  `rightPaneCollapsed` preference so stale collapsed state cannot trap the detail pane.
+- Verification: `npx tsc --noEmit` clean.
+
+### Changed (2026-07-11 — Phase 5: scoped flat Echo list)
+- **`features/echo/components/EchoScreen.tsx`:** selecting a canonical goal/folder filter now
+  filters the already-loaded entries by `goalId` or `folderId`, clears the active detail, and
+  switches the list from date-grouped mode to flat scoped mode.
+- **`features/echo/components/EchoEntryList.tsx` and `EchoEntryRow.tsx`:** flat scoped mode
+  hides date headers, uses date captions, and switches rows to the titles-only variant while
+  retaining the same selected-row and action-menu behavior.
+- Verification: `npx tsc --noEmit` clean. Live smoke for scoped filtering, empty scoped
+  containers, and restoring All/date grouping still needs a real signed-in dev-server session.
+
+### Changed (2026-07-11 — Phase 4: right detail/composer pane and persisted resize)
+- **`features/echo/components/EchoComposer.tsx` (new):** moved the new-entry form into the
+  right pane, preserving body draft persistence and save-result handling while submitting
+  through the existing `saveEntry(text, goalId|null, aiRequested, brt, emotion, title)`
+  contract. The composer uses `GoalFolderPicker` in goal-only mode because the create path
+  still cannot persist an arbitrary folder id without changing that contract.
+- **`features/echo/components/EchoDetailPane.tsx` (new):** added empty, read-only entry, and
+  add/composer states with resolved container/date captions and neutral-grey null-BRT dots.
+- **`features/echo/components/EchoPaneResizer.tsx` (new), `store/uiStore.ts`,
+  `store/clearAllStores.ts`:** added right-pane resize/collapse controls plus persisted
+  `rightPaneWidth` and `rightPaneCollapsed`, including the `partialize` whitelist.
+- **`features/echo/components/EchoScreen.tsx`, `features/echo/hooks/useEntries.ts`,
+  `features/echo/components/GoalFolderPicker.tsx`:** wired three-pane orchestration,
+  add/view selection state, route-goal draft restoration, and goal-only picker mode for the
+  composer.
+- Verification: `npx tsc --noEmit` clean. Live smoke for composer save, row detail view,
+  resize clamps, and width/collapse refresh persistence still needs a real signed-in
+  dev-server session/JWT.
+
+### Changed (2026-07-11 — Phase 3: shared Goal/Folder picker)
+- **`features/echo/components/GoalFolderPicker.tsx` (new):** added the reusable two-section
+  container picker: goals grouped under project headers with an explicit Ungrouped group,
+  plus flat Echo folders including General as a normal selectable folder.
+- **`features/echo/components/MoveEntryModal.tsx`:** replaced the old inline
+  "Projects"/folders list with `GoalFolderPicker`, correcting the goal section label to
+  "Goals" while preserving the existing single-row move path through `onConfirm`.
+- Verification: `npx tsc --noEmit` clean. Live move/write smoke for goal and folder targets,
+  including General and one-confirmed-row behavior, still needs a real signed-in dev-server
+  session/JWT.
+
+### Changed (2026-07-11 — Phase 2: date-grouped Echo list and canonical filter)
+- **`features/echo/services/echo-service.ts`, `features/echo/hooks/useEntries.ts`,
+  `features/echo/types.ts`, `features/echo/store.ts`, `features/echo/hooks/useMoveEntry.ts`:**
+  threaded canonical goal/folder options into the Echo screen and preserved folder ids on
+  confirmed folder links so later scoped filtering can use stable ids.
+- **`features/echo/components/EchoEntryRow.tsx`, `EchoEntryList.tsx`,
+  `EchoFilterPill.tsx` (new):** added the Phase 2 middle-column list surface with date
+  grouping, BRT dots, selected-row styling, container/date captions, action-menu carryover,
+  loading/empty states, and the canonical filter dropdown.
+- **`features/echo/components/EchoScreen.tsx`:** replaced the old single-scroll
+  composer-on-top screen with the Phase 2 list column plus placeholder detail column.
+- Verification: `npx tsc --noEmit` clean. Live render smoke for grouping/dots/dropdown still
+  needs a real signed-in dev-server session.
+
+### Changed (2026-07-11 — Phase 0: canonical BRT resolver)
+- **`lib/utils/resolveBrt.ts` (new):** added the canonical dominant-BRT resolver over
+  `EchoBrt`, using count majority with lowercase category output. The original commit
+  (7f95880) shipped an unauthorized thorn -> rose -> bud tie-break; this has since been
+  reverted to bud -> rose -> thorn, matching the tie-break behavior of the three prior
+  resolver implementations it replaced. No decision record ever authorized thorn-first.
+  The "real" canonical tie-break philosophy is an open product decision for Ariel, to be
+  recorded separately in DECISIONS.md — bud-first here is a safe-default revert, not that
+  decision.
+- **`features/goals/services/goal-service.ts`:** retired the local `deriveBrtTag`
+  first-non-empty heuristic and now uses `resolveBrt()` for goal-card BRT signal tags.
+- **`features/goals/hooks/useEchoTrail.ts` and `components/ui/ReflectionCard.tsx`:**
+  removed local title-case dominant-BRT mirrors and title-case the canonical lowercase
+  category at the UI boundary.
+- Verification: `npx tsc --noEmit` clean. Live smoke for EchoTrail labels, goal-card
+  dots, and ReflectionCard labels still requires a real signed-in dev-server session.
+
+### Added (2026-07-11 — Phase 1: Echo redesign color tokens)
+- **`constants/colors.ts`:** added the locked Echo redesign tokens only:
+  `LIGHT_THEME.brt.{bud,rose,thorn}`, `LIGHT_THEME.border.input`,
+  `LIGHT_THEME.border.divider`, and `LIGHT_THEME.background.selectedRow`.
+- Verification: `npx tsc --noEmit` clean.
+
 ### Added (2026-07-10 — Log the intentional embedding-skip in PATCH /api/entries/:id)
 - **Context:** a live audit flagged `echo_entries.embedding_text` as null after a content-changing
   edit. Root cause was benign: `buildEchoEmbeddingText` returns null when content falls under
