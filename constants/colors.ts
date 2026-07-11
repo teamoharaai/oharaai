@@ -1,16 +1,3 @@
-export const STATUS = {
-  pending: {
-    bg: '#FFFBEB',
-    border: '#FDE68A',
-    text: '#B45309',
-  },
-  error: {
-    bg: '#FEF3C7',
-    border: '#FCD34D',
-    text: '#92400E',
-  },
-} as const;
-
 export const LIGHT_THEME = {
   background: {
     page: '#F8F4EC', // reconciled: was #F5F1EA (warm-neutral repalette)
@@ -53,5 +40,10 @@ export const LIGHT_THEME = {
   },
   feedback: {
     danger: '#C0483A', // new: overdue due-dates, destructive actions, error text
+    pending: {
+      bg: '#FFFBEB', // unconfirmed AI-suggestion banner (Echo links, Vault insights)
+      border: '#FDE68A',
+      text: '#B45309',
+    },
   },
 } as const;

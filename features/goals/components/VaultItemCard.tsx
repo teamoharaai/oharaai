@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, TextInput, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { VaultItem } from '@/types/vault';
-import { STATUS, LIGHT_THEME } from '@/constants/colors';
+import { LIGHT_THEME } from '@/constants/colors';
 import { Typography } from '@/components/ui/Typography';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -255,14 +255,14 @@ function InsightCard({ item, onUpdate, onDelete }: VaultItemCardProps) {
   return (
     <View
       className="rounded-xl border p-4 mb-3"
-      style={{ backgroundColor: STATUS.pending.bg, borderColor: STATUS.pending.border }}
+      style={{ backgroundColor: LIGHT_THEME.feedback.pending.bg, borderColor: LIGHT_THEME.feedback.pending.border }}
     >
       {/* Header */}
       <View className="flex-row items-center gap-2 mb-2">
-        <Ionicons name="bulb-outline" size={14} color={STATUS.pending.text} />
+        <Ionicons name="bulb-outline" size={14} color={LIGHT_THEME.feedback.pending.text} />
         <Text
           className="text-xs font-inter-semibold uppercase tracking-widest"
-          style={{ color: STATUS.pending.text }}
+          style={{ color: LIGHT_THEME.feedback.pending.text }}
         >
           Ohara Insight
         </Text>

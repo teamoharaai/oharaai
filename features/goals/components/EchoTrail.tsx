@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { STATUS } from '@/constants/colors';
+import { LIGHT_THEME } from '@/constants/colors';
 import { Typography } from '@/components/ui/Typography';
 
 // ─── Exported type ────────────────────────────────────────────────────────────
@@ -107,11 +107,11 @@ function EchoTrailCard({ entry, onConfirmLink, onDismissLink }: EchoTrailCardPro
       {!entry.confirmed && (
         <View
           className="mt-3 rounded-lg border p-3"
-          style={{ backgroundColor: STATUS.pending.bg, borderColor: STATUS.pending.border }}
+          style={{ backgroundColor: LIGHT_THEME.feedback.pending.bg, borderColor: LIGHT_THEME.feedback.pending.border }}
         >
           <View className="flex-row items-center gap-1.5 mb-2">
-            <Ionicons name="link-outline" size={12} color={STATUS.pending.text} />
-            <Text className="text-xs" style={{ color: STATUS.pending.text }}>
+            <Ionicons name="link-outline" size={12} color={LIGHT_THEME.feedback.pending.text} />
+            <Text className="text-xs" style={{ color: LIGHT_THEME.feedback.pending.text }}>
               Ohara thinks this relates to your goal
             </Text>
           </View>

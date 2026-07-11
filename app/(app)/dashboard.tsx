@@ -12,7 +12,7 @@ import { useProjectStore } from '@/features/projects/store';
 import { GoalGrid } from '@/features/goals/components/GoalGrid';
 import { ProjectCard } from '@/features/projects/components/ProjectCard';
 import { FEATURES } from '@/constants/features';
-import { STATUS } from '@/constants/colors';
+import { LIGHT_THEME } from '@/constants/colors';
 import { authedFetch } from '@/lib/api/client';
 import type { AiResponse } from '@/lib/ai/contracts';
 import type { GoalWithMeasurables } from '@/features/goals/types';
@@ -290,7 +290,7 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
         {mutationError ? (
           <Text
             className="mb-2 font-sans text-xs"
-            style={{ color: STATUS.error.text }}
+            style={{ color: LIGHT_THEME.feedback.danger }}
           >
             {mutationError}
           </Text>
@@ -302,7 +302,7 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
             <View className="h-3 w-4/5 rounded-full bg-[#F0EDE6]" />
           </View>
         ) : actionError && optimisticAction === undefined ? (
-          <Text className="font-sans text-sm" style={{ color: STATUS.error.text }}>
+          <Text className="font-sans text-sm" style={{ color: LIGHT_THEME.feedback.danger }}>
             Couldn&apos;t load next action.
           </Text>
         ) : displayedAction ? (

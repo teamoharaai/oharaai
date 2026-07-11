@@ -18,6 +18,12 @@ Theme (post-redesign warm ramp, Sessions 1–4c): warm cream (#F8F4EC) page base
 
 ## Core Architecture Rules
 
+### Color Token Registries
+`LIGHT_THEME` (constants/colors.ts) is the sole canonical color registry — see Theme line above. `COLORS`, `STATUS`, and `THEME` (former pre-`LIGHT_THEME` scaffold/legacy exports) have been fully retired and removed from constants/colors.ts; all former consumers migrated to `LIGHT_THEME` (status-badge colors live at `LIGHT_THEME.feedback.*`, including `feedback.pending` for unconfirmed AI-suggestion banners). One registry remains live and is not a replacement for `LIGHT_THEME`:
+- **`tailwind.config.js` `theme.extend.colors`** — has two lineages, both real:
+  - Kebab-case mirrors of `LIGHT_THEME` keys (`page-bg`, `emerald-deep`, `teal-mid`, `goal-card`, `border-warm`, etc.), added because NativeWind `className` strings can't reference a JS object literal. When changing a `LIGHT_THEME` value that has a Tailwind mirror, update both in the same commit.
+  - Older pre-`LIGHT_THEME` scaffold keys (`cream`, `near-black`, `earth-green`, `card-bg`, `muted`, `dark-bg`, `ink`, `primary`) still driving un-migrated screens: auth flow (`app/(auth)/login.tsx`, `signup.tsx`, `callback.tsx`), `app/about.tsx`, `app/index.tsx`, `components/ui/Modal.tsx`/`Input.tsx`/`Screen.tsx`/`EmptyStateCard.tsx`/`ReflectionCard.tsx`, `AccountModal.tsx`, `SettingsModal.tsx`, and several Echo modals. These are not documented elsewhere and are not yet retired — don't assume they're dead code, but don't add new usages either; migrate to the `LIGHT_THEME`-mirrored keys when touching those files.
+
 ### SSR Safety (CRITICAL)
 Modules imported at _layout.tsx top level must NEVER throw at module load time.
 - Layer 1 (module init): safe fallbacks only (?? '', isDatabaseConfigured, null as any)
