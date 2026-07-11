@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-11 — Follow-up: remove Echo detail collapse arrow)
+- **`features/echo/components/EchoPaneResizer.tsx` and `EchoScreen.tsx`:** removed the
+  right-pane collapse/expand arrow and docked strip behavior, leaving only the draggable
+  vertical resizer between the entry list and detail view.
+- **`store/uiStore.ts` and `store/clearAllStores.ts`:** removed the now-unused persisted
+  `rightPaneCollapsed` preference so stale collapsed state cannot trap the detail pane.
+- Verification: `npx tsc --noEmit` clean.
+
 ### Changed (2026-07-11 — Phase 5: scoped flat Echo list)
 - **`features/echo/components/EchoScreen.tsx`:** selecting a canonical goal/folder filter now
   filters the already-loaded entries by `goalId` or `folderId`, clears the active detail, and

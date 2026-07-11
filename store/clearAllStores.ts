@@ -43,7 +43,6 @@ export function clearAllStores(): void {
   useUIStore.setState({
     sidebarCollapsed: false,
     rightPaneWidth: 420,
-    rightPaneCollapsed: false,
   });
   useUIStore.persist.clearStorage();
 }

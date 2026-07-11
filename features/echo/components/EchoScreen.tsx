@@ -17,7 +17,6 @@ import type { EchoEntry } from '../types';
 
 const ALL_SCOPE: EchoFilterScope = { type: 'all', id: 'all', label: 'All' };
 const RIGHT_PANE_MIN_WIDTH = 340;
-const RIGHT_PANE_COLLAPSED_WIDTH = 56;
 const MIDDLE_COLUMN_MIN_WIDTH = 280;
 
 export function EchoScreen() {
@@ -35,10 +34,7 @@ export function EchoScreen() {
   const deleteEntry = useEchoStore((state) => state.deleteEntry);
   const sidebarCollapsed = useUIStore((state) => state.sidebarCollapsed);
   const rightPaneWidth = useUIStore((state) => state.rightPaneWidth);
-  const rightPaneCollapsed = useUIStore((state) => state.rightPaneCollapsed);
   const setRightPaneWidth = useUIStore((state) => state.setRightPaneWidth);
-  const setRightPaneCollapsed = useUIStore((state) => state.setRightPaneCollapsed);
-  const toggleRightPaneCollapsed = useUIStore((state) => state.toggleRightPaneCollapsed);
   const moveEntry = useMoveEntry({
     onEntryGone: removeEntry,
     onTargetsStale: reloadPickerGoals,
@@ -66,11 +62,10 @@ export function EchoScreen() {
       const windowWidth = Dimensions.get('window').width;
       const sidebarWidth = sidebarCollapsed ? 76 : 220;
       const maxWidth = Math.max(
-        RIGHT_PANE_COLLAPSED_WIDTH,
+        RIGHT_PANE_MIN_WIDTH,
         windowWidth - sidebarWidth - MIDDLE_COLUMN_MIN_WIDTH,
       );
-      const minWidth = Math.min(RIGHT_PANE_MIN_WIDTH, maxWidth);
-      return Math.max(minWidth, Math.min(width, maxWidth));
+      return Math.max(RIGHT_PANE_MIN_WIDTH, Math.min(width, maxWidth));
     },
     [sidebarCollapsed],
   );
@@ -91,13 +86,11 @@ export function EchoScreen() {
   function handleAddEntry() {
     setSelectedEntryId(null);
     setDetailMode('add');
-    if (rightPaneCollapsed) setRightPaneCollapsed(false);
   }
 
   function handleSelectEntry(entryId: string) {
     setSelectedEntryId(entryId);
     setDetailMode('view');
-    if (rightPaneCollapsed) setRightPaneCollapsed(false);
   }
 
   async function handleDeleteEntry(entryId: string) {
@@ -130,9 +123,7 @@ export function EchoScreen() {
     setDetailMode('view');
   }
 
-  const renderedRightPaneWidth = rightPaneCollapsed
-    ? RIGHT_PANE_COLLAPSED_WIDTH
-    : clampRightPaneWidth(rightPaneWidth);
+  const renderedRightPaneWidth = clampRightPaneWidth(rightPaneWidth);
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: LIGHT_THEME.background.page }}>
@@ -192,37 +183,17 @@ export function EchoScreen() {
         >
           <EchoPaneResizer
             width={rightPaneWidth}
-            collapsed={rightPaneCollapsed}
             onResize={handleResizeRightPane}
-            onToggleCollapse={toggleRightPaneCollapsed}
           />
-          {rightPaneCollapsed ? (
-            <View className="flex-1 items-center justify-center">
-              <Text
-                className="font-sans"
-                style={{
-                  color: LIGHT_THEME.text.secondary,
-                  fontFamily: 'Inter-Bold',
-                  fontSize: 12,
-                  lineHeight: 16,
-                  transform: [{ rotate: '-90deg' }],
-                  width: 120,
-                }}
-              >
-                Echo detail
-              </Text>
-            </View>
-          ) : (
-            <EchoDetailPane
-              mode={detailMode}
-              entry={selectedEntry}
-              goals={pickerGoals}
-              initialGoalId={routeGoalId ?? null}
-              saveEntry={saveEntry}
-              onCancelAdd={() => setDetailMode(selectedEntry ? 'view' : 'empty')}
-              onSaved={handleComposerSaved}
-            />
-          )}
+          <EchoDetailPane
+            mode={detailMode}
+            entry={selectedEntry}
+            goals={pickerGoals}
+            initialGoalId={routeGoalId ?? null}
+            saveEntry={saveEntry}
+            onCancelAdd={() => setDetailMode(selectedEntry ? 'view' : 'empty')}
+            onSaved={handleComposerSaved}
+          />
         </View>
       </View>
 
