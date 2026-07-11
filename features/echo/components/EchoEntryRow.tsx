@@ -1,4 +1,5 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Typography } from '@/components/ui/Typography';
 import { LIGHT_THEME } from '@/constants/colors';
 import { resolveBrt } from '@/lib/utils/resolveBrt';
 import { EntryActionMenu } from './EntryActionMenu';
@@ -41,14 +42,12 @@ export function EchoEntryRow({
   const dotColor = brtCategory ? LIGHT_THEME.brt[brtCategory] : LIGHT_THEME.text.muted;
 
   return (
-    <View className="relative">
+    <View className="relative mx-3 mb-2 overflow-hidden rounded-xl border border-border-color-subtle bg-white shadow-sm">
       <Pressable
         onPress={onSelect}
         className="min-h-[74px] flex-row gap-2.5 px-3 py-3"
         style={{
-          backgroundColor: selected ? LIGHT_THEME.background.selectedRow : 'transparent',
-          borderBottomColor: LIGHT_THEME.border.divider,
-          borderBottomWidth: 1,
+          backgroundColor: selected ? LIGHT_THEME.background.selectedRow : LIGHT_THEME.background.card,
         }}
       >
         <View
@@ -56,43 +55,21 @@ export function EchoEntryRow({
           style={{ backgroundColor: dotColor }}
         />
         <View className="min-w-0 flex-1 pr-7">
-          <Text
-            numberOfLines={1}
-            className="font-sans"
-            style={{
-              color: LIGHT_THEME.text.primary,
-              fontFamily: 'Inter-Bold',
-              fontSize: 13.5,
-              lineHeight: 18,
-            }}
-          >
+          <Typography variant="echo-entry-title" numberOfLines={1}>
             {getEntryTitle(entry)}
-          </Text>
+          </Typography>
           {showSnippet ? (
-            <Text
-              numberOfLines={1}
-              className="mt-0.5 font-sans"
-              style={{
-                color: LIGHT_THEME.text.secondary,
-                fontSize: 12,
-                lineHeight: 16,
-              }}
-            >
+            <Typography variant="echo-entry-preview" className="mt-0.5" numberOfLines={1}>
               {getEntrySnippet(entry)}
-            </Text>
+            </Typography>
           ) : null}
-          <Text
+          <Typography
+            variant="echo-entry-meta"
+            className={showSnippet ? 'mt-1' : 'mt-0.5'}
             numberOfLines={1}
-            className={`${showSnippet ? 'mt-1' : 'mt-0.5'} font-sans`}
-            style={{
-              color: LIGHT_THEME.text.muted,
-              fontFamily: 'Inter-Medium',
-              fontSize: 10.5,
-              lineHeight: 14,
-            }}
           >
             {caption}
-          </Text>
+          </Typography>
         </View>
       </Pressable>
 

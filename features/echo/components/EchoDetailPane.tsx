@@ -1,4 +1,5 @@
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
+import { Typography } from '@/components/ui/Typography';
 import { LIGHT_THEME } from '@/constants/colors';
 import { resolveBrt } from '@/lib/utils/resolveBrt';
 import { EchoComposer } from './EchoComposer';
@@ -77,66 +78,30 @@ export function EchoDetailPane({
       >
         <View className="flex-row items-center gap-2">
           <BrtDot entry={entry} />
-          <Text
-            className="font-sans"
-            style={{
-              color: LIGHT_THEME.text.secondary,
-              fontFamily: 'Inter-SemiBold',
-              fontSize: 12,
-              lineHeight: 16,
-            }}
-          >
+          <Typography variant="echo-detail-meta">
             {getContainerName(entry)} · {formatEntryDate(entry.createdAt)}
-          </Text>
+          </Typography>
         </View>
 
-        <Text
-          className="mt-4 font-sans"
-          style={{
-            color: LIGHT_THEME.text.primary,
-            fontFamily: 'Inter-ExtraBold',
-            fontSize: 26,
-            lineHeight: 34,
-            maxWidth: 640,
-          }}
-        >
+        <Typography variant="echo-detail-title" className="mt-4" style={{ maxWidth: 640 }}>
           {getEntryTitle(entry)}
-        </Text>
+        </Typography>
 
-        <Text
-          className="mt-5 font-sans"
-          style={{
-            color: LIGHT_THEME.text.primary,
-            fontSize: 15,
-            lineHeight: 27,
-            maxWidth: 640,
-          }}
-        >
+        <Typography variant="echo-detail-body" className="mt-5" style={{ maxWidth: 640 }}>
           {entry.content}
-        </Text>
+        </Typography>
       </ScrollView>
     );
   }
 
   return (
     <View className="flex-1 items-center justify-center px-8">
-      <Text
-        className="font-sans"
-        style={{
-          color: LIGHT_THEME.text.primary,
-          fontFamily: 'Inter-Bold',
-          fontSize: 16,
-          lineHeight: 22,
-        }}
-      >
-        Select an entry
-      </Text>
-      <Text
-        className="mt-2 text-center font-sans"
-        style={{ color: LIGHT_THEME.text.secondary, fontSize: 13.5, lineHeight: 20 }}
-      >
-        Choose an Echo from the list, or add a new reflection.
-      </Text>
+      <View className="max-w-[360px] items-center rounded-xl border border-border-color-subtle bg-white px-8 py-10 shadow-sm">
+        <Typography variant="echo-empty-title">Select an entry</Typography>
+        <Typography variant="echo-empty-subtitle" className="mt-2 text-center">
+          Choose an Echo from the list, or add a new reflection.
+        </Typography>
+      </View>
     </View>
   );
 }

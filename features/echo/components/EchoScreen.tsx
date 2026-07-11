@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Dimensions, Pressable, SafeAreaView, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, Pressable, SafeAreaView, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Typography } from '@/components/ui/Typography';
 import { LIGHT_THEME } from '@/constants/colors';
 import { useUIStore } from '@/store/uiStore';
 import { useEditEntry } from '../hooks/useEditEntry';
@@ -133,10 +134,7 @@ export function EchoScreen() {
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: LIGHT_THEME.background.page }}>
       <View className="flex-1 flex-row">
-        <View
-          className="min-w-[220px] flex-1"
-          style={{ borderRightColor: LIGHT_THEME.border.divider, borderRightWidth: 1 }}
-        >
+        <View className="min-w-[220px] flex-1">
           <View className="px-3 pb-3 pt-4">
             <TouchableOpacity
               onPress={handleAddEntry}
@@ -144,17 +142,7 @@ export function EchoScreen() {
               style={{ backgroundColor: LIGHT_THEME.background.sidebar }}
               activeOpacity={0.82}
             >
-              <Text
-                className="font-sans"
-                style={{
-                  color: LIGHT_THEME.text.inverse,
-                  fontFamily: 'Inter-SemiBold',
-                  fontSize: 13.5,
-                  lineHeight: 18,
-                }}
-              >
-                + Add an entry
-              </Text>
+              <Typography variant="echo-add-button">+ Add an entry</Typography>
             </TouchableOpacity>
 
             <View className="mt-3 flex-row items-center justify-between gap-2">
