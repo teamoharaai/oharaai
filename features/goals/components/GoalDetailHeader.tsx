@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/Badge';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { Typography } from '@/components/ui/Typography';
 import { CountdownTimer } from './CountdownTimer';
+import { GoalTitleRow } from './GoalTitleRow';
 import type { GoalWithMeasurables } from '../types';
 
 interface GoalDetailHeaderProps {
@@ -94,17 +95,14 @@ export function GoalDetailHeader({ goal, onUpdateDeadline }: GoalDetailHeaderPro
       </View>
 
       {/* Title */}
-      <Text
-        style={{
-          fontFamily: 'Inter-SemiBold',
-          fontSize: 26,
-          color: '#211F1A',
-          lineHeight: 32,
-          marginBottom: goal.description ? 10 : 0,
-        }}
-      >
-        {goal.title}
-      </Text>
+      <GoalTitleRow
+        title={goal.title}
+        variant="heading"
+        iconSize={26}
+        style={{ marginBottom: goal.description ? 10 : 0 }}
+        iconStyle={{ marginTop: 2 }}
+        textStyle={{ fontSize: 26, lineHeight: 32 }}
+      />
 
       {/* Description (collapsible) */}
       {goal.description && (

@@ -3,6 +3,7 @@ import { ProgressRing } from '@/components/ui/ProgressRing';
 import { Badge } from '@/components/ui/Badge';
 import { Typography } from '@/components/ui/Typography';
 import { LIGHT_THEME } from '@/constants/colors';
+import { GoalTitleRow } from './GoalTitleRow';
 
 interface GoalRingCardProps {
   title: string;
@@ -68,9 +69,13 @@ export function GoalRingCard({
           <View style={{ marginBottom: 7 }}>
             <Badge label={category} variant="category" />
           </View>
-          <Typography variant="goal-title" numberOfLines={2}>
-            {title}
-          </Typography>
+          <GoalTitleRow
+            title={title}
+            variant="goal-title"
+            numberOfLines={2}
+            iconSize={16}
+            iconStyle={{ marginTop: 0 }}
+          />
         </View>
       </View>
 

@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-11 — Goal and Today display icons)
+- **`assets/brand/goal-mark.png`, `assets/brand/today-logo.png`,
+  `components/ui/BrandIcon.tsx`, `features/goals/components/GoalTitleRow.tsx`,
+  `GoalCard.tsx`, `GoalRingCard.tsx`, `GoalDetailHeader.tsx`,
+  `app/(app)/dashboard.tsx`, `app/(app)/goals/[id]/index.tsx`, and
+  `components/layout/Sidebar.tsx`:** centralized Figma-exported brand-symbol rendering,
+  added the goal mark beside actual goal titles across goal surfaces, and added the Today
+  symbol beside the dashboard Today list header without changing data or routing logic.
+
+### Changed (2026-07-11 — Goals sidebar logo)
+- **`assets/brand/goals-logo.png` and `components/layout/Sidebar.tsx`:** added the
+  Figma-exported Goals symbol to the shared sidebar, rendering it beside the Goals label when
+  expanded and by itself for the Goals nav item when the sidebar is collapsed.
+
 ### Changed (2026-07-11 — Echo sidebar logo)
 - **`assets/brand/echo-logo.png` and `components/layout/Sidebar.tsx`:** added the
   Figma-exported Echo symbol as a local sidebar asset, rendering it beside the Echo label when

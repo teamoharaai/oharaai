@@ -1,0 +1,32 @@
+import {
+  Image,
+  type ImageSourcePropType,
+  type ImageStyle,
+  type StyleProp,
+} from 'react-native';
+
+export type BrandIconName = 'goals' | 'echo' | 'goal-mark' | 'today';
+
+const BRAND_ICON_SOURCES: Record<BrandIconName, ImageSourcePropType> = {
+  goals: require('../../assets/brand/goals-logo.png') as ImageSourcePropType,
+  echo: require('../../assets/brand/echo-logo.png') as ImageSourcePropType,
+  'goal-mark': require('../../assets/brand/goal-mark.png') as ImageSourcePropType,
+  today: require('../../assets/brand/today-logo.png') as ImageSourcePropType,
+};
+
+type BrandIconProps = {
+  name: BrandIconName;
+  size?: number;
+  style?: StyleProp<ImageStyle>;
+};
+
+export function BrandIcon({ name, size = 20, style }: BrandIconProps) {
+  return (
+    <Image
+      source={BRAND_ICON_SOURCES[name]}
+      resizeMode="contain"
+      accessible={false}
+      style={[{ height: size, width: size }, style]}
+    />
+  );
+}

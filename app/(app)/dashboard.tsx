@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native';
 import { router } from 'expo-router';
+import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Typography } from '@/components/ui/Typography';
 import { useGoals } from '@/features/goals/hooks/useGoals';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -10,6 +11,7 @@ import { useEntries } from '@/features/echo/hooks/useEntries';
 import { useProfileStore } from '@/features/profile/store';
 import { useProjectStore } from '@/features/projects/store';
 import { GoalGrid } from '@/features/goals/components/GoalGrid';
+import { GoalTitleRow } from '@/features/goals/components/GoalTitleRow';
 import { ProjectCard } from '@/features/projects/components/ProjectCard';
 import { FEATURES } from '@/constants/features';
 import { LIGHT_THEME } from '@/constants/colors';
@@ -79,6 +81,17 @@ function isCompletedToday(lastCompletedAt: string | null): boolean {
     last.getFullYear() === now.getFullYear() &&
     last.getMonth() === now.getMonth() &&
     last.getDate() === now.getDate()
+  );
+}
+
+function TodayHeader({ bottomMargin = 16 }: { bottomMargin?: number }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: bottomMargin }}>
+      <BrandIcon name="today" size={18} />
+      <Typography variant="eyebrow">
+        Today
+      </Typography>
+    </View>
   );
 }
 
@@ -165,9 +178,7 @@ function DueTodayZone() {
   if (items.length === 0) {
     return (
       <View className="rounded-2xl border border-[#EAE7E0] bg-white p-5">
-        <Typography variant="eyebrow" className="mb-3">
-          Today
-        </Typography>
+        <TodayHeader bottomMargin={12} />
         <Text className="font-sans text-[14px] text-[#A79E8E]">
           Nothing due today.
         </Text>
@@ -177,9 +188,7 @@ function DueTodayZone() {
 
   return (
     <View className="rounded-2xl border border-[#EAE7E0] bg-white p-5">
-      <Typography variant="eyebrow" className="mb-4">
-        Today
-      </Typography>
+      <TodayHeader />
       <View className="gap-3">
         {items.map((item) => {
           const done = isCompletedToday(item.lastCompletedAt);
@@ -277,9 +286,13 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
         <Typography variant="eyebrow" className="mb-2">
           Active Goal
         </Typography>
-        <Typography variant="active-goal-title" className="mb-4">
-          {goal.title}
-        </Typography>
+        <GoalTitleRow
+          title={goal.title}
+          variant="active-goal-title"
+          iconSize={18}
+          style={{ alignItems: 'center', marginBottom: 16 }}
+          iconStyle={{ marginTop: 0 }}
+        />
       </Pressable>
 
       <View className="border-t border-[#F0EDE6] pt-4">

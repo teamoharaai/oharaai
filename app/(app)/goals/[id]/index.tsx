@@ -5,6 +5,7 @@ import { GOAL_THEMES } from '@/constants/themes';
 import { Typography } from '@/components/ui/Typography';
 import { useGoalDetail } from '@/features/goals/hooks/useGoalDetail';
 import { GoalDetailHeader } from '@/features/goals/components/GoalDetailHeader';
+import { GoalTitleRow } from '@/features/goals/components/GoalTitleRow';
 import { MeasurablesPanel } from '@/features/goals/components/MeasurablesPanel';
 import { ActivityFeed } from '@/features/goals/components/ActivityFeed';
 import { useActivity } from '@/features/goals/hooks/useActivity';
@@ -280,9 +281,14 @@ export default function GoalDetailScreen() {
           <Typography variant="nav-back">← Goals</Typography>
         </Pressable>
         <Typography variant="nav-back" style={{ color: '#A79E8E', marginHorizontal: 8 }}>|</Typography>
-        <Typography variant="nav-title" style={{ flex: 1 }} numberOfLines={1}>
-          {goal.title}
-        </Typography>
+        <GoalTitleRow
+          title={goal.title}
+          variant="nav-title"
+          numberOfLines={1}
+          iconSize={16}
+          style={{ alignItems: 'center', flex: 1 }}
+          iconStyle={{ marginTop: 0 }}
+        />
       </View>
 
       {isDesktop ? (

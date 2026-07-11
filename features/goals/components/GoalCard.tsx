@@ -5,6 +5,7 @@ import { GOAL_THEMES } from '@/constants/themes';
 import { Badge } from '@/components/ui/Badge';
 import { Typography } from '@/components/ui/Typography';
 import { useGoalStore } from '../store';
+import { GoalTitleRow } from './GoalTitleRow';
 import type { GoalWithMeasurables } from '../types';
 
 interface GoalCardProps {
@@ -78,13 +79,13 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
         </View>
 
         {/* Title */}
-        <Typography
+        <GoalTitleRow
+          title={goal.title}
           variant="title"
           numberOfLines={2}
+          iconSize={18}
           style={{ marginBottom: 12 }}
-        >
-          {goal.title}
-        </Typography>
+        />
 
         {/* Progress bar */}
         <View style={{ height: 3, backgroundColor: '#EAE7E0', borderRadius: 2, marginBottom: 12 }}>
