@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-11 — Revert collapsed sidebar sizing)
+- **`components/layout/Sidebar.tsx`:** restored compact collapsed-sidebar logo placement and
+  collapsed nav-icon sizing while keeping the enlarged expanded Ohara logo and wordmark.
+
 ### Changed (2026-07-11 — Project display icon)
 - **`assets/brand/project-logo.png`, `components/ui/BrandIcon.tsx`,
   `features/projects/components/ProjectTitleRow.tsx`, `ProjectCard.tsx`,

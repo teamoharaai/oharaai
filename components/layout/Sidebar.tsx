@@ -27,13 +27,14 @@ const SIDEBAR_WIDTH = {
 } as const;
 
 const BRAND_SIZE = {
-  collapsedLogo: 64,
+  collapsedLogo: 38,
+  collapsedLogoTarget: 44,
   expandedLogo: 64,
   expandedText: 24,
 } as const;
 
 const NAV_ICON_SIZE = {
-  collapsed: 48,
+  collapsed: 24,
   expanded: 20,
 } as const;
 
@@ -57,9 +58,9 @@ export function Sidebar() {
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
-          paddingTop: collapsed ? 56 : 24,
+          paddingTop: collapsed ? 32 : 24,
           paddingHorizontal: collapsed ? 0 : 16,
-          paddingBottom: collapsed ? 18 : 12,
+          paddingBottom: collapsed ? 8 : 12,
         }}
       >
         {collapsed ? (
@@ -67,8 +68,8 @@ export function Sidebar() {
             onPress={toggleSidebarCollapsed}
             accessibilityLabel="Expand sidebar"
             style={{
-              width: BRAND_SIZE.collapsedLogo,
-              height: BRAND_SIZE.collapsedLogo,
+              width: BRAND_SIZE.collapsedLogoTarget,
+              height: BRAND_SIZE.collapsedLogoTarget,
               alignItems: 'center',
               justifyContent: 'center',
             }}
