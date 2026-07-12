@@ -6,6 +6,7 @@ import { GoalRingCard } from '@/features/goals/components/GoalRingCard';
 import { getGoalRingProgress } from '@/features/goals/utils/ringProgress';
 import { GOAL_THEMES, CATEGORY_THEME_MAP } from '@/constants/themes';
 import { LIGHT_THEME } from '@/constants/colors';
+import { ProjectTitleRow } from './ProjectTitleRow';
 import type { Project } from '@/features/projects/types';
 import type { GoalWithMeasurables } from '@/features/goals/types';
 
@@ -72,26 +73,12 @@ export function ProjectCard({ project, goals }: ProjectCardProps) {
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-        {/* Teal status dot */}
-        <View
-          style={{
-            width: 7,
-            height: 7,
-            borderRadius: 999,
-            backgroundColor: LIGHT_THEME.accent.tealMid,
-            marginRight: 10,
-            marginTop: 6,
-          }}
-        />
-
         {/* Title + description — taps navigate to the project */}
         <Pressable
           onPress={() => router.push(`/(app)/projects/${project.id}` as never)}
           style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.6 : 1 })}
         >
-          <Typography variant="card-title" numberOfLines={1}>
-            {project.title}
-          </Typography>
+          <ProjectTitleRow title={project.title} numberOfLines={1} />
           {project.description !== null && (
             <Typography
               variant="card-description"

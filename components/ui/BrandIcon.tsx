@@ -5,7 +5,14 @@ import {
   type StyleProp,
 } from 'react-native';
 
-export type BrandIconName = 'ohara' | 'goals' | 'echo' | 'goal-mark' | 'today' | 'echo-add-entry';
+export type BrandIconName =
+  | 'ohara'
+  | 'goals'
+  | 'echo'
+  | 'goal-mark'
+  | 'today'
+  | 'echo-add-entry'
+  | 'project';
 
 const BRAND_ICON_SOURCES: Record<BrandIconName, ImageSourcePropType> = {
   ohara: require('../../assets/brand/ohara-logo.png') as ImageSourcePropType,
@@ -14,6 +21,7 @@ const BRAND_ICON_SOURCES: Record<BrandIconName, ImageSourcePropType> = {
   'goal-mark': require('../../assets/brand/goal-mark.png') as ImageSourcePropType,
   today: require('../../assets/brand/today-logo.png') as ImageSourcePropType,
   'echo-add-entry': require('../../assets/brand/echo-add-entry.png') as ImageSourcePropType,
+  project: require('../../assets/brand/project-logo.png') as ImageSourcePropType,
 };
 
 type BrandIconProps = {

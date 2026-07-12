@@ -21,6 +21,22 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Explore',       href: '/(app)/explore',       match: '/explore',       enabled: FEATURES.DISCOVERY_ENABLED },
 ];
 
+const SIDEBAR_WIDTH = {
+  collapsed: 76,
+  expanded: 220,
+} as const;
+
+const BRAND_SIZE = {
+  collapsedLogo: 64,
+  expandedLogo: 64,
+  expandedText: 24,
+} as const;
+
+const NAV_ICON_SIZE = {
+  collapsed: 48,
+  expanded: 20,
+} as const;
+
 export function Sidebar() {
   const pathname = usePathname();
   const collapsed = useUIStore((state) => state.sidebarCollapsed);
@@ -29,7 +45,7 @@ export function Sidebar() {
   return (
     <View
       style={{
-        width: collapsed ? 76 : 220,
+        width: collapsed ? SIDEBAR_WIDTH.collapsed : SIDEBAR_WIDTH.expanded,
         backgroundColor: '#1E3226',
         flexDirection: 'column',
         alignSelf: 'stretch',
@@ -40,10 +56,10 @@ export function Sidebar() {
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'space-between',
-          paddingTop: 32,
-          paddingHorizontal: collapsed ? 0 : 24,
-          paddingBottom: 8,
+          justifyContent: 'center',
+          paddingTop: collapsed ? 56 : 24,
+          paddingHorizontal: collapsed ? 0 : 16,
+          paddingBottom: collapsed ? 18 : 12,
         }}
       >
         {collapsed ? (
@@ -51,46 +67,48 @@ export function Sidebar() {
             onPress={toggleSidebarCollapsed}
             accessibilityLabel="Expand sidebar"
             style={{
-              width: 44,
-              height: 44,
+              width: BRAND_SIZE.collapsedLogo,
+              height: BRAND_SIZE.collapsedLogo,
               alignItems: 'center',
               justifyContent: 'center',
             }}
             activeOpacity={0.7}
           >
-            <BrandIcon name="ohara" size={38} />
+            <BrandIcon name="ohara" size={BRAND_SIZE.collapsedLogo} />
           </TouchableOpacity>
         ) : (
-          <View style={{ flexDirection: 'row', alignItems: 'center', minWidth: 0 }}>
-            <BrandIcon name="ohara" size={32} style={{ marginRight: 10 }} />
-            <Text
+          <View style={{ flexDirection: 'column', alignItems: 'stretch', flex: 1, minWidth: 0 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', minWidth: 0 }}>
+              <BrandIcon name="ohara" size={BRAND_SIZE.expandedLogo} style={{ marginRight: 10 }} />
+              <Text
+                style={{
+                  color: '#EDE7DA',
+                  fontFamily: 'Inter-SemiBold',
+                  fontSize: BRAND_SIZE.expandedText,
+                  letterSpacing: 4,
+                }}
+              >
+                OHARA
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={toggleSidebarCollapsed}
+              accessibilityLabel="Collapse sidebar"
               style={{
-                color: '#EDE7DA',
-                fontFamily: 'Inter-SemiBold',
-                fontSize: 12,
-                letterSpacing: 4,
+                width: 22,
+                height: 22,
+                borderRadius: 11,
+                backgroundColor: 'rgba(255,255,255,0.08)',
+                alignItems: 'center',
+                alignSelf: 'flex-end',
+                justifyContent: 'center',
+                marginTop: 8,
               }}
+              activeOpacity={0.7}
             >
-              OHARA
-            </Text>
+              <Text style={{ color: LIGHT_THEME.border.toggleGlyph, fontSize: 13, lineHeight: 13 }}>‹</Text>
+            </TouchableOpacity>
           </View>
-        )}
-        {!collapsed && (
-          <TouchableOpacity
-            onPress={toggleSidebarCollapsed}
-            accessibilityLabel="Collapse sidebar"
-            style={{
-              width: 22,
-              height: 22,
-              borderRadius: 11,
-              backgroundColor: 'rgba(255,255,255,0.08)',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-            activeOpacity={0.7}
-          >
-            <Text style={{ color: LIGHT_THEME.border.toggleGlyph, fontSize: 13, lineHeight: 13 }}>‹</Text>
-          </TouchableOpacity>
         )}
       </View>
 
@@ -124,7 +142,7 @@ export function Sidebar() {
               {item.icon && (
                 <BrandIcon
                   name={item.icon}
-                  size={collapsed ? 24 : 20}
+                  size={collapsed ? NAV_ICON_SIZE.collapsed : NAV_ICON_SIZE.expanded}
                   style={{
                     marginRight: collapsed ? 0 : 10,
                   }}

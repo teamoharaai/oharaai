@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
 import { deleteProject, fetchProjectWithGoals, updateProject } from '@/features/projects/services/project-service';
+import { ProjectTitleRow } from '@/features/projects/components/ProjectTitleRow';
 import { GoalCard } from '@/features/goals/components/GoalCard';
 import type { ProjectWithGoals, ProjectStatus } from '@/features/projects/types';
 
@@ -181,12 +182,13 @@ export default function ProjectDetailScreen() {
               elevation: 2,
             }}
           >
-            <Typography
+            <ProjectTitleRow
+              title={project.title}
               variant="heading"
-              style={{ fontFamily: 'Inter-Bold', color: '#211F1A', lineHeight: 30 }}
-            >
-              {project.title}
-            </Typography>
+              iconSize={26}
+              iconStyle={{ marginRight: 10 }}
+              textStyle={{ fontFamily: 'Inter-Bold', color: '#211F1A', lineHeight: 30 }}
+            />
 
             {project.description && (
               <Typography

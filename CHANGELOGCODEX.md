@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-11 — Project display icon)
+- **`assets/brand/project-logo.png`, `components/ui/BrandIcon.tsx`,
+  `features/projects/components/ProjectTitleRow.tsx`, `ProjectCard.tsx`,
+  `app/(app)/projects/[id].tsx`, and `app/goals/create.tsx`:** added the project symbol to
+  the shared brand-icon map and reused a single project title row so project cards, project
+  detail headers, and project picker chips render the icon before project titles without
+  duplicating image layout logic.
+
+### Changed (2026-07-11 — Sidebar logo sizing)
+- **`components/layout/Sidebar.tsx`:** doubled the expanded Ohara logo and wordmark sizing,
+  lowered the collapsed logo-only expand target, and doubled collapsed sidebar nav-icon sizing
+  through shared size constants to avoid duplicating layout values.
+
 ### Changed (2026-07-11 — Ohara sidebar logo)
 - **`assets/brand/ohara-logo.png`, `components/ui/BrandIcon.tsx`, and
   `components/layout/Sidebar.tsx`:** added the Ohara logo beside the sidebar wordmark when

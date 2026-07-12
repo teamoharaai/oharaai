@@ -13,6 +13,7 @@ import supabase from '@/lib/db/client';
 import { authedFetch } from '@/lib/api/client';
 import { fetchGoalById } from '@/features/goals/services/goal-service';
 import { useGoalStore } from '@/features/goals/store';
+import { ProjectTitleRow } from '@/features/projects/components/ProjectTitleRow';
 import { useProjectStore } from '@/features/projects/store';
 import type { GoalFinalizeResponse } from '@/lib/ai/schemas/goal-creation';
 import type { AiResponse } from '@/lib/ai/contracts';
@@ -634,12 +635,14 @@ export default function GoalCreateScreen() {
                     }}
                     activeOpacity={0.7}
                   >
-                    <Typography
+                    <ProjectTitleRow
+                      title={project.title}
                       variant="label"
-                      style={{ color: isSelected ? '#EDE7DA' : '#8A8172' }}
-                    >
-                      {project.title}
-                    </Typography>
+                      iconSize={14}
+                      textFlex={false}
+                      iconStyle={{ marginRight: 6 }}
+                      textStyle={{ color: isSelected ? '#EDE7DA' : '#8A8172' }}
+                    />
                   </TouchableOpacity>
                 );
               })}
