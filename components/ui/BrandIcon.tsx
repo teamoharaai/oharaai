@@ -5,13 +5,14 @@ import {
   type StyleProp,
 } from 'react-native';
 
-export type BrandIconName = 'goals' | 'echo' | 'goal-mark' | 'today';
+export type BrandIconName = 'goals' | 'echo' | 'goal-mark' | 'today' | 'echo-add-entry';
 
 const BRAND_ICON_SOURCES: Record<BrandIconName, ImageSourcePropType> = {
   goals: require('../../assets/brand/goals-logo.png') as ImageSourcePropType,
   echo: require('../../assets/brand/echo-logo.png') as ImageSourcePropType,
   'goal-mark': require('../../assets/brand/goal-mark.png') as ImageSourcePropType,
   today: require('../../assets/brand/today-logo.png') as ImageSourcePropType,
+  'echo-add-entry': require('../../assets/brand/echo-add-entry.png') as ImageSourcePropType,
 };
 
 type BrandIconProps = {

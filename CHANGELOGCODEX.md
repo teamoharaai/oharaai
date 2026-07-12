@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-11 — Echo add-entry icon)
+- **`assets/brand/echo-add-entry.png`, `components/ui/BrandIcon.tsx`, and
+  `features/echo/components/EchoScreen.tsx`:** added the Figma-exported Echo add-entry symbol
+  to the shared brand-icon map and replaced the literal plus sign in the Echo `Add an entry`
+  button with that icon, without changing the entry creation flow.
+
 ### Changed (2026-07-11 — Goal and Today display icons)
 - **`assets/brand/goal-mark.png`, `assets/brand/today-logo.png`,
   `components/ui/BrandIcon.tsx`, `features/goals/components/GoalTitleRow.tsx`,

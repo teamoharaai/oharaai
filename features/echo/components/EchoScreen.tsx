@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Dimensions, Pressable, SafeAreaView, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Typography } from '@/components/ui/Typography';
 import { LIGHT_THEME } from '@/constants/colors';
 import { useUIStore } from '@/store/uiStore';
@@ -183,11 +184,12 @@ export function EchoScreen() {
           <View className="px-3 pb-3 pt-4">
             <TouchableOpacity
               onPress={handleAddEntry}
-              className="items-center rounded-[10px] py-3"
+              className="flex-row items-center justify-center gap-2 rounded-[10px] py-3"
               style={{ backgroundColor: LIGHT_THEME.background.sidebar }}
               activeOpacity={0.82}
             >
-              <Typography variant="echo-add-button">+ Add an entry</Typography>
+              <BrandIcon name="echo-add-entry" size={18} />
+              <Typography variant="echo-add-button">Add an entry</Typography>
             </TouchableOpacity>
 
             <View className="mt-3 flex-row items-center justify-between gap-2">
