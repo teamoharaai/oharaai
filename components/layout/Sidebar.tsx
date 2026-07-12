@@ -46,29 +46,34 @@ export function Sidebar() {
           paddingBottom: 8,
         }}
       >
-        {!collapsed && (
-          <Text
+        {collapsed ? (
+          <TouchableOpacity
+            onPress={toggleSidebarCollapsed}
+            accessibilityLabel="Expand sidebar"
             style={{
-              color: '#EDE7DA',
-              fontFamily: 'Inter-SemiBold',
-              fontSize: 12,
-              letterSpacing: 4,
+              width: 44,
+              height: 44,
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
+            activeOpacity={0.7}
           >
-            OHARA
-          </Text>
-        )}
-        {collapsed && (
-          <Text
-            style={{
-              color: '#EDE7DA',
-              fontFamily: 'Inter-Bold',
-              fontSize: 14,
-              letterSpacing: 1,
-            }}
-          >
-            O
-          </Text>
+            <BrandIcon name="ohara" size={38} />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ flexDirection: 'row', alignItems: 'center', minWidth: 0 }}>
+            <BrandIcon name="ohara" size={32} style={{ marginRight: 10 }} />
+            <Text
+              style={{
+                color: '#EDE7DA',
+                fontFamily: 'Inter-SemiBold',
+                fontSize: 12,
+                letterSpacing: 4,
+              }}
+            >
+              OHARA
+            </Text>
+          </View>
         )}
         {!collapsed && (
           <TouchableOpacity
@@ -88,27 +93,6 @@ export function Sidebar() {
           </TouchableOpacity>
         )}
       </View>
-
-      {/* Expand toggle (own row when collapsed, so it stays reachable) */}
-      {collapsed && (
-        <View style={{ alignItems: 'center', paddingTop: 12 }}>
-          <TouchableOpacity
-            onPress={toggleSidebarCollapsed}
-            accessibilityLabel="Expand sidebar"
-            style={{
-              width: 22,
-              height: 22,
-              borderRadius: 11,
-              backgroundColor: 'rgba(255,255,255,0.08)',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-            activeOpacity={0.7}
-          >
-            <Text style={{ color: LIGHT_THEME.border.toggleGlyph, fontSize: 13, lineHeight: 13 }}>›</Text>
-          </TouchableOpacity>
-        </View>
-      )}
 
       {/* Nav items */}
       <View style={{ paddingTop: 16 }}>

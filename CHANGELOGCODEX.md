@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-11 — Ohara sidebar logo)
+- **`assets/brand/ohara-logo.png`, `components/ui/BrandIcon.tsx`, and
+  `components/layout/Sidebar.tsx`:** added the Ohara logo beside the sidebar wordmark when
+  expanded, and replaced the collapsed sidebar header's text/chevron with a logo-only expand
+  target so the collapsed brand display stays clean.
+
 ### Changed (2026-07-11 — Echo add-entry icon)
 - **`assets/brand/echo-add-entry.png`, `components/ui/BrandIcon.tsx`, and
   `features/echo/components/EchoScreen.tsx`:** added the Figma-exported Echo add-entry symbol
