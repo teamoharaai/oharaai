@@ -1,10 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import supabase from './client';
-import type { GoalTheme } from '@/constants/themes';
-import type { GoalFinalizeResponse } from '@/lib/ai/schemas/goal-creation';
+import { CATEGORY_COLOR_THEME } from '@/constants/themes';
 import { buildGoalEmbeddingText } from '@/lib/ai/embedding-text';
 import { generateEmbedding } from '@/lib/ai/embeddings';
 import { EMBEDDING_MODEL } from '@/lib/ai/constants';
+import { buildMeasurableInsert } from '@/lib/db/measurable-inserts';
+import type { GoalCategory, GoalMeasurableType } from '@/lib/goals/schema';
 import type { ActivityItem } from '@/types/activity';
 import type { VaultItemType } from '@/types/vault';
 import type { EchoBrt } from '@/features/echo/types';
@@ -15,14 +16,32 @@ export interface CreateGoalWithMeasurablesResult {
   warning: string | null;
 }
 
-const CATEGORY_THEME: Record<string, GoalTheme> = {
-  body: 'ember',
-  mind: 'lavender',
-  money: 'slate',
-  create: 'sunset',
-  connect: 'coral',
-  contribute: 'forest',
-};
+export interface ManualGoalCreationInput {
+  title: string;
+  description: string | null;
+  deadline: string;
+  category: GoalCategory;
+  target_frequency: {
+    times: number;
+    period: 'day' | 'week' | 'month';
+  } | null;
+  project_id: string | null;
+  milestones: Array<{
+    title: string;
+    type: GoalMeasurableType;
+  }>;
+  vault_context?: never;
+}
+
+export interface GoalVaultContext {
+  spaceId: string | null;
+  vaultType: 'personal' | 'shared' | 'institutional';
+}
+
+export interface CreateGoalWithMeasurablesOptions {
+  requestId?: string;
+  vaultContext?: GoalVaultContext;
+}
 
 function toNumber(raw: number | string | null | undefined, fallback = 0): number {
   if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
@@ -55,66 +74,21 @@ function normalizeDeadlineForPersistence(deadline: string | null): string | null
   return null;
 }
 
-function mapAiGoalDataToDbInserts(
-  aiData: GoalFinalizeResponse,
-  userId: string,
-  projectId?: string | null,
-) {
-  const colorTheme: GoalTheme = CATEGORY_THEME[aiData.goal.category] ?? 'ocean';
-  const normalizedDeadline = normalizeDeadlineForPersistence(aiData.goal.deadline);
-  const embeddingText = buildGoalEmbeddingText(
-    aiData.goal.title,
-    aiData.goal.description,
-    aiData.measurables,
-  );
-
-  return {
-    goalInsert: {
-      user_id: userId,
-      title: aiData.goal.title,
-      description: aiData.goal.description,
-      category: aiData.goal.category,
-      status: 'active' as const,
-      smart_data: aiData.goal.smart,
-      color_theme: colorTheme,
-      deadline: normalizedDeadline,
-      visibility: 'private' as const,
-      ai_generated: true,
-      project_id: projectId ?? null,
-      embedding_text: embeddingText,
-    },
-    measurableInserts: aiData.measurables.map((m, index) => ({
-      title: m.title,
-      type: m.type,
-      target_value: m.targetValue ?? null,
-      target_unit: m.targetUnit ?? null,
-      frequency: m.frequency,
-      current_value: 0,
-      is_ai_suggested: true,
-      sort_order: index,
-    })),
-    normalizationWarnings: aiData.goal.deadline && !normalizedDeadline
-      ? [`Invalid deadline "${aiData.goal.deadline}" was normalized to null before persistence`]
-      : [],
-    embeddingText,
-  };
-}
-
 /**
- * Inserts a goal + its measurables from an AI finalization result.
+ * Inserts a manually-authored goal and its milestones.
  * Returns the new goalId on success, null on failure.
  */
 export async function createGoalWithMeasurables(
   userId: string,
-  aiData: GoalFinalizeResponse,
-  options?: { requestId?: string; projectId?: string | null },
+  input: ManualGoalCreationInput,
+  options?: CreateGoalWithMeasurablesOptions,
   db: SupabaseClient = supabase,
 ): Promise<CreateGoalWithMeasurablesResult> {
   const requestId = options?.requestId ?? null;
 
-  if (!aiData.goal.title?.trim()) {
-    const error = 'AI goal payload is missing a title';
-    console.error('[goal-finalize] persistence failed', {
+  if (!input.title?.trim()) {
+    const error = 'Goal payload is missing a title';
+    console.error('[goal-create] persistence failed', {
       requestId,
       stage: 'persistence',
       userId,
@@ -123,9 +97,9 @@ export async function createGoalWithMeasurables(
     return { goalId: null, error, warning: null };
   }
 
-  if (!aiData.goal.category?.trim()) {
-    const error = 'AI goal payload is missing a category';
-    console.error('[goal-finalize] persistence failed', {
+  if (!input.category?.trim()) {
+    const error = 'Goal payload is missing a category';
+    console.error('[goal-create] persistence failed', {
       requestId,
       stage: 'persistence',
       userId,
@@ -134,25 +108,39 @@ export async function createGoalWithMeasurables(
     return { goalId: null, error, warning: null };
   }
 
-  const { goalInsert, measurableInserts, normalizationWarnings, embeddingText } = mapAiGoalDataToDbInserts(
-    aiData,
-    userId,
-    options?.projectId,
-  );
+  const normalizedDeadline = normalizeDeadlineForPersistence(input.deadline);
+  const normalizationWarnings = normalizedDeadline
+    ? []
+    : [`Invalid deadline "${input.deadline}" was normalized to null before persistence`];
+  const embeddingText = buildGoalEmbeddingText(input.title, input.description, input.milestones);
+  const goalInsert = {
+    user_id: userId,
+    title: input.title.trim(),
+    description: input.description,
+    category: input.category,
+    status: 'active' as const,
+    color_theme: CATEGORY_COLOR_THEME[input.category] ?? 'ocean',
+    deadline: normalizedDeadline,
+    target_frequency: input.target_frequency,
+    visibility: 'private' as const,
+    ai_generated: false,
+    project_id: input.project_id,
+    embedding_text: embeddingText,
+  };
   let warning: string | null = normalizationWarnings[0] ?? null;
 
-  console.info('[goal-finalize] persistence started', {
+  console.info('[goal-create] persistence started', {
     requestId,
     stage: 'persistence',
     userId,
-    title: aiData.goal.title,
-    category: aiData.goal.category,
-    measurableCount: aiData.measurables.length,
-    projectId: options?.projectId ?? null,
+    title: input.title,
+    category: input.category,
+    measurableCount: input.milestones.length,
+    projectId: input.project_id,
   });
 
   if (normalizationWarnings.length > 0) {
-    console.warn('[goal-finalize] persistence normalization adjusted payload', {
+    console.warn('[goal-create] persistence normalization adjusted payload', {
       requestId,
       stage: 'persistence',
       userId,
@@ -168,7 +156,7 @@ export async function createGoalWithMeasurables(
 
   if (goalError || !goalRow) {
     const error = goalError?.message ?? 'Goal insert returned no row';
-    console.error('[goal-finalize] persistence failed', {
+    console.error('[goal-create] persistence failed', {
       requestId,
       stage: 'persistence',
       userId,
@@ -181,18 +169,21 @@ export async function createGoalWithMeasurables(
   }
 
   const goalId = goalRow.id as string;
+  const measurableInserts = input.milestones.map((milestone, index) =>
+    buildMeasurableInsert(goalId, {
+      title: milestone.title,
+      type: milestone.type,
+      isAiSuggested: false,
+      sortOrder: index,
+    }),
+  );
 
   if (measurableInserts.length > 0) {
-    const { error: measurableError } = await db.from('measurables').insert(
-      measurableInserts.map((row) => ({
-        goal_id: goalId,
-        ...row,
-      })),
-    );
+    const { error: measurableError } = await db.from('measurables').insert(measurableInserts);
 
     if (measurableError) {
       warning = [warning, measurableError.message].filter(Boolean).join(' | ');
-      console.error('[goal-finalize] persistence failed', {
+      console.error('[goal-create] persistence failed', {
         requestId,
         stage: 'persistence',
         goalId,
@@ -202,11 +193,11 @@ export async function createGoalWithMeasurables(
         hint: measurableError.hint,
       });
     } else {
-      console.info('[goal-finalize] persistence measurables saved', {
+      console.info('[goal-create] persistence measurables saved', {
         requestId,
         stage: 'persistence',
         goalId,
-        measurableCount: aiData.measurables.length,
+        measurableCount: input.milestones.length,
       });
     }
   }
@@ -235,27 +226,30 @@ export async function createGoalWithMeasurables(
       }));
     });
 
-  // Auto-create vault for this goal (non-blocking)
-  const { error: vaultError } = await db
-    .from('vaults')
-    .insert({
-      user_id: userId,
-      goal_id: goalId,
-      space_id: null,
-      vault_type: 'personal',
-    });
+  const vaultContext = options?.vaultContext;
+  if (vaultContext) {
+    // Optional and non-blocking: manual creation does not request a vault.
+    const { error: vaultError } = await db
+      .from('vaults')
+      .insert({
+        user_id: userId,
+        goal_id: goalId,
+        space_id: vaultContext.spaceId,
+        vault_type: vaultContext.vaultType,
+      });
 
-  if (vaultError) {
-    console.error('[vault] Failed to auto-create vault for goal', goalId, {
-      requestId,
-      stage: 'persistence',
-      error: vaultError.message,
-      code: vaultError.code,
-    });
-    // Non-blocking: goal creation still succeeds
+    if (vaultError) {
+      console.error('[vault] Failed to auto-create vault for goal', goalId, {
+        requestId,
+        stage: 'persistence',
+        error: vaultError.message,
+        code: vaultError.code,
+      });
+      // Non-blocking: goal creation still succeeds
+    }
   }
 
-  console.info('[goal-finalize] persistence succeeded', {
+  console.info('[goal-create] persistence succeeded', {
     requestId,
     stage: 'persistence',
     goalId,

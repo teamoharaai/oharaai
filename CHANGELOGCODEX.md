@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-13 — Manual goal creation write path)
+- **`app/api/goals/index+api.ts` and `lib/db/goals.ts`:** replaced the AI-finalize-shaped
+  goal persistence contract with the locked manual payload, including server validation for
+  required title/deadline/category/cadence/milestones and persistence of `target_frequency`,
+  manual authorship flags, project linkage, and category-derived color themes.
+- **`lib/db/measurable-inserts.ts` (new) and
+  `features/goals/services/goal-service.ts`:** centralized the measurable insert shape so
+  creation-time milestones and post-creation milestones share the same defaults and explicit
+  `is_ai_suggested: false` behavior.
+- **`constants/themes.ts` and `constants/index.ts`:** relocated the six-category creation
+  theme mapping to the exported `CATEGORY_COLOR_THEME` constant while leaving the legacy
+  `CATEGORY_THEME_MAP` unchanged.
+- **`lib/db/goals.ts`:** gated the existing non-blocking vault insert behind an optional vault
+  context, so the manual path no longer creates an empty placeholder vault.
+
+### Removed (2026-07-13 — Retire AI goal finalization route)
+- **`app/api/goals/create+api.ts`:** removed the AI conversational/finalization endpoint after
+  confirming its only caller is the separately scheduled `app/goals/create.tsx` rewrite.
+
 ### Changed (2026-07-11 — Revert collapsed sidebar sizing)
 - **`components/layout/Sidebar.tsx`:** restored compact collapsed-sidebar logo placement and
   collapsed nav-icon sizing while keeping the enlarged expanded Ohara logo and wordmark.

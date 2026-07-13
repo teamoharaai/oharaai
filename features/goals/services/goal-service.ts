@@ -1,4 +1,5 @@
 import supabase from '@/lib/db/client';
+import { buildMeasurableInsert } from '@/lib/db/measurable-inserts';
 import { resolveBrt } from '@/lib/utils/resolveBrt';
 import type { EchoBrt } from '@/types/brt';
 import type { Goal, GoalWithMeasurables, Measurable, MeasurableType, MeasurableFrequency, GoalStatus, MeasurableInput, MeasurableUpdates } from '../types';
@@ -335,16 +336,7 @@ export async function deleteGoal(id: string): Promise<void> {
 export async function createMeasurable(goalId: string, input: MeasurableInput): Promise<Measurable | null> {
   const { data, error } = await supabase
     .from('measurables')
-    .insert({
-      goal_id: goalId,
-      title: input.title.trim(),
-      type: input.type,
-      target_value: input.targetValue ?? null,
-      target_unit: input.targetUnit?.trim() || null,
-      frequency: input.frequency ?? null,
-      current_value: 0,
-      sort_order: input.sortOrder ?? 0,
-    })
+    .insert(buildMeasurableInsert(goalId, input))
     .select()
     .single();
 
