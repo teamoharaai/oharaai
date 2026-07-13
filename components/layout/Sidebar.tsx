@@ -117,7 +117,9 @@ export function Sidebar() {
       <View style={{ paddingTop: 16 }}>
         {NAV_ITEMS.map((item) => {
           const isActive =
-            pathname === item.match || pathname.startsWith(item.match + '/');
+            pathname === item.match ||
+            pathname.startsWith(item.match + '/') ||
+            (item.label === 'Goals' && pathname.startsWith('/goals/'));
           return (
             <TouchableOpacity
               key={item.label}

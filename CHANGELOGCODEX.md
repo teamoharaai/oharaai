@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-13 — Manual goal creation screen)
+- **`app/goals/create.tsx`:** replaced the retired AI chat flow with the manual five-section
+  creation form, including the required category/deadline validation, project selection,
+  trackable cadence controls, manual milestone management, disabled AI-suggestion affordance,
+  generalized `POST /api/goals` payload, store hydration, and animated success overlay. Date-only
+  deadlines serialize from local midnight so downstream goal cards retain the selected day.
+- **`components/layout/Sidebar.tsx`:** kept Goals highlighted while the standalone manual goal
+  creation route is open so the shared sidebar matches the screen's Goals context.
+
 ### Changed (2026-07-13 — Manual goal creation write path)
 - **`app/api/goals/index+api.ts` and `lib/db/goals.ts`:** replaced the AI-finalize-shaped
   goal persistence contract with the locked manual payload, including server validation for
