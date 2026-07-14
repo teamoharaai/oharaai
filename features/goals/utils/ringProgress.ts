@@ -4,13 +4,12 @@ import type { Goal } from '../types';
  * Progress for GoalRingCard's ring. When a deadline is set, the ring is a
  * pure time-decay timer — it fills toward 100% as `now` approaches
  * `deadline`, regardless of actual completion, reaching exactly 100% at the
- * deadline. Goals without a deadline fall back to measurable-completion
- * progress so they still render a meaningful ring.
+ * deadline. Goals without a deadline do not render a ring.
  */
 export function getGoalRingProgress(
-  goal: Pick<Goal, 'deadline' | 'createdAt' | 'progress'>,
-): number {
-  if (!goal.deadline) return goal.progress;
+  goal: Pick<Goal, 'deadline' | 'createdAt'>,
+): number | null {
+  if (!goal.deadline) return null;
 
   const created = goal.createdAt.getTime();
   const due = goal.deadline.getTime();

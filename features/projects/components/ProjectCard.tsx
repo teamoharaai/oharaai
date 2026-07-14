@@ -134,6 +134,9 @@ export function ProjectCard({ project, goals }: ProjectCardProps) {
               }}
             >
               {goals.map((goal) => {
+                const ringProgress = getGoalRingProgress(goal);
+                if (ringProgress === null) return null;
+
                 const theme = goal.colorTheme;
                 const { label: dueDateLabel, color: dueDateColor } =
                   resolveDueDate(goal.deadline);
@@ -145,7 +148,7 @@ export function ProjectCard({ project, goals }: ProjectCardProps) {
                     <GoalRingCard
                       title={goal.title}
                       category={goal.category}
-                      progress={getGoalRingProgress(goal)}
+                      progress={ringProgress}
                       accentColor={GOAL_THEMES[theme].accent}
                       activityLabel={resolveActivityLabel(goal)}
                       dueDateLabel={dueDateLabel}
