@@ -112,3 +112,20 @@ Brand PNGs copied from `assets/brand/` in the repo: `ohara-logo.png`, `goals-log
 - `New Goal.dc.html` — the high-fidelity design prototype (open in a browser). Markup + logic + tweak props.
 - `assets/` — brand icons used by the design.
 - `screenshots/` — reference renders (creation UI + success state).
+
+## Session Addendum — Manual Goal Creation Implementation (2026-07-13)
+
+1. `target_frequency`: jsonb `{ times: int, period: 'day'|'week'|'month' }`, nullable.
+2. `artifacts.echo_entry_id`: NOT NULL (unchanged from original doc; artifacts table itself out of scope for this migration).
+3. This file (formerly README.md) is the single canonical decision record for this handoff — no separate summary file.
+4. `artifacts.embedding`: bare `vector` type, dimension enforced app-side via existing `lib/ai/constants.ts` pattern, matching `echo_entries.embedding` (deferred until artifacts table is built).
+5a. `createGoalWithMeasurables` generalized to accept manual-shaped input (not AI-typed union) — single write path, no duplicate insert function. `/api/goals` validator fully swapped from `validateGoalFinalizeResponse` to a manual-shaped validator (no dual-path — `/api/goals/create` removal means no caller will ever send AI-shaped payload again).
+5b. `/api/goals/create` removed entirely. Its sole caller, `app/goals/create.tsx`, rewritten against the new manual form. No response-shape backport needed (chat-specific fields `requestId`/`message`/`isComplete`/`finalizedBy` have no manual-flow equivalent).
+6. `vaults` insert in the generalized function becomes conditional on an optional vault-context param, absent on the manual path (no vault-context exists in the manual UI). Code path preserved, not deleted, for future Vaults chatbot work.
+7. Transaction/error-handling shape (blocking `goals` insert, non-blocking `measurables`, fire-and-forget embedding update) inherited as-is — not in scope to change this session.
+8. `goals.category` stays NOT NULL, 6-value CHECK, unchanged. Manual creation UI adds a category selector (see Design Addendum) rather than relaxing the constraint — reuses existing `CATEGORY_COLOR_THEME` mapping, no default value assumed.
+9. AI suggestion button ("Suggest one with Ohara") ships visible but disabled (`opacity: 0.45`, non-interactive) — `aiAssistEnabled: false`. Real Haiku-backed suggestion route logged to `OUTSTANDING.md` as a separate future session.
+10. `CATEGORY_THEME` relocated from private `lib/db/goals.ts` to `constants/themes.ts`, exported as `CATEGORY_COLOR_THEME`, colocated with `GOAL_THEMES`. Collapses the two-file/two-owner duplication flagged in the conventions audit. `CATEGORY_THEME_MAP` (broken, wrong vocabulary) left untouched, logged in `OUTSTANDING.md`.
+11. `description` and `deadline` columns already exist on `goals` (text/timestamptz, both nullable) — no migration needed; Card 1's "why it matters" maps to `description`, Card 2's deadline maps to `deadline` directly.
+12. Milestones captured at creation time (Card 4, part of the same `POST /api/goals` payload) and post-creation via existing independent `createMeasurable()` flow — both supported, no conflict.
+13. Create-button validation: `title non-empty AND deadline valid AND category selected`.

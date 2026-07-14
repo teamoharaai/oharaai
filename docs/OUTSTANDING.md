@@ -17,3 +17,12 @@ Should this capture step be:
 **Owner:** CTO + VP Product decision. No code change until resolved.
 
 ---
+- AI-backed goal-suggestion route (Haiku, replaces prototype's local keyword
+  heuristic) — separate future session. Button ships visible/disabled
+  (`aiAssistEnabled: false`) in manual goal creation. See DECISIONS.md
+  Session Addendum #9.
+- `constants/themes.ts` `CATEGORY_THEME_MAP` (keys: fitness/health/career/...)
+  is a pre-existing, already-broken mapping unrelated to `goals.category` —
+  always misses, left untouched. Risk: a future editor could mistake it for
+  canonical since it sits near the correct `CATEGORY_COLOR_THEME`. Flagged,
+  not fixed. See DECISIONS.md Session Addendum #10.
