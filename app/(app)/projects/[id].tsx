@@ -62,9 +62,6 @@ export default function ProjectDetailScreen() {
     );
   }
 
-  const aggregateProgress = project.goals.length > 0
-    ? Math.round(project.goals.reduce((sum, goal) => sum + goal.progress, 0) / project.goals.length)
-    : 0;
   const statusLabel = project.status === 'active'
     ? 'Active'
     : project.status === 'complete'
@@ -201,24 +198,6 @@ export default function ProjectDetailScreen() {
 
             <View style={{ marginTop: 16, alignItems: 'flex-start' }}>
               <Badge label={statusLabel} variant={statusVariant} />
-            </View>
-
-            <Typography
-              variant="caption"
-              style={{ fontFamily: 'Inter-Italic', fontStyle: 'italic', color: '#9CA3AF', marginTop: 16, marginBottom: 10 }}
-            >
-              Long-term ambition
-            </Typography>
-
-            <View style={{ width: '100%', height: 8, borderRadius: 999, backgroundColor: '#E7E2D8', overflow: 'hidden' }}>
-              <View
-                style={{
-                  width: `${aggregateProgress}%`,
-                  height: '100%',
-                  backgroundColor: '#1E3226',
-                  borderRadius: 999,
-                }}
-              />
             </View>
 
             {/* TODO: space badge requires space_id join — not available from current project query */}

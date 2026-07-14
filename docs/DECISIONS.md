@@ -342,3 +342,67 @@ A Session 0 Closeout report supplied to this session asserted, as already-verifi
   via `lib/db/service-client.ts`, split out of `lib/db/client.ts`. This is the pattern 
   to follow for any future server-only utility, not a one-off fix — check new server-
   only helpers against this before adding them to a shared file.
+
+  ### Goal Ring — Time-Decay Only, No Completion Fallback
+Date: 2026-07-14
+Owner: Ariel
+
+**Context:** `getGoalRingProgress()` (features/goals/utils/ringProgress.ts)
+previously fell back to `goal.progress` (measurable-completion percentage)
+when a goal had no deadline. This coupled the ring to the unresolved
+`current_value`/`measurable_logs` divergence found in a prior audit, and
+was never a deliberate design — audit confirmed no "narrative goal"
+concept exists for null deadlines the way it does for `target_frequency`.
+
+**Decision:**
+- `getGoalRingProgress()` is pure time-decay only:
+  `elapsed / (deadline - createdAt)`, clamped `[0,100]`. No completion
+  fallback, under any condition.
+- Return type changes from `number` to `number | null`. Returns `null`
+  exactly when `goal.deadline` is null.
+- Scope: `ProjectCard.tsx` only (the sole consumer). `GoalCard.tsx` is
+  explicitly untouched — its flat completion bar and local `daysUntil()`
+  label are unaffected by this decision.
+- Null-deadline behavior in `ProjectCard`: the ring is **not rendered at
+  all** for that goal — full omission, not an empty/neutral placeholder
+  ring.
+
+**Rationale:** Deadline is required at creation but can become null
+post-creation (explicit "Clear" action on `GoalDetailHeader`, or via the
+separate AI-goal-generation path). `ProjectCard` already has an
+established null-handling convention in the sibling `resolveDueDate()`
+function (blank label, secondary color, no fabricated data) — full
+omission is the closest visual equivalent for a ring, since a ring can't
+render "blank" the way text can.
+
+**Out of scope:** `goal.progress` / measurable-completion logic (unchanged,
+still used by `GoalCard` and the dashboard), `GoalCard` rendering, the
+`current_value`/`measurable_logs` divergence (separate, still unresolved,
+tracked from the earlier audit).
+
+### Projects — No Deadline, No Aggregate Progress
+Date: 2026-07-14
+Owner: Ariel
+
+**Decision:**
+- Projects have no deadline field — not now, not derived from children.
+  No schema change needed (confirmed via audit: no deadline column
+  exists today).
+- Projects surface no progress/completion metric — no average, no count,
+  nothing. The existing flat average (`aggregateProgress`,
+  app/(app)/projects/[id].tsx:66-68) is removed, not replaced.
+- Ungrouped goals remain fully valid — no forcing function requiring
+  `project_id` at creation. No change needed (already current behavior).
+- A Project's mission-control function is purely organizational: title,
+  description, and its list of member goals. Each goal's own
+  deadline-decay ring and status stand independently within that list.
+
+**Rationale:** The removed aggregate duplicated the same
+completion-derived signal already excluded from the individual goal ring
+for reliability reasons. Rather than build a second unreliable rollup,
+project-level "progress" is dropped entirely — visibility into each
+member goal's own state serves the mission-control function without
+inventing a number that isn't trustworthy yet.
+
+**Out of scope:** Any future project-level metric (explicitly ruled out,
+not TBD), Rollover/Momentum, SMART format, goal breakdown/QA structure.

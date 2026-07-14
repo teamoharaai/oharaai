@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Removed (2026-07-14 — Project-level aggregate progress)
+- **`app/(app)/projects/[id].tsx`:** removed the project detail hero's flat-average goal progress calculation and bar; projects now surface no aggregate progress metric, while individual goal cards remain unchanged.
+
 ### Added (2026-07-14 — AI goal suggestions)
 - **`lib/ai/config.ts`, `lib/ai/prompts/goal-suggestion.ts`, and
   `app/api/goals/suggest+api.ts`:** added the short Haiku-backed `goalSuggestion` pipeline,
