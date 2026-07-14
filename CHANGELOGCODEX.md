@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added (2026-07-14 — Goal creation completion)
+- **`app/goals/create.tsx`:** added a `Go back to goal` action beside `Create another` in the
+  creation-success overlay, routing directly to the goal that was just created.
+
 ### Changed (2026-07-13 — Manual goal creation screen)
 - **`app/goals/create.tsx`:** replaced the retired AI chat flow with the manual five-section
   creation form, including the required category/deadline validation, project selection,

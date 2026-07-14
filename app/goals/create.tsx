@@ -301,6 +301,7 @@ export default function GoalCreateScreen() {
   const [draftTitle, setDraftTitle] = useState('');
   const [draftType, setDraftType] = useState<GoalMeasurableType>('habit');
   const [created, setCreated] = useState(false);
+  const [createdGoalId, setCreatedGoalId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -396,7 +397,14 @@ export default function GoalCreateScreen() {
     setDraftTitle('');
     setDraftType('habit');
     setSubmitError(null);
+    setCreatedGoalId(null);
     setCreated(false);
+  }
+
+  function goToCreatedGoal() {
+    if (!createdGoalId) return;
+
+    router.replace(`/(app)/goals/${createdGoalId}` as never);
   }
 
   async function handleCreateGoal() {
@@ -453,6 +461,7 @@ export default function GoalCreateScreen() {
         });
       }
 
+      setCreatedGoalId(body.data.goalId);
       setCreated(true);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Could not create the goal.');
@@ -1492,29 +1501,55 @@ export default function GoalCreateScreen() {
             >
               Your goal is created — exactly as you shaped it.
             </Typography>
-            <Pressable
-              accessibilityRole="button"
-              onPress={resetForm}
-              style={({ pressed }) => ({
-                borderColor: LIGHT_THEME.border.warm,
-                borderRadius: 999,
-                borderWidth: 1,
-                opacity: pressed ? 0.65 : 1,
-                paddingHorizontal: 22,
-                paddingVertical: 11,
-              })}
-            >
-              <Typography
-                variant="body"
-                style={{
-                  color: LIGHT_THEME.text.accent,
-                  fontFamily: 'Inter-Medium',
-                  fontSize: 14,
-                }}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={resetForm}
+                style={({ pressed }) => ({
+                  borderColor: LIGHT_THEME.border.warm,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  opacity: pressed ? 0.65 : 1,
+                  paddingHorizontal: 22,
+                  paddingVertical: 11,
+                })}
               >
-                Create another
-              </Typography>
-            </Pressable>
+                <Typography
+                  variant="body"
+                  style={{
+                    color: LIGHT_THEME.text.accent,
+                    fontFamily: 'Inter-Medium',
+                    fontSize: 14,
+                  }}
+                >
+                  Create another
+                </Typography>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ disabled: !createdGoalId }}
+                disabled={!createdGoalId}
+                onPress={goToCreatedGoal}
+                style={({ pressed }) => ({
+                  backgroundColor: LIGHT_THEME.accent.primary,
+                  borderRadius: 999,
+                  opacity: !createdGoalId ? 0.45 : pressed ? 0.75 : 1,
+                  paddingHorizontal: 22,
+                  paddingVertical: 11,
+                })}
+              >
+                <Typography
+                  variant="body"
+                  style={{
+                    color: '#FFFFFF',
+                    fontFamily: 'Inter-Medium',
+                    fontSize: 14,
+                  }}
+                >
+                  Go back to goal
+                </Typography>
+              </Pressable>
+            </View>
           </Animated.View>
         </View>
       ) : null}
