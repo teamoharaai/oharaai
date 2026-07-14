@@ -6,6 +6,7 @@ export const AI_CONFIG = {
   pipelines: {
     goalCreation: { enabled: true, model: 'default' },
     goalFinalize: { enabled: true, model: 'goalFinalize' },
+    goalSuggestion: { enabled: true, model: 'default' },
     echoReflect: { enabled: true, model: 'default' },
     summarize: { enabled: false, model: 'default' },
     // Intelligence insight — enabled here; gated at the feature level by
@@ -14,5 +15,12 @@ export const AI_CONFIG = {
     // raw LLM call; the feature flag controls product surface visibility.
     intelligence: { enabled: true, model: 'default' },
   },
-  maxTokens: { goalCreation: 1024, goalFinalize: 1024, echoReflect: 512, summarize: 768, intelligence: 200 },
+  maxTokens: {
+    goalCreation: 1024,
+    goalFinalize: 1024,
+    goalSuggestion: 150,
+    echoReflect: 512,
+    summarize: 768,
+    intelligence: 200,
+  },
 } as const;

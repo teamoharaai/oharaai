@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added (2026-07-14 — AI goal suggestions)
+- **`lib/ai/config.ts`, `lib/ai/prompts/goal-suggestion.ts`, and
+  `app/api/goals/suggest+api.ts`:** added the short Haiku-backed `goalSuggestion` pipeline,
+  strict JSON-only prompt and response validation, shared daily quota enforcement, HTTP 429
+  rate-limit mapping, and fail-soft provider/parse handling for one milestone suggestion.
+- **`app/goals/create.tsx`:** enabled the existing Ohara suggestion affordance and wired it to
+  append a validated `{ title, type }` suggestion with the same local milestone shape used by
+  manual additions, without persisting AI provenance.
+
 ### Removed (2026-07-14 — Dead project-card category theme lookup)
 - **`constants/themes.ts`, `constants/index.ts`, and
   `features/projects/components/ProjectCard.tsx`:** removed the stale

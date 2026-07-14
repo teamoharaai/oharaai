@@ -30,6 +30,7 @@ import { useGoalStore } from '@/features/goals/store';
 import { useProjectStore } from '@/features/projects/store';
 import { authedFetch } from '@/lib/api/client';
 import type { ApiResponse } from '@/lib/api/contracts';
+import type { AiResponse } from '@/lib/ai/contracts';
 import type {
   CreateGoalWithMeasurablesResult,
   ManualGoalCreationInput,
@@ -43,7 +44,9 @@ import {
 
 type Period = 'week' | 'month';
 type Milestone = { id: string; title: string; type: GoalMeasurableType };
+type GoalSuggestion = ManualGoalCreationInput['milestones'][number];
 
+const aiAssistEnabled = true;
 const START_TRACKABLE = true;
 const INITIAL_COUNT = 3;
 const PROJECT_DOT_COLORS = ['#2F8F6D', '#B45309', '#4A7C5F'] as const;
@@ -303,6 +306,7 @@ export default function GoalCreateScreen() {
   const [created, setCreated] = useState(false);
   const [createdGoalId, setCreatedGoalId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const overlayScale = useRef(new Animated.Value(0.7)).current;
@@ -380,6 +384,42 @@ export default function GoalCreateScreen() {
     setShowAddForm(false);
     setDraftTitle('');
     setDraftType('habit');
+  }
+
+  async function suggestMilestone() {
+    if (!aiAssistEnabled || suggesting) return;
+
+    setSuggesting(true);
+    try {
+      const response = await authedFetch('/api/goals/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: titleText, why: whyText }),
+      });
+      const body = (await response.json()) as AiResponse<GoalSuggestion | null>;
+
+      if (!body.ok) {
+        console.error('[goal-suggestion] request failed:', body.error.code);
+        return;
+      }
+
+      const suggestion = body.data;
+      if (!suggestion) return;
+
+      setMilestones((current) => [
+        ...current,
+        {
+          id: `milestone-${Date.now()}-${current.length}`,
+          title: suggestion.title,
+          type: suggestion.type,
+        },
+      ]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[goal-suggestion] request failed:', message);
+    } finally {
+      setSuggesting(false);
+    }
   }
 
   function resetForm() {
@@ -1341,9 +1381,10 @@ export default function GoalCreateScreen() {
 
               <Pressable
                 accessibilityRole="button"
-                accessibilityState={{ disabled: true }}
-                disabled
-                style={{
+                accessibilityState={{ disabled: !aiAssistEnabled || suggesting }}
+                disabled={!aiAssistEnabled || suggesting}
+                onPress={() => void suggestMilestone()}
+                style={({ pressed }) => ({
                   alignItems: 'center',
                   backgroundColor: '#F1F6F2',
                   borderColor: '#D6E4DB',
@@ -1351,10 +1392,10 @@ export default function GoalCreateScreen() {
                   borderWidth: 1,
                   flexDirection: 'row',
                   gap: 6,
-                  opacity: 0.45,
+                  opacity: !aiAssistEnabled || suggesting ? 0.45 : pressed ? 0.72 : 1,
                   paddingHorizontal: 16,
                   paddingVertical: 10,
-                }}
+                })}
               >
                 <Typography
                   variant="meta"
