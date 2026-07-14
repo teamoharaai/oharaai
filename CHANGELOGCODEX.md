@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Removed (2026-07-14 — Dead project-card category theme lookup)
+- **`constants/themes.ts`, `constants/index.ts`, and
+  `features/projects/components/ProjectCard.tsx`:** removed the stale
+  `CATEGORY_THEME_MAP` and its always-missing project-card lookup; project cards now use the
+  already-computed `goal.colorTheme` directly with no behavior change.
+
 ### Added (2026-07-14 — Goal creation completion)
 - **`app/goals/create.tsx`:** added a `Go back to goal` action beside `Create another` in the
   creation-success overlay, routing directly to the goal that was just created.

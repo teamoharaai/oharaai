@@ -19,14 +19,3 @@ export const CATEGORY_COLOR_THEME: Record<string, GoalTheme> = {
   connect: 'coral',
   contribute: 'forest',
 };
-
-export const CATEGORY_THEME_MAP: Record<string, GoalTheme> = {
-  fitness: 'ember',
-  health: 'mint',
-  career: 'ocean',
-  education: 'lavender',
-  creative: 'sunset',
-  social: 'coral',
-  financial: 'slate',
-  personal: 'forest',
-};

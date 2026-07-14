@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
 import { GoalRingCard } from '@/features/goals/components/GoalRingCard';
 import { getGoalRingProgress } from '@/features/goals/utils/ringProgress';
-import { GOAL_THEMES, CATEGORY_THEME_MAP } from '@/constants/themes';
+import { GOAL_THEMES } from '@/constants/themes';
 import { LIGHT_THEME } from '@/constants/colors';
 import { ProjectTitleRow } from './ProjectTitleRow';
 import type { Project } from '@/features/projects/types';
@@ -134,7 +134,7 @@ export function ProjectCard({ project, goals }: ProjectCardProps) {
               }}
             >
               {goals.map((goal) => {
-                const theme = CATEGORY_THEME_MAP[goal.category] ?? goal.colorTheme;
+                const theme = goal.colorTheme;
                 const { label: dueDateLabel, color: dueDateColor } =
                   resolveDueDate(goal.deadline);
                 return (
