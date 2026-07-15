@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/Badge';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { Typography } from '@/components/ui/Typography';
 import { CountdownTimer } from './CountdownTimer';
+import { ExtendGoalModal } from './ExtendGoalModal';
 import { GoalTitleRow } from './GoalTitleRow';
 import { getRingColor } from '../utils/ringProgress';
 import type { GoalWithMeasurables } from '../types';
@@ -246,9 +247,11 @@ export function GoalDetailHeader({ goal, deadlineProgress, ended, onUpdateDeadli
         </View>
       )}
 
-      {showExtendModal && (
-        <>{/* TODO: Task 4 renders the extension modal here. */}</>
-      )}
+      <ExtendGoalModal
+        visible={showExtendModal}
+        goal={goal}
+        onClose={() => setShowExtendModal(false)}
+      />
     </View>
   );
 }

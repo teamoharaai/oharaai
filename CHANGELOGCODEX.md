@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added (2026-07-15 — Extend-goal modal summary)
+- **`ExtendGoalModal.tsx` and `GoalDetailHeader.tsx`:** replaced the ended-card extension
+  placeholder with the three-step modal container, resettable shared form state, progress
+  segments, and a first-step summary that renders the ended goal's live measurable values while
+  keeping card and modal dismissal actions independent.
+- **`components/ui/Modal.tsx`:** added opt-in backdrop dismissal, configurable surface styling,
+  and independent scrim/surface entrance motion so the Extend flow can use the shared modal
+  primitive with its specified presentation without changing existing modal defaults.
+
 ### Added (2026-07-15 — Goal-detail ended state)
 - **`GoalDetailHeader.tsx` and `Badge.tsx`:** reuse deadline ring progress to present ended goals with an ended-status badge, a deadline-passed readout, and a locally dismissible phase-extension prompt; the extension action currently only sets the Task 4 modal state hook.
 
