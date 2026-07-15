@@ -32,7 +32,7 @@ export function useGoalDetail(goalId: string): {
       return;
     }
 
-    if (goals.length === 0 || !goal) {
+    if (goals.length === 0 || !goal || (goal.has_successor && goal.successor === null)) {
       async function load() {
         setIsLoading(true);
         const {

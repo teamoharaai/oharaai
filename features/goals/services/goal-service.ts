@@ -1,5 +1,5 @@
 import supabase from '@/lib/db/client';
-import { getSuccessorGoalIds } from '@/lib/db/goals';
+import { getSuccessorGoalId, getSuccessorGoalIds } from '@/lib/db/goals';
 import { buildMeasurableInsert } from '@/lib/db/measurable-inserts';
 import { resolveBrt } from '@/lib/utils/resolveBrt';
 import type { EchoBrt } from '@/types/brt';
@@ -178,6 +178,7 @@ export function mapGoal(row: DbGoal): GoalWithMeasurables {
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
     has_successor: false,
+    successor: null,
     measurables: (row.measurables ?? []).map(mapMeasurable),
     vaultItemCount: 0,
     echoLinkCount: 0,
@@ -342,8 +343,29 @@ export async function fetchGoalById(goalId: string): Promise<GoalWithMeasurables
 
   const goal = mapGoal(data as unknown as DbGoal);
   try {
-    const successorGoalIds = await getSuccessorGoalIds([goal.id]);
-    return { ...goal, has_successor: successorGoalIds.has(goal.id) };
+    const successorGoalId = await getSuccessorGoalId(goal.id);
+    if (!successorGoalId) return goal;
+
+    const { data: successorData } = await supabase
+      .from('goals')
+      .select('id, reflection, reflected_at')
+      .eq('id', successorGoalId)
+      .maybeSingle();
+    const successor = successorData as {
+      id: string;
+      reflection: string | null;
+      reflected_at: string | null;
+    } | null;
+
+    return {
+      ...goal,
+      has_successor: true,
+      successor: {
+        id: successorGoalId,
+        reflection: successor?.reflection ?? null,
+        reflectedAt: toDate(successor?.reflected_at ?? null),
+      },
+    };
   } catch {
     return goal;
   }

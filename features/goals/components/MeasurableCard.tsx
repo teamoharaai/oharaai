@@ -10,6 +10,7 @@ interface MeasurableCardProps {
   hasSuccessor: boolean;
   ended: boolean;
   accentColor: string;
+  progressColor?: string;
   onSave?: (measurableId: string, updates: MeasurableUpdates) => Promise<void>;
   onDelete?: (measurableId: string) => Promise<void>;
   onComplete?: (measurableId: string) => Promise<void>;
@@ -23,6 +24,7 @@ export function MeasurableCard({
   hasSuccessor,
   ended,
   accentColor,
+  progressColor,
   onSave,
   onDelete,
   onComplete,
@@ -296,7 +298,7 @@ export function MeasurableCard({
           {/* Progress bar */}
           <View style={{ height: 4, borderRadius: 2, overflow: 'hidden', backgroundColor: '#EAE7E0' }}>
             <View
-              style={{ height: 4, borderRadius: 2, width: `${pct}%` as `${number}%`, backgroundColor: accentColor }}
+              style={{ height: 4, borderRadius: 2, width: `${pct}%` as `${number}%`, backgroundColor: progressColor ?? accentColor }}
             />
           </View>
         </View>

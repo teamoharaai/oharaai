@@ -8,6 +8,7 @@ import { GoalDetailHeader } from '@/features/goals/components/GoalDetailHeader';
 import { GoalTitleRow } from '@/features/goals/components/GoalTitleRow';
 import { MeasurablesPanel } from '@/features/goals/components/MeasurablesPanel';
 import { WhatYouBuiltPanel } from '@/features/goals/components/WhatYouBuiltPanel';
+import { SuccessorReflectionPanel } from '@/features/goals/components/SuccessorReflectionPanel';
 import { ActivityFeed } from '@/features/goals/components/ActivityFeed';
 import { useActivity } from '@/features/goals/hooks/useActivity';
 import { getVaultItemCount, } from '@/lib/db/vaults';
@@ -170,7 +171,10 @@ export default function GoalDetailScreen() {
   if (!goal) return <GoalNotFound />;
 
   const theme = GOAL_THEMES[goal.colorTheme];
-  const isMomentum = goal.previous_goal_id != null;
+  const isSuperseded = goal.has_successor === true;
+  const isMomentum = !isSuperseded && goal.previous_goal_id != null;
+  const successorGoalId = goal.successor?.id ?? null;
+  const successorReflection = goal.successor?.reflection?.trim() ?? '';
   const deadlineProgress = getGoalRingProgress(goal);
   const ended = deadlineProgress !== null && deadlineProgress >= 100;
 
@@ -179,10 +183,32 @@ export default function GoalDetailScreen() {
       <GoalDetailHeader
         goal={goal}
         isMomentum={isMomentum}
+        isSuperseded={isSuperseded}
+        successorGoalId={successorGoalId}
         deadlineProgress={deadlineProgress}
         ended={ended}
         onUpdateDeadline={onUpdateDeadline}
       />
+
+      {isSuperseded && successorGoalId && (
+        <Pressable
+          onPress={() => router.push(`/(app)/goals/${successorGoalId}` as never)}
+          style={{
+            alignItems: 'center',
+            backgroundColor: '#E8F5EF',
+            borderColor: '#CDE7DC',
+            borderRadius: 12,
+            borderWidth: 1,
+            marginBottom: 12,
+            paddingHorizontal: 16,
+            paddingVertical: 13,
+          }}
+        >
+          <Typography variant="emphasis-sm" style={{ color: '#2F6B50' }}>
+            Continued in the next phase →
+          </Typography>
+        </Pressable>
+      )}
 
       {/* Parent project row */}
       {goal.projectId && projectTitle ? (
@@ -212,6 +238,7 @@ export default function GoalDetailScreen() {
         hasSuccessor={goal.has_successor}
         ended={ended}
         accentColor={theme.accent}
+        progressColor={isSuperseded ? '#C7C0B2' : undefined}
         onSave={onSaveMeasurable}
         onDelete={onDeleteMeasurable}
         onAdd={onAddMeasurable}
@@ -229,6 +256,13 @@ export default function GoalDetailScreen() {
           measurables={goal.measurables}
           reflection={goal.reflection}
           reflectedAt={goal.reflected_at}
+        />
+      )}
+
+      {isSuperseded && successorReflection && (
+        <SuccessorReflectionPanel
+          reflection={successorReflection}
+          reflectedAt={goal.successor?.reflectedAt ?? null}
         />
       )}
 

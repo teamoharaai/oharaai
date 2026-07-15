@@ -10,6 +10,7 @@ interface MeasurablesPanelProps {
   hasSuccessor: boolean;
   ended: boolean;
   accentColor: string;
+  progressColor?: string;
   onSave?: (measurableId: string, updates: MeasurableUpdates) => Promise<void>;
   onDelete?: (measurableId: string) => Promise<void>;
   onAdd?: (input: MeasurableInput) => Promise<void>;
@@ -54,6 +55,7 @@ export function MeasurablesPanel({
   hasSuccessor,
   ended,
   accentColor,
+  progressColor,
   onSave,
   onDelete,
   onAdd,
@@ -170,6 +172,7 @@ export function MeasurablesPanel({
           hasSuccessor={hasSuccessor}
           ended={ended}
           accentColor={accentColor}
+          progressColor={progressColor}
           onSave={onSave}
           onDelete={onDelete}
           onComplete={onComplete}

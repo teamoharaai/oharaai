@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput } from 'react-native';
+import { router } from 'expo-router';
 import { GOAL_THEMES } from '@/constants/themes';
 import { Badge } from '@/components/ui/Badge';
 import { ProgressRing } from '@/components/ui/ProgressRing';
@@ -13,6 +14,8 @@ import type { GoalWithMeasurables } from '../types';
 interface GoalDetailHeaderProps {
   goal: GoalWithMeasurables;
   isMomentum: boolean;
+  isSuperseded: boolean;
+  successorGoalId: string | null;
   deadlineProgress: number | null;
   ended: boolean;
   onUpdateDeadline: (deadline: Date | null) => Promise<boolean>;
@@ -35,6 +38,8 @@ function getStatusBadgeVariant(status: GoalWithMeasurables['status']): 'active' 
 export function GoalDetailHeader({
   goal,
   isMomentum,
+  isSuperseded,
+  successorGoalId,
   deadlineProgress,
   ended,
   onUpdateDeadline,
@@ -47,7 +52,9 @@ export function GoalDetailHeader({
   const [deadlineError, setDeadlineError] = useState<string | null>(null);
   const [savingDeadline, setSavingDeadline] = useState(false);
   const theme = GOAL_THEMES[goal.colorTheme];
-  const ringColor = deadlineProgress === null
+  const ringColor = isSuperseded
+    ? '#B7B0A2'
+    : deadlineProgress === null
     ? theme.accent
     : getRingColor(deadlineProgress, theme.accent);
 
@@ -89,10 +96,10 @@ export function GoalDetailHeader({
   return (
     <View
       style={{
-        backgroundColor: '#FFFFFF',
+        backgroundColor: isSuperseded ? '#F5F2EA' : '#FFFFFF',
         borderRadius: 16,
         borderLeftWidth: 4,
-        borderLeftColor: theme.accent,
+        borderLeftColor: isSuperseded ? '#C7C0B2' : theme.accent,
         marginBottom: 12,
         paddingHorizontal: 20,
         paddingVertical: 20,
@@ -103,15 +110,35 @@ export function GoalDetailHeader({
         elevation: 2,
       }}
     >
+      {isSuperseded && successorGoalId && (
+        <TouchableOpacity
+          onPress={() => router.push(`/(app)/goals/${successorGoalId}` as never)}
+          style={{ alignSelf: 'flex-start', marginBottom: 12 }}
+        >
+          <Text style={{ color: '#8A8172', fontFamily: 'Inter-Regular', fontSize: 13 }}>
+            ‹ Back to current phase
+          </Text>
+        </TouchableOpacity>
+      )}
+
       {/* Badges */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
         <Badge label={goal.category} variant="category" />
-        {isMomentum && <Badge label="↻ Momentum" variant="momentum" />}
-        <Badge
-          label={ended ? 'ended' : goal.status}
-          variant={ended ? 'ended' : getStatusBadgeVariant(goal.status)}
-        />
-        {goal.aiGenerated && <Badge label="AI" variant="ai" />}
+        {isSuperseded ? (
+          <>
+            <Badge label="archived" variant="archived" />
+            <Badge label="read-only" variant="archived" />
+          </>
+        ) : (
+          <>
+            {isMomentum && <Badge label="↻ Momentum" variant="momentum" />}
+            <Badge
+              label={ended ? 'ended' : goal.status}
+              variant={ended ? 'ended' : getStatusBadgeVariant(goal.status)}
+            />
+            {goal.aiGenerated && <Badge label="AI" variant="ai" />}
+          </>
+        )}
       </View>
 
       {/* Title */}
@@ -121,7 +148,7 @@ export function GoalDetailHeader({
         iconSize={26}
         style={{ marginBottom: goal.description ? 10 : isMomentum ? 6 : 0 }}
         iconStyle={{ marginTop: 2 }}
-        textStyle={{ fontSize: 26, lineHeight: 32 }}
+        textStyle={{ fontSize: 26, lineHeight: 32, color: isSuperseded ? '#6E675B' : undefined }}
       />
 
       {isMomentum && (
@@ -207,7 +234,7 @@ export function GoalDetailHeader({
             disabled={goal.has_successor}
             style={{ opacity: goal.has_successor ? 0.5 : 1 }}
           >
-            {ended ? (
+            {isSuperseded || ended ? (
               <Text style={{ color: '#E85D04', fontSize: 44, fontFamily: 'Inter-Bold', lineHeight: 48 }}>
                 Deadline passed
               </Text>
@@ -221,14 +248,14 @@ export function GoalDetailHeader({
           </TouchableOpacity>
         )}
         <ProgressRing
-          progress={goal.progress}
+          progress={isSuperseded ? 100 : goal.progress}
           size={72}
           strokeWidth={6}
           color={ringColor}
         />
       </View>
 
-      {ended && showEndedCard && (
+      {ended && !isSuperseded && showEndedCard && (
         <View
           style={{
             backgroundColor: '#F8F4EC',

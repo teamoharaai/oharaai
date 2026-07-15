@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added (2026-07-15 — Superseded goal detail)
+- **`lib/db/goals.ts`, `features/goals/services/goal-service.ts`, `features/goals/types.ts`, and `useGoalDetail.ts`:** added a singular successor lookup and load the successor id plus its continuation reflection for superseded detail views, including when the goal was initially loaded in the shared list.
+- **`app/(app)/goals/[id]/index.tsx`, `GoalDetailHeader.tsx`, `MeasurablesPanel.tsx`, `MeasurableCard.tsx`, and `SuccessorReflectionPanel.tsx`:** present superseded goals as archived, read-only phases with a muted header, fixed grey 100% ring, continuation navigation, grey milestone bars, and an optional read-only reflection from the successor while ensuring Superseded takes precedence over Momentum.
+
 ### Added (2026-07-15 — Momentum goal detail)
 - **`app/(app)/goals/[id]/index.tsx`, `GoalDetailHeader.tsx`, `WhatYouBuiltPanel.tsx`, and `Badge.tsx`:** conditionally present continuation goals with the locked Momentum badge and subtext plus a warm, read-only prior-phase summary, optional reflection, and original-goal link while leaving normal goal-detail rendering unchanged.
 - **`features/goals/types.ts` and `features/goals/services/goal-service.ts`:** load and safely map the existing `previous_goal_id`, `prior_phase_summary`, `reflection`, and `reflected_at` fields through the shared goal-detail model so Momentum presentation requires no additional query.

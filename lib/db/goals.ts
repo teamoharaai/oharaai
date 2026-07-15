@@ -56,6 +56,25 @@ export async function getSuccessorGoalIds(
   );
 }
 
+/** Returns the continuation goal id for one completed phase, if it exists. */
+export async function getSuccessorGoalId(
+  goalId: string,
+  db: SupabaseClient = supabase,
+): Promise<string | null> {
+  const { data, error } = await db
+    .from('goals')
+    .select('id')
+    .eq('previous_goal_id', goalId)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data as { id: string } | null)?.id ?? null;
+}
+
 export interface ManualGoalCreationInput {
   title: string;
   description: string | null;

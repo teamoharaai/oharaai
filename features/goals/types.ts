@@ -67,8 +67,15 @@ export type PriorPhaseSummaryItem =
       completions: number;
     };
 
+export interface GoalSuccessor {
+  id: string;
+  reflection: string | null;
+  reflectedAt: Date | null;
+}
+
 export interface GoalWithMeasurables extends Goal {
   has_successor: boolean;
+  successor: GoalSuccessor | null;
   previous_goal_id: string | null;
   prior_phase_summary: PriorPhaseSummaryItem[] | null;
   reflection: string | null;
