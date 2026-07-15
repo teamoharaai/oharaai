@@ -26,3 +26,6 @@ Should this capture step be:
   always misses, left untouched. Risk: a future editor could mistake it for
   canonical since it sits near the correct `CATEGORY_COLOR_THEME`. Flagged,
   not fixed. See DECISIONS.md Session Addendum #10.
+
+### Type Reg 7-15-1129
+  lib/db/client.ts Supabase client not parameterized with Database generic — insert/update calls aren't type-checked against types/supabase.ts. Surfaced during Doc 2 amendment (migration 022). Separate concern, needs its own audit of existing call sites before fixing.
