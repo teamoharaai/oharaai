@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { Typography } from './Typography';
 
-type BadgeVariant = 'new' | 'active' | 'complete' | 'ai' | 'category' | 'paused' | 'archived';
+type BadgeVariant = 'new' | 'active' | 'ended' | 'complete' | 'ai' | 'category' | 'paused' | 'archived';
 
 interface BadgeProps {
   label: string;
@@ -11,6 +11,7 @@ interface BadgeProps {
 const VARIANT_STYLES: Record<BadgeVariant, { bg: string; text: string }> = {
   new: { bg: '#E09F3E26', text: '#E09F3E' },
   active: { bg: '#E8F5EF', text: '#4A7C5F' },
+  ended: { bg: '#F7E6E2', text: '#C0483A' },
   complete: { bg: '#EAE7E0', text: '#8A8172' },
   paused: { bg: '#EAE7E0', text: '#8A8172' },
   archived: { bg: '#EAE7E0', text: '#A79E8E' },

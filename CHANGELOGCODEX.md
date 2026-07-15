@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added (2026-07-15 — Goal-detail ended state)
+- **`GoalDetailHeader.tsx` and `Badge.tsx`:** reuse deadline ring progress to present ended goals with an ended-status badge, a deadline-passed readout, and a locally dismissible phase-extension prompt; the extension action currently only sets the Task 4 modal state hook.
+
+### Changed (2026-07-15 — Goal-detail ended milestones)
+- **`app/(app)/goals/[id]/index.tsx`, `MeasurablesPanel.tsx`, and `MeasurableCard.tsx`:** pass the existing deadline-progress ended state into milestones so ended goals use a single 0.6 dimming layer and hide mutation affordances independently of successor-state handling.
+
 ### Changed (2026-07-15 — Ring urgency escalation)
 - **`features/goals/utils/ringProgress.ts`, `GoalRingCard.tsx`, and
   `GoalDetailHeader.tsx`:** centralized goal-ring stroke color resolution and

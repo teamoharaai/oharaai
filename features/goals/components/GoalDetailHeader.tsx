@@ -6,11 +6,13 @@ import { ProgressRing } from '@/components/ui/ProgressRing';
 import { Typography } from '@/components/ui/Typography';
 import { CountdownTimer } from './CountdownTimer';
 import { GoalTitleRow } from './GoalTitleRow';
-import { getGoalRingProgress, getRingColor } from '../utils/ringProgress';
+import { getRingColor } from '../utils/ringProgress';
 import type { GoalWithMeasurables } from '../types';
 
 interface GoalDetailHeaderProps {
   goal: GoalWithMeasurables;
+  deadlineProgress: number | null;
+  ended: boolean;
   onUpdateDeadline: (deadline: Date | null) => Promise<boolean>;
 }
 
@@ -28,14 +30,15 @@ function getStatusBadgeVariant(status: GoalWithMeasurables['status']): 'active' 
   }
 }
 
-export function GoalDetailHeader({ goal, onUpdateDeadline }: GoalDetailHeaderProps) {
+export function GoalDetailHeader({ goal, deadlineProgress, ended, onUpdateDeadline }: GoalDetailHeaderProps) {
   const [descExpanded, setDescExpanded] = useState(false);
+  const [showEndedCard, setShowEndedCard] = useState(true);
+  const [showExtendModal, setShowExtendModal] = useState(false);
   const [editingDeadline, setEditingDeadline] = useState(false);
   const [deadlineInput, setDeadlineInput] = useState('');
   const [deadlineError, setDeadlineError] = useState<string | null>(null);
   const [savingDeadline, setSavingDeadline] = useState(false);
   const theme = GOAL_THEMES[goal.colorTheme];
-  const deadlineProgress = getGoalRingProgress(goal);
   const ringColor = deadlineProgress === null
     ? theme.accent
     : getRingColor(deadlineProgress, theme.accent);
@@ -95,7 +98,10 @@ export function GoalDetailHeader({ goal, onUpdateDeadline }: GoalDetailHeaderPro
       {/* Badges */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
         <Badge label={goal.category} variant="category" />
-        <Badge label={goal.status} variant={getStatusBadgeVariant(goal.status)} />
+        <Badge
+          label={ended ? 'ended' : goal.status}
+          variant={ended ? 'ended' : getStatusBadgeVariant(goal.status)}
+        />
         {goal.aiGenerated && <Badge label="AI" variant="ai" />}
       </View>
 
@@ -183,7 +189,11 @@ export function GoalDetailHeader({ goal, onUpdateDeadline }: GoalDetailHeaderPro
             disabled={goal.has_successor}
             style={{ opacity: goal.has_successor ? 0.5 : 1 }}
           >
-            {goal.deadline ? (
+            {ended ? (
+              <Text style={{ color: '#E85D04', fontSize: 44, fontFamily: 'Inter-Bold', lineHeight: 48 }}>
+                Deadline passed
+              </Text>
+            ) : goal.deadline ? (
               <CountdownTimer deadline={goal.deadline} accentColor={theme.accent} />
             ) : (
               <Typography variant="micro-label" style={{ color: theme.accent }}>
@@ -199,6 +209,46 @@ export function GoalDetailHeader({ goal, onUpdateDeadline }: GoalDetailHeaderPro
           color={ringColor}
         />
       </View>
+
+      {ended && showEndedCard && (
+        <View
+          style={{
+            backgroundColor: '#F8F4EC',
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: '#EAE7E0',
+            padding: 16,
+            marginTop: 16,
+          }}
+        >
+          <Text style={{ color: '#211F1A', fontFamily: 'Lora-Italic', fontSize: 20, lineHeight: 26, marginBottom: 6 }}>
+            This goal has ended.
+          </Text>
+          <Text style={{ color: '#6B6257', fontFamily: 'Inter-Regular', fontSize: 13, lineHeight: 19, marginBottom: 14 }}>
+            Continue this work in a new phase when you&apos;re ready.
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+            <TouchableOpacity
+              onPress={() => setShowExtendModal(true)}
+              style={{ backgroundColor: '#1E3226', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9 }}
+            >
+              <Text style={{ color: '#EDE7DA', fontFamily: 'Inter-SemiBold', fontSize: 12 }}>
+                Extend into a new phase
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setShowEndedCard(false)}
+              style={{ borderRadius: 999, borderWidth: 1, borderColor: '#D8D0C2', paddingHorizontal: 14, paddingVertical: 8 }}
+            >
+              <Text style={{ color: '#4A4339', fontFamily: 'Inter-SemiBold', fontSize: 12 }}>Not now</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {showExtendModal && (
+        <>{/* TODO: Task 4 renders the extension modal here. */}</>
+      )}
     </View>
   );
 }

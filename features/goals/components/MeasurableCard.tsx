@@ -8,6 +8,7 @@ import type { Measurable, MeasurableUpdates } from '../types';
 interface MeasurableCardProps {
   measurable: Measurable;
   hasSuccessor: boolean;
+  ended: boolean;
   accentColor: string;
   onSave?: (measurableId: string, updates: MeasurableUpdates) => Promise<void>;
   onDelete?: (measurableId: string) => Promise<void>;
@@ -20,6 +21,7 @@ type EditingField = 'title' | 'targetValue' | 'currentValue' | null;
 export function MeasurableCard({
   measurable,
   hasSuccessor,
+  ended,
   accentColor,
   onSave,
   onDelete,
@@ -123,6 +125,7 @@ export function MeasurableCard({
   const target = measurable.targetValue ?? 1;
   const pct = Math.min(100, Math.round((currentValue / target) * 100));
   const canEdit = !!onSave;
+  const isReadOnly = hasSuccessor || ended;
 
   const inputStyle = {
     fontSize: 12,
@@ -144,7 +147,7 @@ export function MeasurableCard({
         borderColor: '#EAE7E0',
         marginBottom: 8,
         padding: 14,
-        opacity: isSaving || hasSuccessor ? 0.7 : 1,
+        opacity: isSaving ? 0.7 : isReadOnly ? 0.6 : 1,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.04,
@@ -152,31 +155,33 @@ export function MeasurableCard({
         elevation: 1,
       }}
       onPress={() => router.push(`/(app)/goals/${measurable.goalId}/vault` as never)}
-      onLongPress={hasSuccessor ? undefined : () => {
+      onLongPress={isReadOnly ? undefined : () => {
         if (onDelete && !showDeleteConfirm) setShowDeleteConfirm(true);
       }}
       delayLongPress={400}
     >
       {/* Title row */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-        <TouchableOpacity
-          onPress={handleComplete}
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 14,
-            borderWidth: 2,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderColor: isCompleted ? '#1E3226' : '#DDD6CA',
-            backgroundColor: isCompleted ? '#1E3226' : 'transparent',
-          }}
-          disabled={!onComplete || isCompleted || isSaving || hasSuccessor}
-        >
-          {isCompleted ? (
-            <Typography variant="emphasis-sm" style={{ fontFamily: 'Inter-Bold', fontSize: 13, color: '#FFFFFF' }}>✓</Typography>
-          ) : null}
-        </TouchableOpacity>
+        {!isReadOnly && (
+          <TouchableOpacity
+            onPress={handleComplete}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              borderWidth: 2,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderColor: isCompleted ? '#1E3226' : '#DDD6CA',
+              backgroundColor: isCompleted ? '#1E3226' : 'transparent',
+            }}
+            disabled={!onComplete || isCompleted || isSaving}
+          >
+            {isCompleted ? (
+              <Typography variant="emphasis-sm" style={{ fontFamily: 'Inter-Bold', fontSize: 13, color: '#FFFFFF' }}>✓</Typography>
+            ) : null}
+          </TouchableOpacity>
+        )}
         {editingField === 'title' ? (
           <TextInput
             style={[inputStyle, { flex: 1, fontSize: 13, fontFamily: 'Inter-Medium' }]}
@@ -190,9 +195,9 @@ export function MeasurableCard({
           />
         ) : (
           <Pressable
-            style={{ flex: 1, opacity: hasSuccessor ? 0.5 : 1 }}
+            style={{ flex: 1 }}
             onPress={() => router.push(`/(app)/goals/${measurable.goalId}/vault` as never)}
-            disabled={hasSuccessor}
+            disabled={isReadOnly}
           >
             <Typography
               variant="label"
@@ -233,9 +238,9 @@ export function MeasurableCard({
                 />
               ) : (
                 <Pressable
-                  onPress={() => canEdit && !hasSuccessor && setEditingField('currentValue')}
-                  disabled={hasSuccessor}
-                  style={{ opacity: hasSuccessor ? 0.5 : 1 }}
+                  onPress={() => canEdit && !isReadOnly && setEditingField('currentValue')}
+                  disabled={isReadOnly}
+                  style={{}}
                 >
                   <Typography variant="label">{currentValue}</Typography>
                 </Pressable>
@@ -257,9 +262,9 @@ export function MeasurableCard({
                 />
               ) : (
                 <Pressable
-                  onPress={() => canEdit && !hasSuccessor && setEditingField('targetValue')}
-                  disabled={hasSuccessor}
-                  style={{ opacity: hasSuccessor ? 0.5 : 1 }}
+                  onPress={() => canEdit && !isReadOnly && setEditingField('targetValue')}
+                  disabled={isReadOnly}
+                  style={{}}
                 >
                   <Typography variant="label">
                     {measurable.targetValue ?? '—'}
@@ -272,18 +277,20 @@ export function MeasurableCard({
               )}
             </View>
 
-            <TouchableOpacity
-              onPress={handleIncrement}
-              style={{
-                borderRadius: 999,
-                paddingHorizontal: 14,
-                paddingVertical: 4,
-                backgroundColor: accentColor + '1A',
-              }}
-              disabled={isSaving}
-            >
-              <Typography variant="emphasis-sm" style={{ fontSize: 16, color: accentColor }}>+</Typography>
-            </TouchableOpacity>
+            {!isReadOnly && (
+              <TouchableOpacity
+                onPress={handleIncrement}
+                style={{
+                  borderRadius: 999,
+                  paddingHorizontal: 14,
+                  paddingVertical: 4,
+                  backgroundColor: accentColor + '1A',
+                }}
+                disabled={isSaving}
+              >
+                <Typography variant="emphasis-sm" style={{ fontSize: 16, color: accentColor }}>+</Typography>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Progress bar */}
@@ -300,22 +307,24 @@ export function MeasurableCard({
         const done = isCompleted || currentValue === 1;
         return (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <TouchableOpacity
-              onPress={handleToggle}
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 14,
-                borderWidth: 2,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderColor: done ? accentColor : '#EAE7E0',
-                backgroundColor: done ? accentColor + '1A' : 'transparent',
-              }}
-              disabled={isSaving || hasSuccessor}
-            >
-              {done && <Typography variant="emphasis-sm" style={{ fontFamily: 'Inter-Bold', fontSize: 13, color: accentColor }}>✓</Typography>}
-            </TouchableOpacity>
+            {!isReadOnly && (
+              <TouchableOpacity
+                onPress={handleToggle}
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 14,
+                  borderWidth: 2,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderColor: done ? accentColor : '#EAE7E0',
+                  backgroundColor: done ? accentColor + '1A' : 'transparent',
+                }}
+                disabled={isSaving}
+              >
+                {done && <Typography variant="emphasis-sm" style={{ fontFamily: 'Inter-Bold', fontSize: 13, color: accentColor }}>✓</Typography>}
+              </TouchableOpacity>
+            )}
             <Typography variant="caption" style={{ color: done ? '#211F1A' : '#A79E8E' }}>
               {done ? 'Done today' : 'Not done yet'}
             </Typography>
@@ -326,6 +335,7 @@ export function MeasurableCard({
       {/* Checklist */}
       {measurable.type === 'checklist' && (() => {
         const done = isCompleted || currentValue === 1;
+        if (isReadOnly) return null;
         return (
           <TouchableOpacity
             onPress={handleToggle}
@@ -333,9 +343,8 @@ export function MeasurableCard({
               flexDirection: 'row',
               alignItems: 'center',
               gap: 10,
-              opacity: hasSuccessor ? 0.5 : 1,
             }}
-            disabled={isSaving || hasSuccessor}
+            disabled={isSaving}
           >
             <View
               style={{
@@ -368,7 +377,7 @@ export function MeasurableCard({
       })()}
 
       {/* Inline delete confirmation */}
-      {showDeleteConfirm && (
+      {showDeleteConfirm && !isReadOnly && (
         <View
           style={{
             marginTop: 12,

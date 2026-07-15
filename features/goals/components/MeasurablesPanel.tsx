@@ -8,6 +8,7 @@ import { Typography } from '@/components/ui/Typography';
 interface MeasurablesPanelProps {
   measurables: Measurable[];
   hasSuccessor: boolean;
+  ended: boolean;
   accentColor: string;
   onSave?: (measurableId: string, updates: MeasurableUpdates) => Promise<void>;
   onDelete?: (measurableId: string) => Promise<void>;
@@ -51,6 +52,7 @@ const inputStyle = {
 export function MeasurablesPanel({
   measurables,
   hasSuccessor,
+  ended,
   accentColor,
   onSave,
   onDelete,
@@ -166,6 +168,7 @@ export function MeasurablesPanel({
           key={m.id}
           measurable={m}
           hasSuccessor={hasSuccessor}
+          ended={ended}
           accentColor={accentColor}
           onSave={onSave}
           onDelete={onDelete}
@@ -175,7 +178,7 @@ export function MeasurablesPanel({
       ))}
 
       {/* Add form */}
-      {showAddForm ? (
+      {!ended && showAddForm ? (
         <View
           style={{
             backgroundColor: '#F8F4EC',
@@ -287,7 +290,7 @@ export function MeasurablesPanel({
           </View>
         </View>
       ) : (
-        onAdd && (
+        !ended && onAdd && (
           <TouchableOpacity
             style={{
               flexDirection: 'row',

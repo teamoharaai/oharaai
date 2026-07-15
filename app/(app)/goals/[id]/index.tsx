@@ -11,6 +11,7 @@ import { ActivityFeed } from '@/features/goals/components/ActivityFeed';
 import { useActivity } from '@/features/goals/hooks/useActivity';
 import { getVaultItemCount, } from '@/lib/db/vaults';
 import { getProjectTitle } from '@/lib/db/goals';
+import { getGoalRingProgress } from '@/features/goals/utils/ringProgress';
 
 function GoalDetailLoadingState() {
   return (
@@ -168,10 +169,17 @@ export default function GoalDetailScreen() {
   if (!goal) return <GoalNotFound />;
 
   const theme = GOAL_THEMES[goal.colorTheme];
+  const deadlineProgress = getGoalRingProgress(goal);
+  const ended = deadlineProgress !== null && deadlineProgress >= 100;
 
   const mainWorkspace = (
     <>
-      <GoalDetailHeader goal={goal} onUpdateDeadline={onUpdateDeadline} />
+      <GoalDetailHeader
+        goal={goal}
+        deadlineProgress={deadlineProgress}
+        ended={ended}
+        onUpdateDeadline={onUpdateDeadline}
+      />
 
       {/* Parent project row */}
       {goal.projectId && projectTitle ? (
@@ -199,6 +207,7 @@ export default function GoalDetailScreen() {
       <MeasurablesPanel
         measurables={goal.measurables}
         hasSuccessor={goal.has_successor}
+        ended={ended}
         accentColor={theme.accent}
         onSave={onSaveMeasurable}
         onDelete={onDeleteMeasurable}
