@@ -12,6 +12,7 @@ import type { GoalWithMeasurables } from '../types';
 
 interface GoalDetailHeaderProps {
   goal: GoalWithMeasurables;
+  isMomentum: boolean;
   deadlineProgress: number | null;
   ended: boolean;
   onUpdateDeadline: (deadline: Date | null) => Promise<boolean>;
@@ -31,7 +32,13 @@ function getStatusBadgeVariant(status: GoalWithMeasurables['status']): 'active' 
   }
 }
 
-export function GoalDetailHeader({ goal, deadlineProgress, ended, onUpdateDeadline }: GoalDetailHeaderProps) {
+export function GoalDetailHeader({
+  goal,
+  isMomentum,
+  deadlineProgress,
+  ended,
+  onUpdateDeadline,
+}: GoalDetailHeaderProps) {
   const [descExpanded, setDescExpanded] = useState(false);
   const [showEndedCard, setShowEndedCard] = useState(true);
   const [showExtendModal, setShowExtendModal] = useState(false);
@@ -99,6 +106,7 @@ export function GoalDetailHeader({ goal, deadlineProgress, ended, onUpdateDeadli
       {/* Badges */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
         <Badge label={goal.category} variant="category" />
+        {isMomentum && <Badge label="↻ Momentum" variant="momentum" />}
         <Badge
           label={ended ? 'ended' : goal.status}
           variant={ended ? 'ended' : getStatusBadgeVariant(goal.status)}
@@ -111,10 +119,19 @@ export function GoalDetailHeader({ goal, deadlineProgress, ended, onUpdateDeadli
         title={goal.title}
         variant="heading"
         iconSize={26}
-        style={{ marginBottom: goal.description ? 10 : 0 }}
+        style={{ marginBottom: goal.description ? 10 : isMomentum ? 6 : 0 }}
         iconStyle={{ marginTop: 2 }}
         textStyle={{ fontSize: 26, lineHeight: 32 }}
       />
+
+      {isMomentum && (
+        <Typography
+          variant="description"
+          style={{ fontSize: 13.5, lineHeight: 20, marginBottom: goal.description ? 10 : 0 }}
+        >
+          You pushed toward this once already. This phase carries that momentum forward.
+        </Typography>
+      )}
 
       {/* Description (collapsible) */}
       {goal.description && (

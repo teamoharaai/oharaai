@@ -7,6 +7,7 @@ import { useGoalDetail } from '@/features/goals/hooks/useGoalDetail';
 import { GoalDetailHeader } from '@/features/goals/components/GoalDetailHeader';
 import { GoalTitleRow } from '@/features/goals/components/GoalTitleRow';
 import { MeasurablesPanel } from '@/features/goals/components/MeasurablesPanel';
+import { WhatYouBuiltPanel } from '@/features/goals/components/WhatYouBuiltPanel';
 import { ActivityFeed } from '@/features/goals/components/ActivityFeed';
 import { useActivity } from '@/features/goals/hooks/useActivity';
 import { getVaultItemCount, } from '@/lib/db/vaults';
@@ -169,6 +170,7 @@ export default function GoalDetailScreen() {
   if (!goal) return <GoalNotFound />;
 
   const theme = GOAL_THEMES[goal.colorTheme];
+  const isMomentum = goal.previous_goal_id != null;
   const deadlineProgress = getGoalRingProgress(goal);
   const ended = deadlineProgress !== null && deadlineProgress >= 100;
 
@@ -176,6 +178,7 @@ export default function GoalDetailScreen() {
     <>
       <GoalDetailHeader
         goal={goal}
+        isMomentum={isMomentum}
         deadlineProgress={deadlineProgress}
         ended={ended}
         onUpdateDeadline={onUpdateDeadline}
@@ -218,6 +221,16 @@ export default function GoalDetailScreen() {
         error={measurableError}
         onDismissError={clearMeasurableError}
       />
+
+      {isMomentum && (
+        <WhatYouBuiltPanel
+          previousGoalId={goal.previous_goal_id!}
+          summary={goal.prior_phase_summary}
+          measurables={goal.measurables}
+          reflection={goal.reflection}
+          reflectedAt={goal.reflected_at}
+        />
+      )}
 
       {/* Vault Summary Card */}
       <Pressable

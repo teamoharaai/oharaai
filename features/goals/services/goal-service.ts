@@ -3,7 +3,7 @@ import { getSuccessorGoalIds } from '@/lib/db/goals';
 import { buildMeasurableInsert } from '@/lib/db/measurable-inserts';
 import { resolveBrt } from '@/lib/utils/resolveBrt';
 import type { EchoBrt } from '@/types/brt';
-import type { Goal, GoalWithMeasurables, Measurable, MeasurableType, MeasurableFrequency, GoalStatus, MeasurableInput, MeasurableUpdates } from '../types';
+import type { Goal, GoalWithMeasurables, Measurable, MeasurableType, MeasurableFrequency, GoalStatus, MeasurableInput, MeasurableUpdates, PriorPhaseSummaryItem } from '../types';
 import type { GoalTheme } from '@/constants/themes';
 import {
   GOAL_CATEGORIES,
@@ -46,6 +46,10 @@ export type DbGoal = {
   status: string;
   ai_generated: boolean;
   project_id: string | null;
+  previous_goal_id: string | null;
+  prior_phase_summary: unknown;
+  reflection: string | null;
+  reflected_at: string | null;
   created_at: string;
   updated_at: string;
   measurables: DbMeasurable[];
@@ -108,6 +112,33 @@ function toSmartData(raw: Record<string, unknown> | null): GoalSmartData | null 
   return GOAL_SMART_KEYS.some((key) => values[key].trim().length > 0) ? values : null;
 }
 
+function toPriorPhaseSummary(raw: unknown): PriorPhaseSummaryItem[] | null {
+  if (!Array.isArray(raw)) return null;
+
+  const items = raw.flatMap((item): PriorPhaseSummaryItem[] => {
+    if (!item || typeof item !== 'object') return [];
+
+    const candidate = item as Record<string, unknown>;
+    if (typeof candidate.title !== 'string') return [];
+
+    if (typeof candidate.achieved === 'number' && Number.isFinite(candidate.achieved)) {
+      const target = candidate.target;
+      if (target !== null && (typeof target !== 'number' || !Number.isFinite(target))) {
+        return [];
+      }
+      return [{ title: candidate.title, achieved: candidate.achieved, target }];
+    }
+
+    if (typeof candidate.completions === 'number' && Number.isFinite(candidate.completions)) {
+      return [{ title: candidate.title, completions: candidate.completions }];
+    }
+
+    return [];
+  });
+
+  return items;
+}
+
 function mapMeasurable(row: DbMeasurable): Measurable {
   return {
     id: row.id,
@@ -140,6 +171,10 @@ export function mapGoal(row: DbGoal): GoalWithMeasurables {
     aiGenerated: row.ai_generated,
     smartData: toSmartData(row.smart_data),
     projectId: row.project_id,
+    previous_goal_id: row.previous_goal_id,
+    prior_phase_summary: toPriorPhaseSummary(row.prior_phase_summary),
+    reflection: row.reflection,
+    reflected_at: toDate(row.reflected_at),
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
     has_successor: false,
@@ -252,7 +287,8 @@ async function fetchGoalSignals(
 
 export const GOAL_SELECT = `
   id, user_id, title, description, category, smart_data, color_theme, deadline,
-  visibility, progress, status, ai_generated, project_id, created_at, updated_at,
+  visibility, progress, status, ai_generated, project_id, previous_goal_id,
+  prior_phase_summary, reflection, reflected_at, created_at, updated_at,
   measurables (
     id, goal_id, title, type, target_value, target_unit, frequency,
     current_value, is_ai_suggested, sort_order, created_at, updated_at

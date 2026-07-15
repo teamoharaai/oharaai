@@ -56,8 +56,23 @@ export interface MeasurableLog {
   loggedAt: Date;
 }
 
+export type PriorPhaseSummaryItem =
+  | {
+      title: string;
+      achieved: number;
+      target: number | null;
+    }
+  | {
+      title: string;
+      completions: number;
+    };
+
 export interface GoalWithMeasurables extends Goal {
   has_successor: boolean;
+  previous_goal_id: string | null;
+  prior_phase_summary: PriorPhaseSummaryItem[] | null;
+  reflection: string | null;
+  reflected_at: Date | null;
   measurables: Measurable[];
   vaultItemCount: number;
   echoLinkCount: number;

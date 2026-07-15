@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added (2026-07-15 — Momentum goal detail)
+- **`app/(app)/goals/[id]/index.tsx`, `GoalDetailHeader.tsx`, `WhatYouBuiltPanel.tsx`, and `Badge.tsx`:** conditionally present continuation goals with the locked Momentum badge and subtext plus a warm, read-only prior-phase summary, optional reflection, and original-goal link while leaving normal goal-detail rendering unchanged.
+- **`features/goals/types.ts` and `features/goals/services/goal-service.ts`:** load and safely map the existing `previous_goal_id`, `prior_phase_summary`, `reflection`, and `reflected_at` fields through the shared goal-detail model so Momentum presentation requires no additional query.
+
 ### Added (2026-07-15 — Extend-goal modal reflection and submission)
 - **`features/goals/components/ExtendGoalModal.tsx`:** completed Step 3 with the optional shared-state reflection textarea and a single extension submission path for both Skip and Start next phase. The modal now posts the continuation payload, blocks duplicate requests, keeps validation/conflict/server failures inline and retryable, resets only after success, and replaces the ended goal with the returned continuation goal detail route.
 
