@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed (2026-07-15 — Checklist completion rollover snapshot)
+- **Checklist completion and rollover:** persist checklist completion to its durable measurable value, synchronize that value in the goal-detail cache, and snapshot rollover state from that value so Extend Step 1 and Momentum's `What You Built` panel consistently show completed items as `Done`.
+- **Deadline-decay progress:** stopped measurable completion from rewriting `goal.progress`; goal detail and list-card progress now derive exclusively from elapsed time toward the deadline, with no measurable-completion fallback. Updated `lib/db/goals.ts`, `app/api/goals/complete-measurable+api.ts`, `features/goals/hooks/useGoalDetail.ts`, `features/goals/components/GoalDetailHeader.tsx`, `features/goals/components/GoalCard.tsx`, `features/goals/components/GoalRingCard.tsx`, and `docs/API_CONTRACT.md`.
+
 ### Fixed (2026-07-15 — Superseded goal cache after extension)
 - **`features/goals/components/ExtendGoalModal.tsx`:** immediately mark the cached original goal as superseded after a successful extension, including the new successor id and normalized optional reflection, so returning to the original renders its current read-only state without a reload.
 

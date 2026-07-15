@@ -247,12 +247,14 @@ export function GoalDetailHeader({
             )}
           </TouchableOpacity>
         )}
-        <ProgressRing
-          progress={isSuperseded ? 100 : goal.progress}
-          size={72}
-          strokeWidth={6}
-          color={ringColor}
-        />
+        {(isSuperseded || deadlineProgress !== null) && (
+          <ProgressRing
+            progress={isSuperseded ? 100 : deadlineProgress ?? 0}
+            size={72}
+            strokeWidth={6}
+            color={ringColor}
+          />
+        )}
       </View>
 
       {ended && !isSuperseded && showEndedCard && (

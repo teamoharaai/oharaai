@@ -433,16 +433,16 @@ export async function cloneGoalWithMeasurables(
   const measurables = (
     measurableData as unknown as DbMeasurableForCloneRow[] | null
   ) ?? [];
-  const completionMeasurableIds = measurables
-    .filter((measurable) => measurable.type === 'habit' || measurable.type === 'checklist')
+  const habitMeasurableIds = measurables
+    .filter((measurable) => measurable.type === 'habit')
     .map((measurable) => measurable.id);
   const completionCounts = new Map<string, number>();
 
-  if (completionMeasurableIds.length > 0) {
+  if (habitMeasurableIds.length > 0) {
     const { data: logData, error: logReadError } = await db
       .from('measurable_logs')
       .select('measurable_id')
-      .in('measurable_id', completionMeasurableIds)
+      .in('measurable_id', habitMeasurableIds)
       .gte('logged_at', previousGoal.created_at)
       .lte('logged_at', previousGoal.deadline);
 
@@ -466,6 +466,13 @@ export async function cloneGoalWithMeasurables(
         title: measurable.title,
         achieved: measurable.current_value,
         target: measurable.target_value,
+      };
+    }
+
+    if (measurable.type === 'checklist') {
+      return {
+        title: measurable.title,
+        completions: measurable.current_value > 0 ? 1 : 0,
       };
     }
 
@@ -576,6 +583,10 @@ type DbMeasurableRow = {
   target_value: number | null;
 };
 
+type DbCompletableMeasurableRow = DbMeasurableRow & {
+  type: GoalMeasurableType;
+};
+
 type DbMeasurableLogRow = {
   id: string;
   value: number;
@@ -585,10 +596,6 @@ type DbMeasurableLogRow = {
 
 type DbGoalCreatedAtRow = {
   created_at: string;
-};
-
-type DbGoalProgressRow = {
-  progress: number | string;
 };
 
 type DbGoalOwnershipRow = {
@@ -825,7 +832,7 @@ export async function completeMeasurable(
 
   const { data: measurableRow, error: measurableError } = await db
     .from('measurables')
-    .select('id, title, target_value')
+    .select('id, title, type, target_value')
     .eq('id', measurableId)
     .eq('goal_id', goalId)
     .single();
@@ -834,9 +841,8 @@ export async function completeMeasurable(
     throw new Error('Measurable not found');
   }
 
-  const completionValue = normalizeMeasurableTarget(
-    (measurableRow as DbMeasurableRow).target_value,
-  );
+  const measurable = measurableRow as DbCompletableMeasurableRow;
+  const completionValue = normalizeMeasurableTarget(measurable.target_value);
 
   const { error: insertLogError } = await db.from('measurable_logs').insert({
     measurable_id: measurableId,
@@ -848,48 +854,16 @@ export async function completeMeasurable(
     throw new Error(insertLogError.message);
   }
 
-  const { data: measurablesData, error: measurablesError } = await db
-    .from('measurables')
-    .select('id, title, target_value')
-    .eq('goal_id', goalId);
+  if (measurable.type === 'checklist') {
+    const { error: updateMeasurableError } = await db
+      .from('measurables')
+      .update({ current_value: 1 })
+      .eq('id', measurableId)
+      .eq('goal_id', goalId);
 
-  if (measurablesError) {
-    throw new Error(measurablesError.message);
-  }
-
-  const measurables = (measurablesData as unknown as DbMeasurableRow[] | null) ?? [];
-  const measurableIds = measurables.map((measurable) => measurable.id);
-  let progress = 0;
-
-  if (measurableIds.length > 0) {
-    const { data: logData, error: logError } = await db
-      .from('measurable_logs')
-      .select('id, value, logged_at, measurable_id')
-      .in('measurable_id', measurableIds);
-
-    if (logError) {
-      throw new Error(logError.message);
+    if (updateMeasurableError) {
+      throw new Error(updateMeasurableError.message);
     }
-
-    const logs = (logData as unknown as DbMeasurableLogRow[] | null) ?? [];
-    const completionCount = measurables.filter((measurable) => {
-      const targetValue = normalizeMeasurableTarget(measurable.target_value);
-      return logs.some(
-        (log) => log.measurable_id === measurable.id && Number(log.value) >= targetValue,
-      );
-    }).length;
-
-    progress = Math.round((completionCount / measurables.length) * 100);
-  }
-
-  const { error: updateGoalError } = await db
-    .from('goals')
-    .update({ progress })
-    .eq('id', goalId)
-    .eq('user_id', userId);
-
-  if (updateGoalError) {
-    throw new Error(updateGoalError.message);
   }
 }
 
@@ -902,25 +876,6 @@ export async function getProjectTitle(projectId: string): Promise<string | null>
 
   if (error || !data) return null;
   return (data as { title: string }).title;
-}
-
-export async function getGoalProgressById(
-  goalId: string,
-  userId: string,
-  db: SupabaseClient = supabase,
-): Promise<number> {
-  const { data, error } = await db
-    .from('goals')
-    .select('progress')
-    .eq('id', goalId)
-    .eq('user_id', userId)
-    .single();
-
-  if (error || !data) {
-    throw new Error(error?.message ?? 'Goal not found');
-  }
-
-  return toNumber((data as DbGoalProgressRow).progress, 0);
 }
 
 export async function isGoalOwnedByUser(

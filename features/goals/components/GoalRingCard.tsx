@@ -12,9 +12,9 @@ interface GoalRingCardProps {
   category: string;
   /**
    * 0–100, drives the ring fill and centered percentage. Caller resolves the
-   * meaning: for goals with a deadline this is typically time-elapsed toward
-   * the deadline (see features/goals/utils/ringProgress.ts), falling back to
-   * measurable-completion progress when there's no deadline.
+   * meaning is time elapsed toward the deadline (see
+   * features/goals/utils/ringProgress.ts). Goals without deadlines omit this
+   * card rather than substituting measurable completion.
    */
   progress: number;
   /** Goal's category/theme accent (from GOAL_THEMES), before deadline urgency escalation. */

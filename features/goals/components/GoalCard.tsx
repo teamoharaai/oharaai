@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Typography } from '@/components/ui/Typography';
 import { useGoalStore } from '../store';
 import { GoalTitleRow } from './GoalTitleRow';
+import { getGoalRingProgress } from '../utils/ringProgress';
 import type { GoalWithMeasurables } from '../types';
 
 interface GoalCardProps {
@@ -20,6 +21,7 @@ function daysUntil(date: Date): number {
 export function GoalCard({ goal, isNewest }: GoalCardProps) {
   const theme = GOAL_THEMES[goal.colorTheme];
   const days = goal.deadline ? daysUntil(goal.deadline) : null;
+  const deadlineProgress = getGoalRingProgress(goal);
   const deleteGoal = useGoalStore((state) => state.deleteGoal);
   const [menuOpen, setMenuOpen] = useState(false);
   const visibilityLabel =
@@ -87,17 +89,19 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
           style={{ marginBottom: 12 }}
         />
 
-        {/* Progress bar */}
-        <View style={{ height: 3, backgroundColor: '#EAE7E0', borderRadius: 2, marginBottom: 12 }}>
-          <View
-            style={{
-              width: `${goal.progress}%`,
-              height: 3,
-              backgroundColor: theme.accent,
-              borderRadius: 2,
-            }}
-          />
-        </View>
+        {/* Deadline-decay progress bar */}
+        {deadlineProgress !== null && (
+          <View style={{ height: 3, backgroundColor: '#EAE7E0', borderRadius: 2, marginBottom: 12 }}>
+            <View
+              style={{
+                width: `${deadlineProgress}%`,
+                height: 3,
+                backgroundColor: theme.accent,
+                borderRadius: 2,
+              }}
+            />
+          </View>
+        )}
 
         {/* Activity line — fixed-height wrapper prevents layout shift when signals are absent */}
         <View style={{ minHeight: 20, justifyContent: 'center', marginTop: 4, marginBottom: 4 }}>
@@ -115,7 +119,9 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
 
         {/* Footer row */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="caption">{goal.progress}% complete</Typography>
+          <Typography variant="caption">
+            {deadlineProgress === null ? '' : `${Math.round(deadlineProgress)}% elapsed`}
+          </Typography>
           {days !== null && (
             <Typography
               variant="caption"

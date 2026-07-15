@@ -2,7 +2,6 @@ import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 import { withAuth, type AuthContext } from '@/lib/api/auth';
 import {
   completeMeasurable,
-  getGoalProgressById,
   GoalExtensionError,
 } from '@/lib/db/goals';
 
@@ -37,8 +36,7 @@ async function handlePost(request: Request, _params: Record<string, string>, aut
 
   try {
     await completeMeasurable(measurableId, goalId, auth.userId, authedDb);
-    const progress = await getGoalProgressById(goalId, auth.userId, authedDb);
-    return Response.json({ success: true, progress });
+    return Response.json({ success: true });
   } catch (error) {
     if (error instanceof GoalExtensionError && error.code === 'GOAL_HAS_SUCCESSOR') {
       return Response.json(

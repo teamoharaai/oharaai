@@ -136,7 +136,7 @@ export function useGoalDetail(goalId: string): {
         });
 
         const payload = (await response.json()) as
-          | { success: true; progress: number }
+          | { success: true }
           | { error?: string };
 
         if (!response.ok || !('success' in payload) || !payload.success) {
@@ -146,7 +146,11 @@ export function useGoalDetail(goalId: string): {
 
         upsertGoal({
           ...currentGoal,
-          progress: payload.progress,
+          measurables: currentGoal.measurables.map((item) =>
+            item.id === measurableId && item.type === 'checklist'
+              ? { ...item, currentValue: 1 }
+              : item,
+          ),
         });
       } catch (error) {
         setCompletedIds((prev) => {

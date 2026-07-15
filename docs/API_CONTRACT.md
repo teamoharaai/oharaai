@@ -187,7 +187,9 @@ Create a new goal with measurables.
 
 **Notes:**
 - `colorTheme` is auto-assigned by the server from `CATEGORY_THEME_MAP`. Clients never send it.
-- `progress` starts at 0, calculated server-side from measurables.
+- The stored `progress` field starts at 0 for compatibility. Visible goal
+  progress is calculated from elapsed time between creation and deadline;
+  measurable completion does not modify it.
 - `visibility` defaults to `"private"`. Updated via PATCH with an explicit literal.
 
 ---
