@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,600;1,400;1,500;1,600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #F8F4EC; color: #211F1A; -webkit-font-smoothing: antialiased; }
+  a { color: #4A7C5F; text-decoration: none; }
+  a:hover { color: #3B6A50; }
+  button { font-family: inherit; }
+  @keyframes ohScrim { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes ohSheet { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-thumb { background: #E2DAC9; border-radius: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+</style>
+</helmet>
+
+<div style="display:flex; min-height:100vh; background:#F8F4EC;">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside style="width:220px; flex-shrink:0; background:#1E3226; display:flex; flex-direction:column; position:sticky; top:0; height:100vh;">
+    <div style="padding:24px 16px 12px;">
+      <div style="display:flex; align-items:center;">
+        <img src="assets/brand/ohara-logo.png" alt="Ohara" style="width:56px; height:56px; margin-right:8px;">
+        <span style="color:#EDE7DA; font-weight:600; font-size:23px; letter-spacing:4px;">OHARA</span>
+      </div>
+    </div>
+    <nav style="padding-top:16px; display:flex; flex-direction:column; gap:4px; padding-left:12px; padding-right:12px;">
+      <button onClick="{{ goDashboard }}" style="display:flex; align-items:center; gap:10px; padding:12px 16px; border-radius:12px; border:none; background:#2A4436; cursor:pointer; text-align:left; width:100%;">
+        <img src="assets/brand/goals-logo.png" style="width:20px; height:20px;">
+        <span style="color:#EDE7DA; font-size:14px; font-weight:500;">Goals</span>
+      </button>
+      <button style="display:flex; align-items:center; gap:10px; padding:12px 16px; border-radius:12px; border:none; background:transparent; cursor:pointer; text-align:left; width:100%;" style-hover="background:#243b2d;">
+        <img src="assets/brand/echo-logo.png" style="width:20px; height:20px;">
+        <span style="color:#8FA294; font-size:14px; font-weight:500;">Echo</span>
+      </button>
+      <button style="display:flex; align-items:center; gap:10px; padding:12px 16px; border-radius:12px; border:none; background:transparent; cursor:default; text-align:left; width:100%; opacity:0.4;">
+        <span style="width:20px; height:20px; display:inline-block;"></span>
+        <span style="color:#8FA294; font-size:14px; font-weight:500;">Constellation</span>
+      </button>
+      <button style="display:flex; align-items:center; gap:10px; padding:12px 16px; border-radius:12px; border:none; background:transparent; cursor:default; text-align:left; width:100%; opacity:0.4;">
+        <span style="width:20px; height:20px; display:inline-block;"></span>
+        <span style="color:#8FA294; font-size:14px; font-weight:500;">Explore</span>
+      </button>
+    </nav>
+    <div style="flex:1;"></div>
+    <div style="padding:0 20px 28px; display:flex; align-items:center; gap:10px;">
+      <div style="width:36px; height:36px; border-radius:18px; background:#E8F5EF; display:flex; align-items:center; justify-content:center; color:#1E3226; font-weight:600; font-size:15px;">J</div>
+      <div style="min-width:0;">
+        <div style="color:#EDE7DA; font-size:13px; font-weight:500;">Jordan</div>
+        <div style="color:#8FA294; font-size:11px;">View profile</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== CONTENT ===================== -->
+  <main id="ohMain" style="flex:1; min-width:0; height:100vh; overflow-y:auto;">
+    <div style="max-width:900px; margin:0 auto; padding:28px 36px 72px;">
+
+      <!-- ============ SCREEN A: DASHBOARD ============ -->
+      <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+      <div data-screen-label="Dashboard">
+        <!-- Header -->
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:28px;">
+          <div>
+            <div style="font-family:'Lora',Georgia,serif; font-style:italic; font-weight:600; font-size:27px; letter-spacing:-0.2px; color:#211F1A;">{{ greeting }}</div>
+            <div style="font-size:13px; line-height:20px; color:#8A8172; margin-top:2px;">{{ dateLabel }}</div>
+          </div>
+        </div>
+
+        <!-- Today -->
+        <div style="background:#FFFFFF; border:1px solid #EAE7E0; border-radius:16px; padding:20px; margin-bottom:14px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+            <img src="assets/brand/today-logo.png" style="width:18px; height:18px;">
+            <span style="font-size:11px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; color:#8A8172;">Today</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span style="width:24px; height:24px; border-radius:12px; border:2px solid #C9D4CD; display:inline-block; flex-shrink:0;"></span>
+              <div style="flex:1; min-width:0;"><div style="font-size:11px; color:#A79E8E;">Lose 5 lbs</div><div style="font-size:14px; line-height:21px; color:#211F1A;">Go to the gym</div></div>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span style="width:24px; height:24px; border-radius:12px; border:2px solid #1E3226; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; color:#1E3226; font-size:12px; font-weight:600;">✓</span>
+              <div style="flex:1; min-width:0;"><div style="font-size:11px; color:#A79E8E;">Read 12 books this year</div><div style="font-size:14px; line-height:21px; color:#A79E8E;">Read for 20 minutes</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Projects -->
+        <div style="margin-top:20px; margin-bottom:14px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+            <span style="font-size:11px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; color:#8A8172;">Projects</span>
+            <span style="font-size:20px; line-height:24px; color:#4A7C5F;">+</span>
+          </div>
+
+          <sc-for list="{{ projects }}" as="project" hint-placeholder-count="1">
+            <div style="background:#FFFFFF; border-radius:16px; border:1px solid #EDE6D8; margin-bottom:12px; padding:18px 20px; box-shadow:0 2px 12px rgba(30,25,15,0.04);">
+              <div style="display:flex; align-items:flex-start;">
+                <div style="flex:1; min-width:0;">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <img src="assets/brand/project-logo.png" style="width:16px; height:16px;">
+                    <span style="font-size:15.5px; font-weight:500; color:#211F1A;">{{ project.title }}</span>
+                  </div>
+                  <div style="font-size:12px; line-height:18px; color:#8A8172; margin-top:4px;">{{ project.description }}</div>
+                </div>
+                <button onClick="{{ project.onToggle }}" style="margin-left:8px; margin-top:2px; border:none; background:transparent; cursor:pointer; color:#A79E8E; font-size:18px; line-height:18px; padding:2px 4px;">{{ project.chevron }}</button>
+              </div>
+
+              <sc-if value="{{ project.expanded }}">
+                <div style="margin-top:16px;">
+                  <div style="height:1px; background:#EDE6D8; margin-bottom:16px;"></div>
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                    <sc-for list="{{ project.goals }}" as="g" hint-placeholder-count="2">
+                      <button onClick="{{ g.onOpen }}" style="text-align:left; background:#FCFAF4; border:1px solid #EFE9DC; border-radius:16px; padding:18px; cursor:{{ g.cursor }};" style-hover="{{ g.hover }}">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                          <div style="position:relative; width:56px; height:56px; flex-shrink:0;">
+                            <svg width="56" height="56" style="transform:rotate(-90deg); display:block;">
+                              <circle cx="28" cy="28" r="{{ g.ring.r }}" fill="none" stroke="#EDE6D8" stroke-width="5"></circle>
+                              <circle cx="28" cy="28" r="{{ g.ring.r }}" fill="none" stroke="{{ g.ring.color }}" stroke-width="5" stroke-linecap="round" stroke-dasharray="{{ g.ring.circ }}" stroke-dashoffset="{{ g.ring.offset }}"></circle>
+                            </svg>
+                            <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#211F1A;">{{ g.ring.pct }}%</div>
+                          </div>
+                          <div style="flex:1; min-width:0;">
+                            <span style="display:inline-block; background:#F0EDE6; color:#4A7C5F; font-size:11px; font-weight:500; padding:3px 8px; border-radius:8px; margin-bottom:7px;">{{ g.category }}</span>
+                            <div style="display:flex; align-items:flex-start; gap:8px;">
+                              <img src="assets/brand/goal-mark.png" style="width:16px; height:16px; margin-top:1px; flex-shrink:0;">
+                              <span style="font-size:14.5px; line-height:19px; font-weight:600; color:#211F1A;">{{ g.title }}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:14px;">
+                          <span style="font-size:12px; color:#8A8172;">{{ g.activity }}</span>
+                          <span style="font-size:12px; color:#A79E8E;">{{ g.due }}</span>
+                        </div>
+                      </button>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- Goals -->
+        <div style="margin-top:20px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+            <span style="font-size:11px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; color:#8A8172;">Goals</span>
+            <span style="font-size:20px; line-height:24px; color:#4A7C5F;">+</span>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+            <sc-for list="{{ standaloneGoals }}" as="g" hint-placeholder-count="3">
+              <div style="background:#FCFAF4; border:1px solid #EFE9DC; border-radius:16px; padding:18px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <div style="position:relative; width:56px; height:56px; flex-shrink:0;">
+                    <svg width="56" height="56" style="transform:rotate(-90deg); display:block;">
+                      <circle cx="28" cy="28" r="{{ g.ring.r }}" fill="none" stroke="#EDE6D8" stroke-width="5"></circle>
+                      <circle cx="28" cy="28" r="{{ g.ring.r }}" fill="none" stroke="{{ g.ring.color }}" stroke-width="5" stroke-linecap="round" stroke-dasharray="{{ g.ring.circ }}" stroke-dashoffset="{{ g.ring.offset }}"></circle>
+                    </svg>
+                    <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#211F1A;">{{ g.ring.pct }}%</div>
+                  </div>
+                  <div style="flex:1; min-width:0;">
+                    <span style="display:inline-block; background:#F0EDE6; color:#4A7C5F; font-size:11px; font-weight:500; padding:3px 8px; border-radius:8px; margin-bottom:7px;">{{ g.category }}</span>
+                    <div style="display:flex; align-items:flex-start; gap:8px;">
+                      <img src="assets/brand/goal-mark.png" style="width:16px; height:16px; margin-top:1px; flex-shrink:0;">
+                      <span style="font-size:14.5px; line-height:19px; font-weight:600; color:#211F1A;">{{ g.title }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-top:14px;">
+                  <span style="font-size:12px; color:#8A8172;">{{ g.activity }}</span>
+                  <span style="font-size:12px; color:{{ g.dueColor }};">{{ g.due }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ============ SCREEN B/C entry: GOAL DETAIL (Lose 5 lbs) ============ -->
+      <sc-if value="{{ isGoal }}">
+      <div data-screen-label="Goal detail — Lose 5 lbs">
+        <button onClick="{{ goDashboard }}" style="border:none; background:transparent; cursor:pointer; color:#4A7C5F; font-size:15px; padding:0; margin-bottom:18px;">‹ Goals</button>
+
+        <!-- Header card -->
+        <div style="background:#FFFFFF; border-radius:16px; border-left:4px solid #52B788; padding:20px 22px; box-shadow:0 2px 16px rgba(0,0,0,0.05); margin-bottom:14px;">
+          <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
+            <span style="background:#F0EDE6; color:#4A7C5F; font-size:11px; font-weight:500; padding:3px 8px; border-radius:8px;">Body</span>
+            <span style="background:{{ loseStatusBg }}; color:{{ loseStatusColor }}; font-size:11px; font-weight:500; padding:3px 8px; border-radius:8px;">{{ loseStatus }}</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+            <img src="assets/brand/goal-mark.png" style="width:24px; height:24px; flex-shrink:0;">
+            <span style="font-size:26px; line-height:32px; font-weight:600; color:#211F1A;">Lose 5 lbs</span>
+          </div>
+          <div style="font-size:14px; line-height:21px; color:#8A8172;">Small, steady changes toward feeling stronger — measured over one season, not one week.</div>
+
+          <!-- Lifecycle scrubber (Screen B) -->
+          <div style="margin-top:18px;">
+            <div style="font-size:11px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; color:#A79E8E; margin-bottom:8px;">See the ring across its life</div>
+            <div style="display:inline-flex; background:#F0EDE6; border-radius:10px; padding:3px;">
+              <button onClick="{{ setLifeEarly }}" style="border:none; cursor:pointer; font-size:12.5px; font-weight:500; padding:7px 14px; border-radius:8px; background:{{ lifeEarlyBg }}; color:{{ lifeEarlyColor }}; box-shadow:{{ lifeEarlyShadow }};">Early</button>
+              <button onClick="{{ setLifeNear }}" style="border:none; cursor:pointer; font-size:12.5px; font-weight:500; padding:7px 14px; border-radius:8px; background:{{ lifeNearBg }}; color:{{ lifeNearColor }}; box-shadow:{{ lifeNearShadow }};">Near deadline</button>
+              <button onClick="{{ setLifeEnded }}" style="border:none; cursor:pointer; font-size:12.5px; font-weight:500; padding:7px 14px; border-radius:8px; background:{{ lifeEndedBg }}; color:{{ lifeEndedColor }}; box-shadow:{{ lifeEndedShadow }};">Ended</button>
+            </div>
+          </div>
+
+          <div style="height:1px; background:#EAE7E0; margin:18px 0;"></div>
+
+          <!-- Progress row -->
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+            <div style="min-width:180px;">
+              <sc-if value="{{ loseEnded }}">
+                <div style="font-size:15px; font-weight:600; letter-spacing:0.4px; color:#E85D04;">Deadline passed</div>
+              </sc-if>
+              <sc-if value="{{ loseActive }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex; align-items:flex-end; gap:8px;">
+                  <span style="font-size:44px; line-height:46px; font-weight:700; color:{{ loseRing.color }};">{{ loseDays }}</span>
+                  <span style="font-size:10px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; color:#A79E8E; padding-bottom:8px; white-space:nowrap;">days left</span>
+                </div>
+              </sc-if>
+              <div style="font-size:12.5px; line-height:18px; color:#8A8172; margin-top:6px; max-width:280px;">This ring fills as the deadline nears — not by how much you've logged.</div>
+            </div>
+            <div style="position:relative; width:72px; height:72px; flex-shrink:0;">
+              <svg width="72" height="72" style="transform:rotate(-90deg); display:block;">
+                <circle cx="36" cy="36" r="{{ loseRing.r }}" fill="none" stroke="#EDE6D8" stroke-width="6"></circle>
+                <circle cx="36" cy="36" r="{{ loseRing.r }}" fill="none" stroke="{{ loseRing.color }}" stroke-width="6" stroke-linecap="round" stroke-dasharray="{{ loseRing.circ }}" stroke-dashoffset="{{ loseRing.offset }}"></circle>
+              </svg>
+              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; color:#211F1A;">{{ loseRing.pct }}%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Time-vs-completion callout -->
+        <sc-if value="{{ loseShowCallout }}">
+          <div style="background:#FBF1E4; border:1px solid #F0DCC0; border-radius:14px; padding:14px 16px; margin-bottom:14px; display:flex; gap:10px;">
+            <span style="font-size:15px;">⏳</span>
+            <div style="font-size:13px; line-height:20px; color:#8A6A3E;">Your ring is {{ loseRing.pct }}% full because the deadline is close — but you've logged <strong>2 of 5 lbs</strong>. The ring measures time, not completion.</div>
+          </div>
+        </sc-if>
+
+        <!-- Ended state -->
+        <sc-if value="{{ loseEnded }}">
+          <div style="background:#FFFFFF; border:1px solid #EDE6D8; border-radius:16px; padding:22px; margin-bottom:14px; box-shadow:0 2px 12px rgba(30,25,15,0.04);">
+            <div style="font-family:'Lora',Georgia,serif; font-size:19px; font-weight:600; color:#211F1A; margin-bottom:6px;">This goal has ended.</div>
+            <div style="font-size:14px; line-height:21px; color:#8A8172; margin-bottom:18px; max-width:520px;">The 60 days are up. You don't have to start over — carry what you built into a fresh phase, with a new deadline and a clean set of measurables.</div>
+            <div style="display:flex; gap:12px; align-items:center;">
+              <button onClick="{{ openExtend }}" style="border:none; cursor:pointer; background:#1E3226; color:#EDE7DA; font-size:14px; font-weight:600; padding:12px 20px; border-radius:999px; white-space:nowrap;">Extend into a new phase</button>
+              <button onClick="{{ goDashboard }}" style="border:1px solid #EAE7E0; cursor:pointer; background:#F8F6F1; color:#8A8172; font-size:14px; font-weight:500; padding:12px 20px; border-radius:999px; white-space:nowrap;">Not now</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- Milestones -->
+        <div style="background:#FFFFFF; border-radius:16px; padding:20px; box-shadow:0 2px 12px rgba(0,0,0,0.05); opacity:{{ loseMilestoneOpacity }};">
+          <div style="font-size:11px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; color:#8A8172; margin-bottom:14px;">Milestones</div>
+
+          <!-- Track weight (counter) -->
+          <div style="background:#FFFFFF; border:1px solid #EAE7E0; border-radius:12px; padding:14px; margin-bottom:8px; box-shadow:0 1px 6px rgba(0,0,0,0.04);">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+              <span style="width:28px; height:28px; border-radius:14px; border:2px solid #DDD6CA; display:inline-block; flex-shrink:0;"></span>
+              <span style="flex:1; font-size:13px; font-weight:500; color:#211F1A;">Track weight</span>
+              <span style="font-size:11px; color:#A79E8E;">counter</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+              <div style="display:flex; align-items:center; gap:4px; font-size:13px; font-weight:500; color:#8A8172;">
+                <span style="color:#211F1A;">{{ p1weight }}</span> / 5 <span style="color:#A79E8E;">lbs</span>
+              </div>
+              <sc-if value="{{ loseActive }}" hint-placeholder-val="{{ true }}">
+                <button onClick="{{ bumpWeight }}" style="border:none; cursor:pointer; border-radius:999px; white-space:nowrap; padding:4px 16px; background:#52B7881A; color:#3F8F63; font-size:16px; font-weight:600;">+</button>
+              </sc-if>
+            </div>
+            <div style="height:4px; border-radius:2px; background:#EAE7E0; overflow:hidden;"><div style="height:4px; border-radius:2px; background:#52B788; width:{{ p1weightPct }}%;"></div></div>
+          </div>
+
+          <!-- Go to the gym (habit) -->
+          <div style="background:#FFFFFF; border:1px solid #EAE7E0; border-radius:12px; padding:14px; margin-bottom:8px; box-shadow:0 1px 6px rgba(0,0,0,0.04);">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+              <span style="width:28px; height:28px; border-radius:14px; border:2px solid #DDD6CA; display:inline-block; flex-shrink:0;"></span>
+              <span style="flex:1; font-size:13px; font-weight:500; color:#211F1A;">Go to the gym</span>
+              <span style="font-size:11px; color:#A79E8E;">3x / week</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+              <div style="display:flex; align-items:center; gap:4px; font-size:13px; font-weight:500; color:#8A8172;">
+                <span style="color:#211F1A;">{{ p1gym }}</span> / 12 <span style="color:#A79E8E;">weeks</span>
+              </div>
+              <sc-if value="{{ loseActive }}" hint-placeholder-val="{{ true }}">
+                <button onClick="{{ bumpGym }}" style="border:none; cursor:pointer; border-radius:999px; white-space:nowrap; padding:4px 16px; background:#52B7881A; color:#3F8F63; font-size:16px; font-weight:600;">+</button>
+              </sc-if>
+            </div>
+            <div style="height:4px; border-radius:2px; background:#EAE7E0; overflow:hidden;"><div style="height:4px; border-radius:2px; background:#52B788; width:{{ p1gymPct }}%;"></div></div>
+          </div>
+
+          <!-- Sign up for a gym (checklist) -->
+          <div style="background:#FFFFFF; border:1px solid #EAE7E0; border-radius:12px; padding:14px; box-shadow:0 1px 6px rgba(0,0,0,0.04);">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="width:20px; height:20px; border-radius:4px; border:2px solid #52B788; background:#52B788; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; color:#FFFFFF; font-size:10px; font-weight:800;">✓</span>
+              <span style="flex:1; font-size:13px; color:#9CA89E; text-decoration:line-through;">Sign up for a gym</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ============ SCREEN D: MOMENTUM DETAIL ============ -->
+      <sc-if value="{{ isMomentum }}">
+      <div data-screen-label="Momentum detail — Lose 5 lbs · Phase 2">
+        <button onClick="{{ goDashboard }}" style="border:none; background:transparent; cursor:pointer; color:#4A7C5F; font-size:15px; padding:0; margin-bottom:18px;">‹ Goals</button>
+
+        <!-- Header card -->
+        <div style="background:#FFFFFF; border-radius:16px; border-left:4px solid #52B788; padding:20px 22px; box-shadow:0 2px 16px rgba(0,0,0,0.05); margin-bottom:14px;">
+          <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px; flex-wrap:wrap;">
+            <span style="background:#F0EDE6; color:#4A7C5F; font-size:11px; font-weight:500; padding:3px 8px; border-radius:8px;">Body</span>
+            <span style="background:#E8F5EF; color:#2F8F6D; font-size:11px; font-weight:600; padding:3px 8px; border-radius:8px; white-space:nowrap;">↻ Momentum · Phase 2</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+            <img src="assets/brand/goal-mark.png" style="width:24px; height:24px; flex-shrink:0;">
+            <span style="font-size:26px; line-height:32px; font-weight:600; color:#211F1A;">Lose 5 lbs</span>
+          </div>
+          <div style="font-size:13.5px; line-height:20px; color:#8A8172;">You pushed toward this once already. This phase carries that momentum forward.</div>
+
+          <div style="height:1px; background:#EAE7E0; margin:18px 0;"></div>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+            <div style="min-width:180px;">
+              <div style="display:flex; align-items:flex-end; gap:8px;">
+                <span style="font-size:44px; line-height:46px; font-weight:700; color:#52B788;">60</span>
+                <span style="font-size:10px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; color:#A79E8E; padding-bottom:8px; white-space:nowrap;">days left</span>
+              </div>
+              <div style="font-size:12.5px; line-height:18px; color:#8A8172; margin-top:6px; max-width:280px;">Fresh deadline · {{ momentumDeadline }}. The ring starts empty again.</div>
+            </div>
+            <div style="position:relative; width:72px; height:72px; flex-shrink:0;">
+              <svg width="72" height="72" style="transform:rotate(-90deg); display:block;">
+                <circle cx="36" cy="36" r="{{ momentumRing.r }}" fill="none" stroke="#EDE6D8" stroke-width="6"></circle>
+                <circle cx="36" cy="36" r="{{ momentumRing.r }}" fill="none" stroke="{{ momentumRing.color }}" stroke-width="6" stroke-linecap="round" stroke-dasharray="{{ momentumRing.circ }}" stroke-dashoffset="{{ momentumRing.offset }}"></circle>
+              </svg>
+              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; color:#211F1A;">{{ momentumRing.pct }}%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Milestones (fresh, editable) -->
+        <div style="background:#FFFFFF; border-radius:16px; padding:20px; box-shadow:0 2px 12px rgba(0,0,0,0.05); margin-bottom:14px;">
+          <div style="font-size:11px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; color:#8A8172; margin-bottom:14px;">Milestones</div>
+          <div style="background:#FFFFFF; border:1px solid #EAE7E0; border-radius:12px; padding:14px; margin-bottom:8px; box-shadow:0 1px 6px rgba(0,0,0,0.04);">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+              <span style="width:28px; height:28px; border-radius:14px; border:2px solid #DDD6CA; display:inline-block; flex-shrink:0;"></span>
+              <span style="flex:1; font-size:13px; font-weight:500; color:#211F1A;">Track weight</span>
+              <span style="font-size:11px; color:#A79E8E;">counter</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+              <div style="display:flex; align-items:center; gap:4px; font-size:13px; font-weight:500; color:#8A8172;"><span style="color:#211F1A;">{{ p2weight }}</span> / 5 <span style="color:#A79E8E;">lbs</span></div>
+              <button onClick="{{ bumpWeight2 }}" style="border:none; cursor:pointer; border-radius:999px; white-space:nowrap; padding:4px 16px; background:#52B7881A; color:#3F8F63; font-size:16px; font-weight:600;">+</button>
+            </div>
+            <div style="height:4px; border-radius:2px; background:#EAE7E0; overflow:hidden;"><div style="height:4px; border-radius:2px; background:#52B788; width:{{ p2weightPct }}%;"></div></div>
+          </div>
+          <div style="background:#FFFFFF; border:1px solid #EAE7E0; border-radius:12px; padding:14px; margin-bottom:8px; box-shadow:0 1px 6px rgba(0,0,0,0.04);">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+              <span style="width:28px; height:28px; border-radius:14px; border:2px solid #DDD6CA; display:inline-block; flex-shrink:0;"></span>
+              <span style="flex:1; font-size:13px; font-weight:500; color:#211F1A;">Go to the gym</span>
+              <span style="font-size:11px; color:#A79E8E;">3x / week</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+              <div style="display:flex; align-items:center; gap:4px; font-size:13px; font-weight:500; color:#8A8172;"><span style="color:#211F1A;">{{ p2gym }}</span> / 12 <span style="color:#A79E8E;">weeks</span></div>
+              <button onClick="{{ bumpGym2 }}" style="border:none; cursor:pointer; border-radius:999px; white-space:nowrap; padding:4px 16px; background:#52B7881A; color:#3F8F63; font-size:16px; font-weight:600;">+</button>
+            </div>
+            <div style="height:4px; border-radius:2px; background:#EAE7E0; overflow:hidden;"><div style="height:4px; border-radius:2px; background:#52B788; width:{{ p2gymPct }}%;"></div></div>
+          </div>
+          <div style="background:#FFFFFF; border:1px solid #EAE7E0; border-radius:12px; padding:14px; box-shadow:0 1px 6px rgba(0,0,0,0.04);">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="width:20px; height:20px; border-radius:4px; border:2px solid #52B788; background:#52B788; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; color:#FFFFFF; font-size:10px; font-weight:800;">✓</span>
+              <span style="flex:1; font-size:13px; color:#9CA89E; text-decoration:line-through;">Sign up for a gym</span>
+              <span style="font-size:10.5px; color:#A79E8E; font-style:italic;">carried over</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- WHAT YOU BUILT (locked summary) -->
+        <div style="background:#F6F0E4; border:1px solid #E7DEC9; border-radius:16px; padding:20px 22px; margin-bottom:14px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <span style="font-size:13px;">🔒</span>
+            <span style="font-size:11px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:#8A6A3E;">What you built</span>
+          </div>
+          <div style="font-size:13px; line-height:19px; color:#9A8A6E; margin-bottom:16px;">From your first 60 days · locked and carried forward</div>
+
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <sc-for list="{{ whatYouBuilt }}" as="w" hint-placeholder-count="3">
+              <div>
+                <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:6px;">
+                  <span style="font-size:13.5px; color:#4A4237; font-weight:500;">{{ w.label }}</span>
+                  <span style="font-size:13px; font-weight:600; white-space:nowrap; flex-shrink:0; color:{{ w.valueColor }};">{{ w.value }}</span>
+                </div>
+                <div style="height:5px; border-radius:3px; background:#E7DEC9; overflow:hidden;"><div style="height:5px; border-radius:3px; background:#B79A6A; width:{{ w.pct }}%;"></div></div>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- Reflection preview -->
+          <div style="margin-top:18px; padding-top:16px; border-top:1px solid #E7DEC9;">
+            <div style="font-size:10.5px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:#9A8A6E; margin-bottom:8px;">Reflection</div>
+            <div style="font-family:'Lora',Georgia,serif; font-style:italic; font-size:15px; line-height:24px; color:#5A5142;">"{{ reflectionText }}"</div>
+            <div style="font-size:11.5px; color:#9A8A6E; margin-top:8px;">— reflected Jul 12</div>
+          </div>
+        </div>
+
+        <button onClick="{{ goSuperseded }}" style="border:none; background:transparent; cursor:pointer; color:#8A8172; font-size:13px; padding:4px 0;">View the original goal →</button>
+      </div>
+      </sc-if>
+
+      <!-- ============ SCREEN E: SUPERSEDED GOAL (read-only) ============ -->
+      <sc-if value="{{ isSuperseded }}">
+      <div data-screen-label="Superseded goal — Lose 5 lbs · Phase 1">
+        <button onClick="{{ goMomentum }}" style="border:none; background:transparent; cursor:pointer; color:#4A7C5F; font-size:15px; padding:0; margin-bottom:18px;">‹ Back to current phase</button>
+
+        <!-- Continued banner -->
+        <button onClick="{{ goMomentum }}" style="width:100%; text-align:left; background:#E8F5EF; border:1px solid #CDE7DC; border-radius:14px; padding:14px 18px; margin-bottom:16px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+          <div>
+            <div style="font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:#2F8F6D; margin-bottom:3px;">Continued</div>
+            <div style="font-size:14px; color:#1E3226;">This goal was carried into <strong>Lose 5 lbs · Phase 2</strong></div>
+          </div>
+          <span style="font-size:20px; color:#2F8F6D;">→</span>
+        </button>
+
+        <!-- Muted header card -->
+        <div style="background:#F5F2EA; border-radius:16px; border-left:4px solid #C7C0B2; padding:20px 22px; margin-bottom:14px; opacity:0.92;">
+          <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px; flex-wrap:wrap;">
+            <span style="background:#EAE7E0; color:#8A8172; font-size:11px; font-weight:500; padding:3px 8px; border-radius:8px;">Body</span>
+            <span style="background:#EAE7E0; color:#A79E8E; font-size:11px; font-weight:500; padding:3px 8px; border-radius:8px;">archived</span>
+            <span style="background:transparent; border:1px solid #D8D2C8; color:#A79E8E; font-size:11px; font-weight:500; padding:2px 8px; border-radius:8px; white-space:nowrap;">read-only</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+            <img src="assets/brand/goal-mark.png" style="width:24px; height:24px; flex-shrink:0; opacity:0.5;">
+            <span style="font-size:26px; line-height:32px; font-weight:600; color:#6E675B;">Lose 5 lbs</span>
+          </div>
+          <div style="font-size:13.5px; line-height:20px; color:#A79E8E;">Phase 1 · ran 60 days, ended Jul 12</div>
+
+          <div style="height:1px; background:#E5E0D6; margin:18px 0;"></div>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+            <div>
+              <div style="font-size:15px; font-weight:600; letter-spacing:0.4px; color:#A79E8E;">Deadline passed</div>
+              <div style="font-size:12.5px; line-height:18px; color:#B4AC9C; margin-top:6px;">The ring completed when the deadline arrived.</div>
+            </div>
+            <div style="position:relative; width:72px; height:72px; flex-shrink:0;">
+              <svg width="72" height="72" style="transform:rotate(-90deg); display:block;">
+                <circle cx="36" cy="36" r="{{ archivedRing.r }}" fill="none" stroke="#E5E0D6" stroke-width="6"></circle>
+                <circle cx="36" cy="36" r="{{ archivedRing.r }}" fill="none" stroke="#B7B0A2" stroke-width="6" stroke-linecap="round" stroke-dasharray="{{ archivedRing.circ }}" stroke-dashoffset="{{ archivedRing.offset }}"></circle>
+              </svg>
+              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; color:#8A8172;">100%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Static final milestones -->
+        <div style="background:#F5F2EA; border-radius:16px; padding:20px; opacity:0.92;">
+          <div style="font-size:11px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; color:#A79E8E; margin-bottom:14px;">Final milestones</div>
+          <sc-for list="{{ whatYouBuilt }}" as="w" hint-placeholder-count="3">
+            <div style="background:#FBF9F3; border:1px solid #E9E3D7; border-radius:12px; padding:14px; margin-bottom:8px;">
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:13px; font-weight:500; color:#8A8172;">{{ w.label }}</span>
+                <span style="font-size:13px; font-weight:600; white-space:nowrap; flex-shrink:0; color:#A79E8E;">{{ w.value }}</span>
+              </div>
+              <div style="height:4px; border-radius:2px; background:#E9E3D7; overflow:hidden; margin-top:10px;"><div style="height:4px; border-radius:2px; background:#C7C0B2; width:{{ w.pct }}%;"></div></div>
+            </div>
+          </sc-for>
+          <div style="margin-top:14px; padding-top:14px; border-top:1px solid #E5E0D6;">
+            <div style="font-size:10.5px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:#A79E8E; margin-bottom:8px;">Reflection</div>
+            <div style="font-family:'Lora',Georgia,serif; font-style:italic; font-size:14.5px; line-height:23px; color:#8A8172;">"{{ reflectionText }}"</div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+    </div>
+  </main>
+
+  <!-- ===================== EXTEND MODAL (Screen C) ===================== -->
+  <sc-if value="{{ extendOpen }}">
+    <div style="position:fixed; inset:0; background:rgba(30,25,15,0.45); display:flex; align-items:center; justify-content:center; padding:24px; z-index:50; animation:ohScrim 0.2s ease;">
+      <div style="width:100%; max-width:468px; background:#FFFFFF; border-radius:20px; padding:28px; box-shadow:0 24px 60px rgba(0,0,0,0.25); animation:ohSheet 0.28s cubic-bezier(0.2,0.7,0.2,1);">
+        <!-- progress dots -->
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:20px;">
+          <span style="height:5px; flex:1; border-radius:3px; background:{{ dot1 }};"></span>
+          <span style="height:5px; flex:1; border-radius:3px; background:{{ dot2 }};"></span>
+          <span style="height:5px; flex:1; border-radius:3px; background:{{ dot3 }};"></span>
+        </div>
+
+        <!-- STEP 1 -->
+        <sc-if value="{{ extStep1 }}">
+          <div style="font-family:'Lora',Georgia,serif; font-size:22px; font-weight:600; color:#211F1A; margin-bottom:6px;">This goal has ended.</div>
+          <div style="font-size:14px; line-height:21px; color:#8A8172; margin-bottom:20px;">Here's what you tracked over the last 60 days. None of it is lost — it comes with you.</div>
+          <div style="background:#F6F0E4; border:1px solid #E7DEC9; border-radius:14px; padding:16px 18px; margin-bottom:22px; display:flex; flex-direction:column; gap:12px;">
+            <sc-for list="{{ whatYouBuilt }}" as="w" hint-placeholder-count="3">
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:13.5px; color:#4A4237;">{{ w.label }}</span>
+                <span style="font-size:13.5px; font-weight:600; color:{{ w.valueColor }};">{{ w.value }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex; gap:12px;">
+            <button onClick="{{ closeExtend }}" style="flex:0 0 auto; border:1px solid #EAE7E0; cursor:pointer; background:#F8F6F1; color:#8A8172; font-size:14px; font-weight:500; padding:12px 20px; border-radius:999px; white-space:nowrap;">Not now</button>
+            <button onClick="{{ extendNext }}" style="flex:1; border:none; cursor:pointer; background:#1E3226; color:#EDE7DA; font-size:14px; font-weight:600; padding:12px 20px; border-radius:999px; white-space:nowrap;">Extend into a new phase</button>
+          </div>
+        </sc-if>
+
+        <!-- STEP 2 -->
+        <sc-if value="{{ extStep2 }}">
+          <div style="font-family:'Lora',Georgia,serif; font-size:22px; font-weight:600; color:#211F1A; margin-bottom:6px;">How long for this next phase?</div>
+          <div style="font-size:14px; line-height:21px; color:#8A8172; margin-bottom:20px;">Give yourself a deadline. The ring will start empty and fill toward it.</div>
+          <div style="display:flex; gap:10px; margin-bottom:16px;">
+            <button onClick="{{ dl30 }}" style="flex:1; cursor:pointer; border:1px solid {{ dl30Border }}; background:{{ dl30Bg }}; color:{{ dl30Color }}; font-size:14px; font-weight:600; padding:14px 0; border-radius:12px;">30 days</button>
+            <button onClick="{{ dl60 }}" style="flex:1; cursor:pointer; border:1px solid {{ dl60Border }}; background:{{ dl60Bg }}; color:{{ dl60Color }}; font-size:14px; font-weight:600; padding:14px 0; border-radius:12px;">60 days</button>
+            <button onClick="{{ dl90 }}" style="flex:1; cursor:pointer; border:1px solid {{ dl90Border }}; background:{{ dl90Bg }}; color:{{ dl90Color }}; font-size:14px; font-weight:600; padding:14px 0; border-radius:12px;">90 days</button>
+          </div>
+          <div style="background:#F0EDE6; border-radius:12px; padding:14px 16px; margin-bottom:22px; display:flex; align-items:center; justify-content:space-between;">
+            <span style="font-size:12.5px; color:#8A8172;">New deadline</span>
+            <span style="font-size:14px; font-weight:600; color:#211F1A;">{{ extendDeadlineText }}</span>
+          </div>
+          <div style="display:flex; gap:12px;">
+            <button onClick="{{ extendBack }}" style="flex:0 0 auto; border:1px solid #EAE7E0; cursor:pointer; background:#F8F6F1; color:#8A8172; font-size:14px; font-weight:500; padding:12px 20px; border-radius:999px; white-space:nowrap;">Back</button>
+            <button onClick="{{ extendNext }}" style="flex:1; border:none; cursor:pointer; background:#1E3226; color:#EDE7DA; font-size:14px; font-weight:600; padding:12px 20px; border-radius:999px; white-space:nowrap;">Next</button>
+          </div>
+        </sc-if>
+
+        <!-- STEP 3 -->
+        <sc-if value="{{ extStep3 }}">
+          <div style="font-family:'Lora',Georgia,serif; font-size:22px; font-weight:600; color:#211F1A; margin-bottom:6px;">Anything to remember from this phase?</div>
+          <div style="font-size:14px; line-height:21px; color:#8A8172; margin-bottom:18px;">Optional — a few lines for future you. What worked, what you'd change.</div>
+          <textarea onInput="{{ onReflection }}" placeholder="I didn't hit the number, but…" style="width:100%; min-height:130px; resize:vertical; border:1px solid #D8D2C8; border-radius:12px; background:#FCFAF4; padding:14px; font-family:'Lora',Georgia,serif; font-style:italic; font-size:15px; line-height:24px; color:#4A4237; outline:none;"></textarea>
+          <div style="display:flex; gap:12px; margin-top:22px;">
+            <button onClick="{{ finishExtend }}" style="flex:0 0 auto; border:1px solid #EAE7E0; cursor:pointer; background:#F8F6F1; color:#8A8172; font-size:14px; font-weight:500; padding:12px 20px; border-radius:999px; white-space:nowrap;">Skip</button>
+            <button onClick="{{ finishExtend }}" style="flex:1; border:none; cursor:pointer; background:#1E3226; color:#EDE7DA; font-size:14px; font-weight:600; padding:12px 20px; border-radius:999px; white-space:nowrap;">Start next phase</button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    route: 'dashboard',
+    lifecycle: 'near',
+    projectExpanded: true,
+    extendOpen: false,
+    extendStep: 1,
+    deadlineDays: 60,
+    reflection: '',
+    vals: { p1: { weight: 2, gym: 8 }, p2: { weight: 0, gym: 0 } },
+  };
+
+  THEMES = { ocean:'#5FA8D3', sunset:'#D4A373', forest:'#52B788', lavender:'#D6BCFA', ember:'#E85D04', mint:'#6FDFB8', slate:'#94A3B8', coral:'#FF8A80' };
+  DEFAULT_REFLECTION = "I didn't hit five pounds, but the gym stopped feeling like a chore — I actually look forward to Tuesdays now. Next phase: meal-prep on Sundays so the eating side keeps up.";
+
+  ring(pct, size, stroke, color) {
+    const r = (size - stroke * 2) / 2;
+    const circ = 2 * Math.PI * r;
+    const p = Math.min(100, Math.max(0, pct));
+    return { r, circ, offset: circ - (p / 100) * circ, color, pct: Math.round(pct) };
+  }
+
+  themeRingColor(theme, pct) {
+    if (pct >= 90) return '#C0483A';
+    if (pct >= 75) return '#E0863E';
+    return this.THEMES[theme];
+  }
+
+  go(route) {
+    this.setState({ route });
+    setTimeout(() => { const m = document.getElementById('ohMain'); if (m) m.scrollTop = 0; }, 0);
+  }
+
+  fmtDate(days) {
+    const d = new Date(Date.now() + days * 86400000);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  bump(phase, key, max) {
+    this.setState((s) => {
+      const cur = s.vals[phase][key];
+      const next = Math.min(max, cur + 1);
+      return { vals: { ...s.vals, [phase]: { ...s.vals[phase], [key]: next } } };
+    });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const hour = new Date().getHours();
+    const greeting = (hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening') + ', Jordan.';
+    const dateLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+    const mkGoal = (g) => ({
+      ...g,
+      ring: this.ring(g.pct, 56, 5, this.themeRingColor(g.theme, g.pct)),
+      dueColor: g.pct >= 90 ? '#C0483A' : '#A79E8E',
+    });
+
+    const projectGoals = [
+      mkGoal({ title: 'Lose 5 lbs', category: 'Body', theme: 'forest', pct: 46, activity: '4 items · 1 reflection', due: 'Jul 30', cursor: 'pointer', hover: 'box-shadow:0 4px 16px rgba(30,25,15,0.10);', onOpen: () => this.go('goal') }),
+      mkGoal({ title: 'Run a 10k', category: 'Body', theme: 'mint', pct: 58, activity: '2 items', due: 'Aug 12', cursor: 'default', hover: '', onOpen: null }),
+    ];
+
+    const projects = [
+      { title: 'Get Healthy This Year', description: 'Small, sustainable changes — one season at a time. No score, just the goals underneath.', expanded: s.projectExpanded, chevron: s.projectExpanded ? '⌄' : '›', onToggle: () => this.setState((st) => ({ projectExpanded: !st.projectExpanded })), goals: projectGoals },
+    ];
+
+    const standaloneGoals = [
+      mkGoal({ title: 'Read 12 books this year', category: 'Mind', theme: 'lavender', pct: 34, activity: '6 items · 2 reflections', due: 'Sep 2' }),
+      mkGoal({ title: 'Launch the side project', category: 'Create', theme: 'ocean', pct: 88, activity: '11 items · 4 reflections', due: 'Jul 20' }),
+      mkGoal({ title: 'Cook 10 new recipes', category: 'Create', theme: 'sunset', pct: 22, activity: '3 items', due: 'Sep 20' }),
+      mkGoal({ title: 'Learn film photography', category: 'Create', theme: 'coral', pct: 51, activity: '5 items · 1 reflection', due: 'Aug 28' }),
+    ];
+
+    // Lifecycle (Lose 5 lbs detail)
+    const life = s.lifecycle;
+    const lifeMap = {
+      early: { pct: 15, color: '#52B788', days: 52 },
+      near: { pct: 92, color: '#E0863E', days: 5 },
+      ended: { pct: 100, color: '#C0483A', days: 0 },
+    };
+    const lm = lifeMap[life];
+    const loseRing = this.ring(lm.pct, 72, 6, lm.color);
+    const seg = (name) => ({
+      bg: life === name ? '#FFFFFF' : 'transparent',
+      color: life === name ? '#211F1A' : '#8A8172',
+      shadow: life === name ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+    });
+    const segE = seg('early'), segN = seg('near'), segX = seg('ended');
+    const loseStatusMap = {
+      early: { label: 'active', bg: '#E8F5EF', color: '#4A7C5F' },
+      near: { label: 'active', bg: '#E8F5EF', color: '#4A7C5F' },
+      ended: { label: 'ended', bg: '#F7E6E2', color: '#C0483A' },
+    };
+    const ls = loseStatusMap[life];
+
+    // measurable pcts
+    const p1 = s.vals.p1, p2 = s.vals.p2;
+
+    // extend modal
+    const step = s.extendStep;
+    const dotOn = '#1E3226', dotOff = '#E7DEC9';
+    const dl = (n) => ({
+      border: s.deadlineDays === n ? '#1E3226' : '#EAE7E0',
+      bg: s.deadlineDays === n ? '#EEF4F0' : '#FFFFFF',
+      color: s.deadlineDays === n ? '#1E3226' : '#8A8172',
+    });
+    const d30 = dl(30), d60 = dl(60), d90 = dl(90);
+
+    const whatYouBuilt = [
+      { label: 'Track weight', value: '2 / 5 lbs', pct: 40, valueColor: '#8A6A3E' },
+      { label: 'Gym visits', value: '8 / 12 weeks', pct: 66, valueColor: '#8A6A3E' },
+      { label: 'Sign up for a gym', value: 'Done', pct: 100, valueColor: '#3F8F63' },
+    ];
+
+    const reflectionText = (s.reflection || '').trim() || this.DEFAULT_REFLECTION;
+
+    return {
+      // routing
+      isDashboard: s.route === 'dashboard',
+      isGoal: s.route === 'goal',
+      isMomentum: s.route === 'momentum',
+      isSuperseded: s.route === 'superseded',
+      goDashboard: () => this.go('dashboard'),
+      goGoal: () => this.go('goal'),
+      goMomentum: () => this.go('momentum'),
+      goSuperseded: () => this.go('superseded'),
+
+      // dashboard
+      greeting, dateLabel, projects, standaloneGoals,
+
+      // goal detail lifecycle
+      loseRing, loseDays: lm.days,
+      loseEnded: life === 'ended',
+      loseActive: life !== 'ended',
+      loseShowCallout: life !== 'early',
+      loseMilestoneOpacity: life === 'ended' ? 0.6 : 1,
+      loseStatus: ls.label, loseStatusBg: ls.bg, loseStatusColor: ls.color,
+      setLifeEarly: () => this.setState({ lifecycle: 'early' }),
+      setLifeNear: () => this.setState({ lifecycle: 'near' }),
+      setLifeEnded: () => this.setState({ lifecycle: 'ended' }),
+      lifeEarlyBg: segE.bg, lifeEarlyColor: segE.color, lifeEarlyShadow: segE.shadow,
+      lifeNearBg: segN.bg, lifeNearColor: segN.color, lifeNearShadow: segN.shadow,
+      lifeEndedBg: segX.bg, lifeEndedColor: segX.color, lifeEndedShadow: segX.shadow,
+
+      // p1 measurables
+      p1weight: p1.weight, p1weightPct: (p1.weight / 5) * 100,
+      p1gym: p1.gym, p1gymPct: (p1.gym / 12) * 100,
+      bumpWeight: () => this.bump('p1', 'weight', 5),
+      bumpGym: () => this.bump('p1', 'gym', 12),
+
+      // momentum p2 measurables
+      p2weight: p2.weight, p2weightPct: (p2.weight / 5) * 100,
+      p2gym: p2.gym, p2gymPct: (p2.gym / 12) * 100,
+      bumpWeight2: () => this.bump('p2', 'weight', 5),
+      bumpGym2: () => this.bump('p2', 'gym', 12),
+      momentumRing: this.ring(8, 72, 6, '#52B788'),
+      momentumDeadline: this.fmtDate(60),
+
+      // superseded
+      archivedRing: this.ring(100, 72, 6, '#B7B0A2'),
+
+      whatYouBuilt, reflectionText,
+
+      // extend modal
+      extendOpen: s.extendOpen,
+      extStep1: step === 1, extStep2: step === 2, extStep3: step === 3,
+      dot1: step >= 1 ? dotOn : dotOff,
+      dot2: step >= 2 ? dotOn : dotOff,
+      dot3: step >= 3 ? dotOn : dotOff,
+      openExtend: () => this.setState({ extendOpen: true, extendStep: 1 }),
+      closeExtend: () => this.setState({ extendOpen: false, extendStep: 1 }),
+      extendNext: () => this.setState((st) => ({ extendStep: Math.min(3, st.extendStep + 1) })),
+      extendBack: () => this.setState((st) => ({ extendStep: Math.max(1, st.extendStep - 1) })),
+      finishExtend: () => { this.setState({ extendOpen: false, extendStep: 1 }); this.go('momentum'); },
+      dl30: () => this.setState({ deadlineDays: 30 }),
+      dl60: () => this.setState({ deadlineDays: 60 }),
+      dl90: () => this.setState({ deadlineDays: 90 }),
+      dl30Border: d30.border, dl30Bg: d30.bg, dl30Color: d30.color,
+      dl60Border: d60.border, dl60Bg: d60.bg, dl60Color: d60.color,
+      dl90Border: d90.border, dl90Bg: d90.bg, dl90Color: d90.color,
+      extendDeadlineText: this.fmtDate(s.deadlineDays),
+      onReflection: (e) => this.setState({ reflection: e.target.value }),
+      reflectionValue: s.reflection,
+    };
+  }
+}
+</script>
+</body>
+</html>

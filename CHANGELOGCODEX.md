@@ -24,6 +24,12 @@
   with copied/recomputed continuation fields; reset cloned measurables; and fail immediately on
   insert errors while preserving asynchronous goal embedding.
 
+### Added (2026-07-14 — Goal rollover schema)
+- **`supabase/migrations/020_goal_rollover_fields.sql`:** added nullable
+  `previous_goal_id` self-reference with `ON DELETE SET NULL`, nullable
+  `prior_phase_summary`, and a partial index for continuation-goal lookups;
+  no RLS policies were changed.
+
 ### Removed (2026-07-14 — Project-level aggregate progress)
 - **`app/(app)/projects/[id].tsx`:** removed the project detail hero's flat-average goal progress calculation and bar; projects now surface no aggregate progress metric, while individual goal cards remain unchanged.
 
