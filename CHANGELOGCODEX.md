@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed (2026-07-15 — Momentum prior-phase measurable formatting)
+- **`features/goals/components/WhatYouBuiltPanel.tsx`:** render targetless counters as achieved/— and zero-completion checklists as `0 completions`, matching the established extension summary while preserving existing habit and progress behavior.
+
 ### Added (2026-07-15 — Superseded goal detail)
 - **`lib/db/goals.ts`, `features/goals/services/goal-service.ts`, `features/goals/types.ts`, and `useGoalDetail.ts`:** added a singular successor lookup and load the successor id plus its continuation reflection for superseded detail views, including when the goal was initially loaded in the shared list.
 - **`app/(app)/goals/[id]/index.tsx`, `GoalDetailHeader.tsx`, `MeasurablesPanel.tsx`, `MeasurableCard.tsx`, and `SuccessorReflectionPanel.tsx`:** present superseded goals as archived, read-only phases with a muted header, fixed grey 100% ring, continuation navigation, grey milestone bars, and an optional read-only reflection from the successor while ensuring Superseded takes precedence over Momentum.

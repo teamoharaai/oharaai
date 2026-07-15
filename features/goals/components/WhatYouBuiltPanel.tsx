@@ -37,9 +37,7 @@ function getRowPresentation(
     const hasTarget = item.target !== null && item.target > 0;
 
     return {
-      value: hasTarget
-        ? `${formatNumber(item.achieved)} / ${formatNumber(item.target!)}`
-        : formatNumber(item.achieved),
+      value: `${formatNumber(item.achieved)}/${hasTarget ? formatNumber(item.target!) : '—'}`,
       progress: hasTarget ? Math.min(100, Math.max(0, (item.achieved / item.target!) * 100)) : 0,
       valueColor: '#8A6A3E',
     };
@@ -48,7 +46,7 @@ function getRowPresentation(
   if (measurable?.type === 'checklist') {
     const complete = item.completions > 0;
     return {
-      value: complete ? 'Done' : 'Not done',
+      value: complete ? 'Done' : '0 completions',
       progress: complete ? 100 : 0,
       valueColor: complete ? '#3F8F63' : '#8A6A3E',
     };
