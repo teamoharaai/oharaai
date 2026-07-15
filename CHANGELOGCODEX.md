@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed (2026-07-15 — Echo full-viewport background)
+- **`app/(app)/_layout.tsx`, `features/echo/components/EchoScreen.tsx`, `EchoContainerTree.tsx`, and `EchoEntryList.tsx`:** applied the canonical dashboard page color to the native-stack scene and every full-height Echo wrapper, including the calendar empty state, while explicitly stretching and clipping the route panes to the available viewport. This prevents the navigation default background from appearing beneath either tree or calendar view.
+- Verification: `npx tsc --noEmit` and `npx expo export --platform web --output-dir /tmp/ohara-web-export-background-fix` completed successfully.
+
 ### Changed (2026-07-15 — Echo navigation hierarchy and page continuity)
 - **`features/echo/components/EchoContainerTree.tsx`, `EchoScreen.tsx`, `GoalFolderPicker.tsx`, `EchoDetailPane.tsx`, and `features/echo/utils/entryDisplay.ts`:** removed the redundant `Folders & Goals` heading, renamed visible `Echo Folders` labels to `Echo`, hid the system `General` container name, and surfaced its unbound entries directly beneath Echo while preserving the underlying catch-all folder and move/filter behavior.
 - **`app/(app)/_layout.tsx`:** applied the canonical dashboard page background to the shared authenticated app shell so uncovered Echo pane edges use the same continuous warm background.

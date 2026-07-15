@@ -121,14 +121,16 @@ export function EchoContainerTree({
 
   return (
     <View
-      className="flex-1"
-      style={{ backgroundColor: LIGHT_THEME.background.page, minHeight: 0 }}
+      style={{
+        backgroundColor: LIGHT_THEME.background.page,
+        flex: 1,
+        minHeight: 0,
+      }}
     >
       <ScrollView
-        className="flex-1"
         contentContainerStyle={{ paddingBottom: 24 }}
         keyboardShouldPersistTaps="handled"
-        style={{ minHeight: 0 }}
+        style={{ flex: 1, minHeight: 0 }}
       >
         <SectionLabel>Echo</SectionLabel>
         {generalEntries.map((entry) => (

@@ -187,11 +187,28 @@ export function EchoScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1"
-      style={{ backgroundColor: LIGHT_THEME.background.page, minHeight: 0 }}
+      style={{
+        backgroundColor: LIGHT_THEME.background.page,
+        flex: 1,
+        minHeight: 0,
+      }}
     >
-      <View className="flex-1 flex-row overflow-hidden" style={{ minHeight: 0 }}>
-        <View className="min-w-[220px] flex-1" style={{ minHeight: 0 }}>
+      <View
+        className="flex-row overflow-hidden"
+        style={{
+          backgroundColor: LIGHT_THEME.background.page,
+          flex: 1,
+          minHeight: 0,
+        }}
+      >
+        <View
+          className="min-w-[220px]"
+          style={{
+            backgroundColor: LIGHT_THEME.background.page,
+            flex: 1,
+            minHeight: 0,
+          }}
+        >
           <View className="px-3 pb-3 pt-4">
             <TouchableOpacity
               onPress={handleAddEntry}
@@ -285,6 +302,7 @@ export function EchoScreen() {
         <View
           className="relative"
           style={{
+            alignSelf: 'stretch',
             backgroundColor: LIGHT_THEME.background.page,
             minHeight: 0,
             width: renderedRightPaneWidth,

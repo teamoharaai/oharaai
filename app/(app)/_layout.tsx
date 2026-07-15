@@ -14,8 +14,20 @@ export default function AppLayout() {
       }}
     >
       <Sidebar />
-      <View style={{ backgroundColor: LIGHT_THEME.background.page, flex: 1, minHeight: 0 }}>
-        <Stack screenOptions={{ headerShown: false }}>
+      <View
+        style={{
+          backgroundColor: LIGHT_THEME.background.page,
+          flex: 1,
+          minHeight: 0,
+          overflow: 'hidden',
+        }}
+      >
+        <Stack
+          screenOptions={{
+            contentStyle: { backgroundColor: LIGHT_THEME.background.page },
+            headerShown: false,
+          }}
+        >
           <Stack.Screen name="dashboard" />
           <Stack.Screen name="echo" />
           <Stack.Screen name="constellation" />

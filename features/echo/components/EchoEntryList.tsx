@@ -89,8 +89,12 @@ export function EchoEntryList({
   if (isLoading) {
     return (
       <View
-        className="flex-1 px-3"
-        style={{ backgroundColor: LIGHT_THEME.background.page, minHeight: 0 }}
+        className="px-3"
+        style={{
+          backgroundColor: LIGHT_THEME.background.page,
+          flex: 1,
+          minHeight: 0,
+        }}
       >
         <EchoLoadingState />
       </View>
@@ -99,7 +103,14 @@ export function EchoEntryList({
 
   if (entries.length === 0) {
     return (
-      <View className="flex-1 justify-center px-3">
+      <View
+        className="justify-center px-3"
+        style={{
+          backgroundColor: LIGHT_THEME.background.page,
+          flex: 1,
+          minHeight: 0,
+        }}
+      >
         <EmptyStateCard
           title={groupBy === 'none' ? 'No entries here yet.' : 'No Echo entries yet.'}
           description={
@@ -118,18 +129,20 @@ export function EchoEntryList({
 
   return (
     <View
-      className="flex-1"
-      style={{ backgroundColor: LIGHT_THEME.background.page, minHeight: 0 }}
+      style={{
+        backgroundColor: LIGHT_THEME.background.page,
+        flex: 1,
+        minHeight: 0,
+      }}
     >
       <ScrollView
-        className="flex-1"
         contentContainerStyle={{
           flexGrow: 1,
           paddingBottom: 24,
           paddingTop: 4,
         }}
         keyboardShouldPersistTaps="handled"
-        style={{ minHeight: 0 }}
+        style={{ flex: 1, minHeight: 0 }}
       >
         {groups.map((group) => (
           <View key={group.key}>
