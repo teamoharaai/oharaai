@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/Modal';
 import { authedFetch } from '@/lib/api/client';
 import type { ApiResponse } from '@/lib/api/contracts';
 import type { CreateGoalWithMeasurablesResult } from '@/lib/db/goals';
+import { useGoalStore } from '../store';
 import type { GoalWithMeasurables, Measurable } from '../types';
 
 type ExtendGoalStep = 1 | 2 | 3;
@@ -585,6 +586,7 @@ function ReflectionStep({
 }
 
 export function ExtendGoalModal({ visible, goal, onClose }: ExtendGoalModalProps) {
+  const upsertGoal = useGoalStore((store) => store.upsertGoal);
   const [state, setState] = useState<ExtendGoalState>(() => createInitialState(goal.title));
   const [selectedDeadlineOption, setSelectedDeadlineOption] = useState<DeadlineOption | null>(null);
   const [customDate, setCustomDate] = useState('');
@@ -635,6 +637,7 @@ export function ExtendGoalModal({ visible, goal, onClose }: ExtendGoalModalProps
   async function submitExtension() {
     if (submissionInFlightRef.current || !state.deadline || !state.title.trim()) return;
 
+    const normalizedReflection = state.reflection.trim();
     submissionInFlightRef.current = true;
     setIsSubmitting(true);
     setSubmitError(null);
@@ -646,7 +649,7 @@ export function ExtendGoalModal({ visible, goal, onClose }: ExtendGoalModalProps
         body: JSON.stringify({
           deadline: state.deadline,
           title: state.title,
-          reflection: state.reflection,
+          reflection: normalizedReflection || undefined,
         }),
       });
       const body = (await response.json()) as ApiResponse<CreateGoalWithMeasurablesResult>;
@@ -668,6 +671,15 @@ export function ExtendGoalModal({ visible, goal, onClose }: ExtendGoalModalProps
       }
 
       const newGoalId = body.data.goalId;
+      upsertGoal({
+        ...goal,
+        has_successor: true,
+        successor: {
+          id: newGoalId,
+          reflection: normalizedReflection || null,
+          reflectedAt: normalizedReflection ? new Date() : null,
+        },
+      });
       setState(createInitialState(goal.title));
       setSelectedDeadlineOption(null);
       setCustomDate('');
