@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { LIGHT_THEME } from '@/constants/colors';
 import {
   getEchoDraftContextKey,
@@ -232,7 +232,12 @@ export function EchoComposer({
   const canSave = text.trim().length > 0 && !isSaving;
 
   return (
-    <View className="flex-1 px-8 py-7">
+    <ScrollView
+      className="flex-1"
+      contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 32, paddingVertical: 28 }}
+      keyboardShouldPersistTaps="handled"
+      style={{ minHeight: 0 }}
+    >
       <View className="flex-row items-center justify-between gap-4">
         <Text
           className="min-w-0 flex-1 font-sans"
@@ -372,6 +377,6 @@ export function EchoComposer({
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </ScrollView>
   );
 }

@@ -21,5 +21,6 @@ export function formatEntryDate(date: Date): string {
 }
 
 export function getContainerCaption(entry: EchoEntry): string {
+  if (entry.folderName === 'General') return 'Echo';
   return entry.folderName || entry.goalTitle || 'Unassigned';
 }

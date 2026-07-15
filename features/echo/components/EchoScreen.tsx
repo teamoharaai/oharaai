@@ -176,11 +176,22 @@ export function EchoScreen() {
   }
 
   const renderedRightPaneWidth = clampRightPaneWidth(rightPaneWidth);
+  const displayContainerOptions = useMemo(
+    () => containerOptions.map((option) => (
+      option.type === 'folder' && option.isGeneral
+        ? { ...option, label: 'Echo' }
+        : option
+    )),
+    [containerOptions],
+  );
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: LIGHT_THEME.background.page }}>
-      <View className="flex-1 flex-row">
-        <View className="min-w-[220px] flex-1">
+    <SafeAreaView
+      className="flex-1"
+      style={{ backgroundColor: LIGHT_THEME.background.page, minHeight: 0 }}
+    >
+      <View className="flex-1 flex-row overflow-hidden" style={{ minHeight: 0 }}>
+        <View className="min-w-[220px] flex-1" style={{ minHeight: 0 }}>
           <View className="px-3 pb-3 pt-4">
             <TouchableOpacity
               onPress={handleAddEntry}
@@ -195,7 +206,7 @@ export function EchoScreen() {
             <View className="mt-3 flex-row items-center justify-between gap-2">
               <View className="min-w-0 flex-1 flex-row items-center gap-2">
                 <EchoFilterPill
-                  options={containerOptions}
+                  options={displayContainerOptions}
                   selectedScope={selectedScope}
                   onSelectScope={handleScopeChange}
                 />
@@ -275,6 +286,7 @@ export function EchoScreen() {
           className="relative"
           style={{
             backgroundColor: LIGHT_THEME.background.page,
+            minHeight: 0,
             width: renderedRightPaneWidth,
           }}
         >

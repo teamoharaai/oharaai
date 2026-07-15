@@ -61,6 +61,8 @@ export function EchoContainerTree({
   onDeleteEntry,
 }: EchoContainerTreeProps) {
   const { goalGroups } = useContainerGrouping(goals, folders);
+  const generalFolder = folders.find((folder) => folder.isGeneral);
+  const visibleFolders = folders.filter((folder) => !folder.isGeneral);
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(() => new Set());
   const [expandedGoalIds, setExpandedGoalIds] = useState<Set<string>>(() => new Set());
   const entriesByFolderId = useMemo(() => {
@@ -76,6 +78,9 @@ export function EchoContainerTree({
     }
     return groupedEntries;
   }, [entries]);
+  const generalEntries = generalFolder
+    ? entriesByFolderId.get(generalFolder.id) ?? []
+    : entries.filter((entry) => entry.folderName === 'General');
   const entriesByGoalId = useMemo(() => {
     const groupedEntries = new Map<string, EchoEntry[]>();
     for (const entry of entries) {
@@ -115,33 +120,33 @@ export function EchoContainerTree({
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: LIGHT_THEME.background.page }}>
-      <View
-        className="mx-3 border-b pb-2 pt-1"
-        style={{ borderBottomColor: LIGHT_THEME.border.divider }}
-      >
-        <Text
-          className="font-sans"
-          style={{
-            color: LIGHT_THEME.text.secondary,
-            fontFamily: 'Inter-Bold',
-            fontSize: 10.5,
-            letterSpacing: 0.63,
-            lineHeight: 14,
-            textTransform: 'uppercase',
-          }}
-        >
-          Folders & Goals
-        </Text>
-      </View>
-
+    <View
+      className="flex-1"
+      style={{ backgroundColor: LIGHT_THEME.background.page, minHeight: 0 }}
+    >
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 24 }}
         keyboardShouldPersistTaps="handled"
+        style={{ minHeight: 0 }}
       >
-        <SectionLabel>Echo Folders</SectionLabel>
-        {folders.map((folder) => {
+        <SectionLabel>Echo</SectionLabel>
+        {generalEntries.map((entry) => (
+          <EchoEntryRow
+            key={entry.id}
+            entry={entry}
+            selected={selectedEntryId === entry.id}
+            showCaption={false}
+            showSnippet={false}
+            treeIndent={8}
+            variant="tree"
+            onSelect={() => onSelectEntry(entry.id)}
+            onEdit={() => onEditEntry(entry)}
+            onMoveToFolder={() => onMoveEntry(entry.id)}
+            onDelete={() => onDeleteEntry(entry.id)}
+          />
+        ))}
+        {visibleFolders.map((folder) => {
           const selected = selectedScope.type === 'folder' && selectedScope.id === folder.id;
           const folderEntries = entriesByFolderId.get(folder.id) ?? [];
           const hasEntries = folderEntries.length > 0;

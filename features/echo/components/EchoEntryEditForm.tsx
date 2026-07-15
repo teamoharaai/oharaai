@@ -45,6 +45,8 @@ export function EchoEntryEditForm({
     <ScrollView
       className="flex-1"
       contentContainerStyle={{ paddingHorizontal: 36, paddingBottom: 48, paddingTop: 40 }}
+      keyboardShouldPersistTaps="handled"
+      style={{ minHeight: 0 }}
     >
       <TextInput
         className="mb-3 rounded-xl border border-[#D8D2C8] bg-white px-3.5 py-3 font-sans text-base text-near-black"

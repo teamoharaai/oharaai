@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-15 — Echo navigation hierarchy and page continuity)
+- **`features/echo/components/EchoContainerTree.tsx`, `EchoScreen.tsx`, `GoalFolderPicker.tsx`, `EchoDetailPane.tsx`, and `features/echo/utils/entryDisplay.ts`:** removed the redundant `Folders & Goals` heading, renamed visible `Echo Folders` labels to `Echo`, hid the system `General` container name, and surfaced its unbound entries directly beneath Echo while preserving the underlying catch-all folder and move/filter behavior.
+- **`app/(app)/_layout.tsx`:** applied the canonical dashboard page background to the shared authenticated app shell so uncovered Echo pane edges use the same continuous warm background.
+
+### Fixed (2026-07-15 — Echo pane scrolling)
+- **`features/echo/components/EchoScreen.tsx`, `EchoContainerTree.tsx`, `EchoEntryList.tsx`, `EchoDetailPane.tsx`, `EchoEntryEditForm.tsx`, and `EchoComposer.tsx`:** constrained nested flex panes to the available viewport height and made the add-entry composer scrollable so Echo content and actions remain reachable on shorter screens.
+- Verification: `npx tsc --noEmit` and `npx expo export --platform web --output-dir /tmp/ohara-web-export` completed successfully.
+
 ### Changed (2026-07-15 — Dashboard project creation overlay)
 - **`features/projects/components/CreateProjectModal.tsx` (new) and `app/(app)/dashboard.tsx`:** replaced the dashboard's navigation to the project-creation page with an in-place modal form. Successful creation continues through `useProjectStore.createProject`, which prepends the returned project so its dashboard card appears immediately without a refresh; failures remain in the modal with retryable inline feedback.
 

@@ -2,6 +2,7 @@ import { ScrollView, View } from 'react-native';
 import { Typography } from '@/components/ui/Typography';
 import { LIGHT_THEME } from '@/constants/colors';
 import { resolveBrt } from '@/lib/utils/resolveBrt';
+import { getContainerCaption } from '../utils/entryDisplay';
 import { EchoComposer } from './EchoComposer';
 import { EchoEntryEditForm } from './EchoEntryEditForm';
 import type { CreateEntryResult } from '../services/echo-service';
@@ -42,10 +43,6 @@ function getEntryTitle(entry: EchoEntry): string {
 
   const firstLine = entry.content.split('\n').find((line) => line.trim().length > 0)?.trim();
   return firstLine || 'Untitled Echo';
-}
-
-function getContainerName(entry: EchoEntry): string {
-  return entry.folderName || entry.goalTitle || 'Unassigned';
 }
 
 function BrtDot({ entry }: { entry: EchoEntry }) {
@@ -96,11 +93,12 @@ export function EchoDetailPane({
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 36, paddingBottom: 48, paddingTop: 40 }}
+        style={{ minHeight: 0 }}
       >
         <View className="flex-row items-center gap-2">
           <BrtDot entry={entry} />
           <Typography variant="echo-detail-meta">
-            {getContainerName(entry)} · {formatEntryDate(entry.createdAt)}
+            {getContainerCaption(entry)} · {formatEntryDate(entry.createdAt)}
           </Typography>
         </View>
 

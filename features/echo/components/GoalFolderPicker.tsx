@@ -122,14 +122,18 @@ export function GoalFolderPicker({
 
       {showFolders ? (
         <>
-          <SectionHeader label="Echo Folders" />
+          <SectionHeader label="Echo" />
           {visibleFolders.map((folder) => {
             const isSelected = selected?.type === 'folder' && selected.id === folder.id;
             return (
               <Pressable
                 key={folder.id}
                 disabled={disabled}
-                onPress={() => onSelect({ type: 'folder', id: folder.id, displayName: folder.name })}
+                onPress={() => onSelect({
+                  type: 'folder',
+                  id: folder.id,
+                  displayName: folder.isGeneral ? 'Echo' : folder.name,
+                })}
                 className="mx-2 rounded-lg px-4 py-3"
                 style={{
                   backgroundColor: isSelected ? LIGHT_THEME.background.selectedRow : 'transparent',
@@ -145,7 +149,7 @@ export function GoalFolderPicker({
                     lineHeight: 18,
                   }}
                 >
-                  {folder.name}
+                  {folder.isGeneral ? 'Echo' : folder.name}
                 </Text>
               </Pressable>
             );

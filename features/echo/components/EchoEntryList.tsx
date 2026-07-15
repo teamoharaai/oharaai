@@ -88,7 +88,10 @@ export function EchoEntryList({
 
   if (isLoading) {
     return (
-      <View className="flex-1 px-3" style={{ backgroundColor: LIGHT_THEME.background.page }}>
+      <View
+        className="flex-1 px-3"
+        style={{ backgroundColor: LIGHT_THEME.background.page, minHeight: 0 }}
+      >
         <EchoLoadingState />
       </View>
     );
@@ -116,7 +119,7 @@ export function EchoEntryList({
   return (
     <View
       className="flex-1"
-      style={{ backgroundColor: LIGHT_THEME.background.page }}
+      style={{ backgroundColor: LIGHT_THEME.background.page, minHeight: 0 }}
     >
       <ScrollView
         className="flex-1"
@@ -126,6 +129,7 @@ export function EchoEntryList({
           paddingTop: 4,
         }}
         keyboardShouldPersistTaps="handled"
+        style={{ minHeight: 0 }}
       >
         {groups.map((group) => (
           <View key={group.key}>
