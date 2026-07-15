@@ -6,6 +6,7 @@ import { ProgressRing } from '@/components/ui/ProgressRing';
 import { Typography } from '@/components/ui/Typography';
 import { CountdownTimer } from './CountdownTimer';
 import { GoalTitleRow } from './GoalTitleRow';
+import { getGoalRingProgress, getRingColor } from '../utils/ringProgress';
 import type { GoalWithMeasurables } from '../types';
 
 interface GoalDetailHeaderProps {
@@ -34,6 +35,10 @@ export function GoalDetailHeader({ goal, onUpdateDeadline }: GoalDetailHeaderPro
   const [deadlineError, setDeadlineError] = useState<string | null>(null);
   const [savingDeadline, setSavingDeadline] = useState(false);
   const theme = GOAL_THEMES[goal.colorTheme];
+  const deadlineProgress = getGoalRingProgress(goal);
+  const ringColor = deadlineProgress === null
+    ? theme.accent
+    : getRingColor(deadlineProgress, theme.accent);
 
   function startEditingDeadline() {
     setDeadlineInput(goal.deadline ? formatDateInput(goal.deadline) : '');
@@ -191,7 +196,7 @@ export function GoalDetailHeader({ goal, onUpdateDeadline }: GoalDetailHeaderPro
           progress={goal.progress}
           size={72}
           strokeWidth={6}
-          color={theme.accent}
+          color={ringColor}
         />
       </View>
     </View>

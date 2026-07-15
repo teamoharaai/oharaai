@@ -3,6 +3,7 @@ import { ProgressRing } from '@/components/ui/ProgressRing';
 import { Badge } from '@/components/ui/Badge';
 import { Typography } from '@/components/ui/Typography';
 import { LIGHT_THEME } from '@/constants/colors';
+import { getRingColor } from '../utils/ringProgress';
 import { GoalTitleRow } from './GoalTitleRow';
 
 interface GoalRingCardProps {
@@ -16,7 +17,7 @@ interface GoalRingCardProps {
    * measurable-completion progress when there's no deadline.
    */
   progress: number;
-  /** Goal's category/theme accent (from GOAL_THEMES) — the ring's progress stroke. */
+  /** Goal's category/theme accent (from GOAL_THEMES), before deadline urgency escalation. */
   accentColor: string;
   /** Footer-left activity line, e.g. "4 items · 2 reflections". */
   activityLabel?: string;
@@ -41,6 +42,8 @@ export function GoalRingCard({
   dueDateColor = LIGHT_THEME.text.secondary,
   onPress,
 }: GoalRingCardProps) {
+  const ringColor = getRingColor(progress, accentColor);
+
   return (
     <Pressable
       onPress={onPress}
@@ -60,7 +63,7 @@ export function GoalRingCard({
             progress={progress}
             size={56}
             strokeWidth={5}
-            color={accentColor}
+            color={ringColor}
             variant="warm"
           />
         </View>

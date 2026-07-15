@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-15 — Ring urgency escalation)
+- **`features/goals/utils/ringProgress.ts`, `GoalRingCard.tsx`, and
+  `GoalDetailHeader.tsx`:** centralized goal-ring stroke color resolution and
+  escalate deadline progress at 75% to `#E0863E` and at 90% to `#C0483A`,
+  while retaining the category accent before those thresholds.
+
 ### Changed (2026-07-14 — Superseded-goal read-only guard)
 - **`lib/db/goals.ts`, `features/goals/services/goal-service.ts`, and
   `app/api/goals/complete-measurable+api.ts`:** centralized successor lookups, annotated

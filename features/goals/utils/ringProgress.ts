@@ -19,3 +19,13 @@ export function getGoalRingProgress(
   const total = due - created;
   return Math.min(100, Math.max(0, (elapsed / total) * 100));
 }
+
+/**
+ * Resolves the progress-stroke color for deadline-driven goal rings.
+ * Urgency escalates as the time-decay progress approaches its deadline.
+ */
+export function getRingColor(pct: number, themeColor: string): string {
+  if (pct >= 90) return '#C0483A';
+  if (pct >= 75) return '#E0863E';
+  return themeColor;
+}
