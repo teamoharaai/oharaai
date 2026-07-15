@@ -7,6 +7,7 @@ import type { Measurable, MeasurableUpdates } from '../types';
 
 interface MeasurableCardProps {
   measurable: Measurable;
+  hasSuccessor: boolean;
   accentColor: string;
   onSave?: (measurableId: string, updates: MeasurableUpdates) => Promise<void>;
   onDelete?: (measurableId: string) => Promise<void>;
@@ -18,6 +19,7 @@ type EditingField = 'title' | 'targetValue' | 'currentValue' | null;
 
 export function MeasurableCard({
   measurable,
+  hasSuccessor,
   accentColor,
   onSave,
   onDelete,
@@ -142,7 +144,7 @@ export function MeasurableCard({
         borderColor: '#EAE7E0',
         marginBottom: 8,
         padding: 14,
-        opacity: isSaving ? 0.7 : 1,
+        opacity: isSaving || hasSuccessor ? 0.7 : 1,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.04,
@@ -150,7 +152,7 @@ export function MeasurableCard({
         elevation: 1,
       }}
       onPress={() => router.push(`/(app)/goals/${measurable.goalId}/vault` as never)}
-      onLongPress={() => {
+      onLongPress={hasSuccessor ? undefined : () => {
         if (onDelete && !showDeleteConfirm) setShowDeleteConfirm(true);
       }}
       delayLongPress={400}
@@ -169,7 +171,7 @@ export function MeasurableCard({
             borderColor: isCompleted ? '#1E3226' : '#DDD6CA',
             backgroundColor: isCompleted ? '#1E3226' : 'transparent',
           }}
-          disabled={!onComplete || isCompleted || isSaving}
+          disabled={!onComplete || isCompleted || isSaving || hasSuccessor}
         >
           {isCompleted ? (
             <Typography variant="emphasis-sm" style={{ fontFamily: 'Inter-Bold', fontSize: 13, color: '#FFFFFF' }}>✓</Typography>
@@ -187,7 +189,11 @@ export function MeasurableCard({
             selectTextOnFocus
           />
         ) : (
-          <Pressable style={{ flex: 1 }} onPress={() => router.push(`/(app)/goals/${measurable.goalId}/vault` as never)}>
+          <Pressable
+            style={{ flex: 1, opacity: hasSuccessor ? 0.5 : 1 }}
+            onPress={() => router.push(`/(app)/goals/${measurable.goalId}/vault` as never)}
+            disabled={hasSuccessor}
+          >
             <Typography
               variant="label"
               style={{
@@ -226,7 +232,11 @@ export function MeasurableCard({
                   selectTextOnFocus
                 />
               ) : (
-                <Pressable onPress={() => canEdit && setEditingField('currentValue')}>
+                <Pressable
+                  onPress={() => canEdit && !hasSuccessor && setEditingField('currentValue')}
+                  disabled={hasSuccessor}
+                  style={{ opacity: hasSuccessor ? 0.5 : 1 }}
+                >
                   <Typography variant="label">{currentValue}</Typography>
                 </Pressable>
               )}
@@ -246,7 +256,11 @@ export function MeasurableCard({
                   selectTextOnFocus
                 />
               ) : (
-                <Pressable onPress={() => canEdit && setEditingField('targetValue')}>
+                <Pressable
+                  onPress={() => canEdit && !hasSuccessor && setEditingField('targetValue')}
+                  disabled={hasSuccessor}
+                  style={{ opacity: hasSuccessor ? 0.5 : 1 }}
+                >
                   <Typography variant="label">
                     {measurable.targetValue ?? '—'}
                   </Typography>
@@ -298,7 +312,7 @@ export function MeasurableCard({
                 borderColor: done ? accentColor : '#EAE7E0',
                 backgroundColor: done ? accentColor + '1A' : 'transparent',
               }}
-              disabled={isSaving}
+              disabled={isSaving || hasSuccessor}
             >
               {done && <Typography variant="emphasis-sm" style={{ fontFamily: 'Inter-Bold', fontSize: 13, color: accentColor }}>✓</Typography>}
             </TouchableOpacity>
@@ -315,8 +329,13 @@ export function MeasurableCard({
         return (
           <TouchableOpacity
             onPress={handleToggle}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
-            disabled={isSaving}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 10,
+              opacity: hasSuccessor ? 0.5 : 1,
+            }}
+            disabled={isSaving || hasSuccessor}
           >
             <View
               style={{

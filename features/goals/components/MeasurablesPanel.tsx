@@ -7,6 +7,7 @@ import { Typography } from '@/components/ui/Typography';
 
 interface MeasurablesPanelProps {
   measurables: Measurable[];
+  hasSuccessor: boolean;
   accentColor: string;
   onSave?: (measurableId: string, updates: MeasurableUpdates) => Promise<void>;
   onDelete?: (measurableId: string) => Promise<void>;
@@ -49,6 +50,7 @@ const inputStyle = {
 
 export function MeasurablesPanel({
   measurables,
+  hasSuccessor,
   accentColor,
   onSave,
   onDelete,
@@ -163,6 +165,7 @@ export function MeasurablesPanel({
         <MeasurableCard
           key={m.id}
           measurable={m}
+          hasSuccessor={hasSuccessor}
           accentColor={accentColor}
           onSave={onSave}
           onDelete={onDelete}

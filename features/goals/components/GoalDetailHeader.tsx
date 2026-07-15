@@ -172,7 +172,12 @@ export function GoalDetailHeader({ goal, onUpdateDeadline }: GoalDetailHeaderPro
             </View>
           </View>
         ) : (
-          <TouchableOpacity onPress={startEditingDeadline} activeOpacity={0.7}>
+          <TouchableOpacity
+            onPress={startEditingDeadline}
+            activeOpacity={0.7}
+            disabled={goal.has_successor}
+            style={{ opacity: goal.has_successor ? 0.5 : 1 }}
+          >
             {goal.deadline ? (
               <CountdownTimer deadline={goal.deadline} accentColor={theme.accent} />
             ) : (

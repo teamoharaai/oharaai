@@ -198,6 +198,7 @@ export default function GoalDetailScreen() {
 
       <MeasurablesPanel
         measurables={goal.measurables}
+        hasSuccessor={goal.has_successor}
         accentColor={theme.accent}
         onSave={onSaveMeasurable}
         onDelete={onDeleteMeasurable}

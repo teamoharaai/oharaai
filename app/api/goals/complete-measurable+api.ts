@@ -1,6 +1,10 @@
 import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 import { withAuth, type AuthContext } from '@/lib/api/auth';
-import { completeMeasurable, getGoalProgressById } from '@/lib/db/goals';
+import {
+  completeMeasurable,
+  getGoalProgressById,
+  GoalExtensionError,
+} from '@/lib/db/goals';
 
 type CompleteMeasurableRequest = {
   measurableId?: string;
@@ -36,6 +40,13 @@ async function handlePost(request: Request, _params: Record<string, string>, aut
     const progress = await getGoalProgressById(goalId, auth.userId, authedDb);
     return Response.json({ success: true, progress });
   } catch (error) {
+    if (error instanceof GoalExtensionError && error.code === 'GOAL_HAS_SUCCESSOR') {
+      return Response.json(
+        { error: 'This goal has already been extended.' },
+        { status: 409 },
+      );
+    }
+
     const message = error instanceof Error ? error.message : 'Failed to complete measurable';
     return Response.json({ error: message }, { status: 500 });
   }

@@ -1,4 +1,5 @@
 import supabase from '@/lib/db/client';
+import { getSuccessorGoalIds } from '@/lib/db/goals';
 import { buildMeasurableInsert } from '@/lib/db/measurable-inserts';
 import { resolveBrt } from '@/lib/utils/resolveBrt';
 import type { EchoBrt } from '@/types/brt';
@@ -141,6 +142,7 @@ export function mapGoal(row: DbGoal): GoalWithMeasurables {
     projectId: row.project_id,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
+    has_successor: false,
     measurables: (row.measurables ?? []).map(mapMeasurable),
     vaultItemCount: 0,
     echoLinkCount: 0,
@@ -264,13 +266,17 @@ export async function enrichGoalsWithSignals(
   if (goals.length === 0) return goals;
 
   const goalIds = goals.map((g) => g.id);
-  const { vaultItemCountMap, echoLinkCountMap, latestBrtTagsMap } = await fetchGoalSignals(
-    goalIds,
-    userId,
-  );
+  const [
+    { vaultItemCountMap, echoLinkCountMap, latestBrtTagsMap },
+    successorGoalIds,
+  ] = await Promise.all([
+    fetchGoalSignals(goalIds, userId),
+    getSuccessorGoalIds(goalIds).catch(() => new Set<string>()),
+  ]);
 
   return goals.map((goal) => ({
     ...goal,
+    has_successor: successorGoalIds.has(goal.id),
     vaultItemCount: vaultItemCountMap.get(goal.id) ?? 0,
     echoLinkCount: echoLinkCountMap.get(goal.id) ?? 0,
     latestBrtTags: latestBrtTagsMap.get(goal.id) ?? null,
@@ -297,7 +303,14 @@ export async function fetchGoalById(goalId: string): Promise<GoalWithMeasurables
     .single();
 
   if (error || !data) return null;
-  return mapGoal(data as unknown as DbGoal);
+
+  const goal = mapGoal(data as unknown as DbGoal);
+  try {
+    const successorGoalIds = await getSuccessorGoalIds([goal.id]);
+    return { ...goal, has_successor: successorGoalIds.has(goal.id) };
+  } catch {
+    return goal;
+  }
 }
 
 export async function updateGoal(goalId: string, updates: Partial<Goal>): Promise<GoalWithMeasurables | null> {

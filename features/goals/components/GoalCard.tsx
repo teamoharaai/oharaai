@@ -182,7 +182,12 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
               setMenuOpen(false);
               await handleDelete();
             }}
-            style={{ paddingHorizontal: 16, paddingVertical: 12 }}
+            disabled={goal.has_successor}
+            style={{
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              opacity: goal.has_successor ? 0.5 : 1,
+            }}
           >
             <Typography variant="body" style={{ color: '#C0483A', fontSize: 14 }}>
               Delete goal

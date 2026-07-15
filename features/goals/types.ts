@@ -57,6 +57,7 @@ export interface MeasurableLog {
 }
 
 export interface GoalWithMeasurables extends Goal {
+  has_successor: boolean;
   measurables: Measurable[];
   vaultItemCount: number;
   echoLinkCount: number;
@@ -79,4 +80,3 @@ export interface MeasurableUpdates {
   frequency?: MeasurableFrequency | null;
   currentValue?: number;
 }
-

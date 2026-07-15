@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-14 — Superseded-goal read-only guard)
+- **`lib/db/goals.ts`, `features/goals/services/goal-service.ts`, and
+  `app/api/goals/complete-measurable+api.ts`:** centralized successor lookups, annotated
+  fetched goals with `has_successor`, and reject completion writes for extended goals with a
+  client-safe `409` response.
+- **`features/goals/components/GoalCard.tsx`, `GoalDetailHeader.tsx`, `MeasurableCard.tsx`,
+  `MeasurablesPanel.tsx`, and `app/(app)/goals/[id]/index.tsx`:** disabled the scoped goal and
+  measurable mutation affordances with reduced-opacity treatment when a goal has a successor.
+
 ### Fixed (2026-07-14 — Concurrent goal-extension conflict)
 - **`lib/db/goals.ts` and `app/api/goals/[id]/extend+api.ts`:** translated only Postgres
   `23505` violations naming `idx_goals_previous_goal_id` at the continuation-goal insert into

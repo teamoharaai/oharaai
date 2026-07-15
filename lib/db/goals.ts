@@ -19,7 +19,8 @@ export interface CreateGoalWithMeasurablesResult {
 export type GoalExtensionErrorCode =
   | 'GOAL_NOT_FOUND'
   | 'GOAL_NOT_EXPIRED'
-  | 'GOAL_ALREADY_EXTENDED';
+  | 'GOAL_ALREADY_EXTENDED'
+  | 'GOAL_HAS_SUCCESSOR';
 
 export class GoalExtensionError extends Error {
   constructor(
@@ -29,6 +30,30 @@ export class GoalExtensionError extends Error {
     super(message);
     this.name = 'GoalExtensionError';
   }
+}
+
+export async function getSuccessorGoalIds(
+  goalIds: string[],
+  db: SupabaseClient = supabase,
+): Promise<Set<string>> {
+  const uniqueGoalIds = [...new Set(goalIds)];
+  if (uniqueGoalIds.length === 0) return new Set();
+
+  const { data, error } = await db
+    .from('goals')
+    .select('id, previous_goal_id')
+    .in('previous_goal_id', uniqueGoalIds);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const requestedGoalIds = new Set(uniqueGoalIds);
+  return new Set(
+    ((data as Array<{ previous_goal_id: string | null }> | null) ?? [])
+      .map((goal) => goal.previous_goal_id)
+      .filter((goalId): goalId is string => goalId !== null && requestedGoalIds.has(goalId)),
+  );
 }
 
 export interface ManualGoalCreationInput {
@@ -336,17 +361,8 @@ export async function cloneGoalWithMeasurables(
 ): Promise<CreateGoalWithMeasurablesResult> {
   // This is intentionally the first preflight check so a second extension
   // attempt is rejected before any insert is attempted.
-  const { data: successorRow, error: successorError } = await db
-    .from('goals')
-    .select('id')
-    .eq('previous_goal_id', previousGoalId)
-    .limit(1)
-    .maybeSingle();
-
-  if (successorError) {
-    throw new Error(successorError.message);
-  }
-  if (successorRow) {
+  const successorGoalIds = await getSuccessorGoalIds([previousGoalId], db);
+  if (successorGoalIds.has(previousGoalId)) {
     throw new GoalExtensionError(
       'GOAL_ALREADY_EXTENDED',
       'Goal has already been extended',
@@ -764,6 +780,14 @@ export async function completeMeasurable(
   userId: string,
   db: SupabaseClient = supabase,
 ): Promise<void> {
+  const successorGoalIds = await getSuccessorGoalIds([goalId], db);
+  if (successorGoalIds.has(goalId)) {
+    throw new GoalExtensionError(
+      'GOAL_HAS_SUCCESSOR',
+      'Goal has a successor and is read-only',
+    );
+  }
+
   const { data: goalRow, error: goalError } = await db
     .from('goals')
     .select('id')
