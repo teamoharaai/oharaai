@@ -2,7 +2,11 @@
 
 ## [Unreleased]
 
+### Added (2026-07-15 — Extend-goal modal reflection and submission)
+- **`features/goals/components/ExtendGoalModal.tsx`:** completed Step 3 with the optional shared-state reflection textarea and a single extension submission path for both Skip and Start next phase. The modal now posts the continuation payload, blocks duplicate requests, keeps validation/conflict/server failures inline and retryable, resets only after success, and replaces the ended goal with the returned continuation goal detail route.
+
 ### Added (2026-07-15 — Extend-goal modal summary)
+- **`features/goals/components/ExtendGoalModal.tsx`:** implemented the second Extend-modal step with an editable, non-empty validated title; 30/60/90-day deadline presets; and a Custom future-date option that keeps the ISO deadline ready for the extend endpoint. Added live deadline readout plus Back/Next state persistence and validation gating.
 - **`ExtendGoalModal.tsx` and `GoalDetailHeader.tsx`:** replaced the ended-card extension
   placeholder with the three-step modal container, resettable shared form state, progress
   segments, and a first-step summary that renders the ended goal's live measurable values while
