@@ -112,7 +112,12 @@ async function handlePost(
       const body: ApiResponse<never> = {
         ok: false,
         data: null,
-        error: { code, message: error.message },
+        error: {
+          code,
+          message: error.code === 'GOAL_ALREADY_EXTENDED'
+            ? 'This goal has already been extended.'
+            : error.message,
+        },
       };
       return Response.json(body, { status });
     }

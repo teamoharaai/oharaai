@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Fixed (2026-07-14 — Concurrent goal-extension conflict)
+- **`lib/db/goals.ts` and `app/api/goals/[id]/extend+api.ts`:** translated only Postgres
+  `23505` violations naming `idx_goals_previous_goal_id` at the continuation-goal insert into
+  the existing stable `GOAL_ALREADY_EXTENDED` error, and mapped that error to a client-safe
+  `409` response while preserving the pre-insert successor check and unrelated error handling.
+
 ### Added (2026-07-14 — Extend-goal write path)
 - **`app/api/goals/[id]/extend+api.ts` and `lib/db/goals.ts`:** added an auth-gated
   continuation endpoint and dedicated clone helper that reject non-owned, unexpired, or already

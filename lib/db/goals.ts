@@ -312,6 +312,18 @@ type PriorPhaseSummaryItem =
       completions: number;
     };
 
+function isPreviousGoalUniqueViolation(error: {
+  code?: string | null;
+  message?: string | null;
+  details?: string | null;
+}): boolean {
+  if (error.code !== '23505') return false;
+
+  return [error.message, error.details].some(
+    (value) => typeof value === 'string' && value.includes('idx_goals_previous_goal_id'),
+  );
+}
+
 /**
  * Creates a continuation goal from an expired goal and resets its measurables.
  * All validation and snapshot reads finish before the first insert.
@@ -453,8 +465,18 @@ export async function cloneGoalWithMeasurables(
     .select('id')
     .single();
 
-  if (goalInsertError || !newGoalRow) {
-    throw new Error(goalInsertError?.message ?? 'Goal insert returned no row');
+  if (goalInsertError) {
+    if (isPreviousGoalUniqueViolation(goalInsertError)) {
+      throw new GoalExtensionError(
+        'GOAL_ALREADY_EXTENDED',
+        'This goal has already been extended.',
+      );
+    }
+
+    throw new Error(goalInsertError.message);
+  }
+  if (!newGoalRow) {
+    throw new Error('Goal insert returned no row');
   }
 
   const goalId = (newGoalRow as { id: string }).id;
