@@ -16,6 +16,21 @@ export interface CreateGoalWithMeasurablesResult {
   warning: string | null;
 }
 
+export type GoalExtensionErrorCode =
+  | 'GOAL_NOT_FOUND'
+  | 'GOAL_NOT_EXPIRED'
+  | 'GOAL_ALREADY_EXTENDED';
+
+export class GoalExtensionError extends Error {
+  constructor(
+    public readonly code: GoalExtensionErrorCode,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'GoalExtensionError';
+  }
+}
+
 export interface ManualGoalCreationInput {
   title: string;
   description: string | null;
@@ -256,6 +271,239 @@ export async function createGoalWithMeasurables(
     warning,
   });
   return { goalId, error: null, warning };
+}
+
+type DbGoalForCloneRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  category: GoalCategory;
+  project_id: string | null;
+  space_id: string | null;
+  target_frequency: Record<string, unknown> | null;
+  visibility: string;
+  created_at: string;
+  deadline: string | null;
+};
+
+type DbMeasurableForCloneRow = {
+  id: string;
+  title: string;
+  type: GoalMeasurableType;
+  target_value: number | null;
+  target_unit: string | null;
+  frequency: string | null;
+  current_value: number;
+  sort_order: number;
+};
+
+type DbMeasurableLogForSummaryRow = {
+  measurable_id: string;
+};
+
+type PriorPhaseSummaryItem =
+  | {
+      title: string;
+      achieved: number;
+      target: number | null;
+    }
+  | {
+      title: string;
+      completions: number;
+    };
+
+/**
+ * Creates a continuation goal from an expired goal and resets its measurables.
+ * All validation and snapshot reads finish before the first insert.
+ */
+export async function cloneGoalWithMeasurables(
+  previousGoalId: string,
+  userId: string,
+  deadline: string,
+  db: SupabaseClient = supabase,
+): Promise<CreateGoalWithMeasurablesResult> {
+  // This is intentionally the first preflight check so a second extension
+  // attempt is rejected before any insert is attempted.
+  const { data: successorRow, error: successorError } = await db
+    .from('goals')
+    .select('id')
+    .eq('previous_goal_id', previousGoalId)
+    .limit(1)
+    .maybeSingle();
+
+  if (successorError) {
+    throw new Error(successorError.message);
+  }
+  if (successorRow) {
+    throw new GoalExtensionError(
+      'GOAL_ALREADY_EXTENDED',
+      'Goal has already been extended',
+    );
+  }
+
+  const { data: previousGoalData, error: previousGoalError } = await db
+    .from('goals')
+    .select(
+      'id, title, description, category, project_id, space_id, target_frequency, visibility, created_at, deadline',
+    )
+    .eq('id', previousGoalId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (previousGoalError) {
+    throw new Error(previousGoalError.message);
+  }
+  if (!previousGoalData) {
+    throw new GoalExtensionError('GOAL_NOT_FOUND', 'Goal not found');
+  }
+
+  const previousGoal = previousGoalData as unknown as DbGoalForCloneRow;
+  if (
+    !previousGoal.deadline
+    || Number.isNaN(new Date(previousGoal.deadline).getTime())
+    || new Date(previousGoal.deadline).getTime() >= Date.now()
+  ) {
+    throw new GoalExtensionError(
+      'GOAL_NOT_EXPIRED',
+      'Goal deadline has not passed',
+    );
+  }
+
+  const { data: measurableData, error: measurableReadError } = await db
+    .from('measurables')
+    .select(
+      'id, title, type, target_value, target_unit, frequency, current_value, sort_order',
+    )
+    .eq('goal_id', previousGoalId)
+    .order('sort_order', { ascending: true });
+
+  if (measurableReadError) {
+    throw new Error(measurableReadError.message);
+  }
+
+  const measurables = (
+    measurableData as unknown as DbMeasurableForCloneRow[] | null
+  ) ?? [];
+  const completionMeasurableIds = measurables
+    .filter((measurable) => measurable.type === 'habit' || measurable.type === 'checklist')
+    .map((measurable) => measurable.id);
+  const completionCounts = new Map<string, number>();
+
+  if (completionMeasurableIds.length > 0) {
+    const { data: logData, error: logReadError } = await db
+      .from('measurable_logs')
+      .select('measurable_id')
+      .in('measurable_id', completionMeasurableIds)
+      .gte('logged_at', previousGoal.created_at)
+      .lte('logged_at', previousGoal.deadline);
+
+    if (logReadError) {
+      throw new Error(logReadError.message);
+    }
+
+    for (const log of (
+      logData as unknown as DbMeasurableLogForSummaryRow[] | null
+    ) ?? []) {
+      completionCounts.set(
+        log.measurable_id,
+        (completionCounts.get(log.measurable_id) ?? 0) + 1,
+      );
+    }
+  }
+
+  const priorPhaseSummary: PriorPhaseSummaryItem[] = measurables.map((measurable) => {
+    if (measurable.type === 'counter') {
+      return {
+        title: measurable.title,
+        achieved: measurable.current_value,
+        target: measurable.target_value,
+      };
+    }
+
+    return {
+      title: measurable.title,
+      completions: completionCounts.get(measurable.id) ?? 0,
+    };
+  });
+
+  const embeddingText = buildGoalEmbeddingText(
+    previousGoal.title,
+    previousGoal.description,
+    measurables,
+  );
+  const { data: newGoalRow, error: goalInsertError } = await db
+    .from('goals')
+    .insert({
+      user_id: userId,
+      title: previousGoal.title,
+      description: previousGoal.description,
+      category: previousGoal.category,
+      project_id: previousGoal.project_id,
+      space_id: previousGoal.space_id,
+      target_frequency: previousGoal.target_frequency,
+      visibility: previousGoal.visibility,
+      color_theme: CATEGORY_COLOR_THEME[previousGoal.category] ?? 'ocean',
+      embedding_text: embeddingText,
+      previous_goal_id: previousGoal.id,
+      deadline,
+      prior_phase_summary: priorPhaseSummary,
+      status: 'active',
+      ai_generated: false,
+    })
+    .select('id')
+    .single();
+
+  if (goalInsertError || !newGoalRow) {
+    throw new Error(goalInsertError?.message ?? 'Goal insert returned no row');
+  }
+
+  const goalId = (newGoalRow as { id: string }).id;
+  const measurableInserts = measurables.map((measurable) => ({
+    goal_id: goalId,
+    title: measurable.title,
+    type: measurable.type,
+    target_value: measurable.target_value,
+    target_unit: measurable.target_unit,
+    frequency: measurable.frequency,
+    sort_order: measurable.sort_order,
+    current_value: 0,
+    is_ai_suggested: false,
+  }));
+
+  if (measurableInserts.length > 0) {
+    const { error: measurableInsertError } = await db
+      .from('measurables')
+      .insert(measurableInserts);
+
+    if (measurableInsertError) {
+      throw new Error(measurableInsertError.message);
+    }
+  }
+
+  // Fire-and-forget embedding (non-blocking), matching first-time goal creation.
+  void generateEmbedding(embeddingText, 'document')
+    .then(async (vector) => {
+      if (vector) {
+        await db
+          .from('goals')
+          .update({
+            embedding: vector as any,
+            embedding_model: EMBEDDING_MODEL,
+          })
+          .eq('id', goalId);
+      }
+    })
+    .catch((err) => {
+      console.error(JSON.stringify({
+        event: 'embedding_write_failed',
+        table: 'goals',
+        record_id: goalId,
+        error: err instanceof Error ? err.message : 'unknown',
+        timestamp: new Date().toISOString(),
+      }));
+    });
+
+  return { goalId, error: null, warning: null };
 }
 
 // ─── DB row types for activity query ─────────────────────────────────────────

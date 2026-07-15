@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Added (2026-07-14 — Extend-goal write path)
+- **`app/api/goals/[id]/extend+api.ts` and `lib/db/goals.ts`:** added an auth-gated
+  continuation endpoint and dedicated clone helper that reject non-owned, unexpired, or already
+  extended goals before writing; snapshot type-aware prior measurable results; create a new goal
+  with copied/recomputed continuation fields; reset cloned measurables; and fail immediately on
+  insert errors while preserving asynchronous goal embedding.
+
 ### Removed (2026-07-14 — Project-level aggregate progress)
 - **`app/(app)/projects/[id].tsx`:** removed the project detail hero's flat-average goal progress calculation and bar; projects now surface no aggregate progress metric, while individual goal cards remain unchanged.
 
