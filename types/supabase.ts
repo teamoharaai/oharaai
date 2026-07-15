@@ -349,6 +349,8 @@ export type Database = {
           prior_phase_summary: Json | null
           progress: number
           project_id: string | null
+          reflected_at: string | null
+          reflection: string | null
           smart_data: Json
           space_id: string | null
           status: string
@@ -375,6 +377,8 @@ export type Database = {
           prior_phase_summary?: Json | null
           progress?: number
           project_id?: string | null
+          reflected_at?: string | null
+          reflection?: string | null
           smart_data?: Json
           space_id?: string | null
           status?: string
@@ -401,6 +405,8 @@ export type Database = {
           prior_phase_summary?: Json | null
           progress?: number
           project_id?: string | null
+          reflected_at?: string | null
+          reflection?: string | null
           smart_data?: Json
           space_id?: string | null
           status?: string

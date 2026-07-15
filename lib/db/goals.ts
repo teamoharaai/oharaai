@@ -358,6 +358,8 @@ export async function cloneGoalWithMeasurables(
   userId: string,
   deadline: string,
   db: SupabaseClient = supabase,
+  title?: string,
+  reflection?: string,
 ): Promise<CreateGoalWithMeasurablesResult> {
   // This is intentionally the first preflight check so a second extension
   // attempt is rejected before any insert is attempted.
@@ -454,8 +456,9 @@ export async function cloneGoalWithMeasurables(
     };
   });
 
+  const resolvedTitle = title && title.trim() !== '' ? title.trim() : previousGoal.title;
   const embeddingText = buildGoalEmbeddingText(
-    previousGoal.title,
+    resolvedTitle,
     previousGoal.description,
     measurables,
   );
@@ -463,7 +466,7 @@ export async function cloneGoalWithMeasurables(
     .from('goals')
     .insert({
       user_id: userId,
-      title: previousGoal.title,
+      title: resolvedTitle,
       description: previousGoal.description,
       category: previousGoal.category,
       project_id: previousGoal.project_id,
@@ -475,6 +478,8 @@ export async function cloneGoalWithMeasurables(
       previous_goal_id: previousGoal.id,
       deadline,
       prior_phase_summary: priorPhaseSummary,
+      reflection: reflection ?? null,
+      reflected_at: reflection ? new Date().toISOString() : null,
       status: 'active',
       ai_generated: false,
     })

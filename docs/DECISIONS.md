@@ -406,3 +406,36 @@ inventing a number that isn't trustworthy yet.
 
 **Out of scope:** Any future project-level metric (explicitly ruled out,
 not TBD), Rollover/Momentum, SMART format, goal breakdown/QA structure.
+
+### Document 3: Superseded-Goal Read-Only Guard
+
+Superseded-goal read-only guard (Doc 3): has_successor derived via batched reverse query on previous_goal_id (extension of existing cloneGoalWithMeasurables check pattern), attached to goal objects at list-fetch and detail-fetch. UI-layer enforcement only; server backstop limited to completeMeasurable (409, matches GOAL_ALREADY_EXTENDED convention). No RLS/new routes this phase — reaffirms Doc 3's "not a data-integrity concern" framing.
+
+### 2026-07-15 — Amendment to Document 2 (CLOSED): reflection/reflected_at + title override on extend
+
+**Status:** Document 2 (rollout_momentum/02_extended_writepath.md) was
+CLOSED. This is a schema and write-path amendment reopening it, not new
+scope — logged separately per amendment convention.
+
+**Decision:**
+- Migration 022 adds `goals.reflection` (text, nullable) and
+  `goals.reflected_at` (timestamptz, nullable). Both stay null unless a
+  reflection is written at extension time — reflection remains skippable,
+  per Document 4's original locked decision (unchanged; Document 4's
+  Echo-linking design is untouched by this amendment).
+- `cloneGoalWithMeasurables` (lib/db/goals.ts) gains two optional trailing
+  params: `title?: string`, `reflection?: string`. Omitted/blank `title`
+  preserves the existing verbatim-copy default; omitted `reflection` leaves
+  both new columns null. Both are written onto the new (successor) goal
+  row only, alongside `prior_phase_summary` — `prior_phase_summary`'s own
+  computation logic is unchanged.
+- `POST /api/goals/[id]/extend` now accepts optional `title` and
+  `reflection` string fields, passed through unchanged.
+- Added server-side validation that `deadline` must be strictly in the
+  future, rejecting with 400 before reaching the DB layer. Previously this
+  was only guaranteed by the client offering exclusively 30/60/90-day
+  buttons; a Custom date picker (Task 5) removes that guarantee, so the
+  server must now enforce it directly.
+
+**Out of scope (unchanged from this amendment):** UI work (goal-detail,
+extend modal, Momentum, Superseded views), ring color logic.

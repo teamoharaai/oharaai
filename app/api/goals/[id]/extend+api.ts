@@ -8,6 +8,8 @@ import {
 
 interface ExtendGoalInput {
   deadline: string;
+  title?: string;
+  reflection?: string;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -23,11 +25,22 @@ function validateExtendGoalInput(value: unknown): ExtendGoalInput {
   }
 
   const deadline = value.deadline.trim();
-  if (Number.isNaN(new Date(deadline).getTime())) {
+  const parsedDeadline = new Date(deadline);
+  if (Number.isNaN(parsedDeadline.getTime())) {
     throw new Error('deadline must be a parseable date');
   }
+  if (parsedDeadline.getTime() <= Date.now()) {
+    throw new Error('deadline must be in the future');
+  }
 
-  return { deadline };
+  if (value.title !== undefined && typeof value.title !== 'string') {
+    throw new Error('title must be a string');
+  }
+  if (value.reflection !== undefined && typeof value.reflection !== 'string') {
+    throw new Error('reflection must be a string');
+  }
+
+  return { deadline, title: value.title, reflection: value.reflection };
 }
 
 function unauthorizedResponse(): Response {
@@ -94,6 +107,8 @@ async function handlePost(
       auth.userId,
       input.deadline,
       authedDb,
+      input.title,
+      input.reflection,
     );
     const body: ApiResponse<typeof result> = { ok: true, data: result, error: null };
     return Response.json(body, { status: 201 });
