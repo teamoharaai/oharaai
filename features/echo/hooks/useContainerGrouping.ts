@@ -40,7 +40,7 @@ function groupGoalsByProject(goals: EchoGoalOption[]): ContainerGoalGroup[] {
   }
 
   if (ungrouped.length > 0) {
-    groups.push({ key: 'ungrouped', label: 'Ungrouped', goals: ungrouped });
+    groups.push({ key: 'standalone', label: 'Standalone Goals', goals: ungrouped });
   }
 
   return groups;

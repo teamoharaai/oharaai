@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-15 — Dashboard project creation overlay)
+- **`features/projects/components/CreateProjectModal.tsx` (new) and `app/(app)/dashboard.tsx`:** replaced the dashboard's navigation to the project-creation page with an in-place modal form. Successful creation continues through `useProjectStore.createProject`, which prepends the returned project so its dashboard card appears immediately without a refresh; failures remain in the modal with retryable inline feedback.
+
+### Added (2026-07-15 — Standalone goals on the dashboard)
+- **`app/(app)/dashboard.tsx`:** added explicit, always-visible `New Project` and `New Goal` buttons beside their dashboard section headings, plus clear empty states so either creation flow remains available before any cards exist.
+
+### Changed (2026-07-15 — Shared standalone-goal presentation)
+- **`features/goals/components/GoalRingGrid.tsx` (new), `features/projects/components/ProjectCard.tsx`, and `app/(app)/dashboard.tsx`:** extracted the existing project goal-ring grid and reused it for goals whose nullable `project_id` is unset, so project-contained and standalone goals have the same dashboard card presentation without changing persistence or routing.
+- **`features/echo/hooks/useContainerGrouping.ts`:** renamed Echo's existing null-project goal bucket from `Ungrouped` to `Standalone Goals`; Echo already fetches, filters, links, and moves all user goals without requiring a project.
+
 ### Fixed (2026-07-15 — Checklist completion rollover snapshot)
 - **Checklist completion and rollover:** persist checklist completion to its durable measurable value, synchronize that value in the goal-detail cache, and snapshot rollover state from that value so Extend Step 1 and Momentum's `What You Built` panel consistently show completed items as `Done`.
 - **Deadline-decay progress:** stopped measurable completion from rewriting `goal.progress`; goal detail and list-card progress now derive exclusively from elapsed time toward the deadline, with no measurable-completion fallback. Updated `lib/db/goals.ts`, `app/api/goals/complete-measurable+api.ts`, `features/goals/hooks/useGoalDetail.ts`, `features/goals/components/GoalDetailHeader.tsx`, `features/goals/components/GoalCard.tsx`, `features/goals/components/GoalRingCard.tsx`, and `docs/API_CONTRACT.md`.

@@ -1,0 +1,92 @@
+import { View } from 'react-native';
+import { router } from 'expo-router';
+import { Typography } from '@/components/ui/Typography';
+import { GOAL_THEMES } from '@/constants/themes';
+import { LIGHT_THEME } from '@/constants/colors';
+import { getGoalRingProgress } from '../utils/ringProgress';
+import { GoalRingCard } from './GoalRingCard';
+import type { GoalWithMeasurables } from '../types';
+
+interface GoalRingGridProps {
+  goals: GoalWithMeasurables[];
+  emptyMessage?: string;
+}
+
+function resolveDueDate(deadline: Date | null): {
+  label?: string;
+  color: string;
+} {
+  if (!deadline) return { color: LIGHT_THEME.text.secondary };
+
+  const label = deadline.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  });
+  const days = Math.ceil((deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+
+  if (days < 0) {
+    return { label, color: LIGHT_THEME.feedback.danger };
+  }
+  if (days <= 14) {
+    return { label, color: LIGHT_THEME.text.secondary };
+  }
+  return { label, color: LIGHT_THEME.text.muted };
+}
+
+function resolveActivityLabel(goal: GoalWithMeasurables): string | undefined {
+  const parts = [
+    goal.vaultItemCount > 0
+      ? `${goal.vaultItemCount} item${goal.vaultItemCount !== 1 ? 's' : ''}`
+      : null,
+    goal.echoLinkCount > 0
+      ? `${goal.echoLinkCount} reflection${goal.echoLinkCount !== 1 ? 's' : ''}`
+      : null,
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(' · ') : undefined;
+}
+
+export function GoalRingGrid({ goals, emptyMessage }: GoalRingGridProps) {
+  if (goals.length === 0) {
+    return emptyMessage ? <Typography variant="hint">{emptyMessage}</Typography> : null;
+  }
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 14,
+      }}
+    >
+      {goals.map((goal) => {
+        const ringProgress = getGoalRingProgress(goal);
+        if (ringProgress === null) return null;
+
+        const { label: dueDateLabel, color: dueDateColor } = resolveDueDate(goal.deadline);
+        return (
+          <View
+            key={goal.id}
+            style={{ flexBasis: '47%', flexGrow: 1, minWidth: 0 }}
+          >
+            <GoalRingCard
+              title={goal.title}
+              category={goal.category}
+              progress={ringProgress}
+              accentColor={GOAL_THEMES[goal.colorTheme].accent}
+              activityLabel={resolveActivityLabel(goal)}
+              dueDateLabel={dueDateLabel}
+              dueDateColor={dueDateColor}
+              onPress={() =>
+                router.push({
+                  pathname: '/(app)/goals/[id]' as never,
+                  params: { id: goal.id },
+                })
+              }
+            />
+          </View>
+        );
+      })}
+    </View>
+  );
+}

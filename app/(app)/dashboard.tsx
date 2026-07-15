@@ -10,8 +10,9 @@ import { useLatestAction } from '@/features/actions/hooks/useLatestAction';
 import { useEntries } from '@/features/echo/hooks/useEntries';
 import { useProfileStore } from '@/features/profile/store';
 import { useProjectStore } from '@/features/projects/store';
-import { GoalGrid } from '@/features/goals/components/GoalGrid';
+import { GoalRingGrid } from '@/features/goals/components/GoalRingGrid';
 import { GoalTitleRow } from '@/features/goals/components/GoalTitleRow';
+import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal';
 import { ProjectCard } from '@/features/projects/components/ProjectCard';
 import { FEATURES } from '@/constants/features';
 import { LIGHT_THEME } from '@/constants/colors';
@@ -42,6 +43,36 @@ function displayNameFromEmail(email: string | undefined): string | null {
   const local = email.split('@')[0];
   if (!local) return null;
   return local.charAt(0).toUpperCase() + local.slice(1);
+}
+
+function DashboardCreateButton({
+  label,
+  onPress,
+}: {
+  label: 'New Project' | 'New Goal';
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        backgroundColor: LIGHT_THEME.background.selectedRow,
+        borderRadius: 999,
+        opacity: pressed ? 0.72 : 1,
+        paddingHorizontal: 12,
+        paddingVertical: 7,
+      })}
+    >
+      <Typography
+        variant="emphasis-sm"
+        style={{ color: LIGHT_THEME.text.accent, fontSize: 13 }}
+      >
+        + {label}
+      </Typography>
+    </Pressable>
+  );
 }
 
 function getRelativeDays(date: Date): string {
@@ -504,6 +535,7 @@ export default function DashboardScreen() {
   const { user } = useAuth();
   const { projects, isLoading: projectsLoading, loadProjects } = useProjectStore();
   const { entries, isLoading: echoLoading } = useEntries();
+  const [projectModalOpen, setProjectModalOpen] = useState(false);
 
   useEffect(() => {
     loadProjects();
@@ -586,14 +618,6 @@ export default function DashboardScreen() {
     [goals],
   );
 
-  const newestId = useMemo(
-    () =>
-      goals.length > 0
-        ? [...goals].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0]?.id
-        : undefined,
-    [goals],
-  );
-
   const hasProjects = projects.length > 0;
 
   const latestEntry = entries[0] ?? null;
@@ -614,7 +638,7 @@ export default function DashboardScreen() {
         }}
       >
         {/* Header */}
-        <View className="mb-6 flex-row items-start justify-between">
+        <View className="mb-6">
           <View>
             <Typography variant="greeting">
               {greeting}
@@ -623,12 +647,6 @@ export default function DashboardScreen() {
               {getDateLabel()}
             </Typography>
           </View>
-          <Pressable
-            className="pl-2 pt-0.5"
-            onPress={() => router.push('/(app)/projects/create' as never)}
-          >
-            <Text className="font-sans text-[22px] leading-7 text-[#4A7C5F]">+</Text>
-          </Pressable>
         </View>
 
         {goalsLoading || projectsLoading ? (
@@ -644,33 +662,40 @@ export default function DashboardScreen() {
                 <Typography variant="eyebrow">
                   Projects
                 </Typography>
-                <Pressable onPress={() => router.push('/(app)/projects/create' as never)}>
-                  <Text className="font-sans text-[20px] leading-6 text-[#4A7C5F]">+</Text>
-                </Pressable>
-              </View>
-              {hasProjects && projects.map((project) => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  goals={goals.filter((g) => g.projectId === project.id)}
+                <DashboardCreateButton
+                  label="New Project"
+                  onPress={() => setProjectModalOpen(true)}
                 />
-              ))}
+              </View>
+              {hasProjects ? (
+                projects.map((project) => (
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    goals={goals.filter((g) => g.projectId === project.id)}
+                  />
+                ))
+              ) : (
+                <Typography variant="hint">No projects yet.</Typography>
+              )}
             </View>
 
-            {/* Zone 3: All Goals */}
-            {standaloneGoals.length > 0 && (
-              <View>
-                <View className="mb-4 flex-row items-center justify-between">
-                  <Typography variant="eyebrow">
-                    Goals
-                  </Typography>
-                  <Pressable onPress={() => router.push('/goals/create')}>
-                    <Text className="font-sans text-[20px] leading-6 text-[#4A7C5F]">+</Text>
-                  </Pressable>
-                </View>
-                <GoalGrid goals={standaloneGoals} newestId={newestId} />
+            {/* Zone 3: Standalone Goals */}
+            <View>
+              <View className="mb-4 flex-row items-center justify-between">
+                <Typography variant="eyebrow">
+                  Goals
+                </Typography>
+                <DashboardCreateButton
+                  label="New Goal"
+                  onPress={() => router.push('/goals/create')}
+                />
               </View>
-            )}
+              <GoalRingGrid
+                goals={standaloneGoals}
+                emptyMessage="No standalone goals yet."
+              />
+            </View>
 
             {/* Zone 4: Echo */}
             {FEATURES.ECHO_ENABLED ? (
@@ -689,6 +714,10 @@ export default function DashboardScreen() {
           </View>
         )}
       </ScrollView>
+      <CreateProjectModal
+        visible={projectModalOpen}
+        onClose={() => setProjectModalOpen(false)}
+      />
     </SafeAreaView>
   );
 }
