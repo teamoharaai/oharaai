@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-16 — Goal detail context rail)
+- **`app/(app)/goals/[id]/index.tsx`:** moved the desktop Vault and Reflections shortcuts into compact top-right header actions and placed the Activity feed directly beneath them in the right context rail, matching the requested goal-detail hierarchy while preserving the existing single-column mobile flow and navigation behavior.
+
 ### Changed (2026-07-16 — Journey navigation rename)
 - **`components/layout/Sidebar.tsx`, `app/goals/create.tsx`, `app/(app)/projects/create.tsx`, and `app/(app)/goals/[id]/index.tsx`:** renamed the dashboard's visible navigation label from `Goals` to `Journey`, including related back-navigation labels, while preserving the existing dashboard and goal route names, APIs, and persistence model.
 

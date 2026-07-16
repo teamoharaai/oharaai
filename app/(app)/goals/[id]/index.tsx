@@ -102,6 +102,19 @@ const SUMMARY_CARD_STYLE = {
   elevation: 1,
 };
 
+const HEADER_ACTION_STYLE = {
+  backgroundColor: '#FFFFFF',
+  borderColor: '#EAE7E0',
+  borderRadius: 14,
+  borderWidth: 1,
+  flexDirection: 'row' as const,
+  alignItems: 'center' as const,
+  gap: 10,
+  minWidth: 132,
+  paddingHorizontal: 14,
+  paddingVertical: 9,
+};
+
 export default function GoalDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const goalId = Array.isArray(id) ? id[0] : (id ?? '');
@@ -266,49 +279,50 @@ export default function GoalDetailScreen() {
         />
       )}
 
-      {/* Vault Summary Card */}
-      <Pressable
-        onPress={() => router.push(`/(app)/goals/${goalId}/vault` as never)}
-        style={SUMMARY_CARD_STYLE}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Typography variant="meta" style={{ fontSize: 20, color: '#1E3226' }}>◫</Typography>
-          <View>
-            <Typography variant="emphasis-sm" style={{ color: '#211F1A' }}>
-              Vault
-            </Typography>
-            <Typography variant="caption">
-              {vaultItemCount === 0
-                ? 'No items yet'
-                : `${vaultItemCount} item${vaultItemCount !== 1 ? 's' : ''}`}
-            </Typography>
-          </View>
-        </View>
-        <Typography variant="caption" style={{ fontSize: 18 }}>›</Typography>
-      </Pressable>
+      {!isDesktop && (
+        <>
+          {/* Mobile keeps goal context in the single-column reading flow. */}
+          <Pressable
+            onPress={() => router.push(`/(app)/goals/${goalId}/vault` as never)}
+            style={SUMMARY_CARD_STYLE}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Typography variant="meta" style={{ fontSize: 20, color: '#1E3226' }}>◫</Typography>
+              <View>
+                <Typography variant="emphasis-sm" style={{ color: '#211F1A' }}>
+                  Vault
+                </Typography>
+                <Typography variant="caption">
+                  {vaultItemCount === 0
+                    ? 'No items yet'
+                    : `${vaultItemCount} item${vaultItemCount !== 1 ? 's' : ''}`}
+                </Typography>
+              </View>
+            </View>
+            <Typography variant="caption" style={{ fontSize: 18 }}>›</Typography>
+          </Pressable>
 
-      {/* Echo Summary Card */}
-      <Pressable
-        onPress={() =>
-          router.push(`/(app)/echo?goalId=${goalId}` as never)
-        }
-        style={SUMMARY_CARD_STYLE}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Typography variant="meta" style={{ fontSize: 20, color: '#1E3226' }}>✦</Typography>
-          <View>
-            <Typography variant="emphasis-sm" style={{ color: '#211F1A' }}>
-              Reflections
-            </Typography>
-            <Typography variant="caption">
-              Tap to journal about this goal
-            </Typography>
-          </View>
-        </View>
-        <Typography variant="caption" style={{ fontSize: 18 }}>›</Typography>
-      </Pressable>
+          <Pressable
+            onPress={() => router.push(`/(app)/echo?goalId=${goalId}` as never)}
+            style={SUMMARY_CARD_STYLE}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Typography variant="meta" style={{ fontSize: 20, color: '#1E3226' }}>✦</Typography>
+              <View>
+                <Typography variant="emphasis-sm" style={{ color: '#211F1A' }}>
+                  Reflections
+                </Typography>
+                <Typography variant="caption">
+                  Tap to journal about this goal
+                </Typography>
+              </View>
+            </View>
+            <Typography variant="caption" style={{ fontSize: 18 }}>›</Typography>
+          </Pressable>
 
-      <ActivityFeed items={items} loading={activityLoading} error={activityError} />
+          <ActivityFeed items={items} loading={activityLoading} error={activityError} />
+        </>
+      )}
 
       {/* deferred: AffiliateTeaser */}
     </>
@@ -316,7 +330,9 @@ export default function GoalDetailScreen() {
 
   const contextRail = (
     <>
-      {/* Phase 2: Activity feed — requires activity service */}
+      {isDesktop && (
+        <ActivityFeed items={items} loading={activityLoading} error={activityError} />
+      )}
       {/* Phase 2: AI Insight slot */}
       {/* Phase 2: Community Context slot */}
     </>
@@ -346,6 +362,38 @@ export default function GoalDetailScreen() {
           style={{ alignItems: 'center', flex: 1 }}
           iconStyle={{ marginTop: 0 }}
         />
+        {isDesktop && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginLeft: 20 }}>
+            <Pressable
+              onPress={() => router.push(`/(app)/goals/${goalId}/vault` as never)}
+              style={HEADER_ACTION_STYLE}
+            >
+              <Typography variant="meta" style={{ fontSize: 17, color: '#1E3226' }}>◫</Typography>
+              <View>
+                <Typography variant="emphasis-sm" style={{ color: '#211F1A' }}>
+                  Vault
+                </Typography>
+                <Typography variant="caption">
+                  {vaultItemCount === 0
+                    ? 'No items yet'
+                    : `${vaultItemCount} item${vaultItemCount !== 1 ? 's' : ''}`}
+                </Typography>
+              </View>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push(`/(app)/echo?goalId=${goalId}` as never)}
+              style={HEADER_ACTION_STYLE}
+            >
+              <Typography variant="meta" style={{ fontSize: 17, color: '#1E3226' }}>✦</Typography>
+              <View>
+                <Typography variant="emphasis-sm" style={{ color: '#211F1A' }}>
+                  Reflections
+                </Typography>
+                <Typography variant="caption">Journal</Typography>
+              </View>
+            </Pressable>
+          </View>
+        )}
       </View>
 
       {isDesktop ? (
