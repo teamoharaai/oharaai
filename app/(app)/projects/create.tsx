@@ -50,7 +50,7 @@ export default function CreateProjectScreen() {
           {/* Nav header */}
           <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: 16, marginBottom: 32 }}>
             <Pressable onPress={() => router.back()}>
-              <Typography variant="nav-back">← Goals</Typography>
+              <Typography variant="nav-back">← Journey</Typography>
             </Pressable>
             <Typography variant="nav-back" style={{ color: '#A79E8E', marginHorizontal: 8 }}>
               |

@@ -15,7 +15,7 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Goals',         href: '/(app)/dashboard',     match: '/dashboard',     enabled: true, icon: 'goals' },
+  { label: 'Journey',       href: '/(app)/dashboard',     match: '/dashboard',     enabled: true, icon: 'goals' },
   { label: 'Echo',          href: '/(app)/echo',          match: '/echo',          enabled: FEATURES.ECHO_ENABLED, icon: 'echo' },
   { label: 'Constellation', href: '/(app)/constellation', match: '/constellation', enabled: FEATURES.CONSTELLATION_ENABLED },
   { label: 'Explore',       href: '/(app)/explore',       match: '/explore',       enabled: FEATURES.DISCOVERY_ENABLED },
@@ -119,7 +119,7 @@ export function Sidebar() {
           const isActive =
             pathname === item.match ||
             pathname.startsWith(item.match + '/') ||
-            (item.label === 'Goals' && pathname.startsWith('/goals/'));
+            (item.href === '/(app)/dashboard' && pathname.startsWith('/goals/'));
           return (
             <TouchableOpacity
               key={item.label}

@@ -72,7 +72,7 @@ function GoalNotFound() {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC' }}>
       <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
         <Pressable onPress={() => router.back()}>
-          <Typography variant="nav-back">← Goals</Typography>
+          <Typography variant="nav-back">← Journey</Typography>
         </Pressable>
       </View>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
@@ -335,7 +335,7 @@ export default function GoalDetailScreen() {
         }}
       >
         <Pressable onPress={() => router.back()}>
-          <Typography variant="nav-back">← Goals</Typography>
+          <Typography variant="nav-back">← Journey</Typography>
         </Pressable>
         <Typography variant="nav-back" style={{ color: '#A79E8E', marginHorizontal: 8 }}>|</Typography>
         <GoalTitleRow

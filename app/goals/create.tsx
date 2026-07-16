@@ -545,7 +545,7 @@ export default function GoalCreateScreen() {
             })}
           >
             <Typography variant="nav-back">←</Typography>
-            <Typography variant="nav-back">Goals</Typography>
+            <Typography variant="nav-back">Journey</Typography>
           </Pressable>
           <View
             style={{

@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-16 — Journey navigation rename)
+- **`components/layout/Sidebar.tsx`, `app/goals/create.tsx`, `app/(app)/projects/create.tsx`, and `app/(app)/goals/[id]/index.tsx`:** renamed the dashboard's visible navigation label from `Goals` to `Journey`, including related back-navigation labels, while preserving the existing dashboard and goal route names, APIs, and persistence model.
+
 ### Fixed (2026-07-15 — Echo full-viewport background)
 - **`app/(app)/_layout.tsx`, `features/echo/components/EchoScreen.tsx`, `EchoContainerTree.tsx`, and `EchoEntryList.tsx`:** applied the canonical dashboard page color to the native-stack scene and every full-height Echo wrapper, including the calendar empty state, while explicitly stretching and clipping the route panes to the available viewport. This prevents the navigation default background from appearing beneath either tree or calendar view.
 - Verification: `npx tsc --noEmit` and `npx expo export --platform web --output-dir /tmp/ohara-web-export-background-fix` completed successfully.
