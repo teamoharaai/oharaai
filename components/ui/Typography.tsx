@@ -1,14 +1,24 @@
 import { Text, type TextProps, type StyleProp, type TextStyle } from 'react-native';
+import { useThemeColors } from '@/store/uiStore';
 
 type Variant = 'heading' | 'title' | 'body' | 'label' | 'field-label' | 'caption' | 'ai' | 'ai-italic' | 'eyebrow' | 'section-eyebrow' | 'greeting' | 'emphasis-sm' | 'meta' | 'content' | 'nav-back' | 'section-header' | 'nav-title' | 'subtitle' | 'hint' | 'description' | 'badge-text' | 'micro-label' | 'card-title' | 'card-description' | 'goal-title' | 'active-goal-title' | 'echo-entry-title' | 'echo-entry-preview' | 'echo-entry-meta' | 'echo-add-button' | 'echo-detail-meta' | 'echo-detail-title' | 'echo-detail-body' | 'echo-empty-title' | 'echo-empty-subtitle';
 
+// Variants confirmed to route through theme tokens (text.primary / text.secondary).
+// Every other variant keeps its hardcoded hex in VARIANT_CLASSES below pending a follow-up prompt.
+const VARIANT_COLOR_KEY: Partial<Record<Variant, 'primary' | 'secondary'>> = {
+  heading: 'primary',
+  title: 'primary',
+  body: 'secondary',
+  caption: 'secondary',
+};
+
 const VARIANT_CLASSES: Record<Variant, string> = {
-  heading:         'font-inter-semibold text-2xl text-[#211F1A]',
-  title:           'font-inter-medium text-lg text-[#211F1A]',
-  body:            'font-sans text-base text-[#8A8172]',
+  heading:         'font-inter-semibold text-2xl',
+  title:           'font-inter-medium text-lg',
+  body:            'font-sans text-base',
   label:           'font-inter-medium text-sm text-[#8A8172]',
   'field-label':   'font-sans text-sm font-inter-medium text-[#211F1A]',
-  caption:         'font-sans text-xs text-[#A79E8E]',
+  caption:         'font-sans text-xs',
   ai:              'font-serif text-base text-[#4A7C5F] leading-relaxed',
   'ai-italic':     'font-serif-italic text-base text-[#4A7C5F] leading-relaxed',
   eyebrow:         'font-sans text-[11px] font-inter-medium uppercase tracking-[1.5px] text-[#8A8172]',
@@ -54,11 +64,15 @@ export function Typography({
   children,
   ...rest
 }: TypographyProps) {
+  const colors = useThemeColors();
   const baseClasses = VARIANT_CLASSES[variant];
   const combined = className ? `${baseClasses} ${className}` : baseClasses;
 
+  const colorKey = VARIANT_COLOR_KEY[variant];
+  const variantStyle = colorKey ? { color: colors.text[colorKey] } : undefined;
+
   return (
-    <Text className={combined} style={style} {...rest}>
+    <Text className={combined} style={[variantStyle, style]} {...rest}>
       {children}
     </Text>
   );
