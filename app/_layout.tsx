@@ -13,9 +13,13 @@ import {
 import { Lora_400Regular, Lora_400Regular_Italic, Lora_600SemiBold_Italic } from '@expo-google-fonts/lora';
 import supabase from '@/lib/db/client';
 import { useAuthStore } from '@/features/auth/store';
+import { useThemeColors, useUIStore } from '@/store/uiStore';
+import { colorScheme } from 'nativewind';
 import '../global.css';
 
 export default function RootLayout() {
+  const themeMode = useUIStore((state) => state.themeMode);
+  const colors = useThemeColors();
   const [fontsLoaded] = useFonts({
     'Inter-Regular': Inter_400Regular,
     'Inter-Medium': Inter_500Medium,
@@ -31,6 +35,10 @@ export default function RootLayout() {
   const { session, loading, setSession, setLoading } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
+
+  useEffect(() => {
+    colorScheme.set(themeMode);
+  }, [themeMode]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -63,8 +71,8 @@ export default function RootLayout() {
 
   if (!fontsLoaded || loading) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FAF9F6' }}>
-        <ActivityIndicator size="large" color="#1A1A1A" />
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background.page }}>
+        <ActivityIndicator size="large" color={colors.text.primary} />
       </View>
     );
   }

@@ -1,5 +1,5 @@
 import { View, Text } from 'react-native';
-import { LIGHT_THEME } from '@/constants/colors';
+import { useThemeColors } from '@/store/uiStore';
 
 interface ProgressRingProps {
   progress: number;
@@ -13,7 +13,8 @@ interface ProgressRingProps {
 
 // Native fallback: simple bordered circle with percentage text
 export function ProgressRing({ progress, size = 64, strokeWidth = 5, color = '#5FA8D3', variant = 'default' }: ProgressRingProps) {
-  const textColor = variant === 'warm' ? LIGHT_THEME.text.primary : color;
+  const colors = useThemeColors();
+  const textColor = variant === 'warm' ? colors.text.primary : color;
   return (
     <View
       style={{

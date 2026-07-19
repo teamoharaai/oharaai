@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added (2026-07-19 — Manual dark theme)
+- **`constants/colors.ts`:** added a structurally checked `DARK_THEME` palette with the confirmed Figma values and explicitly documented derived fallbacks for every token without a dark source.
+- **`store/uiStore.ts`, `app/_layout.tsx`, and `tailwind.config.js`:** added a persisted, light-defaulting manual `themeMode`, a `toggleTheme` action, NativeWind color-scheme synchronization, manual class-based dark mode, and app-specific `dark-*` Tailwind surface tokens without reusing the separate `landing-*` palette.
+- **`components/layout/SettingsModal.tsx`:** added an Appearance section with the sole light/dark switch, following the existing settings row and persisted UI preference pattern.
+
+### Changed (2026-07-19 — Reactive theme surfaces)
+- **Authenticated app shell, shared modal/sidebar/ring primitives, dashboard cards, project/goal ring cards, and goal-detail header/milestone/activity surfaces:** switched representative background, text, border, feedback, and accent colors to the persisted theme palette while leaving the separately scoped `Typography.tsx` token refactor untouched.
+
 ### Changed (2026-07-16 — Goal detail context rail)
 - **`app/(app)/goals/[id]/index.tsx`:** moved the desktop Vault and Reflections shortcuts into compact top-right header actions and placed the Activity feed directly beneath them in the right context rail, matching the requested goal-detail hierarchy while preserving the existing single-column mobile flow and navigation behavior.
 

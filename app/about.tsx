@@ -21,7 +21,7 @@ function NavLink({
 
 export default function AboutPage() {
   return (
-    <View className="flex-1 bg-dark-bg">
+    <View className="flex-1 bg-landing-dark-bg">
       {/* Background Glow */}
       <View className="absolute inset-0 overflow-hidden">
         <View
@@ -32,7 +32,7 @@ export default function AboutPage() {
             } as any
           }
         />
-        <View className="absolute inset-0 bg-dark-bg/78" />
+        <View className="absolute inset-0 bg-landing-dark-bg/78" />
       </View>
 
       {/* Header */}

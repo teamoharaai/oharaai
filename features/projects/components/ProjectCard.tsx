@@ -3,7 +3,7 @@ import { View, Text, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
 import { GoalRingGrid } from '@/features/goals/components/GoalRingGrid';
-import { LIGHT_THEME } from '@/constants/colors';
+import { useThemeColors } from '@/store/uiStore';
 import { ProjectTitleRow } from './ProjectTitleRow';
 import type { Project } from '@/features/projects/types';
 import type { GoalWithMeasurables } from '@/features/goals/types';
@@ -15,15 +15,16 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, goals }: ProjectCardProps) {
+  const colors = useThemeColors();
   const [expanded, setExpanded] = useState(false);
 
   return (
     <View
       style={{
-        backgroundColor: LIGHT_THEME.background.card,
+        backgroundColor: colors.background.card,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: LIGHT_THEME.border.warm,
+        borderColor: colors.border.warm,
         marginBottom: 12,
         paddingVertical: 18,
         paddingHorizontal: 20,
@@ -64,7 +65,7 @@ export function ProjectCard({ project, goals }: ProjectCardProps) {
         >
           <Text
             style={{
-              color: LIGHT_THEME.text.muted,
+              color: colors.text.muted,
               fontSize: 18,
               lineHeight: 18,
               transform: [{ rotate: expanded ? '90deg' : '-90deg' }],
@@ -81,7 +82,7 @@ export function ProjectCard({ project, goals }: ProjectCardProps) {
           <View
             style={{
               height: 1,
-              backgroundColor: LIGHT_THEME.border.warm,
+              backgroundColor: colors.border.warm,
               marginBottom: 16,
             }}
           />

@@ -15,7 +15,7 @@ import { GoalTitleRow } from '@/features/goals/components/GoalTitleRow';
 import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal';
 import { ProjectCard } from '@/features/projects/components/ProjectCard';
 import { FEATURES } from '@/constants/features';
-import { LIGHT_THEME } from '@/constants/colors';
+import { useThemeColors } from '@/store/uiStore';
 import { authedFetch } from '@/lib/api/client';
 import type { AiResponse } from '@/lib/ai/contracts';
 import type { GoalWithMeasurables } from '@/features/goals/types';
@@ -52,13 +52,15 @@ function DashboardCreateButton({
   label: 'New Project' | 'New Goal';
   onPress: () => void;
 }) {
+  const colors = useThemeColors();
+
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
       style={({ pressed }) => ({
-        backgroundColor: LIGHT_THEME.background.selectedRow,
+        backgroundColor: colors.background.selectedRow,
         borderRadius: 999,
         opacity: pressed ? 0.72 : 1,
         paddingHorizontal: 12,
@@ -67,7 +69,7 @@ function DashboardCreateButton({
     >
       <Typography
         variant="emphasis-sm"
-        style={{ color: LIGHT_THEME.text.accent, fontSize: 13 }}
+        style={{ color: colors.text.accent, fontSize: 13 }}
       >
         + {label}
       </Typography>
@@ -127,6 +129,7 @@ function TodayHeader({ bottomMargin = 16 }: { bottomMargin?: number }) {
 }
 
 function DueTodayZone() {
+  const colors = useThemeColors();
   const [items, setItems] = useState<DueTodayItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [completingIds, setCompletingIds] = useState(new Set<string>());
@@ -191,7 +194,10 @@ function DueTodayZone() {
 
   if (loading) {
     return (
-      <View className="rounded-2xl border border-[#EAE7E0] bg-white p-5">
+      <View
+        className="rounded-2xl border p-5"
+        style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider }}
+      >
         <View className="mb-4 h-2.5 w-16 rounded-full bg-[#EAE7E0]" />
         {[0, 1].map((i) => (
           <View key={i} className="mb-3 flex-row items-center gap-3">
@@ -208,9 +214,12 @@ function DueTodayZone() {
 
   if (items.length === 0) {
     return (
-      <View className="rounded-2xl border border-[#EAE7E0] bg-white p-5">
+      <View
+        className="rounded-2xl border p-5"
+        style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider }}
+      >
         <TodayHeader bottomMargin={12} />
-        <Text className="font-sans text-[14px] text-[#A79E8E]">
+        <Text className="font-sans text-[14px]" style={{ color: colors.text.muted }}>
           Nothing due today.
         </Text>
       </View>
@@ -218,7 +227,10 @@ function DueTodayZone() {
   }
 
   return (
-    <View className="rounded-2xl border border-[#EAE7E0] bg-white p-5">
+    <View
+      className="rounded-2xl border p-5"
+      style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider }}
+    >
       <TodayHeader />
       <View className="gap-3">
         {items.map((item) => {
@@ -241,12 +253,13 @@ function DueTodayZone() {
                 )}
               </TouchableOpacity>
               <View className="flex-1">
-                <Text className="font-sans text-[11px] text-[#A79E8E]">
+                <Text className="font-sans text-[11px]" style={{ color: colors.text.muted }}>
                   {item.goalTitle}
                 </Text>
                 <Typography
                   variant="content"
-                  className={done ? 'text-[#A79E8E]' : ''}
+                  className={done ? '' : 'dark:text-white'}
+                  style={done ? { color: colors.text.muted } : undefined}
                 >
                   {item.title}
                 </Typography>
@@ -266,6 +279,7 @@ interface ActiveGoalCardProps {
 }
 
 function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
+  const colors = useThemeColors();
   const { action, isLoading: actionLoading, isError: actionError, mutate } =
     useLatestAction(goal.id);
   const [isMutating, setIsMutating] = useState(false);
@@ -312,7 +326,10 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
   }
 
   return (
-    <View className="rounded-2xl border border-[#EAE7E0] bg-white p-5">
+    <View
+      className="rounded-2xl border p-5"
+      style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider }}
+    >
       <Pressable onPress={() => router.push(`/(app)/goals/${goal.id}` as never)}>
         <Typography variant="eyebrow" className="mb-2">
           Active Goal
@@ -326,7 +343,7 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
         />
       </Pressable>
 
-      <View className="border-t border-[#F0EDE6] pt-4">
+      <View className="border-t pt-4" style={{ borderColor: colors.border.divider }}>
         <Typography variant="eyebrow" className="mb-3">
           Next Action
         </Typography>
@@ -334,7 +351,7 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
         {mutationError ? (
           <Text
             className="mb-2 font-sans text-xs"
-            style={{ color: LIGHT_THEME.feedback.danger }}
+            style={{ color: colors.feedback.danger }}
           >
             {mutationError}
           </Text>
@@ -346,12 +363,12 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
             <View className="h-3 w-4/5 rounded-full bg-[#F0EDE6]" />
           </View>
         ) : actionError && optimisticAction === undefined ? (
-          <Text className="font-sans text-sm" style={{ color: LIGHT_THEME.feedback.danger }}>
+          <Text className="font-sans text-sm" style={{ color: colors.feedback.danger }}>
             Couldn&apos;t load next action.
           </Text>
         ) : displayedAction ? (
           <View>
-            <Typography variant="content" className="mb-4">
+            <Typography variant="content" className="mb-4 dark:text-white">
               {displayedAction.actionText}
             </Typography>
             <View className="flex-row gap-3">
@@ -381,10 +398,11 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
           </View>
         ) : (
           <Pressable
-            className="self-start rounded-full bg-[#EEF4F0] px-4 py-2"
+            className="self-start rounded-full px-4 py-2"
+            style={{ backgroundColor: colors.background.selectedRow }}
             onPress={() => router.push(`/(app)/goals/${goal.id}` as never)}
           >
-            <Typography variant="emphasis-sm" className="text-[#1E3226]">
+            <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>
               Set next action
             </Typography>
           </Pressable>
@@ -395,8 +413,13 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
 }
 
 function NoActiveGoalCard() {
+  const colors = useThemeColors();
+
   return (
-    <View className="rounded-2xl border border-[#EAE7E0] bg-white p-5">
+    <View
+      className="rounded-2xl border p-5"
+      style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider }}
+    >
       <Typography variant="eyebrow" className="mb-2">
         Active Goal
       </Typography>
@@ -428,16 +451,22 @@ function EchoZone({
   latestEntryDate,
   echoLoading,
 }: EchoZoneProps) {
+  const colors = useThemeColors();
+
   return (
-    <View className="rounded-2xl border border-[#EAE7E0] bg-white p-5">
+    <View
+      className="rounded-2xl border p-5"
+      style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider }}
+    >
       <Typography variant="eyebrow" className="mb-3">
         Echo
       </Typography>
       <Pressable
-        className="mb-4 self-start rounded-full bg-[#EEF4F0] px-4 py-2.5"
+        className="mb-4 self-start rounded-full px-4 py-2.5"
+        style={{ backgroundColor: colors.background.selectedRow }}
         onPress={() => router.push('/(app)/echo' as never)}
       >
-        <Typography variant="emphasis-sm" className="text-[#1E3226]">
+        <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>
           Reflect in Echo
         </Typography>
       </Pressable>
@@ -448,7 +477,8 @@ function EchoZone({
         <View>
           <Typography
             variant="meta"
-            className="mb-1.5 text-[#4A5C4E]"
+            className="mb-1.5"
+            style={{ color: colors.text.accent }}
             numberOfLines={2}
           >
             {latestEntryContent.length > 100
@@ -460,7 +490,7 @@ function EchoZone({
           </Typography>
         </View>
       ) : (
-        <Typography variant="meta" className="text-[#A79E8E]">
+        <Typography variant="meta" style={{ color: colors.text.muted }}>
           Your reflections will appear here.
         </Typography>
       )}
@@ -476,9 +506,14 @@ interface IntelligenceZoneProps {
 }
 
 function IntelligenceZone({ insight, isLoading }: IntelligenceZoneProps) {
+  const colors = useThemeColors();
+
   if (isLoading) {
     return (
-      <View className="rounded-2xl bg-[#F0EDE6] px-5 py-4">
+      <View
+        className="rounded-2xl px-5 py-4"
+        style={{ backgroundColor: colors.background.input }}
+      >
         <View className="h-3 w-3/4 rounded-full bg-[#E0DDD6]" />
       </View>
     );
@@ -486,18 +521,24 @@ function IntelligenceZone({ insight, isLoading }: IntelligenceZoneProps) {
 
   if (insight) {
     return (
-      <View className="rounded-2xl border border-[#EAE7E0] bg-white p-5">
+      <View
+        className="rounded-2xl border p-5"
+        style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider }}
+      >
         <Typography variant="eyebrow" className="mb-2">
           Intelligence
         </Typography>
-        <Typography variant="content">{insight}</Typography>
+        <Typography variant="content" className="dark:text-white">{insight}</Typography>
       </View>
     );
   }
 
   return (
-    <View className="rounded-2xl bg-[#F0EDE6] px-5 py-4">
-      <Typography variant="meta" className="text-center text-[#A79E8E]">
+    <View
+      className="rounded-2xl px-5 py-4"
+      style={{ backgroundColor: colors.background.input }}
+    >
+      <Typography variant="meta" className="text-center" style={{ color: colors.text.muted }}>
         Keep reflecting in Echo — Ohara is learning about you.
       </Typography>
     </View>
@@ -507,12 +548,15 @@ function IntelligenceZone({ insight, isLoading }: IntelligenceZoneProps) {
 // --- Skeleton for initial load ---
 
 function DashboardSkeleton() {
+  const colors = useThemeColors();
+
   return (
     <View className="gap-3">
       {[0, 1, 2].map((i) => (
         <View
           key={i}
-          className="rounded-2xl border border-[#EAE7E0] bg-white p-5"
+          className="rounded-2xl border p-5"
+          style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider }}
         >
           <View className="mb-3 h-2.5 w-20 rounded-full bg-[#EAE7E0]" />
           <View className="mb-2 h-5 w-3/4 rounded-lg bg-[#F0EDE6]" />
@@ -531,6 +575,7 @@ type IntelligenceData = {
 };
 
 export default function DashboardScreen() {
+  const colors = useThemeColors();
   const { goals, isLoading: goalsLoading } = useGoals();
   const { user } = useAuth();
   const { projects, isLoading: projectsLoading, loadProjects } = useProjectStore();
@@ -628,7 +673,7 @@ export default function DashboardScreen() {
     : `${getGreeting()}.`;
 
   return (
-    <SafeAreaView className="flex-1 bg-[#F8F4EC]">
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.page }}>
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
@@ -640,10 +685,10 @@ export default function DashboardScreen() {
         {/* Header */}
         <View className="mb-6">
           <View>
-            <Typography variant="greeting">
+            <Typography variant="greeting" className="dark:text-white">
               {greeting}
             </Typography>
-            <Typography variant="meta" className="text-[#8A8172]">
+            <Typography variant="meta" className="text-[#8A8172] dark:text-[#B8B8B8]">
               {getDateLabel()}
             </Typography>
           </View>

@@ -47,3 +47,61 @@ export const LIGHT_THEME = {
     },
   },
 } as const;
+
+type WidenColorLeaves<T> = {
+  readonly [Key in keyof T]: T[Key] extends string
+    ? string
+    : WidenColorLeaves<T[Key]>;
+};
+
+export type ThemeColors = WidenColorLeaves<typeof LIGHT_THEME>;
+
+export const DARK_THEME = {
+  background: {
+    page: '#111111',
+    card: '#1A1A1A',
+    sidebar: '#172019', // derived, no Figma dark token
+    input: '#101010', // derived, no Figma dark token
+    subtle: '#0D0D0D', // derived, no Figma dark token
+    goalCard: '#121212', // derived, no Figma dark token
+    selectedRow: '#101010', // derived, no Figma dark token
+  },
+  text: {
+    primary: '#FFFFFF',
+    secondary: '#B8B8B8',
+    inverse: '#F1F0ED', // derived, no Figma dark token
+    accent: '#8FAE8A', // derived, no Figma dark token
+    muted: '#A3A3A3', // derived, no Figma dark token
+    mutedOnDark: '#8F8F8F', // derived, no Figma dark token
+  },
+  border: {
+    default: 'rgba(255,255,255,0.06)', // derived, no Figma dark token
+    subtle: 'rgba(255,255,255,0.04)', // derived, no Figma dark token
+    accent: '#8FAE8A', // derived, no Figma dark token
+    warm: '#292929', // derived, no Figma dark token
+    warmSubtle: '#313131', // derived, no Figma dark token
+    input: '#202020', // derived, no Figma dark token
+    divider: '#2D2D2D',
+    toggleGlyph: '#272D29', // derived, no Figma dark token
+  },
+  brt: {
+    bud: '#8FAE8A',
+    rose: '#F8B950', // derived, no Figma dark token
+    thorn: '#F48181', // derived, no Figma dark token
+  },
+  accent: {
+    primary: '#8FAE8A',
+    teal: '#88E5C4', // derived, no Figma dark token
+    tealSubtle: '#FAFDFB', // derived, no Figma dark token
+    tealMid: '#38AA81', // derived, no Figma dark token
+    tealSoft: '#B5E2D1', // derived, no Figma dark token
+  },
+  feedback: {
+    danger: '#D3796E', // derived, no Figma dark token
+    pending: {
+      bg: '#29230F', // derived, no Figma dark token
+      border: '#FEF3C6', // derived, no Figma dark token
+      text: '#F37311', // derived, no Figma dark token
+    },
+  },
+} as const satisfies ThemeColors;

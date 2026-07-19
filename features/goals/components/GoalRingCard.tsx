@@ -2,7 +2,7 @@ import { View, Pressable } from 'react-native';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { Badge } from '@/components/ui/Badge';
 import { Typography } from '@/components/ui/Typography';
-import { LIGHT_THEME } from '@/constants/colors';
+import { useThemeColors } from '@/store/uiStore';
 import { getRingColor } from '../utils/ringProgress';
 import { GoalTitleRow } from './GoalTitleRow';
 
@@ -39,18 +39,20 @@ export function GoalRingCard({
   accentColor,
   activityLabel,
   dueDateLabel,
-  dueDateColor = LIGHT_THEME.text.secondary,
+  dueDateColor,
   onPress,
 }: GoalRingCardProps) {
+  const colors = useThemeColors();
   const ringColor = getRingColor(progress, accentColor);
+  const resolvedDueDateColor = dueDateColor ?? colors.text.secondary;
 
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => ({
-        backgroundColor: LIGHT_THEME.background.goalCard,
+        backgroundColor: colors.background.goalCard,
         borderWidth: 1,
-        borderColor: LIGHT_THEME.border.warmSubtle,
+        borderColor: colors.border.warmSubtle,
         borderRadius: 16,
         padding: 18,
         opacity: pressed ? 0.96 : 1,
@@ -94,7 +96,7 @@ export function GoalRingCard({
         <Typography variant="hint" numberOfLines={1}>
           {activityLabel ?? ''}
         </Typography>
-        <Typography variant="hint" style={{ color: dueDateColor }}>
+        <Typography variant="hint" style={{ color: resolvedDueDateColor }}>
           {dueDateLabel ?? ''}
         </Typography>
       </View>

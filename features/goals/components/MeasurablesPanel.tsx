@@ -4,6 +4,7 @@ import { MeasurableCard } from './MeasurableCard';
 import type { Measurable, MeasurableInput, MeasurableUpdates, MeasurableType } from '../types';
 import { GOAL_MEASURABLE_TYPES } from '@/lib/goals/schema';
 import { Typography } from '@/components/ui/Typography';
+import { useThemeColors } from '@/store/uiStore';
 
 interface MeasurablesPanelProps {
   measurables: Measurable[];
@@ -28,7 +29,6 @@ const TYPE_LABELS: Record<MeasurableType, string> = {
 };
 
 const SECTION_CARD_STYLE = {
-  backgroundColor: '#FFFFFF',
   borderRadius: 16,
   padding: 20,
   marginBottom: 12,
@@ -41,10 +41,7 @@ const SECTION_CARD_STYLE = {
 
 const inputStyle = {
   fontSize: 13,
-  color: '#211F1A',
-  backgroundColor: '#F0EDE6',
   borderWidth: 1,
-  borderColor: '#EAE7E0',
   borderRadius: 10,
   paddingHorizontal: 12,
   paddingVertical: 8,
@@ -65,6 +62,7 @@ export function MeasurablesPanel({
   error,
   onDismissError,
 }: MeasurablesPanelProps) {
+  const colors = useThemeColors();
   const [showAddForm, setShowAddForm] = useState(false);
   const [addTitle, setAddTitle] = useState('');
   const [addType, setAddType] = useState<MeasurableType>('counter');
@@ -117,7 +115,7 @@ export function MeasurablesPanel({
   }
 
   return (
-    <View style={SECTION_CARD_STYLE}>
+    <View style={[SECTION_CARD_STYLE, { backgroundColor: colors.background.card }]}>
       {/* Section header */}
       <Typography variant="eyebrow" className="mb-3.5">
         Milestones
@@ -127,9 +125,9 @@ export function MeasurablesPanel({
       {error && (
         <View
           style={{
-            backgroundColor: '#FFF5F5',
+            backgroundColor: colors.background.selectedRow,
             borderWidth: 1,
-            borderColor: '#FECACA',
+            borderColor: colors.feedback.danger,
             borderRadius: 10,
             paddingHorizontal: 14,
             paddingVertical: 10,
@@ -139,9 +137,9 @@ export function MeasurablesPanel({
             justifyContent: 'space-between',
           }}
         >
-          <Text style={{ fontFamily: 'Inter-Regular', fontSize: 12, color: '#EF4444', flex: 1, marginRight: 8 }}>{error}</Text>
+          <Text style={{ fontFamily: 'Inter-Regular', fontSize: 12, color: colors.feedback.danger, flex: 1, marginRight: 8 }}>{error}</Text>
           <TouchableOpacity onPress={onDismissError}>
-            <Text style={{ fontSize: 12, fontFamily: 'Inter-SemiBold', color: '#EF4444' }}>Dismiss</Text>
+            <Text style={{ fontSize: 12, fontFamily: 'Inter-SemiBold', color: colors.feedback.danger }}>Dismiss</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -184,19 +182,27 @@ export function MeasurablesPanel({
       {!ended && showAddForm ? (
         <View
           style={{
-            backgroundColor: '#F8F4EC',
+            backgroundColor: colors.background.page,
             borderRadius: 12,
             borderWidth: 1,
-            borderColor: '#EAE7E0',
+            borderColor: colors.border.divider,
             padding: 14,
             marginTop: 4,
           }}
         >
           {/* Name */}
           <TextInput
-            style={[inputStyle, { marginBottom: 10 }]}
+            style={[
+              inputStyle,
+              {
+                marginBottom: 10,
+                color: colors.text.primary,
+                backgroundColor: colors.background.input,
+                borderColor: colors.border.input,
+              },
+            ]}
             placeholder="Milestone name"
-            placeholderTextColor="#A79E8E"
+            placeholderTextColor={colors.text.muted}
             value={addTitle}
             onChangeText={setAddTitle}
             autoFocus
@@ -215,7 +221,7 @@ export function MeasurablesPanel({
                   borderRadius: 8,
                   paddingVertical: 6,
                   borderWidth: 1,
-                  borderColor: addType === t ? accentColor : '#EAE7E0',
+                  borderColor: addType === t ? accentColor : colors.border.divider,
                   backgroundColor: addType === t ? accentColor + '1A' : 'transparent',
                 }}
               >
@@ -223,7 +229,7 @@ export function MeasurablesPanel({
                   style={{
                     fontSize: 12,
                     fontFamily: 'Inter-Medium',
-                    color: addType === t ? accentColor : '#A79E8E',
+                    color: addType === t ? accentColor : colors.text.muted,
                   }}
                 >
                   {TYPE_LABELS[t]}
@@ -235,18 +241,34 @@ export function MeasurablesPanel({
           {/* Target + Unit */}
           <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
             <TextInput
-              style={[inputStyle, { flex: 1 }]}
+              style={[
+                inputStyle,
+                {
+                  flex: 1,
+                  color: colors.text.primary,
+                  backgroundColor: colors.background.input,
+                  borderColor: colors.border.input,
+                },
+              ]}
               placeholder="Target (e.g. 10)"
-              placeholderTextColor="#A79E8E"
+              placeholderTextColor={colors.text.muted}
               value={addTarget}
               onChangeText={setAddTarget}
               keyboardType="numeric"
               returnKeyType="next"
             />
             <TextInput
-              style={[inputStyle, { flex: 1 }]}
+              style={[
+                inputStyle,
+                {
+                  flex: 1,
+                  color: colors.text.primary,
+                  backgroundColor: colors.background.input,
+                  borderColor: colors.border.input,
+                },
+              ]}
               placeholder="Unit (e.g. km)"
-              placeholderTextColor="#A79E8E"
+              placeholderTextColor={colors.text.muted}
               value={addUnit}
               onChangeText={setAddUnit}
               returnKeyType="done"
@@ -255,7 +277,7 @@ export function MeasurablesPanel({
           </View>
 
           {addError && (
-            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 12, color: '#EF4444', marginBottom: 8 }}>{addError}</Text>
+            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 12, color: colors.feedback.danger, marginBottom: 8 }}>{addError}</Text>
           )}
 
           <View style={{ flexDirection: 'row', gap: 8 }}>

@@ -1,13 +1,15 @@
 import { View } from 'react-native';
 import { Stack } from 'expo-router';
 import { Sidebar } from '@/components/layout/Sidebar';
-import { LIGHT_THEME } from '@/constants/colors';
+import { useThemeColors } from '@/store/uiStore';
 
 export default function AppLayout() {
+  const colors = useThemeColors();
+
   return (
     <View
       style={{
-        backgroundColor: LIGHT_THEME.background.page,
+        backgroundColor: colors.background.page,
         flex: 1,
         flexDirection: 'row',
         minHeight: 0,
@@ -16,7 +18,7 @@ export default function AppLayout() {
       <Sidebar />
       <View
         style={{
-          backgroundColor: LIGHT_THEME.background.page,
+          backgroundColor: colors.background.page,
           flex: 1,
           minHeight: 0,
           overflow: 'hidden',
@@ -24,7 +26,7 @@ export default function AppLayout() {
       >
         <Stack
           screenOptions={{
-            contentStyle: { backgroundColor: LIGHT_THEME.background.page },
+            contentStyle: { backgroundColor: colors.background.page },
             headerShown: false,
           }}
         >

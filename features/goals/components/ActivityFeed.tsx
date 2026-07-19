@@ -1,6 +1,7 @@
 import { Text, View, ActivityIndicator } from 'react-native';
 import { ReflectionCard } from '@/components/ui/ReflectionCard';
 import { Typography } from '@/components/ui/Typography';
+import { useThemeColors } from '@/store/uiStore';
 import type { ActivityItem, EchoEntryActivity, MilestoneCompletedActivity, GoalCreatedActivity } from '@/types/activity';
 
 interface ActivityFeedProps {
@@ -140,12 +141,13 @@ function ActivityRow({ item, isLast }: { item: ActivityItem; isLast: boolean }) 
 }
 
 export function ActivityFeed({ items, loading, error }: ActivityFeedProps) {
+  const colors = useThemeColors();
   if (error) return null;
 
   return (
     <View
       style={{
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.background.card,
         borderRadius: 16,
         padding: 20,
         marginBottom: 12,
@@ -161,7 +163,7 @@ export function ActivityFeed({ items, loading, error }: ActivityFeedProps) {
       </Typography>
 
       {loading ? (
-        <ActivityIndicator size="small" color="#A79E8E" style={{ alignSelf: 'flex-start' }} />
+        <ActivityIndicator size="small" color={colors.text.muted} style={{ alignSelf: 'flex-start' }} />
       ) : (
         items.map((item, index) => (
           <ActivityRow key={item.id} item={item} isLast={index === items.length - 1} />

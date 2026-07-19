@@ -1,14 +1,26 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
+import { colorScheme } from 'nativewind';
+import { Platform } from 'react-native';
+import { DARK_THEME, LIGHT_THEME } from '@/constants/colors';
+
+export type ThemeMode = 'light' | 'dark';
 
 interface UIStore {
   sidebarCollapsed: boolean;
   rightPaneWidth: number;
   echoMiddleMode: 'list' | 'tree';
+  themeMode: ThemeMode;
   setSidebarCollapsed: (collapsed: boolean) => void;
   toggleSidebarCollapsed: () => void;
   setRightPaneWidth: (width: number) => void;
   setEchoMiddleMode: (mode: 'list' | 'tree') => void;
+  toggleTheme: () => void;
+}
+
+function applyThemeMode(themeMode: ThemeMode) {
+  if (Platform.OS === 'web' && typeof window === 'undefined') return;
+  colorScheme.set(themeMode);
 }
 
 const webStorage: StateStorage = {
@@ -32,11 +44,18 @@ export const useUIStore = create<UIStore>()(
       sidebarCollapsed: false,
       rightPaneWidth: 420,
       echoMiddleMode: 'list',
+      themeMode: 'light',
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
       toggleSidebarCollapsed: () =>
         set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setRightPaneWidth: (width) => set({ rightPaneWidth: width }),
       setEchoMiddleMode: (mode) => set({ echoMiddleMode: mode }),
+      toggleTheme: () =>
+        set((state) => {
+          const themeMode = state.themeMode === 'light' ? 'dark' : 'light';
+          applyThemeMode(themeMode);
+          return { themeMode };
+        }),
     }),
     {
       name: 'ohara-ui-state',
@@ -45,7 +64,16 @@ export const useUIStore = create<UIStore>()(
         sidebarCollapsed: state.sidebarCollapsed,
         rightPaneWidth: state.rightPaneWidth,
         echoMiddleMode: state.echoMiddleMode,
+        themeMode: state.themeMode,
       }),
+      onRehydrateStorage: () => (state) => {
+        applyThemeMode(state?.themeMode ?? 'light');
+      },
     }
   )
 );
+
+export function useThemeColors() {
+  const themeMode = useUIStore((state) => state.themeMode);
+  return themeMode === 'dark' ? DARK_THEME : LIGHT_THEME;
+}

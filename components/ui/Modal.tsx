@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
+import { useThemeColors } from '@/store/uiStore';
 
 interface ModalMotion {
   backdropDuration: number;
@@ -57,6 +58,7 @@ export function Modal({
   contentStyle,
   motion,
 }: ModalProps) {
+  const colors = useThemeColors();
   const hasFooterActions = !!cancelText || !!confirmText || !!onCancel || !!onConfirm;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
@@ -122,17 +124,29 @@ export function Modal({
         <View className="mt-5 flex-row justify-end gap-3">
           {cancelText ? (
             <TouchableOpacity
-              className={`rounded-xl bg-[#F8F4EC] px-4 py-3 ${closeDisabled || cancelDisabled ? 'opacity-60' : ''}`}
+              className={`rounded-xl px-4 py-3 ${closeDisabled || cancelDisabled ? 'opacity-60' : ''}`}
+              style={{ backgroundColor: colors.background.input }}
               onPress={handleCancel}
               disabled={closeDisabled || cancelDisabled}
             >
-              <Text className="text-sm font-inter-medium text-[#4B5563]">{cancelText}</Text>
+              <Text
+                className="text-sm font-inter-medium"
+                style={{ color: colors.text.secondary }}
+              >
+                {cancelText}
+              </Text>
             </TouchableOpacity>
           ) : null}
 
           {confirmText ? (
             <TouchableOpacity
-              className={`rounded-xl px-4 py-3 ${confirmVariant === 'destructive' ? 'bg-[#DC2626]' : 'bg-[#1E3226]'} ${confirmDisabled ? 'opacity-60' : ''}`}
+              className={`rounded-xl px-4 py-3 ${confirmDisabled ? 'opacity-60' : ''}`}
+              style={{
+                backgroundColor:
+                  confirmVariant === 'destructive'
+                    ? colors.feedback.danger
+                    : colors.accent.primary,
+              }}
               onPress={onConfirm}
               disabled={confirmDisabled}
             >
@@ -144,7 +158,12 @@ export function Modal({
 
       {showCloseButton ? (
         <TouchableOpacity className="mt-4 items-center" onPress={handleClose} disabled={closeDisabled}>
-          <Text className={`text-muted text-sm ${closeDisabled ? 'opacity-60' : ''}`}>Close</Text>
+          <Text
+            className={`text-sm ${closeDisabled ? 'opacity-60' : ''}`}
+            style={{ color: colors.text.secondary }}
+          >
+            Close
+          </Text>
         </TouchableOpacity>
       ) : null}
     </>
@@ -174,6 +193,7 @@ export function Modal({
           <Animated.View
             style={[
               styles.content,
+              { backgroundColor: colors.background.page },
               contentStyle,
               { opacity: contentOpacity, transform: [{ translateY: contentTranslateY }] },
             ]}
@@ -191,7 +211,9 @@ export function Modal({
               style={StyleSheet.absoluteFill}
             />
           ) : null}
-          <View style={[styles.content, contentStyle]}>{modalContent}</View>
+          <View style={[styles.content, { backgroundColor: colors.background.page }, contentStyle]}>
+            {modalContent}
+          </View>
         </View>
       )}
     </RNModal>
@@ -209,7 +231,6 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 384,
     padding: 24,
-    backgroundColor: '#F8F4EC',
     borderRadius: 16,
   },
 });

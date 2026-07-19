@@ -14,10 +14,13 @@ import { useActivity } from '@/features/goals/hooks/useActivity';
 import { getVaultItemCount, } from '@/lib/db/vaults';
 import { getProjectTitle } from '@/lib/db/goals';
 import { getGoalRingProgress } from '@/features/goals/utils/ringProgress';
+import { useThemeColors } from '@/store/uiStore';
 
 function GoalDetailLoadingState() {
+  const colors = useThemeColors();
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.page }}>
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
         <View style={{ height: 14, width: 72, borderRadius: 999, backgroundColor: '#EAE7E0' }} />
       </View>
@@ -25,7 +28,7 @@ function GoalDetailLoadingState() {
         {/* Hero skeleton */}
         <View
           style={{
-            backgroundColor: '#FFFFFF',
+            backgroundColor: colors.background.card,
             borderRadius: 16,
             borderLeftWidth: 4,
             borderLeftColor: '#EAE7E0',
@@ -68,8 +71,10 @@ function GoalDetailLoadingState() {
 }
 
 function GoalNotFound() {
+  const colors = useThemeColors();
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.page }}>
       <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
         <Pressable onPress={() => router.back()}>
           <Typography variant="nav-back">← Journey</Typography>
@@ -88,7 +93,6 @@ function GoalNotFound() {
 }
 
 const SUMMARY_CARD_STYLE = {
-  backgroundColor: '#FFFFFF',
   borderRadius: 16,
   padding: 16,
   marginBottom: 12,
@@ -103,8 +107,6 @@ const SUMMARY_CARD_STYLE = {
 };
 
 const HEADER_ACTION_STYLE = {
-  backgroundColor: '#FFFFFF',
-  borderColor: '#EAE7E0',
   borderRadius: 14,
   borderWidth: 1,
   flexDirection: 'row' as const,
@@ -116,6 +118,7 @@ const HEADER_ACTION_STYLE = {
 };
 
 export default function GoalDetailScreen() {
+  const colors = useThemeColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const goalId = Array.isArray(id) ? id[0] : (id ?? '');
   const [vaultItemCount, setVaultItemCount] = useState(0);
@@ -208,8 +211,8 @@ export default function GoalDetailScreen() {
           onPress={() => router.push(`/(app)/goals/${successorGoalId}` as never)}
           style={{
             alignItems: 'center',
-            backgroundColor: '#E8F5EF',
-            borderColor: '#CDE7DC',
+            backgroundColor: colors.background.selectedRow,
+            borderColor: colors.border.accent,
             borderRadius: 12,
             borderWidth: 1,
             marginBottom: 12,
@@ -217,7 +220,7 @@ export default function GoalDetailScreen() {
             paddingVertical: 13,
           }}
         >
-          <Typography variant="emphasis-sm" style={{ color: '#2F6B50' }}>
+          <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>
             Continued in the next phase →
           </Typography>
         </Pressable>
@@ -284,12 +287,12 @@ export default function GoalDetailScreen() {
           {/* Mobile keeps goal context in the single-column reading flow. */}
           <Pressable
             onPress={() => router.push(`/(app)/goals/${goalId}/vault` as never)}
-            style={SUMMARY_CARD_STYLE}
+            style={[SUMMARY_CARD_STYLE, { backgroundColor: colors.background.card }]}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <Typography variant="meta" style={{ fontSize: 20, color: '#1E3226' }}>◫</Typography>
+              <Typography variant="meta" style={{ fontSize: 20, color: colors.text.accent }}>◫</Typography>
               <View>
-                <Typography variant="emphasis-sm" style={{ color: '#211F1A' }}>
+                <Typography variant="emphasis-sm" style={{ color: colors.text.primary }}>
                   Vault
                 </Typography>
                 <Typography variant="caption">
@@ -304,12 +307,12 @@ export default function GoalDetailScreen() {
 
           <Pressable
             onPress={() => router.push(`/(app)/echo?goalId=${goalId}` as never)}
-            style={SUMMARY_CARD_STYLE}
+            style={[SUMMARY_CARD_STYLE, { backgroundColor: colors.background.card }]}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <Typography variant="meta" style={{ fontSize: 20, color: '#1E3226' }}>✦</Typography>
+              <Typography variant="meta" style={{ fontSize: 20, color: colors.text.accent }}>✦</Typography>
               <View>
-                <Typography variant="emphasis-sm" style={{ color: '#211F1A' }}>
+                <Typography variant="emphasis-sm" style={{ color: colors.text.primary }}>
                   Reflections
                 </Typography>
                 <Typography variant="caption">
@@ -339,7 +342,7 @@ export default function GoalDetailScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.page }}>
       {/* Nav bar */}
       <View
         style={{
@@ -353,7 +356,7 @@ export default function GoalDetailScreen() {
         <Pressable onPress={() => router.back()}>
           <Typography variant="nav-back">← Journey</Typography>
         </Pressable>
-        <Typography variant="nav-back" style={{ color: '#A79E8E', marginHorizontal: 8 }}>|</Typography>
+        <Typography variant="nav-back" style={{ color: colors.text.muted, marginHorizontal: 8 }}>|</Typography>
         <GoalTitleRow
           title={goal.title}
           variant="nav-title"
@@ -366,11 +369,14 @@ export default function GoalDetailScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginLeft: 20 }}>
             <Pressable
               onPress={() => router.push(`/(app)/goals/${goalId}/vault` as never)}
-              style={HEADER_ACTION_STYLE}
+              style={[
+                HEADER_ACTION_STYLE,
+                { backgroundColor: colors.background.card, borderColor: colors.border.divider },
+              ]}
             >
-              <Typography variant="meta" style={{ fontSize: 17, color: '#1E3226' }}>◫</Typography>
+              <Typography variant="meta" style={{ fontSize: 17, color: colors.text.accent }}>◫</Typography>
               <View>
-                <Typography variant="emphasis-sm" style={{ color: '#211F1A' }}>
+                <Typography variant="emphasis-sm" style={{ color: colors.text.primary }}>
                   Vault
                 </Typography>
                 <Typography variant="caption">
@@ -382,11 +388,14 @@ export default function GoalDetailScreen() {
             </Pressable>
             <Pressable
               onPress={() => router.push(`/(app)/echo?goalId=${goalId}` as never)}
-              style={HEADER_ACTION_STYLE}
+              style={[
+                HEADER_ACTION_STYLE,
+                { backgroundColor: colors.background.card, borderColor: colors.border.divider },
+              ]}
             >
-              <Typography variant="meta" style={{ fontSize: 17, color: '#1E3226' }}>✦</Typography>
+              <Typography variant="meta" style={{ fontSize: 17, color: colors.text.accent }}>✦</Typography>
               <View>
-                <Typography variant="emphasis-sm" style={{ color: '#211F1A' }}>
+                <Typography variant="emphasis-sm" style={{ color: colors.text.primary }}>
                   Reflections
                 </Typography>
                 <Typography variant="caption">Journal</Typography>

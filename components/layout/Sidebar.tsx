@@ -2,8 +2,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { router, usePathname } from 'expo-router';
 import { BrandIcon, type BrandIconName } from '@/components/ui/BrandIcon';
 import { FEATURES } from '@/constants/features';
-import { LIGHT_THEME } from '@/constants/colors';
-import { useUIStore } from '@/store/uiStore';
+import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { AvatarMenu } from './AvatarMenu';
 
 type NavItem = {
@@ -39,6 +38,7 @@ const NAV_ICON_SIZE = {
 } as const;
 
 export function Sidebar() {
+  const colors = useThemeColors();
   const pathname = usePathname();
   const collapsed = useUIStore((state) => state.sidebarCollapsed);
   const toggleSidebarCollapsed = useUIStore((state) => state.toggleSidebarCollapsed);
@@ -47,7 +47,7 @@ export function Sidebar() {
     <View
       style={{
         width: collapsed ? SIDEBAR_WIDTH.collapsed : SIDEBAR_WIDTH.expanded,
-        backgroundColor: '#1E3226',
+        backgroundColor: colors.background.sidebar,
         flexDirection: 'column',
         alignSelf: 'stretch',
       }}
@@ -83,7 +83,7 @@ export function Sidebar() {
               <BrandIcon name="ohara" size={BRAND_SIZE.expandedLogo} style={{ marginRight: 10 }} />
               <Text
                 style={{
-                  color: '#EDE7DA',
+                  color: colors.text.inverse,
                   fontFamily: 'Inter-SemiBold',
                   fontSize: BRAND_SIZE.expandedText,
                   letterSpacing: 4,
@@ -107,7 +107,7 @@ export function Sidebar() {
               }}
               activeOpacity={0.7}
             >
-              <Text style={{ color: LIGHT_THEME.border.toggleGlyph, fontSize: 13, lineHeight: 13 }}>‹</Text>
+              <Text style={{ color: colors.border.toggleGlyph, fontSize: 13, lineHeight: 13 }}>‹</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -154,7 +154,7 @@ export function Sidebar() {
               {(!collapsed || !item.icon) && (
                 <Text
                   style={{
-                    color: isActive ? '#EDE7DA' : '#8FA294',
+                    color: isActive ? colors.text.inverse : colors.text.mutedOnDark,
                     fontSize: 14,
                     fontFamily: 'Inter-Medium',
                   }}

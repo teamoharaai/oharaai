@@ -8,7 +8,7 @@ interface ScreenProps {
 }
 
 export function Screen({ children, scrollable = true, dark = false }: ScreenProps) {
-  const bg = dark ? 'flex-1 bg-dark-bg' : 'flex-1 bg-cream';
+  const bg = dark ? 'flex-1 bg-landing-dark-bg' : 'flex-1 bg-cream';
   if (!scrollable) {
     return <SafeAreaView className={bg}>{children}</SafeAreaView>;
   }

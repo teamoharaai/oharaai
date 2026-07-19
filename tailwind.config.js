@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
     "./app/**/*.{js,jsx,ts,tsx}",
     "./components/**/*.{js,jsx,ts,tsx}",
@@ -31,13 +32,17 @@ module.exports = {
         "border-warm": "#EDE6D8",
         "border-warm-subtle": "#EFE9DC",
         "toggle-glyph": "#A8C4AE",
-        // Dark theme (app screens)
-        "dark-bg": "#0A0A0F",
-        "dark-card": "#14141F",
-        "dark-border": "#1E1E2E",
+        // Manual dark theme (app screens)
+        "dark-bg": "#111111",
+        "dark-card": "#1A1A1A",
+        "dark-border": "#2D2D2D",
+        // Landing-page-only dark palette
+        "landing-dark-bg": "#0A0A0F",
+        "landing-dark-card": "#14141F",
+        "landing-dark-border": "#1E1E2E",
         ink: "#FAFAFA",
-        "ink-dim": "#8888A0",
-        primary: "#6E5CE7",
+        "landing-ink-dim": "#8888A0",
+        "landing-primary": "#6E5CE7",
       },
       fontFamily: {
         sans: ['Inter-Regular', 'System', 'sans-serif'],

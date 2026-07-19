@@ -2,7 +2,8 @@ import { View } from 'react-native';
 import { router } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
 import { GOAL_THEMES } from '@/constants/themes';
-import { LIGHT_THEME } from '@/constants/colors';
+import type { ThemeColors } from '@/constants/colors';
+import { useThemeColors } from '@/store/uiStore';
 import { getGoalRingProgress } from '../utils/ringProgress';
 import { GoalRingCard } from './GoalRingCard';
 import type { GoalWithMeasurables } from '../types';
@@ -12,11 +13,11 @@ interface GoalRingGridProps {
   emptyMessage?: string;
 }
 
-function resolveDueDate(deadline: Date | null): {
+function resolveDueDate(deadline: Date | null, colors: ThemeColors): {
   label?: string;
   color: string;
 } {
-  if (!deadline) return { color: LIGHT_THEME.text.secondary };
+  if (!deadline) return { color: colors.text.secondary };
 
   const label = deadline.toLocaleDateString('en-US', {
     month: 'short',
@@ -25,12 +26,12 @@ function resolveDueDate(deadline: Date | null): {
   const days = Math.ceil((deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 
   if (days < 0) {
-    return { label, color: LIGHT_THEME.feedback.danger };
+    return { label, color: colors.feedback.danger };
   }
   if (days <= 14) {
-    return { label, color: LIGHT_THEME.text.secondary };
+    return { label, color: colors.text.secondary };
   }
-  return { label, color: LIGHT_THEME.text.muted };
+  return { label, color: colors.text.muted };
 }
 
 function resolveActivityLabel(goal: GoalWithMeasurables): string | undefined {
@@ -47,6 +48,7 @@ function resolveActivityLabel(goal: GoalWithMeasurables): string | undefined {
 }
 
 export function GoalRingGrid({ goals, emptyMessage }: GoalRingGridProps) {
+  const colors = useThemeColors();
   if (goals.length === 0) {
     return emptyMessage ? <Typography variant="hint">{emptyMessage}</Typography> : null;
   }
@@ -63,7 +65,10 @@ export function GoalRingGrid({ goals, emptyMessage }: GoalRingGridProps) {
         const ringProgress = getGoalRingProgress(goal);
         if (ringProgress === null) return null;
 
-        const { label: dueDateLabel, color: dueDateColor } = resolveDueDate(goal.deadline);
+        const { label: dueDateLabel, color: dueDateColor } = resolveDueDate(
+          goal.deadline,
+          colors,
+        );
         return (
           <View
             key={goal.id}

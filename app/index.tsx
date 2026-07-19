@@ -205,7 +205,7 @@ export default function LandingPage() {
   }
 
   return (
-    <View className="flex-1 bg-dark-bg">
+    <View className="flex-1 bg-landing-dark-bg">
       <View className="absolute inset-0 overflow-hidden">
         <View
           className="absolute left-1/2 top-1/2 h-72 w-72 -translate-x-36 -translate-y-36 rounded-full bg-white/10"
@@ -227,7 +227,7 @@ export default function LandingPage() {
             } as any
           }
         />
-        <View className="absolute inset-0 bg-dark-bg/78" />
+        <View className="absolute inset-0 bg-landing-dark-bg/78" />
         <View
           className="absolute inset-0"
           style={{

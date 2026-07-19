@@ -9,6 +9,7 @@ import { CountdownTimer } from './CountdownTimer';
 import { ExtendGoalModal } from './ExtendGoalModal';
 import { GoalTitleRow } from './GoalTitleRow';
 import { getRingColor } from '../utils/ringProgress';
+import { useThemeColors } from '@/store/uiStore';
 import type { GoalWithMeasurables } from '../types';
 
 interface GoalDetailHeaderProps {
@@ -44,6 +45,7 @@ export function GoalDetailHeader({
   ended,
   onUpdateDeadline,
 }: GoalDetailHeaderProps) {
+  const colors = useThemeColors();
   const [descExpanded, setDescExpanded] = useState(false);
   const [showEndedCard, setShowEndedCard] = useState(true);
   const [showExtendModal, setShowExtendModal] = useState(false);
@@ -96,7 +98,9 @@ export function GoalDetailHeader({
   return (
     <View
       style={{
-        backgroundColor: isSuperseded ? '#F5F2EA' : '#FFFFFF',
+        backgroundColor: isSuperseded
+          ? colors.background.selectedRow
+          : colors.background.card,
         borderRadius: 16,
         borderLeftWidth: 4,
         borderLeftColor: isSuperseded ? '#C7C0B2' : theme.accent,
@@ -115,7 +119,7 @@ export function GoalDetailHeader({
           onPress={() => router.push(`/(app)/goals/${successorGoalId}` as never)}
           style={{ alignSelf: 'flex-start', marginBottom: 12 }}
         >
-          <Text style={{ color: '#8A8172', fontFamily: 'Inter-Regular', fontSize: 13 }}>
+          <Text style={{ color: colors.text.secondary, fontFamily: 'Inter-Regular', fontSize: 13 }}>
             ‹ Back to current phase
           </Text>
         </TouchableOpacity>
@@ -148,7 +152,11 @@ export function GoalDetailHeader({
         iconSize={26}
         style={{ marginBottom: goal.description ? 10 : isMomentum ? 6 : 0 }}
         iconStyle={{ marginTop: 2 }}
-        textStyle={{ fontSize: 26, lineHeight: 32, color: isSuperseded ? '#6E675B' : undefined }}
+        textStyle={{
+          fontSize: 26,
+          lineHeight: 32,
+          color: isSuperseded ? colors.text.secondary : colors.text.primary,
+        }}
       />
 
       {isMomentum && (
@@ -176,7 +184,7 @@ export function GoalDetailHeader({
       )}
 
       {/* Divider */}
-      <View style={{ height: 1, backgroundColor: '#EAE7E0', marginVertical: 16 }} />
+      <View style={{ height: 1, backgroundColor: colors.border.divider, marginVertical: 16 }} />
 
       {/* Progress row: countdown + ring */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
@@ -185,16 +193,17 @@ export function GoalDetailHeader({
             <TextInput
               style={{
                 borderWidth: 1,
-                borderColor: deadlineError ? '#C0483A' : '#EAE7E0',
+                borderColor: deadlineError ? colors.feedback.danger : colors.border.input,
+                backgroundColor: colors.background.input,
                 borderRadius: 8,
                 paddingHorizontal: 10,
                 paddingVertical: 6,
                 fontSize: 13,
-                color: '#211F1A',
+                color: colors.text.primary,
                 marginBottom: 6,
               }}
               placeholder="YYYY-MM-DD"
-              placeholderTextColor="#A79E8E"
+              placeholderTextColor={colors.text.muted}
               value={deadlineInput}
               onChangeText={(text) => {
                 setDeadlineInput(text);
@@ -203,7 +212,7 @@ export function GoalDetailHeader({
               editable={!savingDeadline}
             />
             {deadlineError && (
-              <Text style={{ fontSize: 11, color: '#C0483A', marginBottom: 6 }}>{deadlineError}</Text>
+              <Text style={{ fontSize: 11, color: colors.feedback.danger, marginBottom: 6 }}>{deadlineError}</Text>
             )}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
               <TouchableOpacity onPress={handleSaveDeadline} disabled={savingDeadline}>
@@ -213,7 +222,7 @@ export function GoalDetailHeader({
               </TouchableOpacity>
               {goal.deadline && (
                 <TouchableOpacity onPress={() => commitDeadline(null)} disabled={savingDeadline}>
-                  <Text style={{ fontSize: 12, color: '#C0483A' }}>Clear</Text>
+                  <Text style={{ fontSize: 12, color: colors.feedback.danger }}>Clear</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -223,7 +232,7 @@ export function GoalDetailHeader({
                 }}
                 disabled={savingDeadline}
               >
-                <Text style={{ fontSize: 12, color: '#A79E8E' }}>Cancel</Text>
+                <Text style={{ fontSize: 12, color: colors.text.muted }}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </View>
