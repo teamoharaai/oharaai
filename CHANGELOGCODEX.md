@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added (2026-07-19 — Avatar-menu theme shortcut)
+- **`components/layout/AvatarMenu.tsx`, `components/ui/BrandIcon.tsx`, and `assets/brand/theme-mode.png`:** added the supplied day/night logo as an accessible avatar-popover shortcut to the existing persisted theme toggle, and made the open popover react to the selected palette so the change is immediately visible while preserving the Settings switch.
+
 ### Added (2026-07-19 — Manual dark theme)
 - **`constants/colors.ts`:** added a structurally checked `DARK_THEME` palette with the confirmed Figma values and explicitly documented derived fallbacks for every token without a dark source.
 - **`store/uiStore.ts`, `app/_layout.tsx`, and `tailwind.config.js`:** added a persisted, light-defaulting manual `themeMode`, a `toggleTheme` action, NativeWind color-scheme synchronization, manual class-based dark mode, and app-specific `dark-*` Tailwind surface tokens without reusing the separate `landing-*` palette.

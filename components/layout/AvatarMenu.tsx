@@ -3,6 +3,8 @@ import { Modal, Pressable, Text, TouchableOpacity, View } from 'react-native';
 import { authedFetch, signOutAndRedirect } from '@/lib/api/client';
 import type { ApiResponse } from '@/lib/api/contracts';
 import { Avatar } from '@/components/ui/Avatar';
+import { BrandIcon } from '@/components/ui/BrandIcon';
+import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { AccountModal } from './AccountModal';
 import { SettingsModal } from './SettingsModal';
 
@@ -12,6 +14,9 @@ interface ProfileSummary {
 }
 
 export function AvatarMenu() {
+  const colors = useThemeColors();
+  const themeMode = useUIStore((state) => state.themeMode);
+  const toggleTheme = useUIStore((state) => state.toggleTheme);
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -89,27 +94,59 @@ export function AvatarMenu() {
           <Pressable
             onPress={() => {}}
             style={{
-              backgroundColor: '#F8F4EC',
+              backgroundColor: colors.background.page,
               borderRadius: 16,
               padding: 20,
               width: '100%',
               maxWidth: 300,
             }}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-              <Avatar avatarUrl={avatarUrl} displayName={displayName} size={44} />
-              <Text
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 16,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                <Avatar avatarUrl={avatarUrl} displayName={displayName} size={44} />
+                <Text
+                  style={{
+                    marginLeft: 12,
+                    fontFamily: 'Inter-SemiBold',
+                    fontSize: 15,
+                    color: colors.text.primary,
+                    flexShrink: 1,
+                  }}
+                  numberOfLines={1}
+                >
+                  {displayName || 'Your account'}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={toggleTheme}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  themeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'
+                }
+                accessibilityHint="Changes the app appearance"
                 style={{
+                  width: 40,
+                  height: 40,
                   marginLeft: 12,
-                  fontFamily: 'Inter-SemiBold',
-                  fontSize: 15,
-                  color: '#211F1A',
-                  flexShrink: 1,
+                  borderRadius: 20,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: colors.background.input,
+                  borderWidth: 1,
+                  borderColor: colors.border.default,
                 }}
-                numberOfLines={1}
+                activeOpacity={0.7}
               >
-                {displayName || 'Your account'}
-              </Text>
+                <BrandIcon name="theme-mode" size={36} />
+              </TouchableOpacity>
             </View>
 
             <TouchableOpacity
@@ -120,7 +157,9 @@ export function AvatarMenu() {
               style={{ paddingVertical: 12 }}
               activeOpacity={0.7}
             >
-              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#211F1A' }}>Profile</Text>
+              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: colors.text.primary }}>
+                Profile
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -131,13 +170,17 @@ export function AvatarMenu() {
               style={{ paddingVertical: 12 }}
               activeOpacity={0.7}
             >
-              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#211F1A' }}>Settings</Text>
+              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: colors.text.primary }}>
+                Settings
+              </Text>
             </TouchableOpacity>
 
-            <View style={{ height: 1, backgroundColor: '#E5E1D8', marginVertical: 4 }} />
+            <View style={{ height: 1, backgroundColor: colors.border.divider, marginVertical: 4 }} />
 
             <TouchableOpacity onPress={handleSignOut} style={{ paddingVertical: 12 }} activeOpacity={0.7}>
-              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: '#DC2626' }}>Log out</Text>
+              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: colors.feedback.danger }}>
+                Log out
+              </Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>

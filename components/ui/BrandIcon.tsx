@@ -12,7 +12,8 @@ export type BrandIconName =
   | 'goal-mark'
   | 'today'
   | 'echo-add-entry'
-  | 'project';
+  | 'project'
+  | 'theme-mode';
 
 const BRAND_ICON_SOURCES: Record<BrandIconName, ImageSourcePropType> = {
   ohara: require('../../assets/brand/ohara-logo.png') as ImageSourcePropType,
@@ -22,6 +23,7 @@ const BRAND_ICON_SOURCES: Record<BrandIconName, ImageSourcePropType> = {
   today: require('../../assets/brand/today-logo.png') as ImageSourcePropType,
   'echo-add-entry': require('../../assets/brand/echo-add-entry.png') as ImageSourcePropType,
   project: require('../../assets/brand/project-logo.png') as ImageSourcePropType,
+  'theme-mode': require('../../assets/brand/theme-mode.png') as ImageSourcePropType,
 };
 
 type BrandIconProps = {
