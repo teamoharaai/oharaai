@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-19 — Echo raw text theme tokens)
+- **`features/echo/components/`:** routed the confirmed exact-match colors on raw Echo `Text` elements through runtime `text.primary`, `text.secondary`, `text.inverse`, and `feedback.danger` theme tokens while preserving their bespoke typography and leaving composer notices, text inputs, modal scrim, and shadows unchanged.
+
 ### Changed (2026-07-19 — Echo theme surfaces)
 - **`features/echo/components/`:** routed the ten scoped Echo screen, composer, detail, list, tree, picker, modal, and resizer components through `useThemeColors()` for exact-match backgrounds, borders, dividers, icons, indicators, and BRT accents while preserving existing layout and non-color styling. Existing notice, scrim, and shadow colors without clean theme-token matches remain unchanged for follow-up.
 

@@ -22,11 +22,13 @@ type EchoContainerTreeProps = {
 };
 
 function SectionLabel({ children }: { children: string }) {
+  const colors = useThemeColors();
+
   return (
     <Text
       className="px-3 pb-2 pt-4 font-sans"
       style={{
-        color: '#8A8172',
+        color: colors.text.secondary,
         fontFamily: 'Inter-Bold',
         fontSize: 10.5,
         letterSpacing: 0.63,
@@ -194,7 +196,7 @@ export function EchoContainerTree({
                     numberOfLines={1}
                     className="min-w-0 flex-1 font-sans"
                     style={{
-                      color: '#211F1A',
+                      color: colors.text.primary,
                       fontFamily: selected ? 'Inter-Bold' : 'Inter-Medium',
                       fontSize: 13.5,
                       lineHeight: 18,
@@ -235,7 +237,7 @@ export function EchoContainerTree({
               numberOfLines={1}
               className="px-3 pb-1.5 pt-2 font-sans"
               style={{
-                color: '#211F1A',
+                color: colors.text.primary,
                 fontFamily: 'Inter-Bold',
                 fontSize: 13.5,
                 lineHeight: 18,
@@ -286,7 +288,7 @@ export function EchoContainerTree({
                         numberOfLines={1}
                         className="min-w-0 flex-1 font-sans"
                         style={{
-                          color: '#211F1A',
+                          color: colors.text.primary,
                           fontFamily: selected ? 'Inter-Bold' : 'Inter-Regular',
                           fontSize: 13,
                           lineHeight: 18,

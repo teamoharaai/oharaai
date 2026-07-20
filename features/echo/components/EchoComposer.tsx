@@ -248,7 +248,7 @@ export function EchoComposer({
         <Text
           className="min-w-0 flex-1 font-sans"
           style={{
-            color: '#211F1A',
+            color: colors.text.primary,
             fontFamily: 'Inter-ExtraBold',
             fontSize: 20,
             lineHeight: 26,
@@ -264,7 +264,7 @@ export function EchoComposer({
             className="rounded-xl border px-3.5 py-3"
             style={{ backgroundColor: colors.background.card, borderColor: colors.border.input }}
           >
-            <Text className="font-sans text-xs" style={{ color: '#8A8172' }}>
+            <Text className="font-sans text-xs" style={{ color: colors.text.secondary }}>
               Assigned to:
             </Text>
             <View className="mt-1 flex-row items-center justify-between gap-3">
@@ -272,7 +272,7 @@ export function EchoComposer({
                 numberOfLines={1}
                 className="min-w-0 flex-1 font-sans"
                 style={{
-                  color: '#211F1A',
+                  color: colors.text.primary,
                   fontFamily: 'Inter-Bold',
                   fontSize: 13.5,
                   lineHeight: 18,
@@ -281,7 +281,7 @@ export function EchoComposer({
                 {linkedGoal.title || 'Selected goal'}
               </Text>
               <TouchableOpacity onPress={() => setLinkedGoal(null)} activeOpacity={0.7}>
-                <Text className="font-sans text-sm" style={{ color: '#8A8172' }}>
+                <Text className="font-sans text-sm" style={{ color: colors.text.secondary }}>
                   Clear
                 </Text>
               </TouchableOpacity>
@@ -294,7 +294,7 @@ export function EchoComposer({
             style={{ backgroundColor: colors.background.card, borderColor: colors.border.input }}
             activeOpacity={0.75}
           >
-            <Text className="font-sans text-sm" style={{ color: '#8A8172' }}>
+            <Text className="font-sans text-sm" style={{ color: colors.text.secondary }}>
               Link a goal
             </Text>
           </TouchableOpacity>
@@ -365,7 +365,7 @@ export function EchoComposer({
         >
           <Text
             className="font-sans"
-            style={{ color: '#8A8172', fontFamily: 'Inter-SemiBold', fontSize: 13.5 }}
+            style={{ color: colors.text.secondary, fontFamily: 'Inter-SemiBold', fontSize: 13.5 }}
           >
             Cancel
           </Text>
@@ -380,7 +380,7 @@ export function EchoComposer({
           <Text
             className="font-sans"
             style={{
-              color: canSave ? '#EDE7DA' : '#8A8172',
+              color: canSave ? colors.text.inverse : colors.text.secondary,
               fontFamily: 'Inter-SemiBold',
               fontSize: 13.5,
             }}

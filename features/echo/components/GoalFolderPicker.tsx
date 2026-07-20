@@ -21,11 +21,13 @@ type GoalFolderPickerProps = {
 };
 
 function SectionHeader({ label }: { label: string }) {
+  const colors = useThemeColors();
+
   return (
     <Text
       className="px-4 pb-2 pt-4 font-sans"
       style={{
-        color: '#8A8172',
+        color: colors.text.secondary,
         fontFamily: 'Inter-Bold',
         fontSize: 10.5,
         letterSpacing: 0.63,
@@ -39,11 +41,13 @@ function SectionHeader({ label }: { label: string }) {
 }
 
 function ProjectHeader({ label }: { label: string }) {
+  const colors = useThemeColors();
+
   return (
     <Text
       className="px-4 pb-1.5 pt-2 font-sans"
       style={{
-        color: '#211F1A',
+        color: colors.text.primary,
         fontFamily: 'Inter-Bold',
         fontSize: 13,
         lineHeight: 18,
@@ -70,7 +74,7 @@ export function GoalFolderPicker({
 
   if (!hasTargets) {
     return (
-      <Text className="px-4 py-4 font-sans text-sm" style={{ color: '#8A8172' }}>
+      <Text className="px-4 py-4 font-sans text-sm" style={{ color: colors.text.secondary }}>
         No goals or folders yet.
       </Text>
     );
@@ -83,7 +87,7 @@ export function GoalFolderPicker({
     >
       <SectionHeader label="Goals" />
       {goalGroups.length === 0 ? (
-        <Text className="px-4 py-2 font-sans text-sm" style={{ color: '#8A8172' }}>
+        <Text className="px-4 py-2 font-sans text-sm" style={{ color: colors.text.secondary }}>
           No goals yet.
         </Text>
       ) : (
@@ -106,7 +110,7 @@ export function GoalFolderPicker({
                   <Text
                     className="font-sans"
                     style={{
-                      color: '#211F1A',
+                      color: colors.text.primary,
                       fontFamily: isSelected ? 'Inter-Bold' : 'Inter-Regular',
                       fontSize: 13,
                       lineHeight: 18,
@@ -144,7 +148,7 @@ export function GoalFolderPicker({
                 <Text
                   className="font-sans"
                   style={{
-                    color: '#211F1A',
+                    color: colors.text.primary,
                     fontFamily: isSelected ? 'Inter-Bold' : 'Inter-Regular',
                     fontSize: 13,
                     lineHeight: 18,

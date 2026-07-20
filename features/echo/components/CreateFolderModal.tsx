@@ -58,7 +58,7 @@ export function CreateFolderModal({
           <Text
             className="font-sans"
             style={{
-              color: '#211F1A',
+              color: colors.text.primary,
               fontFamily: 'Inter-Bold',
               fontSize: 17,
               lineHeight: 23,
@@ -69,7 +69,7 @@ export function CreateFolderModal({
 
           <Text
             className="mt-2 font-sans"
-            style={{ color: '#8A8172', fontSize: 13, lineHeight: 18 }}
+            style={{ color: colors.text.secondary, fontSize: 13, lineHeight: 18 }}
           >
             Give this folder a name.
           </Text>
@@ -99,7 +99,7 @@ export function CreateFolderModal({
           {displayError ? (
             <Text
               className="mt-3 font-sans"
-              style={{ color: '#C0483A', fontSize: 13, lineHeight: 18 }}
+              style={{ color: colors.feedback.danger, fontSize: 13, lineHeight: 18 }}
             >
               {displayError}
             </Text>
@@ -114,7 +114,7 @@ export function CreateFolderModal({
             >
               <Text
                 className="font-sans"
-                style={{ color: '#8A8172', fontFamily: 'Inter-SemiBold', fontSize: 13.5 }}
+                style={{ color: colors.text.secondary, fontFamily: 'Inter-SemiBold', fontSize: 13.5 }}
               >
                 Cancel
               </Text>
@@ -134,7 +134,7 @@ export function CreateFolderModal({
                 <Text
                   className="font-sans"
                   style={{
-                    color: '#EDE7DA',
+                    color: colors.text.inverse,
                     fontFamily: 'Inter-SemiBold',
                     fontSize: 13.5,
                   }}

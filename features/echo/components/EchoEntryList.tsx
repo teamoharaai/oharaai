@@ -157,7 +157,7 @@ export function EchoEntryList({
               <Text
                 className="mb-1.5 px-3 pt-3 font-sans"
                 style={{
-                  color: '#8A8172',
+                  color: colors.text.secondary,
                   fontFamily: 'Inter-Bold',
                   fontSize: 10.5,
                   letterSpacing: 0.63,

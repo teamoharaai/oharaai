@@ -122,7 +122,7 @@ export function EchoFilterPill({
           numberOfLines={1}
           className="font-sans"
           style={{
-            color: '#EDE7DA',
+            color: colors.text.inverse,
             fontFamily: 'Inter-Medium',
             fontSize: 13,
             lineHeight: 17,
@@ -133,7 +133,7 @@ export function EchoFilterPill({
         </Text>
         <Text
           className="ml-1.5 font-sans"
-          style={{ color: '#EDE7DA', fontSize: 11, lineHeight: 14 }}
+          style={{ color: colors.text.inverse, fontSize: 11, lineHeight: 14 }}
         >
           {'⌄'}
         </Text>
@@ -167,7 +167,7 @@ export function EchoFilterPill({
                   numberOfLines={1}
                   className="font-sans"
                   style={{
-                    color: '#211F1A',
+                    color: colors.text.primary,
                     fontFamily: selected ? 'Inter-Bold' : 'Inter-Medium',
                     fontSize: 13,
                     lineHeight: 18,
