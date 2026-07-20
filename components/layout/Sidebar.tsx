@@ -99,7 +99,7 @@ export function Sidebar() {
                 width: 22,
                 height: 22,
                 borderRadius: 11,
-                backgroundColor: 'rgba(255,255,255,0.08)',
+                backgroundColor: colors.border.default,
                 alignItems: 'center',
                 alignSelf: 'flex-end',
                 justifyContent: 'center',
@@ -137,7 +137,7 @@ export function Sidebar() {
                 borderRadius: 12,
                 marginHorizontal: 12,
                 marginBottom: 4,
-                backgroundColor: isActive ? '#2A4436' : 'transparent',
+                backgroundColor: isActive ? colors.background.selectedRow : 'transparent',
                 opacity: item.enabled ? 1 : 0.4,
               }}
               activeOpacity={0.7}
@@ -154,7 +154,7 @@ export function Sidebar() {
               {(!collapsed || !item.icon) && (
                 <Text
                   style={{
-                    color: isActive ? colors.text.inverse : colors.text.mutedOnDark,
+                    color: isActive ? colors.text.primary : colors.text.mutedOnDark,
                     fontSize: 14,
                     fontFamily: 'Inter-Medium',
                   }}

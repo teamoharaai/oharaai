@@ -44,7 +44,9 @@ export function TodayGoalCard({ goal, projectTitle }: TodayGoalCardProps) {
           justifyContent: 'space-between',
         }}
       >
-        <Typography variant="eyebrow">Today&apos;s Focus</Typography>
+        <Typography variant="eyebrow" style={{ color: colors.text.accent }}>
+          Today&apos;s Focus
+        </Typography>
         <Pressable
           accessibilityHint="Opens this goal"
           accessibilityLabel={`Open ${goal.title}`}
@@ -58,7 +60,7 @@ export function TodayGoalCard({ goal, projectTitle }: TodayGoalCardProps) {
           }
           style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}
         >
-          <Ionicons name="chevron-forward" size={20} color={colors.text.primary} />
+          <Ionicons name="chevron-forward" size={20} color={colors.text.accent} />
         </Pressable>
       </View>
 

@@ -1,3 +1,58 @@
+export interface ThemeColors {
+  readonly background: {
+    readonly page: string;
+    readonly card: string;
+    readonly sidebar: string;
+    readonly input: string;
+    readonly subtle: string;
+    readonly goalCard: string;
+    readonly selectedRow: string;
+  };
+  readonly text: {
+    readonly primary: string;
+    readonly secondary: string;
+    readonly inverse: string;
+    readonly accent: string;
+    readonly muted: string;
+    readonly mutedOnDark: string;
+  };
+  readonly border: {
+    readonly default: string;
+    readonly subtle: string;
+    readonly accent: string;
+    readonly warm: string;
+    readonly warmSubtle: string;
+    readonly input: string;
+    readonly divider: string;
+    readonly toggleGlyph: string;
+  };
+  readonly brt: {
+    readonly bud: string;
+    readonly rose: string;
+    readonly thorn: string;
+  };
+  readonly accent: {
+    readonly primary: string;
+    readonly teal: string;
+    readonly tealSubtle: string;
+    readonly tealMid: string;
+    readonly tealSoft: string;
+  };
+  readonly feedback: {
+    readonly danger: FeedbackColors;
+    readonly pending: FeedbackColors;
+    readonly info: FeedbackColors;
+  };
+}
+
+interface FeedbackColors {
+  readonly text: string;
+  readonly bg: string;
+  readonly border: string;
+}
+
+export type ThemeTextColor = keyof ThemeColors['text'];
+
 export const LIGHT_THEME = {
   background: {
     page: '#F8F4EC', // reconciled: was #F5F1EA (warm-neutral repalette)
@@ -55,15 +110,7 @@ export const LIGHT_THEME = {
       text: '#5F6B66',
     },
   },
-} as const;
-
-type WidenColorLeaves<T> = {
-  readonly [Key in keyof T]: T[Key] extends string
-    ? string
-    : WidenColorLeaves<T[Key]>;
-};
-
-export type ThemeColors = WidenColorLeaves<typeof LIGHT_THEME>;
+} as const satisfies ThemeColors;
 
 export const DARK_THEME = {
   background: {

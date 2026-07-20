@@ -193,13 +193,25 @@ function DueTodayZone() {
         className="rounded-2xl border p-5"
         style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider }}
       >
-        <View className="mb-4 h-2.5 w-16 rounded-full bg-[#EAE7E0]" />
+        <View
+          className="mb-4 h-2.5 w-16 rounded-full"
+          style={{ backgroundColor: colors.background.subtle }}
+        />
         {[0, 1].map((i) => (
           <View key={i} className="mb-3 flex-row items-center gap-3">
-            <View className="h-5 w-5 rounded-full bg-[#EAE7E0]" />
+            <View
+              className="h-5 w-5 rounded-full"
+              style={{ backgroundColor: colors.background.subtle }}
+            />
             <View className="flex-1 gap-2">
-              <View className="h-2 w-14 rounded-full bg-[#F0EDE6]" />
-              <View className="h-3 w-3/4 rounded-full bg-[#EAE7E0]" />
+              <View
+                className="h-2 w-14 rounded-full"
+                style={{ backgroundColor: colors.background.input }}
+              />
+              <View
+                className="h-3 w-3/4 rounded-full"
+                style={{ backgroundColor: colors.background.subtle }}
+              />
             </View>
           </View>
         ))}
@@ -236,15 +248,22 @@ function DueTodayZone() {
               <TouchableOpacity
                 onPress={() => void handleComplete(item)}
                 disabled={done || completing}
-                className={`h-6 w-6 items-center justify-center rounded-full border-2 ${
-                  done ? 'border-[#1E3226]' : 'border-[#C9D4CD]'
-                }`}
+                className="h-6 w-6 items-center justify-center rounded-full border-2"
+                style={{ borderColor: done ? colors.accent.primary : colors.border.input }}
               >
                 {done && (
-                  <Text className="text-xs font-inter-semibold text-[#1E3226]">✓</Text>
+                  <Text
+                    className="text-xs font-inter-semibold"
+                    style={{ color: colors.accent.primary }}
+                  >
+                    ✓
+                  </Text>
                 )}
                 {completing && !done && (
-                  <View className="h-2 w-2 rounded-full bg-[#C9D4CD]" />
+                  <View
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: colors.border.input }}
+                  />
                 )}
               </TouchableOpacity>
               <View className="flex-1">
@@ -353,8 +372,14 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
 
         {actionLoading && optimisticAction === undefined ? (
           <View className="gap-2">
-            <View className="h-3 w-3/5 rounded-full bg-[#EAE7E0]" />
-            <View className="h-3 w-4/5 rounded-full bg-[#F0EDE6]" />
+            <View
+              className="h-3 w-3/5 rounded-full"
+              style={{ backgroundColor: colors.background.subtle }}
+            />
+            <View
+              className="h-3 w-4/5 rounded-full"
+              style={{ backgroundColor: colors.background.input }}
+            />
           </View>
         ) : actionError && optimisticAction === undefined ? (
           <Text className="font-sans text-sm" style={{ color: colors.feedback.danger.text }}>
@@ -367,22 +392,27 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
             </Typography>
             <View className="flex-row gap-3">
               <TouchableOpacity
-                className={`flex-1 items-center rounded-full py-2.5 ${
-                  isMutating ? 'bg-[#C9D4CD]' : 'bg-[#1E3226]'
-                }`}
+                className="flex-1 items-center rounded-full py-2.5"
+                style={{
+                  backgroundColor: isMutating
+                    ? colors.background.subtle
+                    : colors.accent.primary,
+                }}
                 onPress={() => void handleUpdateStatus('complete')}
                 disabled={isMutating}
               >
-                <Typography variant="emphasis-sm" className="text-white">
+                <Typography variant="emphasis-sm" style={{ color: colors.text.inverse }}>
                   {isMutating ? 'Saving…' : 'Complete'}
                 </Typography>
               </TouchableOpacity>
               <TouchableOpacity
-                className={`flex-1 items-center rounded-full border py-2.5 ${
-                  isMutating
-                    ? 'border-[#E5E7EB] bg-[#F7F4EE]'
-                    : 'border-[#EAE7E0] bg-[#F8F6F1]'
-                }`}
+                className="flex-1 items-center rounded-full border py-2.5"
+                style={{
+                  backgroundColor: isMutating
+                    ? colors.background.subtle
+                    : colors.background.input,
+                  borderColor: colors.border.divider,
+                }}
                 onPress={() => void handleUpdateStatus('skipped')}
                 disabled={isMutating}
               >
@@ -421,10 +451,11 @@ function NoActiveGoalCard() {
         No active goal yet.
       </Typography>
       <Pressable
-        className="self-start rounded-full bg-[#1E3226] px-4 py-2.5"
+        className="self-start rounded-full px-4 py-2.5"
+        style={{ backgroundColor: colors.accent.primary }}
         onPress={() => router.push('/goals/create')}
       >
-        <Typography variant="emphasis-sm" className="text-[#EDE7DA]">
+        <Typography variant="emphasis-sm" style={{ color: colors.text.inverse }}>
           Create a goal
         </Typography>
       </Pressable>
@@ -466,7 +497,10 @@ function EchoZone({
       </Pressable>
 
       {echoLoading ? (
-        <View className="h-3 w-1/2 rounded-full bg-[#EAE7E0]" />
+        <View
+          className="h-3 w-1/2 rounded-full"
+          style={{ backgroundColor: colors.background.subtle }}
+        />
       ) : latestEntryContent && latestEntryDate ? (
         <View>
           <Typography
@@ -508,7 +542,10 @@ function IntelligenceZone({ insight, isLoading }: IntelligenceZoneProps) {
         className="rounded-2xl px-5 py-4"
         style={{ backgroundColor: colors.background.input }}
       >
-        <View className="h-3 w-3/4 rounded-full bg-[#E0DDD6]" />
+        <View
+          className="h-3 w-3/4 rounded-full"
+          style={{ backgroundColor: colors.background.subtle }}
+        />
       </View>
     );
   }
@@ -552,9 +589,18 @@ function DashboardSkeleton() {
           className="rounded-2xl border p-5"
           style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider }}
         >
-          <View className="mb-3 h-2.5 w-20 rounded-full bg-[#EAE7E0]" />
-          <View className="mb-2 h-5 w-3/4 rounded-lg bg-[#F0EDE6]" />
-          <View className="h-3 w-1/2 rounded-full bg-[#F0EDE6]" />
+          <View
+            className="mb-3 h-2.5 w-20 rounded-full"
+            style={{ backgroundColor: colors.background.subtle }}
+          />
+          <View
+            className="mb-2 h-5 w-3/4 rounded-lg"
+            style={{ backgroundColor: colors.background.input }}
+          />
+          <View
+            className="h-3 w-1/2 rounded-full"
+            style={{ backgroundColor: colors.background.input }}
+          />
         </View>
       ))}
     </View>

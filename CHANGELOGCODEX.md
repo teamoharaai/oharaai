@@ -2,44 +2,6 @@
 
 ## [Unreleased]
 
-### Added (2026-07-20 — Goal detail redesign and canonical goal evidence)
-- **`supabase/migrations/025_goal_milestones_trackers_archive.sql`, `types/supabase.ts`, `lib/goals/schema.ts`, and `features/goals/types.ts`:** added the real `archived` goal status, hard-renamed the recurring-measure tables and log foreign key to canonical `trackers`/`tracker_logs`/`tracker_id`, restricted tracker cadence to daily/weekly/monthly, and evolved milestones into ordered, one-time critical events with descriptions and timestamp-based completion.
-- **`MilestonesPanel.tsx`, `TrackersPanel.tsx`, `TrackerCard.tsx`, `IntelligencePanel.tsx`, `AnalyticsPanel.tsx`, and `RecommendedPanel.tsx`:** added the redesigned goal-detail evidence stack, including milestone and tracker CRUD, one-way milestone completion, responsive sample analytics/intelligence states, and clearly labeled non-transactional recommendation placeholders.
-- **`components/layout/SettingsModal.tsx`:** added an RLS-backed Archived section that lists archived goals and opens their read-only detail screens.
-
-### Changed (2026-07-20 — Goal detail redesign and canonical goal evidence)
-- **Goal creation, APIs, services, stores, prompts, evals, scripts, contracts, and current architecture documentation:** replaced the former measurable-domain naming with canonical Trackers while retaining SMART's distinct `measurable` criterion; renamed the tracker completion and due-today routes; creation and extension now write milestones and trackers through the canonical schema.
-- **`app/(app)/goals/[id]/index.tsx`, `GoalDetailHeader.tsx`, and `CountdownTimer.tsx`:** implemented the handoff hierarchy and responsive two-column desktop layout, kept the goal title fixed, limited inline goal editing to the description, exposed Move/Edit description/Archive in the actions menu, and made goal completion one-way with no reopen-to-active action.
-- **`app/(app)/dashboard.tsx`, goal/project list services and cards:** exclude archived goals from ordinary dashboard, active-feed, standalone-goal, and project-goal lists; archived records remain directly addressable only through Settings.
-- **`components/layout/AvatarMenu.tsx`:** labeled the account-menu trigger for assistive navigation to Settings.
-
-### Fixed (2026-07-20 — Goal detail redesign and canonical goal evidence)
-- **`types/activity.ts`, goal activity mapping, and `ActivityFeed.tsx`:** separated recurring `tracker_logged` activity from one-time `milestone_completed` evidence.
-- Verification: migration 025 was applied to the linked Supabase project; linked `db lint` reported no schema errors; `npx tsc --noEmit`, `git diff --check`, and the 27-route Expo web export passed. A signed-in desktop smoke test confirmed the redesigned hierarchy, canonical Milestones/Trackers labels, description-only editor, actions menu, local recommendation filters, responsive activity rail, and Settings → Archived empty state.
-
-### Fixed (2026-07-20 — Branded web favicon)
-- **`app.json`:** replaced the default Expo web favicon with the existing Ohara logo asset so deployed browser tabs and site chrome display the product brand.
-
-### Added (2026-07-20 — Agent session pipeline)
-- **`supabase/migrations/023_agent_session_pipeline.sql` and `024_agent_session_idempotency_guard.sql`:** added structured project periods, promoted `echo_sessions` into a project-aware session ledger, added immutable idempotent session events, and introduced authenticated `start`, `record`, `finish`, and approval-gated `publish` RPCs. Replayed keys return the original operation only when their payload matches; conflicting reuse is rejected explicitly.
-- **`app/api/sessions/`, `features/sessions/`, and `lib/sessions/schema.ts`:** exposed validated `startSession`, `recordChange`, `finishSession`, and `publishSession` operations. Finished summaries remain structured drafts containing changed files, database records, verification results, unresolved failures, and a reflection until a separate request explicitly supplies user approval.
-- **`app/api/entries/index+api.ts`:** added authenticated server-side Echo creation, canonical-container lookup, input bounds, and non-blocking server-side embedding generation.
-
-### Changed (2026-07-20 — Agent session pipeline)
-- **`features/echo/services/echo-service.ts`, `features/echo/hooks/useEntries.ts`, `app/api/entries/[id]+api.ts`, and `lib/db/echo-folders.ts`:** replaced the client-side entry insert, embedding call, and separate confirmed-link write with the atomic server endpoint, removed the obsolete browser-side General-folder lookup, and aligned edit-path documentation while preserving advisory AI auto-links and opt-in reflection behavior.
-- **`features/projects/types.ts`, `features/projects/services/project-service.ts`, `types/supabase.ts`, and `docs/API_CONTRACT.md`:** surfaced project period/session-ledger fields and documented the new agent-safe contracts.
-
-### Fixed (2026-07-20 — Atomic Echo container persistence)
-- **`supabase/migrations/023_agent_session_pipeline.sql`:** made Echo entry creation and its confirmed goal or General-folder link one database transaction. A link failure now rolls back the entry, eliminating the orphaned-entry state that was possible when the two writes committed independently.
-- Verification: migrations 023 and 024 were applied to the linked Supabase project; linked `db lint` reported no schema errors; `npx tsc --noEmit` and the 27-route Expo web export passed; a rolled-back live transaction produced one entry with exactly one confirmed link; idempotent session/event replays returned their original ids while a conflicting payload was rejected; and the authenticated Ohara dashboard rendered all five new goals once in the reused July 20–27 project. All five final summaries remain `draft` with no `final_entry_id`, and a live publication attempt without approval was rejected.
-
-### Added (2026-07-20 — Goal project reassignment)
-- **`features/goals/components/GoalProjectPickerModal.tsx` and `app/(app)/goals/[id]/index.tsx`:** added an accessible goal-location control and confirmation modal that lets an active goal move into another project or return to the standalone-goal collection from its detail screen.
-
-### Changed (2026-07-20 — Goal project reassignment)
-- **`features/goals/services/goal-service.ts` and `features/goals/hooks/useGoalDetail.ts`:** mapped nullable `projectId` updates to `goals.project_id`, applied optimistic goal-store updates with rollback, retained loaded activity signals after persistence, and kept superseded goals read-only.
-- Verification: `npx tsc --noEmit` and `npx expo export --platform web --output-dir /tmp/ohara-web-export-goal-project-move` passed; an authenticated Expo web smoke test created a standalone goal, moved it into the weekly project, moved it back to standalone, and moved it into the weekly project again, with the goal-detail location control reflecting every persisted transition.
-
 ### Changed (2026-07-20 — Landing page redesign)
 - **`app/index.tsx`, `components/landing/LandingPage.tsx`, and `components/landing/GoalTree.tsx`:** replaced the dark placeholder landing route with the warm OharaAI marketing design from `design_handoff_landing_page`, including responsive layouts, routed calls to action, lifecycle cards, and the animated goal-tree story.
 - **`tailwind.config.js` and `global.css`:** added landing-only palette tokens, supplied motion keyframes, and a reduced-motion fallback so the new design remains isolated from authenticated application themes.

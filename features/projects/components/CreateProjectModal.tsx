@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { TextInput, View, type TextStyle } from 'react-native';
 import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
-import { LIGHT_THEME } from '@/constants/colors';
+import { useThemeColors } from '@/store/uiStore';
 import { useProjectStore } from '../store';
 
 interface CreateProjectModalProps {
@@ -10,19 +10,17 @@ interface CreateProjectModalProps {
   onClose: () => void;
 }
 
-const INPUT_STYLE: TextStyle = {
-  backgroundColor: LIGHT_THEME.background.card,
+const INPUT_LAYOUT_STYLE: TextStyle = {
   borderWidth: 1,
-  borderColor: LIGHT_THEME.border.input,
   borderRadius: 12,
   paddingHorizontal: 16,
   paddingVertical: 12,
   fontFamily: 'Inter-Regular',
   fontSize: 15,
-  color: LIGHT_THEME.text.primary,
 };
 
 export function CreateProjectModal({ visible, onClose }: CreateProjectModalProps) {
+  const colors = useThemeColors();
   const createProject = useProjectStore((state) => state.createProject);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -98,11 +96,18 @@ export function CreateProjectModal({ visible, onClose }: CreateProjectModalProps
         <TextInput
           accessibilityLabel="Project name"
           autoFocus
-          style={INPUT_STYLE}
+          style={[
+            INPUT_LAYOUT_STYLE,
+            {
+              backgroundColor: colors.background.input,
+              borderColor: colors.border.input,
+              color: colors.text.primary,
+            },
+          ]}
           value={title}
           onChangeText={setTitle}
           placeholder="e.g. Build financial independence"
-          placeholderTextColor={LIGHT_THEME.text.muted}
+          placeholderTextColor={colors.text.muted}
         />
       </View>
 
@@ -114,13 +119,18 @@ export function CreateProjectModal({ visible, onClose }: CreateProjectModalProps
           accessibilityLabel="Long-term project intent"
           multiline
           style={[
-            INPUT_STYLE,
+            INPUT_LAYOUT_STYLE,
+            {
+              backgroundColor: colors.background.input,
+              borderColor: colors.border.input,
+              color: colors.text.primary,
+            },
             { minHeight: 88, maxHeight: 140, textAlignVertical: 'top' },
           ]}
           value={description}
           onChangeText={setDescription}
           placeholder="Describe what achieving this means to you..."
-          placeholderTextColor={LIGHT_THEME.text.muted}
+          placeholderTextColor={colors.text.muted}
         />
       </View>
 
@@ -128,7 +138,7 @@ export function CreateProjectModal({ visible, onClose }: CreateProjectModalProps
         <Typography
           variant="caption"
           accessibilityRole="alert"
-          style={{ color: LIGHT_THEME.feedback.danger.text, marginTop: 12 }}
+          style={{ color: colors.feedback.danger.text, marginTop: 12 }}
         >
           {error}
         </Typography>
