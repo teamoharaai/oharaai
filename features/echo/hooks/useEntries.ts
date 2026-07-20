@@ -90,7 +90,6 @@ export function useEntries() {
     if (!user) return { status: 'unconfirmed' };
 
     const result = await createEntry({
-      userId: user.id,
       content,
       goalId,
       aiInsightRequested,

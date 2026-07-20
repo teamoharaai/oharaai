@@ -3,10 +3,13 @@ import type { Project, ProjectWithGoals } from '@/features/projects/types';
 import type { GoalWithMeasurables } from '@/features/goals/types';
 import { enrichGoalsWithSignals, GOAL_SELECT, mapGoal, type DbGoal } from '@/features/goals/services/goal-service';
 
+const PROJECT_SELECT =
+  'id, user_id, title, description, status, start_date, end_date, period_key, created_at, updated_at';
+
 export async function fetchProjects(userId: string): Promise<Project[]> {
   const { data, error } = await supabase
     .from('projects')
-    .select('id, user_id, title, description, status, created_at, updated_at')
+    .select(PROJECT_SELECT)
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
@@ -17,7 +20,7 @@ export async function fetchProjects(userId: string): Promise<Project[]> {
 export async function fetchProjectWithGoals(projectId: string): Promise<ProjectWithGoals | null> {
   const { data: projectData, error: projectError } = await supabase
     .from('projects')
-    .select('id, user_id, title, description, status, created_at, updated_at')
+    .select(PROJECT_SELECT)
     .eq('id', projectId)
     .single();
 
@@ -48,6 +51,9 @@ export async function createProject(payload: {
   user_id: string;
   title: string;
   description?: string;
+  start_date?: string | null;
+  end_date?: string | null;
+  period_key?: string | null;
 }): Promise<Project> {
   const { data, error } = await supabase
     .from('projects')
@@ -55,8 +61,11 @@ export async function createProject(payload: {
       user_id: payload.user_id,
       title: payload.title.trim(),
       description: payload.description?.trim() || null,
+      start_date: payload.start_date ?? null,
+      end_date: payload.end_date ?? null,
+      period_key: payload.period_key?.trim() || null,
     })
-    .select('id, user_id, title, description, status, created_at, updated_at')
+    .select(PROJECT_SELECT)
     .single();
 
   if (error || !data) throw new Error(error?.message ?? 'Failed to create project');
@@ -65,18 +74,23 @@ export async function createProject(payload: {
 
 export async function updateProject(
   id: string,
-  updates: Partial<Pick<Project, 'title' | 'description' | 'status'>>
+  updates: Partial<
+    Pick<Project, 'title' | 'description' | 'status' | 'start_date' | 'end_date' | 'period_key'>
+  >
 ): Promise<Project> {
   const patch: Record<string, unknown> = {};
   if (updates.title !== undefined) patch.title = updates.title.trim();
   if ('description' in updates) patch.description = updates.description?.trim() || null;
   if (updates.status !== undefined) patch.status = updates.status;
+  if ('start_date' in updates) patch.start_date = updates.start_date;
+  if ('end_date' in updates) patch.end_date = updates.end_date;
+  if ('period_key' in updates) patch.period_key = updates.period_key?.trim() || null;
 
   const { data, error } = await supabase
     .from('projects')
     .update(patch)
     .eq('id', id)
-    .select('id, user_id, title, description, status, created_at, updated_at')
+    .select(PROJECT_SELECT)
     .single();
 
   if (error || !data) throw new Error(error?.message ?? 'Failed to update project');

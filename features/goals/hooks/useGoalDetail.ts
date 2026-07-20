@@ -13,6 +13,7 @@ export function useGoalDetail(goalId: string): {
   onAddMeasurable: (input: MeasurableInput) => Promise<void>;
   onCompleteMeasurable: (measurableId: string) => Promise<void>;
   onUpdateDeadline: (deadline: Date | null) => Promise<boolean>;
+  onUpdateProject: (projectId: string | null) => Promise<boolean>;
   completedIds: Set<string>;
   measurableError: string | null;
   clearMeasurableError: () => void;
@@ -190,6 +191,33 @@ export function useGoalDetail(goalId: string): {
     [goalId, goals, upsertGoal],
   );
 
+  const onUpdateProject = useCallback(
+    async (projectId: string | null): Promise<boolean> => {
+      const current = goals.find((g) => g.id === goalId);
+      if (!current || current.has_successor) return false;
+      if (current.projectId === projectId) return true;
+
+      upsertGoal({ ...current, projectId });
+
+      const saved = await updateGoal(goalId, { projectId });
+      if (!saved) {
+        upsertGoal(current);
+        return false;
+      }
+
+      upsertGoal({
+        ...saved,
+        has_successor: current.has_successor,
+        successor: current.successor,
+        vaultItemCount: current.vaultItemCount,
+        echoLinkCount: current.echoLinkCount,
+        latestBrtTags: current.latestBrtTags,
+      });
+      return true;
+    },
+    [goalId, goals, upsertGoal],
+  );
+
   return {
     goal,
     isLoading,
@@ -198,6 +226,7 @@ export function useGoalDetail(goalId: string): {
     onAddMeasurable,
     onCompleteMeasurable,
     onUpdateDeadline,
+    onUpdateProject,
     completedIds,
     measurableError,
     clearMeasurableError,

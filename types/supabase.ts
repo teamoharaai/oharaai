@@ -299,34 +299,107 @@ export type Database = {
         }
         Relationships: []
       }
-      echo_sessions: {
+      echo_session_events: {
         Row: {
           created_at: string
-          goal_id: string | null
+          event_key: string
+          event_type: string
           id: string
-          summary: Json
+          payload: Json
+          session_id: string
           user_id: string
         }
         Insert: {
           created_at?: string
-          goal_id?: string | null
+          event_key: string
+          event_type: string
           id?: string
-          summary: Json
+          payload?: Json
+          session_id: string
           user_id: string
         }
         Update: {
           created_at?: string
-          goal_id?: string | null
+          event_key?: string
+          event_type?: string
           id?: string
-          summary?: Json
+          payload?: Json
+          session_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "echo_session_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "echo_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      echo_sessions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          external_session_id: string | null
+          final_entry_id: string | null
+          goal_id: string | null
+          id: string
+          project_id: string | null
+          started_at: string
+          status: string
+          summary: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          external_session_id?: string | null
+          final_entry_id?: string | null
+          goal_id?: string | null
+          id?: string
+          project_id?: string | null
+          started_at?: string
+          status?: string
+          summary?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          external_session_id?: string | null
+          final_entry_id?: string | null
+          goal_id?: string | null
+          id?: string
+          project_id?: string | null
+          started_at?: string
+          status?: string
+          summary?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "echo_sessions_final_entry_id_fkey"
+            columns: ["final_entry_id"]
+            isOneToOne: false
+            referencedRelation: "echo_entries"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "echo_sessions_goal_id_fkey"
             columns: ["goal_id"]
             isOneToOne: false
             referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "echo_sessions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -663,8 +736,11 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          end_date: string | null
           id: string
+          period_key: string | null
           space_id: string | null
+          start_date: string | null
           status: string
           title: string
           updated_at: string
@@ -673,8 +749,11 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          end_date?: string | null
           id?: string
+          period_key?: string | null
           space_id?: string | null
+          start_date?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -683,8 +762,11 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          end_date?: string | null
           id?: string
+          period_key?: string | null
           space_id?: string | null
+          start_date?: string | null
           status?: string
           title?: string
           updated_at?: string
@@ -874,6 +956,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_echo_entry_with_container: {
+        Args: {
+          p_ai_insight_requested: boolean
+          p_brt: Json | null
+          p_content: string
+          p_embedding_text: string | null
+          p_emotion: Json | null
+          p_goal_id: string | null
+          p_title: string | null
+        }
+        Returns: string
+      }
       consume_daily_ai_quota: {
         Args: { p_date: string; p_limit?: number }
         Returns: {
@@ -892,6 +986,14 @@ export type Database = {
       get_or_create_general_folder: {
         Args: { p_user_id: string }
         Returns: string
+      }
+      finish_agent_session: {
+        Args: { p_idempotency_key: string; p_session_id: string; p_summary: Json }
+        Returns: {
+          final_entry_id: string | null
+          requires_approval: boolean
+          session_status: string
+        }[]
       }
       match_echo_entries: {
         Args: {
@@ -942,6 +1044,47 @@ export type Database = {
           similarity: number
           title: string
           vault_id: string
+        }[]
+      }
+      publish_agent_session: {
+        Args: {
+          p_content: string
+          p_embedding_text: string | null
+          p_idempotency_key: string
+          p_session_id: string
+          p_title: string
+          p_user_approved: boolean
+        }
+        Returns: string
+      }
+      record_agent_session_change: {
+        Args: {
+          p_event_key: string
+          p_event_type: string
+          p_payload: Json
+          p_session_id: string
+        }
+        Returns: string
+      }
+      start_agent_session: {
+        Args: {
+          p_end_date: string
+          p_external_session_id: string
+          p_goal_category: string
+          p_goal_color_theme: string
+          p_goal_description: string | null
+          p_goal_title: string
+          p_period_key: string
+          p_project_description: string | null
+          p_project_id: string | null
+          p_project_title: string
+          p_start_date: string
+        }
+        Returns: {
+          goal_id: string
+          project_id: string
+          session_id: string
+          was_created: boolean
         }[]
       }
     }

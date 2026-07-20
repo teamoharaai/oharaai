@@ -5,6 +5,7 @@ import { GOAL_THEMES } from '@/constants/themes';
 import { Typography } from '@/components/ui/Typography';
 import { useGoalDetail } from '@/features/goals/hooks/useGoalDetail';
 import { GoalDetailHeader } from '@/features/goals/components/GoalDetailHeader';
+import { GoalProjectPickerModal } from '@/features/goals/components/GoalProjectPickerModal';
 import { GoalTitleRow } from '@/features/goals/components/GoalTitleRow';
 import { MeasurablesPanel } from '@/features/goals/components/MeasurablesPanel';
 import { WhatYouBuiltPanel } from '@/features/goals/components/WhatYouBuiltPanel';
@@ -14,6 +15,7 @@ import { useActivity } from '@/features/goals/hooks/useActivity';
 import { getVaultItemCount, } from '@/lib/db/vaults';
 import { getProjectTitle } from '@/lib/db/goals';
 import { getGoalRingProgress } from '@/features/goals/utils/ringProgress';
+import { useProjectStore } from '@/features/projects/store';
 import { useThemeColors } from '@/store/uiStore';
 
 function GoalDetailLoadingState() {
@@ -123,6 +125,12 @@ export default function GoalDetailScreen() {
   const goalId = Array.isArray(id) ? id[0] : (id ?? '');
   const [vaultItemCount, setVaultItemCount] = useState(0);
   const [projectTitle, setProjectTitle] = useState<string | null>(null);
+  const [isProjectPickerVisible, setIsProjectPickerVisible] = useState(false);
+  const [isSavingProject, setIsSavingProject] = useState(false);
+  const [projectMoveError, setProjectMoveError] = useState<string | null>(null);
+  const projects = useProjectStore((state) => state.projects);
+  const projectsLoading = useProjectStore((state) => state.isLoading);
+  const loadProjects = useProjectStore((state) => state.loadProjects);
   const {
     goal,
     isLoading,
@@ -131,6 +139,7 @@ export default function GoalDetailScreen() {
     onAddMeasurable,
     onCompleteMeasurable,
     onUpdateDeadline,
+    onUpdateProject,
     completedIds,
     measurableError,
     clearMeasurableError,
@@ -176,12 +185,34 @@ export default function GoalDetailScreen() {
       setProjectTitle(null);
       return;
     }
+    setProjectTitle(null);
     let active = true;
     getProjectTitle(goal.projectId)
       .then((t) => { if (active) setProjectTitle(t); })
       .catch(() => { if (active) setProjectTitle(null); });
     return () => { active = false; };
   }, [goal?.projectId]);
+
+  const openProjectPicker = () => {
+    if (goal?.has_successor) return;
+    setProjectMoveError(null);
+    setIsProjectPickerVisible(true);
+    void loadProjects();
+  };
+
+  const handleSaveProject = async (projectId: string | null) => {
+    setIsSavingProject(true);
+    setProjectMoveError(null);
+    const saved = await onUpdateProject(projectId);
+    setIsSavingProject(false);
+
+    if (!saved) {
+      setProjectMoveError('Could not move this goal. Please try again.');
+      return;
+    }
+
+    setIsProjectPickerVisible(false);
+  };
 
   if (isLoading) return <GoalDetailLoadingState />;
   if (!goal) return <GoalNotFound />;
@@ -226,7 +257,41 @@ export default function GoalDetailScreen() {
         </Pressable>
       )}
 
-      {/* Parent project row */}
+      {/* Project location */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={goal.projectId ? 'Change goal project' : 'Add goal to a project'}
+        disabled={isSuperseded}
+        onPress={openProjectPicker}
+        style={({ pressed }) => ({
+          alignItems: 'center',
+          backgroundColor: colors.background.card,
+          borderColor: colors.border.warm,
+          borderRadius: 12,
+          borderWidth: 1,
+          flexDirection: 'row',
+          gap: 10,
+          marginBottom: 12,
+          opacity: isSuperseded ? 0.5 : pressed ? 0.72 : 1,
+          paddingHorizontal: 14,
+          paddingVertical: 11,
+        })}
+      >
+        <View style={{ flex: 1 }}>
+          <Typography variant="micro-label" style={{ marginBottom: 3 }}>
+            PROJECT
+          </Typography>
+          <Typography variant="emphasis-sm" style={{ color: colors.text.primary }}>
+            {goal.projectId ? (projectTitle ?? 'Linked project') : 'Standalone goal'}
+          </Typography>
+        </View>
+        {!isSuperseded ? (
+          <Typography variant="meta" style={{ color: colors.text.accent }}>
+            {goal.projectId ? 'Change' : 'Add to project'} ›
+          </Typography>
+        ) : null}
+      </Pressable>
+
       {goal.projectId && projectTitle ? (
         <Pressable
           onPress={() =>
@@ -241,7 +306,7 @@ export default function GoalDetailScreen() {
           }}
         >
           <Typography variant="label">
-            Part of: {projectTitle}
+            Open {projectTitle}
           </Typography>
           <Typography variant="caption" style={{ fontSize: 14 }}>›</Typography>
         </Pressable>
@@ -434,6 +499,21 @@ export default function GoalDetailScreen() {
           {contextRail}
         </ScrollView>
       )}
+
+      <GoalProjectPickerModal
+        currentProjectId={goal.projectId}
+        error={projectMoveError}
+        isLoading={projectsLoading}
+        isSaving={isSavingProject}
+        onClose={() => {
+          if (isSavingProject) return;
+          setProjectMoveError(null);
+          setIsProjectPickerVisible(false);
+        }}
+        onSave={handleSaveProject}
+        projects={projects}
+        visible={isProjectPickerVisible}
+      />
     </SafeAreaView>
   );
 }

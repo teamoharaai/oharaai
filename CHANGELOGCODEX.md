@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+### Added (2026-07-20 — Agent session pipeline)
+- **`supabase/migrations/023_agent_session_pipeline.sql` and `024_agent_session_idempotency_guard.sql`:** added structured project periods, promoted `echo_sessions` into a project-aware session ledger, added immutable idempotent session events, and introduced authenticated `start`, `record`, `finish`, and approval-gated `publish` RPCs. Replayed keys return the original operation only when their payload matches; conflicting reuse is rejected explicitly.
+- **`app/api/sessions/`, `features/sessions/`, and `lib/sessions/schema.ts`:** exposed validated `startSession`, `recordChange`, `finishSession`, and `publishSession` operations. Finished summaries remain structured drafts containing changed files, database records, verification results, unresolved failures, and a reflection until a separate request explicitly supplies user approval.
+- **`app/api/entries/index+api.ts`:** added authenticated server-side Echo creation, canonical-container lookup, input bounds, and non-blocking server-side embedding generation.
+
+### Changed (2026-07-20 — Agent session pipeline)
+- **`features/echo/services/echo-service.ts`, `features/echo/hooks/useEntries.ts`, `app/api/entries/[id]+api.ts`, and `lib/db/echo-folders.ts`:** replaced the client-side entry insert, embedding call, and separate confirmed-link write with the atomic server endpoint, removed the obsolete browser-side General-folder lookup, and aligned edit-path documentation while preserving advisory AI auto-links and opt-in reflection behavior.
+- **`features/projects/types.ts`, `features/projects/services/project-service.ts`, `types/supabase.ts`, and `docs/API_CONTRACT.md`:** surfaced project period/session-ledger fields and documented the new agent-safe contracts.
+
+### Fixed (2026-07-20 — Atomic Echo container persistence)
+- **`supabase/migrations/023_agent_session_pipeline.sql`:** made Echo entry creation and its confirmed goal or General-folder link one database transaction. A link failure now rolls back the entry, eliminating the orphaned-entry state that was possible when the two writes committed independently.
+- Verification: migrations 023 and 024 were applied to the linked Supabase project; linked `db lint` reported no schema errors; `npx tsc --noEmit` and the 27-route Expo web export passed; a rolled-back live transaction produced one entry with exactly one confirmed link; idempotent session/event replays returned their original ids while a conflicting payload was rejected; and the authenticated Ohara dashboard rendered all five new goals once in the reused July 20–27 project. All five final summaries remain `draft` with no `final_entry_id`, and a live publication attempt without approval was rejected.
+
+### Added (2026-07-20 — Goal project reassignment)
+- **`features/goals/components/GoalProjectPickerModal.tsx` and `app/(app)/goals/[id]/index.tsx`:** added an accessible goal-location control and confirmation modal that lets an active goal move into another project or return to the standalone-goal collection from its detail screen.
+
+### Changed (2026-07-20 — Goal project reassignment)
+- **`features/goals/services/goal-service.ts` and `features/goals/hooks/useGoalDetail.ts`:** mapped nullable `projectId` updates to `goals.project_id`, applied optimistic goal-store updates with rollback, retained loaded activity signals after persistence, and kept superseded goals read-only.
+- Verification: `npx tsc --noEmit` and `npx expo export --platform web --output-dir /tmp/ohara-web-export-goal-project-move` passed; an authenticated Expo web smoke test created a standalone goal, moved it into the weekly project, moved it back to standalone, and moved it into the weekly project again, with the goal-detail location control reflecting every persisted transition.
+
 ### Changed (2026-07-20 — Landing page redesign)
 - **`app/index.tsx`, `components/landing/LandingPage.tsx`, and `components/landing/GoalTree.tsx`:** replaced the dark placeholder landing route with the warm OharaAI marketing design from `design_handoff_landing_page`, including responsive layouts, routed calls to action, lifecycle cards, and the animated goal-tree story.
 - **`tailwind.config.js` and `global.css`:** added landing-only palette tokens, supplied motion keyframes, and a reduced-motion fallback so the new design remains isolated from authenticated application themes.

@@ -40,8 +40,8 @@ function sanitizeTitle(input: unknown): string | null {
 // Body: { content?: string, title?: string | null } — at least one field.
 //
 // Server-side edit + re-embed. The re-embed happens here, inline, using the same
-// buildEchoEmbeddingText → generateEmbedding logic createEntry's STEP 1 uses —
-// NOT via a client-side generateEmbedding call. Only re-embeds when content
+// buildEchoEmbeddingText → generateEmbedding pipeline as POST /api/entries.
+// Only re-embeds when content
 // actually changed (a title-only edit touches nothing else). When content
 // changed on an entry that requested an AI insight, the stale reflection is
 // cleared and ai_status is flipped to 'pending' so the existing echo/reconcile
@@ -187,9 +187,9 @@ async function handlePatch(
     if (updateError) throw updateError;
 
     // ─── Re-embed inline (server-side) ──────────────────────────────────────
-    // Same generation logic as createEntry's STEP 1, run here instead of on the
-    // client. Embedding failure is non-blocking: the edit already committed
-    // above, so we log and still return success (matching createEntry, where
+    // Same server-side generation logic as POST /api/entries. Embedding failure
+    // is non-blocking: the edit already committed above, so we log and still
+    // return success (matching createEntry, where
     // a save is never blocked on the embedding write).
     if (contentChanged && embeddingText) {
       try {

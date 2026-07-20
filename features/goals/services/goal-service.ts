@@ -410,6 +410,7 @@ export async function updateGoal(goalId: string, updates: Partial<Goal>): Promis
   if (updates.visibility !== undefined) patch.visibility = updates.visibility;
   if (updates.colorTheme !== undefined) patch.color_theme = updates.colorTheme;
   if (updates.category !== undefined) patch.category = updates.category;
+  if (updates.projectId !== undefined) patch.project_id = updates.projectId;
 
   if (Object.keys(patch).length === 0) return null;
 

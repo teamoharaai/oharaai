@@ -1,11 +1,7 @@
 import supabase from '@/lib/db/client';
 import { authedFetch, UnauthorizedError } from '@/lib/api/client';
-import { getGeneralFolderId } from '@/lib/db/echo-folders';
 import { AI_CONFIG } from '@/lib/ai/config';
 import type { AiResponse } from '@/lib/ai/contracts';
-import { buildEchoEmbeddingText } from '@/lib/ai/embedding-text';
-import { generateEmbedding } from '@/lib/ai/embeddings';
-import { EMBEDDING_MODEL } from '@/lib/ai/constants';
 import type { EchoFolder } from '@/types/echo-folder';
 import type { EchoContainerOption, EchoEntry, EchoGoalOption } from '../types';
 
@@ -289,7 +285,6 @@ export async function deleteEntry(entryId: string): Promise<void> {
 }
 
 export async function createEntry(params: {
-  userId: string;
   content: string;
   goalId: string | null;
   aiInsightRequested: boolean;
@@ -297,156 +292,44 @@ export async function createEntry(params: {
   emotion: EchoEntry['emotion'] | null;
   title: string | null;
 }): Promise<CreateEntryResult> {
-  const embeddingText = buildEchoEmbeddingText(params.content);
-
-  let data: DbEchoEntry | null = null;
-  let error: unknown = null;
+  let response: Response;
   try {
-    const result = await supabase
-      .from('echo_entries')
-      .insert({
-        user_id: params.userId,
-        content: params.content,
-        // goal_id is intentionally omitted (defaults to null) — container
-        // assignment now goes exclusively through echo_entry_links, below.
-        // The column itself is preserved (root CLAUDE.md: "echo_entries.goal_id
-        // is PRESERVED. Do not drop it"); only new-insert writes stop.
-        ai_insight_requested: params.aiInsightRequested,
-        brt: params.brt,
-        emotion: params.emotion,
-        title: params.title,
-        embedding_text: embeddingText,
-        ai_status: params.aiInsightRequested ? 'pending' : 'not_requested',
-      })
-      .select('*, goals(id, title)')
-      .single();
-
-    data = (result.data as DbEchoEntry | null) ?? null;
-    error = result.error;
-  } catch (insertError) {
-    return { status: getSubmissionFailureStatus(insertError) };
-  }
-
-  if (error || !data) {
+    response = await authedFetch('/api/entries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+  } catch (error) {
     return { status: getSubmissionFailureStatus(error) };
   }
 
-  const insertedEntry = mapEntry(data as unknown as DbEchoEntry);
+  if (!response.ok) return { status: getSubmissionFailureStatus(new Error('Entry save failed')) };
 
-  // STEP 1 — Fire-and-forget embedding (non-blocking)
-  // echo_entries must save even if embedding fails.
-  if (embeddingText) {
-    void generateEmbedding(embeddingText, 'document')
-      .then(async (vector) => {
-        if (vector) {
-          await supabase
-            .from('echo_entries')
-            .update({
-              embedding: vector as any, // pgvector accepts number[]
-              embedding_model: EMBEDDING_MODEL,
-            })
-            .eq('id', insertedEntry.id);
-        }
-      })
-      .catch((err) => {
-        console.error(JSON.stringify({
-          event: 'embedding_write_failed',
-          table: 'echo_entries',
-          record_id: insertedEntry.id,
-          error: err instanceof Error ? err.message : 'unknown',
-          timestamp: new Date().toISOString(),
-        }));
-      });
+  let createPayload: {
+    entry: DbEchoEntry;
+    container: ConfirmedContainerDisplay;
+  };
+  try {
+    createPayload = (await response.json()) as typeof createPayload;
+  } catch (error) {
+    return { status: getSubmissionFailureStatus(error) };
   }
 
-  // STEP 2 — Container resolution (blocking — must complete before we return,
-  // now that echo_entries.goal_id is no longer written on insert and the
-  // legacy FK join in mapEntry can no longer supply goalId/goalTitle).
-  //
-  // Explicit goalId: confirmed link to that goal (manual).
-  // No goalId: confirmed link to the caller's General folder — unconditional,
-  // not gated on whether STEP 3's keyword heuristic below finds a match. An
-  // unconfirmed ai_auto suggestion is advisory, not a container (migration
-  // 016 only caps confirmed rows at one-per-entry; unconfirmed rows are
-  // unconstrained), so both can coexist: the entry has a real confirmed home
-  // in General while a pending suggestion still surfaces for the user to act
-  // on separately.
-  //
-  // getGeneralFolderId() is a plain RLS-scoped read, not
-  // getOrCreateGeneralFolderId() — that RPC is service_role-only (migration
-  // 014) and this file executes client-side (called directly from
-  // useEntries.ts), so it must never pull in the service-role client. Every
-  // user's General folder is guaranteed to exist by signup time via the
-  // eager provisioning trigger (migration 017); if it's still missing (a
-  // failed/legacy provisioning), the container is skipped rather than
-  // blocking the save, matching the non-blocking pattern used throughout.
-  let confirmedContainer: ConfirmedContainerDisplay | undefined;
-
-  if (params.goalId) {
-    try {
-      await supabase
-        .from('echo_entry_links')
-        .upsert(
-          {
-            echo_entry_id: insertedEntry.id,
-            goal_id: params.goalId,
-            container_type: 'goal',
-            link_source: 'manual',
-            confirmed: true,
-          },
-          { onConflict: 'echo_entry_id,goal_id', ignoreDuplicates: true },
-        );
-
-      const { data: goalRow } = await supabase
-        .from('goals')
-        .select('title')
-        .eq('id', params.goalId)
-        .maybeSingle();
-
-      confirmedContainer = {
-        type: 'goal',
-        goalId: params.goalId,
-        goalTitle: (goalRow as { title: string } | null)?.title,
-      };
-    } catch (err) {
-      console.error('[echo-entry-links] manual insert failed:', err);
-    }
-  } else {
-    try {
-      const folderId = await getGeneralFolderId(params.userId);
-      if (folderId) {
-        await supabase
-          .from('echo_entry_links')
-          .upsert(
-            {
-              echo_entry_id: insertedEntry.id,
-              folder_id: folderId,
-              container_type: 'folder',
-              link_source: 'system_default',
-              confirmed: true,
-            },
-            { onConflict: 'echo_entry_id,folder_id', ignoreDuplicates: true },
-          );
-        // The General folder's name is server-enforced immutable ("The
-        // General folder cannot be renamed" — app/api/folders/[id]+api.ts),
-        // so it's safe to hardcode here rather than issuing a second query.
-        confirmedContainer = { type: 'folder', folderId, folderName: 'General' };
-      }
-    } catch (err) {
-      console.error('[echo-entry-links] general-folder assignment failed:', err);
-    }
-  }
-
+  // The database RPC commits the entry and its one confirmed goal/folder link
+  // in the same transaction. A link failure now rolls the entry back instead
+  // of returning a saved orphan. Embedding generation also moved server-side.
+  const insertedEntry = mapEntry(createPayload.entry);
+  const confirmedContainer = createPayload.container;
   const containedEntry = applyContainer(insertedEntry, confirmedContainer);
 
-  // STEP 3 — AI auto-linking (keyword match, non-blocking, advisory only)
+  // STEP 2 — AI auto-linking (keyword match, non-blocking, advisory only)
   // Fires only when no goalId was provided. No AI calls — keyword heuristic only.
-  // Phase 2: swap this IIFE body for an AI-backed classifier. Independent of
-  // the General-folder assignment above — see the STEP 2 comment for why
-  // both can coexist on the same entry.
+  // Phase 2: swap this IIFE body for an AI-backed classifier. This advisory
+  // suggestion is independent of the confirmed General-folder link returned
+  // by the atomic create transaction, so both can coexist on one entry.
   if (!params.goalId) {
     const echoContent = params.content;
-    const userId = params.userId;
+    const userId = insertedEntry.userId;
     const echoEntryId = insertedEntry.id;
 
     void (async () => {

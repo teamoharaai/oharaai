@@ -51,6 +51,67 @@
 
 ---
 
+## Agent session endpoints (Expo API routes)
+
+These authenticated routes are intentionally outside the legacy `/api/v1`
+prefix. Idempotency keys are scoped to one authenticated user's session.
+
+### `POST /api/sessions/start`
+
+Creates an `echo_sessions` ledger row and goal while idempotently reusing the
+project identified by `periodKey`. A known `projectId` may be supplied to adopt
+and backfill an existing weekly project.
+
+```typescript
+{
+  externalSessionId: string,
+  projectId?: string | null,
+  projectTitle: string,
+  projectDescription?: string | null,
+  periodKey: string,
+  startDate: string,              // YYYY-MM-DD
+  endDate: string,                // YYYY-MM-DD
+  goalTitle: string,
+  goalDescription?: string | null,
+  goalCategory?: "body" | "mind" | "money" | "create" | "connect" | "contribute"
+}
+```
+
+Returns `{ sessionId, projectId, goalId, created }`. Replaying the same
+`externalSessionId` returns the original records and does not create duplicates.
+
+### `POST /api/sessions/:id/events`
+
+Records an immutable session event using `{ idempotencyKey, type, payload }`.
+Supported types are `change`, `database_record`, `verification`, `failure`, and
+`note`. Replaying an event key returns the original event.
+
+### `POST /api/sessions/:id/finish`
+
+Stores a reviewable summary draft and changes the session from `active` to
+`draft`. The summary must contain `changedFiles`, `databaseRecords`,
+`verificationResults`, `unresolvedFailures`, and `reflection`. Returns
+`requiresApproval: true`; this operation never creates an Echo entry.
+
+### `POST /api/sessions/:id/publish`
+
+Publishes the reviewed draft as durable Echo memory. The request requires
+`{ idempotencyKey, title, approved: true }`; both the API and database RPC reject
+publication without that explicit approval. Entry creation, its confirmed goal
+link, and the session's `final_entry_id`/`published` transition commit in one
+database transaction.
+
+### `POST /api/entries`
+
+Creates an Echo entry through the server-only atomic entry/container RPC. The
+request accepts `{ content, title, goalId, aiInsightRequested, brt, emotion }`.
+When `goalId` is null the confirmed container is the user's General folder. A
+container failure rolls back the entry instead of leaving an orphan. Embedding
+generation runs server-side after the atomic persistence boundary and remains
+non-blocking.
+
+---
+
 ## Phase 1 Endpoints
 
 ---
