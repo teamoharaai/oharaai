@@ -75,6 +75,50 @@ function mapEchoEntry(row: DbEchoEntryRow): EchoEntry {
 // All functions here operate on container_type = 'goal' rows only. Folder-side
 // equivalents (getEntriesForFolder, etc.) are Session 2+ scope.
 
+export async function fetchLatestReflectionTimestamps(
+  goalIds: string[],
+  client: DbClient = supabase,
+): Promise<Record<string, string | null>> {
+  const latestByGoalId = Object.fromEntries(
+    goalIds.map((goalId) => [goalId, null]),
+  ) as Record<string, string | null>;
+
+  if (goalIds.length === 0) return latestByGoalId;
+
+  const { data, error } = await client
+    .from('echo_entry_links')
+    .select('goal_id, echo_entries!inner(created_at)')
+    .in('goal_id', goalIds)
+    .eq('container_type', 'goal')
+    .eq('confirmed', true);
+
+  if (error) throw error;
+
+  const rows = (data ?? []) as unknown as Array<{
+    goal_id: string | null;
+    echo_entries: { created_at: string } | Array<{ created_at: string }>;
+  }>;
+
+  for (const row of rows) {
+    if (!row.goal_id) continue;
+
+    const entry = Array.isArray(row.echo_entries)
+      ? row.echo_entries[0]
+      : row.echo_entries;
+    const timestamp = entry?.created_at;
+    const currentLatest = latestByGoalId[row.goal_id];
+
+    if (
+      timestamp
+      && (!currentLatest || Date.parse(timestamp) > Date.parse(currentLatest))
+    ) {
+      latestByGoalId[row.goal_id] = timestamp;
+    }
+  }
+
+  return latestByGoalId;
+}
+
 export async function getLinksForEchoEntry(
   echoEntryId: string,
   client: DbClient = supabase,

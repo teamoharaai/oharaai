@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Added (2026-07-20 — Today active-goal carousel)
+- **`components/ui/TodayGoalCard.tsx` and `TodayCarousel.tsx`:** added the themed, horizontally scrollable dashboard focus cards for the existing active-goal feed, including project context, deadline progress, reflection recency, goal navigation, and the shared empty-state pattern.
+- **`lib/utils/relativeTime.ts`:** extracted the dashboard-relative timestamp labels into a shared nullable formatter so cards can supply their own no-reflection copy.
+- **`constants/colors.ts`:** added the best-estimate light/dark `accent.focusButton` tokens for the focus-card action, explicitly flagged for Figma verification; reused existing themed text and divider tokens for the progress bar and chevron.
+
+### Changed (2026-07-20 — Today active-goal carousel)
+- **`app/(app)/dashboard.tsx`:** replaced the mounted due-today zone with the active-goal carousel, loaded the existing sorted feed, resolved project titles from the dashboard project cache, and moved Echo recency text to the shared formatter.
+
+### Added (2026-07-20 — Active goal feed data layer)
+- **`lib/db/echo-entry-links.ts`:** added a batched confirmed-link query that joins Echo entries and resolves each requested goal's latest entry creation timestamp, including explicit `null` values for goals without confirmed reflections.
+- **`features/goals/services/goal-service.ts`:** added optional status filtering to `fetchGoals` and a sorted active-goal feed service that enriches goals with their latest confirmed reflection timestamp while retaining the existing goal mapping.
+- **`OUTSTANDING.md`:** recorded the pre-existing unconfirmed-link behavior in `echoLinkCount` for a separately scoped fix.
+
 ### Changed (2026-07-19 — Echo raw text theme tokens)
 - **`features/echo/components/`:** routed the confirmed exact-match colors on raw Echo `Text` elements through runtime `text.primary`, `text.secondary`, `text.inverse`, and `feedback.danger` theme tokens while preserving their bespoke typography and leaving composer notices, text inputs, modal scrim, and shadows unchanged.
 

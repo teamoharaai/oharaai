@@ -1,4 +1,5 @@
 import supabase from '@/lib/db/client';
+import { fetchLatestReflectionTimestamps } from '@/lib/db/echo-entry-links';
 import { getSuccessorGoalId, getSuccessorGoalIds } from '@/lib/db/goals';
 import { buildMeasurableInsert } from '@/lib/db/measurable-inserts';
 import { resolveBrt } from '@/lib/utils/resolveBrt';
@@ -320,16 +321,44 @@ export async function enrichGoalsWithSignals(
   }));
 }
 
-export async function fetchGoals(userId: string): Promise<GoalWithMeasurables[]> {
-  const { data, error } = await supabase
+export async function fetchGoals(
+  userId: string,
+  options?: { status?: GoalStatus },
+): Promise<GoalWithMeasurables[]> {
+  let query = supabase
     .from('goals')
     .select(GOAL_SELECT)
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+    .eq('user_id', userId);
+
+  if (options?.status) {
+    query = query.eq('status', options.status);
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
 
   if (error || !data) return [];
   const goals = (data as unknown as DbGoal[]).map(mapGoal);
   return enrichGoalsWithSignals(goals, userId);
+}
+
+export async function fetchActiveGoalsFeed(
+  userId: string,
+): Promise<Array<GoalWithMeasurables & { lastReflectionAt: string | null }>> {
+  const goals = await fetchGoals(userId, { status: 'active' });
+  const latestReflectionTimestamps = await fetchLatestReflectionTimestamps(
+    goals.map((goal) => goal.id),
+  );
+
+  return goals
+    .map((goal) => ({
+      ...goal,
+      lastReflectionAt: latestReflectionTimestamps[goal.id] ?? null,
+    }))
+    .sort((a, b) => {
+      if (a.lastReflectionAt === null) return b.lastReflectionAt === null ? 0 : 1;
+      if (b.lastReflectionAt === null) return -1;
+      return Date.parse(b.lastReflectionAt) - Date.parse(a.lastReflectionAt);
+    });
 }
 
 export async function fetchGoalById(goalId: string): Promise<GoalWithMeasurables | null> {

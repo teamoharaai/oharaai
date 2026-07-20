@@ -93,6 +93,11 @@
 
 ## Goals / API layer
 
+- [ ] **Goal `echoLinkCount` includes unconfirmed links.** `fetchGoalSignals()` in
+      `features/goals/services/goal-service.ts` counts every goal-container link without
+      filtering `confirmed = true`, so the enrichment can include pending AI suggestions.
+      Confirmed while adding the active-goal feed data layer on 2026-07-20; deliberately left
+      unchanged because signal enrichment and its callers were out of scope.
 - [ ] `/api/goals` returns HTTP 201 even when goal creation soft-fails (`goalId: null`,
       `error` populated in body). Current consumer (`create.tsx`) already handles this
       correctly by checking the body, so not urgent, but any future consumer trusting HTTP

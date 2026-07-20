@@ -3,6 +3,7 @@ import { View, Text, ScrollView, Pressable, TouchableOpacity } from 'react-nativ
 import { SafeAreaView } from 'react-native';
 import { router } from 'expo-router';
 import { BrandIcon } from '@/components/ui/BrandIcon';
+import { TodayCarousel, type TodayCarouselGoal } from '@/components/ui/TodayCarousel';
 import { Typography } from '@/components/ui/Typography';
 import { useGoals } from '@/features/goals/hooks/useGoals';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -12,11 +13,14 @@ import { useProfileStore } from '@/features/profile/store';
 import { useProjectStore } from '@/features/projects/store';
 import { GoalRingGrid } from '@/features/goals/components/GoalRingGrid';
 import { GoalTitleRow } from '@/features/goals/components/GoalTitleRow';
+import { fetchActiveGoalsFeed } from '@/features/goals/services/goal-service';
 import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal';
 import { ProjectCard } from '@/features/projects/components/ProjectCard';
 import { FEATURES } from '@/constants/features';
 import { useThemeColors } from '@/store/uiStore';
 import { authedFetch } from '@/lib/api/client';
+import supabase from '@/lib/db/client';
+import { formatRelativeTime } from '@/lib/utils/relativeTime';
 import type { AiResponse } from '@/lib/ai/contracts';
 import type { GoalWithMeasurables } from '@/features/goals/types';
 import type { ActionLog } from '@/features/actions/types';
@@ -75,15 +79,6 @@ function DashboardCreateButton({
       </Typography>
     </Pressable>
   );
-}
-
-function getRelativeDays(date: Date): string {
-  const diffDays = Math.floor(
-    (new Date().getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
-  );
-  if (diffDays === 0) return 'today';
-  if (diffDays === 1) return '1 day ago';
-  return `${diffDays} days ago`;
 }
 
 // --- Zone 1: Today's Measurables ---
@@ -485,7 +480,7 @@ function EchoZone({
               : latestEntryContent}
           </Typography>
           <Typography variant="caption">
-            Last reflected: {getRelativeDays(latestEntryDate)}
+            Last reflected: {formatRelativeTime(latestEntryDate.toISOString())}
           </Typography>
         </View>
       ) : (
@@ -580,6 +575,32 @@ export default function DashboardScreen() {
   const { projects, isLoading: projectsLoading, loadProjects } = useProjectStore();
   const { entries, isLoading: echoLoading } = useEntries();
   const [projectModalOpen, setProjectModalOpen] = useState(false);
+  const [activeGoalsFeed, setActiveGoalsFeed] = useState<TodayCarouselGoal[]>([]);
+  const [activeGoalsLoading, setActiveGoalsLoading] = useState(true);
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadActiveGoalsFeed() {
+      setActiveGoalsLoading(true);
+      try {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (!authUser || !isActive) return;
+
+        const feed = await fetchActiveGoalsFeed(authUser.id);
+        if (isActive) setActiveGoalsFeed(feed);
+      } catch {
+        if (isActive) setActiveGoalsFeed([]);
+      } finally {
+        if (isActive) setActiveGoalsLoading(false);
+      }
+    }
+
+    void loadActiveGoalsFeed();
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   useEffect(() => {
     loadProjects();
@@ -664,6 +685,16 @@ export default function DashboardScreen() {
 
   const hasProjects = projects.length > 0;
 
+  const todayGoals = useMemo(
+    () => activeGoalsFeed.map((goal) => ({
+      ...goal,
+      projectTitle: goal.projectId
+        ? projects.find((project) => project.id === goal.projectId)?.title
+        : undefined,
+    })),
+    [activeGoalsFeed, projects],
+  );
+
   const latestEntry = entries[0] ?? null;
 
   const displayName = displayNameFromEmail(user?.email);
@@ -693,12 +724,12 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {goalsLoading || projectsLoading ? (
+        {goalsLoading || projectsLoading || activeGoalsLoading ? (
           <DashboardSkeleton />
         ) : (
           <View className="gap-3">
-            {/* Zone 1: Today's Measurables */}
-            <DueTodayZone />
+            {/* Zone 1: Today's Focus */}
+            <TodayCarousel goals={todayGoals} />
 
             {/* Zone 2: Projects */}
             <View>
