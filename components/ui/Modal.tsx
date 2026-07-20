@@ -150,7 +150,12 @@ export function Modal({
               onPress={onConfirm}
               disabled={confirmDisabled}
             >
-              <Text className="text-sm font-inter-semibold text-white">{confirmText}</Text>
+              <Text
+                className="text-sm font-inter-semibold"
+                style={{ color: colors.text.inverse }}
+              >
+                {confirmText}
+              </Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -193,7 +198,11 @@ export function Modal({
           <Animated.View
             style={[
               styles.content,
-              { backgroundColor: colors.background.page },
+              {
+                backgroundColor: colors.background.card,
+                borderColor: colors.border.divider,
+                borderWidth: 1,
+              },
               contentStyle,
               { opacity: contentOpacity, transform: [{ translateY: contentTranslateY }] },
             ]}
@@ -211,7 +220,17 @@ export function Modal({
               style={StyleSheet.absoluteFill}
             />
           ) : null}
-          <View style={[styles.content, { backgroundColor: colors.background.page }, contentStyle]}>
+          <View
+            style={[
+              styles.content,
+              {
+                backgroundColor: colors.background.card,
+                borderColor: colors.border.divider,
+                borderWidth: 1,
+              },
+              contentStyle,
+            ]}
+          >
             {modalContent}
           </View>
         </View>

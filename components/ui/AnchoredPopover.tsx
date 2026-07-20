@@ -9,6 +9,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import type { ReactNode } from 'react';
+import { useThemeColors } from '@/store/uiStore';
 
 export interface AnchorRect {
   x: number;
@@ -46,6 +47,7 @@ export function AnchoredPopover({
   contentClassName,
   contentStyle,
 }: AnchoredPopoverProps) {
+  const colors = useThemeColors();
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const [contentSize, setContentSize] = useState({ width: 0, height: 0 });
 
@@ -99,6 +101,8 @@ export function AnchoredPopover({
               left: position?.left ?? VIEWPORT_MARGIN,
               top: position?.top ?? VIEWPORT_MARGIN,
               opacity: position ? 1 : 0,
+              backgroundColor: colors.background.card,
+              borderColor: colors.border.divider,
             },
             contentStyle,
           ]}
