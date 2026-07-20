@@ -16,13 +16,14 @@ export function buildEchoEmbeddingText(content: string): string | null {
 
 /**
  * Build embedding text for a goal.
- * Concatenates title, description, and milestone notes.
+ * Concatenates title, description, one-time milestones, and tracker titles.
  * Never returns null — title alone is sufficient.
  */
 export function buildGoalEmbeddingText(
   title: string,
   description: string | null,
-  milestones: Array<{ title?: string; notes?: string }> | null,
+  milestones: Array<{ title?: string; description?: string | null }> | null,
+  trackers: Array<{ title?: string }> | null = null,
 ): string {
   let text = title;
 
@@ -32,10 +33,19 @@ export function buildGoalEmbeddingText(
 
   if (milestones && milestones.length > 0) {
     const milestoneTexts = milestones
-      .map((m) => (m.title ?? m.notes ?? '').trim())
+      .map((milestone) => milestone.title?.trim() ?? '')
       .filter(Boolean);
     if (milestoneTexts.length > 0) {
       text += `. Milestones: ${milestoneTexts.join(', ')}`;
+    }
+  }
+
+  if (trackers && trackers.length > 0) {
+    const trackerTexts = trackers
+      .map((tracker) => tracker.title?.trim() ?? '')
+      .filter(Boolean);
+    if (trackerTexts.length > 0) {
+      text += `. Trackers: ${trackerTexts.join(', ')}`;
     }
   }
 

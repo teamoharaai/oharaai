@@ -6,12 +6,12 @@ import { GoalRingGrid } from '@/features/goals/components/GoalRingGrid';
 import { useThemeColors } from '@/store/uiStore';
 import { ProjectTitleRow } from './ProjectTitleRow';
 import type { Project } from '@/features/projects/types';
-import type { GoalWithMeasurables } from '@/features/goals/types';
+import type { GoalWithDetails } from '@/features/goals/types';
 
 interface ProjectCardProps {
   project: Project;
   /** Goals belonging to this project (pre-filtered by the dashboard from the goal store). */
-  goals: GoalWithMeasurables[];
+  goals: GoalWithDetails[];
 }
 
 export function ProjectCard({ project, goals }: ProjectCardProps) {

@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const VALID_CATEGORIES = ['body', 'mind', 'money', 'create', 'connect', 'contribute'];
 const VALID_TYPES = ['counter', 'habit', 'checklist'];
-const VALID_FREQUENCIES = ['daily', 'weekly', 'monthly', 'once'];
+const VALID_FREQUENCIES = ['daily', 'weekly', 'monthly'];
 const DEFAULT_BEHAVIOR_EXPECTATIONS = {
   shouldFinalize: true,
   shouldOfferScopeReduction: false,
@@ -160,14 +160,18 @@ function getBehaviorExpectations(expected = {}) {
 function collectGoalText(goalData) {
   if (!goalData || typeof goalData !== 'object') return '';
   const smart = goalData.goal?.smart ? Object.values(goalData.goal.smart) : [];
-  const measurables = Array.isArray(goalData.measurables)
-    ? goalData.measurables.flatMap((item) => [item.title, item.targetUnit])
+  const milestones = Array.isArray(goalData.milestones)
+    ? goalData.milestones.flatMap((item) => [item.title, item.description])
+    : [];
+  const trackers = Array.isArray(goalData.trackers)
+    ? goalData.trackers.flatMap((item) => [item.title, item.targetUnit])
     : [];
   return [
     goalData.goal?.title,
     goalData.goal?.description,
     ...smart,
-    ...measurables,
+    ...milestones,
+    ...trackers,
     goalData.reasoning,
     ...(goalData.assumptions ?? []),
   ]
@@ -200,7 +204,7 @@ function validateGoalData(goalData) {
   }
 
   const errors = [];
-  const { goal, measurables, reasoning, assumptions } = goalData;
+  const { goal, milestones, trackers, reasoning, assumptions } = goalData;
 
   if (!goal || typeof goal !== 'object') {
     errors.push('goal must be an object');
@@ -222,40 +226,70 @@ function validateGoalData(goalData) {
     }
   }
 
-  if (!Array.isArray(measurables)) {
-    errors.push('measurables must be an array');
+  if (!Array.isArray(milestones)) {
+    errors.push('milestones must be an array');
   } else {
-    for (const [index, item] of measurables.entries()) {
+    for (const [index, item] of milestones.entries()) {
       if (!item || typeof item !== 'object') {
-        errors.push(`measurable[${index}] invalid`);
+        errors.push(`milestone[${index}] invalid`);
         continue;
       }
       if (typeof item.title !== 'string' || item.title.trim().length === 0) {
-        errors.push(`measurable[${index}].title invalid`);
+        errors.push(`milestone[${index}].title invalid`);
+      }
+      if (item.description !== null && typeof item.description !== 'string') {
+        errors.push(`milestone[${index}].description invalid`);
+      }
+      if (item.dueDate !== null && typeof item.dueDate !== 'string') {
+        errors.push(`milestone[${index}].dueDate invalid`);
+      }
+      if (
+        typeof item.dueDate === 'string'
+        && (item.dueDate.trim().length === 0 || Number.isNaN(new Date(item.dueDate).getTime()))
+      ) {
+        errors.push(`milestone[${index}].dueDate invalid`);
+      }
+    }
+  }
+
+  if (!Array.isArray(trackers)) {
+    errors.push('trackers must be an array');
+  } else {
+    for (const [index, item] of trackers.entries()) {
+      if (!item || typeof item !== 'object') {
+        errors.push(`tracker[${index}] invalid`);
+        continue;
+      }
+      if (typeof item.title !== 'string' || item.title.trim().length === 0) {
+        errors.push(`tracker[${index}].title invalid`);
       }
       if (!VALID_TYPES.includes(item.type)) {
-        errors.push(`measurable[${index}].type invalid`);
+        errors.push(`tracker[${index}].type invalid`);
       }
       if (!VALID_FREQUENCIES.includes(item.frequency)) {
-        errors.push(`measurable[${index}].frequency invalid`);
+        errors.push(`tracker[${index}].frequency invalid`);
       }
       if (item.targetValue !== null && typeof item.targetValue !== 'number') {
-        errors.push(`measurable[${index}].targetValue invalid`);
+        errors.push(`tracker[${index}].targetValue invalid`);
       }
       if (item.targetUnit !== null && typeof item.targetUnit !== 'string') {
-        errors.push(`measurable[${index}].targetUnit invalid`);
+        errors.push(`tracker[${index}].targetUnit invalid`);
       }
       if (item.type === 'counter') {
-        if (typeof item.targetValue !== 'number' || !Number.isFinite(item.targetValue)) {
-          errors.push(`measurable[${index}].counter targetValue missing`);
+        if (
+          typeof item.targetValue !== 'number'
+          || !Number.isFinite(item.targetValue)
+          || item.targetValue <= 0
+        ) {
+          errors.push(`tracker[${index}].counter targetValue missing`);
         }
         if (typeof item.targetUnit !== 'string' || item.targetUnit.trim().length === 0) {
-          errors.push(`measurable[${index}].counter targetUnit missing`);
+          errors.push(`tracker[${index}].counter targetUnit missing`);
         }
       }
       if (item.type === 'checklist') {
         if (item.targetValue !== null || item.targetUnit !== null) {
-          errors.push(`measurable[${index}].checklist target fields invalid`);
+          errors.push(`tracker[${index}].checklist target fields invalid`);
         }
       }
     }
@@ -365,19 +399,19 @@ function scoreRealism(goalData, expected) {
   }
 
   const maxTarget = expected.realism?.maxCounterTargetValue;
-  for (const measurable of goalData.measurables ?? []) {
-    if (measurable.type === 'counter' && typeof measurable.targetValue === 'number') {
-      if (measurable.targetValue <= 0) score -= 2;
-      if (typeof maxTarget === 'number' && measurable.targetValue > maxTarget) score -= 2;
+  for (const tracker of goalData.trackers ?? []) {
+    if (tracker.type === 'counter' && typeof tracker.targetValue === 'number') {
+      if (tracker.targetValue <= 0) score -= 2;
+      if (typeof maxTarget === 'number' && tracker.targetValue > maxTarget) score -= 2;
     }
   }
 
-  const measurableCount = goalData.measurables?.length ?? 0;
-  if (measurableCount < (expected.measurables?.min ?? 1)) score -= 2;
-  if (measurableCount > (expected.measurables?.max ?? 4)) score -= 1;
+  const trackerCount = goalData.trackers?.length ?? 0;
+  if (trackerCount < (expected.trackers?.min ?? 0)) score -= 2;
+  if (trackerCount > (expected.trackers?.max ?? 4)) score -= 1;
 
-  const checklistCount = (goalData.measurables ?? []).filter((item) => item.type === 'checklist').length;
-  if (measurableCount > 0 && checklistCount === measurableCount) score -= 1;
+  const checklistCount = (goalData.trackers ?? []).filter((item) => item.type === 'checklist').length;
+  if (trackerCount > 0 && checklistCount === trackerCount) score -= 1;
 
   return Math.max(0, Math.min(score, 5));
 }

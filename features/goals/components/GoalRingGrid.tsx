@@ -6,10 +6,10 @@ import type { ThemeColors } from '@/constants/colors';
 import { useThemeColors } from '@/store/uiStore';
 import { getGoalRingProgress } from '../utils/ringProgress';
 import { GoalRingCard } from './GoalRingCard';
-import type { GoalWithMeasurables } from '../types';
+import type { GoalWithDetails } from '../types';
 
 interface GoalRingGridProps {
-  goals: GoalWithMeasurables[];
+  goals: GoalWithDetails[];
   emptyMessage?: string;
 }
 
@@ -34,7 +34,7 @@ function resolveDueDate(deadline: Date | null, colors: ThemeColors): {
   return { label, color: colors.text.muted };
 }
 
-function resolveActivityLabel(goal: GoalWithMeasurables): string | undefined {
+function resolveActivityLabel(goal: GoalWithDetails): string | undefined {
   const parts = [
     goal.vaultItemCount > 0
       ? `${goal.vaultItemCount} item${goal.vaultItemCount !== 1 ? 's' : ''}`

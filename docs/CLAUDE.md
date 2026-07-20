@@ -1,5 +1,5 @@
 # CLAUDE.md — Ohara Architectural Constitution
-# Last updated: April 2026 | Post-Vaults spec
+# Last updated: July 2026 | Goal-detail redesign
 
 ## What Ohara Is
 Goal-first personal growth platform. Social operating system.
@@ -8,7 +8,10 @@ Theme (post-redesign warm ramp, Sessions 1–4c): warm cream (#F8F4EC) page base
 
 ## Data Model (Current)
 - **Spaces**: contained environments (personal | team | institutional | community). Every user has a personal space. goals and projects have nullable space_id FK.
-- **Goals**: atomic unit of behavior. Has milestones (UI rename of measurables), status (active/complete/stagnant/discovered), category, optional project_id FK.
+- **Goals**: atomic unit of behavior. Has separate one-time milestones and
+  repeatable trackers, status
+  (active/complete/stagnant/discovered/archived), category, and optional
+  project_id FK.
 - **Projects**: long-term ambition containers. Aggregate multiple goals. Have their own Vault.
 - **Vaults**: goal-bound content workspaces. One vault per goal (auto-created). Contains vault_items (note | link | document | insight | action_update).
 - **Echo**: standalone journaling (BRT: Bud/Rose/Thorn). Separate Haiku-backed path in lib/ai/echo-client.ts.
@@ -43,11 +46,21 @@ Modules imported at _layout.tsx top level must NEVER throw at module load time.
 - echo_entries.goal_id preserved for backward compat. echo_goal_links is canonical many-to-many.
 - Vault creation failure must NOT block goal creation. Non-blocking, log errors.
 - Space creation failure must NOT block signup. Non-blocking, log errors.
+- Milestones are one-time goal-critical events; `milestones.completed_at` is
+  their completion evidence (`NULL` means pending).
+- Trackers are counter, habit, or checklist measures with a repeatable
+  daily/weekly/monthly cadence. Do not model one-time events as trackers.
+- Archived is a fifth goal status. Archived goals stay out of normal feeds and
+  are accessed through Settings.
+- Goal completion is one-way and may only be initiated from goal detail; do not
+  expose a reversible completion toggle.
 
 ### Naming (Current, Do Not Reference Old Names)
 - Echo (not Starlog)
 - Ohara AI (not Polaris, not Thuban, not Guides, not Clo/Lach/Atri)
-- Milestones (UI rename of measurables, no schema change)
+- Milestones (one-time critical goal events)
+- Trackers (counter, habit, or checklist measures; canonical schema name since
+  migration 025)
 - Vault (goal-bound workspace)
 - Constellation (personal visual graph), Atlas (B2B aggregate view)
 

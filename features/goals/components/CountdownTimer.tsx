@@ -1,9 +1,14 @@
-import { useState, useEffect } from 'react';
-import { View, Text } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Typography } from '@/components/ui/Typography';
+import { useThemeColors } from '@/store/uiStore';
 
 interface CountdownTimerProps {
-  deadline: Date;
-  accentColor: string;
+  createdAt: Date;
+  deadline: Date | null;
+  disabled?: boolean;
+  onUpdateDeadline: (deadline: Date | null) => Promise<boolean>;
 }
 
 interface TimeLeft {
@@ -13,57 +18,289 @@ interface TimeLeft {
   overdue: boolean;
 }
 
-function getTimeLeft(deadline: Date): TimeLeft {
-  const diff = deadline.getTime() - Date.now();
+const MINUTE_MS = 60_000;
+const DAY_MS = 86_400_000;
+
+function getTimeLeft(deadline: Date | null, now: number): TimeLeft {
+  if (!deadline) return { days: 0, hours: 0, minutes: 0, overdue: false };
+  const diff = deadline.getTime() - now;
   if (diff <= 0) return { days: 0, hours: 0, minutes: 0, overdue: true };
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  return { days, hours, minutes, overdue: false };
+  return {
+    days: Math.floor(diff / DAY_MS),
+    hours: Math.floor((diff % DAY_MS) / (60 * MINUTE_MS)),
+    minutes: Math.floor((diff % (60 * MINUTE_MS)) / MINUTE_MS),
+    overdue: false,
+  };
 }
 
-export function CountdownTimer({ deadline, accentColor }: CountdownTimerProps) {
-  const [timeLeft, setTimeLeft] = useState<TimeLeft>(() => getTimeLeft(deadline));
+function getElapsed(createdAt: Date, deadline: Date | null, now: number) {
+  if (!deadline) return { elapsedDays: 0, totalDays: 0, percentage: 0 };
+  const start = createdAt.getTime();
+  const end = deadline.getTime();
+  const span = Math.max(0, end - start);
+  if (span === 0) return { elapsedDays: 0, totalDays: 0, percentage: 100 };
+  const elapsed = Math.min(span, Math.max(0, now - start));
+  return {
+    elapsedDays: Math.min(Math.ceil(span / DAY_MS), Math.floor(elapsed / DAY_MS) + 1),
+    totalDays: Math.max(1, Math.ceil(span / DAY_MS)),
+    percentage: Math.min(100, Math.max(0, (elapsed / span) * 100)),
+  };
+}
+
+function formatDateInput(date: Date | null): string {
+  if (!date) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function parseDateInput(value: string): Date | null | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return undefined;
+  const parsed = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  if (
+    parsed.getFullYear() !== Number(match[1])
+    || parsed.getMonth() !== Number(match[2]) - 1
+    || parsed.getDate() !== Number(match[3])
+  ) {
+    return undefined;
+  }
+  parsed.setHours(12, 0, 0, 0);
+  return parsed;
+}
+
+function TimeValue({ value, unit }: { value: number; unit: string }) {
+  return (
+    <View style={{ alignItems: 'baseline', flexDirection: 'row', gap: 3 }}>
+      <Text
+        style={{
+          color: '#EDE7DA',
+          fontFamily: 'Inter-Bold',
+          fontSize: 22,
+          fontVariant: ['tabular-nums'],
+          lineHeight: 24,
+        }}
+      >
+        {String(value).padStart(2, '0')}
+      </Text>
+      <Text style={{ color: '#6E8C7B', fontFamily: 'Inter-Regular', fontSize: 11 }}>
+        {unit}
+      </Text>
+    </View>
+  );
+}
+
+export function CountdownTimer({
+  createdAt,
+  deadline,
+  disabled = false,
+  onUpdateDeadline,
+}: CountdownTimerProps) {
+  const colors = useThemeColors();
+  const [now, setNow] = useState(() => Date.now());
+  const [editing, setEditing] = useState(false);
+  const [dateInput, setDateInput] = useState(() => formatDateInput(deadline));
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTimeLeft(getTimeLeft(deadline));
-    }, 60000);
+    const interval = setInterval(() => setNow(Date.now()), MINUTE_MS);
     return () => clearInterval(interval);
-  }, [deadline]);
+  }, []);
 
-  if (timeLeft.overdue) {
-    return (
-      <View>
-        <Text style={{ color: '#E85D04', fontSize: 13, fontFamily: 'Inter-SemiBold', letterSpacing: 0.5 }}>
-          Deadline passed
-        </Text>
-      </View>
-    );
+  useEffect(() => {
+    if (!editing) setDateInput(formatDateInput(deadline));
+  }, [deadline, editing]);
+
+  const timeLeft = useMemo(() => getTimeLeft(deadline, now), [deadline, now]);
+  const elapsed = useMemo(() => getElapsed(createdAt, deadline, now), [createdAt, deadline, now]);
+
+  async function saveDeadline() {
+    const parsed = parseDateInput(dateInput);
+    if (parsed === undefined) {
+      setError('Use a valid date in YYYY-MM-DD format.');
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    const saved = await onUpdateDeadline(parsed);
+    setSaving(false);
+    if (!saved) {
+      setError('Could not update the end date. Try again.');
+      return;
+    }
+    setEditing(false);
   }
 
+  const caption = !deadline
+    ? 'Choose a goal end date'
+    : timeLeft.overdue
+      ? 'End date reached'
+      : `Day ${elapsed.elapsedDays} of ${elapsed.totalDays}`;
+
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 16 }}>
-      <View style={{ alignItems: 'center' }}>
-        <Text style={{ color: accentColor, fontSize: 44, fontFamily: 'Inter-Bold', lineHeight: 48 }}>
-          {timeLeft.days}
+    <View style={{ marginBottom: 16 }}>
+      <View
+        style={{
+          alignItems: 'center',
+          backgroundColor: colors.background.sidebar,
+          borderRadius: 16,
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: 18,
+          minHeight: 56,
+          paddingHorizontal: 20,
+          paddingVertical: 14,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: 0.1,
+          shadowRadius: 16,
+          elevation: 2,
+        }}
+      >
+        <Text
+          style={{
+            color: colors.accent.tealSoft,
+            fontFamily: 'Inter-SemiBold',
+            fontSize: 10.5,
+            letterSpacing: 1.5,
+            textTransform: 'uppercase',
+          }}
+        >
+          Goal ends in
         </Text>
-        <Text style={{ color: '#A79E8E', fontSize: 10, fontFamily: 'Inter-Medium', letterSpacing: 1.5, textTransform: 'uppercase' }}>
-          days
-        </Text>
+
+        {deadline ? (
+          <View style={{ alignItems: 'center', flexDirection: 'row', gap: 9 }}>
+            <TimeValue value={timeLeft.days} unit="d" />
+            <TimeValue value={timeLeft.hours} unit="h" />
+            <TimeValue value={timeLeft.minutes} unit="m" />
+          </View>
+        ) : (
+          <Text style={{ color: colors.text.inverse, fontFamily: 'Inter-SemiBold', fontSize: 14 }}>
+            Not set
+          </Text>
+        )}
+
+        <View style={{ flex: 1, gap: 5, minWidth: 120 }}>
+          <View
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.08)',
+              borderRadius: 3,
+              height: 4,
+              overflow: 'hidden',
+            }}
+          >
+            <LinearGradient
+              colors={[colors.accent.tealMid, colors.accent.teal]}
+              end={{ x: 1, y: 0 }}
+              start={{ x: 0, y: 0 }}
+              style={{ height: 4, width: `${elapsed.percentage}%` as `${number}%` }}
+            />
+          </View>
+          <Text style={{ color: '#7C9A88', fontFamily: 'Inter-Regular', fontSize: 10.5 }}>
+            {caption}
+          </Text>
+        </View>
+
+        <Pressable
+          accessibilityLabel="Edit goal end date"
+          accessibilityRole="button"
+          disabled={disabled}
+          onPress={() => {
+            setDateInput(formatDateInput(deadline));
+            setError(null);
+            setEditing((value) => !value);
+          }}
+          style={({ pressed }) => ({
+            alignItems: 'center',
+            backgroundColor: 'rgba(255,255,255,0.06)',
+            borderRadius: 8,
+            height: 28,
+            justifyContent: 'center',
+            opacity: disabled ? 0.45 : pressed ? 0.7 : 1,
+            width: 28,
+          })}
+        >
+          <Text style={{ color: colors.accent.tealSoft, fontSize: 16, letterSpacing: 1 }}>⋯</Text>
+        </Pressable>
       </View>
-      <View style={{ alignItems: 'center', paddingBottom: 4 }}>
-        <Text style={{ color: '#8A8172', fontSize: 17, fontFamily: 'Inter-Medium' }}>{timeLeft.hours}h</Text>
-        <Text style={{ color: '#A79E8E', fontSize: 10, fontFamily: 'Inter-Medium', letterSpacing: 1.5, textTransform: 'uppercase' }}>
-          hrs
-        </Text>
-      </View>
-      <View style={{ alignItems: 'center', paddingBottom: 4 }}>
-        <Text style={{ color: '#8A8172', fontSize: 17, fontFamily: 'Inter-Medium' }}>{timeLeft.minutes}m</Text>
-        <Text style={{ color: '#A79E8E', fontSize: 10, fontFamily: 'Inter-Medium', letterSpacing: 1.5, textTransform: 'uppercase' }}>
-          min
-        </Text>
-      </View>
+
+      {editing ? (
+        <View
+          style={{
+            alignSelf: 'flex-end',
+            backgroundColor: colors.background.card,
+            borderColor: colors.border.warm,
+            borderRadius: 14,
+            borderWidth: 1,
+            gap: 10,
+            marginTop: 8,
+            maxWidth: 340,
+            padding: 14,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.14,
+            shadowRadius: 24,
+            width: '100%',
+          }}
+        >
+          <Typography variant="micro-label">END DATE · YYYY-MM-DD</Typography>
+          <TextInput
+            accessibilityLabel="Goal end date"
+            autoFocus
+            editable={!saving}
+            onChangeText={(value) => {
+              setDateInput(value);
+              if (error) setError(null);
+            }}
+            onSubmitEditing={saveDeadline}
+            placeholder="2026-08-30"
+            placeholderTextColor={colors.text.muted}
+            returnKeyType="done"
+            style={{
+              backgroundColor: colors.background.input,
+              borderColor: error ? colors.feedback.danger.text : colors.border.input,
+              borderRadius: 9,
+              borderWidth: 1,
+              color: colors.text.primary,
+              fontFamily: 'Inter-Regular',
+              fontSize: 13,
+              paddingHorizontal: 11,
+              paddingVertical: 9,
+            }}
+            value={dateInput}
+          />
+          {error ? (
+            <Typography variant="hint" style={{ color: colors.feedback.danger.text }}>
+              {error}
+            </Typography>
+          ) : null}
+          <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'flex-end', gap: 14 }}>
+            <Pressable
+              disabled={saving}
+              onPress={() => {
+                setEditing(false);
+                setError(null);
+              }}
+            >
+              <Typography variant="caption">Cancel</Typography>
+            </Pressable>
+            <Pressable accessibilityRole="button" disabled={saving} onPress={saveDeadline}>
+              {saving ? (
+                <ActivityIndicator color={colors.accent.primary} size="small" />
+              ) : (
+                <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>
+                  Save date
+                </Typography>
+              )}
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }

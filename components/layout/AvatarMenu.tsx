@@ -61,6 +61,9 @@ export function AvatarMenu() {
   return (
     <>
       <TouchableOpacity
+        accessible
+        accessibilityLabel="Open account menu"
+        accessibilityRole="button"
         onPress={() => setMenuOpen(true)}
         style={{
           flexDirection: 'row',

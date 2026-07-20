@@ -1,19 +1,21 @@
 import { create } from 'zustand';
 import { deleteGoal as deleteGoalRecord } from './services/goal-service';
-import type { GoalWithMeasurables, Measurable } from './types';
+import type { GoalMilestone, GoalWithDetails, Tracker } from './types';
 
 interface GoalStore {
-  goals: GoalWithMeasurables[];
+  goals: GoalWithDetails[];
   selectedGoalId: string | null;
   isLoading: boolean;
-  setGoals: (goals: GoalWithMeasurables[]) => void;
-  upsertGoal: (goal: GoalWithMeasurables) => void;
+  setGoals: (goals: GoalWithDetails[]) => void;
+  upsertGoal: (goal: GoalWithDetails) => void;
   setSelectedGoalId: (id: string | null) => void;
   setIsLoading: (loading: boolean) => void;
   deleteGoal: (id: string) => Promise<void>;
-  updateMeasurableValue: (measurableId: string, value: number) => void;
-  upsertMeasurable: (goalId: string, measurable: Measurable) => void;
-  removeMeasurable: (goalId: string, measurableId: string) => void;
+  updateTrackerValue: (trackerId: string, value: number) => void;
+  upsertTracker: (goalId: string, tracker: Tracker) => void;
+  removeTracker: (goalId: string, trackerId: string) => void;
+  upsertMilestone: (goalId: string, milestone: GoalMilestone) => void;
+  removeMilestone: (goalId: string, milestoneId: string) => void;
 }
 
 export const useGoalStore = create<GoalStore>((set) => ({
@@ -40,31 +42,52 @@ export const useGoalStore = create<GoalStore>((set) => ({
       goals: state.goals.filter((goal) => goal.id !== id),
     }));
   },
-  updateMeasurableValue: (measurableId, value) =>
+  updateTrackerValue: (trackerId, value) =>
     set((state) => ({
       goals: state.goals.map((goal) => ({
         ...goal,
-        measurables: goal.measurables.map((m) =>
-          m.id === measurableId ? { ...m, currentValue: value } : m
+        trackers: goal.trackers.map((tracker) =>
+          tracker.id === trackerId ? { ...tracker, currentValue: value } : tracker
         ),
       })),
     })),
-  upsertMeasurable: (goalId, measurable) =>
+  upsertTracker: (goalId, tracker) =>
     set((state) => ({
       goals: state.goals.map((goal) => {
         if (goal.id !== goalId) return goal;
-        const exists = goal.measurables.some((m) => m.id === measurable.id);
-        const measurables = exists
-          ? goal.measurables.map((m) => (m.id === measurable.id ? measurable : m))
-          : [...goal.measurables, measurable].sort((a, b) => a.sortOrder - b.sortOrder);
-        return { ...goal, measurables };
+        const exists = goal.trackers.some((item) => item.id === tracker.id);
+        const trackers = exists
+          ? goal.trackers.map((item) => (item.id === tracker.id ? tracker : item))
+          : [...goal.trackers, tracker].sort((a, b) => a.sortOrder - b.sortOrder);
+        return { ...goal, trackers };
       }),
     })),
-  removeMeasurable: (goalId, measurableId) =>
+  removeTracker: (goalId, trackerId) =>
     set((state) => ({
       goals: state.goals.map((goal) => {
         if (goal.id !== goalId) return goal;
-        return { ...goal, measurables: goal.measurables.filter((m) => m.id !== measurableId) };
+        return { ...goal, trackers: goal.trackers.filter((tracker) => tracker.id !== trackerId) };
+      }),
+    })),
+  upsertMilestone: (goalId, milestone) =>
+    set((state) => ({
+      goals: state.goals.map((goal) => {
+        if (goal.id !== goalId) return goal;
+        const exists = goal.milestones.some((item) => item.id === milestone.id);
+        const milestones = exists
+          ? goal.milestones.map((item) => (item.id === milestone.id ? milestone : item))
+          : [...goal.milestones, milestone].sort((a, b) => a.sortOrder - b.sortOrder);
+        return { ...goal, milestones };
+      }),
+    })),
+  removeMilestone: (goalId, milestoneId) =>
+    set((state) => ({
+      goals: state.goals.map((goal) => {
+        if (goal.id !== goalId) return goal;
+        return {
+          ...goal,
+          milestones: goal.milestones.filter((milestone) => milestone.id !== milestoneId),
+        };
       }),
     })),
 }));

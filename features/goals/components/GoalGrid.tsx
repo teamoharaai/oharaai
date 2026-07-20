@@ -1,9 +1,9 @@
 import { View, useWindowDimensions } from 'react-native';
 import { GoalCard } from './GoalCard';
-import type { GoalWithMeasurables } from '../types';
+import type { GoalWithDetails } from '../types';
 
 interface GoalGridProps {
-  goals: GoalWithMeasurables[];
+  goals: GoalWithDetails[];
   newestId?: string;
 }
 

@@ -2,7 +2,13 @@ import { Text, View, ActivityIndicator } from 'react-native';
 import { ReflectionCard } from '@/components/ui/ReflectionCard';
 import { Typography } from '@/components/ui/Typography';
 import { useThemeColors } from '@/store/uiStore';
-import type { ActivityItem, EchoEntryActivity, MilestoneCompletedActivity, GoalCreatedActivity } from '@/types/activity';
+import type {
+  ActivityItem,
+  EchoEntryActivity,
+  GoalCreatedActivity,
+  MilestoneCompletedActivity,
+  TrackerLoggedActivity,
+} from '@/types/activity';
 
 interface ActivityFeedProps {
   items: ActivityItem[];
@@ -90,6 +96,23 @@ function MilestoneRow({ item }: { item: MilestoneCompletedActivity }) {
   );
 }
 
+function TrackerRow({ item }: { item: TrackerLoggedActivity }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <Text style={{ fontFamily: 'Inter-Regular', fontSize: 12, color: '#2F8F6D' }}>↗</Text>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Typography variant="content" className="text-[13px]" numberOfLines={1}>
+          {item.label}
+        </Typography>
+        <Typography variant="caption" numberOfLines={1}>
+          Logged {item.value}{item.note ? ` · ${item.note}` : ''}
+        </Typography>
+      </View>
+      <Typography variant="caption">{formatDate(item.timestamp)}</Typography>
+    </View>
+  );
+}
+
 function ActivityRow({ item, isLast }: { item: ActivityItem; isLast: boolean }) {
   const content = (() => {
     switch (item.kind) {
@@ -99,6 +122,8 @@ function ActivityRow({ item, isLast }: { item: ActivityItem; isLast: boolean }) 
         return <EchoEntryCard item={item} />;
       case 'milestone_completed':
         return <MilestoneRow item={item} />;
+      case 'tracker_logged':
+        return <TrackerRow item={item} />;
       case 'vault_item_added':
         return (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

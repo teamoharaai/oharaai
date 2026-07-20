@@ -124,7 +124,7 @@ List the authenticated user's goals.
 **Query params:**
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
-| status | string | "active" | Filter: "active", "complete", "stagnant", "discovered", "all" |
+| status | string | — | Filter: "active", "complete", "stagnant", "discovered", "archived". Omit to return every non-archived goal. |
 | category | string | — | Filter by category |
 | cursor | string | — | Pagination cursor (goal ID) |
 | limit | number | 20 | Results per page (max 50) |
@@ -141,7 +141,7 @@ List the authenticated user's goals.
     deadline: string | null,       // ISO 8601
     visibility: "private" | "circle" | "public",
     progress: number,              // 0-100
-    status: "active" | "complete" | "stagnant" | "discovered",
+    status: "active" | "complete" | "stagnant" | "discovered" | "archived",
     aiGenerated: boolean,
     smartData: {                   // SMART breakdown; all keys always present
       specific: string,
@@ -150,7 +150,8 @@ List the authenticated user's goals.
       relevant: string,
       timeBound: string
     } | null,
-    measurableCount: number,       // count, not full objects
+    milestoneCount: number,        // one-time goal-critical events
+    trackerCount: number,          // recurring or quantitative measures
     createdAt: string,
     updatedAt: string
   }[],
@@ -161,7 +162,7 @@ List the authenticated user's goals.
 ---
 
 #### `GET /api/v1/goals/:id`
-Get a single goal with its measurables and recent activity.
+Get a single goal with its milestones, trackers, and recent activity.
 
 **Response `200`:**
 ```typescript
@@ -175,7 +176,7 @@ Get a single goal with its measurables and recent activity.
     deadline: string | null,
     visibility: "private" | "circle" | "public",
     progress: number,
-    status: "active" | "complete" | "stagnant" | "discovered",
+    status: "active" | "complete" | "stagnant" | "discovered" | "archived",
     aiGenerated: boolean,
     smartData: {                   // SMART breakdown; all keys always present
       specific: string,
@@ -186,13 +187,24 @@ Get a single goal with its measurables and recent activity.
     },                             // required on hydrated goal; null only if goal predates SMART migration
     createdAt: string,
     updatedAt: string,
-    measurables: {
+    milestones: {
+      id: string,
+      title: string,
+      description: string | null,
+      dueDate: string | null,
+      completedAt: string | null,  // non-null is the sole completion source of truth
+      isAiSuggested: boolean,
+      sortOrder: number,
+      createdAt: string,
+      updatedAt: string
+    }[],
+    trackers: {
       id: string,
       title: string,
       type: "counter" | "habit" | "checklist",
       targetValue: number | null,
       targetUnit: string | null,
-      frequency: "daily" | "weekly" | "monthly" | "once",
+      frequency: "daily" | "weekly" | "monthly",
       currentValue: number,
       isAiSuggested: boolean,
       sortOrder: number,
@@ -215,7 +227,7 @@ Get a single goal with its measurables and recent activity.
 ---
 
 #### `POST /api/v1/goals`
-Create a new goal with measurables.
+Create a new goal with one-time milestones and recurring or quantitative trackers.
 
 **Request body:**
 ```typescript
@@ -224,12 +236,17 @@ Create a new goal with measurables.
   description?: string,            // max 500 chars
   category: string,                // must match GOAL_CATEGORIES
   deadline?: string,               // ISO 8601, must be future
-  measurables?: {                  // 0-10 items
+  milestones?: {                  // one-time critical events
+    title: string,
+    description?: string,
+    dueDate?: string
+  }[],
+  trackers?: {                    // recurring or quantitative measures
     title: string,                 // max 80 chars
     type: "counter" | "habit" | "checklist",
     targetValue?: number,
     targetUnit?: string,
-    frequency: "daily" | "weekly" | "monthly" | "once"
+    frequency: "daily" | "weekly" | "monthly"
   }[]
 }
 ```
@@ -241,7 +258,7 @@ Create a new goal with measurables.
     id: string,
     title: string,
     colorTheme: string,            // auto-assigned from category
-    // ... full goal object + measurables
+    // ... full goal object + milestones + trackers
   }
 }
 ```
@@ -250,7 +267,7 @@ Create a new goal with measurables.
 - `colorTheme` is auto-assigned by the server from `CATEGORY_THEME_MAP`. Clients never send it.
 - The stored `progress` field starts at 0 for compatibility. Visible goal
   progress is calculated from elapsed time between creation and deadline;
-  measurable completion does not modify it.
+  tracker logging does not modify it.
 - `visibility` defaults to `"private"`. Updated via PATCH with an explicit literal.
 
 ---
@@ -300,12 +317,17 @@ Drive the multi-turn goal creation conversation and finalize a SMART goal. This 
         timeBound: string
       }
     },
-    measurables: {
+    milestones: {
+      title: string,
+      description: string | null,
+      dueDate: string | null
+    }[],
+    trackers: {
       title: string,
       type: "counter" | "habit" | "checklist",
       targetValue: number | null,
       targetUnit: string | null,
-      frequency: "daily" | "weekly" | "monthly" | "once"
+      frequency: "daily" | "weekly" | "monthly"
     }[],
     reasoning: string,
     assumptions: string[]        // always present; empty array if none
@@ -316,7 +338,7 @@ Drive the multi-turn goal creation conversation and finalize a SMART goal. This 
 **Notes:**
 - `userId` is never accepted in the request body — always resolved from the session JWT server-side.
 - `assumptions` is always `string[]`. The array is empty (`[]`) when no assumptions were made, never `null` or `undefined`.
-- The client is responsible for calling `lib/db/goals.createGoalWithMeasurables` after receiving `isComplete: true`.
+- The client is responsible for calling `lib/db/goals.createGoalWithMilestonesAndTrackers` after receiving `isComplete: true`.
 - `requestId` is a UUID generated per request — include it in all error reports.
 
 ---
@@ -332,7 +354,7 @@ Update a goal's editable fields.
   category?: string,
   deadline?: string,
   visibility?: "private" | "circle" | "public",
-  status?: "active" | "complete" | "stagnant" | "discovered"
+  status?: "active" | "complete" | "stagnant" | "discovered" | "archived"
 }
 ```
 
@@ -340,21 +362,61 @@ Update a goal's editable fields.
 
 **Notes:**
 - Changing `category` re-assigns `colorTheme` automatically.
-- Setting `status: "complete"` triggers a completion timestamp (server-side).
+- The goal-detail completion action sets `status: "complete"` and `progress: 100` in one update. There is no reopen action.
+- The goal-detail archive action sets `status: "archived"`. Archived goals are omitted from normal goal and project lists and are fetched explicitly with `status=archived` for Settings.
 
 ---
 
 #### `DELETE /api/v1/goals/:id`
-Delete a goal and cascade-delete its measurables and measurable logs. Echo entries linked to this goal get `goal_id` set to null (not deleted).
+Delete a goal and cascade-delete its milestones, trackers, and tracker logs. Echo entries linked to this goal get `goal_id` set to null (not deleted).
 
 **Response `204`:** No body.
 
 ---
 
-### Measurables
+### Milestones
 
-#### `POST /api/v1/goals/:goalId/measurables`
-Add a measurable to an existing goal.
+Milestones are one-time events that are critical to a goal. Completion is
+one-way: a non-null `completedAt` cannot be cleared through the goal-detail
+service.
+
+#### `POST /api/v1/goals/:goalId/milestones`
+Add a milestone to an existing goal.
+
+**Request body:**
+```typescript
+{
+  title: string,
+  description?: string | null,
+  dueDate?: string | null,
+  sortOrder?: number
+}
+```
+
+**Response `201`:** Created milestone with `completedAt: null` and `isAiSuggested: false`.
+
+---
+
+#### `PATCH /api/v1/goals/:goalId/milestones/:id`
+Update milestone details. `completedAt` is not accepted by this general update.
+
+---
+
+#### `POST /api/v1/goals/:goalId/milestones/:id/complete`
+Complete a pending milestone once. A successful completion generates a
+`milestone_completed` activity item containing `milestoneId`.
+
+---
+
+#### `DELETE /api/v1/goals/:goalId/milestones/:id`
+Delete a milestone.
+
+---
+
+### Trackers
+
+#### `POST /api/v1/goals/:goalId/trackers`
+Add a tracker to an existing goal.
 
 **Request body:**
 ```typescript
@@ -363,16 +425,16 @@ Add a measurable to an existing goal.
   type: "counter" | "habit" | "checklist",
   targetValue?: number,
   targetUnit?: string,
-  frequency: "daily" | "weekly" | "monthly" | "once"
+  frequency: "daily" | "weekly" | "monthly"
 }
 ```
 
-**Response `201`:** Created measurable object with `isAiSuggested: false`.
+**Response `201`:** Created tracker object with `isAiSuggested: false`.
 
 ---
 
-#### `PATCH /api/v1/goals/:goalId/measurables/:id`
-Update a measurable.
+#### `PATCH /api/v1/goals/:goalId/trackers/:id`
+Update a tracker.
 
 **Request body (all fields optional):**
 ```typescript
@@ -380,24 +442,24 @@ Update a measurable.
   title?: string,
   targetValue?: number,
   targetUnit?: string,
-  frequency?: "daily" | "weekly" | "monthly" | "once",
+  frequency?: "daily" | "weekly" | "monthly",
   sortOrder?: number
 }
 ```
 
-**Response `200`:** Updated measurable object.
+**Response `200`:** Updated tracker object.
 
 ---
 
-#### `DELETE /api/v1/goals/:goalId/measurables/:id`
-Delete a measurable and its logs.
+#### `DELETE /api/v1/goals/:goalId/trackers/:id`
+Delete a tracker and its logs.
 
 **Response `204`:** No body.
 
 ---
 
-#### `POST /api/v1/goals/:goalId/measurables/:id/log`
-Log progress on a measurable (increment counter, complete habit, check item).
+#### `POST /api/v1/goals/:goalId/trackers/:id/log`
+Log progress on a tracker (increment counter, complete habit, check item).
 
 **Request body:**
 ```typescript
@@ -412,22 +474,36 @@ Log progress on a measurable (increment counter, complete habit, check item).
 {
   data: {
     logId: string,
-    measurableId: string,
+    trackerId: string,
     value: number,
     note: string | null,
     loggedAt: string,
-    updatedMeasurable: {
-      currentValue: number,    // recalculated after this log
-      goalProgress: number     // recalculated goal-level progress
+    updatedTracker: {
+      currentValue: number     // recalculated after this log
     }
   }
 }
 ```
 
 **Notes:**
-- Server recalculates `measurable.currentValue` and `goal.progress` after each log.
+- Tracker logs generate `tracker_logged` activity containing `trackerId`; they never generate `milestone_completed` activity.
+- Server recalculates `tracker.currentValue` after each log. Goal completion remains an explicit user action.
 - For `habit` type: logging resets are based on `frequency`. A daily habit resets at midnight user-local time. Server tracks this.
-- For `checklist` type: `value` is ignored, treated as a toggle. Logging a completed checklist item uncompletes it.
+- For `checklist` type, the one-tap completion action records completion and sets `currentValue` to 1; it does not reopen a completed item.
+
+#### `POST /api/goals/complete-tracker`
+Authenticated Expo route used by goal detail for the current one-tap tracker
+completion behavior. Accepts `{ trackerId, goalId }` and returns
+`{ success: true }`. Goals with successors return `409` and remain read-only.
+
+#### `GET /api/trackers/due-today`
+Returns daily trackers grouped as `{ goalId, goalTitle, trackers }`. Each tracker
+contains `id`, `title`, `type`, `targetValue`, `targetUnit`, `currentValue`, and
+`lastCompletedAt`. Only active goals owned by the authenticated user are included.
+
+When extending an expired goal, trackers are copied with `currentValue: 0`.
+Only pending milestones are carried forward; completed one-time events stay on
+the prior phase and are never duplicated as pending events.
 
 ---
 
@@ -634,5 +710,5 @@ PATCH  /api/v1/instance/:id/settings     — instance-level settings
 5. **Never remove a field from a response** without deprecation — add a new field alongside the old one, mark old as deprecated, remove in next phase.
 6. **Never change a field's type** (e.g., `string` → `number`) — that's a breaking change requiring a new endpoint version.
 
-> Contract version: 1.1 — Phase 1
-> Last updated: 2026-03-30
+> Contract version: 2.0 — Phase 1 canonical milestone/tracker cutover
+> Last updated: 2026-07-20

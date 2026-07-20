@@ -1,234 +1,373 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useGoalStore } from '../store';
-import { fetchGoalById, fetchGoals, createMeasurable, updateMeasurable, deleteMeasurable, updateGoal } from '../services/goal-service';
-import type { GoalWithMeasurables, MeasurableInput, MeasurableUpdates } from '../types';
-import supabase from '@/lib/db/client';
 import { authedFetch, UnauthorizedError } from '@/lib/api/client';
+import supabase from '@/lib/db/client';
+import {
+  completeMilestone,
+  createMilestone,
+  createTracker,
+  deleteMilestone,
+  deleteTracker,
+  fetchGoalById,
+  fetchGoals,
+  updateGoal,
+  updateMilestone,
+  updateTracker,
+} from '../services/goal-service';
+import { useGoalStore } from '../store';
+import type {
+  GoalMilestoneInput,
+  GoalMilestoneUpdates,
+  GoalWithDetails,
+  TrackerInput,
+  TrackerUpdates,
+} from '../types';
 
-export function useGoalDetail(goalId: string): {
-  goal: GoalWithMeasurables | null;
+type EditableMilestoneUpdates = Omit<GoalMilestoneUpdates, 'completedAt'>;
+
+export interface UseGoalDetailResult {
+  goal: GoalWithDetails | null;
   isLoading: boolean;
-  onSaveMeasurable: (measurableId: string, updates: MeasurableUpdates) => Promise<void>;
-  onDeleteMeasurable: (measurableId: string) => Promise<void>;
-  onAddMeasurable: (input: MeasurableInput) => Promise<void>;
-  onCompleteMeasurable: (measurableId: string) => Promise<void>;
+  onSaveTracker: (trackerId: string, updates: TrackerUpdates) => Promise<void>;
+  onDeleteTracker: (trackerId: string) => Promise<void>;
+  onAddTracker: (input: TrackerInput) => Promise<void>;
+  onCompleteTracker: (trackerId: string) => Promise<void>;
+  onSaveMilestone: (milestoneId: string, updates: EditableMilestoneUpdates) => Promise<void>;
+  onDeleteMilestone: (milestoneId: string) => Promise<void>;
+  onAddMilestone: (input: GoalMilestoneInput) => Promise<void>;
+  onCompleteMilestone: (milestoneId: string) => Promise<void>;
   onUpdateDeadline: (deadline: Date | null) => Promise<boolean>;
   onUpdateProject: (projectId: string | null) => Promise<boolean>;
-  completedIds: Set<string>;
-  measurableError: string | null;
-  clearMeasurableError: () => void;
-} {
-  const { goals, isLoading, setGoals, setIsLoading, upsertGoal, upsertMeasurable, removeMeasurable } =
-    useGoalStore();
-  const [measurableError, setMeasurableError] = useState<string | null>(null);
-  const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
-  const goal = goals.find((g) => g.id === goalId) ?? null;
+  onUpdateDescription: (description: string | null) => Promise<boolean>;
+  onCompleteGoal: () => Promise<boolean>;
+  onArchiveGoal: () => Promise<boolean>;
+  completedTrackerIds: Set<string>;
+  completingMilestoneIds: Set<string>;
+  trackerError: string | null;
+  milestoneError: string | null;
+  goalError: string | null;
+  clearTrackerError: () => void;
+  clearMilestoneError: () => void;
+  clearGoalError: () => void;
+}
+
+function mergeServerGoal(current: GoalWithDetails, saved: GoalWithDetails): GoalWithDetails {
+  return {
+    ...saved,
+    has_successor: current.has_successor,
+    successor: current.successor,
+    vaultItemCount: current.vaultItemCount,
+    echoLinkCount: current.echoLinkCount,
+    latestBrtTags: current.latestBrtTags,
+  };
+}
+
+export function useGoalDetail(goalId: string): UseGoalDetailResult {
+  const {
+    goals,
+    isLoading,
+    setGoals,
+    setIsLoading,
+    upsertGoal,
+    upsertTracker,
+    removeTracker,
+    upsertMilestone,
+    removeMilestone,
+  } = useGoalStore();
+  const [trackerError, setTrackerError] = useState<string | null>(null);
+  const [milestoneError, setMilestoneError] = useState<string | null>(null);
+  const [goalError, setGoalError] = useState<string | null>(null);
+  const [completedTrackerIds, setCompletedTrackerIds] = useState<Set<string>>(new Set());
+  const [completingMilestoneIds, setCompletingMilestoneIds] = useState<Set<string>>(new Set());
+  const goal = goals.find((item) => item.id === goalId) ?? null;
 
   useEffect(() => {
-    setCompletedIds(new Set());
+    setCompletedTrackerIds(new Set());
+    setCompletingMilestoneIds(new Set());
+    setTrackerError(null);
+    setMilestoneError(null);
+    setGoalError(null);
   }, [goalId]);
 
   useEffect(() => {
-    if (!goalId || isLoading) {
-      return;
-    }
+    if (!goalId || isLoading) return;
+    if (goal && (!goal.has_successor || goal.successor !== null)) return;
 
-    if (goals.length === 0 || !goal || (goal.has_successor && goal.successor === null)) {
-      async function load() {
-        setIsLoading(true);
+    async function load() {
+      setIsLoading(true);
+      try {
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        if (!user) {
-          setIsLoading(false);
+        if (!user) return;
+
+        if (goals.length === 0) {
+          const list = await fetchGoals(user.id);
+          const listedGoal = list.find((item) => item.id === goalId);
+          const detail = listedGoal ?? await fetchGoalById(goalId);
+          setGoals(detail
+            ? [detail, ...list.filter((item) => item.id !== detail.id)]
+            : list);
           return;
         }
-        if (goals.length === 0) {
-          const data = await fetchGoals(user.id);
-          setGoals(data);
-        } else {
-          const data = await fetchGoalById(goalId);
-          if (data) {
-            setGoals([data, ...goals.filter((item) => item.id !== data.id)]);
-          }
+
+        const detail = await fetchGoalById(goalId);
+        if (detail) {
+          setGoals([detail, ...goals.filter((item) => item.id !== detail.id)]);
         }
+      } finally {
         setIsLoading(false);
       }
-      load();
     }
+
+    void load();
   }, [goal, goalId, goals, isLoading, setGoals, setIsLoading]);
 
-  const clearMeasurableError = useCallback(() => setMeasurableError(null), []);
+  const readOnlyGoal = useCallback(() => {
+    const current = goals.find((item) => item.id === goalId);
+    if (!current?.has_successor) return current ?? null;
+    setGoalError('This goal has a continuation and is read-only.');
+    return null;
+  }, [goalId, goals]);
 
-  const onSaveMeasurable = useCallback(
-    async (measurableId: string, updates: MeasurableUpdates) => {
-      const current = goals
-        .find((g) => g.id === goalId)
-        ?.measurables.find((m) => m.id === measurableId);
-      if (!current) return;
+  const clearTrackerError = useCallback(() => setTrackerError(null), []);
+  const clearMilestoneError = useCallback(() => setMilestoneError(null), []);
+  const clearGoalError = useCallback(() => setGoalError(null), []);
 
-      // Optimistic update
-      upsertMeasurable(goalId, { ...current, ...updates });
+  const onSaveTracker = useCallback(async (trackerId: string, updates: TrackerUpdates) => {
+    const currentGoal = readOnlyGoal();
+    const current = currentGoal?.trackers.find((item) => item.id === trackerId);
+    if (!current) return;
 
-      const saved = await updateMeasurable(measurableId, updates);
-      if (!saved) {
-        // Rollback
-        upsertMeasurable(goalId, current);
-        setMeasurableError('Failed to save changes. Please try again.');
-      } else {
-        // Sync with server state
-        upsertMeasurable(goalId, saved);
-      }
-    },
-    [goalId, goals, upsertMeasurable],
-  );
+    upsertTracker(goalId, { ...current, ...updates });
+    const saved = await updateTracker(goalId, trackerId, updates);
+    if (!saved) {
+      upsertTracker(goalId, current);
+      setTrackerError('Failed to save tracker changes. Please try again.');
+      return;
+    }
+    upsertTracker(goalId, saved);
+  }, [goalId, readOnlyGoal, upsertTracker]);
 
-  const onDeleteMeasurable = useCallback(
-    async (measurableId: string) => {
-      const current = goals
-        .find((g) => g.id === goalId)
-        ?.measurables.find((m) => m.id === measurableId);
-      if (!current) return;
+  const onDeleteTracker = useCallback(async (trackerId: string) => {
+    const currentGoal = readOnlyGoal();
+    const current = currentGoal?.trackers.find((item) => item.id === trackerId);
+    if (!current) return;
 
-      // Optimistic remove
-      removeMeasurable(goalId, measurableId);
+    removeTracker(goalId, trackerId);
+    if (!await deleteTracker(goalId, trackerId)) {
+      upsertTracker(goalId, current);
+      setTrackerError('Failed to delete tracker. Please try again.');
+    }
+  }, [goalId, readOnlyGoal, removeTracker, upsertTracker]);
 
-      const ok = await deleteMeasurable(measurableId);
-      if (!ok) {
-        // Rollback
-        upsertMeasurable(goalId, current);
-        setMeasurableError('Failed to delete measurable. Please try again.');
-      }
-    },
-    [goalId, goals, removeMeasurable, upsertMeasurable],
-  );
+  const onAddTracker = useCallback(async (input: TrackerInput) => {
+    const currentGoal = readOnlyGoal();
+    if (!currentGoal) return;
 
-  const onAddMeasurable = useCallback(
-    async (input: MeasurableInput) => {
-      const currentMeasurables = goals.find((g) => g.id === goalId)?.measurables ?? [];
-      const sortOrder = currentMeasurables.length;
+    const saved = await createTracker(goalId, {
+      ...input,
+      sortOrder: currentGoal.trackers.length,
+    });
+    if (!saved) {
+      setTrackerError('Failed to add tracker. Please try again.');
+      return;
+    }
+    upsertTracker(goalId, saved);
+  }, [goalId, readOnlyGoal, upsertTracker]);
 
-      const saved = await createMeasurable(goalId, { ...input, sortOrder });
-      if (!saved) {
-        setMeasurableError('Failed to add measurable. Please try again.');
-        return;
-      }
-      upsertMeasurable(goalId, saved);
-    },
-    [goalId, goals, upsertMeasurable],
-  );
+  const onCompleteTracker = useCallback(async (trackerId: string) => {
+    const currentGoal = readOnlyGoal();
+    const tracker = currentGoal?.trackers.find((item) => item.id === trackerId);
+    if (!currentGoal || !tracker || completedTrackerIds.has(trackerId)) return;
 
-  const onCompleteMeasurable = useCallback(
-    async (measurableId: string) => {
-      const currentGoal = goals.find((item) => item.id === goalId);
-      if (!currentGoal) return;
+    setTrackerError(null);
+    setCompletedTrackerIds((previous) => new Set(previous).add(trackerId));
 
-      const measurable = currentGoal.measurables.find((item) => item.id === measurableId);
-      if (!measurable || completedIds.has(measurableId)) return;
-
-      setMeasurableError(null);
-      setCompletedIds((prev) => new Set(prev).add(measurableId));
-
-      try {
-        const response = await authedFetch('/api/goals/complete-measurable', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ measurableId, goalId }),
-        });
-
-        const payload = (await response.json()) as
-          | { success: true }
-          | { error?: string };
-
-        if (!response.ok || !('success' in payload) || !payload.success) {
-          const message = 'error' in payload ? payload.error : undefined;
-          throw new Error(message ?? 'Failed to complete milestone');
-        }
-
-        upsertGoal({
-          ...currentGoal,
-          measurables: currentGoal.measurables.map((item) =>
-            item.id === measurableId && item.type === 'checklist'
-              ? { ...item, currentValue: 1 }
-              : item,
-          ),
-        });
-      } catch (error) {
-        setCompletedIds((prev) => {
-          const next = new Set(prev);
-          next.delete(measurableId);
-          return next;
-        });
-        setMeasurableError(
-          error instanceof UnauthorizedError
-            ? 'You need to be signed in to complete a milestone.'
-            : error instanceof Error
-              ? error.message
-              : 'Failed to complete milestone',
-        );
-      }
-    },
-    [completedIds, goalId, goals, upsertGoal],
-  );
-
-  const onUpdateDeadline = useCallback(
-    async (deadline: Date | null): Promise<boolean> => {
-      const current = goals.find((g) => g.id === goalId);
-      if (!current) return false;
-
-      // Optimistic update
-      upsertGoal({ ...current, deadline });
-
-      const saved = await updateGoal(goalId, { deadline });
-      if (!saved) {
-        // Rollback
-        upsertGoal(current);
-        return false;
-      }
-      upsertGoal(saved);
-      return true;
-    },
-    [goalId, goals, upsertGoal],
-  );
-
-  const onUpdateProject = useCallback(
-    async (projectId: string | null): Promise<boolean> => {
-      const current = goals.find((g) => g.id === goalId);
-      if (!current || current.has_successor) return false;
-      if (current.projectId === projectId) return true;
-
-      upsertGoal({ ...current, projectId });
-
-      const saved = await updateGoal(goalId, { projectId });
-      if (!saved) {
-        upsertGoal(current);
-        return false;
-      }
-
-      upsertGoal({
-        ...saved,
-        has_successor: current.has_successor,
-        successor: current.successor,
-        vaultItemCount: current.vaultItemCount,
-        echoLinkCount: current.echoLinkCount,
-        latestBrtTags: current.latestBrtTags,
+    try {
+      const response = await authedFetch('/api/goals/complete-tracker', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trackerId, goalId }),
       });
-      return true;
-    },
-    [goalId, goals, upsertGoal],
-  );
+      const payload = (await response.json()) as { success?: boolean; error?: string };
+      if (!response.ok || payload.success !== true) {
+        throw new Error(payload.error ?? 'Failed to complete tracker');
+      }
+
+      if (tracker.type === 'checklist') {
+        upsertTracker(goalId, { ...tracker, currentValue: 1 });
+      }
+    } catch (error) {
+      setCompletedTrackerIds((previous) => {
+        const next = new Set(previous);
+        next.delete(trackerId);
+        return next;
+      });
+      setTrackerError(
+        error instanceof UnauthorizedError
+          ? 'You need to be signed in to update a tracker.'
+          : error instanceof Error
+            ? error.message
+            : 'Failed to complete tracker',
+      );
+    }
+  }, [completedTrackerIds, goalId, readOnlyGoal, upsertTracker]);
+
+  const onSaveMilestone = useCallback(async (
+    milestoneId: string,
+    updates: EditableMilestoneUpdates,
+  ) => {
+    const currentGoal = readOnlyGoal();
+    const current = currentGoal?.milestones.find((item) => item.id === milestoneId);
+    if (!current || current.completedAt) return;
+
+    upsertMilestone(goalId, { ...current, ...updates });
+    const saved = await updateMilestone(goalId, milestoneId, updates);
+    if (!saved) {
+      upsertMilestone(goalId, current);
+      setMilestoneError('Failed to save milestone changes. Please try again.');
+      return;
+    }
+    upsertMilestone(goalId, saved);
+  }, [goalId, readOnlyGoal, upsertMilestone]);
+
+  const onDeleteMilestone = useCallback(async (milestoneId: string) => {
+    const currentGoal = readOnlyGoal();
+    const current = currentGoal?.milestones.find((item) => item.id === milestoneId);
+    if (!current) return;
+
+    removeMilestone(goalId, milestoneId);
+    if (!await deleteMilestone(goalId, milestoneId)) {
+      upsertMilestone(goalId, current);
+      setMilestoneError('Failed to delete milestone. Please try again.');
+    }
+  }, [goalId, readOnlyGoal, removeMilestone, upsertMilestone]);
+
+  const onAddMilestone = useCallback(async (input: GoalMilestoneInput) => {
+    const currentGoal = readOnlyGoal();
+    if (!currentGoal) return;
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setMilestoneError('You need to be signed in to add a milestone.');
+      return;
+    }
+
+    const saved = await createMilestone(goalId, user.id, {
+      ...input,
+      sortOrder: currentGoal.milestones.length,
+    });
+    if (!saved) {
+      setMilestoneError('Failed to add milestone. Please try again.');
+      return;
+    }
+    upsertMilestone(goalId, saved);
+  }, [goalId, readOnlyGoal, upsertMilestone]);
+
+  const onCompleteMilestone = useCallback(async (milestoneId: string) => {
+    const currentGoal = readOnlyGoal();
+    const milestone = currentGoal?.milestones.find((item) => item.id === milestoneId);
+    if (!milestone || milestone.completedAt || completingMilestoneIds.has(milestoneId)) return;
+
+    setMilestoneError(null);
+    setCompletingMilestoneIds((previous) => new Set(previous).add(milestoneId));
+    const optimistic = { ...milestone, completedAt: new Date() };
+    upsertMilestone(goalId, optimistic);
+
+    const saved = await completeMilestone(goalId, milestoneId);
+    setCompletingMilestoneIds((previous) => {
+      const next = new Set(previous);
+      next.delete(milestoneId);
+      return next;
+    });
+    if (!saved) {
+      upsertMilestone(goalId, milestone);
+      setMilestoneError('Failed to complete milestone. Please try again.');
+      return;
+    }
+    upsertMilestone(goalId, saved);
+  }, [completingMilestoneIds, goalId, readOnlyGoal, upsertMilestone]);
+
+  const persistGoalUpdate = useCallback(async (
+    optimistic: GoalWithDetails,
+    updates: Parameters<typeof updateGoal>[1],
+  ): Promise<boolean> => {
+    const current = readOnlyGoal();
+    if (!current) return false;
+
+    setGoalError(null);
+    upsertGoal(optimistic);
+    const saved = await updateGoal(goalId, updates);
+    if (!saved) {
+      upsertGoal(current);
+      setGoalError('Failed to update goal. Please try again.');
+      return false;
+    }
+    upsertGoal(mergeServerGoal(current, saved));
+    return true;
+  }, [goalId, readOnlyGoal, upsertGoal]);
+
+  const onUpdateDeadline = useCallback(async (deadline: Date | null) => {
+    const current = readOnlyGoal();
+    if (!current) return false;
+    return persistGoalUpdate({ ...current, deadline }, { deadline });
+  }, [persistGoalUpdate, readOnlyGoal]);
+
+  const onUpdateProject = useCallback(async (projectId: string | null) => {
+    const current = readOnlyGoal();
+    if (!current) return false;
+    if (current.projectId === projectId) return true;
+    return persistGoalUpdate({ ...current, projectId }, { projectId });
+  }, [persistGoalUpdate, readOnlyGoal]);
+
+  const onUpdateDescription = useCallback(async (description: string | null) => {
+    const current = readOnlyGoal();
+    if (!current) return false;
+    if (current.description === description) return true;
+    return persistGoalUpdate({ ...current, description }, { description });
+  }, [persistGoalUpdate, readOnlyGoal]);
+
+  const onCompleteGoal = useCallback(async () => {
+    const current = readOnlyGoal();
+    if (!current) return false;
+    if (current.status === 'complete') return true;
+    return persistGoalUpdate(
+      { ...current, status: 'complete', progress: 100 },
+      { status: 'complete', progress: 100 },
+    );
+  }, [persistGoalUpdate, readOnlyGoal]);
+
+  const onArchiveGoal = useCallback(async () => {
+    const current = readOnlyGoal();
+    if (!current) return false;
+    if (current.status === 'archived') return true;
+    return persistGoalUpdate({ ...current, status: 'archived' }, { status: 'archived' });
+  }, [persistGoalUpdate, readOnlyGoal]);
 
   return {
     goal,
     isLoading,
-    onSaveMeasurable,
-    onDeleteMeasurable,
-    onAddMeasurable,
-    onCompleteMeasurable,
+    onSaveTracker,
+    onDeleteTracker,
+    onAddTracker,
+    onCompleteTracker,
+    onSaveMilestone,
+    onDeleteMilestone,
+    onAddMilestone,
+    onCompleteMilestone,
     onUpdateDeadline,
     onUpdateProject,
-    completedIds,
-    measurableError,
-    clearMeasurableError,
+    onUpdateDescription,
+    onCompleteGoal,
+    onArchiveGoal,
+    completedTrackerIds,
+    completingMilestoneIds,
+    trackerError,
+    milestoneError,
+    goalError,
+    clearTrackerError,
+    clearMilestoneError,
+    clearGoalError,
   };
 }

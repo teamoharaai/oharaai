@@ -7,10 +7,10 @@ import { Typography } from '@/components/ui/Typography';
 import { useGoalStore } from '../store';
 import { GoalTitleRow } from './GoalTitleRow';
 import { getGoalRingProgress } from '../utils/ringProgress';
-import type { GoalWithMeasurables } from '../types';
+import type { GoalWithDetails } from '../types';
 
 interface GoalCardProps {
-  goal: GoalWithMeasurables;
+  goal: GoalWithDetails;
   isNewest?: boolean;
 }
 

@@ -1,19 +1,19 @@
 import type {
-  GoalMeasurableFrequency,
-  GoalMeasurableType,
+  GoalTrackerFrequency,
+  GoalTrackerType,
 } from '@/lib/goals/schema';
 
-export interface MeasurableInsertInput {
+export interface TrackerInsertInput {
   title: string;
-  type: GoalMeasurableType;
+  type: GoalTrackerType;
   targetValue?: number | null;
   targetUnit?: string | null;
-  frequency?: GoalMeasurableFrequency | null;
+  frequency?: GoalTrackerFrequency | null;
   isAiSuggested?: boolean;
   sortOrder?: number;
 }
 
-export function buildMeasurableInsert(goalId: string, input: MeasurableInsertInput) {
+export function buildTrackerInsert(goalId: string, input: TrackerInsertInput) {
   return {
     goal_id: goalId,
     title: input.title.trim(),

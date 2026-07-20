@@ -14,7 +14,7 @@ interface GoalRingCardProps {
    * 0–100, drives the ring fill and centered percentage. Caller resolves the
    * meaning is time elapsed toward the deadline (see
    * features/goals/utils/ringProgress.ts). Goals without deadlines omit this
-   * card rather than substituting measurable completion.
+   * card rather than substituting tracker or milestone completion.
    */
   progress: number;
   /** Goal's category/theme accent (from GOAL_THEMES), before deadline urgency escalation. */

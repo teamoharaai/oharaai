@@ -22,7 +22,7 @@ import { authedFetch } from '@/lib/api/client';
 import supabase from '@/lib/db/client';
 import { formatRelativeTime } from '@/lib/utils/relativeTime';
 import type { AiResponse } from '@/lib/ai/contracts';
-import type { GoalWithMeasurables } from '@/features/goals/types';
+import type { GoalWithDetails } from '@/features/goals/types';
 import type { ActionLog } from '@/features/actions/types';
 
 // --- Helpers ---
@@ -81,7 +81,7 @@ function DashboardCreateButton({
   );
 }
 
-// --- Zone 1: Today's Measurables ---
+// --- Zone 1: Today's Trackers ---
 
 type DueTodayItem = {
   goalId: string;
@@ -94,7 +94,7 @@ type DueTodayItem = {
 type DueTodayApiGroup = {
   goalId: string;
   goalTitle: string;
-  measurables: Array<{
+  trackers: Array<{
     id: string;
     title: string;
     lastCompletedAt: string | null;
@@ -133,18 +133,18 @@ function DueTodayZone() {
     let isActive = true;
     async function load() {
       try {
-        const res = await authedFetch('/api/measurables/due-today');
+        const res = await authedFetch('/api/trackers/due-today');
         if (!res.ok || !isActive) return;
         const body = (await res.json()) as { data: DueTodayApiGroup[] };
         if (!isActive) return;
         setItems(
           body.data.flatMap((group) =>
-            group.measurables.map((m) => ({
+            group.trackers.map((tracker) => ({
               goalId: group.goalId,
               goalTitle: group.goalTitle,
-              id: m.id,
-              title: m.title,
-              lastCompletedAt: m.lastCompletedAt,
+              id: tracker.id,
+              title: tracker.title,
+              lastCompletedAt: tracker.lastCompletedAt,
             })),
           ),
         );
@@ -165,10 +165,10 @@ function DueTodayZone() {
     if (isCompletedToday(item.lastCompletedAt) || completingIds.has(item.id)) return;
     setCompletingIds((prev) => new Set(prev).add(item.id));
     try {
-      const res = await authedFetch('/api/goals/complete-measurable', {
+      const res = await authedFetch('/api/goals/complete-tracker', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ measurableId: item.id, goalId: item.goalId }),
+        body: JSON.stringify({ trackerId: item.id, goalId: item.goalId }),
       });
       if (!res.ok) throw new Error('Request failed');
       setItems((prev) =>
@@ -269,7 +269,7 @@ function DueTodayZone() {
 // --- ActiveGoalCard ---
 
 interface ActiveGoalCardProps {
-  goal: GoalWithMeasurables;
+  goal: GoalWithDetails;
 }
 
 function ActiveGoalCard({ goal }: ActiveGoalCardProps) {

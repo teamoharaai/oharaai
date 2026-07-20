@@ -27,13 +27,19 @@ export interface GoalSmartData {
   timeBound: string;
 }
 
-export const GOAL_MEASURABLE_TYPES = ['counter', 'habit', 'checklist'] as const;
-export type GoalMeasurableType = (typeof GOAL_MEASURABLE_TYPES)[number];
+export const GOAL_TRACKER_TYPES = ['counter', 'habit', 'checklist'] as const;
+export type GoalTrackerType = (typeof GOAL_TRACKER_TYPES)[number];
 
-export const GOAL_MEASURABLE_FREQUENCIES = ['daily', 'weekly', 'monthly', 'once'] as const;
-export type GoalMeasurableFrequency = (typeof GOAL_MEASURABLE_FREQUENCIES)[number];
+export const GOAL_TRACKER_FREQUENCIES = ['daily', 'weekly', 'monthly'] as const;
+export type GoalTrackerFrequency = (typeof GOAL_TRACKER_FREQUENCIES)[number];
 
-export const GOAL_DB_STATUSES = ['active', 'complete', 'stagnant', 'discovered'] as const;
+export const GOAL_DB_STATUSES = [
+  'active',
+  'complete',
+  'stagnant',
+  'discovered',
+  'archived',
+] as const;
 export type GoalDbStatus = (typeof GOAL_DB_STATUSES)[number];
 
 export const GOAL_VISIBILITIES = ['private', 'circle', 'public'] as const;

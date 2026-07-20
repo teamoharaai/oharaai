@@ -29,3 +29,11 @@ Should this capture step be:
 
 ### Type Reg 7-15-1129
   lib/db/client.ts Supabase client not parameterized with Database generic — insert/update calls aren't type-checked against types/supabase.ts. Surfaced during Doc 2 amendment (migration 022). Separate concern, needs its own audit of existing call sites before fixing.
+
+## 2026-07-20 — Goal-domain terminology resolved
+
+The 2026-06-25 question remains open only as a decision about the future of
+`action_logs`. Its phrase “due-today measurables” is historical: the canonical
+current domain object is **Trackers**. See the 2026-07-20 decision in
+`DECISIONS.md` for the locked Milestones/Trackers split and migration 025 hard
+rename.

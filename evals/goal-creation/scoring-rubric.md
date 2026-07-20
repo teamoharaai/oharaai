@@ -47,7 +47,7 @@ This harness evaluates the existing goal-creation API flow against a fixed fixtu
   - all five SMART fields present and non-trivial
   - description/title within schema limits
   - deadline behavior matches the case
-  - 1-4 measurables with valid shape
+  - separate one-time milestones and 0-4 trackers with valid shapes
 - Score:
   - `5`: clean, complete, specific structure
   - `3`: valid but thin or partially generic
@@ -57,10 +57,10 @@ This harness evaluates the existing goal-creation API flow against a fixed fixtu
 ### Realism quality
 
 - Checks whether the final goal feels achievable given the fixture.
-- Rewards bounded ambition, plausible timelines, and measurable targets that do not overshoot case constraints.
-- Penalizes impossible deadlines, inflated targets, or homework-like measurable sets.
+- Rewards bounded ambition, plausible timelines, and tracker targets that do not overshoot case constraints.
+- Penalizes impossible deadlines, inflated targets, or homework-like tracker sets.
 - Score:
-  - `5`: realistic target, plausible timeline, sensible measurables
+  - `5`: realistic target, plausible timeline, sensible milestones and trackers
   - `3`: mostly realistic with one weak spot
   - `1`: multiple realism concerns
   - `0`: clearly unrealistic or unusable
@@ -149,7 +149,7 @@ Each case includes:
 - `expected.category`: target category
 - `expected.assumptionKeywords`: phrases a good draft/finalization should likely preserve
 - `expected.deadline.kind`: `bounded` or `open`
-- `expected.measurables.min/max`: acceptable measurable count
+- `expected.trackers.min/max`: acceptable tracker count
 - `expected.minAssistantTurnsBeforeAutoFinalize`: minimum assistant draft turns before auto-finalization is considered safe
 - `expected.requiredFollowUpsBeforeAutoFinalize`: minimum number of scripted follow-ups that should be consumed before auto-finalization
 

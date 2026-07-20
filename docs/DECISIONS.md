@@ -439,3 +439,33 @@ scope — logged separately per amendment convention.
 
 **Out of scope (unchanged from this amendment):** UI work (goal-detail,
 extend modal, Momentum, Superseded views), ring color logic.
+
+### 2026-07-20 — Milestones, Trackers, Goal Archive, and Completion
+
+**Status:** Locked. This supersedes the 2026-03-29 measurable-types decision
+and the later convention that “Milestones” was only a UI alias. Those earlier
+entries remain historical records of the architecture at their dates.
+
+**Decision:**
+
+- **Milestones** are one-time events critical to a goal. Their completion
+  evidence is `milestones.completed_at`: `NULL` means pending, and a timestamp
+  means completed.
+- **Trackers** are counter, habit, or checklist measures with repeatable
+  `daily`, `weekly`, or `monthly` cadence. A one-time event is a milestone, not
+  a tracker. Legacy tracker rows whose frequency was `once` are normalized to
+  `NULL`; new tracker-frequency constraints do not accept `once`.
+- **Archived** is the fifth goal status, alongside `active`, `complete`,
+  `stagnant`, and `discovered`. Archived goals are excluded from normal goal
+  feeds and remain accessible through Settings.
+- Goal completion is a one-way action available from goal detail. It is not a
+  toggle and does not restore a prior status.
+- Migration `025_goal_milestones_trackers_archive.sql` is a coordinated hard
+  cutover: `measurables` becomes `trackers`, `measurable_logs` becomes
+  `tracker_logs`, and `measurable_id` becomes `tracker_id`. No compatibility
+  view, table alias, or type alias should preserve the old domain names.
+
+**Rationale:** One-time critical events and repeatable measures have different
+semantics and completion evidence. Locking separate canonical names at the
+database, type, API, AI-contract, and UI layers prevents those concepts from
+drifting together again.

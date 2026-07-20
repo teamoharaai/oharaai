@@ -3,7 +3,10 @@
 Owner: CEO (Ariel). Cascade Level 3.
 
 ## Files
-- goals.ts: Goal, Measurable types
+- Goal-domain types: Goal, GoalWithDetails, GoalMilestone, Tracker, and
+  TrackerLog. `features/goals/types.ts` owns the feature-level shapes;
+  `types/supabase.ts` owns generated-style database row shapes. Do not add
+  Measurable compatibility aliases.
 - activity.ts: ActivityItem discriminated union (kind field)
 - vault.ts: Vault, VaultItem, VaultItemType
 - space.ts: Space, SpaceType, SpaceRole, SpaceMember

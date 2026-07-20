@@ -32,18 +32,30 @@ import { authedFetch } from '@/lib/api/client';
 import type { ApiResponse } from '@/lib/api/contracts';
 import type { AiResponse } from '@/lib/ai/contracts';
 import type {
-  CreateGoalWithMeasurablesResult,
+  CreateGoalWithMilestonesAndTrackersResult,
   ManualGoalCreationInput,
 } from '@/lib/db/goals';
 import {
   GOAL_CATEGORIES,
-  GOAL_MEASURABLE_TYPES,
+  GOAL_TRACKER_TYPES,
   type GoalCategory,
-  type GoalMeasurableType,
+  type GoalTrackerType,
 } from '@/lib/goals/schema';
 
 type Period = 'week' | 'month';
-type Milestone = { id: string; title: string; type: GoalMeasurableType };
+type TrackerDraft = {
+  id: string;
+  title: string;
+  type: GoalTrackerType;
+  targetValue: number | null;
+  targetUnit: string | null;
+};
+type MilestoneDraft = {
+  id: string;
+  title: string;
+  description: string | null;
+  dueDate: string | null;
+};
 type GoalSuggestion = ManualGoalCreationInput['milestones'][number];
 
 const aiAssistEnabled = true;
@@ -53,7 +65,7 @@ const PROJECT_DOT_COLORS = ['#2F8F6D', '#B45309', '#4A7C5F'] as const;
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
 
 const TYPE_META: Record<
-  GoalMeasurableType,
+  GoalTrackerType,
   { label: string; color: string; backgroundColor: string }
 > = {
   counter: {
@@ -296,13 +308,20 @@ export default function GoalCreateScreen() {
   const [trackable, setTrackable] = useState(START_TRACKABLE);
   const [period, setPeriod] = useState<Period>('week');
   const [count, setCount] = useState(INITIAL_COUNT);
-  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [trackers, setTrackers] = useState<TrackerDraft[]>([]);
+  const [milestones, setMilestones] = useState<MilestoneDraft[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     typeof incomingProjectId === 'string' ? incomingProjectId : null,
   );
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [draftTitle, setDraftTitle] = useState('');
-  const [draftType, setDraftType] = useState<GoalMeasurableType>('habit');
+  const [showTrackerAddForm, setShowTrackerAddForm] = useState(false);
+  const [draftTrackerTitle, setDraftTrackerTitle] = useState('');
+  const [draftTrackerType, setDraftTrackerType] = useState<GoalTrackerType>('habit');
+  const [draftTrackerTargetValue, setDraftTrackerTargetValue] = useState('');
+  const [draftTrackerTargetUnit, setDraftTrackerTargetUnit] = useState('');
+  const [showMilestoneAddForm, setShowMilestoneAddForm] = useState(false);
+  const [draftMilestoneTitle, setDraftMilestoneTitle] = useState('');
+  const [draftMilestoneDescription, setDraftMilestoneDescription] = useState('');
+  const [draftMilestoneDueDate, setDraftMilestoneDueDate] = useState('');
   const [created, setCreated] = useState(false);
   const [createdGoalId, setCreatedGoalId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -315,6 +334,20 @@ export default function GoalCreateScreen() {
   const deadlineValidation = useMemo(() => validateDeadline(deadline), [deadline]);
   const createEnabled =
     titleText.trim().length > 0 && deadlineValidation.valid && selectedCategory !== null;
+  const parsedTrackerTargetValue = Number(draftTrackerTargetValue);
+  const canAddTracker = draftTrackerTitle.trim().length > 0 && (
+    draftTrackerType !== 'counter'
+    || (
+      Number.isFinite(parsedTrackerTargetValue)
+      && parsedTrackerTargetValue > 0
+      && draftTrackerTargetUnit.trim().length > 0
+    )
+  );
+  const milestoneDueDateValidation = draftMilestoneDueDate.trim()
+    ? validateDeadline(draftMilestoneDueDate)
+    : null;
+  const canAddMilestone = draftMilestoneTitle.trim().length > 0
+    && (milestoneDueDateValidation === null || milestoneDueDateValidation.valid);
 
   useEffect(() => {
     void loadProjects();
@@ -357,33 +390,66 @@ export default function GoalCreateScreen() {
     setCount((current) => Math.min(current, nextPeriod === 'week' ? 7 : 30));
   }
 
-  function openAddForm() {
-    setShowAddForm(true);
-    setDraftTitle('');
-    setDraftType('habit');
+  function openTrackerAddForm() {
+    setShowTrackerAddForm(true);
+    setDraftTrackerTitle('');
+    setDraftTrackerType('habit');
+    setDraftTrackerTargetValue('');
+    setDraftTrackerTargetUnit('');
   }
 
-  function cancelAddForm() {
-    setShowAddForm(false);
-    setDraftTitle('');
-    setDraftType('habit');
+  function cancelTrackerAddForm() {
+    setShowTrackerAddForm(false);
+    setDraftTrackerTitle('');
+    setDraftTrackerType('habit');
+    setDraftTrackerTargetValue('');
+    setDraftTrackerTargetUnit('');
+  }
+
+  function addTracker() {
+    const title = draftTrackerTitle.trim();
+    if (!canAddTracker) return;
+
+    setTrackers((current) => [
+      ...current,
+      {
+        id: `tracker-${Date.now()}-${current.length}`,
+        title,
+        type: draftTrackerType,
+        targetValue: draftTrackerType === 'counter' ? parsedTrackerTargetValue : null,
+        targetUnit: draftTrackerType === 'counter' ? draftTrackerTargetUnit.trim() : null,
+      },
+    ]);
+    cancelTrackerAddForm();
+  }
+
+  function openMilestoneAddForm() {
+    setShowMilestoneAddForm(true);
+    setDraftMilestoneTitle('');
+    setDraftMilestoneDescription('');
+    setDraftMilestoneDueDate('');
+  }
+
+  function cancelMilestoneAddForm() {
+    setShowMilestoneAddForm(false);
+    setDraftMilestoneTitle('');
+    setDraftMilestoneDescription('');
+    setDraftMilestoneDueDate('');
   }
 
   function addMilestone() {
-    const title = draftTitle.trim();
-    if (!title) return;
+    if (!canAddMilestone) return;
 
     setMilestones((current) => [
       ...current,
       {
         id: `milestone-${Date.now()}-${current.length}`,
-        title,
-        type: draftType,
+        title: draftMilestoneTitle.trim(),
+        description: draftMilestoneDescription.trim() || null,
+        dueDate: milestoneDueDateValidation?.iso ?? null,
       },
     ]);
-    setShowAddForm(false);
-    setDraftTitle('');
-    setDraftType('habit');
+    cancelMilestoneAddForm();
   }
 
   async function suggestMilestone() {
@@ -411,7 +477,8 @@ export default function GoalCreateScreen() {
         {
           id: `milestone-${Date.now()}-${current.length}`,
           title: suggestion.title,
-          type: suggestion.type,
+          description: suggestion.description ?? null,
+          dueDate: suggestion.dueDate ?? null,
         },
       ]);
     } catch (error) {
@@ -431,11 +498,18 @@ export default function GoalCreateScreen() {
     setTrackable(START_TRACKABLE);
     setPeriod('week');
     setCount(INITIAL_COUNT);
+    setTrackers([]);
     setMilestones([]);
     setSelectedProjectId(null);
-    setShowAddForm(false);
-    setDraftTitle('');
-    setDraftType('habit');
+    setShowTrackerAddForm(false);
+    setDraftTrackerTitle('');
+    setDraftTrackerType('habit');
+    setDraftTrackerTargetValue('');
+    setDraftTrackerTargetUnit('');
+    setShowMilestoneAddForm(false);
+    setDraftMilestoneTitle('');
+    setDraftMilestoneDescription('');
+    setDraftMilestoneDueDate('');
     setSubmitError(null);
     setCreatedGoalId(null);
     setCreated(false);
@@ -464,7 +538,18 @@ export default function GoalCreateScreen() {
       category: selectedCategory,
       target_frequency: trackable ? { times: count, period } : null,
       project_id: selectedProjectId || null,
-      milestones: milestones.map(({ title, type }) => ({ title, type })),
+      milestones: milestones.map(({ title, description, dueDate }) => ({
+        title,
+        description,
+        dueDate,
+      })),
+      trackers: trackers.map(({ title, type, targetValue, targetUnit }) => ({
+        title,
+        type,
+        targetValue,
+        targetUnit,
+        frequency: period === 'week' ? 'weekly' : 'monthly',
+      })),
     };
 
     setSaving(true);
@@ -476,7 +561,7 @@ export default function GoalCreateScreen() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      const body = (await response.json()) as ApiResponse<CreateGoalWithMeasurablesResult>;
+      const body = (await response.json()) as ApiResponse<CreateGoalWithMilestonesAndTrackersResult>;
 
       if (!body.ok) {
         throw new Error(body.error.message || 'Could not create the goal.');
@@ -1153,28 +1238,28 @@ export default function GoalCreateScreen() {
             )}
           </FormCard>
 
-          <FormCard last>
-            <Eyebrow style={{ marginBottom: 2 }}>Milestones</Eyebrow>
+          <FormCard>
+            <Eyebrow style={{ marginBottom: 2 }}>Trackers</Eyebrow>
 
-            {milestones.length === 0 ? (
+            {trackers.length === 0 ? (
               <View style={{ paddingBottom: 4, paddingTop: 12 }}>
                 <Typography
                   variant="description"
                   style={{ color: LIGHT_THEME.text.secondary, fontSize: 14, lineHeight: 21 }}
                 >
-                  What will you track to know it&apos;s working? A goal to lose weight might
-                  track weight 3–5× a week and log workouts. Add each measure yourself.
+                  What recurring behavior or number will show that the goal is moving? Add only
+                  the signals you will actually use.
                 </Typography>
               </View>
             ) : null}
 
-            {milestones.length > 0 ? (
+            {trackers.length > 0 ? (
               <View style={{ gap: 8, marginTop: 14 }}>
-                {milestones.map((milestone) => {
-                  const meta = TYPE_META[milestone.type];
+                {trackers.map((tracker) => {
+                  const meta = TYPE_META[tracker.type];
                   return (
                     <View
-                      key={milestone.id}
+                      key={tracker.id}
                       style={{
                         alignItems: 'center',
                         backgroundColor: LIGHT_THEME.background.goalCard,
@@ -1210,15 +1295,15 @@ export default function GoalCreateScreen() {
                         variant="content"
                         style={{ color: LIGHT_THEME.text.primary, flex: 1, fontSize: 14 }}
                       >
-                        {milestone.title}
+                        {tracker.title}
                       </Typography>
                       <Pressable
-                        accessibilityLabel={`Remove ${milestone.title}`}
+                        accessibilityLabel={`Remove ${tracker.title}`}
                         accessibilityRole="button"
                         hitSlop={6}
                         onPress={() =>
-                          setMilestones((current) =>
-                            current.filter((item) => item.id !== milestone.id),
+                          setTrackers((current) =>
+                            current.filter((item) => item.id !== tracker.id),
                           )
                         }
                         style={({ pressed }) => ({
@@ -1239,7 +1324,7 @@ export default function GoalCreateScreen() {
               </View>
             ) : null}
 
-            {showAddForm ? (
+            {showTrackerAddForm ? (
               <View
                 style={{
                   backgroundColor: LIGHT_THEME.background.page,
@@ -1251,11 +1336,11 @@ export default function GoalCreateScreen() {
                 }}
               >
                 <TextInput
-                  accessibilityLabel="Milestone name"
+                  accessibilityLabel="Tracker name"
                   autoFocus
-                  onChangeText={setDraftTitle}
-                  onSubmitEditing={addMilestone}
-                  placeholder="Milestone name"
+                  onChangeText={setDraftTrackerTitle}
+                  onSubmitEditing={addTracker}
+                  placeholder="Tracker name"
                   placeholderTextColor={LIGHT_THEME.text.muted}
                   style={{
                     backgroundColor: LIGHT_THEME.background.input,
@@ -1270,19 +1355,19 @@ export default function GoalCreateScreen() {
                     paddingHorizontal: 12,
                     paddingVertical: 9,
                   }}
-                  value={draftTitle}
+                  value={draftTrackerTitle}
                 />
 
                 <View style={{ flexDirection: 'row', gap: 6, marginBottom: 12 }}>
-                  {GOAL_MEASURABLE_TYPES.map((type) => {
+                  {GOAL_TRACKER_TYPES.map((type) => {
                     const meta = TYPE_META[type];
-                    const active = draftType === type;
+                    const active = draftTrackerType === type;
                     return (
                       <Pressable
                         accessibilityRole="button"
                         accessibilityState={{ selected: active }}
                         key={type}
-                        onPress={() => setDraftType(type)}
+                        onPress={() => setDraftTrackerType(type)}
                         style={({ pressed }) => ({
                           alignItems: 'center',
                           backgroundColor: active ? meta.backgroundColor : 'transparent',
@@ -1309,10 +1394,56 @@ export default function GoalCreateScreen() {
                   })}
                 </View>
 
+                {draftTrackerType === 'counter' ? (
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                    <TextInput
+                      accessibilityLabel="Tracker target value"
+                      keyboardType="numeric"
+                      onChangeText={setDraftTrackerTargetValue}
+                      placeholder="Target"
+                      placeholderTextColor={LIGHT_THEME.text.muted}
+                      style={{
+                        backgroundColor: LIGHT_THEME.background.input,
+                        borderColor: LIGHT_THEME.background.subtle,
+                        borderRadius: 10,
+                        borderWidth: 1,
+                        color: LIGHT_THEME.text.primary,
+                        flex: 1,
+                        fontFamily: 'Inter-Regular',
+                        fontSize: 13,
+                        outlineWidth: 0,
+                        paddingHorizontal: 12,
+                        paddingVertical: 9,
+                      }}
+                      value={draftTrackerTargetValue}
+                    />
+                    <TextInput
+                      accessibilityLabel="Tracker target unit"
+                      onChangeText={setDraftTrackerTargetUnit}
+                      placeholder="Unit (e.g. km)"
+                      placeholderTextColor={LIGHT_THEME.text.muted}
+                      style={{
+                        backgroundColor: LIGHT_THEME.background.input,
+                        borderColor: LIGHT_THEME.background.subtle,
+                        borderRadius: 10,
+                        borderWidth: 1,
+                        color: LIGHT_THEME.text.primary,
+                        flex: 2,
+                        fontFamily: 'Inter-Regular',
+                        fontSize: 13,
+                        outlineWidth: 0,
+                        paddingHorizontal: 12,
+                        paddingVertical: 9,
+                      }}
+                      value={draftTrackerTargetUnit}
+                    />
+                  </View>
+                ) : null}
+
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <Pressable
                     accessibilityRole="button"
-                    onPress={cancelAddForm}
+                    onPress={cancelTrackerAddForm}
                     style={({ pressed }) => ({
                       alignItems: 'center',
                       borderColor: LIGHT_THEME.background.subtle,
@@ -1332,15 +1463,15 @@ export default function GoalCreateScreen() {
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityState={{ disabled: !draftTitle.trim() }}
-                    disabled={!draftTitle.trim()}
-                    onPress={addMilestone}
+                    accessibilityState={{ disabled: !canAddTracker }}
+                    disabled={!canAddTracker}
+                    onPress={addTracker}
                     style={({ pressed }) => ({
                       alignItems: 'center',
                       backgroundColor: LIGHT_THEME.accent.primary,
                       borderRadius: 8,
                       flex: 1,
-                      opacity: !draftTitle.trim() ? 0.45 : pressed ? 0.75 : 1,
+                      opacity: !canAddTracker ? 0.45 : pressed ? 0.75 : 1,
                       padding: 9,
                     })}
                   >
@@ -1358,7 +1489,7 @@ export default function GoalCreateScreen() {
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 14 }}>
               <Pressable
                 accessibilityRole="button"
-                onPress={openAddForm}
+                onPress={openTrackerAddForm}
                 style={({ pressed }) => ({
                   alignItems: 'center',
                   borderColor: LIGHT_THEME.border.input,
@@ -1375,10 +1506,230 @@ export default function GoalCreateScreen() {
                   variant="meta"
                   style={{ color: LIGHT_THEME.text.secondary, fontSize: 13 }}
                 >
+                  ＋ Add tracker
+                </Typography>
+              </Pressable>
+            </View>
+          </FormCard>
+
+          <FormCard last>
+            <Eyebrow style={{ marginBottom: 2 }}>Milestones</Eyebrow>
+            <Typography
+              variant="description"
+              style={{ color: LIGHT_THEME.text.secondary, fontSize: 14, lineHeight: 21, marginTop: 10 }}
+            >
+              Add the one-time events that are critical to this goal. Recurring behaviors and
+              numbers belong in Trackers.
+            </Typography>
+
+            {milestones.length > 0 ? (
+              <View style={{ gap: 8, marginTop: 14 }}>
+                {milestones.map((milestone) => (
+                  <View
+                    key={milestone.id}
+                    style={{
+                      alignItems: 'center',
+                      backgroundColor: LIGHT_THEME.background.goalCard,
+                      borderColor: LIGHT_THEME.border.warmSubtle,
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      flexDirection: 'row',
+                      gap: 12,
+                      paddingHorizontal: 14,
+                      paddingVertical: 12,
+                    }}
+                  >
+                    <Typography
+                      variant="meta"
+                      style={{ color: LIGHT_THEME.text.accent, fontSize: 14 }}
+                    >
+                      ◆
+                    </Typography>
+                    <View style={{ flex: 1 }}>
+                      <Typography
+                        variant="content"
+                        style={{ color: LIGHT_THEME.text.primary, fontSize: 14 }}
+                      >
+                        {milestone.title}
+                      </Typography>
+                      {milestone.description || milestone.dueDate ? (
+                        <Typography
+                          variant="caption"
+                          style={{ color: LIGHT_THEME.text.muted, fontSize: 11.5, marginTop: 2 }}
+                        >
+                          {[
+                            milestone.description,
+                            milestone.dueDate
+                              ? `Due ${new Date(milestone.dueDate).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                })}`
+                              : null,
+                          ].filter(Boolean).join(' · ')}
+                        </Typography>
+                      ) : null}
+                    </View>
+                    <Pressable
+                      accessibilityLabel={`Remove ${milestone.title}`}
+                      accessibilityRole="button"
+                      hitSlop={6}
+                      onPress={() =>
+                        setMilestones((current) =>
+                          current.filter((item) => item.id !== milestone.id),
+                        )
+                      }
+                      style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1, padding: 4 })}
+                    >
+                      <Typography
+                        variant="body"
+                        style={{ color: LIGHT_THEME.text.muted, fontSize: 18, lineHeight: 18 }}
+                      >
+                        ×
+                      </Typography>
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
+            {showMilestoneAddForm ? (
+              <View
+                style={{
+                  backgroundColor: LIGHT_THEME.background.page,
+                  borderColor: LIGHT_THEME.background.subtle,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  marginTop: 12,
+                  padding: 14,
+                }}
+              >
+                <TextInput
+                  accessibilityLabel="Milestone name"
+                  autoFocus
+                  onChangeText={setDraftMilestoneTitle}
+                  placeholder="Milestone name"
+                  placeholderTextColor={LIGHT_THEME.text.muted}
+                  style={{
+                    backgroundColor: LIGHT_THEME.background.input,
+                    borderColor: LIGHT_THEME.background.subtle,
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    color: LIGHT_THEME.text.primary,
+                    fontFamily: 'Inter-Regular',
+                    fontSize: 13,
+                    marginBottom: 8,
+                    outlineWidth: 0,
+                    paddingHorizontal: 12,
+                    paddingVertical: 9,
+                  }}
+                  value={draftMilestoneTitle}
+                />
+                <TextInput
+                  accessibilityLabel="Milestone description"
+                  multiline
+                  onChangeText={setDraftMilestoneDescription}
+                  placeholder="Why this event matters (optional)"
+                  placeholderTextColor={LIGHT_THEME.text.muted}
+                  style={{
+                    backgroundColor: LIGHT_THEME.background.input,
+                    borderColor: LIGHT_THEME.background.subtle,
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    color: LIGHT_THEME.text.primary,
+                    fontFamily: 'Inter-Regular',
+                    fontSize: 13,
+                    marginBottom: 8,
+                    minHeight: 64,
+                    outlineWidth: 0,
+                    paddingHorizontal: 12,
+                    paddingVertical: 9,
+                    textAlignVertical: 'top',
+                  }}
+                  value={draftMilestoneDescription}
+                />
+                <TextInput
+                  accessibilityLabel="Milestone due date"
+                  autoCapitalize="none"
+                  onChangeText={setDraftMilestoneDueDate}
+                  placeholder="Due date (optional, YYYY-MM-DD)"
+                  placeholderTextColor={LIGHT_THEME.text.muted}
+                  style={{
+                    backgroundColor: LIGHT_THEME.background.input,
+                    borderColor:
+                      milestoneDueDateValidation && !milestoneDueDateValidation.valid
+                        ? LIGHT_THEME.feedback.danger.text
+                        : LIGHT_THEME.background.subtle,
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    color: LIGHT_THEME.text.primary,
+                    fontFamily: 'Inter-Regular',
+                    fontSize: 13,
+                    marginBottom: 12,
+                    outlineWidth: 0,
+                    paddingHorizontal: 12,
+                    paddingVertical: 9,
+                  }}
+                  value={draftMilestoneDueDate}
+                />
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={cancelMilestoneAddForm}
+                    style={({ pressed }) => ({
+                      alignItems: 'center',
+                      borderColor: LIGHT_THEME.background.subtle,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      flex: 1,
+                      opacity: pressed ? 0.65 : 1,
+                      padding: 9,
+                    })}
+                  >
+                    <Typography variant="meta" style={{ color: LIGHT_THEME.text.secondary, fontSize: 13 }}>
+                      Cancel
+                    </Typography>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: !canAddMilestone }}
+                    disabled={!canAddMilestone}
+                    onPress={addMilestone}
+                    style={({ pressed }) => ({
+                      alignItems: 'center',
+                      backgroundColor: LIGHT_THEME.accent.primary,
+                      borderRadius: 8,
+                      flex: 1,
+                      opacity: !canAddMilestone ? 0.45 : pressed ? 0.75 : 1,
+                      padding: 9,
+                    })}
+                  >
+                    <Typography variant="meta" style={{ color: '#FFFFFF', fontFamily: 'Inter-SemiBold', fontSize: 13 }}>
+                      Add
+                    </Typography>
+                  </Pressable>
+                </View>
+              </View>
+            ) : null}
+
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 14 }}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={openMilestoneAddForm}
+                style={({ pressed }) => ({
+                  alignItems: 'center',
+                  borderColor: LIGHT_THEME.border.input,
+                  borderRadius: 10,
+                  borderStyle: 'dashed',
+                  borderWidth: 1,
+                  opacity: pressed ? 0.6 : 1,
+                  paddingHorizontal: 16,
+                  paddingVertical: 10,
+                })}
+              >
+                <Typography variant="meta" style={{ color: LIGHT_THEME.text.secondary, fontSize: 13 }}>
                   ＋ Add milestone
                 </Typography>
               </Pressable>
-
               <Pressable
                 accessibilityRole="button"
                 accessibilityState={{ disabled: !aiAssistEnabled || suggesting }}
@@ -1397,21 +1748,14 @@ export default function GoalCreateScreen() {
                   paddingVertical: 10,
                 })}
               >
-                <Typography
-                  variant="meta"
-                  style={{ color: LIGHT_THEME.text.accent, fontSize: 13 }}
-                >
+                <Typography variant="meta" style={{ color: LIGHT_THEME.text.accent, fontSize: 13 }}>
                   ✦
                 </Typography>
                 <Typography
                   variant="meta"
-                  style={{
-                    color: LIGHT_THEME.text.accent,
-                    fontFamily: 'Inter-Medium',
-                    fontSize: 13,
-                  }}
+                  style={{ color: LIGHT_THEME.text.accent, fontFamily: 'Inter-Medium', fontSize: 13 }}
                 >
-                  Suggest one with Ohara
+                  Suggest a milestone
                 </Typography>
               </Pressable>
             </View>

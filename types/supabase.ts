@@ -558,39 +558,39 @@ export type Database = {
           },
         ]
       }
-      measurable_logs: {
+      tracker_logs: {
         Row: {
           id: string
           logged_at: string
-          measurable_id: string
           note: string | null
+          tracker_id: string
           value: number
         }
         Insert: {
           id?: string
           logged_at?: string
-          measurable_id: string
           note?: string | null
+          tracker_id: string
           value?: number
         }
         Update: {
           id?: string
           logged_at?: string
-          measurable_id?: string
           note?: string | null
+          tracker_id?: string
           value?: number
         }
         Relationships: [
           {
-            foreignKeyName: "measurable_logs_measurable_id_fkey"
-            columns: ["measurable_id"]
+            foreignKeyName: "tracker_logs_tracker_id_fkey"
+            columns: ["tracker_id"]
             isOneToOne: false
-            referencedRelation: "measurables"
+            referencedRelation: "trackers"
             referencedColumns: ["id"]
           },
         ]
       }
-      measurables: {
+      trackers: {
         Row: {
           created_at: string
           current_value: number
@@ -635,7 +635,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "measurables_goal_id_fkey"
+            foreignKeyName: "trackers_goal_id_fkey"
             columns: ["goal_id"]
             isOneToOne: false
             referencedRelation: "goals"
@@ -645,30 +645,42 @@ export type Database = {
       }
       milestones: {
         Row: {
-          complete: boolean
+          completed_at: string | null
           created_at: string
+          description: string | null
           due_date: string | null
           goal_id: string
           id: string
+          is_ai_suggested: boolean
+          sort_order: number
           title: string
+          updated_at: string
           user_id: string
         }
         Insert: {
-          complete?: boolean
+          completed_at?: string | null
           created_at?: string
+          description?: string | null
           due_date?: string | null
           goal_id: string
           id?: string
+          is_ai_suggested?: boolean
+          sort_order?: number
           title: string
+          updated_at?: string
           user_id: string
         }
         Update: {
-          complete?: boolean
+          completed_at?: string | null
           created_at?: string
+          description?: string | null
           due_date?: string | null
           goal_id?: string
           id?: string
+          is_ai_suggested?: boolean
+          sort_order?: number
           title?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [

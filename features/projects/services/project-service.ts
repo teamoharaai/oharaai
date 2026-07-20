@@ -1,6 +1,6 @@
 import supabase from '@/lib/db/client';
 import type { Project, ProjectWithGoals } from '@/features/projects/types';
-import type { GoalWithMeasurables } from '@/features/goals/types';
+import type { GoalWithDetails } from '@/features/goals/types';
 import { enrichGoalsWithSignals, GOAL_SELECT, mapGoal, type DbGoal } from '@/features/goals/services/goal-service';
 
 const PROJECT_SELECT =
@@ -32,11 +32,12 @@ export async function fetchProjectWithGoals(projectId: string): Promise<ProjectW
   return { ...project, goals };
 }
 
-export async function fetchGoalsByProject(projectId: string): Promise<GoalWithMeasurables[]> {
+export async function fetchGoalsByProject(projectId: string): Promise<GoalWithDetails[]> {
   const { data, error } = await supabase
     .from('goals')
     .select(GOAL_SELECT)
     .eq('project_id', projectId)
+    .neq('status', 'archived')
     .order('created_at', { ascending: false });
 
   if (error) throw error;

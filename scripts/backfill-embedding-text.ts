@@ -87,13 +87,14 @@ type DbGoalRow = {
   id: string;
   title: string;
   description: string | null;
-  measurables: Array<{ title: string }> | null;
+  milestones: Array<{ title: string; description: string | null }> | null;
+  trackers: Array<{ title: string }> | null;
 };
 
 async function backfillGoals(): Promise<number> {
   const { data, error } = await supabase
     .from('goals')
-    .select('id, title, description, measurables(title)')
+    .select('id, title, description, milestones(title, description), trackers(title)')
     .is('embedding_text', null);
 
   if (error) {
@@ -119,7 +120,8 @@ async function backfillGoals(): Promise<number> {
         const embeddingText = buildGoalEmbeddingText(
           row.title,
           row.description,
-          row.measurables,
+          row.milestones,
+          row.trackers,
         );
 
         const { error: updateError } = await supabase

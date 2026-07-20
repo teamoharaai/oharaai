@@ -2,7 +2,7 @@ import { withAuth, type AuthContext } from '@/lib/api/auth';
 import type { ApiResponse } from '@/lib/api/contracts';
 import { createAuthedClient } from '@/lib/db/client';
 import {
-  cloneGoalWithMeasurables,
+  cloneGoalWithMilestonesAndTrackers,
   GoalExtensionError,
 } from '@/lib/db/goals';
 
@@ -102,7 +102,7 @@ async function handlePost(
   const authedDb = createAuthedClient(auth.accessToken);
 
   try {
-    const result = await cloneGoalWithMeasurables(
+    const result = await cloneGoalWithMilestonesAndTrackers(
       goalId,
       auth.userId,
       input.deadline,

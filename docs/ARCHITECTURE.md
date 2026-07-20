@@ -83,6 +83,23 @@ When in doubt, start inside the feature. Extract to shared only when a second co
 4. Indexes on all frequently queried columns (user_id, goal_id, status)
 5. JSONB for flexible data (character profiles), typed columns for structured data
 
+### Goal domain
+
+- **Milestones** are one-time events critical to a goal. A milestone is pending
+  while `completed_at` is `NULL`; setting `completed_at` records its completion
+  evidence.
+- **Trackers** are counter, habit, or checklist measures. Their repeatable
+  cadence is `daily`, `weekly`, or `monthly`; one-time events belong in
+  milestones.
+- Goal status is `active`, `complete`, `stagnant`, `discovered`, or `archived`.
+  Archived goals are excluded from normal goal feeds and are accessed through
+  Settings.
+- Goal completion is a one-way action initiated from goal detail. It is not a
+  reversible status toggle.
+- Migration `025_goal_milestones_trackers_archive.sql` is the coordinated hard
+  rename from `measurables`/`measurable_logs` to `trackers`/`tracker_logs`.
+  Current code and schema must not add compatibility aliases for the old names.
+
 ## Naming conventions
 
 - Files: `kebab-case.ts` for services/utils, `PascalCase.tsx` for components
@@ -98,7 +115,7 @@ These patterns exist specifically so Phase 2+ changes are config changes, not re
 
 - `goal.visibility` → Phase 2 social sharing can expand safely without conflating circle-only access with fully public access
 - `echo_entries.goal_id` nullable → entries work as general journal OR goal-specific
-- `measurables.is_ai_suggested` → distinguishes user-created from LLM-suggested
+- `trackers.is_ai_suggested` → distinguishes user-created from LLM-suggested
 - `ai_usage` table → cost monitoring from day one
 - `lib/ai/config.ts` feature flags → pipelines toggle on/off without code changes
 - `lib/rules/` separate from `lib/ai/` → clear boundary between free and paid logic

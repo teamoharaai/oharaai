@@ -1,12 +1,9 @@
-import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 import { withAuth, type AuthContext } from '@/lib/api/auth';
-import {
-  completeMeasurable,
-  GoalExtensionError,
-} from '@/lib/db/goals';
+import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
+import { completeTracker, GoalExtensionError } from '@/lib/db/goals';
 
-type CompleteMeasurableRequest = {
-  measurableId?: string;
+type CompleteTrackerRequest = {
+  trackerId?: string;
   goalId?: string;
 };
 
@@ -17,25 +14,29 @@ export async function POST(request: Request): Promise<Response> {
   return withAuth(handlePost)(request);
 }
 
-async function handlePost(request: Request, _params: Record<string, string>, auth: AuthContext): Promise<Response> {
+async function handlePost(
+  request: Request,
+  _params: Record<string, string>,
+  auth: AuthContext,
+): Promise<Response> {
   const authedDb = createAuthedClient(auth.accessToken);
 
-  let body: CompleteMeasurableRequest;
+  let body: CompleteTrackerRequest;
   try {
-    body = (await request.json()) as CompleteMeasurableRequest;
+    body = (await request.json()) as CompleteTrackerRequest;
   } catch {
     return Response.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const measurableId = body.measurableId?.trim();
+  const trackerId = body.trackerId?.trim();
   const goalId = body.goalId?.trim();
 
-  if (!measurableId || !goalId) {
-    return Response.json({ error: 'measurableId and goalId are required' }, { status: 400 });
+  if (!trackerId || !goalId) {
+    return Response.json({ error: 'trackerId and goalId are required' }, { status: 400 });
   }
 
   try {
-    await completeMeasurable(measurableId, goalId, auth.userId, authedDb);
+    await completeTracker(trackerId, goalId, auth.userId, authedDb);
     return Response.json({ success: true });
   } catch (error) {
     if (error instanceof GoalExtensionError && error.code === 'GOAL_HAS_SUCCESSOR') {
@@ -45,7 +46,7 @@ async function handlePost(request: Request, _params: Record<string, string>, aut
       );
     }
 
-    const message = error instanceof Error ? error.message : 'Failed to complete measurable';
+    const message = error instanceof Error ? error.message : 'Failed to complete tracker';
     return Response.json({ error: message }, { status: 500 });
   }
 }

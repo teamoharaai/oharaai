@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### Added (2026-07-20 — Goal detail redesign and canonical goal evidence)
+- **`supabase/migrations/025_goal_milestones_trackers_archive.sql`, `types/supabase.ts`, `lib/goals/schema.ts`, and `features/goals/types.ts`:** added the real `archived` goal status, hard-renamed the recurring-measure tables and log foreign key to canonical `trackers`/`tracker_logs`/`tracker_id`, restricted tracker cadence to daily/weekly/monthly, and evolved milestones into ordered, one-time critical events with descriptions and timestamp-based completion.
+- **`MilestonesPanel.tsx`, `TrackersPanel.tsx`, `TrackerCard.tsx`, `IntelligencePanel.tsx`, `AnalyticsPanel.tsx`, and `RecommendedPanel.tsx`:** added the redesigned goal-detail evidence stack, including milestone and tracker CRUD, one-way milestone completion, responsive sample analytics/intelligence states, and clearly labeled non-transactional recommendation placeholders.
+- **`components/layout/SettingsModal.tsx`:** added an RLS-backed Archived section that lists archived goals and opens their read-only detail screens.
+
+### Changed (2026-07-20 — Goal detail redesign and canonical goal evidence)
+- **Goal creation, APIs, services, stores, prompts, evals, scripts, contracts, and current architecture documentation:** replaced the former measurable-domain naming with canonical Trackers while retaining SMART's distinct `measurable` criterion; renamed the tracker completion and due-today routes; creation and extension now write milestones and trackers through the canonical schema.
+- **`app/(app)/goals/[id]/index.tsx`, `GoalDetailHeader.tsx`, and `CountdownTimer.tsx`:** implemented the handoff hierarchy and responsive two-column desktop layout, kept the goal title fixed, limited inline goal editing to the description, exposed Move/Edit description/Archive in the actions menu, and made goal completion one-way with no reopen-to-active action.
+- **`app/(app)/dashboard.tsx`, goal/project list services and cards:** exclude archived goals from ordinary dashboard, active-feed, standalone-goal, and project-goal lists; archived records remain directly addressable only through Settings.
+- **`components/layout/AvatarMenu.tsx`:** labeled the account-menu trigger for assistive navigation to Settings.
+
+### Fixed (2026-07-20 — Goal detail redesign and canonical goal evidence)
+- **`types/activity.ts`, goal activity mapping, and `ActivityFeed.tsx`:** separated recurring `tracker_logged` activity from one-time `milestone_completed` evidence.
+- Verification: migration 025 was applied to the linked Supabase project; linked `db lint` reported no schema errors; `npx tsc --noEmit`, `git diff --check`, and the 27-route Expo web export passed. A signed-in desktop smoke test confirmed the redesigned hierarchy, canonical Milestones/Trackers labels, description-only editor, actions menu, local recommendation filters, responsive activity rail, and Settings → Archived empty state.
+
 ### Fixed (2026-07-20 — Branded web favicon)
 - **`app.json`:** replaced the default Expo web favicon with the existing Ohara logo asset so deployed browser tabs and site chrome display the product brand.
 

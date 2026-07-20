@@ -4,9 +4,9 @@ import { router } from 'expo-router';
 import { Modal } from '@/components/ui/Modal';
 import { authedFetch } from '@/lib/api/client';
 import type { ApiResponse } from '@/lib/api/contracts';
-import type { CreateGoalWithMeasurablesResult } from '@/lib/db/goals';
+import type { CreateGoalWithMilestonesAndTrackersResult } from '@/lib/db/goals';
 import { useGoalStore } from '../store';
-import type { GoalWithMeasurables, Measurable } from '../types';
+import type { GoalWithDetails, Tracker } from '../types';
 
 type ExtendGoalStep = 1 | 2 | 3;
 type DeadlineOption = 30 | 60 | 90 | 'custom';
@@ -20,7 +20,7 @@ export interface ExtendGoalState {
 
 interface ExtendGoalModalProps {
   visible: boolean;
-  goal: GoalWithMeasurables;
+  goal: GoalWithDetails;
   onClose: () => void;
 }
 
@@ -43,8 +43,8 @@ function createInitialState(title: string): ExtendGoalState {
   };
 }
 
-function getChecklistComplete(measurable: Measurable): boolean {
-  return measurable.currentValue === 1;
+function getChecklistComplete(tracker: Tracker): boolean {
+  return tracker.currentValue === 1;
 }
 
 function getDateAfterDays(days: number): Date {
@@ -95,9 +95,9 @@ function formatDeadlineReadout(deadline: string): string {
   return new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'short' }).format(new Date(deadline));
 }
 
-function MeasurableValue({ measurable }: { measurable: Measurable }) {
-  if (measurable.type === 'checklist') {
-    const complete = getChecklistComplete(measurable);
+function TrackerValue({ tracker }: { tracker: Tracker }) {
+  if (tracker.type === 'checklist') {
+    const complete = getChecklistComplete(tracker);
     return (
       <Text
         style={{
@@ -111,10 +111,10 @@ function MeasurableValue({ measurable }: { measurable: Measurable }) {
     );
   }
 
-  const unit = measurable.targetUnit ? ` ${measurable.targetUnit}` : '';
+  const unit = tracker.targetUnit ? ` ${tracker.targetUnit}` : '';
   return (
     <Text style={{ color: '#4A4339', fontFamily: 'Inter-SemiBold', fontSize: 13 }}>
-      {measurable.currentValue}/{measurable.targetValue ?? '—'}{unit}
+      {tracker.currentValue}/{tracker.targetValue ?? '—'}{unit}
     </Text>
   );
 }
@@ -124,7 +124,7 @@ function SummaryStep({
   onClose,
   onContinue,
 }: {
-  goal: GoalWithMeasurables;
+  goal: GoalWithDetails;
   onClose: () => void;
   onContinue: () => void;
 }) {
@@ -163,7 +163,7 @@ function SummaryStep({
           paddingHorizontal: 16,
         }}
       >
-        {goal.measurables.length === 0 ? (
+        {goal.trackers.length === 0 ? (
           <Text
             style={{
               color: '#8A8172',
@@ -173,16 +173,16 @@ function SummaryStep({
               paddingVertical: 16,
             }}
           >
-            No milestones were added during this phase.
+            No trackers were added during this phase.
           </Text>
         ) : (
-          goal.measurables.map((measurable, index) => (
+          goal.trackers.map((tracker, index) => (
             <View
-              key={measurable.id}
+              key={tracker.id}
               style={{
                 alignItems: 'center',
                 borderBottomColor: '#E7DEC9',
-                borderBottomWidth: index === goal.measurables.length - 1 ? 0 : 1,
+                borderBottomWidth: index === goal.trackers.length - 1 ? 0 : 1,
                 flexDirection: 'row',
                 gap: 16,
                 justifyContent: 'space-between',
@@ -199,9 +199,9 @@ function SummaryStep({
                   lineHeight: 18,
                 }}
               >
-                {measurable.title}
+                {tracker.title}
               </Text>
-              <MeasurableValue measurable={measurable} />
+              <TrackerValue tracker={tracker} />
             </View>
           ))
         )}
@@ -652,7 +652,7 @@ export function ExtendGoalModal({ visible, goal, onClose }: ExtendGoalModalProps
           reflection: normalizedReflection || undefined,
         }),
       });
-      const body = (await response.json()) as ApiResponse<CreateGoalWithMeasurablesResult>;
+      const body = (await response.json()) as ApiResponse<CreateGoalWithMilestonesAndTrackersResult>;
 
       if (!body.ok) {
         if (response.status === 409) {

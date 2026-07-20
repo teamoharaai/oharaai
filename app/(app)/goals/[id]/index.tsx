@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { View, ScrollView, Pressable, useWindowDimensions, SafeAreaView } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, router } from 'expo-router';
 import { GOAL_THEMES } from '@/constants/themes';
@@ -7,13 +7,17 @@ import { useGoalDetail } from '@/features/goals/hooks/useGoalDetail';
 import { GoalDetailHeader } from '@/features/goals/components/GoalDetailHeader';
 import { GoalProjectPickerModal } from '@/features/goals/components/GoalProjectPickerModal';
 import { GoalTitleRow } from '@/features/goals/components/GoalTitleRow';
-import { MeasurablesPanel } from '@/features/goals/components/MeasurablesPanel';
+import { CountdownTimer } from '@/features/goals/components/CountdownTimer';
+import { MilestonesPanel } from '@/features/goals/components/MilestonesPanel';
+import { TrackersPanel } from '@/features/goals/components/TrackersPanel';
+import { IntelligencePanel } from '@/features/goals/components/IntelligencePanel';
+import { AnalyticsPanel } from '@/features/goals/components/AnalyticsPanel';
+import { RecommendedPanel } from '@/features/goals/components/RecommendedPanel';
 import { WhatYouBuiltPanel } from '@/features/goals/components/WhatYouBuiltPanel';
 import { SuccessorReflectionPanel } from '@/features/goals/components/SuccessorReflectionPanel';
 import { ActivityFeed } from '@/features/goals/components/ActivityFeed';
 import { useActivity } from '@/features/goals/hooks/useActivity';
 import { getVaultItemCount, } from '@/lib/db/vaults';
-import { getProjectTitle } from '@/lib/db/goals';
 import { getGoalRingProgress } from '@/features/goals/utils/ringProgress';
 import { useProjectStore } from '@/features/projects/store';
 import { useThemeColors } from '@/store/uiStore';
@@ -124,7 +128,6 @@ export default function GoalDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const goalId = Array.isArray(id) ? id[0] : (id ?? '');
   const [vaultItemCount, setVaultItemCount] = useState(0);
-  const [projectTitle, setProjectTitle] = useState<string | null>(null);
   const [isProjectPickerVisible, setIsProjectPickerVisible] = useState(false);
   const [isSavingProject, setIsSavingProject] = useState(false);
   const [projectMoveError, setProjectMoveError] = useState<string | null>(null);
@@ -134,19 +137,33 @@ export default function GoalDetailScreen() {
   const {
     goal,
     isLoading,
-    onSaveMeasurable,
-    onDeleteMeasurable,
-    onAddMeasurable,
-    onCompleteMeasurable,
+    onSaveTracker,
+    onDeleteTracker,
+    onAddTracker,
+    onCompleteTracker,
+    onSaveMilestone,
+    onDeleteMilestone,
+    onAddMilestone,
+    onCompleteMilestone,
     onUpdateDeadline,
     onUpdateProject,
-    completedIds,
-    measurableError,
-    clearMeasurableError,
+    onUpdateDescription,
+    onCompleteGoal,
+    onArchiveGoal,
+    completedTrackerIds,
+    completingMilestoneIds,
+    trackerError,
+    milestoneError,
+    goalError,
+    clearTrackerError,
+    clearMilestoneError,
+    clearGoalError,
   } = useGoalDetail(goalId);
   const { items, loading: activityLoading, error: activityError } = useActivity(goalId);
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
+  const mainScrollRef = useRef<ScrollView | null>(null);
+  const [recommendedOffset, setRecommendedOffset] = useState(0);
 
   // Fetch vault item count on focus
   useFocusEffect(
@@ -179,20 +196,6 @@ export default function GoalDetailScreen() {
     }, [goalId]),
   );
 
-  // Fetch project title whenever the goal's projectId is known
-  useEffect(() => {
-    if (!goal?.projectId) {
-      setProjectTitle(null);
-      return;
-    }
-    setProjectTitle(null);
-    let active = true;
-    getProjectTitle(goal.projectId)
-      .then((t) => { if (active) setProjectTitle(t); })
-      .catch(() => { if (active) setProjectTitle(null); });
-    return () => { active = false; };
-  }, [goal?.projectId]);
-
   const openProjectPicker = () => {
     if (goal?.has_successor) return;
     setProjectMoveError(null);
@@ -224,6 +227,9 @@ export default function GoalDetailScreen() {
   const successorReflection = goal.successor?.reflection?.trim() ?? '';
   const deadlineProgress = getGoalRingProgress(goal);
   const ended = deadlineProgress !== null && deadlineProgress >= 100;
+  const completed = goal.status === 'complete';
+  const archived = goal.status === 'archived';
+  const mutationsDisabled = ended || completed;
 
   const mainWorkspace = (
     <>
@@ -234,8 +240,45 @@ export default function GoalDetailScreen() {
         successorGoalId={successorGoalId}
         deadlineProgress={deadlineProgress}
         ended={ended}
+        onArchive={onArchiveGoal}
+        onComplete={onCompleteGoal}
+        onOpenProjectPicker={openProjectPicker}
+        onUpdateDescription={onUpdateDescription}
+      />
+
+      <CountdownTimer
+        createdAt={goal.createdAt}
+        deadline={goal.deadline}
+        disabled={isSuperseded || archived || completed}
         onUpdateDeadline={onUpdateDeadline}
       />
+
+      {goalError ? (
+        <View
+          style={{
+            alignItems: 'center',
+            backgroundColor: colors.feedback.danger.bg,
+            borderColor: colors.feedback.danger.border,
+            borderRadius: 10,
+            borderWidth: 1,
+            flexDirection: 'row',
+            gap: 12,
+            justifyContent: 'space-between',
+            marginBottom: 16,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+          }}
+        >
+          <Typography variant="hint" style={{ color: colors.feedback.danger.text, flex: 1 }}>
+            {goalError}
+          </Typography>
+          <Pressable onPress={clearGoalError}>
+            <Typography variant="emphasis-sm" style={{ color: colors.feedback.danger.text, fontSize: 12 }}>
+              Dismiss
+            </Typography>
+          </Pressable>
+        </View>
+      ) : null}
 
       {isSuperseded && successorGoalId && (
         <Pressable
@@ -257,84 +300,45 @@ export default function GoalDetailScreen() {
         </Pressable>
       )}
 
-      {/* Project location */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={goal.projectId ? 'Change goal project' : 'Add goal to a project'}
-        disabled={isSuperseded}
-        onPress={openProjectPicker}
-        style={({ pressed }) => ({
-          alignItems: 'center',
-          backgroundColor: colors.background.card,
-          borderColor: colors.border.warm,
-          borderRadius: 12,
-          borderWidth: 1,
-          flexDirection: 'row',
-          gap: 10,
-          marginBottom: 12,
-          opacity: isSuperseded ? 0.5 : pressed ? 0.72 : 1,
-          paddingHorizontal: 14,
-          paddingVertical: 11,
-        })}
-      >
-        <View style={{ flex: 1 }}>
-          <Typography variant="micro-label" style={{ marginBottom: 3 }}>
-            PROJECT
-          </Typography>
-          <Typography variant="emphasis-sm" style={{ color: colors.text.primary }}>
-            {goal.projectId ? (projectTitle ?? 'Linked project') : 'Standalone goal'}
-          </Typography>
-        </View>
-        {!isSuperseded ? (
-          <Typography variant="meta" style={{ color: colors.text.accent }}>
-            {goal.projectId ? 'Change' : 'Add to project'} ›
-          </Typography>
-        ) : null}
-      </Pressable>
+      <View style={{ marginBottom: 16 }}>
+        <MilestonesPanel
+          milestones={goal.milestones}
+          hasSuccessor={goal.has_successor}
+          ended={mutationsDisabled}
+          archived={archived}
+          completingIds={completingMilestoneIds}
+          onSave={onSaveMilestone}
+          onDelete={onDeleteMilestone}
+          onAdd={onAddMilestone}
+          onComplete={onCompleteMilestone}
+          error={milestoneError}
+          onDismissError={clearMilestoneError}
+        />
+      </View>
 
-      {goal.projectId && projectTitle ? (
-        <Pressable
-          onPress={() =>
-            router.push({ pathname: '/(app)/projects/[id]' as never, params: { id: goal.projectId! } })
-          }
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 4,
-            marginBottom: 10,
-            paddingHorizontal: 2,
-          }}
-        >
-          <Typography variant="label">
-            Open {projectTitle}
-          </Typography>
-          <Typography variant="caption" style={{ fontSize: 14 }}>›</Typography>
-        </Pressable>
-      ) : null}
-
-      {/* Phase 3: Space badge — spaceId is not yet on GoalWithMeasurables */}
-
-      <MeasurablesPanel
-        measurables={goal.measurables}
-        hasSuccessor={goal.has_successor}
-        ended={ended}
-        accentColor={theme.accent}
-        progressColor={isSuperseded ? '#C7C0B2' : undefined}
-        onSave={onSaveMeasurable}
-        onDelete={onDeleteMeasurable}
-        onAdd={onAddMeasurable}
-        onComplete={onCompleteMeasurable}
-        completedIds={completedIds}
-        vaultItemCount={vaultItemCount}
-        error={measurableError}
-        onDismissError={clearMeasurableError}
-      />
+      <View style={{ marginBottom: 16 }}>
+        <TrackersPanel
+          trackers={goal.trackers}
+          hasSuccessor={goal.has_successor}
+          ended={mutationsDisabled}
+          archived={archived}
+          accentColor={theme.accent}
+          progressColor={isSuperseded ? '#C7C0B2' : undefined}
+          onSave={onSaveTracker}
+          onDelete={onDeleteTracker}
+          onAdd={onAddTracker}
+          onLogComplete={onCompleteTracker}
+          completedIds={completedTrackerIds}
+          error={trackerError}
+          onDismissError={clearTrackerError}
+        />
+      </View>
 
       {isMomentum && (
         <WhatYouBuiltPanel
           previousGoalId={goal.previous_goal_id!}
           summary={goal.prior_phase_summary}
-          measurables={goal.measurables}
+          trackers={goal.trackers}
           reflection={goal.reflection}
           reflectedAt={goal.reflected_at}
         />
@@ -346,6 +350,26 @@ export default function GoalDetailScreen() {
           reflectedAt={goal.successor?.reflectedAt ?? null}
         />
       )}
+
+      <View style={{ marginBottom: 16 }}>
+        <IntelligencePanel
+          onSeeWhatHelps={() => {
+            mainScrollRef.current?.scrollTo({ animated: true, y: Math.max(0, recommendedOffset - 20) });
+          }}
+          state="stub"
+        />
+      </View>
+
+      <View style={{ marginBottom: 16 }}>
+        <AnalyticsPanel source={{ state: 'stub' }} />
+      </View>
+
+      <View
+        onLayout={(event) => setRecommendedOffset(event.nativeEvent.layout.y)}
+        style={{ marginBottom: 16 }}
+      >
+        <RecommendedPanel />
+      </View>
 
       {!isDesktop && (
         <>
@@ -391,8 +415,6 @@ export default function GoalDetailScreen() {
           <ActivityFeed items={items} loading={activityLoading} error={activityError} />
         </>
       )}
-
-      {/* deferred: AffiliateTeaser */}
     </>
   );
 
@@ -474,14 +496,15 @@ export default function GoalDetailScreen() {
         /* Desktop: main workspace (flex-2) + context rail (flex-1) */
         <View style={{ flex: 1, flexDirection: 'row', paddingHorizontal: 20, gap: 16 }}>
           <ScrollView
-            style={{ flex: 2 }}
+            ref={mainScrollRef}
+            style={{ flex: 2, minWidth: 0 }}
             contentContainerStyle={{ paddingBottom: 40 }}
             showsVerticalScrollIndicator={false}
           >
             {mainWorkspace}
           </ScrollView>
           <ScrollView
-            style={{ flex: 1 }}
+            style={{ flex: 1, minWidth: 0 }}
             contentContainerStyle={{ paddingBottom: 40 }}
             showsVerticalScrollIndicator={false}
           >
@@ -491,6 +514,7 @@ export default function GoalDetailScreen() {
       ) : (
         /* Mobile: single column */
         <ScrollView
+          ref={mainScrollRef}
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}

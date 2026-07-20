@@ -54,12 +54,17 @@ Every pipeline in `lib/ai/pipelines/` must:
       timeBound: string
     }
   },
-  measurables: {             // 1-5 items, AI-suggested
+  milestones: {              // 1-3 one-time critical events
+    title: string,           // max 80 chars
+    description: string | null,
+    dueDate: string | null,  // YYYY-MM-DD or null
+  }[],
+  trackers: {                // 0-4 recurring or quantitative measures
     title: string,           // max 80 chars
     type: "counter" | "habit" | "checklist",
     targetValue: number | null,
     targetUnit: string | null,
-    frequency: "daily" | "weekly" | "monthly" | "once",
+    frequency: "daily" | "weekly" | "monthly",
   }[],
   reasoning: string,         // internal only — why the AI structured the goal this way
                              // stored in ai_usage log, never shown to user
@@ -72,10 +77,12 @@ Every pipeline in `lib/ai/pipelines/` must:
 - `goal.category` must match a value in `constants/features.ts → GOAL_CATEGORIES`
 - `goal.deadline` must be either `null` or a date string
 - `goal.smart` must include all five string fields
-- `measurables` array must have 1-5 items
-- If `type === "counter"`, `targetValue` and `targetUnit` are required
+- `milestones` and `trackers` must both be arrays
+- Milestones are one-time events critical to the goal, never habits or measures
+- Milestone `description` and `dueDate` are explicit strings or `null`
+- If tracker `type === "counter"`, `targetValue` must be greater than 0 and `targetUnit` is required
 - If `type === "habit"`, `targetValue` and `targetUnit` may be present but are not required
-- If `type === "checklist"`, `targetValue` and `targetUnit` must be `null`
+- If tracker `type === "checklist"`, `targetValue` and `targetUnit` must be `null`
 - `frequency` is required for all types
 - `assumptions` is always present after normalization
 

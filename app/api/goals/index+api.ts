@@ -1,15 +1,17 @@
 import { withAuth, type AuthContext } from '@/lib/api/auth';
 import { createAuthedClient } from '@/lib/db/client';
 import {
-  createGoalWithMeasurables,
+  createGoalWithMilestonesAndTrackers,
   type ManualGoalCreationInput,
 } from '@/lib/db/goals';
 import type { ApiResponse } from '@/lib/api/contracts';
 import {
   GOAL_CATEGORIES,
-  GOAL_MEASURABLE_TYPES,
+  GOAL_TRACKER_FREQUENCIES,
+  GOAL_TRACKER_TYPES,
   type GoalCategory,
-  type GoalMeasurableType,
+  type GoalTrackerFrequency,
+  type GoalTrackerType,
 } from '@/lib/goals/schema';
 
 const TARGET_FREQUENCY_PERIODS = ['day', 'week', 'month'] as const;
@@ -20,12 +22,24 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function validateOptionalNullableString(
   obj: Record<string, unknown>,
-  key: 'description' | 'project_id',
+  key: string,
 ): string | null {
   const value = obj[key];
   if (value === undefined || value === null) return null;
   if (typeof value !== 'string') throw new Error(`${key} must be a string or null`);
   return value;
+}
+
+function validateOptionalDate(value: unknown, field: string): string | null {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value !== 'string') throw new Error(`${field} must be a date string or null`);
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (Number.isNaN(new Date(trimmed).getTime())) {
+    throw new Error(`${field} must be a parseable date`);
+  }
+  return trimmed;
 }
 
 function validateDeadline(value: unknown): string {
@@ -96,14 +110,58 @@ function validateManualGoalCreationInput(value: unknown): ManualGoalCreationInpu
     if (typeof milestone.title !== 'string' || milestone.title.trim() === '') {
       throw new Error(`milestones[${index}].title must be a non-empty string`);
     }
-    if (!GOAL_MEASURABLE_TYPES.includes(milestone.type as GoalMeasurableType)) {
-      throw new Error(
-        `milestones[${index}].type must be one of: ${GOAL_MEASURABLE_TYPES.join(', ')}`,
-      );
-    }
     return {
       title: milestone.title.trim(),
-      type: milestone.type as GoalMeasurableType,
+      description: validateOptionalNullableString(milestone, 'description'),
+      dueDate: validateOptionalDate(milestone.dueDate, `milestones[${index}].dueDate`),
+    };
+  });
+
+  if (!Array.isArray(value.trackers)) {
+    throw new Error('trackers must be an array');
+  }
+  const trackers = value.trackers.map((tracker, index) => {
+    if (!isRecord(tracker)) throw new Error(`trackers[${index}] must be an object`);
+    if (typeof tracker.title !== 'string' || tracker.title.trim() === '') {
+      throw new Error(`trackers[${index}].title must be a non-empty string`);
+    }
+    if (!GOAL_TRACKER_TYPES.includes(tracker.type as GoalTrackerType)) {
+      throw new Error(
+        `trackers[${index}].type must be one of: ${GOAL_TRACKER_TYPES.join(', ')}`,
+      );
+    }
+    if (!GOAL_TRACKER_FREQUENCIES.includes(tracker.frequency as GoalTrackerFrequency)) {
+      throw new Error(
+        `trackers[${index}].frequency must be one of: ${GOAL_TRACKER_FREQUENCIES.join(', ')}`,
+      );
+    }
+
+    const targetValue = tracker.targetValue === undefined ? null : tracker.targetValue;
+    const targetUnit = tracker.targetUnit === undefined ? null : tracker.targetUnit;
+    if (targetValue !== null && (typeof targetValue !== 'number' || !Number.isFinite(targetValue))) {
+      throw new Error(`trackers[${index}].targetValue must be a finite number or null`);
+    }
+    if (targetUnit !== null && typeof targetUnit !== 'string') {
+      throw new Error(`trackers[${index}].targetUnit must be a string or null`);
+    }
+    if (tracker.type === 'counter') {
+      if (typeof targetValue !== 'number' || targetValue <= 0) {
+        throw new Error(`trackers[${index}].targetValue must be greater than 0 for counters`);
+      }
+      if (typeof targetUnit !== 'string' || targetUnit.trim() === '') {
+        throw new Error(`trackers[${index}].targetUnit is required for counters`);
+      }
+    }
+    if (tracker.type === 'checklist' && (targetValue !== null || targetUnit !== null)) {
+      throw new Error(`trackers[${index}] checklist target fields must be null`);
+    }
+
+    return {
+      title: tracker.title.trim(),
+      type: tracker.type as GoalTrackerType,
+      targetValue: targetValue as number | null,
+      targetUnit: typeof targetUnit === 'string' ? targetUnit.trim() || null : null,
+      frequency: tracker.frequency as GoalTrackerFrequency,
     };
   });
 
@@ -115,6 +173,7 @@ function validateManualGoalCreationInput(value: unknown): ManualGoalCreationInpu
     target_frequency: targetFrequency,
     project_id: validateOptionalNullableString(value, 'project_id'),
     milestones,
+    trackers,
   };
 }
 
@@ -160,7 +219,12 @@ async function handlePost(request: Request, _params: Record<string, string>, aut
   const authedDb = createAuthedClient(auth.accessToken);
 
   try {
-    const result = await createGoalWithMeasurables(auth.userId, input, undefined, authedDb);
+    const result = await createGoalWithMilestonesAndTrackers(
+      auth.userId,
+      input,
+      undefined,
+      authedDb,
+    );
     const body: ApiResponse<typeof result> = { ok: true, data: result, error: null };
     return Response.json(body, { status: 201 });
   } catch (err) {

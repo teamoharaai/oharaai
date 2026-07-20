@@ -1,12 +1,12 @@
-import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 import { withAuth, type AuthContext } from '@/lib/api/auth';
+import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 
-type MeasurableType = 'counter' | 'habit' | 'checklist';
+type TrackerType = 'counter' | 'habit' | 'checklist';
 
-interface DueTodayMeasurable {
+interface DueTodayTracker {
   id: string;
   title: string;
-  type: MeasurableType;
+  type: TrackerType;
   targetValue: number | null;
   targetUnit: string | null;
   currentValue: number;
@@ -16,10 +16,10 @@ interface DueTodayMeasurable {
 interface DueTodayGoalGroup {
   goalId: string;
   goalTitle: string;
-  measurables: DueTodayMeasurable[];
+  trackers: DueTodayTracker[];
 }
 
-interface DbMeasurableRow {
+interface DbTrackerRow {
   id: string;
   title: string;
   type: string;
@@ -31,7 +31,7 @@ interface DbMeasurableRow {
 }
 
 interface DbLastLogRow {
-  measurable_id: string;
+  tracker_id: string;
   logged_at: string;
 }
 
@@ -42,61 +42,59 @@ export async function GET(request: Request): Promise<Response> {
   return withAuth(handleGet)(request);
 }
 
-async function handleGet(_request: Request, _params: Record<string, string>, auth: AuthContext): Promise<Response> {
+async function handleGet(
+  _request: Request,
+  _params: Record<string, string>,
+  auth: AuthContext,
+): Promise<Response> {
   const authedDb = createAuthedClient(auth.accessToken);
 
-  // Fetch all daily measurables on active goals for this user
-  const { data: measurableRows, error: measurablesError } = await authedDb
-    .from('measurables')
+  const { data: trackerRows, error: trackersError } = await authedDb
+    .from('trackers')
     .select('id, title, type, target_value, target_unit, current_value, goal_id, goals!inner(title)')
     .eq('frequency', 'daily')
     .eq('goals.status', 'active')
     .eq('goals.user_id', auth.userId);
 
-  if (measurablesError) {
-    console.error('[due-today] measurables fetch error', measurablesError);
-    return Response.json({ error: 'Failed to fetch measurables' }, { status: 500 });
+  if (trackersError) {
+    console.error('[due-today] trackers fetch error', trackersError);
+    return Response.json({ error: 'Failed to fetch trackers' }, { status: 500 });
   }
 
-  const rows = (measurableRows ?? []) as unknown as DbMeasurableRow[];
-
+  const rows = (trackerRows ?? []) as unknown as DbTrackerRow[];
   if (rows.length === 0) {
     return Response.json({ data: [] });
   }
 
-  const measurableIds = rows.map((r) => r.id);
-
-  // Fetch last completion timestamp for each measurable
+  const trackerIds = rows.map((row) => row.id);
   const { data: logRows, error: logsError } = await authedDb
-    .from('measurable_logs')
-    .select('measurable_id, logged_at')
-    .in('measurable_id', measurableIds)
+    .from('tracker_logs')
+    .select('tracker_id, logged_at')
+    .in('tracker_id', trackerIds)
     .order('logged_at', { ascending: false });
 
   if (logsError) {
-    console.error('[due-today] measurable_logs fetch error', logsError);
+    console.error('[due-today] tracker_logs fetch error', logsError);
     return Response.json({ error: 'Failed to fetch completion logs' }, { status: 500 });
   }
 
-  // Build a map: measurable_id → most recent logged_at
   const lastCompletedMap = new Map<string, string>();
   for (const log of (logRows ?? []) as DbLastLogRow[]) {
-    if (!lastCompletedMap.has(log.measurable_id)) {
-      lastCompletedMap.set(log.measurable_id, log.logged_at);
+    if (!lastCompletedMap.has(log.tracker_id)) {
+      lastCompletedMap.set(log.tracker_id, log.logged_at);
     }
   }
 
-  // Group measurables by goal
   const goalMap = new Map<string, DueTodayGoalGroup>();
   for (const row of rows) {
     const goalTitle = row.goals?.title ?? '';
     if (!goalMap.has(row.goal_id)) {
-      goalMap.set(row.goal_id, { goalId: row.goal_id, goalTitle, measurables: [] });
+      goalMap.set(row.goal_id, { goalId: row.goal_id, goalTitle, trackers: [] });
     }
-    goalMap.get(row.goal_id)!.measurables.push({
+    goalMap.get(row.goal_id)!.trackers.push({
       id: row.id,
       title: row.title,
-      type: row.type as MeasurableType,
+      type: row.type as TrackerType,
       targetValue: row.target_value,
       targetUnit: row.target_unit,
       currentValue: row.current_value,

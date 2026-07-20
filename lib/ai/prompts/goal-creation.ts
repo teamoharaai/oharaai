@@ -81,7 +81,7 @@ Behavior:
 - Format:
   Title: [proposed goal name]
   Direction: [1 sentence on what this goal involves]
-  Measurables: [2-3 suggested trackable metrics]
+  Trackers: [2-3 suggested recurring or quantitative measures]
 - Follow immediately with: "Does this feel like the right frame, or do you want to adjust the direction?"
 - If the user wants to adjust, iterate on the frame — do not produce a full draft until the frame is confirmed
 - Only advance to Stage 3 when the user confirms the frame
@@ -134,7 +134,7 @@ Response shape during draft stage:
 After the first meaningful draft:
 - Default to incremental updates, not full re-drafts
 - Do not repeat the full goal draft, full assumptions list, and full follow-up block on every turn
-- Respond with only what changed, such as updated timeline, measurables, scope, or assumptions
+- Respond with only what changed, such as updated timeline, milestones, trackers, scope, or assumptions
 - Ask at most 1 targeted follow-up question if one is still needed
 - Restate the full draft only if the user explicitly asks for a recap, or if multiple core fields changed materially
 
@@ -161,7 +161,7 @@ Gap priority:
 Readiness rule:
 - Stay in draft mode while meaningful details are still unresolved or the user has not yet had a chance to confirm/correct the proposal
 - Use assumptions to keep momentum, but do not finalize if key parts would still be surprising or arbitrary to the user
-- Only emit [[GOAL_READY]] when the goal is truly ready to finalize into a structured record with a clear title, summary, category, plausible timeframe, and sensible measurables grounded in the conversation
+- Only emit [[GOAL_READY]] when the goal is truly ready to finalize into a structured record with a clear title, summary, category, plausible timeframe, one-time milestones, and sensible trackers grounded in the conversation
 - Never emit [[GOAL_READY]] just because the conversation sounds positive or complete
 
 UX priority:
@@ -189,16 +189,20 @@ Infer the best possible goal from the transcript. If details are missing, make r
 CATEGORY:
 ${GOAL_CATEGORIES.map((c) => `- "${c}"`).join('\n')}
 
-MEASURABLE TYPES:
-- "counter": requires numeric targetValue and non-empty targetUnit
+TRACKER TYPES:
+- "counter": requires targetValue greater than 0 and non-empty targetUnit
 - "habit": recurring behavior, targetValue optional
-- "checklist": one-time action, targetValue null, targetUnit null
+- "checklist": repeatable completion tracker, targetValue null, targetUnit null
+
+MILESTONES:
+- A milestone is a one-time event critical to achieving the goal
+- Milestones are not habits, cadences, recurring tasks, or quantitative measures
+- dueDate is an ISO date when the conversation supports one, otherwise null
 
 FREQUENCIES:
 - "daily"
 - "weekly"
 - "monthly"
-- "once"
 
 Rules:
 - Return STRICT JSON only
@@ -209,7 +213,8 @@ Rules:
 - Keep explanations minimal and concise
 - Do not include unnecessary commentary outside required structure
 - For open-ended goals, use null deadline and "No fixed deadline" for smart.timeBound
-- Suggest 1-4 meaningful measurables grounded in the conversation
+- Suggest 1-3 meaningful one-time milestones grounded in the conversation
+- Suggest 0-4 useful recurring or quantitative trackers; use an empty array when tracking would add noise
 
 {
   "goal": {
@@ -225,16 +230,23 @@ Rules:
       "timeBound": "string — the deadline or timeframe, or 'No fixed deadline' if open-ended"
     }
   },
-  "measurables": [
+  "milestones": [
+    {
+      "title": "string — one-time critical event, max 80 chars",
+      "description": "string or null — concise explanation of why the event matters",
+      "dueDate": "YYYY-MM-DD string or null"
+    }
+  ],
+  "trackers": [
     {
       "title": "string — max 80 chars",
       "type": "counter | habit | checklist",
       "targetValue": "number or null",
       "targetUnit": "string or null",
-      "frequency": "daily | weekly | monthly | once"
+      "frequency": "daily | weekly | monthly"
     }
   ],
-  "reasoning": "string — 1–2 sentences on why you structured the goal and measurables this way, including any key assumptions. Internal only, never shown to the user.",
+  "reasoning": "string — 1–2 sentences on why you structured the goal, milestones, and trackers this way, including any key assumptions. Internal only, never shown to the user.",
   "assumptions": ["string — optional explicit assumptions used to fill missing details"]
 }`;
 
@@ -254,8 +266,9 @@ Hard requirements:
 - Do not include unnecessary commentary outside required structure
 - Preserve the required schema exactly
 - Use null, not omitted fields, where null is allowed
-- For "counter" measurables, targetValue must be a number and targetUnit must be a non-empty string
-- For "checklist" measurables, targetValue must be null and targetUnit must be null
+- Milestones must be one-time critical events with description and dueDate explicitly set to a string or null
+- For "counter" trackers, targetValue must be greater than 0 and targetUnit must be a non-empty string
+- For "checklist" trackers, targetValue must be null and targetUnit must be null
 - The system may already begin the response with "{" for you; continue the JSON object and do not restart or wrap it
 
 CATEGORY — choose exactly one:
@@ -276,13 +289,20 @@ Required JSON shape:
       "timeBound": "string"
     }
   },
-  "measurables": [
+  "milestones": [
+    {
+      "title": "string",
+      "description": "string or null",
+      "dueDate": "YYYY-MM-DD string or null"
+    }
+  ],
+  "trackers": [
     {
       "title": "string",
       "type": "counter | habit | checklist",
       "targetValue": "number or null",
       "targetUnit": "string or null",
-      "frequency": "daily | weekly | monthly | once"
+      "frequency": "daily | weekly | monthly"
     }
   ],
   "reasoning": "string",

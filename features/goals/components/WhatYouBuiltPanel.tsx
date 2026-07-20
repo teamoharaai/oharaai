@@ -1,11 +1,11 @@
 import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import type { Measurable, PriorPhaseSummaryItem } from '../types';
+import type { PriorPhaseSummaryItem, Tracker } from '../types';
 
 interface WhatYouBuiltPanelProps {
   previousGoalId: string;
   summary: PriorPhaseSummaryItem[] | null;
-  measurables: Measurable[];
+  trackers: Tracker[];
   reflection: string | null;
   reflectedAt: Date | null;
 }
@@ -22,16 +22,16 @@ function formatReflectionDate(value: Date): string {
   }).format(value);
 }
 
-function findClonedMeasurable(
+function findClonedTracker(
   item: PriorPhaseSummaryItem,
-  measurables: Measurable[],
-): Measurable | null {
-  return measurables.find((measurable) => measurable.title === item.title) ?? null;
+  trackers: Tracker[],
+): Tracker | null {
+  return trackers.find((tracker) => tracker.title === item.title) ?? null;
 }
 
 function getRowPresentation(
   item: PriorPhaseSummaryItem,
-  measurable: Measurable | null,
+  tracker: Tracker | null,
 ): { value: string; progress: number; valueColor: string } {
   if ('achieved' in item) {
     const hasTarget = item.target !== null && item.target > 0;
@@ -43,7 +43,7 @@ function getRowPresentation(
     };
   }
 
-  if (measurable?.type === 'checklist') {
+  if (tracker?.type === 'checklist') {
     const complete = item.completions > 0;
     return {
       value: complete ? 'Done' : '0 completions',
@@ -62,7 +62,7 @@ function getRowPresentation(
 export function WhatYouBuiltPanel({
   previousGoalId,
   summary,
-  measurables,
+  trackers,
   reflection,
   reflectedAt,
 }: WhatYouBuiltPanelProps) {
@@ -108,8 +108,8 @@ export function WhatYouBuiltPanel({
         </Text>
 
         {summary?.map((item, index) => {
-          const measurable = findClonedMeasurable(item, measurables);
-          const presentation = getRowPresentation(item, measurable);
+          const tracker = findClonedTracker(item, trackers);
+          const presentation = getRowPresentation(item, tracker);
 
           return (
             <View key={`${item.title}-${index}`} style={{ marginBottom: index === summary.length - 1 ? 0 : 14 }}>

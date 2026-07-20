@@ -59,5 +59,5 @@ These are optional and only affect the corresponding heuristic metrics.
 
 - The harness exercises the real `/api/goals/create` endpoint.
 - Save measurement is a `preflight` check by default because the current persistence step happens client-side after finalization and expects a signed-in user.
-- If you later want live save testing, the clean extension point is a small authenticated eval-only endpoint or a Node-safe persistence adapter that wraps `createGoalWithMeasurables`.
+- If you later want live save testing, the clean extension point is a small authenticated eval-only endpoint or a Node-safe persistence adapter that wraps `createGoalWithMilestonesAndTrackers`.
 - Output JSON includes both `metricScores` and `heuristicFlags`, plus aggregate `averageScores` and `behaviorRates`.

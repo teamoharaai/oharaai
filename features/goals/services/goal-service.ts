@@ -1,16 +1,29 @@
 import supabase from '@/lib/db/client';
 import { fetchLatestReflectionTimestamps } from '@/lib/db/echo-entry-links';
 import { getSuccessorGoalId, getSuccessorGoalIds } from '@/lib/db/goals';
-import { buildMeasurableInsert } from '@/lib/db/measurable-inserts';
+import { buildTrackerInsert } from '@/lib/db/tracker-inserts';
 import { resolveBrt } from '@/lib/utils/resolveBrt';
 import type { EchoBrt } from '@/types/brt';
-import type { Goal, GoalWithMeasurables, Measurable, MeasurableType, MeasurableFrequency, GoalStatus, MeasurableInput, MeasurableUpdates, PriorPhaseSummaryItem } from '../types';
+import type {
+  Goal,
+  GoalMilestone,
+  GoalMilestoneInput,
+  GoalMilestoneUpdates,
+  GoalStatus,
+  GoalWithDetails,
+  PriorPhaseSummaryItem,
+  Tracker,
+  TrackerFrequency,
+  TrackerInput,
+  TrackerType,
+  TrackerUpdates,
+} from '../types';
 import type { GoalTheme } from '@/constants/themes';
 import {
   GOAL_CATEGORIES,
   GOAL_DB_STATUSES,
-  GOAL_MEASURABLE_FREQUENCIES,
-  GOAL_MEASURABLE_TYPES,
+  GOAL_TRACKER_FREQUENCIES,
+  GOAL_TRACKER_TYPES,
   GOAL_SMART_KEYS,
   type GoalCategory,
   type GoalSmartData,
@@ -18,7 +31,7 @@ import {
   type GoalVisibility,
 } from '@/lib/goals/schema';
 
-type DbMeasurable = {
+type DbTracker = {
   id: string;
   goal_id: string;
   title: string;
@@ -29,6 +42,20 @@ type DbMeasurable = {
   current_value: number | string;
   is_ai_suggested: boolean;
   sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+type DbMilestone = {
+  id: string;
+  goal_id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  due_date: string | null;
+  completed_at: string | null;
+  sort_order: number;
+  is_ai_suggested: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -53,7 +80,8 @@ export type DbGoal = {
   reflected_at: string | null;
   created_at: string;
   updated_at: string;
-  measurables: DbMeasurable[];
+  milestones: DbMilestone[];
+  trackers: DbTracker[];
 };
 
 const VALID_THEMES: GoalTheme[] = ['ocean', 'sunset', 'forest', 'lavender', 'ember', 'mint', 'slate', 'coral'];
@@ -89,14 +117,14 @@ function toVisibility(raw: string): GoalVisibility {
   return GOAL_VISIBILITIES.includes(raw as GoalVisibility) ? (raw as GoalVisibility) : 'private';
 }
 
-function toMeasurableType(raw: string): MeasurableType {
-  return GOAL_MEASURABLE_TYPES.includes(raw as MeasurableType) ? (raw as MeasurableType) : 'checklist';
+function toTrackerType(raw: string): TrackerType {
+  return GOAL_TRACKER_TYPES.includes(raw as TrackerType) ? (raw as TrackerType) : 'checklist';
 }
 
-function toMeasurableFrequency(raw: string | null): MeasurableFrequency | null {
+function toTrackerFrequency(raw: string | null): TrackerFrequency | null {
   if (!raw) return null;
-  return GOAL_MEASURABLE_FREQUENCIES.includes(raw as MeasurableFrequency)
-    ? (raw as MeasurableFrequency)
+  return GOAL_TRACKER_FREQUENCIES.includes(raw as TrackerFrequency)
+    ? (raw as TrackerFrequency)
     : null;
 }
 
@@ -140,15 +168,15 @@ function toPriorPhaseSummary(raw: unknown): PriorPhaseSummaryItem[] | null {
   return items;
 }
 
-function mapMeasurable(row: DbMeasurable): Measurable {
+function mapTracker(row: DbTracker): Tracker {
   return {
     id: row.id,
     goalId: row.goal_id,
     title: row.title,
-    type: toMeasurableType(row.type),
+    type: toTrackerType(row.type),
     targetValue: row.target_value === null ? null : toNumber(row.target_value, 0),
     targetUnit: row.target_unit,
-    frequency: toMeasurableFrequency(row.frequency),
+    frequency: toTrackerFrequency(row.frequency),
     currentValue: toNumber(row.current_value, 0),
     isAiSuggested: row.is_ai_suggested,
     sortOrder: row.sort_order,
@@ -157,7 +185,23 @@ function mapMeasurable(row: DbMeasurable): Measurable {
   };
 }
 
-export function mapGoal(row: DbGoal): GoalWithMeasurables {
+function mapMilestone(row: DbMilestone): GoalMilestone {
+  return {
+    id: row.id,
+    goalId: row.goal_id,
+    userId: row.user_id,
+    title: row.title,
+    description: row.description,
+    dueDate: toDate(row.due_date),
+    completedAt: toDate(row.completed_at),
+    sortOrder: row.sort_order,
+    isAiSuggested: row.is_ai_suggested,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+  };
+}
+
+export function mapGoal(row: DbGoal): GoalWithDetails {
   return {
     id: row.id,
     userId: row.user_id,
@@ -180,7 +224,8 @@ export function mapGoal(row: DbGoal): GoalWithMeasurables {
     updatedAt: new Date(row.updated_at),
     has_successor: false,
     successor: null,
-    measurables: (row.measurables ?? []).map(mapMeasurable),
+    milestones: (row.milestones ?? []).map(mapMilestone).sort((a, b) => a.sortOrder - b.sortOrder),
+    trackers: (row.trackers ?? []).map(mapTracker).sort((a, b) => a.sortOrder - b.sortOrder),
     vaultItemCount: 0,
     echoLinkCount: 0,
     latestBrtTags: null,
@@ -291,16 +336,20 @@ export const GOAL_SELECT = `
   id, user_id, title, description, category, smart_data, color_theme, deadline,
   visibility, progress, status, ai_generated, project_id, previous_goal_id,
   prior_phase_summary, reflection, reflected_at, created_at, updated_at,
-  measurables (
+  milestones (
+    id, goal_id, user_id, title, description, due_date, completed_at,
+    sort_order, is_ai_suggested, created_at, updated_at
+  ),
+  trackers (
     id, goal_id, title, type, target_value, target_unit, frequency,
     current_value, is_ai_suggested, sort_order, created_at, updated_at
   )
 `.trim();
 
 export async function enrichGoalsWithSignals(
-  goals: GoalWithMeasurables[],
+  goals: GoalWithDetails[],
   userId: string,
-): Promise<GoalWithMeasurables[]> {
+): Promise<GoalWithDetails[]> {
   if (goals.length === 0) return goals;
 
   const goalIds = goals.map((g) => g.id);
@@ -324,7 +373,7 @@ export async function enrichGoalsWithSignals(
 export async function fetchGoals(
   userId: string,
   options?: { status?: GoalStatus },
-): Promise<GoalWithMeasurables[]> {
+): Promise<GoalWithDetails[]> {
   let query = supabase
     .from('goals')
     .select(GOAL_SELECT)
@@ -332,6 +381,8 @@ export async function fetchGoals(
 
   if (options?.status) {
     query = query.eq('status', options.status);
+  } else {
+    query = query.neq('status', 'archived');
   }
 
   const { data, error } = await query.order('created_at', { ascending: false });
@@ -343,7 +394,7 @@ export async function fetchGoals(
 
 export async function fetchActiveGoalsFeed(
   userId: string,
-): Promise<Array<GoalWithMeasurables & { lastReflectionAt: string | null }>> {
+): Promise<Array<GoalWithDetails & { lastReflectionAt: string | null }>> {
   const goals = await fetchGoals(userId, { status: 'active' });
   const latestReflectionTimestamps = await fetchLatestReflectionTimestamps(
     goals.map((goal) => goal.id),
@@ -361,7 +412,7 @@ export async function fetchActiveGoalsFeed(
     });
 }
 
-export async function fetchGoalById(goalId: string): Promise<GoalWithMeasurables | null> {
+export async function fetchGoalById(goalId: string): Promise<GoalWithDetails | null> {
   const { data, error } = await supabase
     .from('goals')
     .select(GOAL_SELECT)
@@ -400,7 +451,7 @@ export async function fetchGoalById(goalId: string): Promise<GoalWithMeasurables
   }
 }
 
-export async function updateGoal(goalId: string, updates: Partial<Goal>): Promise<GoalWithMeasurables | null> {
+export async function updateGoal(goalId: string, updates: Partial<Goal>): Promise<GoalWithDetails | null> {
   const patch: Record<string, unknown> = {};
   if (updates.title !== undefined) patch.title = updates.title;
   if (updates.description !== undefined) patch.description = updates.description;
@@ -434,42 +485,140 @@ export async function deleteGoal(id: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function createMeasurable(goalId: string, input: MeasurableInput): Promise<Measurable | null> {
+async function canWriteGoal(goalId: string): Promise<boolean> {
+  try {
+    return (await getSuccessorGoalId(goalId)) === null;
+  } catch {
+    return false;
+  }
+}
+
+export async function createTracker(goalId: string, input: TrackerInput): Promise<Tracker | null> {
+  if (!await canWriteGoal(goalId)) return null;
+
   const { data, error } = await supabase
-    .from('measurables')
-    .insert(buildMeasurableInsert(goalId, input))
+    .from('trackers')
+    .insert(buildTrackerInsert(goalId, input))
     .select()
     .single();
 
   if (error || !data) return null;
-  return mapMeasurable(data as unknown as DbMeasurable);
+  return mapTracker(data as unknown as DbTracker);
 }
 
-export async function updateMeasurable(measurableId: string, updates: MeasurableUpdates): Promise<Measurable | null> {
+export async function updateTracker(
+  goalId: string,
+  trackerId: string,
+  updates: TrackerUpdates,
+): Promise<Tracker | null> {
+  if (!await canWriteGoal(goalId)) return null;
+
   const patch: Record<string, unknown> = {};
   if (updates.title !== undefined) patch.title = updates.title.trim();
   if ('targetValue' in updates) patch.target_value = updates.targetValue ?? null;
   if ('targetUnit' in updates) patch.target_unit = updates.targetUnit?.trim() || null;
   if ('frequency' in updates) patch.frequency = updates.frequency ?? null;
   if (updates.currentValue !== undefined) patch.current_value = updates.currentValue;
+  if (updates.sortOrder !== undefined) patch.sort_order = updates.sortOrder;
 
   if (Object.keys(patch).length === 0) return null;
 
   const { data, error } = await supabase
-    .from('measurables')
+    .from('trackers')
     .update(patch)
-    .eq('id', measurableId)
+    .eq('id', trackerId)
     .select()
     .single();
 
   if (error || !data) return null;
-  return mapMeasurable(data as unknown as DbMeasurable);
+  return mapTracker(data as unknown as DbTracker);
 }
 
-export async function deleteMeasurable(measurableId: string): Promise<boolean> {
+export async function deleteTracker(goalId: string, trackerId: string): Promise<boolean> {
+  if (!await canWriteGoal(goalId)) return false;
+
   const { error } = await supabase
-    .from('measurables')
+    .from('trackers')
     .delete()
-    .eq('id', measurableId);
+    .eq('id', trackerId);
+  return !error;
+}
+
+export async function createMilestone(
+  goalId: string,
+  userId: string,
+  input: GoalMilestoneInput,
+): Promise<GoalMilestone | null> {
+  if (!await canWriteGoal(goalId)) return null;
+
+  const { data, error } = await supabase
+    .from('milestones')
+    .insert({
+      goal_id: goalId,
+      user_id: userId,
+      title: input.title.trim(),
+      description: input.description?.trim() || null,
+      due_date: input.dueDate?.toISOString() ?? null,
+      sort_order: input.sortOrder ?? 0,
+      is_ai_suggested: input.isAiSuggested ?? false,
+    })
+    .select()
+    .single();
+
+  if (error || !data) return null;
+  return mapMilestone(data as unknown as DbMilestone);
+}
+
+export async function updateMilestone(
+  goalId: string,
+  milestoneId: string,
+  updates: Omit<GoalMilestoneUpdates, 'completedAt'>,
+): Promise<GoalMilestone | null> {
+  if (!await canWriteGoal(goalId)) return null;
+
+  const patch: Record<string, unknown> = {};
+  if (updates.title !== undefined) patch.title = updates.title.trim();
+  if ('description' in updates) patch.description = updates.description?.trim() || null;
+  if ('dueDate' in updates) patch.due_date = updates.dueDate?.toISOString() ?? null;
+  if (updates.sortOrder !== undefined) patch.sort_order = updates.sortOrder;
+
+  if (Object.keys(patch).length === 0) return null;
+
+  const { data, error } = await supabase
+    .from('milestones')
+    .update(patch)
+    .eq('id', milestoneId)
+    .select()
+    .single();
+
+  if (error || !data) return null;
+  return mapMilestone(data as unknown as DbMilestone);
+}
+
+export async function completeMilestone(
+  goalId: string,
+  milestoneId: string,
+): Promise<GoalMilestone | null> {
+  if (!await canWriteGoal(goalId)) return null;
+
+  const { data, error } = await supabase
+    .from('milestones')
+    .update({ completed_at: new Date().toISOString() })
+    .eq('id', milestoneId)
+    .is('completed_at', null)
+    .select()
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return mapMilestone(data as unknown as DbMilestone);
+}
+
+export async function deleteMilestone(goalId: string, milestoneId: string): Promise<boolean> {
+  if (!await canWriteGoal(goalId)) return false;
+
+  const { error } = await supabase
+    .from('milestones')
+    .delete()
+    .eq('id', milestoneId);
   return !error;
 }

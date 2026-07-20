@@ -2,7 +2,14 @@ import type { EchoBrt } from '@/features/echo/types';
 import type { EchoEmotion } from '@/features/echo/types';
 import type { VaultItemType } from '@/types/vault';
 
-export type ActivityKind = 'echo_entry' | 'milestone_completed' | 'goal_created' | 'vault_item_added' | 'insight_confirmed' | 'echo_linked';
+export type ActivityKind =
+  | 'echo_entry'
+  | 'milestone_completed'
+  | 'tracker_logged'
+  | 'goal_created'
+  | 'vault_item_added'
+  | 'insight_confirmed'
+  | 'echo_linked';
 
 interface ActivityBase {
   id: string;
@@ -20,8 +27,16 @@ export interface EchoEntryActivity extends ActivityBase {
 
 export interface MilestoneCompletedActivity extends ActivityBase {
   kind: 'milestone_completed';
-  measurableId: string;
+  milestoneId: string;
   label: string;
+}
+
+export interface TrackerLoggedActivity extends ActivityBase {
+  kind: 'tracker_logged';
+  trackerId: string;
+  label: string;
+  value: number;
+  note: string | null;
 }
 
 export interface GoalCreatedActivity extends ActivityBase {
@@ -49,6 +64,7 @@ export interface EchoLinkedActivity extends ActivityBase {
 export type ActivityItem =
   | EchoEntryActivity
   | MilestoneCompletedActivity
+  | TrackerLoggedActivity
   | GoalCreatedActivity
   | VaultItemAddedActivity
   | InsightConfirmedActivity

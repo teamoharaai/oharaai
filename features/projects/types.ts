@@ -1,4 +1,4 @@
-import type { GoalWithMeasurables } from '@/features/goals/types';
+import type { GoalWithDetails } from '@/features/goals/types';
 
 export type ProjectStatus = 'active' | 'complete' | 'archived';
 
@@ -16,5 +16,5 @@ export type Project = {
 };
 
 export type ProjectWithGoals = Project & {
-  goals: GoalWithMeasurables[];
+  goals: GoalWithDetails[];
 };

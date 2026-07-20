@@ -5,21 +5,27 @@
 
 import {
   GOAL_CATEGORIES,
-  GOAL_MEASURABLE_FREQUENCIES,
-  GOAL_MEASURABLE_TYPES,
   GOAL_SMART_KEYS,
+  GOAL_TRACKER_FREQUENCIES,
+  GOAL_TRACKER_TYPES,
   type GoalCategory,
-  type GoalMeasurableFrequency,
-  type GoalMeasurableType,
   type GoalSmartData,
+  type GoalTrackerFrequency,
+  type GoalTrackerType,
 } from '@/lib/goals/schema';
 
-export interface GoalFinalizeMeasurable {
+export interface GoalFinalizeMilestone {
   title: string;
-  type: GoalMeasurableType;
+  description: string | null;
+  dueDate: string | null;
+}
+
+export interface GoalFinalizeTracker {
+  title: string;
+  type: GoalTrackerType;
   targetValue: number | null;
   targetUnit: string | null;
-  frequency: GoalMeasurableFrequency;
+  frequency: GoalTrackerFrequency;
 }
 
 export interface GoalFinalizeGoal {
@@ -32,7 +38,8 @@ export interface GoalFinalizeGoal {
 
 export interface GoalFinalizeResponse {
   goal: GoalFinalizeGoal;
-  measurables: GoalFinalizeMeasurable[];
+  milestones: GoalFinalizeMilestone[];
+  trackers: GoalFinalizeTracker[];
   reasoning: string;
   assumptions: string[];
 }
@@ -84,43 +91,76 @@ export function validateGoalFinalizeResponse(parsed: unknown): GoalFinalizeRespo
     }
   }
 
-  if (!Array.isArray(obj.measurables)) {
-    throw new Error('measurables must be an array');
+  if (!Array.isArray(obj.milestones)) {
+    throw new Error('milestones must be an array');
   }
-  for (const [index, m] of (obj.measurables as unknown[]).entries()) {
-    if (typeof m !== 'object' || m === null) throw new Error('each measurable must be an object');
+  for (const [index, m] of (obj.milestones as unknown[]).entries()) {
+    if (typeof m !== 'object' || m === null) throw new Error('each milestone must be an object');
     const mObj = m as Record<string, unknown>;
     if (typeof mObj.title !== 'string' || mObj.title.trim() === '') {
-      throw new Error(`measurable[${index}].title must be a non-empty string`);
+      throw new Error(`milestone[${index}].title must be a non-empty string`);
     }
-    if (!GOAL_MEASURABLE_TYPES.includes(mObj.type as GoalMeasurableType)) {
-      throw new Error(`measurable[${index}].type must be one of: ${GOAL_MEASURABLE_TYPES.join(', ')}`);
+    if (mObj.description !== null && typeof mObj.description !== 'string') {
+      throw new Error(`milestone[${index}].description must be a string or null`);
     }
-    if (!GOAL_MEASURABLE_FREQUENCIES.includes(mObj.frequency as GoalMeasurableFrequency)) {
-      throw new Error(`measurable[${index}].frequency must be one of: ${GOAL_MEASURABLE_FREQUENCIES.join(', ')}`);
+    if (mObj.dueDate !== null && typeof mObj.dueDate !== 'string') {
+      throw new Error(`milestone[${index}].dueDate must be a string or null`);
     }
-    if (mObj.targetValue !== null && typeof mObj.targetValue !== 'number') {
-      throw new Error(`measurable[${index}].targetValue must be a number or null`);
+    if (
+      typeof mObj.dueDate === 'string'
+      && (mObj.dueDate.trim() === '' || Number.isNaN(new Date(mObj.dueDate).getTime()))
+    ) {
+      throw new Error(`milestone[${index}].dueDate must be a parseable date or null`);
     }
-    if (mObj.targetUnit !== null && typeof mObj.targetUnit !== 'string') {
-      throw new Error(`measurable[${index}].targetUnit must be a string or null`);
+  }
+
+  if (!Array.isArray(obj.trackers)) {
+    throw new Error('trackers must be an array');
+  }
+  for (const [index, tracker] of (obj.trackers as unknown[]).entries()) {
+    if (typeof tracker !== 'object' || tracker === null) {
+      throw new Error('each tracker must be an object');
+    }
+    const trackerObj = tracker as Record<string, unknown>;
+    if (typeof trackerObj.title !== 'string' || trackerObj.title.trim() === '') {
+      throw new Error(`tracker[${index}].title must be a non-empty string`);
+    }
+    if (!GOAL_TRACKER_TYPES.includes(trackerObj.type as GoalTrackerType)) {
+      throw new Error(`tracker[${index}].type must be one of: ${GOAL_TRACKER_TYPES.join(', ')}`);
+    }
+    if (!GOAL_TRACKER_FREQUENCIES.includes(trackerObj.frequency as GoalTrackerFrequency)) {
+      throw new Error(
+        `tracker[${index}].frequency must be one of: ${GOAL_TRACKER_FREQUENCIES.join(', ')}`,
+      );
+    }
+    if (trackerObj.targetValue !== null && typeof trackerObj.targetValue !== 'number') {
+      throw new Error(`tracker[${index}].targetValue must be a number or null`);
+    }
+    if (trackerObj.targetUnit !== null && typeof trackerObj.targetUnit !== 'string') {
+      throw new Error(`tracker[${index}].targetUnit must be a string or null`);
     }
 
-    if (mObj.type === 'counter') {
-      if (typeof mObj.targetValue !== 'number' || !Number.isFinite(mObj.targetValue)) {
-        throw new Error(`measurable[${index}].targetValue is required for counter measurables`);
+    if (trackerObj.type === 'counter') {
+      if (
+        typeof trackerObj.targetValue !== 'number'
+        || !Number.isFinite(trackerObj.targetValue)
+        || trackerObj.targetValue <= 0
+      ) {
+        throw new Error(
+          `tracker[${index}].targetValue must be greater than 0 for counter trackers`,
+        );
       }
-      if (typeof mObj.targetUnit !== 'string' || mObj.targetUnit.trim() === '') {
-        throw new Error(`measurable[${index}].targetUnit is required for counter measurables`);
+      if (typeof trackerObj.targetUnit !== 'string' || trackerObj.targetUnit.trim() === '') {
+        throw new Error(`tracker[${index}].targetUnit is required for counter trackers`);
       }
     }
 
-    if (mObj.type === 'checklist') {
-      if (mObj.targetValue !== null) {
-        throw new Error(`measurable[${index}].targetValue must be null for checklist measurables`);
+    if (trackerObj.type === 'checklist') {
+      if (trackerObj.targetValue !== null) {
+        throw new Error(`tracker[${index}].targetValue must be null for checklist trackers`);
       }
-      if (mObj.targetUnit !== null) {
-        throw new Error(`measurable[${index}].targetUnit must be null for checklist measurables`);
+      if (trackerObj.targetUnit !== null) {
+        throw new Error(`tracker[${index}].targetUnit must be null for checklist trackers`);
       }
     }
   }
@@ -148,14 +188,26 @@ export function validateGoalFinalizeResponse(parsed: unknown): GoalFinalizeRespo
         timeBound: String(smart.timeBound).trim(),
       },
     },
-    measurables: (obj.measurables as unknown[]).map((m) => {
-      const mObj = m as Record<string, unknown>;
+    milestones: (obj.milestones as unknown[]).map((milestone) => {
+      const milestoneObj = milestone as Record<string, unknown>;
       return {
-        title: String(mObj.title).trim(),
-        type: mObj.type as GoalMeasurableType,
-        targetValue: mObj.targetValue as number | null,
-        targetUnit: typeof mObj.targetUnit === 'string' ? mObj.targetUnit.trim() : null,
-        frequency: mObj.frequency as GoalMeasurableFrequency,
+        title: String(milestoneObj.title).trim(),
+        description:
+          typeof milestoneObj.description === 'string'
+            ? milestoneObj.description.trim() || null
+            : null,
+        dueDate: typeof milestoneObj.dueDate === 'string' ? milestoneObj.dueDate.trim() : null,
+      };
+    }),
+    trackers: (obj.trackers as unknown[]).map((tracker) => {
+      const trackerObj = tracker as Record<string, unknown>;
+      return {
+        title: String(trackerObj.title).trim(),
+        type: trackerObj.type as GoalTrackerType,
+        targetValue: trackerObj.targetValue as number | null,
+        targetUnit:
+          typeof trackerObj.targetUnit === 'string' ? trackerObj.targetUnit.trim() : null,
+        frequency: trackerObj.frequency as GoalTrackerFrequency,
       };
     }),
     reasoning: obj.reasoning.trim(),

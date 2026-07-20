@@ -4,10 +4,6 @@ import type { AiResponse } from '@/lib/ai/contracts';
 import { isAIRateLimitError } from '@/lib/ai/errors';
 import { GOAL_SUGGESTION_SYSTEM_PROMPT } from '@/lib/ai/prompts/goal-suggestion';
 import type { ManualGoalCreationInput } from '@/lib/db/goals';
-import {
-  GOAL_MEASURABLE_TYPES,
-  type GoalMeasurableType,
-} from '@/lib/goals/schema';
 
 type GoalSuggestion = ManualGoalCreationInput['milestones'][number];
 type GoalSuggestionRequest = { title: string; why: string };
@@ -42,21 +38,14 @@ function parseSuggestion(rawText: string): GoalSuggestion {
   }
 
   const keys = Object.keys(value);
-  if (keys.length !== 2 || !keys.includes('title') || !keys.includes('type')) {
-    throw new Error('Goal suggestion response must contain only title and type');
+  if (keys.length !== 1 || !keys.includes('title')) {
+    throw new Error('Goal suggestion response must contain only title');
   }
   if (typeof value.title !== 'string' || value.title.trim() === '') {
     throw new Error('Goal suggestion title must be a non-empty string');
   }
-  if (!GOAL_MEASURABLE_TYPES.includes(value.type as GoalMeasurableType)) {
-    throw new Error(
-      `Goal suggestion type must be one of: ${GOAL_MEASURABLE_TYPES.join(', ')}`,
-    );
-  }
-
   return {
     title: value.title.trim(),
-    type: value.type as GoalMeasurableType,
   };
 }
 
