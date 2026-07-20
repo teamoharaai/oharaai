@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed (2026-07-20 — Today carousel card consistency)
+- **`components/ui/TodayGoalCard.tsx`:** standardized every Today focus card to the same height, reserved stable project/title space, and capped long goal titles at two tail-ellipsized lines so mixed content cannot distort the carousel.
+- **`components/ui/TodayGoalCard.tsx`:** routed the completion label through `text.accent` and the progress fill through `accent.primary`, giving dark mode the canonical themed green instead of the primary text color.
+- Verification: `npx tsc --noEmit` passed; an authenticated Expo web smoke test measured all 20 mixed-data cards at 260px, confirmed narrow-width title ellipsis, and resolved both dark-mode completion colors to the canonical dark accent value.
+
 ### Removed (2026-07-20 — Today carousel dead action cleanup)
 - **`components/ui/TodayGoalCard.tsx`:** hid the non-functional `See All Journeys` dashboard loop, including its action divider, until a real Journeys destination exists; the goal chevron remains the card's supported navigation action.
 - **`constants/colors.ts`:** removed the now-unused, estimated light/dark `accent.focusButton` tokens so the canonical palette no longer exposes provisional values that were not verified against a design source.

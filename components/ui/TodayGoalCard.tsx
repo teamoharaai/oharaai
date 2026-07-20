@@ -9,6 +9,10 @@ import { Typography } from './Typography';
 
 export type TodayGoal = Awaited<ReturnType<typeof fetchActiveGoalsFeed>>[number];
 
+const CARD_HEIGHT = 260;
+const TITLE_LINE_HEIGHT = 30;
+const TITLE_MAX_LINES = 2;
+
 interface TodayGoalCardProps {
   goal: TodayGoal;
   projectTitle?: string;
@@ -29,6 +33,7 @@ export function TodayGoalCard({ goal, projectTitle }: TodayGoalCardProps) {
         borderColor: colors.border.divider,
         borderRadius: 20,
         borderWidth: 1,
+        height: CARD_HEIGHT,
         padding: 20,
       }}
     >
@@ -66,20 +71,29 @@ export function TodayGoalCard({ goal, projectTitle }: TodayGoalCardProps) {
         }}
       />
 
-      {projectTitle ? (
-        <Typography
-          variant="meta"
-          numberOfLines={1}
-          style={{ color: colors.text.muted, marginBottom: 6 }}
-        >
-          {projectTitle}
-        </Typography>
-      ) : null}
+      <View style={{ height: 20, marginBottom: 6 }}>
+        {projectTitle ? (
+          <Typography
+            variant="meta"
+            ellipsizeMode="tail"
+            numberOfLines={1}
+            style={{ color: colors.text.muted }}
+          >
+            {projectTitle}
+          </Typography>
+        ) : null}
+      </View>
 
       <Typography
         variant="heading"
-        numberOfLines={3}
-        style={{ fontSize: 24, lineHeight: 30, marginBottom: 20 }}
+        ellipsizeMode="tail"
+        numberOfLines={TITLE_MAX_LINES}
+        style={{
+          fontSize: 24,
+          height: TITLE_LINE_HEIGHT * TITLE_MAX_LINES,
+          lineHeight: TITLE_LINE_HEIGHT,
+          marginBottom: 20,
+        }}
       >
         {goal.title}
       </Typography>
@@ -95,7 +109,7 @@ export function TodayGoalCard({ goal, projectTitle }: TodayGoalCardProps) {
         {progress > 0 ? (
           <View
             style={{
-              backgroundColor: colors.text.primary,
+              backgroundColor: colors.accent.primary,
               borderRadius: 999,
               height: '100%',
               width: `${progress}%`,
@@ -104,7 +118,10 @@ export function TodayGoalCard({ goal, projectTitle }: TodayGoalCardProps) {
         ) : null}
       </View>
 
-      <Typography variant="emphasis-sm" style={{ marginTop: 10 }}>
+      <Typography
+        variant="emphasis-sm"
+        style={{ color: colors.text.accent, marginTop: 10 }}
+      >
         {ringProgress === null ? 'No deadline set' : `${progress}% Complete`}
       </Typography>
       <Typography variant="caption" style={{ marginTop: 5 }}>
