@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { View } from 'react-native';
-import { LIGHT_THEME } from '@/constants/colors';
+import { useThemeColors } from '@/store/uiStore';
 
 type EchoPaneResizerProps = {
   width: number;
@@ -11,6 +11,7 @@ export function EchoPaneResizer({
   width,
   onResize,
 }: EchoPaneResizerProps) {
+  const colors = useThemeColors();
   const startWidthRef = useRef(width);
   const startXRef = useRef(0);
   const draggingRef = useRef(false);
@@ -61,7 +62,7 @@ export function EchoPaneResizer({
     >
       <View
         style={{
-          backgroundColor: LIGHT_THEME.border.divider,
+          backgroundColor: colors.border.divider,
           height: '100%',
           width: 1,
         } as any}

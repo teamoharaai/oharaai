@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View, type GestureResponderEvent } from 'react-native';
 import { AnchoredPopover, type AnchorRect } from '@/components/ui/AnchoredPopover';
-import { LIGHT_THEME } from '@/constants/colors';
+import { useThemeColors } from '@/store/uiStore';
 import type { EchoContainerOption } from '../types';
 
 export type EchoFilterScope =
@@ -48,6 +48,7 @@ export function EchoFilterPill({
   selectedScope,
   onSelectScope,
 }: EchoFilterPillProps) {
+  const colors = useThemeColors();
   const [open, setOpen] = useState(false);
   const [anchorRect, setAnchorRect] = useState<AnchorRect | null>(null);
   const triggerRef = useRef<View | null>(null);
@@ -115,13 +116,13 @@ export function EchoFilterPill({
         accessibilityRole="button"
         accessibilityLabel={`Filter Echo entries. Current filter: ${selectedScope.label}`}
         className="flex-row items-center rounded-full px-3.5 py-1.5"
-        style={{ backgroundColor: LIGHT_THEME.background.sidebar, flexShrink: 1 }}
+        style={{ backgroundColor: colors.background.sidebar, flexShrink: 1 }}
       >
         <Text
           numberOfLines={1}
           className="font-sans"
           style={{
-            color: LIGHT_THEME.text.inverse,
+            color: '#EDE7DA',
             fontFamily: 'Inter-Medium',
             fontSize: 13,
             lineHeight: 17,
@@ -132,7 +133,7 @@ export function EchoFilterPill({
         </Text>
         <Text
           className="ml-1.5 font-sans"
-          style={{ color: LIGHT_THEME.text.inverse, fontSize: 11, lineHeight: 14 }}
+          style={{ color: '#EDE7DA', fontSize: 11, lineHeight: 14 }}
         >
           {'⌄'}
         </Text>
@@ -142,9 +143,10 @@ export function EchoFilterPill({
         visible={open}
         anchorRect={anchorRect}
         onDismiss={closeMenu}
-        contentClassName="rounded-[10px] border bg-white py-1 shadow-sm"
+        contentClassName="rounded-[10px] border py-1 shadow-sm"
         contentStyle={{
-          borderColor: LIGHT_THEME.border.divider,
+          backgroundColor: colors.background.card,
+          borderColor: colors.border.divider,
           maxHeight: MENU_MAX_HEIGHT,
           minWidth: 220,
         }}
@@ -158,14 +160,14 @@ export function EchoFilterPill({
                 onPress={() => selectScope(scope)}
                 className="px-3.5 py-2.5"
                 style={{
-                  backgroundColor: selected ? LIGHT_THEME.background.selectedRow : 'transparent',
+                  backgroundColor: selected ? colors.background.selectedRow : 'transparent',
                 }}
               >
                 <Text
                   numberOfLines={1}
                   className="font-sans"
                   style={{
-                    color: LIGHT_THEME.text.primary,
+                    color: '#211F1A',
                     fontFamily: selected ? 'Inter-Bold' : 'Inter-Medium',
                     fontSize: 13,
                     lineHeight: 18,

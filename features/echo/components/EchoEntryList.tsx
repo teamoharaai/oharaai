@@ -1,6 +1,6 @@
 import { ScrollView, Text, View } from 'react-native';
 import { EmptyStateCard } from '@/components/ui/EmptyStateCard';
-import { LIGHT_THEME } from '@/constants/colors';
+import { useThemeColors } from '@/store/uiStore';
 import { EchoEntryRow } from './EchoEntryRow';
 import type { EchoEntry } from '../types';
 import { formatEntryDate, getContainerCaption } from '../utils/entryDisplay';
@@ -59,14 +59,20 @@ function groupEntriesByDate(entries: EchoEntry[]): EntryGroup[] {
 }
 
 function EchoLoadingState() {
+  const colors = useThemeColors();
+
   return (
     <View className="gap-3 py-2">
       {[0, 1, 2].map((item) => (
-        <View key={item} className="rounded-xl bg-white p-4 shadow-sm">
-          <View className="mb-3 h-3.5 rounded-full bg-[#EAE7E0]" />
-          <View className="mb-2 h-3.5 w-[83%] rounded-full bg-[#EAE7E0]" />
-          <View className="mb-4 h-3.5 w-[66%] rounded-full bg-[#EAE7E0]" />
-          <View className="h-3 w-20 rounded-full bg-[#EAE7E0]" />
+        <View
+          key={item}
+          className="rounded-xl p-4 shadow-sm"
+          style={{ backgroundColor: colors.background.card }}
+        >
+          <View className="mb-3 h-3.5 rounded-full" style={{ backgroundColor: colors.background.subtle }} />
+          <View className="mb-2 h-3.5 w-[83%] rounded-full" style={{ backgroundColor: colors.background.subtle }} />
+          <View className="mb-4 h-3.5 w-[66%] rounded-full" style={{ backgroundColor: colors.background.subtle }} />
+          <View className="h-3 w-20 rounded-full" style={{ backgroundColor: colors.background.subtle }} />
         </View>
       ))}
     </View>
@@ -84,6 +90,7 @@ export function EchoEntryList({
   onMoveEntry,
   onDeleteEntry,
 }: EchoEntryListProps) {
+  const colors = useThemeColors();
   void scopeId;
 
   if (isLoading) {
@@ -91,7 +98,7 @@ export function EchoEntryList({
       <View
         className="px-3"
         style={{
-          backgroundColor: LIGHT_THEME.background.page,
+          backgroundColor: colors.background.page,
           flex: 1,
           minHeight: 0,
         }}
@@ -106,7 +113,7 @@ export function EchoEntryList({
       <View
         className="justify-center px-3"
         style={{
-          backgroundColor: LIGHT_THEME.background.page,
+          backgroundColor: colors.background.page,
           flex: 1,
           minHeight: 0,
         }}
@@ -130,7 +137,7 @@ export function EchoEntryList({
   return (
     <View
       style={{
-        backgroundColor: LIGHT_THEME.background.page,
+        backgroundColor: colors.background.page,
         flex: 1,
         minHeight: 0,
       }}
@@ -150,7 +157,7 @@ export function EchoEntryList({
               <Text
                 className="mb-1.5 px-3 pt-3 font-sans"
                 style={{
-                  color: LIGHT_THEME.text.secondary,
+                  color: '#8A8172',
                   fontFamily: 'Inter-Bold',
                   fontSize: 10.5,
                   letterSpacing: 0.63,

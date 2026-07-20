@@ -1,7 +1,7 @@
 import { Pressable, View, type ViewStyle } from 'react-native';
 import { Typography } from '@/components/ui/Typography';
-import { LIGHT_THEME } from '@/constants/colors';
 import { resolveBrt } from '@/lib/utils/resolveBrt';
+import { useThemeColors } from '@/store/uiStore';
 import { EntryActionMenu } from './EntryActionMenu';
 import type { EchoEntry } from '../types';
 import { getEntrySnippet, getEntryTitle } from '../utils/entryDisplay';
@@ -33,8 +33,9 @@ export function EchoEntryRow({
   onMoveToFolder,
   onDelete,
 }: EchoEntryRowProps) {
+  const colors = useThemeColors();
   const brtCategory = resolveBrt(entry.brt);
-  const dotColor = brtCategory ? LIGHT_THEME.brt[brtCategory] : LIGHT_THEME.text.muted;
+  const dotColor = brtCategory ? colors.brt[brtCategory] : colors.text.muted;
   const isTreeVariant = variant === 'tree';
   const containerStyle: ViewStyle | undefined = isTreeVariant
     ? { marginLeft: treeIndent, marginRight: 8 }
@@ -45,9 +46,14 @@ export function EchoEntryRow({
       className={
         isTreeVariant
           ? 'relative mb-0 overflow-visible rounded-lg'
-          : 'relative mx-3 mb-2 overflow-hidden rounded-xl border border-border-color-subtle bg-white shadow-sm'
+          : 'relative mx-3 mb-2 overflow-hidden rounded-xl border shadow-sm'
       }
-      style={containerStyle}
+      style={[
+        containerStyle,
+        isTreeVariant
+          ? undefined
+          : { backgroundColor: colors.background.card, borderColor: colors.border.subtle },
+      ]}
     >
       <Pressable
         onPress={onSelect}
@@ -58,10 +64,10 @@ export function EchoEntryRow({
         }
         style={{
           backgroundColor: selected
-            ? LIGHT_THEME.background.selectedRow
+            ? colors.background.selectedRow
             : isTreeVariant
               ? 'transparent'
-              : LIGHT_THEME.background.card,
+              : colors.background.card,
         }}
       >
         <View

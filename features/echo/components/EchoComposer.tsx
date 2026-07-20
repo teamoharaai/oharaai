@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { LIGHT_THEME } from '@/constants/colors';
+import { useThemeColors } from '@/store/uiStore';
 import {
   getEchoDraftContextKey,
   useEchoDraftStore,
@@ -39,12 +39,17 @@ const SUBMISSION_NOTICE_COPY: Record<SubmissionNoticeKind, string> = {
 };
 
 function ComposerNotice({ kind }: { kind: SubmissionNoticeKind }) {
+  const colors = useThemeColors();
   const tone =
     kind === 'unconfirmed'
       ? { border: '#FCA5A5', bg: '#FEF2F2', text: '#B91C1C' }
       : kind === 'saved_without_summary'
-        ? { border: LIGHT_THEME.border.input, bg: '#F8F5EF', text: '#5F6B66' }
-        : { border: '#FDE68A', bg: '#FFFBEB', text: '#92400E' };
+        ? { border: colors.border.input, bg: '#F8F5EF', text: '#5F6B66' }
+        : {
+            border: colors.feedback.pending.border,
+            bg: colors.feedback.pending.bg,
+            text: '#92400E',
+          };
 
   return (
     <View
@@ -65,6 +70,7 @@ export function EchoComposer({
   onCancel,
   onSaved,
 }: EchoComposerProps) {
+  const colors = useThemeColors();
   const hasHydrated = useEchoDraftStore((state) => state.hasHydrated);
   const getDraft = useEchoDraftStore((state) => state.getDraft);
   const setDraft = useEchoDraftStore((state) => state.setDraft);
@@ -242,7 +248,7 @@ export function EchoComposer({
         <Text
           className="min-w-0 flex-1 font-sans"
           style={{
-            color: LIGHT_THEME.text.primary,
+            color: '#211F1A',
             fontFamily: 'Inter-ExtraBold',
             fontSize: 20,
             lineHeight: 26,
@@ -254,8 +260,11 @@ export function EchoComposer({
 
       <View className="mt-5">
         {linkedGoal ? (
-          <View className="rounded-xl border bg-white px-3.5 py-3" style={{ borderColor: LIGHT_THEME.border.input }}>
-            <Text className="font-sans text-xs" style={{ color: LIGHT_THEME.text.secondary }}>
+          <View
+            className="rounded-xl border px-3.5 py-3"
+            style={{ backgroundColor: colors.background.card, borderColor: colors.border.input }}
+          >
+            <Text className="font-sans text-xs" style={{ color: '#8A8172' }}>
               Assigned to:
             </Text>
             <View className="mt-1 flex-row items-center justify-between gap-3">
@@ -263,7 +272,7 @@ export function EchoComposer({
                 numberOfLines={1}
                 className="min-w-0 flex-1 font-sans"
                 style={{
-                  color: LIGHT_THEME.text.primary,
+                  color: '#211F1A',
                   fontFamily: 'Inter-Bold',
                   fontSize: 13.5,
                   lineHeight: 18,
@@ -272,7 +281,7 @@ export function EchoComposer({
                 {linkedGoal.title || 'Selected goal'}
               </Text>
               <TouchableOpacity onPress={() => setLinkedGoal(null)} activeOpacity={0.7}>
-                <Text className="font-sans text-sm" style={{ color: LIGHT_THEME.text.secondary }}>
+                <Text className="font-sans text-sm" style={{ color: '#8A8172' }}>
                   Clear
                 </Text>
               </TouchableOpacity>
@@ -281,18 +290,21 @@ export function EchoComposer({
         ) : (
           <TouchableOpacity
             onPress={() => setPickerOpen((value) => !value)}
-            className="rounded-xl border bg-white px-3.5 py-3"
-            style={{ borderColor: LIGHT_THEME.border.input }}
+            className="rounded-xl border px-3.5 py-3"
+            style={{ backgroundColor: colors.background.card, borderColor: colors.border.input }}
             activeOpacity={0.75}
           >
-            <Text className="font-sans text-sm" style={{ color: LIGHT_THEME.text.secondary }}>
+            <Text className="font-sans text-sm" style={{ color: '#8A8172' }}>
               Link a goal
             </Text>
           </TouchableOpacity>
         )}
 
         {pickerOpen ? (
-          <View className="mt-2 rounded-xl border bg-white py-1" style={{ borderColor: LIGHT_THEME.border.divider }}>
+          <View
+            className="mt-2 rounded-xl border py-1"
+            style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider }}
+          >
             <GoalFolderPicker
               goals={goals}
               folders={[]}
@@ -310,19 +322,19 @@ export function EchoComposer({
       </View>
 
       <View
-        className="mt-4 min-h-[320px] flex-1 overflow-hidden rounded-xl border bg-white"
-        style={{ borderColor: LIGHT_THEME.border.input }}
+        className="mt-4 min-h-[320px] flex-1 overflow-hidden rounded-xl border"
+        style={{ backgroundColor: colors.background.card, borderColor: colors.border.input }}
       >
         <TextInput
           className="px-4 pb-3 pt-4 font-sans"
           placeholder="Title (optional)"
-          placeholderTextColor={LIGHT_THEME.text.secondary}
+          placeholderTextColor="#8A8172"
           value={titleText}
           onChangeText={handleTitleChange}
           style={{
-            borderBottomColor: LIGHT_THEME.border.divider,
+            borderBottomColor: colors.border.divider,
             borderBottomWidth: 1,
-            color: LIGHT_THEME.text.primary,
+            color: '#211F1A',
             fontFamily: 'Inter-ExtraBold',
             fontSize: 22,
             lineHeight: 28,
@@ -332,13 +344,13 @@ export function EchoComposer({
         <TextInput
           className="flex-1 px-4 py-4 font-sans text-base"
           placeholder="What's on your mind?"
-          placeholderTextColor={LIGHT_THEME.text.secondary}
+          placeholderTextColor="#8A8172"
           multiline
           numberOfLines={18}
           value={text}
           onChangeText={handleTextChange}
           textAlignVertical="top"
-          style={{ color: LIGHT_THEME.text.primary, lineHeight: 22 }}
+          style={{ color: '#211F1A', lineHeight: 22 }}
         />
       </View>
 
@@ -348,12 +360,12 @@ export function EchoComposer({
         <TouchableOpacity
           onPress={handleCancel}
           className="flex-1 items-center rounded-xl border py-3"
-          style={{ borderColor: LIGHT_THEME.border.input }}
+          style={{ borderColor: colors.border.input }}
           activeOpacity={0.75}
         >
           <Text
             className="font-sans"
-            style={{ color: LIGHT_THEME.text.secondary, fontFamily: 'Inter-SemiBold', fontSize: 13.5 }}
+            style={{ color: '#8A8172', fontFamily: 'Inter-SemiBold', fontSize: 13.5 }}
           >
             Cancel
           </Text>
@@ -362,13 +374,13 @@ export function EchoComposer({
           onPress={handleSave}
           disabled={!canSave}
           className="flex-1 items-center rounded-xl py-3"
-          style={{ backgroundColor: canSave ? LIGHT_THEME.background.sidebar : LIGHT_THEME.border.input }}
+          style={{ backgroundColor: canSave ? colors.background.sidebar : colors.border.input }}
           activeOpacity={0.82}
         >
           <Text
             className="font-sans"
             style={{
-              color: canSave ? LIGHT_THEME.text.inverse : LIGHT_THEME.text.secondary,
+              color: canSave ? '#EDE7DA' : '#8A8172',
               fontFamily: 'Inter-SemiBold',
               fontSize: 13.5,
             }}

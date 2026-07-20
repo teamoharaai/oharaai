@@ -1,7 +1,7 @@
 import { ScrollView, View } from 'react-native';
 import { Typography } from '@/components/ui/Typography';
-import { LIGHT_THEME } from '@/constants/colors';
 import { resolveBrt } from '@/lib/utils/resolveBrt';
+import { useThemeColors } from '@/store/uiStore';
 import { getContainerCaption } from '../utils/entryDisplay';
 import { EchoComposer } from './EchoComposer';
 import { EchoEntryEditForm } from './EchoEntryEditForm';
@@ -46,8 +46,9 @@ function getEntryTitle(entry: EchoEntry): string {
 }
 
 function BrtDot({ entry }: { entry: EchoEntry }) {
+  const colors = useThemeColors();
   const category = resolveBrt(entry.brt);
-  const dotColor = category ? LIGHT_THEME.brt[category] : LIGHT_THEME.text.muted;
+  const dotColor = category ? colors.brt[category] : colors.text.muted;
   return <View className="h-2 w-2 rounded-full" style={{ backgroundColor: dotColor }} />;
 }
 
@@ -64,6 +65,7 @@ export function EchoDetailPane({
   onSaveEdit,
   onCancelEdit,
 }: EchoDetailPaneProps) {
+  const colors = useThemeColors();
   if (mode === 'add') {
     return (
       <EchoComposer
@@ -115,7 +117,10 @@ export function EchoDetailPane({
 
   return (
     <View className="flex-1 items-center justify-center px-8">
-      <View className="max-w-[360px] items-center rounded-xl border border-border-color-subtle bg-white px-8 py-10 shadow-sm">
+      <View
+        className="max-w-[360px] items-center rounded-xl border px-8 py-10 shadow-sm"
+        style={{ backgroundColor: colors.background.card, borderColor: colors.border.subtle }}
+      >
         <Typography variant="echo-empty-title">Select an entry</Typography>
         <Typography variant="echo-empty-subtitle" className="mt-2 text-center">
           Choose an Echo from the list, or add a new reflection.

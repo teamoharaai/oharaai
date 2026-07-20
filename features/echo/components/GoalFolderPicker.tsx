@@ -1,5 +1,5 @@
 import { ScrollView, Text, View, Pressable } from 'react-native';
-import { LIGHT_THEME } from '@/constants/colors';
+import { useThemeColors } from '@/store/uiStore';
 import type { EchoFolder } from '@/types/echo-folder';
 import type { EchoGoalOption } from '../types';
 import { useContainerGrouping } from '../hooks/useContainerGrouping';
@@ -25,7 +25,7 @@ function SectionHeader({ label }: { label: string }) {
     <Text
       className="px-4 pb-2 pt-4 font-sans"
       style={{
-        color: LIGHT_THEME.text.secondary,
+        color: '#8A8172',
         fontFamily: 'Inter-Bold',
         fontSize: 10.5,
         letterSpacing: 0.63,
@@ -43,7 +43,7 @@ function ProjectHeader({ label }: { label: string }) {
     <Text
       className="px-4 pb-1.5 pt-2 font-sans"
       style={{
-        color: LIGHT_THEME.text.primary,
+        color: '#211F1A',
         fontFamily: 'Inter-Bold',
         fontSize: 13,
         lineHeight: 18,
@@ -63,13 +63,14 @@ export function GoalFolderPicker({
   showFolders = true,
   onSelect,
 }: GoalFolderPickerProps) {
+  const colors = useThemeColors();
   const { goalGroups } = useContainerGrouping(goals, folders);
   const visibleFolders = showFolders ? folders : [];
   const hasTargets = goals.length > 0 || visibleFolders.length > 0;
 
   if (!hasTargets) {
     return (
-      <Text className="px-4 py-4 font-sans text-sm" style={{ color: LIGHT_THEME.text.secondary }}>
+      <Text className="px-4 py-4 font-sans text-sm" style={{ color: '#8A8172' }}>
         No goals or folders yet.
       </Text>
     );
@@ -82,7 +83,7 @@ export function GoalFolderPicker({
     >
       <SectionHeader label="Goals" />
       {goalGroups.length === 0 ? (
-        <Text className="px-4 py-2 font-sans text-sm" style={{ color: LIGHT_THEME.text.secondary }}>
+        <Text className="px-4 py-2 font-sans text-sm" style={{ color: '#8A8172' }}>
           No goals yet.
         </Text>
       ) : (
@@ -98,14 +99,14 @@ export function GoalFolderPicker({
                   onPress={() => onSelect({ type: 'goal', id: goal.id, displayName: goal.title })}
                   className="mx-2 rounded-lg px-4 py-3"
                   style={{
-                    backgroundColor: isSelected ? LIGHT_THEME.background.selectedRow : 'transparent',
+                    backgroundColor: isSelected ? colors.background.selectedRow : 'transparent',
                     opacity: disabled ? 0.45 : 1,
                   }}
                 >
                   <Text
                     className="font-sans"
                     style={{
-                      color: LIGHT_THEME.text.primary,
+                      color: '#211F1A',
                       fontFamily: isSelected ? 'Inter-Bold' : 'Inter-Regular',
                       fontSize: 13,
                       lineHeight: 18,
@@ -136,14 +137,14 @@ export function GoalFolderPicker({
                 })}
                 className="mx-2 rounded-lg px-4 py-3"
                 style={{
-                  backgroundColor: isSelected ? LIGHT_THEME.background.selectedRow : 'transparent',
+                  backgroundColor: isSelected ? colors.background.selectedRow : 'transparent',
                   opacity: disabled ? 0.45 : 1,
                 }}
               >
                 <Text
                   className="font-sans"
                   style={{
-                    color: LIGHT_THEME.text.primary,
+                    color: '#211F1A',
                     fontFamily: isSelected ? 'Inter-Bold' : 'Inter-Regular',
                     fontSize: 13,
                     lineHeight: 18,

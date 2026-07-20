@@ -4,8 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Typography } from '@/components/ui/Typography';
-import { LIGHT_THEME } from '@/constants/colors';
-import { useUIStore } from '@/store/uiStore';
+import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { useEditEntry } from '../hooks/useEditEntry';
 import { useEntries } from '../hooks/useEntries';
 import { useMoveEntry } from '../hooks/useMoveEntry';
@@ -24,6 +23,7 @@ const RIGHT_PANE_MIN_WIDTH = 280;
 const MIDDLE_COLUMN_MIN_WIDTH = 220;
 
 export function EchoScreen() {
+  const colors = useThemeColors();
   const { goalId: routeGoalIdParam } = useLocalSearchParams<{ goalId?: string | string[] }>();
   const routeGoalId = Array.isArray(routeGoalIdParam) ? routeGoalIdParam[0] : routeGoalIdParam;
   const {
@@ -188,7 +188,7 @@ export function EchoScreen() {
   return (
     <SafeAreaView
       style={{
-        backgroundColor: LIGHT_THEME.background.page,
+        backgroundColor: colors.background.page,
         flex: 1,
         minHeight: 0,
       }}
@@ -196,7 +196,7 @@ export function EchoScreen() {
       <View
         className="flex-row overflow-hidden"
         style={{
-          backgroundColor: LIGHT_THEME.background.page,
+          backgroundColor: colors.background.page,
           flex: 1,
           minHeight: 0,
         }}
@@ -204,7 +204,7 @@ export function EchoScreen() {
         <View
           className="min-w-[220px]"
           style={{
-            backgroundColor: LIGHT_THEME.background.page,
+            backgroundColor: colors.background.page,
             flex: 1,
             minHeight: 0,
           }}
@@ -213,7 +213,7 @@ export function EchoScreen() {
             <TouchableOpacity
               onPress={handleAddEntry}
               className="flex-row items-center justify-center gap-2 rounded-[10px] py-3"
-              style={{ backgroundColor: LIGHT_THEME.background.sidebar }}
+              style={{ backgroundColor: colors.background.sidebar }}
               activeOpacity={0.82}
             >
               <BrandIcon name="echo-add-entry" size={18} />
@@ -234,7 +234,7 @@ export function EchoScreen() {
                   hitSlop={6}
                   style={{
                     alignItems: 'center',
-                    borderColor: LIGHT_THEME.border.input,
+                    borderColor: colors.border.input,
                     borderRadius: 8,
                     borderWidth: 1,
                     height: 30,
@@ -243,7 +243,7 @@ export function EchoScreen() {
                     width: 30,
                   }}
                 >
-                  <Ionicons name="add" size={17} color={LIGHT_THEME.text.secondary} />
+                  <Ionicons name="add" size={17} color={colors.text.secondary} />
                 </Pressable>
               </View>
 
@@ -253,7 +253,7 @@ export function EchoScreen() {
                 accessibilityLabel={middleMode === 'list' ? 'Show folder tree' : 'Show entry list'}
                 style={{
                   alignItems: 'center',
-                  borderColor: LIGHT_THEME.border.input,
+                  borderColor: colors.border.input,
                   borderRadius: 8,
                   borderWidth: 1,
                   height: 30,
@@ -265,7 +265,7 @@ export function EchoScreen() {
                 <Ionicons
                   name={middleMode === 'list' ? 'git-branch-outline' : 'calendar-outline'}
                   size={16}
-                  color={LIGHT_THEME.text.secondary}
+                  color={colors.text.secondary}
                 />
               </Pressable>
             </View>
@@ -303,7 +303,7 @@ export function EchoScreen() {
           className="relative"
           style={{
             alignSelf: 'stretch',
-            backgroundColor: LIGHT_THEME.background.page,
+            backgroundColor: colors.background.page,
             minHeight: 0,
             width: renderedRightPaneWidth,
           }}

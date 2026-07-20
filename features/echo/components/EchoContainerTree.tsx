@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, Text, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LIGHT_THEME } from '@/constants/colors';
+import { useThemeColors } from '@/store/uiStore';
 import type { EchoFolder } from '@/types/echo-folder';
 import type { EchoEntry, EchoGoalOption } from '../types';
 import { useContainerGrouping } from '../hooks/useContainerGrouping';
@@ -26,7 +26,7 @@ function SectionLabel({ children }: { children: string }) {
     <Text
       className="px-3 pb-2 pt-4 font-sans"
       style={{
-        color: LIGHT_THEME.text.secondary,
+        color: '#8A8172',
         fontFamily: 'Inter-Bold',
         fontSize: 10.5,
         letterSpacing: 0.63,
@@ -40,10 +40,12 @@ function SectionLabel({ children }: { children: string }) {
 }
 
 function SelectionDot({ selected }: { selected: boolean }) {
+  const colors = useThemeColors();
+
   return (
     <View
       className="h-[7px] w-[7px] rounded-full"
-      style={{ backgroundColor: selected ? LIGHT_THEME.background.sidebar : LIGHT_THEME.text.muted }}
+      style={{ backgroundColor: selected ? colors.background.sidebar : colors.text.muted }}
     />
   );
 }
@@ -60,6 +62,7 @@ export function EchoContainerTree({
   onMoveEntry,
   onDeleteEntry,
 }: EchoContainerTreeProps) {
+  const colors = useThemeColors();
   const { goalGroups } = useContainerGrouping(goals, folders);
   const generalFolder = folders.find((folder) => folder.isGeneral);
   const visibleFolders = folders.filter((folder) => !folder.isGeneral);
@@ -122,7 +125,7 @@ export function EchoContainerTree({
   return (
     <View
       style={{
-        backgroundColor: LIGHT_THEME.background.page,
+        backgroundColor: colors.background.page,
         flex: 1,
         minHeight: 0,
       }}
@@ -158,7 +161,7 @@ export function EchoContainerTree({
               <View
                 className="mx-2 flex-row items-center rounded-lg px-1"
                 style={{
-                  backgroundColor: selected ? LIGHT_THEME.background.selectedRow : 'transparent',
+                  backgroundColor: selected ? colors.background.selectedRow : 'transparent',
                 }}
               >
                 <Pressable
@@ -178,7 +181,7 @@ export function EchoContainerTree({
                   <Ionicons
                     name={expanded ? 'chevron-down' : 'chevron-forward'}
                     size={13}
-                    color={LIGHT_THEME.text.muted}
+                    color={colors.text.muted}
                   />
                 </Pressable>
 
@@ -191,7 +194,7 @@ export function EchoContainerTree({
                     numberOfLines={1}
                     className="min-w-0 flex-1 font-sans"
                     style={{
-                      color: LIGHT_THEME.text.primary,
+                      color: '#211F1A',
                       fontFamily: selected ? 'Inter-Bold' : 'Inter-Medium',
                       fontSize: 13.5,
                       lineHeight: 18,
@@ -232,7 +235,7 @@ export function EchoContainerTree({
               numberOfLines={1}
               className="px-3 pb-1.5 pt-2 font-sans"
               style={{
-                color: LIGHT_THEME.text.primary,
+                color: '#211F1A',
                 fontFamily: 'Inter-Bold',
                 fontSize: 13.5,
                 lineHeight: 18,
@@ -250,7 +253,7 @@ export function EchoContainerTree({
                   <View
                     className="mx-2 ml-7 flex-row items-center rounded-lg px-1"
                     style={{
-                      backgroundColor: selected ? LIGHT_THEME.background.selectedRow : 'transparent',
+                      backgroundColor: selected ? colors.background.selectedRow : 'transparent',
                     }}
                   >
                     <Pressable
@@ -270,7 +273,7 @@ export function EchoContainerTree({
                       <Ionicons
                         name={expanded ? 'chevron-down' : 'chevron-forward'}
                         size={13}
-                        color={LIGHT_THEME.text.muted}
+                        color={colors.text.muted}
                       />
                     </Pressable>
 
@@ -283,7 +286,7 @@ export function EchoContainerTree({
                         numberOfLines={1}
                         className="min-w-0 flex-1 font-sans"
                         style={{
-                          color: LIGHT_THEME.text.primary,
+                          color: '#211F1A',
                           fontFamily: selected ? 'Inter-Bold' : 'Inter-Regular',
                           fontSize: 13,
                           lineHeight: 18,

@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-19 — Echo theme surfaces)
+- **`features/echo/components/`:** routed the ten scoped Echo screen, composer, detail, list, tree, picker, modal, and resizer components through `useThemeColors()` for exact-match backgrounds, borders, dividers, icons, indicators, and BRT accents while preserving existing layout and non-color styling. Existing notice, scrim, and shadow colors without clean theme-token matches remain unchanged for follow-up.
+
 ### Changed (2026-07-19 — Remaining typography theme tokens)
 - **`components/ui/Typography.tsx`:** routed the 27 audited typography variants through their exact `text.primary`, `text.secondary`, `text.muted`, `text.accent`, or `text.inverse` theme tokens while preserving every font, size, weight, line-height, and caller style override.
 - **`app/(app)/dashboard.tsx`:** removed redundant `content`, `greeting`, and `meta` light/dark color classes now supplied by the shared typography variants, while retaining the completed-item muted override.

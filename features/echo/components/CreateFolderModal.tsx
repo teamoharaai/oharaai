@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, Text, TextInput, View } from 'react-native';
-import { LIGHT_THEME } from '@/constants/colors';
+import { useThemeColors } from '@/store/uiStore';
 
 type CreateFolderModalProps = {
   visible: boolean;
@@ -17,6 +17,7 @@ export function CreateFolderModal({
   onClose,
   onCreate,
 }: CreateFolderModalProps) {
+  const colors = useThemeColors();
   const [name, setName] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -50,11 +51,14 @@ export function CreateFolderModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
       <Pressable className="flex-1 items-center justify-center bg-black/40 px-6" onPress={handleClose}>
-        <Pressable className="w-full max-w-sm rounded-2xl border bg-white p-5" style={{ borderColor: LIGHT_THEME.border.input }}>
+        <Pressable
+          className="w-full max-w-sm rounded-2xl border p-5"
+          style={{ backgroundColor: colors.background.card, borderColor: colors.border.input }}
+        >
           <Text
             className="font-sans"
             style={{
-              color: LIGHT_THEME.text.primary,
+              color: '#211F1A',
               fontFamily: 'Inter-Bold',
               fontSize: 17,
               lineHeight: 23,
@@ -65,7 +69,7 @@ export function CreateFolderModal({
 
           <Text
             className="mt-2 font-sans"
-            style={{ color: LIGHT_THEME.text.secondary, fontSize: 13, lineHeight: 18 }}
+            style={{ color: '#8A8172', fontSize: 13, lineHeight: 18 }}
           >
             Give this folder a name.
           </Text>
@@ -81,12 +85,12 @@ export function CreateFolderModal({
             onSubmitEditing={handleCreate}
             returnKeyType="done"
             placeholder="Folder name"
-            placeholderTextColor={LIGHT_THEME.text.secondary}
+            placeholderTextColor="#8A8172"
             accessibilityLabel="Echo folder name"
             className="mt-4 rounded-xl border px-3.5 py-3 font-sans"
             style={{
-              borderColor: LIGHT_THEME.border.input,
-              color: LIGHT_THEME.text.primary,
+              borderColor: colors.border.input,
+              color: '#211F1A',
               fontSize: 14,
               lineHeight: 20,
             }}
@@ -95,7 +99,7 @@ export function CreateFolderModal({
           {displayError ? (
             <Text
               className="mt-3 font-sans"
-              style={{ color: LIGHT_THEME.feedback.danger, fontSize: 13, lineHeight: 18 }}
+              style={{ color: '#C0483A', fontSize: 13, lineHeight: 18 }}
             >
               {displayError}
             </Text>
@@ -106,11 +110,11 @@ export function CreateFolderModal({
               onPress={handleClose}
               disabled={isSaving}
               className="rounded-xl border px-4 py-3"
-              style={{ borderColor: LIGHT_THEME.border.input, opacity: isSaving ? 0.55 : 1 }}
+              style={{ borderColor: colors.border.input, opacity: isSaving ? 0.55 : 1 }}
             >
               <Text
                 className="font-sans"
-                style={{ color: LIGHT_THEME.text.secondary, fontFamily: 'Inter-SemiBold', fontSize: 13.5 }}
+                style={{ color: '#8A8172', fontFamily: 'Inter-SemiBold', fontSize: 13.5 }}
               >
                 Cancel
               </Text>
@@ -121,16 +125,16 @@ export function CreateFolderModal({
               disabled={!canCreate}
               className="min-w-[82px] items-center rounded-xl px-4 py-3"
               style={{
-                backgroundColor: canCreate ? LIGHT_THEME.background.sidebar : LIGHT_THEME.border.input,
+                backgroundColor: canCreate ? colors.background.sidebar : colors.border.input,
               }}
             >
               {isSaving ? (
-                <ActivityIndicator size="small" color={LIGHT_THEME.text.inverse} />
+                <ActivityIndicator size="small" color={colors.text.inverse} />
               ) : (
                 <Text
                   className="font-sans"
                   style={{
-                    color: LIGHT_THEME.text.inverse,
+                    color: '#EDE7DA',
                     fontFamily: 'Inter-SemiBold',
                     fontSize: 13.5,
                   }}
