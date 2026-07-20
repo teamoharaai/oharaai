@@ -33,7 +33,6 @@ export const LIGHT_THEME = {
   },
   accent: {
     primary: '#4A7C5F',
-    focusButton: '#8FAE7E', // TODO: verify against Figma — best estimate from screenshot
     teal: '#6FDFB8',
     tealSubtle: '#E8F5EF',
     tealMid: '#2F8F6D', // new: mid teal (today-ring, project dot, streak number)
@@ -101,7 +100,6 @@ export const DARK_THEME = {
   },
   accent: {
     primary: '#8FAE8A',
-    focusButton: '#9FC28E', // TODO: verify against Figma — derived, lighter for dark bg
     teal: '#88E5C4', // derived, no Figma dark token
     tealSubtle: '#FAFDFB', // derived, no Figma dark token
     tealMid: '#38AA81', // derived, no Figma dark token

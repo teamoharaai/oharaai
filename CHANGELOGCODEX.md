@@ -2,10 +2,15 @@
 
 ## [Unreleased]
 
+### Removed (2026-07-20 — Today carousel dead action cleanup)
+- **`components/ui/TodayGoalCard.tsx`:** hid the non-functional `See All Journeys` dashboard loop, including its action divider, until a real Journeys destination exists; the goal chevron remains the card's supported navigation action.
+- **`constants/colors.ts`:** removed the now-unused, estimated light/dark `accent.focusButton` tokens so the canonical palette no longer exposes provisional values that were not verified against a design source.
+- Verification: `npx tsc --noEmit` passed, and a signed-in Expo web smoke test against mixed records confirmed reflection-first ordering, project-title omission for standalone goals, the empty progress track and `No deadline set` copy for a no-deadline goal, and absence of the dead Journeys action.
+
 ### Added (2026-07-20 — Today active-goal carousel)
 - **`components/ui/TodayGoalCard.tsx` and `TodayCarousel.tsx`:** added the themed, horizontally scrollable dashboard focus cards for the existing active-goal feed, including project context, deadline progress, reflection recency, goal navigation, and the shared empty-state pattern.
 - **`lib/utils/relativeTime.ts`:** extracted the dashboard-relative timestamp labels into a shared nullable formatter so cards can supply their own no-reflection copy.
-- **`constants/colors.ts`:** added the best-estimate light/dark `accent.focusButton` tokens for the focus-card action, explicitly flagged for Figma verification; reused existing themed text and divider tokens for the progress bar and chevron.
+- **`constants/colors.ts`:** reused existing themed text and divider tokens for the progress bar and chevron.
 
 ### Changed (2026-07-20 — Today active-goal carousel)
 - **`app/(app)/dashboard.tsx`:** replaced the mounted due-today zone with the active-goal carousel, loaded the existing sorted feed, resolved project titles from the dashboard project cache, and moved Echo recency text to the shared formatter.

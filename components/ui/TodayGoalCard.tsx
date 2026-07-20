@@ -110,35 +110,6 @@ export function TodayGoalCard({ goal, projectTitle }: TodayGoalCardProps) {
       <Typography variant="caption" style={{ marginTop: 5 }}>
         Last Reflection: {lastReflection ?? 'No reflections yet'}
       </Typography>
-
-      <View
-        style={{
-          backgroundColor: colors.border.divider,
-          height: 1,
-          marginBottom: 16,
-          marginTop: 18,
-        }}
-      />
-
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => {
-          // TODO: confirm target route — Journey currently lives on the dashboard.
-          router.push('/(app)/dashboard' as never);
-        }}
-        style={({ pressed }) => ({
-          alignItems: 'center',
-          backgroundColor: colors.accent.focusButton,
-          borderRadius: 999,
-          opacity: pressed ? 0.76 : 1,
-          paddingHorizontal: 18,
-          paddingVertical: 12,
-        })}
-      >
-        <Typography variant="emphasis-sm" style={{ color: colors.text.primary }}>
-          See All Journeys
-        </Typography>
-      </Pressable>
     </View>
   );
 }
