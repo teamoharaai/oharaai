@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-19 — Remaining typography theme tokens)
+- **`components/ui/Typography.tsx`:** routed the 27 audited typography variants through their exact `text.primary`, `text.secondary`, `text.muted`, `text.accent`, or `text.inverse` theme tokens while preserving every font, size, weight, line-height, and caller style override.
+- **`app/(app)/dashboard.tsx`:** removed redundant `content`, `greeting`, and `meta` light/dark color classes now supplied by the shared typography variants, while retaining the completed-item muted override.
+
 ### Added (2026-07-19 — Avatar-menu theme shortcut)
 - **`components/layout/AvatarMenu.tsx`, `components/ui/BrandIcon.tsx`, and `assets/brand/theme-mode.png`:** added the supplied day/night logo as an accessible avatar-popover shortcut to the existing persisted theme toggle, and made the open popover react to the selected palette so the change is immediately visible while preserving the Settings switch.
 

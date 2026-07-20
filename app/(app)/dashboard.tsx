@@ -258,7 +258,6 @@ function DueTodayZone() {
                 </Text>
                 <Typography
                   variant="content"
-                  className={done ? '' : 'dark:text-white'}
                   style={done ? { color: colors.text.muted } : undefined}
                 >
                   {item.title}
@@ -368,7 +367,7 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
           </Text>
         ) : displayedAction ? (
           <View>
-            <Typography variant="content" className="mb-4 dark:text-white">
+            <Typography variant="content" className="mb-4">
               {displayedAction.actionText}
             </Typography>
             <View className="flex-row gap-3">
@@ -528,7 +527,7 @@ function IntelligenceZone({ insight, isLoading }: IntelligenceZoneProps) {
         <Typography variant="eyebrow" className="mb-2">
           Intelligence
         </Typography>
-        <Typography variant="content" className="dark:text-white">{insight}</Typography>
+        <Typography variant="content">{insight}</Typography>
       </View>
     );
   }
@@ -685,10 +684,10 @@ export default function DashboardScreen() {
         {/* Header */}
         <View className="mb-6">
           <View>
-            <Typography variant="greeting" className="dark:text-white">
+            <Typography variant="greeting">
               {greeting}
             </Typography>
-            <Typography variant="meta" className="text-[#8A8172] dark:text-[#B8B8B8]">
+            <Typography variant="meta">
               {getDateLabel()}
             </Typography>
           </View>
