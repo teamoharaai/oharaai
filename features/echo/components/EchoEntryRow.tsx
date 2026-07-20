@@ -46,7 +46,7 @@ export function EchoEntryRow({
       className={
         isTreeVariant
           ? 'relative mb-0 overflow-visible rounded-lg'
-          : 'relative mx-3 mb-2 overflow-hidden rounded-xl border shadow-sm'
+          : 'relative mx-3 mb-2 overflow-hidden rounded-xl border shadow-sm dark:shadow-none'
       }
       style={[
         containerStyle,

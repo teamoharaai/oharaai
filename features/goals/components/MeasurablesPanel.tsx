@@ -127,7 +127,7 @@ export function MeasurablesPanel({
           style={{
             backgroundColor: colors.background.selectedRow,
             borderWidth: 1,
-            borderColor: colors.feedback.danger,
+            borderColor: colors.feedback.danger.text,
             borderRadius: 10,
             paddingHorizontal: 14,
             paddingVertical: 10,
@@ -137,9 +137,9 @@ export function MeasurablesPanel({
             justifyContent: 'space-between',
           }}
         >
-          <Text style={{ fontFamily: 'Inter-Regular', fontSize: 12, color: colors.feedback.danger, flex: 1, marginRight: 8 }}>{error}</Text>
+          <Text style={{ fontFamily: 'Inter-Regular', fontSize: 12, color: colors.feedback.danger.text, flex: 1, marginRight: 8 }}>{error}</Text>
           <TouchableOpacity onPress={onDismissError}>
-            <Text style={{ fontSize: 12, fontFamily: 'Inter-SemiBold', color: colors.feedback.danger }}>Dismiss</Text>
+            <Text style={{ fontSize: 12, fontFamily: 'Inter-SemiBold', color: colors.feedback.danger.text }}>Dismiss</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -277,7 +277,7 @@ export function MeasurablesPanel({
           </View>
 
           {addError && (
-            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 12, color: colors.feedback.danger, marginBottom: 8 }}>{addError}</Text>
+            <Text style={{ fontFamily: 'Inter-Regular', fontSize: 12, color: colors.feedback.danger.text, marginBottom: 8 }}>{addError}</Text>
           )}
 
           <View style={{ flexDirection: 'row', gap: 8 }}>

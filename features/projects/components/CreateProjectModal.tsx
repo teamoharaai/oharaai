@@ -128,7 +128,7 @@ export function CreateProjectModal({ visible, onClose }: CreateProjectModalProps
         <Typography
           variant="caption"
           accessibilityRole="alert"
-          style={{ color: LIGHT_THEME.feedback.danger, marginTop: 12 }}
+          style={{ color: LIGHT_THEME.feedback.danger.text, marginTop: 12 }}
         >
           {error}
         </Typography>

@@ -26,7 +26,7 @@ function resolveDueDate(deadline: Date | null, colors: ThemeColors): {
   const days = Math.ceil((deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 
   if (days < 0) {
-    return { label, color: colors.feedback.danger };
+    return { label, color: colors.feedback.danger.text };
   }
   if (days <= 14) {
     return { label, color: colors.text.secondary };

@@ -143,7 +143,7 @@ export function EchoFilterPill({
         visible={open}
         anchorRect={anchorRect}
         onDismiss={closeMenu}
-        contentClassName="rounded-[10px] border py-1 shadow-sm"
+        contentClassName="rounded-[10px] border py-1 shadow-sm dark:shadow-none"
         contentStyle={{
           backgroundColor: colors.background.card,
           borderColor: colors.border.divider,

@@ -176,7 +176,7 @@ type DateFieldProps = {
 };
 
 function DateField({ error, onBlur, onChange, value }: DateFieldProps) {
-  const borderColor = error ? LIGHT_THEME.feedback.danger : LIGHT_THEME.border.input;
+  const borderColor = error ? LIGHT_THEME.feedback.danger.text : LIGHT_THEME.border.input;
 
   if (Platform.OS === 'web') {
     const style: CSSProperties = {
@@ -613,7 +613,7 @@ export default function GoalCreateScreen() {
               <Typography
                 variant="eyebrow"
                 style={{
-                  color: LIGHT_THEME.feedback.danger,
+                  color: LIGHT_THEME.feedback.danger.text,
                   fontFamily: 'Inter-SemiBold',
                   fontSize: 11,
                   marginLeft: 3,
@@ -716,7 +716,7 @@ export default function GoalCreateScreen() {
                   Target date{' '}
                   <Typography
                     variant="field-label"
-                    style={{ color: LIGHT_THEME.feedback.danger, fontSize: 13 }}
+                    style={{ color: LIGHT_THEME.feedback.danger.text, fontSize: 13 }}
                   >
                     *
                   </Typography>
@@ -735,7 +735,7 @@ export default function GoalCreateScreen() {
                   <Typography
                     variant="caption"
                     style={{
-                      color: LIGHT_THEME.feedback.danger,
+                      color: LIGHT_THEME.feedback.danger.text,
                       fontSize: 12,
                       marginTop: 6,
                     }}
@@ -1450,7 +1450,7 @@ export default function GoalCreateScreen() {
               accessibilityRole="alert"
               variant="caption"
               style={{
-                color: LIGHT_THEME.feedback.danger,
+                color: LIGHT_THEME.feedback.danger.text,
                 fontSize: 12,
                 marginBottom: 12,
                 textAlign: 'center',

@@ -193,7 +193,7 @@ export function GoalDetailHeader({
             <TextInput
               style={{
                 borderWidth: 1,
-                borderColor: deadlineError ? colors.feedback.danger : colors.border.input,
+                borderColor: deadlineError ? colors.feedback.danger.text : colors.border.input,
                 backgroundColor: colors.background.input,
                 borderRadius: 8,
                 paddingHorizontal: 10,
@@ -212,7 +212,7 @@ export function GoalDetailHeader({
               editable={!savingDeadline}
             />
             {deadlineError && (
-              <Text style={{ fontSize: 11, color: colors.feedback.danger, marginBottom: 6 }}>{deadlineError}</Text>
+              <Text style={{ fontSize: 11, color: colors.feedback.danger.text, marginBottom: 6 }}>{deadlineError}</Text>
             )}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
               <TouchableOpacity onPress={handleSaveDeadline} disabled={savingDeadline}>
@@ -222,7 +222,7 @@ export function GoalDetailHeader({
               </TouchableOpacity>
               {goal.deadline && (
                 <TouchableOpacity onPress={() => commitDeadline(null)} disabled={savingDeadline}>
-                  <Text style={{ fontSize: 12, color: colors.feedback.danger }}>Clear</Text>
+                  <Text style={{ fontSize: 12, color: colors.feedback.danger.text }}>Clear</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity

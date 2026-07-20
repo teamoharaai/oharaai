@@ -178,7 +178,7 @@ export function AvatarMenu() {
             <View style={{ height: 1, backgroundColor: colors.border.divider, marginVertical: 4 }} />
 
             <TouchableOpacity onPress={handleSignOut} style={{ paddingVertical: 12 }} activeOpacity={0.7}>
-              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: colors.feedback.danger }}>
+              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: colors.feedback.danger.text }}>
                 Log out
               </Text>
             </TouchableOpacity>

@@ -99,7 +99,7 @@ export function CreateFolderModal({
           {displayError ? (
             <Text
               className="mt-3 font-sans"
-              style={{ color: colors.feedback.danger, fontSize: 13, lineHeight: 18 }}
+              style={{ color: colors.feedback.danger.text, fontSize: 13, lineHeight: 18 }}
             >
               {displayError}
             </Text>

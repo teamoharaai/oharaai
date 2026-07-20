@@ -42,14 +42,10 @@ function ComposerNotice({ kind }: { kind: SubmissionNoticeKind }) {
   const colors = useThemeColors();
   const tone =
     kind === 'unconfirmed'
-      ? { border: '#FCA5A5', bg: '#FEF2F2', text: '#B91C1C' }
+      ? colors.feedback.danger
       : kind === 'saved_without_summary'
-        ? { border: colors.border.input, bg: '#F8F5EF', text: '#5F6B66' }
-        : {
-            border: colors.feedback.pending.border,
-            bg: colors.feedback.pending.bg,
-            text: '#92400E',
-          };
+        ? colors.feedback.info
+        : colors.feedback.pending;
 
   return (
     <View

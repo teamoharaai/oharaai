@@ -66,7 +66,7 @@ function EchoLoadingState() {
       {[0, 1, 2].map((item) => (
         <View
           key={item}
-          className="rounded-xl p-4 shadow-sm"
+          className="rounded-xl p-4 shadow-sm dark:shadow-none"
           style={{ backgroundColor: colors.background.card }}
         >
           <View className="mb-3 h-3.5 rounded-full" style={{ backgroundColor: colors.background.subtle }} />

@@ -350,7 +350,7 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
         {mutationError ? (
           <Text
             className="mb-2 font-sans text-xs"
-            style={{ color: colors.feedback.danger }}
+            style={{ color: colors.feedback.danger.text }}
           >
             {mutationError}
           </Text>
@@ -362,7 +362,7 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
             <View className="h-3 w-4/5 rounded-full bg-[#F0EDE6]" />
           </View>
         ) : actionError && optimisticAction === undefined ? (
-          <Text className="font-sans text-sm" style={{ color: colors.feedback.danger }}>
+          <Text className="font-sans text-sm" style={{ color: colors.feedback.danger.text }}>
             Couldn&apos;t load next action.
           </Text>
         ) : displayedAction ? (

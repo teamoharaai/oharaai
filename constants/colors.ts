@@ -39,11 +39,20 @@ export const LIGHT_THEME = {
     tealSoft: '#9FD9C4', // new: soft teal (mint labels on dark, filled streak ring)
   },
   feedback: {
-    danger: '#C0483A', // new: overdue due-dates, destructive actions, error text
+    danger: {
+      text: '#C0483A', // overdue due-dates, destructive actions, error text
+      bg: '#FCECEA', // soft error-banner background (Echo composer unconfirmed notice)
+      border: '#F0B8AE', // soft error-banner border
+    },
     pending: {
       bg: '#FFFBEB', // unconfirmed AI-suggestion banner (Echo links, Vault insights)
       border: '#FDE68A',
       text: '#B45309',
+    },
+    info: {
+      bg: '#F8F5EF', // neutral info banner (Echo composer saved-without-summary notice)
+      border: '#E4DDCB',
+      text: '#5F6B66',
     },
   },
 } as const;
@@ -97,11 +106,20 @@ export const DARK_THEME = {
     tealSoft: '#B5E2D1', // derived, no Figma dark token
   },
   feedback: {
-    danger: '#D3796E', // derived, no Figma dark token
+    danger: {
+      text: '#D3796E', // derived, no Figma dark token
+      bg: '#2B1613', // derived, no Figma dark token
+      border: '#5C3129', // derived, no Figma dark token
+    },
     pending: {
       bg: '#29230F', // derived, no Figma dark token
       border: '#FEF3C6', // derived, no Figma dark token
       text: '#F37311', // derived, no Figma dark token
+    },
+    info: {
+      bg: '#1D1F1C', // derived, no Figma dark token
+      border: '#33362F', // derived, no Figma dark token
+      text: '#B8BDB4', // derived, no Figma dark token
     },
   },
 } as const satisfies ThemeColors;

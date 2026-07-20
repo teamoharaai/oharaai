@@ -144,7 +144,7 @@ export function Modal({
               style={{
                 backgroundColor:
                   confirmVariant === 'destructive'
-                    ? colors.feedback.danger
+                    ? colors.feedback.danger.text
                     : colors.accent.primary,
               }}
               onPress={onConfirm}

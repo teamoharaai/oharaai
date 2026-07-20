@@ -118,7 +118,7 @@ export function EchoDetailPane({
   return (
     <View className="flex-1 items-center justify-center px-8">
       <View
-        className="max-w-[360px] items-center rounded-xl border px-8 py-10 shadow-sm"
+        className="max-w-[360px] items-center rounded-xl border px-8 py-10 shadow-sm dark:shadow-none"
         style={{ backgroundColor: colors.background.card, borderColor: colors.border.subtle }}
       >
         <Typography variant="echo-empty-title">Select an entry</Typography>
