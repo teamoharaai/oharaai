@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed (2026-07-20 — Branded web favicon)
+- **`app.json`:** replaced the default Expo web favicon with the existing Ohara logo asset so deployed browser tabs and site chrome display the product brand.
+
 ### Added (2026-07-20 — Agent session pipeline)
 - **`supabase/migrations/023_agent_session_pipeline.sql` and `024_agent_session_idempotency_guard.sql`:** added structured project periods, promoted `echo_sessions` into a project-aware session ledger, added immutable idempotent session events, and introduced authenticated `start`, `record`, `finish`, and approval-gated `publish` RPCs. Replayed keys return the original operation only when their payload matches; conflicting reuse is rejected explicitly.
 - **`app/api/sessions/`, `features/sessions/`, and `lib/sessions/schema.ts`:** exposed validated `startSession`, `recordChange`, `finishSession`, and `publishSession` operations. Finished summaries remain structured drafts containing changed files, database records, verification results, unresolved failures, and a reflection until a separate request explicitly supplies user approval.

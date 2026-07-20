@@ -15,7 +15,7 @@
     "web": {
       "bundler": "metro",
       "output": "server",
-      "favicon": "./assets/images/icon.png"
+      "favicon": "./assets/brand/ohara-logo.png"
     },
     "plugins": [
       [
