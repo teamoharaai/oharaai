@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-20 — Landing page redesign)
+- **`app/index.tsx`, `components/landing/LandingPage.tsx`, and `components/landing/GoalTree.tsx`:** replaced the dark placeholder landing route with the warm OharaAI marketing design from `design_handoff_landing_page`, including responsive layouts, routed calls to action, lifecycle cards, and the animated goal-tree story.
+- **`tailwind.config.js` and `global.css`:** added landing-only palette tokens, supplied motion keyframes, and a reduced-motion fallback so the new design remains isolated from authenticated application themes.
+- **`package.json` and `package-lock.json`:** added Expo-compatible `react-native-svg` support for the landing-page diagram and lifecycle illustrations.
+
 ### Fixed (2026-07-20 — Today carousel card consistency)
 - **`components/ui/TodayGoalCard.tsx`:** standardized every Today focus card to the same height, reserved stable project/title space, and capped long goal titles at two tail-ellipsized lines so mixed content cannot distort the carousel.
 - **`components/ui/TodayGoalCard.tsx`:** routed the completion label through `text.accent` and the progress fill through `accent.primary`, giving dark mode the canonical themed green instead of the primary text color.
