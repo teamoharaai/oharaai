@@ -1,12 +1,9 @@
-import { useState } from 'react';
-import { View, Pressable, Alert, StyleSheet } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { Badge } from '@/components/ui/Badge';
+import { ProgressRing } from '@/components/ui/ProgressRing';
 import { Typography } from '@/components/ui/Typography';
-import { useGoalStore } from '../store';
-import { GoalTitleRow } from './GoalTitleRow';
-import { getGoalRingProgress } from '../utils/ringProgress';
-import type { GoalWithDetails } from '../types';
+import { getGoalRingProgress, getRingColor } from '../utils/ringProgress';
+import type { GoalCadence, GoalWithDetails } from '../types';
 import { useThemeColors } from '@/store/uiStore';
 
 interface GoalCardProps {
@@ -14,193 +11,111 @@ interface GoalCardProps {
   isNewest?: boolean;
 }
 
-function daysUntil(date: Date): number {
-  return Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+function formatDeadline(deadline: Date | null): string {
+  if (!deadline) return 'No deadline set';
+
+  return deadline.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
-export function GoalCard({ goal, isNewest }: GoalCardProps) {
+function formatCadence(cadence: GoalCadence | null): string {
+  if (!cadence) return 'No cadence set';
+
+  if (cadence.period === 'day') {
+    return `${cadence.times} ${cadence.times === 1 ? 'time' : 'times'} / day`;
+  }
+
+  return `${cadence.times} ${cadence.times === 1 ? 'day' : 'days'} / ${cadence.period}`;
+}
+
+export function GoalCard({ goal }: GoalCardProps) {
   const colors = useThemeColors();
-  const days = goal.deadline ? daysUntil(goal.deadline) : null;
   const deadlineProgress = getGoalRingProgress(goal);
-  const deleteGoal = useGoalStore((state) => state.deleteGoal);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const visibilityLabel =
-    goal.visibility === 'public'
-      ? 'Public'
-      : goal.visibility === 'circle'
-        ? 'Circle'
-        : null;
-
-  const handleDelete = async () => {
-    const confirmed = window.confirm('Delete goal? This cannot be undone.');
-
-    if (!confirmed) return;
-
-    try {
-      await deleteGoal(goal.id);
-      if (router.canGoBack()) {
-        router.back();
-      }
-    } catch {
-      Alert.alert('Could not delete goal', 'Please try again.');
-    }
-  };
+  const ringColor = deadlineProgress === null
+    ? colors.border.divider
+    : getRingColor(deadlineProgress, colors.accent.primary);
 
   return (
-    <View style={{ position: 'relative' }}>
-      {menuOpen && (
-        <Pressable
-          style={StyleSheet.absoluteFillObject}
-          onPress={() => setMenuOpen(false)}
+    <Pressable
+      accessibilityLabel={`Open goal ${goal.title}`}
+      accessibilityRole="button"
+      onPress={() =>
+        router.push({ pathname: '/(app)/goals/[id]' as never, params: { id: goal.id } })
+      }
+      style={({ pressed }) => ({
+        alignItems: 'center',
+        backgroundColor: colors.background.goalCard,
+        borderColor: colors.border.warmSubtle,
+        borderRadius: 24,
+        borderWidth: 1,
+        flexDirection: 'row',
+        gap: 18,
+        minHeight: 112,
+        opacity: pressed ? 0.86 : 1,
+        paddingHorizontal: 20,
+        paddingVertical: 18,
+        transform: [{ scale: pressed ? 0.99 : 1 }],
+      })}
+    >
+      <View style={{ flexShrink: 0 }}>
+        <ProgressRing
+          color={ringColor}
+          progress={deadlineProgress ?? 0}
+          size={64}
+          strokeWidth={5}
+          variant="warm"
         />
-      )}
-      <Pressable
-        onPress={() =>
-          router.push({ pathname: '/(app)/goals/[id]' as never, params: { id: goal.id } })
-        }
-        style={({ pressed }) => ({
-          backgroundColor: colors.background.card,
-          borderRadius: 12,
-          borderLeftWidth: 3,
-          borderLeftColor: colors.border.accent,
-          padding: 16,
-          opacity: pressed ? 0.85 : 1,
-          transform: [{ scale: pressed ? 0.98 : 1 }],
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.06,
-          shadowRadius: 12,
-          elevation: 2,
-        })}
-      >
-        {/* Top row: category + active badge */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-          <Badge label={goal.category} variant="category" />
-          {isNewest && <Badge label="Active" variant="active" />}
-          {visibilityLabel && <Badge label={visibilityLabel} variant="new" />}
-        </View>
+      </View>
 
-        {/* Title */}
-        <GoalTitleRow
-          title={goal.title}
-          variant="title"
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Typography
           numberOfLines={2}
-          iconSize={18}
-          style={{ marginBottom: 12 }}
-        />
-
-        {/* Deadline-decay progress bar */}
-        {deadlineProgress !== null && (
-          <View style={{ height: 3, backgroundColor: colors.border.divider, borderRadius: 2, marginBottom: 12 }}>
-            <View
-              style={{
-                width: `${deadlineProgress}%`,
-                height: 3,
-                backgroundColor: colors.accent.primary,
-                borderRadius: 2,
-              }}
-            />
-          </View>
-        )}
-
-        {/* Activity line — fixed-height wrapper prevents layout shift when signals are absent */}
-        <View style={{ minHeight: 20, justifyContent: 'center', marginTop: 4, marginBottom: 4 }}>
-          {(goal.vaultItemCount > 0 || goal.echoLinkCount > 0) && (
-            <Typography variant="body" style={{ fontSize: 12 }}>
-              {[
-                goal.vaultItemCount > 0 ? `${goal.vaultItemCount} item${goal.vaultItemCount !== 1 ? 's' : ''}` : null,
-                goal.echoLinkCount > 0 ? `${goal.echoLinkCount} reflection${goal.echoLinkCount !== 1 ? 's' : ''}` : null,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </Typography>
-          )}
-        </View>
-
-        {/* Footer row */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="caption">
-            {deadlineProgress === null ? '' : `${Math.round(deadlineProgress)}% elapsed`}
-          </Typography>
-          {days !== null && (
-            <Typography
-              variant="caption"
-              style={{ color: days > 0 ? (days > 14 ? colors.text.secondary : colors.feedback.danger.text) : colors.feedback.danger.text }}
-            >
-              {days > 0 ? `${days}d left` : 'Overdue'}
-            </Typography>
-          )}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            {/* BRT micro-dots */}
-            {goal.latestBrtTags && goal.latestBrtTags.length > 0 && (
-              <View style={{ flexDirection: 'row', alignSelf: 'flex-end', gap: 3 }}>
-                {goal.latestBrtTags.map((tag, i) => (
-                  <View
-                    key={i}
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: 3,
-                      backgroundColor:
-                        tag === 'bud' ? colors.brt.bud :
-                        tag === 'rose' ? colors.brt.rose :
-                        colors.brt.thorn,
-                    }}
-                  />
-                ))}
-              </View>
-            )}
-            <View onStartShouldSetResponder={() => true}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Open options for ${goal.title}`}
-                hitSlop={8}
-                onPress={() => setMenuOpen(true)}
-              >
-                <Typography variant="caption" style={{ fontSize: 18, lineHeight: 20, color: colors.text.muted }}>⋯</Typography>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Pressable>
-
-      {menuOpen && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 32,
-            right: 0,
-            backgroundColor: colors.background.card,
-            borderRadius: 8,
-            borderWidth: 0.5,
-            borderColor: colors.border.divider,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.08,
-            shadowRadius: 8,
-            elevation: 4,
-            zIndex: 999,
-            minWidth: 140,
-          }}
+          variant="active-goal-title"
+          style={{ marginBottom: 10 }}
         >
-          <Pressable
-            onPress={async () => {
-              setMenuOpen(false);
-              await handleDelete();
-            }}
-            disabled={goal.has_successor}
+          {goal.title}
+        </Typography>
+
+        <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          <Typography variant="meta">
+            {formatDeadline(goal.deadline)}
+          </Typography>
+          <View
             style={{
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              opacity: goal.has_successor ? 0.5 : 1,
+              backgroundColor: colors.border.divider,
+              borderRadius: 2,
+              height: 4,
+              width: 4,
             }}
-          >
-            <Typography variant="body" style={{ color: colors.feedback.danger.text, fontSize: 14 }}>
-              Delete goal
-            </Typography>
-          </Pressable>
+          />
+          <Typography variant="meta">
+            {formatCadence(goal.cadence)}
+          </Typography>
         </View>
-      )}
-    </View>
+      </View>
+
+      <View
+        style={{
+          alignItems: 'center',
+          backgroundColor: colors.accent.primary,
+          borderRadius: 20,
+          flexShrink: 0,
+          height: 40,
+          justifyContent: 'center',
+          width: 40,
+        }}
+      >
+        <Typography
+          aria-hidden
+          variant="heading"
+          style={{ color: colors.text.onAccent }}
+        >
+          →
+        </Typography>
+      </View>
+    </Pressable>
   );
 }

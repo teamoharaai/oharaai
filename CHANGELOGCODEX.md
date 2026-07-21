@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-21 — Goal card pill redesign)
+- **`features/goals/components/GoalCard.tsx`, `features/goals/types.ts`, and `features/goals/services/goal-service.ts`:** replaced the legacy badge/progress/activity goal card with the warm rounded pill layout, a logo-proportional deadline ring, bound deadline and cadence metadata, and a green navigation arrow; surfaced the existing `target_frequency` field through the client model without changing persistence or schema behavior. Card surfaces, borders, text, ring, and arrow colors resolve through the runtime light/dark theme, while title, metadata, and arrow text use the shared Inter typography scale.
+- Verification: `npx tsc --noEmit` passed.
+
 ### Changed (2026-07-21 — Landing hero and brand refinement)
 - **`components/landing/PublicNav.tsx` and `LandingPage.tsx`:** removed the header logo's enclosing medallion and rendered the mark directly in the canonical high-contrast green, removed the oversized duplicate hero logo, and recentered the hero copy and authentication actions with responsive spacing while preserving all existing destinations and behavior.
 

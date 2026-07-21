@@ -6,6 +6,7 @@ import { resolveBrt } from '@/lib/utils/resolveBrt';
 import type { EchoBrt } from '@/types/brt';
 import type {
   Goal,
+  GoalCadence,
   GoalMilestone,
   GoalMilestoneInput,
   GoalMilestoneUpdates,
@@ -69,6 +70,7 @@ export type DbGoal = {
   smart_data: Record<string, unknown> | null;
   color_theme: string;
   deadline: string | null;
+  target_frequency: Record<string, unknown> | null;
   visibility: string;
   progress: number | string;
   status: string;
@@ -103,6 +105,22 @@ function toDate(raw: string | null): Date | null {
   if (!raw) return null;
   const value = new Date(raw);
   return Number.isNaN(value.getTime()) ? null : value;
+}
+
+function toCadence(raw: Record<string, unknown> | null): GoalCadence | null {
+  if (!raw) return null;
+
+  const { times, period } = raw;
+  if (
+    typeof times !== 'number'
+    || !Number.isFinite(times)
+    || times < 1
+    || (period !== 'day' && period !== 'week' && period !== 'month')
+  ) {
+    return null;
+  }
+
+  return { times, period };
 }
 
 function toCategory(raw: string): GoalCategory {
@@ -210,6 +228,7 @@ export function mapGoal(row: DbGoal): GoalWithDetails {
     category: toCategory(row.category),
     colorTheme: toTheme(row.color_theme),
     deadline: toDate(row.deadline),
+    cadence: toCadence(row.target_frequency),
     visibility: toVisibility(row.visibility),
     progress: toNumber(row.progress, 0),
     status: toStatus(row.status),
@@ -334,6 +353,7 @@ async function fetchGoalSignals(
 
 export const GOAL_SELECT = `
   id, user_id, title, description, category, smart_data, color_theme, deadline,
+  target_frequency,
   visibility, progress, status, ai_generated, project_id, previous_goal_id,
   prior_phase_summary, reflection, reflected_at, created_at, updated_at,
   milestones (
