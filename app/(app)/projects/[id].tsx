@@ -8,6 +8,7 @@ import { deleteProject, fetchProjectWithGoals, updateProject } from '@/features/
 import { ProjectTitleRow } from '@/features/projects/components/ProjectTitleRow';
 import { GoalCard } from '@/features/goals/components/GoalCard';
 import type { ProjectWithGoals, ProjectStatus } from '@/features/projects/types';
+import { useThemeColors } from '@/store/uiStore';
 
 function getProjectStatusBadgeVariant(status: ProjectStatus): 'active' | 'complete' | 'archived' {
   switch (status) {
@@ -22,6 +23,7 @@ function getProjectStatusBadgeVariant(status: ProjectStatus): 'active' | 'comple
 }
 
 export default function ProjectDetailScreen() {
+  const colors = useThemeColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [project, setProject] = useState<ProjectWithGoals | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,15 +45,15 @@ export default function ProjectDetailScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color="#1E3226" />
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.page, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={colors.accent.primary} />
       </SafeAreaView>
     );
   }
 
   if (!project) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.page }}>
         <View style={{ padding: 20 }}>
           <Pressable onPress={() => router.back()} style={{ marginBottom: 16 }}>
             <Typography variant="nav-back">← Back</Typography>
@@ -70,14 +72,14 @@ export default function ProjectDetailScreen() {
   const statusVariant = getProjectStatusBadgeVariant(project.status);
 
   const inputStyle = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background.input,
     borderWidth: 1,
-    borderColor: '#EAE7E0',
+    borderColor: colors.border.input,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#211F1A',
+    color: colors.text.primary,
   } as const;
 
   const openEditModal = () => {
@@ -152,7 +154,7 @@ export default function ProjectDetailScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.page }}>
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40, paddingTop: 16 }}
@@ -166,10 +168,10 @@ export default function ProjectDetailScreen() {
           {/* Project hero */}
           <View
             style={{
-              backgroundColor: '#FFFFFF',
+              backgroundColor: colors.background.card,
               borderRadius: 12,
               borderLeftWidth: 4,
-              borderLeftColor: '#1E3226',
+              borderLeftColor: colors.accent.primary,
               padding: 20,
               marginBottom: 24,
               shadowColor: '#000',
@@ -184,7 +186,7 @@ export default function ProjectDetailScreen() {
               variant="heading"
               iconSize={26}
               iconStyle={{ marginRight: 10 }}
-              textStyle={{ fontFamily: 'Inter-Bold', color: '#211F1A', lineHeight: 30 }}
+              textStyle={{ fontFamily: 'Inter-Bold', color: colors.text.primary, lineHeight: 30 }}
             />
 
             {project.description && (
@@ -215,7 +217,7 @@ export default function ProjectDetailScreen() {
               <Pressable
                 onPress={() => router.push({ pathname: '/goals/create', params: { projectId: project.id } })}
                 style={{
-                  backgroundColor: '#1E3226',
+                  backgroundColor: colors.accent.primary,
                   borderRadius: 12,
                   paddingHorizontal: 16,
                   paddingVertical: 10,
@@ -223,14 +225,16 @@ export default function ProjectDetailScreen() {
                   justifyContent: 'center',
                 }}
               >
-                <Typography variant="emphasis-sm" style={{ color: '#F8F4EC' }}>+ Add Goal</Typography>
+                <Typography variant="emphasis-sm" style={{ color: colors.text.onAccent }}>+ Add Goal</Typography>
               </Pressable>
             </View>
 
             {project.goals.length === 0 ? (
               <View
                 style={{
-                  backgroundColor: '#FFFFFF',
+                  backgroundColor: colors.background.card,
+                  borderColor: colors.border.warm,
+                  borderWidth: 1,
                   borderRadius: 12,
                   paddingHorizontal: 20,
                   paddingVertical: 28,
@@ -251,13 +255,13 @@ export default function ProjectDetailScreen() {
                 <Pressable
                   onPress={() => router.push({ pathname: '/goals/create', params: { projectId: project.id } })}
                   style={{
-                    backgroundColor: '#1E3226',
+                    backgroundColor: colors.accent.primary,
                     borderRadius: 12,
                     paddingHorizontal: 20,
                     paddingVertical: 12,
                   }}
                 >
-                  <Typography variant="emphasis-sm" style={{ fontSize: 15, color: '#EDE7DA' }}>+ Add Goal</Typography>
+                  <Typography variant="emphasis-sm" style={{ fontSize: 15, color: colors.text.onAccent }}>+ Add Goal</Typography>
                 </Pressable>
               </View>
             ) : (
@@ -277,10 +281,10 @@ export default function ProjectDetailScreen() {
 
             <View
               style={{
-                backgroundColor: '#FFFFFF',
+                backgroundColor: colors.background.card,
                 borderRadius: 12,
                 borderWidth: 1,
-                borderColor: '#E7E2D8',
+                borderColor: colors.border.warm,
                 overflow: 'hidden',
                 shadowColor: '#000',
                 shadowOffset: { width: 0, height: 2 },
@@ -295,10 +299,10 @@ export default function ProjectDetailScreen() {
                   paddingHorizontal: 18,
                   paddingVertical: 16,
                   borderBottomWidth: 1,
-                  borderBottomColor: '#EFE9DE',
+                  borderBottomColor: colors.border.divider,
                 }}
               >
-                <Typography variant="nav-title" style={{ fontFamily: 'Inter-Regular', color: '#211F1A' }}>
+                <Typography variant="nav-title" style={{ fontFamily: 'Inter-Regular', color: colors.text.primary }}>
                   Edit project name and description
                 </Typography>
               </Pressable>
@@ -312,7 +316,7 @@ export default function ProjectDetailScreen() {
                   paddingVertical: 16,
                 }}
               >
-                <Typography variant="nav-title" style={{ color: '#DC2626' }}>
+                <Typography variant="nav-title" style={{ color: colors.feedback.danger.text }}>
                   Delete project
                 </Typography>
               </Pressable>
@@ -354,7 +358,7 @@ export default function ProjectDetailScreen() {
               if (editError) setEditError(null);
             }}
             placeholder="e.g. Build financial independence"
-            placeholderTextColor="#A79E8E"
+            placeholderTextColor={colors.text.muted}
             editable={!isSubmittingEdit}
             autoFocus
             returnKeyType="next"
@@ -373,14 +377,14 @@ export default function ProjectDetailScreen() {
               if (editError) setEditError(null);
             }}
             placeholder="Describe what achieving this means to you..."
-            placeholderTextColor="#A79E8E"
+            placeholderTextColor={colors.text.muted}
             editable={!isSubmittingEdit}
             multiline
           />
         </View>
 
         {editError ? (
-          <Typography variant="meta" style={{ marginTop: 12, lineHeight: 18, color: '#DC2626' }}>
+          <Typography variant="meta" style={{ marginTop: 12, lineHeight: 18, color: colors.feedback.danger.text }}>
             {editError}
           </Typography>
         ) : null}

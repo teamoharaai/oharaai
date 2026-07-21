@@ -73,11 +73,13 @@ function parseDateInput(value: string): Date | null | undefined {
 }
 
 function TimeValue({ value, unit }: { value: number; unit: string }) {
+  const colors = useThemeColors();
+
   return (
     <View style={{ alignItems: 'baseline', flexDirection: 'row', gap: 3 }}>
       <Text
         style={{
-          color: '#EDE7DA',
+          color: colors.text.accent,
           fontFamily: 'Inter-Bold',
           fontSize: 22,
           fontVariant: ['tabular-nums'],
@@ -86,7 +88,7 @@ function TimeValue({ value, unit }: { value: number; unit: string }) {
       >
         {String(value).padStart(2, '0')}
       </Text>
-      <Text style={{ color: '#6E8C7B', fontFamily: 'Inter-Regular', fontSize: 11 }}>
+      <Text style={{ color: colors.text.secondary, fontFamily: 'Inter-Regular', fontSize: 11 }}>
         {unit}
       </Text>
     </View>
@@ -163,7 +165,7 @@ export function CountdownTimer({
       >
         <Text
           style={{
-            color: colors.accent.tealSoft,
+            color: colors.text.accent,
             fontFamily: 'Inter-SemiBold',
             fontSize: 10.5,
             letterSpacing: 1.5,
@@ -180,7 +182,7 @@ export function CountdownTimer({
             <TimeValue value={timeLeft.minutes} unit="m" />
           </View>
         ) : (
-          <Text style={{ color: colors.text.inverse, fontFamily: 'Inter-SemiBold', fontSize: 14 }}>
+          <Text style={{ color: colors.text.primary, fontFamily: 'Inter-SemiBold', fontSize: 14 }}>
             Not set
           </Text>
         )}
@@ -188,7 +190,7 @@ export function CountdownTimer({
         <View style={{ flex: 1, gap: 5, minWidth: 120 }}>
           <View
             style={{
-              backgroundColor: 'rgba(255,255,255,0.08)',
+              backgroundColor: colors.border.divider,
               borderRadius: 3,
               height: 4,
               overflow: 'hidden',
@@ -201,7 +203,7 @@ export function CountdownTimer({
               style={{ height: 4, width: `${elapsed.percentage}%` as `${number}%` }}
             />
           </View>
-          <Text style={{ color: '#7C9A88', fontFamily: 'Inter-Regular', fontSize: 10.5 }}>
+          <Text style={{ color: colors.text.secondary, fontFamily: 'Inter-Regular', fontSize: 10.5 }}>
             {caption}
           </Text>
         </View>
@@ -217,7 +219,9 @@ export function CountdownTimer({
           }}
           style={({ pressed }) => ({
             alignItems: 'center',
-            backgroundColor: 'rgba(255,255,255,0.06)',
+            backgroundColor: colors.background.input,
+            borderColor: colors.border.divider,
+            borderWidth: 1,
             borderRadius: 8,
             height: 28,
             justifyContent: 'center',
@@ -225,7 +229,7 @@ export function CountdownTimer({
             width: 28,
           })}
         >
-          <Text style={{ color: colors.accent.tealSoft, fontSize: 16, letterSpacing: 1 }}>⋯</Text>
+          <Text style={{ color: colors.text.accent, fontSize: 16, letterSpacing: 1 }}>⋯</Text>
         </Pressable>
       </View>
 

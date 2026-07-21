@@ -1,7 +1,6 @@
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
-import { GOAL_THEMES } from '@/constants/themes';
 import type { ThemeColors } from '@/constants/colors';
 import { useThemeColors } from '@/store/uiStore';
 import { getGoalRingProgress } from '../utils/ringProgress';
@@ -78,7 +77,7 @@ export function GoalRingGrid({ goals, emptyMessage }: GoalRingGridProps) {
               title={goal.title}
               category={goal.category}
               progress={ringProgress}
-              accentColor={GOAL_THEMES[goal.colorTheme].accent}
+              accentColor={colors.accent.primary}
               activityLabel={resolveActivityLabel(goal)}
               dueDateLabel={dueDateLabel}
               dueDateColor={dueDateColor}

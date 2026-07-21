@@ -1,11 +1,6 @@
 import type { ReactNode } from 'react';
 import { Text, View, type DimensionValue } from 'react-native';
-import { LIGHT_THEME } from '@/constants/colors';
-
-const FOREST = LIGHT_THEME.background.sidebar;
-const CREAM = LIGHT_THEME.background.page;
-const LABEL = '#8A8172';
-const AMBER = LIGHT_THEME.brt.rose;
+import { useThemeColors } from '@/store/uiStore';
 
 function Line({
   left,
@@ -18,6 +13,8 @@ function Line({
   width: DimensionValue;
   rotate: string;
 }) {
+  const colors = useThemeColors();
+
   return (
     <View
       style={{
@@ -27,7 +24,7 @@ function Line({
         width,
         height: 1,
         borderRadius: 999,
-        backgroundColor: FOREST,
+        backgroundColor: colors.accent.primary,
         opacity: 0.3,
         transform: [{ rotate }],
       }}
@@ -44,13 +41,15 @@ function Label({
   left: DimensionValue;
   top: DimensionValue;
 }) {
+  const colors = useThemeColors();
+
   return (
     <Text
       style={{
         position: 'absolute',
         left,
         top,
-        color: LABEL,
+        color: colors.text.secondary,
         fontFamily: 'Inter-Regular',
         fontSize: 11,
         textAlign: 'center',
@@ -62,6 +61,8 @@ function Label({
 }
 
 export default function ConstellationSample() {
+  const colors = useThemeColors();
+
   return (
     <View style={{ width: '100%', aspectRatio: 320 / 220 }}>
       <Line left="33%" top="40%" width="24%" rotate="-35deg" />
@@ -81,8 +82,8 @@ export default function ConstellationSample() {
           height: '18.2%',
           borderRadius: 20,
           borderWidth: 1,
-          borderColor: FOREST,
-          backgroundColor: CREAM,
+          borderColor: colors.accent.primary,
+          backgroundColor: colors.background.page,
         }}
       />
       <View
@@ -93,7 +94,7 @@ export default function ConstellationSample() {
           width: '15%',
           height: '21.8%',
           borderRadius: 24,
-          backgroundColor: FOREST,
+          backgroundColor: colors.accent.primary,
         }}
       />
       <View
@@ -104,7 +105,7 @@ export default function ConstellationSample() {
           width: '12.5%',
           height: '18.2%',
           borderRadius: 20,
-          backgroundColor: FOREST,
+          backgroundColor: colors.accent.primary,
         }}
       />
       <View
@@ -115,7 +116,7 @@ export default function ConstellationSample() {
           width: '12.5%',
           height: '18.2%',
           borderRadius: 20,
-          backgroundColor: FOREST,
+          backgroundColor: colors.accent.primary,
         }}
       />
       <View
@@ -126,7 +127,7 @@ export default function ConstellationSample() {
           width: '12.5%',
           height: '18.2%',
           borderRadius: 20,
-          backgroundColor: FOREST,
+          backgroundColor: colors.accent.primary,
         }}
       />
       <View
@@ -137,7 +138,7 @@ export default function ConstellationSample() {
           width: '10%',
           height: '14.5%',
           borderRadius: 16,
-          backgroundColor: AMBER,
+          backgroundColor: colors.brt.rose,
         }}
       />
       <View
@@ -148,7 +149,7 @@ export default function ConstellationSample() {
           width: '10%',
           height: '14.5%',
           borderRadius: 16,
-          backgroundColor: AMBER,
+          backgroundColor: colors.brt.rose,
         }}
       />
 

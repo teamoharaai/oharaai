@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-21 — Landing hero and brand refinement)
+- **`components/landing/PublicNav.tsx` and `LandingPage.tsx`:** removed the header logo's enclosing medallion and rendered the mark directly in the canonical high-contrast green, removed the oversized duplicate hero logo, and recentered the hero copy and authentication actions with responsive spacing while preserving all existing destinations and behavior.
+
+### Added (2026-07-21 — Shared public navigation)
+- **`components/landing/PublicNav.tsx`, `LandingPage.tsx`, `app/(auth)/login.tsx`, and `signup.tsx`:** added one canonical public header with home, login, signup, and existing About navigation across landing and authentication screens, and aligned auth surfaces, fields, feedback, actions, and responsive spacing with the light semantic palette without changing authentication behavior.
+
+### Changed (2026-07-21 — Canonical goal accents)
+- **Goal detail trackers, project goal cards, dashboard goal rings, and deadline-ring color resolution:** stopped using arbitrary category-theme orange, purple, and other decorative accents for structural borders and progress; these elements now use the canonical semantic green while retaining category data and all goal behavior.
+
+### Fixed (2026-07-21 — Authenticated route theme continuity)
+- **Project detail/create, goal loading/Vault, Constellation, Explore, and their shared goal/Vault/Constellation content components:** replaced remaining static light surfaces and foregrounds with the persisted semantic theme so push, replace, and back navigation retain the active appearance without changing routes, state, or business behavior.
+
+### Changed (2026-07-21 — Goal detail readability refinement)
+- **`features/goals/components/CountdownTimer.tsx`, `MilestonesPanel.tsx`, and `IntelligencePanel.tsx`:** improved semantic light-mode contrast, replaced the milestone timeline treatment with spacious near-white upcoming rows and blank incomplete controls, and added a restrained off-white-to-sage Intelligence gradient while preserving dark-mode hierarchy and all existing interactions.
+
 ### Fixed (2026-07-20 — New Goal rebase repair)
 - **`app/goals/create.tsx`:** repaired the malformed tracker metadata declaration and reconciled stale pre-rebase measurable identifiers with the upstream tracker/milestone model while retaining runtime semantic theme tokens throughout both editors.
 - **`components/layout/AvatarMenu.tsx` and `SettingsModal.tsx`:** repaired mismatched and unclosed JSX introduced by the rebase, restored the upstream archived-goal settings section, and retained the shared themed toggle controls.

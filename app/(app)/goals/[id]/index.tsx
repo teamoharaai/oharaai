@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { View, ScrollView, Pressable, useWindowDimensions, SafeAreaView } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, router } from 'expo-router';
-import { GOAL_THEMES } from '@/constants/themes';
 import { Typography } from '@/components/ui/Typography';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { useGoalDetail } from '@/features/goals/hooks/useGoalDetail';
@@ -29,7 +28,7 @@ function GoalDetailLoadingState() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.page }}>
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
-        <View style={{ height: 14, width: 72, borderRadius: 999, backgroundColor: '#EAE7E0' }} />
+        <View style={{ height: 14, width: 72, borderRadius: 999, backgroundColor: colors.background.subtle }} />
       </View>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}>
         {/* Hero skeleton */}
@@ -38,22 +37,22 @@ function GoalDetailLoadingState() {
             backgroundColor: colors.background.card,
             borderRadius: 16,
             borderLeftWidth: 4,
-            borderLeftColor: '#EAE7E0',
+            borderLeftColor: colors.border.divider,
             padding: 20,
             marginBottom: 12,
           }}
         >
           <View style={{ flexDirection: 'row', gap: 6, marginBottom: 14 }}>
-            <View style={{ height: 22, width: 64, borderRadius: 6, backgroundColor: '#EAE7E0' }} />
-            <View style={{ height: 22, width: 52, borderRadius: 6, backgroundColor: '#EAE7E0' }} />
+            <View style={{ height: 22, width: 64, borderRadius: 6, backgroundColor: colors.background.subtle }} />
+            <View style={{ height: 22, width: 52, borderRadius: 6, backgroundColor: colors.background.subtle }} />
           </View>
-          <View style={{ height: 28, width: '78%', borderRadius: 8, backgroundColor: '#EAE7E0', marginBottom: 10 }} />
-          <View style={{ height: 14, borderRadius: 999, backgroundColor: '#EAE7E0', marginBottom: 6 }} />
-          <View style={{ height: 14, width: '66%', borderRadius: 999, backgroundColor: '#EAE7E0', marginBottom: 20 }} />
-          <View style={{ height: 1, backgroundColor: '#EAE7E0', marginBottom: 16 }} />
+          <View style={{ height: 28, width: '78%', borderRadius: 8, backgroundColor: colors.background.subtle, marginBottom: 10 }} />
+          <View style={{ height: 14, borderRadius: 999, backgroundColor: colors.background.subtle, marginBottom: 6 }} />
+          <View style={{ height: 14, width: '66%', borderRadius: 999, backgroundColor: colors.background.subtle, marginBottom: 20 }} />
+          <View style={{ height: 1, backgroundColor: colors.border.divider, marginBottom: 16 }} />
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <View style={{ height: 48, width: 120, borderRadius: 8, backgroundColor: '#EAE7E0' }} />
-            <View style={{ height: 72, width: 72, borderRadius: 36, backgroundColor: '#EAE7E0' }} />
+            <View style={{ height: 48, width: 120, borderRadius: 8, backgroundColor: colors.background.subtle }} />
+            <View style={{ height: 72, width: 72, borderRadius: 36, backgroundColor: colors.background.subtle }} />
           </View>
         </View>
         {/* Section skeletons */}
@@ -61,15 +60,15 @@ function GoalDetailLoadingState() {
           <View
             key={i}
             style={{
-              backgroundColor: '#FFFFFF',
+              backgroundColor: colors.background.card,
               borderRadius: 16,
               padding: 20,
               marginBottom: 12,
             }}
           >
-            <View style={{ height: 10, width: 80, borderRadius: 999, backgroundColor: '#EAE7E0', marginBottom: 14 }} />
-            <View style={{ height: 14, borderRadius: 999, backgroundColor: '#EAE7E0', marginBottom: 8 }} />
-            <View style={{ height: 14, width: '75%', borderRadius: 999, backgroundColor: '#EAE7E0' }} />
+            <View style={{ height: 10, width: 80, borderRadius: 999, backgroundColor: colors.background.subtle, marginBottom: 14 }} />
+            <View style={{ height: 14, borderRadius: 999, backgroundColor: colors.background.subtle, marginBottom: 8 }} />
+            <View style={{ height: 14, width: '75%', borderRadius: 999, backgroundColor: colors.background.subtle }} />
           </View>
         ))}
       </ScrollView>
@@ -221,7 +220,6 @@ export default function GoalDetailScreen() {
   if (isLoading) return <GoalDetailLoadingState />;
   if (!goal) return <GoalNotFound />;
 
-  const theme = GOAL_THEMES[goal.colorTheme];
   const isSuperseded = goal.has_successor === true;
   const isMomentum = !isSuperseded && goal.previous_goal_id != null;
   const successorGoalId = goal.successor?.id ?? null;
@@ -323,8 +321,8 @@ export default function GoalDetailScreen() {
           hasSuccessor={goal.has_successor}
           ended={mutationsDisabled}
           archived={archived}
-          accentColor={theme.accent}
-          progressColor={isSuperseded ? '#C7C0B2' : undefined}
+          accentColor={colors.accent.primary}
+          progressColor={isSuperseded ? colors.text.muted : undefined}
           onSave={onSaveTracker}
           onDelete={onDeleteTracker}
           onAdd={onAddTracker}

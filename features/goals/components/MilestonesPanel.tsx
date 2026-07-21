@@ -234,14 +234,6 @@ export function MilestonesPanel({
   const sortedMilestones = [...milestones].sort((left, right) => left.sortOrder - right.sortOrder);
   const completedCount = sortedMilestones.filter((item) => item.completedAt !== null).length;
   const upNextId = sortedMilestones.find((item) => item.completedAt === null)?.id ?? null;
-  const lastCompletedIndex = sortedMilestones.reduce(
-    (latest, item, index) => (item.completedAt ? index : latest),
-    -1,
-  );
-  const filledLinePercent =
-    sortedMilestones.length <= 1 || lastCompletedIndex < 0
-      ? 0
-      : (lastCompletedIndex / (sortedMilestones.length - 1)) * 100;
   const readOnly = hasSuccessor || ended || archived;
 
   async function handleDelete(milestoneId: string) {
@@ -358,28 +350,7 @@ export function MilestonesPanel({
       ) : null}
 
       {sortedMilestones.length > 0 ? (
-        <View style={{ position: 'relative' }}>
-          <View
-            style={{
-              backgroundColor: colors.border.divider,
-              bottom: 12,
-              left: 10,
-              position: 'absolute',
-              top: 12,
-              width: 2,
-            }}
-          >
-            {filledLinePercent > 0 ? (
-              <View
-                style={{
-                  backgroundColor: colors.accent.primary,
-                  height: `${filledLinePercent}%`,
-                  width: 2,
-                }}
-              />
-            ) : null}
-          </View>
-
+        <View style={{ gap: 10 }}>
           {sortedMilestones.map((milestone) => {
             const completed = milestone.completedAt !== null;
             const upNext = milestone.id === upNextId;
@@ -394,7 +365,7 @@ export function MilestonesPanel({
 
             if (editing) {
               return (
-                <View key={milestone.id} style={{ marginBottom: 12, marginLeft: 34 }}>
+                <View key={milestone.id} style={{ marginBottom: 12 }}>
                   <MilestoneEditor
                     initial={milestone}
                     onCancel={() => setEditingId(null)}
@@ -415,17 +386,15 @@ export function MilestonesPanel({
               <View
                 key={milestone.id}
                 style={{
-                  backgroundColor: upNext ? colors.background.selectedRow : 'transparent',
-                  borderColor: upNext ? colors.border.accent : 'transparent',
+                  alignItems: 'center',
+                  backgroundColor: colors.background.card,
+                  borderColor: colors.border.divider,
                   borderRadius: 14,
                   borderWidth: 1,
                   flexDirection: 'row',
-                  gap: 12,
-                  marginBottom: 4,
-                  paddingBottom: upNext ? 13 : 10,
-                  paddingLeft: 0,
-                  paddingRight: upNext ? 12 : 4,
-                  paddingTop: upNext ? 13 : 10,
+                  gap: 14,
+                  paddingHorizontal: compact ? 16 : 20,
+                  paddingVertical: 16,
                 }}
               >
                 <Pressable
@@ -437,21 +406,12 @@ export function MilestonesPanel({
                   onPress={() => void onComplete?.(milestone.id)}
                   style={{
                     alignItems: 'center',
-                    backgroundColor: completed
-                      ? colors.accent.primary
-                      : upNext
-                        ? colors.background.card
-                        : colors.background.card,
-                    borderColor: completed || upNext ? colors.accent.primary : colors.border.divider,
+                    backgroundColor: completed ? colors.accent.primary : colors.background.card,
+                    borderColor: completed ? colors.accent.primary : colors.text.muted,
                     borderRadius: 11,
                     borderWidth: completed ? 0 : 2,
                     height: 22,
                     justifyContent: 'center',
-                    marginLeft: -1,
-                    shadowColor: upNext ? colors.background.selectedRow : colors.background.card,
-                    shadowOffset: { width: 0, height: 0 },
-                    shadowOpacity: 1,
-                    shadowRadius: 4,
                     width: 22,
                   }}
                 >
@@ -467,15 +427,6 @@ export function MilestonesPanel({
                     >
                       ✓
                     </Text>
-                  ) : upNext ? (
-                    <View
-                      style={{
-                        backgroundColor: colors.accent.primary,
-                        borderRadius: 4,
-                        height: 8,
-                        width: 8,
-                      }}
-                    />
                   ) : null}
                 </Pressable>
 
@@ -483,7 +434,7 @@ export function MilestonesPanel({
                   <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                     <Text
                       style={{
-                        color: completed || upNext ? colors.text.primary : colors.text.secondary,
+                        color: colors.text.primary,
                         flexShrink: 1,
                         fontFamily: 'Inter-SemiBold',
                         fontSize: 14.5,
@@ -537,7 +488,7 @@ export function MilestonesPanel({
                   </View>
                   <Text
                     style={{
-                      color: upNext ? colors.text.accent : colors.text.muted,
+                      color: colors.text.secondary,
                       fontFamily: 'Inter-Regular',
                       fontSize: 12,
                       lineHeight: 18,

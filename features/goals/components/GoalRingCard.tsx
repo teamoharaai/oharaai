@@ -17,7 +17,7 @@ interface GoalRingCardProps {
    * card rather than substituting tracker or milestone completion.
    */
   progress: number;
-  /** Goal's category/theme accent (from GOAL_THEMES), before deadline urgency escalation. */
+  /** Canonical accent used for the deadline-progress ring. */
   accentColor: string;
   /** Footer-left activity line, e.g. "4 items · 2 reflections". */
   activityLabel?: string;

@@ -5,10 +5,13 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { Link, router, useLocalSearchParams } from 'expo-router';
 import supabase from '@/lib/db/client';
 import { Typography } from '@/components/ui/Typography';
+import { PublicNav } from '@/components/landing/PublicNav';
+import { LIGHT_THEME } from '@/constants/colors';
 
 export default function LoginScreen() {
   const params = useLocalSearchParams<{ error?: string }>();
@@ -34,10 +37,12 @@ export default function LoginScreen() {
   }
 
   return (
-    <View className="flex-1 bg-cream">
-      <View className="flex-1 justify-center px-6" style={{ maxWidth: 420, width: '100%', alignSelf: 'center' }}>
+    <View style={{ backgroundColor: LIGHT_THEME.background.page, flex: 1 }}>
+      <PublicNav />
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+      <View className="flex-1 justify-center px-6" style={{ maxWidth: 420, width: '100%', alignSelf: 'center', paddingVertical: 40 }}>
         {/* Wordmark */}
-        <Text className="text-3xl text-near-black tracking-tight mb-2" style={{ fontFamily: 'Inter-Bold' }}>
+        <Text className="text-3xl tracking-tight mb-2" style={{ color: LIGHT_THEME.text.primary, fontFamily: 'Inter-Bold' }}>
           Ohara
         </Text>
         <Typography variant="body" className="mb-10">
@@ -46,17 +51,18 @@ export default function LoginScreen() {
 
         {/* Error */}
         {error && (
-          <View className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 mb-6">
-            <Text className="text-sm text-red-600" style={{ fontFamily: 'Inter-Regular' }}>{error}</Text>
+          <View className="rounded-2xl px-4 py-3 mb-6" style={{ backgroundColor: LIGHT_THEME.feedback.danger.bg, borderColor: LIGHT_THEME.feedback.danger.border, borderWidth: 1 }}>
+            <Text className="text-sm" style={{ color: LIGHT_THEME.feedback.danger.text, fontFamily: 'Inter-Regular' }}>{error}</Text>
           </View>
         )}
 
         {/* Email */}
         <Typography variant="field-label" className="mb-1.5">Email</Typography>
         <TextInput
-          className="bg-card-bg rounded-2xl px-4 py-3.5 text-base text-near-black mb-4 border border-transparent"
+          className="rounded-2xl px-4 py-3.5 text-base mb-4"
+          style={{ backgroundColor: LIGHT_THEME.background.input, borderColor: LIGHT_THEME.border.input, borderWidth: 1, color: LIGHT_THEME.text.primary }}
           placeholder="you@example.com"
-          placeholderTextColor="#6B6B6B"
+          placeholderTextColor={LIGHT_THEME.text.muted}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -67,9 +73,10 @@ export default function LoginScreen() {
         {/* Password */}
         <Typography variant="field-label" className="mb-1.5">Password</Typography>
         <TextInput
-          className="bg-card-bg rounded-2xl px-4 py-3.5 text-base text-near-black mb-6 border border-transparent"
+          className="rounded-2xl px-4 py-3.5 text-base mb-6"
+          style={{ backgroundColor: LIGHT_THEME.background.input, borderColor: LIGHT_THEME.border.input, borderWidth: 1, color: LIGHT_THEME.text.primary }}
           placeholder="••••••••"
-          placeholderTextColor="#6B6B6B"
+          placeholderTextColor={LIGHT_THEME.text.muted}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -78,14 +85,15 @@ export default function LoginScreen() {
 
         {/* Submit */}
         <TouchableOpacity
-          className="bg-near-black rounded-full py-4 items-center mb-6"
+          className="rounded-full py-4 items-center mb-6"
+          style={{ backgroundColor: LIGHT_THEME.accent.primary, opacity: loading ? 0.65 : 1 }}
           onPress={handleLogin}
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#FAF9F6" />
+            <ActivityIndicator color={LIGHT_THEME.text.onAccent} />
           ) : (
-            <Text className="text-base text-cream font-inter-semibold" style={{ fontFamily: 'Inter-SemiBold' }}>Log in</Text>
+            <Text className="text-base font-inter-semibold" style={{ color: LIGHT_THEME.text.onAccent, fontFamily: 'Inter-SemiBold' }}>Log in</Text>
           )}
         </TouchableOpacity>
 
@@ -94,11 +102,12 @@ export default function LoginScreen() {
           <Typography variant="subtitle">Don't have an account? </Typography>
           <Link href="/(auth)/signup" asChild>
             <TouchableOpacity>
-              <Typography variant="emphasis-sm" style={{ color: '#211F1A' }}>Sign up</Typography>
+              <Typography variant="emphasis-sm" style={{ color: LIGHT_THEME.text.accent }}>Sign up</Typography>
             </TouchableOpacity>
           </Link>
         </View>
       </View>
+      </ScrollView>
     </View>
   );
 }

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LIGHT_THEME } from '@/constants/colors';
 import { Typography } from '@/components/ui/Typography';
+import { useThemeColors } from '@/store/uiStore';
 
 // ─── Exported type ────────────────────────────────────────────────────────────
 
@@ -31,23 +31,24 @@ type BrtBadgeProps = {
 };
 
 function BrtBadge({ brt }: BrtBadgeProps) {
+  const colors = useThemeColors();
   if (brt === 'Bud') {
     return (
-      <View className="bg-green-100 px-2 py-0.5 rounded-full">
-        <Text className="text-xs font-inter-medium text-green-700">Bud</Text>
+      <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: colors.background.selectedRow }}>
+        <Text className="text-xs font-inter-medium" style={{ color: colors.brt.bud }}>Bud</Text>
       </View>
     );
   }
   if (brt === 'Rose') {
     return (
-      <View className="bg-amber-100 px-2 py-0.5 rounded-full">
-        <Text className="text-xs font-inter-medium" style={{ color: '#F59E0B' }}>Rose</Text>
+      <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: colors.feedback.pending.bg }}>
+        <Text className="text-xs font-inter-medium" style={{ color: colors.brt.rose }}>Rose</Text>
       </View>
     );
   }
   return (
-    <View className="bg-red-100 px-2 py-0.5 rounded-full">
-      <Text className="text-xs font-inter-medium text-red-700">Thorn</Text>
+    <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: colors.feedback.danger.bg }}>
+      <Text className="text-xs font-inter-medium" style={{ color: colors.brt.thorn }}>Thorn</Text>
     </View>
   );
 }
@@ -61,6 +62,7 @@ type EchoTrailCardProps = {
 };
 
 function EchoTrailCard({ entry, onConfirmLink, onDismissLink }: EchoTrailCardProps) {
+  const colors = useThemeColors();
   const [confirming, setConfirming] = useState(false);
   const [dismissing, setDismissing] = useState(false);
 
@@ -91,7 +93,7 @@ function EchoTrailCard({ entry, onConfirmLink, onDismissLink }: EchoTrailCardPro
   }
 
   return (
-    <View className="bg-white rounded-xl p-4 mb-3 shadow-sm">
+    <View className="rounded-xl p-4 mb-3 shadow-sm" style={{ backgroundColor: colors.background.card, borderColor: colors.border.warm, borderWidth: 1 }}>
       {/* Top row: date + BRT badge */}
       <View className="flex-row items-center justify-between mb-2">
         <Typography variant="caption">{formattedDate}</Typography>
@@ -99,7 +101,7 @@ function EchoTrailCard({ entry, onConfirmLink, onDismissLink }: EchoTrailCardPro
       </View>
 
       {/* Content — view-only (no tap-through; see OUTSTANDING.md EntryActionMenu extraction) */}
-      <Text numberOfLines={2} className="text-near-black text-sm leading-relaxed">
+      <Text numberOfLines={2} className="text-sm leading-relaxed" style={{ color: colors.text.primary }}>
         {entry.content}
       </Text>
 
@@ -107,11 +109,11 @@ function EchoTrailCard({ entry, onConfirmLink, onDismissLink }: EchoTrailCardPro
       {!entry.confirmed && (
         <View
           className="mt-3 rounded-lg border p-3"
-          style={{ backgroundColor: LIGHT_THEME.feedback.pending.bg, borderColor: LIGHT_THEME.feedback.pending.border }}
+          style={{ backgroundColor: colors.feedback.pending.bg, borderColor: colors.feedback.pending.border }}
         >
           <View className="flex-row items-center gap-1.5 mb-2">
-            <Ionicons name="link-outline" size={12} color={LIGHT_THEME.feedback.pending.text} />
-            <Text className="text-xs" style={{ color: LIGHT_THEME.feedback.pending.text }}>
+            <Ionicons name="link-outline" size={12} color={colors.feedback.pending.text} />
+            <Text className="text-xs" style={{ color: colors.feedback.pending.text }}>
               Ohara thinks this relates to your goal
             </Text>
           </View>
