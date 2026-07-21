@@ -3,121 +3,33 @@ import { useFonts } from "expo-font";
 import { Link, type Href } from "expo-router";
 import { useState } from "react";
 import {
-  Image,
   Pressable,
   ScrollView,
-  TouchableOpacity,
   useWindowDimensions,
   View,
 } from "react-native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 
 import { GoalTree } from "@/components/landing/GoalTree";
+import { PublicNav } from "@/components/landing/PublicNav";
 import { Typography } from "@/components/ui/Typography";
-
-const LOGO = require("../../assets/brand/ohara-logo.png");
+import { LIGHT_THEME } from "@/constants/colors";
 
 const COLORS = {
-  background: "#F5F1EA",
-  ink: "#211F1A",
-  muted: "#6B6B6B",
-  green: "#3D5247",
-  greenHover: "#2A3B31",
-  border: "#E4DED0",
-  borderStrong: "#D8D2C4",
-  footer: "#8A8172",
+  background: LIGHT_THEME.background.page,
+  ink: LIGHT_THEME.text.primary,
+  muted: LIGHT_THEME.text.secondary,
+  green: LIGHT_THEME.accent.primary,
+  greenHover: LIGHT_THEME.text.accent,
+  border: LIGHT_THEME.border.warm,
+  borderStrong: LIGHT_THEME.border.divider,
+  footer: LIGHT_THEME.text.muted,
 };
 
 const webInteractiveStyle = {
   cursor: "pointer",
   transition: "background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease",
 } as any;
-
-function NavTextLink({ label, href }: { label: string; href: Href }) {
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <Link href={href} asChild>
-      <Pressable
-        accessibilityRole="link"
-        onHoverIn={() => setHovered(true)}
-        onHoverOut={() => setHovered(false)}
-        style={webInteractiveStyle}
-      >
-        <Typography
-          variant="badge-text"
-          className="font-inter-medium"
-          style={{ color: hovered ? COLORS.greenHover : COLORS.muted, fontSize: 14, lineHeight: 20 }}
-        >
-          {label}
-        </Typography>
-      </Pressable>
-    </Link>
-  );
-}
-
-function Nav({ compact }: { compact: boolean }) {
-  const [signupHovered, setSignupHovered] = useState(false);
-
-  return (
-    <View style={{ paddingTop: 20, paddingHorizontal: compact ? 20 : 48 }}>
-      <View
-        style={{
-          alignItems: "center",
-          flexDirection: "row",
-          justifyContent: "space-between",
-          marginHorizontal: "auto",
-          maxWidth: 1180,
-          width: "100%",
-        }}
-      >
-        <Link href="/" asChild>
-          <TouchableOpacity
-            accessibilityLabel="OharaAI home"
-            accessibilityRole="link"
-            style={{ ...webInteractiveStyle, alignItems: "center", flexDirection: "row", gap: 10 }}
-          >
-            <View
-              className="bg-lp-green-hover"
-              style={{ alignItems: "center", borderRadius: 16, height: 32, justifyContent: "center", width: 32 }}
-            >
-              <Image source={LOGO} resizeMode="contain" style={{ height: 24, width: 24 }} />
-            </View>
-            <Typography
-              className="font-inter-semibold"
-              style={{ color: COLORS.ink, fontSize: 14, letterSpacing: 3.4, lineHeight: 20, textTransform: "uppercase" }}
-            >
-              OharaAI
-            </Typography>
-          </TouchableOpacity>
-        </Link>
-
-        <View style={{ alignItems: "center", flexDirection: "row", gap: compact ? 14 : 28 }}>
-          {!compact ? <NavTextLink label="About Us" href={"/about" as Href} /> : null}
-          <NavTextLink label="Log in" href="/(auth)/login" />
-          <Link href="/(auth)/signup" asChild>
-            <Pressable
-              accessibilityRole="link"
-              onHoverIn={() => setSignupHovered(true)}
-              onHoverOut={() => setSignupHovered(false)}
-              style={{
-                ...webInteractiveStyle,
-                backgroundColor: signupHovered ? COLORS.greenHover : COLORS.green,
-                borderRadius: 999,
-                paddingHorizontal: compact ? 16 : 20,
-                paddingVertical: 10,
-              }}
-            >
-              <Typography className="font-inter-semibold" style={{ color: COLORS.background, fontSize: 14, lineHeight: 20 }}>
-                Sign up
-              </Typography>
-            </Pressable>
-          </Link>
-        </View>
-      </View>
-    </View>
-  );
-}
 
 function HeroButton({
   href,
@@ -164,17 +76,15 @@ function Hero({ compact, stacked }: { compact: boolean; stacked: boolean }) {
     <View
       style={{
         alignItems: "center",
-        flexDirection: stacked ? "column" : "row",
-        gap: stacked ? 32 : 60,
         marginHorizontal: "auto",
-        maxWidth: 1180,
-        paddingBottom: stacked ? 70 : 90,
+        maxWidth: 760,
+        paddingBottom: stacked ? 64 : 88,
         paddingHorizontal: compact ? 20 : 48,
-        paddingTop: stacked ? 48 : 70,
+        paddingTop: stacked ? 64 : 96,
         width: "100%",
       }}
     >
-      <View style={{ flex: stacked ? undefined : 1.1, width: stacked ? "100%" : undefined }}>
+      <View style={{ alignItems: "center", width: "100%" }}>
         <Typography
           style={
             {
@@ -189,6 +99,7 @@ function Hero({ compact, stacked }: { compact: boolean; stacked: boolean }) {
               lineHeight: compact ? 53 : 67,
               marginBottom: compact ? 22 : 26,
               opacity: 0,
+              textAlign: "center",
             } as any
           }
         >
@@ -199,65 +110,23 @@ function Hero({ compact, stacked }: { compact: boolean; stacked: boolean }) {
             color: COLORS.muted,
             fontSize: compact ? 16 : 18,
             lineHeight: compact ? 27 : 30,
-            marginBottom: compact ? 30 : 36,
-            maxWidth: 440,
+            marginBottom: compact ? 32 : 40,
+            maxWidth: 620,
+            textAlign: "center",
           }}
         >
           Stop circling the same goal. Ohara turns your next ambition into a clear plan, daily momentum, and real proof you&apos;re becoming who you set out to be — start today.
         </Typography>
-        <View style={{ flexDirection: "row", gap: 16 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: 14,
+            justifyContent: "center",
+          }}
+        >
           <HeroButton href="/(auth)/signup" label="Sign up" primary />
           <HeroButton href="/(auth)/login" label="Log in" />
-        </View>
-      </View>
-
-      <View
-        style={{
-          alignItems: "center",
-          flex: stacked ? undefined : 0.9,
-          height: stacked ? 290 : 340,
-          justifyContent: "center",
-          position: "relative",
-          width: stacked ? "100%" : undefined,
-        }}
-      >
-        <View
-          style={
-            {
-              background: "radial-gradient(circle, rgba(111,223,184,.28), transparent 70%)",
-              borderRadius: compact ? 130 : 150,
-              height: compact ? 260 : 300,
-              position: "absolute",
-              width: compact ? 260 : 300,
-            } as any
-          }
-        />
-        <View
-          style={
-            {
-              animation: "sprout 1.3s ease-out forwards",
-              opacity: 0,
-              transformOrigin: "bottom center",
-            } as any
-          }
-        >
-          <View
-            className="bg-lp-green-medallion"
-            style={
-              {
-                alignItems: "center",
-                animation: "floatLogo 5s ease-in-out infinite",
-                animationDelay: "1.3s",
-                borderRadius: compact ? 110 : 130,
-                boxShadow: "0 24px 48px rgba(36,49,42,.28)",
-                height: compact ? 220 : 260,
-                justifyContent: "center",
-                width: compact ? 220 : 260,
-              } as any
-            }
-          >
-            <Image source={LOGO} resizeMode="contain" style={{ height: compact ? 160 : 190, width: compact ? 160 : 190 }} />
-          </View>
         </View>
       </View>
     </View>
@@ -486,7 +355,7 @@ export default function LandingPage() {
 
   return (
     <View nativeID="landing-page" style={{ backgroundColor: COLORS.background, flex: 1 }}>
-      <Nav compact={compact} />
+      <PublicNav compact={compact} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
         <Hero compact={compact} stacked={stacked} />
         <WhatIsOhara compact={compact} stacked={stacked} />

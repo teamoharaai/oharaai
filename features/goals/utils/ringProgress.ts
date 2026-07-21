@@ -21,11 +21,9 @@ export function getGoalRingProgress(
 }
 
 /**
- * Resolves the progress-stroke color for deadline-driven goal rings.
- * Urgency escalates as the time-decay progress approaches its deadline.
+ * Keeps deadline-driven goal rings on the caller's canonical accent.
  */
 export function getRingColor(pct: number, themeColor: string): string {
-  if (pct >= 90) return '#C0483A';
-  if (pct >= 75) return '#E0863E';
+  void pct;
   return themeColor;
 }

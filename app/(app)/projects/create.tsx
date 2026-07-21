@@ -32,14 +32,14 @@ export default function CreateProjectScreen() {
   }
 
   const inputStyle = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background.input,
     borderWidth: 1,
-    borderColor: '#EAE7E0',
+    borderColor: colors.border.input,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#211F1A',
+    color: colors.text.primary,
   };
 
   return (
@@ -79,7 +79,7 @@ export default function CreateProjectScreen() {
                 value={title}
                 onChangeText={setTitle}
                 placeholder="e.g. Build financial independence"
-                placeholderTextColor="#A79E8E"
+                placeholderTextColor={colors.text.muted}
                 autoFocus
                 returnKeyType="next"
               />
@@ -95,7 +95,7 @@ export default function CreateProjectScreen() {
                 value={description}
                 onChangeText={setDescription}
                 placeholder="Describe what achieving this means to you..."
-                placeholderTextColor="#A79E8E"
+                placeholderTextColor={colors.text.muted}
                 multiline
               />
             </View>
@@ -105,14 +105,15 @@ export default function CreateProjectScreen() {
               onPress={handleSubmit}
               disabled={!canSubmit}
               style={{
-                backgroundColor: canSubmit ? '#1E3226' : '#A79E8E',
+                backgroundColor: colors.accent.primary,
                 borderRadius: 12,
                 paddingHorizontal: 24,
                 paddingVertical: 16,
                 alignItems: 'center',
+                opacity: canSubmit ? 1 : 0.45,
               }}
             >
-              <Typography variant="emphasis-sm" style={{ fontSize: 16, color: '#EDE7DA' }}>
+              <Typography variant="emphasis-sm" style={{ fontSize: 16, color: colors.text.onAccent }}>
                 {isSubmitting ? 'Creating…' : 'Create project'}
               </Typography>
             </Pressable>

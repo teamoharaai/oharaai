@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, TextInput, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { VaultItem } from '@/types/vault';
-import { LIGHT_THEME } from '@/constants/colors';
 import { Typography } from '@/components/ui/Typography';
+import { useThemeColors } from '@/store/uiStore';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -37,6 +37,7 @@ function deriveTitle(item: VaultItem): { text: string; derived: boolean } {
 // ─── NoteCard ─────────────────────────────────────────────────────────────────
 
 function NoteCard({ item, onUpdate }: VaultItemCardProps) {
+  const colors = useThemeColors();
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(item.title ?? '');
@@ -76,6 +77,7 @@ function NoteCard({ item, onUpdate }: VaultItemCardProps) {
     <Pressable
       className="bg-white rounded-xl p-4 mb-3 shadow-sm"
       onPress={handleCardPress}
+      style={{ backgroundColor: colors.background.card, borderColor: colors.border.warm, borderWidth: 1 }}
     >
       {/* Title row */}
       <View className="flex-row items-start justify-between">
@@ -84,7 +86,7 @@ function NoteCard({ item, onUpdate }: VaultItemCardProps) {
           className={`flex-1 pr-2 ${derived ? 'italic text-gray-400' : ''}`}
           style={{
             ...(derived ? { fontFamily: 'Inter-Italic' } : undefined),
-            ...(derived ? undefined : { color: LIGHT_THEME.text.primary }),
+            color: derived ? colors.text.muted : colors.text.primary,
           }}
           numberOfLines={expanded ? undefined : 1}
         >
@@ -93,13 +95,13 @@ function NoteCard({ item, onUpdate }: VaultItemCardProps) {
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
           size={16}
-          color="#9CA3AF"
+          color={colors.text.muted}
         />
       </View>
 
       {/* Collapsed preview */}
       {!expanded && item.content ? (
-        <Typography variant="content" numberOfLines={2} className="mt-1" style={{ color: LIGHT_THEME.text.secondary }}>
+        <Typography variant="content" numberOfLines={2} className="mt-1" style={{ color: colors.text.secondary }}>
           {item.content}
         </Typography>
       ) : null}
@@ -118,7 +120,7 @@ function NoteCard({ item, onUpdate }: VaultItemCardProps) {
                 startEdit();
               }}
             >
-              <Text className="text-xs font-inter-medium" style={{ color: LIGHT_THEME.text.accent }}>Edit</Text>
+              <Text className="text-xs font-inter-medium" style={{ color: colors.text.accent }}>Edit</Text>
             </Pressable>
           </View>
         </>
@@ -129,18 +131,18 @@ function NoteCard({ item, onUpdate }: VaultItemCardProps) {
         <Pressable onPress={(e) => e.stopPropagation?.()}>
           <TextInput
             className="mt-3 text-sm border border-gray-200 rounded-lg px-3 py-2 bg-stone-50"
-            style={{ color: LIGHT_THEME.text.primary }}
+            style={{ backgroundColor: colors.background.input, borderColor: colors.border.input, color: colors.text.primary }}
             placeholder="Title (optional)"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.text.muted}
             value={editTitle}
             onChangeText={setEditTitle}
             returnKeyType="next"
           />
           <TextInput
             className="mt-2 text-sm border border-gray-200 rounded-lg px-3 py-2 bg-stone-50 min-h-[80px]"
-            style={{ color: LIGHT_THEME.text.primary }}
+            style={{ backgroundColor: colors.background.input, borderColor: colors.border.input, color: colors.text.primary }}
             placeholder="Note content"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.text.muted}
             value={editContent}
             onChangeText={setEditContent}
             multiline
@@ -152,7 +154,7 @@ function NoteCard({ item, onUpdate }: VaultItemCardProps) {
               onPress={cancelEdit}
               disabled={saving}
             >
-              <Typography variant="content" style={{ color: LIGHT_THEME.text.muted }}>Cancel</Typography>
+              <Typography variant="content" style={{ color: colors.text.muted }}>Cancel</Typography>
             </Pressable>
             <Pressable
               hitSlop={8}
@@ -160,7 +162,7 @@ function NoteCard({ item, onUpdate }: VaultItemCardProps) {
               disabled={saving}
               className={saving ? 'opacity-50' : ''}
             >
-              <Typography variant="label" style={{ color: LIGHT_THEME.text.accent }}>
+              <Typography variant="label" style={{ color: colors.text.accent }}>
                 {saving ? 'Saving...' : 'Save'}
               </Typography>
             </Pressable>
@@ -174,6 +176,7 @@ function NoteCard({ item, onUpdate }: VaultItemCardProps) {
 // ─── LinkCard ─────────────────────────────────────────────────────────────────
 
 function LinkCard({ item }: VaultItemCardProps) {
+  const colors = useThemeColors();
   const domain = (() => {
     try {
       return new URL(item.metadata?.url ?? '').hostname.replace(/^www\./, '');
@@ -196,24 +199,24 @@ function LinkCard({ item }: VaultItemCardProps) {
   return (
     <Pressable
       className="bg-white rounded-xl p-4 mb-3 shadow-sm overflow-hidden"
-      style={{ borderLeftWidth: 4, borderLeftColor: '#1E3226' }}
+      style={{ backgroundColor: colors.background.card, borderColor: colors.border.warm, borderLeftColor: colors.accent.primary, borderLeftWidth: 4, borderWidth: 1 }}
       onPress={handlePress}
     >
       <View className="flex-row items-start justify-between">
         <View className="flex-1 pr-2">
-          <Typography variant="label" style={{ color: LIGHT_THEME.text.primary }} numberOfLines={2}>
+          <Typography variant="label" style={{ color: colors.text.primary }} numberOfLines={2}>
             {title}
           </Typography>
           {domain ? (
-            <Typography variant="caption" className="mt-0.5" style={{ color: '#9CA3AF' }}>{domain}</Typography>
+            <Typography variant="caption" className="mt-0.5" style={{ color: colors.text.muted }}>{domain}</Typography>
           ) : null}
           {annotation ? (
-            <Typography variant="content" className="mt-1" style={{ color: LIGHT_THEME.text.secondary }} numberOfLines={3}>
+            <Typography variant="content" className="mt-1" style={{ color: colors.text.secondary }} numberOfLines={3}>
               {annotation}
             </Typography>
           ) : null}
         </View>
-        <Ionicons name="open-outline" size={16} color="#9CA3AF" />
+        <Ionicons name="open-outline" size={16} color={colors.text.muted} />
       </View>
     </Pressable>
   );
@@ -222,6 +225,7 @@ function LinkCard({ item }: VaultItemCardProps) {
 // ─── InsightCard ──────────────────────────────────────────────────────────────
 
 function InsightCard({ item, onUpdate, onDelete }: VaultItemCardProps) {
+  const colors = useThemeColors();
   const [confirming, setConfirming] = useState(false);
   const [dismissing, setDismissing] = useState(false);
 
@@ -255,14 +259,14 @@ function InsightCard({ item, onUpdate, onDelete }: VaultItemCardProps) {
   return (
     <View
       className="rounded-xl border p-4 mb-3"
-      style={{ backgroundColor: LIGHT_THEME.feedback.pending.bg, borderColor: LIGHT_THEME.feedback.pending.border }}
+      style={{ backgroundColor: colors.feedback.pending.bg, borderColor: colors.feedback.pending.border }}
     >
       {/* Header */}
       <View className="flex-row items-center gap-2 mb-2">
-        <Ionicons name="bulb-outline" size={14} color={LIGHT_THEME.feedback.pending.text} />
+        <Ionicons name="bulb-outline" size={14} color={colors.feedback.pending.text} />
         <Text
           className="text-xs font-inter-semibold uppercase tracking-widest"
-          style={{ color: LIGHT_THEME.feedback.pending.text }}
+          style={{ color: colors.feedback.pending.text }}
         >
           Ohara Insight
         </Text>
@@ -275,7 +279,7 @@ function InsightCard({ item, onUpdate, onDelete }: VaultItemCardProps) {
 
       {/* Actions */}
       {isConfirmed ? (
-        <Text className="text-xs font-inter-medium" style={{ color: LIGHT_THEME.text.accent }}>Confirmed ✓</Text>
+        <Text className="text-xs font-inter-medium" style={{ color: colors.text.accent }}>Confirmed ✓</Text>
       ) : (
         <View className="flex-row gap-3">
           <Pressable
@@ -284,7 +288,7 @@ function InsightCard({ item, onUpdate, onDelete }: VaultItemCardProps) {
             disabled={confirming || dismissing}
             className={confirming ? 'opacity-50' : ''}
           >
-            <Typography variant="label" style={{ color: LIGHT_THEME.text.accent }}>
+            <Typography variant="label" style={{ color: colors.text.accent }}>
               {confirming ? 'Saving…' : 'Confirm'}
             </Typography>
           </Pressable>
@@ -294,7 +298,7 @@ function InsightCard({ item, onUpdate, onDelete }: VaultItemCardProps) {
             disabled={confirming || dismissing}
             className={dismissing ? 'opacity-50' : ''}
           >
-            <Typography variant="content" style={{ color: '#9CA3AF' }}>
+            <Typography variant="content" style={{ color: colors.text.muted }}>
               {dismissing ? 'Removing…' : 'Dismiss'}
             </Typography>
           </Pressable>
@@ -307,20 +311,21 @@ function InsightCard({ item, onUpdate, onDelete }: VaultItemCardProps) {
 // ─── ActionUpdateCard ─────────────────────────────────────────────────────────
 
 function ActionUpdateCard({ item }: VaultItemCardProps) {
+  const colors = useThemeColors();
   const body = item.content ?? item.title ?? '';
   const dateLabel = formatDate(item.createdAt);
 
   return (
-    <View className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-3 flex-row items-start">
+    <View className="rounded-xl p-4 mb-3 flex-row items-start" style={{ backgroundColor: colors.background.card, borderColor: colors.border.warm, borderWidth: 1 }}>
       {/* Green dot */}
-      <View className="w-2 h-2 rounded-full bg-green-600 mt-1.5 mr-3 shrink-0" />
+      <View className="w-2 h-2 rounded-full mt-1.5 mr-3 shrink-0" style={{ backgroundColor: colors.accent.primary }} />
 
       {/* Text */}
       <Typography variant="content" className="flex-1">{body}</Typography>
 
       {/* Date */}
       {dateLabel ? (
-        <Typography variant="caption" className="ml-2 mt-0.5 shrink-0" style={{ color: '#9CA3AF' }}>{dateLabel}</Typography>
+        <Typography variant="caption" className="ml-2 mt-0.5 shrink-0" style={{ color: colors.text.muted }}>{dateLabel}</Typography>
       ) : null}
     </View>
   );
@@ -329,10 +334,12 @@ function ActionUpdateCard({ item }: VaultItemCardProps) {
 // ─── DocumentPlaceholderCard ──────────────────────────────────────────────────
 
 function DocumentPlaceholderCard() {
+  const colors = useThemeColors();
+
   return (
-    <View className="bg-gray-50 border border-dashed border-gray-300 rounded-xl p-4 mb-3 items-center flex-row gap-3">
-      <Ionicons name="document-outline" size={18} color="#9CA3AF" />
-      <Typography variant="content" style={{ color: '#9CA3AF' }}>Document support coming soon</Typography>
+    <View className="border border-dashed rounded-xl p-4 mb-3 items-center flex-row gap-3" style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider }}>
+      <Ionicons name="document-outline" size={18} color={colors.text.muted} />
+      <Typography variant="content" style={{ color: colors.text.muted }}>Document support coming soon</Typography>
     </View>
   );
 }
@@ -340,12 +347,13 @@ function DocumentPlaceholderCard() {
 // ─── FallbackCard ─────────────────────────────────────────────────────────────
 
 function FallbackCard({ item }: { item: VaultItem }) {
+  const colors = useThemeColors();
   const label = item.title ?? item.content ?? 'Unknown item';
 
   return (
-    <View className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-3 flex-row items-center gap-3">
-      <Ionicons name="help-circle-outline" size={18} color="#9CA3AF" />
-      <Typography variant="content" className="flex-1" style={{ color: LIGHT_THEME.text.muted }} numberOfLines={2}>
+    <View className="border rounded-xl p-4 mb-3 flex-row items-center gap-3" style={{ backgroundColor: colors.background.card, borderColor: colors.border.warm }}>
+      <Ionicons name="help-circle-outline" size={18} color={colors.text.muted} />
+      <Typography variant="content" className="flex-1" style={{ color: colors.text.muted }} numberOfLines={2}>
         {label}
       </Typography>
     </View>

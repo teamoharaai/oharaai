@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, SafeAreaView } from 'react-native';
 import ConstellationSample from '@/components/constellation/ConstellationSample';
 import { Typography } from '@/components/ui/Typography';
-import { LIGHT_THEME } from '@/constants/colors';
+import { useThemeColors } from '@/store/uiStore';
 import { authedFetch } from '@/lib/api/client';
 
 const GOAL_GATE = 3;
 const ECHO_GATE = 10;
 
 export default function ConstellationScreen() {
+  const colors = useThemeColors();
   const [goalCount, setGoalCount] = useState<number | null>(null);
   const [echoCount, setEchoCount] = useState<number | null>(null);
 
@@ -45,7 +46,7 @@ export default function ConstellationScreen() {
     goalCount >= GOAL_GATE && echoCount >= ECHO_GATE;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.page }}>
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
@@ -60,10 +61,10 @@ export default function ConstellationScreen() {
           style={{
             width: '100%',
             maxWidth: 360,
-            backgroundColor: LIGHT_THEME.background.card,
+            backgroundColor: colors.background.card,
             borderRadius: 24,
             borderWidth: 1,
-            borderColor: 'rgba(0,0,0,0.04)',
+            borderColor: colors.border.subtle,
             padding: 20,
             marginBottom: 40,
             shadowColor: '#000000',
@@ -81,7 +82,7 @@ export default function ConstellationScreen() {
           style={{
             fontFamily: 'Inter-SemiBold',
             fontSize: 22,
-            color: '#211F1A',
+            color: colors.text.primary,
             textAlign: 'center',
             marginBottom: 12,
           }}
@@ -110,7 +111,7 @@ export default function ConstellationScreen() {
               style={{
                 fontFamily: 'Inter-Regular',
                 fontSize: 12,
-                color: '#8A8172',
+                color: colors.text.secondary,
                 marginBottom: 6,
               }}
             >
@@ -119,7 +120,7 @@ export default function ConstellationScreen() {
             <View
               style={{
                 height: 4,
-                backgroundColor: '#EAE7E0',
+                backgroundColor: colors.border.divider,
                 borderRadius: 2,
                 overflow: 'hidden',
               }}
@@ -128,7 +129,7 @@ export default function ConstellationScreen() {
                 style={{
                   width: `${goalFill}%`,
                   height: 4,
-                  backgroundColor: '#1E3226',
+                  backgroundColor: colors.accent.primary,
                   borderRadius: 2,
                 }}
               />
@@ -141,7 +142,7 @@ export default function ConstellationScreen() {
               style={{
                 fontFamily: 'Inter-Regular',
                 fontSize: 12,
-                color: '#8A8172',
+                color: colors.text.secondary,
                 marginBottom: 6,
               }}
             >
@@ -152,7 +153,7 @@ export default function ConstellationScreen() {
             <View
               style={{
                 height: 4,
-                backgroundColor: '#EAE7E0',
+                backgroundColor: colors.border.divider,
                 borderRadius: 2,
                 overflow: 'hidden',
               }}
@@ -161,7 +162,7 @@ export default function ConstellationScreen() {
                 style={{
                   width: `${echoFill}%`,
                   height: 4,
-                  backgroundColor: '#1E3226',
+                  backgroundColor: colors.accent.primary,
                   borderRadius: 2,
                 }}
               />
@@ -173,7 +174,7 @@ export default function ConstellationScreen() {
             style={{
               fontFamily: 'Inter-Regular',
               fontSize: 13,
-              color: bothMet ? '#1E3226' : '#A79E8E',
+              color: bothMet ? colors.text.accent : colors.text.muted,
               textAlign: 'center',
               marginTop: 4,
             }}

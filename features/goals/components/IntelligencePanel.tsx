@@ -1,6 +1,6 @@
 import { Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useThemeColors } from '@/store/uiStore';
+import { useThemeColors, useUIStore } from '@/store/uiStore';
 
 export type IntelligencePanelState = 'stub' | 'disconnected' | 'connected';
 
@@ -41,6 +41,8 @@ export function IntelligencePanel({
   onSeeWhatHelps,
 }: IntelligencePanelProps) {
   const colors = useThemeColors();
+  const themeMode = useUIStore((store) => store.themeMode);
+  const dark = themeMode === 'dark';
   const { width } = useWindowDimensions();
   const compact = width < 560;
   const displayInsight =
@@ -58,15 +60,17 @@ export function IntelligencePanel({
         ? '#FC5200'
         : colors.accent.teal
       : state === 'stub'
-        ? colors.accent.tealSoft
+        ? colors.accent.primary
         : colors.text.mutedOnDark;
 
   return (
     <View
       accessibilityLabel={`Ohara Intelligence. ${sourceLabel}. ${displayInsight}`}
       style={{
-        backgroundColor: colors.background.sidebar,
+        backgroundColor: dark ? colors.background.sidebar : colors.background.page,
+        borderColor: colors.border.warm,
         borderRadius: 20,
+        borderWidth: 1,
         elevation: 2,
         overflow: 'hidden',
         shadowColor: colors.background.sidebar,
@@ -76,7 +80,9 @@ export function IntelligencePanel({
       }}
     >
       <LinearGradient
-        colors={[colors.background.sidebar, `${colors.accent.primary}38`]}
+        colors={dark
+          ? [colors.background.sidebar, `${colors.accent.primary}38`]
+          : [colors.background.page, colors.background.selectedRow]}
         end={{ x: 1, y: 1 }}
         start={{ x: 0, y: 0 }}
         style={{ paddingHorizontal: compact ? 20 : 26, paddingVertical: 24 }}
@@ -100,11 +106,11 @@ export function IntelligencePanel({
               width: 26,
             }}
           >
-            <Text style={{ color: colors.accent.teal, fontSize: 14 }}>✦</Text>
+            <Text style={{ color: dark ? colors.accent.teal : colors.text.accent, fontSize: 14 }}>✦</Text>
           </View>
           <Text
             style={{
-              color: colors.accent.tealSoft,
+              color: dark ? colors.accent.tealSoft : colors.text.accent,
               flexGrow: 1,
               fontFamily: 'Inter-SemiBold',
               fontSize: 11,
@@ -118,7 +124,7 @@ export function IntelligencePanel({
             accessibilityLabel={sourceLabel}
             style={{
               alignItems: 'center',
-              backgroundColor: `${colors.text.inverse}10`,
+              backgroundColor: dark ? `${colors.text.inverse}10` : colors.background.card,
               borderRadius: 999,
               flexDirection: 'row',
               gap: 6,
@@ -136,7 +142,7 @@ export function IntelligencePanel({
             />
             <Text
               style={{
-                color: colors.accent.tealSoft,
+                color: dark ? colors.accent.tealSoft : colors.text.accent,
                 fontFamily: 'Inter-Regular',
                 fontSize: 11,
               }}
@@ -148,7 +154,7 @@ export function IntelligencePanel({
 
         <Text
           style={{
-            color: colors.text.inverse,
+            color: dark ? colors.text.inverse : colors.text.primary,
             fontFamily: 'Lora-Italic',
             fontSize: 18,
             lineHeight: 28,
@@ -170,7 +176,7 @@ export function IntelligencePanel({
             displayStats.map((stat) => {
               const detailColor =
                 stat.tone === 'positive'
-                  ? colors.accent.teal
+                  ? dark ? colors.accent.teal : colors.text.accent
                   : stat.tone === 'warning'
                     ? colors.brt.rose
                     : colors.accent.tealSoft;
@@ -179,7 +185,9 @@ export function IntelligencePanel({
                 <View
                   key={`${stat.label}-${stat.value}`}
                   style={{
-                    backgroundColor: `${colors.text.inverse}12`,
+                    backgroundColor: dark ? `${colors.text.inverse}12` : colors.background.card,
+                    borderColor: dark ? colors.border.default : colors.border.warm,
+                    borderWidth: 1,
                     borderRadius: 10,
                     paddingHorizontal: 14,
                     paddingVertical: 10,
@@ -187,7 +195,7 @@ export function IntelligencePanel({
                 >
                   <Text
                     style={{
-                      color: colors.text.mutedOnDark,
+                      color: dark ? colors.text.mutedOnDark : colors.text.secondary,
                       fontFamily: 'Inter-Regular',
                       fontSize: 10.5,
                       letterSpacing: 1,
@@ -198,7 +206,7 @@ export function IntelligencePanel({
                   </Text>
                   <Text
                     style={{
-                      color: colors.text.inverse,
+                      color: dark ? colors.text.inverse : colors.text.primary,
                       fontFamily: 'Inter-SemiBold',
                       fontSize: 16,
                       marginTop: 2,
@@ -217,7 +225,9 @@ export function IntelligencePanel({
           ) : (
             <View
               style={{
-                backgroundColor: `${colors.text.inverse}12`,
+                backgroundColor: dark ? `${colors.text.inverse}12` : colors.background.card,
+                borderColor: dark ? colors.border.default : colors.border.warm,
+                borderWidth: 1,
                 borderRadius: 10,
                 paddingHorizontal: 14,
                 paddingVertical: 10,
@@ -225,7 +235,7 @@ export function IntelligencePanel({
             >
               <Text
                 style={{
-                  color: colors.text.mutedOnDark,
+                  color: dark ? colors.text.mutedOnDark : colors.text.secondary,
                   fontFamily: 'Inter-Regular',
                   fontSize: 11,
                 }}
@@ -244,7 +254,7 @@ export function IntelligencePanel({
             style={({ pressed }) => ({
               alignItems: 'center',
               alignSelf: compact ? 'stretch' : 'center',
-              backgroundColor: colors.accent.teal,
+              backgroundColor: colors.accent.primary,
               borderRadius: 10,
               justifyContent: 'center',
               marginLeft: compact ? 0 : 'auto',
@@ -255,7 +265,7 @@ export function IntelligencePanel({
           >
             <Text
               style={{
-                color: colors.background.sidebar,
+                color: colors.text.onAccent,
                 fontFamily: 'Inter-SemiBold',
                 fontSize: 13,
               }}

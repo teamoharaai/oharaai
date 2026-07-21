@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { View, Pressable, Alert, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
-import { GOAL_THEMES } from '@/constants/themes';
 import { Badge } from '@/components/ui/Badge';
 import { Typography } from '@/components/ui/Typography';
 import { useGoalStore } from '../store';
 import { GoalTitleRow } from './GoalTitleRow';
 import { getGoalRingProgress } from '../utils/ringProgress';
 import type { GoalWithDetails } from '../types';
+import { useThemeColors } from '@/store/uiStore';
 
 interface GoalCardProps {
   goal: GoalWithDetails;
@@ -19,7 +19,7 @@ function daysUntil(date: Date): number {
 }
 
 export function GoalCard({ goal, isNewest }: GoalCardProps) {
-  const theme = GOAL_THEMES[goal.colorTheme];
+  const colors = useThemeColors();
   const days = goal.deadline ? daysUntil(goal.deadline) : null;
   const deadlineProgress = getGoalRingProgress(goal);
   const deleteGoal = useGoalStore((state) => state.deleteGoal);
@@ -59,10 +59,10 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
           router.push({ pathname: '/(app)/goals/[id]' as never, params: { id: goal.id } })
         }
         style={({ pressed }) => ({
-          backgroundColor: '#FFFFFF',
+          backgroundColor: colors.background.card,
           borderRadius: 12,
           borderLeftWidth: 3,
-          borderLeftColor: theme.accent + '99',
+          borderLeftColor: colors.border.accent,
           padding: 16,
           opacity: pressed ? 0.85 : 1,
           transform: [{ scale: pressed ? 0.98 : 1 }],
@@ -91,12 +91,12 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
 
         {/* Deadline-decay progress bar */}
         {deadlineProgress !== null && (
-          <View style={{ height: 3, backgroundColor: '#EAE7E0', borderRadius: 2, marginBottom: 12 }}>
+          <View style={{ height: 3, backgroundColor: colors.border.divider, borderRadius: 2, marginBottom: 12 }}>
             <View
               style={{
                 width: `${deadlineProgress}%`,
                 height: 3,
-                backgroundColor: theme.accent,
+                backgroundColor: colors.accent.primary,
                 borderRadius: 2,
               }}
             />
@@ -125,7 +125,7 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
           {days !== null && (
             <Typography
               variant="caption"
-              style={{ color: days > 0 ? (days > 14 ? '#8A8172' : '#C0483A') : '#C0483A' }}
+              style={{ color: days > 0 ? (days > 14 ? colors.text.secondary : colors.feedback.danger.text) : colors.feedback.danger.text }}
             >
               {days > 0 ? `${days}d left` : 'Overdue'}
             </Typography>
@@ -142,9 +142,9 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
                       height: 6,
                       borderRadius: 3,
                       backgroundColor:
-                        tag === 'bud' ? '#4A7C5F' :
-                        tag === 'rose' ? '#F59E0B' :
-                        '#EF4444',
+                        tag === 'bud' ? colors.brt.bud :
+                        tag === 'rose' ? colors.brt.rose :
+                        colors.brt.thorn,
                     }}
                   />
                 ))}
@@ -157,7 +157,7 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
                 hitSlop={8}
                 onPress={() => setMenuOpen(true)}
               >
-                <Typography variant="caption" style={{ fontSize: 18, lineHeight: 20, color: '#A79E8E' }}>⋯</Typography>
+                <Typography variant="caption" style={{ fontSize: 18, lineHeight: 20, color: colors.text.muted }}>⋯</Typography>
               </Pressable>
             </View>
           </View>
@@ -170,10 +170,10 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
             position: 'absolute',
             top: 32,
             right: 0,
-            backgroundColor: '#FFFFFF',
+            backgroundColor: colors.background.card,
             borderRadius: 8,
             borderWidth: 0.5,
-            borderColor: '#EAE7E0',
+            borderColor: colors.border.divider,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.08,
@@ -195,7 +195,7 @@ export function GoalCard({ goal, isNewest }: GoalCardProps) {
               opacity: goal.has_successor ? 0.5 : 1,
             }}
           >
-            <Typography variant="body" style={{ color: '#C0483A', fontSize: 14 }}>
+            <Typography variant="body" style={{ color: colors.feedback.danger.text, fontSize: 14 }}>
               Delete goal
             </Typography>
           </Pressable>
