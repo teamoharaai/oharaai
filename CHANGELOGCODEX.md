@@ -2,8 +2,12 @@
 
 ## [Unreleased]
 
-<<<<<<< HEAD
-=======
+### Fixed (2026-07-20 — New Goal rebase repair)
+- **`app/goals/create.tsx`:** repaired the malformed tracker metadata declaration and reconciled stale pre-rebase measurable identifiers with the upstream tracker/milestone model while retaining runtime semantic theme tokens throughout both editors.
+- **`components/layout/AvatarMenu.tsx` and `SettingsModal.tsx`:** repaired mismatched and unclosed JSX introduced by the rebase, restored the upstream archived-goal settings section, and retained the shared themed toggle controls.
+- **`scripts/test-rls.ts`:** replaced the undeclared `dotenv` import with Node's built-in environment-file loader so the repository typecheck can include the RLS script without changing its missing-environment behavior.
+- **`CHANGELOGCODEX.md`:** removed unresolved rebase markers while retaining both sides' existing phase history.
+
 ### Added (2026-07-20 — Phase 3 shared card foundation)
 - **`components/ui/Card.tsx`:** added a typed semantic card foundation with canonical surface and divider tokens, a 16px radius, compact/default/spacious padding, optional light-only elevation, section spacing, aligned headers, dividers, and shared title/subtitle/metadata hierarchy.
 
@@ -15,7 +19,6 @@
 - **`components/ui/Modal.tsx`, `Input.tsx`, and `AnchoredPopover.tsx`:** wired shared elevated surfaces, inputs, borders, dividers, placeholder text, and action text to canonical semantic theme tokens so the primitives share the same light/dark structure.
 - **`components/ui/Typography.tsx`:** routed the shared `section-eyebrow` variant through the approved accent text role and removed its static light-only Tailwind color while retaining caller-owned `badge-text` semantics.
 
->>>>>>> fe0f489 (Standardize shared card system)
 ### Changed (2026-07-20 — Phase 1 theme foundation)
 - **`constants/colors.ts`:** made the canonical light/dark palette contract explicit with typed semantic theme and text-token interfaces while retaining the existing token structure and values.
 - **`app/(app)/dashboard.tsx`, `components/ui/EmptyStateCard.tsx`, `TodayGoalCard.tsx`, and `Typography.tsx`:** replaced Phase 1 dashboard, loading, action, empty-state, and typography color literals with runtime semantic tokens so the shared states respond consistently to light and dark mode.

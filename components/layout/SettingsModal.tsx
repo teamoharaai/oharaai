@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { router } from 'expo-router';
 import { authedFetch } from '@/lib/api/client';
 import type { ApiResponse } from '@/lib/api/contracts';
 import supabase from '@/lib/db/client';
@@ -141,12 +142,10 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
           >
             Dark mode
           </Text>
-          <Switch
+          <Toggle
             accessibilityLabel="Dark mode"
             value={themeMode === 'dark'}
             onValueChange={toggleTheme}
-            trackColor={{ false: colors.border.input, true: colors.accent.primary }}
-            thumbColor={colors.text.primary}
           />
         </View>
         <Typography
@@ -183,11 +182,10 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
             {isSaving ? (
               <ActivityIndicator size="small" color={colors.text.muted} />
             ) : (
-              <Switch
+              <Toggle
+                accessibilityLabel="AI Reflections"
                 value={intelligenceEnabled}
                 onValueChange={handleToggle}
-                trackColor={{ false: colors.border.input, true: colors.accent.primary }}
-                thumbColor={colors.text.primary}
               />
             )}
           </View>
@@ -199,7 +197,77 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
             When off, Echo entries are saved without AI analysis.
           </Typography>
         </View>
-      )}
+        )}
+
+        <View
+          style={{
+            borderTopColor: colors.border.divider,
+            borderTopWidth: 1,
+            marginTop: 24,
+            paddingTop: 22,
+          }}
+        >
+          <Typography
+            variant="eyebrow"
+            className="mb-3"
+            style={{ color: colors.text.secondary }}
+          >
+            Archived
+          </Typography>
+
+          {archivedLoading ? (
+            <ActivityIndicator
+              size="small"
+              color={colors.text.muted}
+              style={{ alignSelf: 'flex-start' }}
+            />
+          ) : archivedError ? (
+            <Typography variant="hint">
+              Couldn't load archived goals. Please try again.
+            </Typography>
+          ) : archivedGoals.length === 0 ? (
+            <Typography variant="hint">Archived goals will appear here.</Typography>
+          ) : (
+            <View style={{ gap: 8 }}>
+              {archivedGoals.map((goal) => (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open archived goal ${goal.title}`}
+                  key={goal.id}
+                  onPress={() => {
+                    onClose();
+                    router.push(`/(app)/goals/${goal.id}` as never);
+                  }}
+                  style={({ pressed }) => ({
+                    alignItems: 'center',
+                    backgroundColor: colors.background.card,
+                    borderColor: colors.border.warm,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    flexDirection: 'row',
+                    gap: 12,
+                    opacity: pressed ? 0.72 : 1,
+                    paddingHorizontal: 13,
+                    paddingVertical: 11,
+                  })}
+                >
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                      numberOfLines={1}
+                      variant="emphasis-sm"
+                      style={{ color: colors.text.primary }}
+                    >
+                      {goal.title}
+                    </Typography>
+                    <Typography variant="caption">Archived goal</Typography>
+                  </View>
+                  <Typography variant="caption" style={{ fontSize: 17 }}>›</Typography>
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </View>
+      </ScrollView>
     </Modal>
   );
 }

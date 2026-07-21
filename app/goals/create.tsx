@@ -67,8 +67,8 @@ const START_TRACKABLE = true;
 const INITIAL_COUNT = 3;
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
 
-const TYPE_META: Record<
-  GoalMeasurableType,
+function getTypeMeta(colors: ThemeColors): Record<
+  GoalTrackerType,
   { label: string; color: string; backgroundColor: string }
 > {
   return {
@@ -1182,8 +1182,8 @@ export default function GoalCreateScreen() {
 
             {trackers.length > 0 ? (
               <View style={{ gap: 8, marginTop: 14 }}>
-                {milestones.map((milestone) => {
-                  const meta = TYPE_META[milestone.type];
+                {trackers.map((tracker) => {
+                  const meta = typeMeta[tracker.type];
                   return (
                     <View
                       key={tracker.id}
@@ -1265,10 +1265,10 @@ export default function GoalCreateScreen() {
                 <TextInput
                   accessibilityLabel="Tracker name"
                   autoFocus
-                  onChangeText={setDraftTitle}
-                  onSubmitEditing={addMilestone}
-                  placeholder="Milestone name"
-                  placeholderTextColor={LIGHT_THEME.text.muted}
+                  onChangeText={setDraftTrackerTitle}
+                  onSubmitEditing={addTracker}
+                  placeholder="Tracker name"
+                  placeholderTextColor={colors.text.muted}
                   style={{
                     backgroundColor: colors.background.input,
                     borderColor: colors.border.input,
@@ -1286,9 +1286,9 @@ export default function GoalCreateScreen() {
                 />
 
                 <View style={{ flexDirection: 'row', gap: 6, marginBottom: 12 }}>
-                  {GOAL_MEASURABLE_TYPES.map((type) => {
-                    const meta = TYPE_META[type];
-                    const active = draftType === type;
+                  {GOAL_TRACKER_TYPES.map((type) => {
+                    const meta = typeMeta[type];
+                    const active = draftTrackerType === type;
                     return (
                       <Pressable
                         accessibilityRole="button"
@@ -1328,13 +1328,13 @@ export default function GoalCreateScreen() {
                       keyboardType="numeric"
                       onChangeText={setDraftTrackerTargetValue}
                       placeholder="Target"
-                      placeholderTextColor={LIGHT_THEME.text.muted}
+                      placeholderTextColor={colors.text.muted}
                       style={{
-                        backgroundColor: LIGHT_THEME.background.input,
-                        borderColor: LIGHT_THEME.background.subtle,
+                        backgroundColor: colors.background.input,
+                        borderColor: colors.border.input,
                         borderRadius: 10,
                         borderWidth: 1,
-                        color: LIGHT_THEME.text.primary,
+                        color: colors.text.primary,
                         flex: 1,
                         fontFamily: 'Inter-Regular',
                         fontSize: 13,
@@ -1348,13 +1348,13 @@ export default function GoalCreateScreen() {
                       accessibilityLabel="Tracker target unit"
                       onChangeText={setDraftTrackerTargetUnit}
                       placeholder="Unit (e.g. km)"
-                      placeholderTextColor={LIGHT_THEME.text.muted}
+                      placeholderTextColor={colors.text.muted}
                       style={{
-                        backgroundColor: LIGHT_THEME.background.input,
-                        borderColor: LIGHT_THEME.background.subtle,
+                        backgroundColor: colors.background.input,
+                        borderColor: colors.border.input,
                         borderRadius: 10,
                         borderWidth: 1,
-                        color: LIGHT_THEME.text.primary,
+                        color: colors.text.primary,
                         flex: 2,
                         fontFamily: 'Inter-Regular',
                         fontSize: 13,
@@ -1447,7 +1447,7 @@ export default function GoalCreateScreen() {
             <Eyebrow style={{ marginBottom: 2 }}>Milestones</Eyebrow>
             <Typography
               variant="description"
-              style={{ color: LIGHT_THEME.text.secondary, fontSize: 14, lineHeight: 21, marginTop: 10 }}
+              style={{ color: colors.text.secondary, fontSize: 14, lineHeight: 21, marginTop: 10 }}
             >
               Add the one-time events that are critical to this goal. Recurring behaviors and
               numbers belong in Trackers.
@@ -1460,8 +1460,8 @@ export default function GoalCreateScreen() {
                     key={milestone.id}
                     style={{
                       alignItems: 'center',
-                      backgroundColor: LIGHT_THEME.background.goalCard,
-                      borderColor: LIGHT_THEME.border.warmSubtle,
+                      backgroundColor: colors.background.goalCard,
+                      borderColor: colors.border.warmSubtle,
                       borderRadius: 12,
                       borderWidth: 1,
                       flexDirection: 'row',
@@ -1472,21 +1472,21 @@ export default function GoalCreateScreen() {
                   >
                     <Typography
                       variant="meta"
-                      style={{ color: LIGHT_THEME.text.accent, fontSize: 14 }}
+                      style={{ color: colors.text.accent, fontSize: 14 }}
                     >
                       ◆
                     </Typography>
                     <View style={{ flex: 1 }}>
                       <Typography
                         variant="content"
-                        style={{ color: LIGHT_THEME.text.primary, fontSize: 14 }}
+                        style={{ color: colors.text.primary, fontSize: 14 }}
                       >
                         {milestone.title}
                       </Typography>
                       {milestone.description || milestone.dueDate ? (
                         <Typography
                           variant="caption"
-                          style={{ color: LIGHT_THEME.text.muted, fontSize: 11.5, marginTop: 2 }}
+                          style={{ color: colors.text.muted, fontSize: 11.5, marginTop: 2 }}
                         >
                           {[
                             milestone.description,
@@ -1513,7 +1513,7 @@ export default function GoalCreateScreen() {
                     >
                       <Typography
                         variant="body"
-                        style={{ color: LIGHT_THEME.text.muted, fontSize: 18, lineHeight: 18 }}
+                        style={{ color: colors.text.muted, fontSize: 18, lineHeight: 18 }}
                       >
                         ×
                       </Typography>
@@ -1526,8 +1526,8 @@ export default function GoalCreateScreen() {
             {showMilestoneAddForm ? (
               <View
                 style={{
-                  backgroundColor: LIGHT_THEME.background.page,
-                  borderColor: LIGHT_THEME.background.subtle,
+                  backgroundColor: colors.background.page,
+                  borderColor: colors.border.divider,
                   borderRadius: 12,
                   borderWidth: 1,
                   marginTop: 12,
@@ -1539,13 +1539,13 @@ export default function GoalCreateScreen() {
                   autoFocus
                   onChangeText={setDraftMilestoneTitle}
                   placeholder="Milestone name"
-                  placeholderTextColor={LIGHT_THEME.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   style={{
-                    backgroundColor: LIGHT_THEME.background.input,
-                    borderColor: LIGHT_THEME.background.subtle,
+                    backgroundColor: colors.background.input,
+                    borderColor: colors.border.input,
                     borderRadius: 10,
                     borderWidth: 1,
-                    color: LIGHT_THEME.text.primary,
+                    color: colors.text.primary,
                     fontFamily: 'Inter-Regular',
                     fontSize: 13,
                     marginBottom: 8,
@@ -1560,13 +1560,13 @@ export default function GoalCreateScreen() {
                   multiline
                   onChangeText={setDraftMilestoneDescription}
                   placeholder="Why this event matters (optional)"
-                  placeholderTextColor={LIGHT_THEME.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   style={{
-                    backgroundColor: LIGHT_THEME.background.input,
-                    borderColor: LIGHT_THEME.background.subtle,
+                    backgroundColor: colors.background.input,
+                    borderColor: colors.border.input,
                     borderRadius: 10,
                     borderWidth: 1,
-                    color: LIGHT_THEME.text.primary,
+                    color: colors.text.primary,
                     fontFamily: 'Inter-Regular',
                     fontSize: 13,
                     marginBottom: 8,
@@ -1583,16 +1583,16 @@ export default function GoalCreateScreen() {
                   autoCapitalize="none"
                   onChangeText={setDraftMilestoneDueDate}
                   placeholder="Due date (optional, YYYY-MM-DD)"
-                  placeholderTextColor={LIGHT_THEME.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   style={{
-                    backgroundColor: LIGHT_THEME.background.input,
+                    backgroundColor: colors.background.input,
                     borderColor:
                       milestoneDueDateValidation && !milestoneDueDateValidation.valid
-                        ? LIGHT_THEME.feedback.danger.text
-                        : LIGHT_THEME.background.subtle,
+                        ? colors.feedback.danger.text
+                        : colors.border.input,
                     borderRadius: 10,
                     borderWidth: 1,
-                    color: LIGHT_THEME.text.primary,
+                    color: colors.text.primary,
                     fontFamily: 'Inter-Regular',
                     fontSize: 13,
                     marginBottom: 12,
@@ -1608,7 +1608,7 @@ export default function GoalCreateScreen() {
                     onPress={cancelMilestoneAddForm}
                     style={({ pressed }) => ({
                       alignItems: 'center',
-                      borderColor: LIGHT_THEME.background.subtle,
+                      borderColor: colors.border.divider,
                       borderRadius: 8,
                       borderWidth: 1,
                       flex: 1,
@@ -1616,7 +1616,7 @@ export default function GoalCreateScreen() {
                       padding: 9,
                     })}
                   >
-                    <Typography variant="meta" style={{ color: LIGHT_THEME.text.secondary, fontSize: 13 }}>
+                    <Typography variant="meta" style={{ color: colors.text.secondary, fontSize: 13 }}>
                       Cancel
                     </Typography>
                   </Pressable>
@@ -1627,14 +1627,14 @@ export default function GoalCreateScreen() {
                     onPress={addMilestone}
                     style={({ pressed }) => ({
                       alignItems: 'center',
-                      backgroundColor: LIGHT_THEME.accent.primary,
+                      backgroundColor: colors.accent.primary,
                       borderRadius: 8,
                       flex: 1,
                       opacity: !canAddMilestone ? 0.45 : pressed ? 0.75 : 1,
                       padding: 9,
                     })}
                   >
-                    <Typography variant="meta" style={{ color: '#FFFFFF', fontFamily: 'Inter-SemiBold', fontSize: 13 }}>
+                    <Typography variant="meta" style={{ color: colors.text.onAccent, fontFamily: 'Inter-SemiBold', fontSize: 13 }}>
                       Add
                     </Typography>
                   </Pressable>
@@ -1648,7 +1648,7 @@ export default function GoalCreateScreen() {
                 onPress={openMilestoneAddForm}
                 style={({ pressed }) => ({
                   alignItems: 'center',
-                  borderColor: LIGHT_THEME.border.input,
+                  borderColor: colors.border.input,
                   borderRadius: 10,
                   borderStyle: 'dashed',
                   borderWidth: 1,
@@ -1657,7 +1657,7 @@ export default function GoalCreateScreen() {
                   paddingVertical: 10,
                 })}
               >
-                <Typography variant="meta" style={{ color: LIGHT_THEME.text.secondary, fontSize: 13 }}>
+                <Typography variant="meta" style={{ color: colors.text.secondary, fontSize: 13 }}>
                   ＋ Add milestone
                 </Typography>
               </Pressable>
@@ -1681,14 +1681,14 @@ export default function GoalCreateScreen() {
               >
                 <Typography
                   variant="meta"
-                  style={{ color: LIGHT_THEME.text.accent, fontSize: 13 }}
+                  style={{ color: colors.text.accent, fontSize: 13 }}
                 >
                   ✦
                 </Typography>
                 <Typography
                   variant="meta"
                   style={{
-                    color: LIGHT_THEME.text.accent,
+                    color: colors.text.accent,
                     fontFamily: 'Inter-Medium',
                     fontSize: 13,
                   }}
