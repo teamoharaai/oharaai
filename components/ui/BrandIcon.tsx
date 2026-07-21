@@ -30,15 +30,16 @@ type BrandIconProps = {
   name: BrandIconName;
   size?: number;
   style?: StyleProp<ImageStyle>;
+  tintColor?: string;
 };
 
-export function BrandIcon({ name, size = 20, style }: BrandIconProps) {
+export function BrandIcon({ name, size = 20, style, tintColor }: BrandIconProps) {
   return (
     <Image
       source={BRAND_ICON_SOURCES[name]}
       resizeMode="contain"
       accessible={false}
-      style={[{ height: size, width: size }, style]}
+      style={[{ height: size, tintColor, width: size }, style]}
     />
   );
 }

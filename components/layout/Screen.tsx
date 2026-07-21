@@ -1,5 +1,6 @@
 import { SafeAreaView, ScrollView } from 'react-native';
 import type { ReactNode } from 'react';
+import { DARK_THEME } from '@/constants/colors';
 import { useThemeColors } from '@/store/uiStore';
 
 interface ScreenProps {
@@ -10,7 +11,7 @@ interface ScreenProps {
 
 export function Screen({ children, scrollable = true, dark = false }: ScreenProps) {
   const colors = useThemeColors();
-  const backgroundColor = dark ? colors.background.sidebar : colors.background.page;
+  const backgroundColor = dark ? DARK_THEME.background.page : colors.background.page;
 
   if (!scrollable) {
     return (

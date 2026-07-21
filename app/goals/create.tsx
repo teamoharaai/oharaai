@@ -21,6 +21,7 @@ import {
 } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { AppHeader } from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Toggle } from '@/components/ui/Toggle';
@@ -591,49 +592,17 @@ export default function GoalCreateScreen() {
       <Sidebar />
 
       <View style={{ flex: 1, minWidth: 0 }}>
-        <View
-          style={{
-            alignItems: 'center',
-            backgroundColor: colors.background.page,
-            borderBottomColor: colors.background.subtle,
-            borderBottomWidth: 0.5,
-            flexDirection: 'row',
-            minHeight: 60,
-            paddingHorizontal: 24,
-            paddingVertical: 12,
-          }}
-        >
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.back()}
-            style={({ pressed }) => ({
-              alignItems: 'center',
-              flexDirection: 'row',
-              gap: 6,
-              marginRight: 12,
-              opacity: pressed ? 0.65 : 1,
-            })}
-          >
-            <Typography variant="nav-back">←</Typography>
-            <Typography variant="nav-back">Journey</Typography>
-          </Pressable>
-          <View
-            style={{
-              backgroundColor: colors.background.subtle,
-              height: 16,
-              marginRight: 12,
-              width: 1,
-            }}
-          />
-          <Typography variant="nav-title">New goal</Typography>
-          <View style={{ flex: 1 }} />
-          <CreateButton
+        <AppHeader
+          backLabel="Journey"
+          onBack={() => router.back()}
+          title="New goal"
+          actions={<CreateButton
             compact
             enabled={createEnabled}
             onPress={handleCreateGoal}
             saving={saving}
-          />
-        </View>
+          />}
+        />
 
         <ScrollView
           style={{ flex: 1 }}

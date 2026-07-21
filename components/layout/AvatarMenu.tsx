@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Pressable, Text, View } from 'react-native';
 import { authedFetch, signOutAndRedirect } from '@/lib/api/client';
 import type { ApiResponse } from '@/lib/api/contracts';
 import { Avatar } from '@/components/ui/Avatar';
@@ -11,6 +11,42 @@ import { SettingsModal } from './SettingsModal';
 interface ProfileSummary {
   display_name: string;
   avatar_url: string | null;
+}
+
+function MenuRow({
+  danger = false,
+  label,
+  onPress,
+}: {
+  danger?: boolean;
+  label: string;
+  onPress: () => void;
+}) {
+  const colors = useThemeColors();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => ({
+        backgroundColor: pressed ? colors.background.selectedRow : 'transparent',
+        borderRadius: 10,
+        minHeight: 44,
+        justifyContent: 'center',
+        paddingHorizontal: 10,
+      })}
+    >
+      <Text
+        style={{
+          color: danger ? colors.feedback.danger.text : colors.text.primary,
+          fontFamily: 'Inter-Regular',
+          fontSize: 15,
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
 }
 
 export function AvatarMenu() {
@@ -61,22 +97,19 @@ export function AvatarMenu() {
   return (
     <>
       <TouchableOpacity
-        accessible
-        accessibilityLabel="Open account menu"
-        accessibilityRole="button"
         onPress={() => setMenuOpen(true)}
-        style={{
+        style={({ pressed }) => ({
           flexDirection: 'row',
           alignItems: 'center',
           paddingHorizontal: 16,
           paddingVertical: 8,
           borderRadius: 12,
           marginBottom: 4,
-        }}
-        activeOpacity={0.7}
+          opacity: pressed ? 0.7 : 1,
+        })}
       >
         <Avatar avatarUrl={avatarUrl} displayName={displayName} size={36} />
-      </TouchableOpacity>
+      </Pressable>
 
       <Modal
         visible={menuOpen}
@@ -97,7 +130,9 @@ export function AvatarMenu() {
           <Pressable
             onPress={() => {}}
             style={{
-              backgroundColor: colors.background.page,
+              backgroundColor: colors.background.card,
+              borderColor: colors.border.divider,
+              borderWidth: 1,
               borderRadius: 16,
               padding: 20,
               width: '100%',
@@ -128,63 +163,54 @@ export function AvatarMenu() {
                 </Text>
               </View>
 
-              <TouchableOpacity
+              <Pressable
                 onPress={toggleTheme}
                 accessibilityRole="button"
                 accessibilityLabel={
                   themeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'
                 }
                 accessibilityHint="Changes the app appearance"
-                style={{
+                style={({ pressed }) => ({
                   width: 40,
                   height: 40,
                   marginLeft: 12,
                   borderRadius: 20,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: colors.background.input,
+                  backgroundColor: pressed
+                    ? colors.background.selectedRow
+                    : colors.background.input,
                   borderWidth: 1,
-                  borderColor: colors.border.default,
-                }}
-                activeOpacity={0.7}
+                  borderColor: colors.border.divider,
+                })}
               >
-                <BrandIcon name="theme-mode" size={36} />
-              </TouchableOpacity>
+                <BrandIcon
+                  name="theme-mode"
+                  size={36}
+                  tintColor={themeMode === 'light' ? colors.text.primary : undefined}
+                />
+              </Pressable>
             </View>
 
-            <TouchableOpacity
+            <MenuRow
+              label="Profile"
               onPress={() => {
                 setMenuOpen(false);
                 setAccountOpen(true);
               }}
-              style={{ paddingVertical: 12 }}
-              activeOpacity={0.7}
-            >
-              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: colors.text.primary }}>
-                Profile
-              </Text>
-            </TouchableOpacity>
+            />
 
-            <TouchableOpacity
+            <MenuRow
+              label="Settings"
               onPress={() => {
                 setMenuOpen(false);
                 setSettingsOpen(true);
               }}
-              style={{ paddingVertical: 12 }}
-              activeOpacity={0.7}
-            >
-              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: colors.text.primary }}>
-                Settings
-              </Text>
-            </TouchableOpacity>
+            />
 
             <View style={{ height: 1, backgroundColor: colors.border.divider, marginVertical: 4 }} />
 
-            <TouchableOpacity onPress={handleSignOut} style={{ paddingVertical: 12 }} activeOpacity={0.7}>
-              <Text style={{ fontFamily: 'Inter-Regular', fontSize: 15, color: colors.feedback.danger.text }}>
-                Log out
-              </Text>
-            </TouchableOpacity>
+            <MenuRow danger label="Log out" onPress={() => void handleSignOut()} />
           </Pressable>
         </Pressable>
       </Modal>

@@ -9,8 +9,10 @@ import { useState } from 'react';
 import { router } from 'expo-router';
 import { useProjectStore } from '@/features/projects/store';
 import { Typography } from '@/components/ui/Typography';
+import { useThemeColors } from '@/store/uiStore';
 
 export default function CreateProjectScreen() {
+  const colors = useThemeColors();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,7 +43,7 @@ export default function CreateProjectScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.page }}>
       <View style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20, paddingBottom: 40 }}
@@ -52,7 +54,7 @@ export default function CreateProjectScreen() {
             <Pressable onPress={() => router.back()}>
               <Typography variant="nav-back">← Journey</Typography>
             </Pressable>
-            <Typography variant="nav-back" style={{ color: '#A79E8E', marginHorizontal: 8 }}>
+            <Typography variant="nav-back" style={{ color: colors.border.divider, marginHorizontal: 8 }}>
               |
             </Typography>
             <Typography variant="nav-title">New project</Typography>

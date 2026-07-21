@@ -56,21 +56,21 @@ export type ThemeTextColor = keyof ThemeColors['text'];
 
 export const LIGHT_THEME = {
   background: {
-    page: '#F8F4EC', // reconciled: was #F5F1EA (warm-neutral repalette)
+    page: '#F7F4EE',
     card: '#FFFFFF',
-    sidebar: '#1E3226', // reconciled: was #3D5247 (deep emerald)
+    sidebar: '#EEE9DF',
     input: '#F0EDE6',
     subtle: '#EAE7E0',
     goalCard: '#FCFAF4', // new: goal ring card surface
     selectedRow: '#EEF2EF',
   },
   text: {
-    primary: '#211F1A', // reconciled: was #1A1F1C (warm ink)
-    secondary: '#8A8172', // reconciled: was #6B7B6E (warm ink secondary)
+    primary: '#24231F',
+    secondary: '#5F5B52',
     inverse: '#EDE7DA', // reconciled: was #E8EDE9 (on-dark / wordmark)
     onAccent: '#EDE7DA', // high-contrast text on accent.primary
     accent: '#4A7C5F',
-    muted: '#A79E8E', // reconciled: was #9CAF9F (warm ink muted)
+    muted: '#7C766B',
     mutedOnDark: '#9C9483', // new: muted text on dark surfaces (checked hero)
   },
   border: {
@@ -80,7 +80,7 @@ export const LIGHT_THEME = {
     warm: '#EDE6D8', // new: warm border (cards / dividers)
     warmSubtle: '#EFE9DC', // new: warm border (goal ring card)
     input: '#D8D2C8',
-    divider: '#E8E5DF',
+    divider: '#D8D1C5',
     toggleGlyph: '#A8C4AE', // new: sidebar collapse/expand toggle chevron glyph
   },
   brt: {
@@ -116,13 +116,13 @@ export const LIGHT_THEME = {
 
 export const DARK_THEME = {
   background: {
-    page: '#111111',
-    card: '#1A1A1A',
-    sidebar: '#172019', // derived, no Figma dark token
+    page: '#141414',
+    card: '#202020',
+    sidebar: '#1A1A1A',
     input: '#101010', // derived, no Figma dark token
     subtle: '#0D0D0D', // derived, no Figma dark token
     goalCard: '#121212', // derived, no Figma dark token
-    selectedRow: '#101010', // derived, no Figma dark token
+    selectedRow: '#222A23', // low-emphasis green tint for active navigation
   },
   text: {
     primary: '#FFFFFF',
