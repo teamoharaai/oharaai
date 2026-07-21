@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;background:#F8F4EC;-webkit-font-smoothing:antialiased;}
+  a{color:#4A7C5F;text-decoration:none;}
+  a:hover{color:#2F8F6D;}
+  [contenteditable]{outline:none;border-radius:6px;transition:box-shadow .15s,background .15s;}
+  [contenteditable]:hover{box-shadow:inset 0 0 0 1px #E4DECF;}
+  [contenteditable]:focus{box-shadow:inset 0 0 0 1.5px #4A7C5F;background:#FCFBF7;}
+  .navlink:hover{background:#2A4436 !important;}
+  .toprail:hover{background:#F1EDE3 !important;border-color:#E0D8C6 !important;}
+  .kebab:hover{background:rgba(255,255,255,.14) !important;}
+  .kebab-l:hover{background:#F1EDE3 !important;}
+  .mstone:hover{background:#FBFAF5 !important;}
+  .reccard:hover{border-color:#D6CFBE !important;box-shadow:0 6px 20px rgba(30,50,38,.08) !important;}
+  .caldy:hover{background:#EEF2EF !important;}
+  .chip{cursor:pointer;transition:background .12s,color .12s,border-color .12s;}
+  .mitem:hover{background:#F5F1E7 !important;}
+  .markdone:hover{filter:brightness(.97);}
+</style>
+</helmet>
+
+<div style="display:flex;min-height:100vh;font-family:'Inter',system-ui,sans-serif;background:#F8F4EC;color:#211F1A;">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside style="width:220px;flex-shrink:0;background:#1E3226;display:flex;flex-direction:column;padding:24px 12px 32px;">
+    <div style="display:flex;align-items:center;gap:10px;padding:0 4px 4px;">
+      <img src="assets/brand/ohara-logo.png" alt="" style="width:52px;height:52px;object-fit:contain;">
+      <span style="color:#EDE7DA;font-weight:600;font-size:22px;letter-spacing:4px;">OHARA</span>
+    </div>
+    <nav style="margin-top:26px;display:flex;flex-direction:column;gap:4px;">
+      <div class="navlink" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;background:#2A4436;cursor:pointer;">
+        <img src="assets/brand/goals-logo.png" alt="" style="width:20px;height:20px;object-fit:contain;">
+        <span style="color:#EDE7DA;font-size:14px;font-weight:500;">Goals</span>
+      </div>
+      <div class="navlink" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;cursor:pointer;">
+        <img src="assets/brand/echo-logo.png" alt="" style="width:20px;height:20px;object-fit:contain;opacity:.85;">
+        <span style="color:#8FA294;font-size:14px;font-weight:500;">Echo</span>
+      </div>
+      <div class="navlink" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;cursor:pointer;">
+        <span style="width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:#8FA294;font-size:16px;">◇</span>
+        <span style="color:#8FA294;font-size:14px;font-weight:500;">Explore</span>
+      </div>
+    </nav>
+    <div style="flex:1;"></div>
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 8px;">
+      <div style="width:34px;height:34px;border-radius:50%;background:#3A5445;display:flex;align-items:center;justify-content:center;color:#CFE0D4;font-size:13px;font-weight:600;">JR</div>
+      <div style="line-height:1.2;">
+        <div style="color:#EDE7DA;font-size:13px;font-weight:500;">Jordan R.</div>
+        <div style="color:#7C8F81;font-size:11px;">Free plan</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main style="flex:1;min-width:0;display:flex;flex-direction:column;">
+
+    <!-- top nav bar -->
+    <div style="display:flex;align-items:center;padding:20px 32px;">
+      <span style="color:#4A7C5F;font-size:15px;cursor:pointer;">← Goals</span>
+      <span style="color:#C9C1B1;margin:0 12px;">|</span>
+      <img src="assets/brand/goal-mark.png" alt="" style="width:16px;height:16px;object-fit:contain;margin-right:8px;">
+      <span style="font-size:15px;font-weight:500;color:#211F1A;">Run a 5K</span>
+      <div style="flex:1;"></div>
+      <div style="display:flex;gap:10px;">
+        <div class="toprail" style="display:flex;align-items:center;gap:8px;background:#FFFFFF;border:1px solid #EDE6D8;border-radius:12px;padding:8px 14px;cursor:pointer;">
+          <span style="font-size:16px;color:#1E3226;">◫</span>
+          <div style="line-height:1.1;"><div style="font-size:13px;font-weight:600;color:#211F1A;">Vault</div><div style="font-size:10.5px;color:#A79E8E;">7 items</div></div>
+        </div>
+        <div class="toprail" style="display:flex;align-items:center;gap:8px;background:#FFFFFF;border:1px solid #EDE6D8;border-radius:12px;padding:8px 14px;cursor:pointer;">
+          <span style="font-size:16px;color:#1E3226;">✦</span>
+          <div style="line-height:1.1;"><div style="font-size:13px;font-weight:600;color:#211F1A;">Reflections</div><div style="font-size:10.5px;color:#A79E8E;">Journal</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- content: left column + activity rail -->
+    <div style="display:flex;gap:20px;align-items:flex-start;padding:0 32px 48px;">
+
+      <!-- ---- LEFT COLUMN ---- -->
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;">
+
+        <!-- ======= GOAL TITLE CARD (redesigned) ======= -->
+        <div style="background:#FFFFFF;border-radius:20px;border:1px solid #EDE6D8;padding:26px 28px;box-shadow:0 4px 22px rgba(30,50,38,.05);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <span style="background:#F0EDE6;color:#4A7C5F;font-size:11px;font-weight:500;padding:3px 10px;border-radius:999px;">Body</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;background:#E8F5EF;color:#2F8F6D;font-size:11px;font-weight:500;padding:3px 10px;border-radius:999px;"><span style="width:5px;height:5px;border-radius:50%;background:#2F8F6D;"></span>Active</span>
+              <span style="background:#6E5CE712;color:#6E5CE7;font-size:11px;font-weight:500;padding:3px 10px;border-radius:999px;">✦ AI-guided</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+            <div class="markdone" onClick="{{ toggleDone }}" title="Mark goal complete" style="{{ doneBtnStyle }}"><span style="font-size:13px;">✓</span>{{ doneBtnLabel }}</div>
+            <div style="position:relative;">
+              <div class="kebab-l" onClick="{{ toggleMenu }}" style="width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#A79E8E;font-size:17px;cursor:pointer;letter-spacing:1px;">⋯</div>
+              <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;top:36px;right:0;z-index:50;width:240px;background:#FFFFFF;border:1px solid #EDE6D8;border-radius:14px;padding:6px;box-shadow:0 16px 44px rgba(20,35,25,.20);">
+                  <div class="mitem" onClick="{{ closeMenu }}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:13.5px;color:#211F1A;cursor:pointer;"><span style="width:18px;text-align:center;color:#8A8172;">↦</span>Move to project…</div>
+                  <div class="mitem" onClick="{{ closeMenu }}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:13.5px;color:#211F1A;cursor:pointer;"><span style="width:18px;text-align:center;color:#8A8172;">✎</span>Edit goal</div>
+                  <div style="height:1px;background:#EFE9DC;margin:5px 8px;"></div>
+                  <div class="mitem" onClick="{{ closeMenu }}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:13.5px;color:#B4472E;cursor:pointer;"><span style="width:18px;text-align:center;">⌫</span>Archive goal</div>
+                </div>
+              </sc-if>
+            </div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:flex-start;gap:24px;">
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:center;gap:11px;margin-bottom:10px;">
+                <img src="assets/brand/goal-mark.png" alt="" style="width:26px;height:26px;object-fit:contain;flex-shrink:0;">
+                <h1 contenteditable="true" suppressContentEditableWarning="true" style="margin:0;font-family:'Lora',Georgia,serif;font-weight:600;font-size:32px;line-height:1.1;color:#211F1A;letter-spacing:-.4px;">Run a 5K</h1>
+                <span style="font-size:12px;color:#CDC6B5;">✎</span>
+              </div>
+              <p contenteditable="true" suppressContentEditableWarning="true" style="margin:0;font-size:14.5px;line-height:1.55;color:#8A8172;max-width:56ch;">Go from the couch to finishing a full 5-kilometre race without stopping — building a steady running habit one week at a time.</p>
+            </div>
+            <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:6px;">
+              <div style="width:92px;height:92px;position:relative;">
+                <svg width="92" height="92" viewBox="0 0 92 92">
+                  <circle cx="46" cy="46" r="39" fill="none" stroke="#EDE6D8" stroke-width="7"></circle>
+                  <circle cx="46" cy="46" r="39" fill="none" stroke="#4A7C5F" stroke-width="7" stroke-linecap="round" stroke-dasharray="245" stroke-dashoffset="{{ ringOffset }}" transform="rotate(-90 46 46)"></circle>
+                </svg>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                  <span style="font-size:22px;font-weight:700;color:#211F1A;">{{ ringPct }}</span>
+                </div>
+              </div>
+              <span style="font-size:11px;color:#2F8F6D;font-weight:600;">{{ ringStatus }}</span>
+            </div>
+          </div>
+
+          <div style="height:1px;background:#EFE9DC;margin:20px 0 16px;"></div>
+
+          <!-- meta stats — deadline lives here now -->
+          <div style="display:flex;gap:34px;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:10px;font-weight:600;letter-spacing:1px;color:#B0A794;text-transform:uppercase;margin-bottom:3px;">Category</div>
+              <div style="font-size:13.5px;font-weight:600;color:#211F1A;">Body · Fitness</div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:600;letter-spacing:1px;color:#B0A794;text-transform:uppercase;margin-bottom:3px;">Started</div>
+              <div style="font-size:13.5px;font-weight:600;color:#211F1A;">Jun 28, 2026</div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:600;letter-spacing:1px;color:#B0A794;text-transform:uppercase;margin-bottom:3px;">End date</div>
+              <div style="font-size:13.5px;font-weight:600;color:#211F1A;">{{ deadlineFull }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======= COUNTDOWN (minimal strip) ======= -->
+        <div style="position:relative;background:#1E3226;border-radius:16px;padding:14px 20px;box-shadow:0 3px 16px rgba(20,35,25,.10);display:flex;align-items:center;gap:18px;">
+          <span style="font-size:10.5px;font-weight:600;letter-spacing:1.5px;color:#9FD9C4;text-transform:uppercase;white-space:nowrap;">Race day in</span>
+          <div style="display:flex;align-items:baseline;gap:3px;color:#EDE7DA;font-variant-numeric:tabular-nums;white-space:nowrap;">
+            <span style="font-size:22px;font-weight:700;line-height:1;">{{ dd }}</span><span style="font-size:11px;color:#6E8C7B;margin-right:6px;">d</span>
+            <span style="font-size:22px;font-weight:700;line-height:1;">{{ hh }}</span><span style="font-size:11px;color:#6E8C7B;margin-right:6px;">h</span>
+            <span style="font-size:22px;font-weight:700;line-height:1;">{{ mm }}</span><span style="font-size:11px;color:#6E8C7B;">m</span>
+          </div>
+          <div style="flex:1;min-width:40px;display:flex;flex-direction:column;gap:5px;">
+            <div style="height:4px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;">
+              <div style="height:4px;border-radius:3px;background:linear-gradient(90deg,#2F8F6D,#6FDFB8);width:{{ timePct }};"></div>
+            </div>
+            <span style="font-size:10.5px;color:#7C9A88;">{{ elapsedPhrase }}</span>
+          </div>
+          <div class="kebab" onClick="{{ toggleCal }}" style="flex-shrink:0;width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;color:#9FD9C4;font-size:16px;cursor:pointer;letter-spacing:1px;">⋯</div>
+
+          <!-- calendar popover -->
+          <sc-if value="{{ calOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;top:48px;right:20px;z-index:40;background:#FFFFFF;border:1px solid #EDE6D8;border-radius:16px;padding:16px;width:280px;box-shadow:0 16px 44px rgba(20,35,25,.22);">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <span onClick="{{ prevMonth }}" style="cursor:pointer;color:#8A8172;font-size:18px;padding:0 6px;">‹</span>
+                <span style="font-family:'Lora',serif;font-weight:600;font-size:16px;color:#211F1A;">{{ monthLabel }}</span>
+                <span onClick="{{ nextMonth }}" style="cursor:pointer;color:#8A8172;font-size:18px;padding:0 6px;">›</span>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:6px;">
+                <div style="text-align:center;font-size:10px;font-weight:600;color:#B7AE9C;padding:4px 0;">S</div>
+                <div style="text-align:center;font-size:10px;font-weight:600;color:#B7AE9C;padding:4px 0;">M</div>
+                <div style="text-align:center;font-size:10px;font-weight:600;color:#B7AE9C;padding:4px 0;">T</div>
+                <div style="text-align:center;font-size:10px;font-weight:600;color:#B7AE9C;padding:4px 0;">W</div>
+                <div style="text-align:center;font-size:10px;font-weight:600;color:#B7AE9C;padding:4px 0;">T</div>
+                <div style="text-align:center;font-size:10px;font-weight:600;color:#B7AE9C;padding:4px 0;">F</div>
+                <div style="text-align:center;font-size:10px;font-weight:600;color:#B7AE9C;padding:4px 0;">S</div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;">
+                <sc-for list="{{ calCells }}" as="cell" hint-placeholder-count="35">
+                  <div class="caldy" onClick="{{ cell.onSelect }}" style="{{ cell.style }}">{{ cell.n }}</div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+
+        <!-- ======= MILESTONES ======= -->
+        <div style="background:#FFFFFF;border-radius:20px;border:1px solid #EDE6D8;padding:24px 26px;box-shadow:0 4px 22px rgba(30,50,38,.05);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <div>
+              <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;color:#8A8172;text-transform:uppercase;">Milestones</div>
+              <div style="font-family:'Lora',serif;font-size:19px;color:#211F1A;margin-top:3px;">The road to race day</div>
+            </div>
+            <span style="font-size:12.5px;color:#4A7C5F;font-weight:500;">3 of 5 reached</span>
+          </div>
+          <div style="position:relative;padding-left:6px;">
+            <div style="position:absolute;left:16px;top:12px;bottom:12px;width:2px;background:linear-gradient(#4A7C5F 62%,#E4DECF 62%);"></div>
+            <div class="mstone" style="position:relative;display:flex;gap:16px;padding:10px 12px 10px 0;border-radius:12px;">
+              <div style="width:22px;height:22px;border-radius:50%;background:#4A7C5F;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;z-index:1;box-shadow:0 0 0 4px #FFFFFF;">✓</div>
+              <div style="flex:1;"><div style="font-size:14.5px;font-weight:600;color:#211F1A;">Sign up for a 5K race</div><div style="font-size:12px;color:#A79E8E;margin-top:1px;">Completed · Jul 2</div></div>
+            </div>
+            <div class="mstone" style="position:relative;display:flex;gap:16px;padding:10px 12px 10px 0;border-radius:12px;">
+              <div style="width:22px;height:22px;border-radius:50%;background:#4A7C5F;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;z-index:1;box-shadow:0 0 0 4px #FFFFFF;">✓</div>
+              <div style="flex:1;"><div style="font-size:14.5px;font-weight:600;color:#211F1A;">Buy proper running shoes</div><div style="font-size:12px;color:#A79E8E;margin-top:1px;">Completed · Jul 5</div></div>
+            </div>
+            <div class="mstone" style="position:relative;display:flex;gap:16px;padding:10px 12px 10px 0;border-radius:12px;">
+              <div style="width:22px;height:22px;border-radius:50%;background:#4A7C5F;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;z-index:1;box-shadow:0 0 0 4px #FFFFFF;">✓</div>
+              <div style="flex:1;"><div style="font-size:14.5px;font-weight:600;color:#211F1A;">Run 2K without stopping</div><div style="font-size:12px;color:#A79E8E;margin-top:1px;">Completed · Jul 12</div></div>
+            </div>
+            <div style="position:relative;display:flex;gap:16px;padding:14px 16px;border-radius:14px;background:#F1F7F3;border:1px solid #D6E7DD;margin:4px 0;">
+              <div style="width:22px;height:22px;border-radius:50%;background:#fff;border:2px solid #4A7C5F;flex-shrink:0;z-index:1;box-shadow:0 0 0 4px #F1F7F3;display:flex;align-items:center;justify-content:center;"><div style="width:8px;height:8px;border-radius:50%;background:#4A7C5F;"></div></div>
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-size:14.5px;font-weight:600;color:#211F1A;">Run a practice 5K</span><span style="background:#4A7C5F;color:#EDF6F0;font-size:9.5px;font-weight:600;letter-spacing:.5px;padding:2px 7px;border-radius:6px;text-transform:uppercase;">Up next</span></div>
+                <div style="font-size:12px;color:#6E8778;margin-top:2px;">Target · Aug 10 — a full dress rehearsal before race day.</div>
+              </div>
+            </div>
+            <div class="mstone" style="position:relative;display:flex;gap:16px;padding:10px 12px 10px 0;border-radius:12px;">
+              <div style="width:22px;height:22px;border-radius:50%;background:#FFFFFF;border:2px solid #E4DECF;flex-shrink:0;z-index:1;box-shadow:0 0 0 4px #FFFFFF;"></div>
+              <div style="flex:1;"><div style="font-size:14.5px;font-weight:600;color:#8A8172;">Race day — run the 5K</div><div style="font-size:12px;color:#B7AE9C;margin-top:1px;">Aug 30 · the finish line</div></div>
+            </div>
+          </div>
+          <div style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border:1px dashed #E4DECF;border-radius:10px;color:#A79E8E;font-size:13px;cursor:pointer;">＋ Add milestone</div>
+        </div>
+
+        <!-- ======= TRACKERS ======= -->
+        <div style="background:#FFFFFF;border-radius:20px;border:1px solid #EDE6D8;padding:24px 26px;box-shadow:0 4px 22px rgba(30,50,38,.05);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <div>
+              <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;color:#8A8172;text-transform:uppercase;">{{ measuresName }}</div>
+              <div style="font-family:'Lora',serif;font-size:19px;color:#211F1A;margin-top:3px;">What you measure each week</div>
+            </div>
+            <span style="font-size:12.5px;color:#4A7C5F;font-weight:500;">This week</span>
+          </div>
+          <p style="margin:0 0 18px;font-size:13px;color:#A79E8E;line-height:1.5;max-width:56ch;">The small, repeatable reps that move the needle. Hit these consistently and the milestones take care of themselves.</p>
+
+          <div style="border:1px solid #EDE6D8;border-radius:14px;padding:16px 18px;margin-bottom:10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><span style="font-size:14.5px;font-weight:600;color:#211F1A;">Runs this week</span><span style="font-size:13px;color:#8A8172;"><b style="color:#211F1A;font-size:15px;">3</b> / 4</span></div>
+            <div style="display:flex;gap:7px;">
+              <div style="flex:1;"><div style="height:34px;border-radius:9px;background:#4A7C5F;display:flex;align-items:center;justify-content:center;color:#EDF6F0;font-size:12px;font-weight:600;">M</div></div>
+              <div style="flex:1;"><div style="height:34px;border-radius:9px;background:#F1EDE3;display:flex;align-items:center;justify-content:center;color:#B7AE9C;font-size:12px;font-weight:600;">T</div></div>
+              <div style="flex:1;"><div style="height:34px;border-radius:9px;background:#4A7C5F;display:flex;align-items:center;justify-content:center;color:#EDF6F0;font-size:12px;font-weight:600;">W</div></div>
+              <div style="flex:1;"><div style="height:34px;border-radius:9px;background:#F1EDE3;display:flex;align-items:center;justify-content:center;color:#B7AE9C;font-size:12px;font-weight:600;">T</div></div>
+              <div style="flex:1;"><div style="height:34px;border-radius:9px;background:#4A7C5F;display:flex;align-items:center;justify-content:center;color:#EDF6F0;font-size:12px;font-weight:600;">F</div></div>
+              <div style="flex:1;"><div style="height:34px;border-radius:9px;background:#FFFFFF;border:1.5px dashed #E0D8C6;display:flex;align-items:center;justify-content:center;color:#C4BCA9;font-size:12px;font-weight:600;">S</div></div>
+              <div style="flex:1;"><div style="height:34px;border-radius:9px;background:#F1EDE3;display:flex;align-items:center;justify-content:center;color:#B7AE9C;font-size:12px;font-weight:600;">S</div></div>
+            </div>
+          </div>
+
+          <div style="border:1px solid #EDE6D8;border-radius:14px;padding:16px 18px;margin-bottom:10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><span style="font-size:14.5px;font-weight:600;color:#211F1A;">Weekly distance</span><span style="font-size:13px;color:#8A8172;"><b style="color:#211F1A;font-size:15px;">12.4</b> / 15 km</span></div>
+            <div style="height:8px;border-radius:5px;background:#F1EDE3;overflow:hidden;"><div style="height:8px;border-radius:5px;width:83%;background:linear-gradient(90deg,#2F8F6D,#6FDFB8);"></div></div>
+          </div>
+
+          <div style="border:1px solid #EDE6D8;border-radius:14px;padding:16px 18px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><span style="font-size:14.5px;font-weight:600;color:#211F1A;">Ankle-mobility stretches</span><span style="font-size:13px;color:#8A8172;"><b style="color:#211F1A;font-size:15px;">5</b> / 7 days</span></div>
+            <div style="display:flex;gap:6px;">
+              <div style="width:26px;height:26px;border-radius:50%;background:#E09F3E;"></div>
+              <div style="width:26px;height:26px;border-radius:50%;background:#E09F3E;"></div>
+              <div style="width:26px;height:26px;border-radius:50%;background:#E09F3E;"></div>
+              <div style="width:26px;height:26px;border-radius:50%;background:#F1EDE3;"></div>
+              <div style="width:26px;height:26px;border-radius:50%;background:#E09F3E;"></div>
+              <div style="width:26px;height:26px;border-radius:50%;background:#E09F3E;"></div>
+              <div style="width:26px;height:26px;border-radius:50%;background:#F1EDE3;"></div>
+            </div>
+          </div>
+
+          <!-- Add tracker -->
+          <div style="margin-top:12px;display:inline-flex;align-items:center;gap:6px;padding:10px 15px;border:1px dashed #E4DECF;border-radius:10px;color:#A79E8E;font-size:13px;cursor:pointer;">＋ Add a tracker</div>
+        </div>
+
+        <!-- ======= INTELLIGENCE ======= -->
+        <div style="background:linear-gradient(135deg,#1E3226,#24402F);border-radius:20px;padding:24px 26px;box-shadow:0 4px 22px rgba(20,35,25,.12);">
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px;">
+            <span style="width:26px;height:26px;border-radius:8px;background:rgba(111,223,184,.16);display:flex;align-items:center;justify-content:center;color:#6FDFB8;font-size:14px;">✦</span>
+            <span style="font-size:11px;font-weight:600;letter-spacing:2px;color:#9FD9C4;text-transform:uppercase;">Ohara Intelligence</span>
+            <span style="margin-left:auto;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.06);border-radius:999px;padding:4px 10px;font-size:11px;color:#9FD9C4;"><span style="width:6px;height:6px;border-radius:50%;background:#FC5200;"></span>Strava connected</span>
+          </div>
+          <p style="margin:0 0 16px;font-family:'Lora',serif;font-style:italic;font-size:18px;line-height:1.55;color:#EDE7DA;">"You keep mentioning ankle discomfort after your longer runs. Try adding ankle-mobility and calf work before the practice 5K — and runners on this path often switch to shoes with firmer heel support."</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <div style="background:rgba(255,255,255,.07);border-radius:10px;padding:10px 14px;"><div style="font-size:10.5px;letter-spacing:1px;color:#7C9A88;text-transform:uppercase;">Avg pace</div><div style="font-size:16px;font-weight:600;color:#EDE7DA;margin-top:2px;">6:24 <span style="font-size:11px;color:#6FDFB8;">/km ↓</span></div></div>
+            <div style="background:rgba(255,255,255,.07);border-radius:10px;padding:10px 14px;"><div style="font-size:10.5px;letter-spacing:1px;color:#7C9A88;text-transform:uppercase;">Ankle mentions</div><div style="font-size:16px;font-weight:600;color:#EDE7DA;margin-top:2px;">4 <span style="font-size:11px;color:#E7A76B;">this month</span></div></div>
+            <a href="#recommended" style="margin-left:auto;background:#6FDFB8;color:#12271D;font-size:13px;font-weight:600;padding:10px 16px;border-radius:10px;">See what helps →</a>
+          </div>
+        </div>
+
+        <!-- ======= ANALYTICS (enriched) ======= -->
+        <div style="background:#FFFFFF;border-radius:20px;border:1px solid #EDE6D8;padding:24px 26px;box-shadow:0 4px 22px rgba(30,50,38,.05);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+            <div>
+              <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;color:#8A8172;text-transform:uppercase;">Analytics</div>
+              <div style="font-family:'Lora',serif;font-size:19px;color:#211F1A;margin-top:3px;">Your training trend</div>
+            </div>
+            <span style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#8A8172;"><span style="width:14px;height:14px;border-radius:4px;background:#FC5200;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:800;">S</span>via Strava · updated 2h ago</span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;">
+            <div style="background:#FCFAF4;border:1px solid #EDE6D8;border-radius:12px;padding:13px 14px;"><div style="font-size:22px;font-weight:700;color:#211F1A;">6:24</div><div style="font-size:10.5px;color:#A79E8E;letter-spacing:.5px;margin-top:1px;">AVG PACE /KM</div></div>
+            <div style="background:#FCFAF4;border:1px solid #EDE6D8;border-radius:12px;padding:13px 14px;"><div style="font-size:22px;font-weight:700;color:#211F1A;">4.1<span style="font-size:12px;color:#A79E8E;font-weight:500;">km</span></div><div style="font-size:10.5px;color:#A79E8E;letter-spacing:.5px;margin-top:1px;">LONGEST RUN</div></div>
+            <div style="background:#FCFAF4;border:1px solid #EDE6D8;border-radius:12px;padding:13px 14px;"><div style="font-size:22px;font-weight:700;color:#211F1A;">18</div><div style="font-size:10.5px;color:#A79E8E;letter-spacing:.5px;margin-top:1px;">TOTAL RUNS</div></div>
+            <div style="background:#FCFAF4;border:1px solid #EDE6D8;border-radius:12px;padding:13px 14px;"><div style="font-size:22px;font-weight:700;color:#2F8F6D;">+9%</div><div style="font-size:10.5px;color:#A79E8E;letter-spacing:.5px;margin-top:1px;">PACE IMPROVED</div></div>
+          </div>
+
+          <!-- two charts side by side -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+            <!-- distance bar chart -->
+            <div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><span style="font-size:13px;font-weight:600;color:#211F1A;">Distance / week</span><span style="font-size:11px;color:#A79E8E;">km</span></div>
+              <div style="display:flex;align-items:flex-end;gap:10px;height:110px;">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;"><div style="width:100%;max-width:30px;height:30%;background:#E4DECF;border-radius:6px 6px 3px 3px;"></div><span style="font-size:10px;color:#B7AE9C;">W1</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;"><div style="width:100%;max-width:30px;height:44%;background:#CFE2D6;border-radius:6px 6px 3px 3px;"></div><span style="font-size:10px;color:#B7AE9C;">W2</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;"><div style="width:100%;max-width:30px;height:55%;background:#A9CFB8;border-radius:6px 6px 3px 3px;"></div><span style="font-size:10px;color:#B7AE9C;">W3</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;"><div style="width:100%;max-width:30px;height:68%;background:#7DBB97;border-radius:6px 6px 3px 3px;"></div><span style="font-size:10px;color:#B7AE9C;">W4</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;"><div style="width:100%;max-width:30px;height:84%;background:#4A7C5F;border-radius:6px 6px 3px 3px;"></div><span style="font-size:10px;color:#B7AE9C;">W5</span></div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;"><div style="width:100%;max-width:30px;height:96%;background:#2F8F6D;border-radius:6px 6px 3px 3px;position:relative;"><span style="position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:10.5px;font-weight:700;color:#2F8F6D;">12.4</span></div><span style="font-size:10px;color:#211F1A;font-weight:600;">Now</span></div>
+              </div>
+            </div>
+
+            <!-- pace trend line chart -->
+            <div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><span style="font-size:13px;font-weight:600;color:#211F1A;">Pace trend</span><span style="font-size:11px;color:#2F8F6D;font-weight:600;">best 6:02 /km</span></div>
+              <svg viewBox="0 0 260 110" width="100%" height="110" preserveAspectRatio="none" style="overflow:visible;">
+                <line x1="0" y1="27" x2="260" y2="27" stroke="#F1EDE3" stroke-width="1"></line>
+                <line x1="0" y1="55" x2="260" y2="55" stroke="#F1EDE3" stroke-width="1"></line>
+                <line x1="0" y1="83" x2="260" y2="83" stroke="#F1EDE3" stroke-width="1"></line>
+                <polyline points="6,24 56,34 106,30 156,52 206,64 254,84" fill="none" stroke="#4A7C5F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                <circle cx="6" cy="24" r="3.5" fill="#4A7C5F"></circle>
+                <circle cx="56" cy="34" r="3.5" fill="#4A7C5F"></circle>
+                <circle cx="106" cy="30" r="3.5" fill="#4A7C5F"></circle>
+                <circle cx="156" cy="52" r="3.5" fill="#4A7C5F"></circle>
+                <circle cx="206" cy="64" r="3.5" fill="#4A7C5F"></circle>
+                <circle cx="254" cy="84" r="4.5" fill="#2F8F6D" stroke="#fff" stroke-width="2"></circle>
+              </svg>
+              <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:#B7AE9C;"><span>6 runs ago</span><span style="color:#211F1A;font-weight:600;">Latest</span></div>
+              <div style="margin-top:8px;font-size:11.5px;color:#8A8172;line-height:1.4;">Trending faster — you've shaved <b style="color:#2F8F6D;">38s/km</b> since you started.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======= RECOMMENDED (horizontal + filters) ======= -->
+        <div id="recommended" style="background:#FCFAF4;border:1px solid #EDE6D8;border-radius:20px;padding:24px 26px;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:4px;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;color:#8A8172;text-transform:uppercase;">Recommended for you</div>
+              <div style="font-family:'Lora',serif;font-size:19px;color:#211F1A;margin-top:3px;">Editor's picks for the ankle work ahead</div>
+            </div>
+            <span style="background:rgba(30,50,38,.08);color:#1E3226;font-size:10.5px;font-weight:600;padding:4px 10px;border-radius:999px;white-space:nowrap;">Curated · may earn Ohara a commission</span>
+          </div>
+          <p style="margin:0 0 16px;font-size:13px;color:#A79E8E;line-height:1.5;max-width:58ch;">Chosen from what worked for runners with your pattern — tied to the ankle discomfort Ohara flagged.</p>
+
+          <!-- filters -->
+          <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;">
+            <div class="chip" onClick="{{ setAll }}" style="{{ chipAll }}">All</div>
+            <div class="chip" onClick="{{ setGear }}" style="{{ chipGear }}">Gear</div>
+            <div class="chip" onClick="{{ setApps }}" style="{{ chipApps }}">Apps &amp; plans</div>
+            <div class="chip" onClick="{{ setRecovery }}" style="{{ chipRecovery }}">Recovery</div>
+          </div>
+
+          <!-- horizontal grid of product cards -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;">
+            <!-- GEAR -->
+            <div class="reccard" style="display:{{ dispGear }};flex-direction:column;background:#FFFFFF;border:1px solid #EDE6D8;border-radius:16px;padding:14px;cursor:pointer;transition:border-color .15s,box-shadow .15s;">
+              <div style="width:100%;height:128px;margin-bottom:14px;"><x-import component-from-global-scope="image-slot" from="./image-slot.js" id="rec-shoe" shape="rounded" radius="12" placeholder="Product photo" hint-size="100%,128px" style="width:100%;height:128px;display:block;"></x-import></div>
+              <div style="font-size:10px;font-weight:600;letter-spacing:1px;color:#B7873E;text-transform:uppercase;">Gear · Stability shoe</div>
+              <div style="font-family:'Lora',serif;font-size:16.5px;color:#211F1A;margin:3px 0 5px;">Brooks Adrenaline GTS 23</div>
+              <div style="font-size:12.5px;color:#8A8172;line-height:1.45;flex:1;">Firmer heel counter and guide-rail support — directly targets the ankle roll you've been feeling.</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;"><span style="font-size:16px;font-weight:700;color:#211F1A;">$140</span><span style="background:#1E3226;color:#EDE7DA;font-size:12px;font-weight:600;padding:8px 16px;border-radius:9px;">View →</span></div>
+            </div>
+            <!-- APPS -->
+            <div class="reccard" style="display:{{ dispApps }};flex-direction:column;background:#FFFFFF;border:1px solid #EDE6D8;border-radius:16px;padding:14px;cursor:pointer;transition:border-color .15s,box-shadow .15s;">
+              <div style="width:100%;height:128px;margin-bottom:14px;"><x-import component-from-global-scope="image-slot" from="./image-slot.js" id="rec-app" shape="rounded" radius="12" placeholder="Product photo" hint-size="100%,128px" style="width:100%;height:128px;display:block;"></x-import></div>
+              <div style="font-size:10px;font-weight:600;letter-spacing:1px;color:#6E5CE7;text-transform:uppercase;">App · Training plan</div>
+              <div style="font-family:'Lora',serif;font-size:16.5px;color:#211F1A;margin:3px 0 5px;">Runna — 5K Adaptive Plan</div>
+              <div style="font-size:12.5px;color:#8A8172;line-height:1.45;flex:1;">Syncs with your Strava and re-plans each week around your pace. Includes prehab mobility sessions.</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;"><span style="font-size:16px;font-weight:700;color:#211F1A;">$18<span style="font-size:11px;color:#A79E8E;font-weight:500;">/mo</span></span><span style="background:#1E3226;color:#EDE7DA;font-size:12px;font-weight:600;padding:8px 16px;border-radius:9px;">View →</span></div>
+            </div>
+            <!-- RECOVERY -->
+            <div class="reccard" style="display:{{ dispRecovery }};flex-direction:column;background:#FFFFFF;border:1px solid #EDE6D8;border-radius:16px;padding:14px;cursor:pointer;transition:border-color .15s,box-shadow .15s;">
+              <div style="width:100%;height:128px;margin-bottom:14px;"><x-import component-from-global-scope="image-slot" from="./image-slot.js" id="rec-kit" shape="rounded" radius="12" placeholder="Product photo" hint-size="100%,128px" style="width:100%;height:128px;display:block;"></x-import></div>
+              <div style="font-size:10px;font-weight:600;letter-spacing:1px;color:#2F8F6D;text-transform:uppercase;">Recovery · Mobility</div>
+              <div style="font-family:'Lora',serif;font-size:16.5px;color:#211F1A;margin:3px 0 5px;">TheraBand Ankle Mobility Kit</div>
+              <div style="font-size:12.5px;color:#8A8172;line-height:1.45;flex:1;">Resistance bands plus a guided ankle & calf routine — five minutes before every run.</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;"><span style="font-size:16px;font-weight:700;color:#211F1A;">$25</span><span style="background:#1E3226;color:#EDE7DA;font-size:12px;font-weight:600;padding:8px 16px;border-radius:9px;">View →</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ---- ACTIVITY RAIL ---- -->
+      <div style="width:262px;flex-shrink:0;position:sticky;top:20px;background:#FFFFFF;border-radius:20px;border:1px solid #EDE6D8;padding:22px 22px;box-shadow:0 4px 22px rgba(30,50,38,.05);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+          <span style="font-size:11px;font-weight:600;letter-spacing:1.5px;color:#8A8172;text-transform:uppercase;">Activity</span>
+          <span style="font-size:11px;color:#B7AE9C;">Recent</span>
+        </div>
+        <div style="position:relative;padding-left:20px;">
+          <div style="position:absolute;left:5px;top:6px;bottom:6px;width:2px;background:#EDE6D8;"></div>
+          <div style="position:relative;margin-bottom:20px;">
+            <div style="position:absolute;left:-20px;top:3px;width:12px;height:12px;border-radius:50%;background:#4A7C5F;box-shadow:0 0 0 3px #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:7px;">✓</div>
+            <div style="font-size:13px;font-weight:600;color:#211F1A;line-height:1.35;">Milestone reached</div>
+            <div style="font-size:12px;color:#8A8172;margin-top:1px;">Run 2K without stopping</div>
+            <div style="font-size:11px;color:#B7AE9C;margin-top:3px;">Jul 12, 2026</div>
+          </div>
+          <div style="position:relative;margin-bottom:20px;">
+            <div style="position:absolute;left:-20px;top:3px;width:12px;height:12px;border-radius:50%;background:#E09F3E;box-shadow:0 0 0 3px #fff;"></div>
+            <div style="font-size:13px;font-weight:600;color:#211F1A;line-height:1.35;">Reflected in Echo</div>
+            <div style="font-family:'Lora',serif;font-style:italic;font-size:13px;color:#6E6559;margin-top:2px;line-height:1.4;">"Legs felt strong today — barely noticed the hill."</div>
+            <div style="font-size:11px;color:#B7AE9C;margin-top:3px;">Jul 11, 2026</div>
+          </div>
+          <div style="position:relative;margin-bottom:20px;">
+            <div style="position:absolute;left:-20px;top:3px;width:12px;height:12px;border-radius:50%;background:#1E3226;box-shadow:0 0 0 3px #fff;"></div>
+            <div style="font-size:13px;font-weight:600;color:#211F1A;line-height:1.35;">Added to Vault</div>
+            <div style="font-size:12px;color:#8A8172;margin-top:1px;">Interval workout screenshot</div>
+            <div style="font-size:11px;color:#B7AE9C;margin-top:3px;">Jul 9, 2026</div>
+          </div>
+          <div style="position:relative;margin-bottom:20px;">
+            <div style="position:absolute;left:-20px;top:3px;width:12px;height:12px;border-radius:50%;background:#4A7C5F;box-shadow:0 0 0 3px #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:7px;">✓</div>
+            <div style="font-size:13px;font-weight:600;color:#211F1A;line-height:1.35;">Milestone reached</div>
+            <div style="font-size:12px;color:#8A8172;margin-top:1px;">Buy proper running shoes</div>
+            <div style="font-size:11px;color:#B7AE9C;margin-top:3px;">Jul 5, 2026</div>
+          </div>
+          <div style="position:relative;">
+            <div style="position:absolute;left:-20px;top:3px;width:12px;height:12px;border-radius:50%;background:#C4BCA9;box-shadow:0 0 0 3px #fff;"></div>
+            <div style="font-size:13px;font-weight:600;color:#211F1A;line-height:1.35;">Goal created</div>
+            <div style="font-size:12px;color:#8A8172;margin-top:1px;">Run a 5K</div>
+            <div style="font-size:11px;color:#B7AE9C;margin-top:3px;">Jun 28, 2026</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:1500},&quot;measuresName&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Measures&quot;,&quot;Metrics&quot;,&quot;Trackers&quot;,&quot;Cadence&quot;],&quot;default&quot;:&quot;Measures&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Content&quot;}}">
+class Component extends DCLogic {
+  state = {
+    deadline: new Date(2026, 7, 30),
+    start: new Date(2026, 5, 28),
+    now: new Date(),
+    calOpen: false,
+    calMonth: 7,
+    calYear: 2026,
+    filter: 'all',
+    menuOpen: false,
+    completed: false,
+  };
+
+  fmtFull(d) {
+    const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+    return `${mo} ${d.getDate()}, ${d.getFullYear()}`;
+  }
+
+  componentDidMount() {
+    this._t = setInterval(() => this.setState({ now: new Date() }), 30000);
+  }
+  componentWillUnmount() { clearInterval(this._t); }
+
+  pad(n) { return String(n).padStart(2, '0'); }
+  fmtShort(d) {
+    const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+    return `${mo} ${d.getDate()}`;
+  }
+
+  chipStyle(active) {
+    return active
+      ? 'font-size:12.5px;font-weight:600;padding:7px 15px;border-radius:999px;background:#1E3226;color:#EDE7DA;border:1px solid #1E3226;'
+      : 'font-size:12.5px;font-weight:500;padding:7px 15px;border-radius:999px;background:#FFFFFF;color:#6E6559;border:1px solid #E4DECF;';
+  }
+
+  renderVals() {
+    const { deadline, start, now, calOpen, calMonth, calYear, filter, menuOpen, completed } = this.state;
+    const ringOffset = completed ? 0 : 134.8;
+    const doneBtnStyle = completed
+      ? 'display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 13px;border-radius:9px;background:#4A7C5F;color:#EDF6F0;font-size:12.5px;font-weight:600;cursor:pointer;border:1px solid #4A7C5F;'
+      : 'display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 13px;border-radius:9px;background:#FFFFFF;color:#4A7C5F;font-size:12.5px;font-weight:600;cursor:pointer;border:1px solid #CFE0D4;';
+    const diff = Math.max(0, deadline.getTime() - now.getTime());
+    const days = Math.floor(diff / 86400000);
+    const hrs = Math.floor((diff % 86400000) / 3600000);
+    const min = Math.floor((diff % 3600000) / 60000);
+
+    const span = deadline.getTime() - start.getTime();
+    const elapsed = Math.max(0, Math.min(span, now.getTime() - start.getTime()));
+    const timePct = span > 0 ? (elapsed / span) * 100 : 0;
+    const totalDays = Math.round(span / 86400000);
+    const elapsedDays = Math.round(elapsed / 86400000);
+
+    const first = new Date(calYear, calMonth, 1).getDay();
+    const dim = new Date(calYear, calMonth + 1, 0).getDate();
+    const cells = [];
+    for (let i = 0; i < first; i++) cells.push({ n: '', empty: true });
+    for (let d = 1; d <= dim; d++) cells.push({ n: d, empty: false });
+    while (cells.length % 7 !== 0) cells.push({ n: '', empty: true });
+    const selD = deadline.getDate(), selM = deadline.getMonth(), selY = deadline.getFullYear();
+    const calCells = cells.map((c) => {
+      const isSel = !c.empty && c.n === selD && calMonth === selM && calYear === selY;
+      let style = 'text-align:center;padding:9px 0;font-size:12.5px;border-radius:9px;color:#211F1A;cursor:pointer;';
+      if (c.empty) style = 'padding:9px 0;';
+      else if (isSel) style = 'text-align:center;padding:9px 0;font-size:12.5px;border-radius:9px;background:#4A7C5F;color:#fff;font-weight:600;cursor:pointer;';
+      return { n: c.empty ? '' : c.n, style, onSelect: c.empty ? undefined : () => this.setState({ deadline: new Date(calYear, calMonth, c.n), calOpen: false }) };
+    });
+    const monthName = ['January','February','March','April','May','June','July','August','September','October','November','December'][calMonth];
+
+    const show = (cat) => (filter === 'all' || filter === cat) ? 'flex' : 'none';
+
+    return {
+      dd: this.pad(days),
+      hh: this.pad(hrs),
+      mm: this.pad(min),
+      startLabel: this.fmtShort(start),
+      elapsedPhrase: `Day ${elapsedDays} of ${totalDays}`,
+      timePct: `${timePct.toFixed(1)}%`,
+      calOpen, calCells,
+      monthLabel: `${monthName} ${calYear}`,
+      measuresName: this.props.measuresName ?? 'Measures',
+      deadlineFull: this.fmtFull(deadline),
+      ringOffset,
+      ringPct: completed ? '100%' : '45%',
+      ringStatus: completed ? 'Completed' : 'On track',
+      doneBtnStyle,
+      doneBtnLabel: completed ? 'Completed' : 'Mark complete',
+      toggleDone: () => this.setState((s) => ({ completed: !s.completed })),
+      menuOpen,
+      toggleMenu: () => this.setState((s) => ({ menuOpen: !s.menuOpen })),
+      closeMenu: () => this.setState({ menuOpen: false }),
+      toggleCal: () => this.setState((s) => ({ calOpen: !s.calOpen })),
+      prevMonth: () => this.setState((s) => { let m = s.calMonth - 1, y = s.calYear; if (m < 0) { m = 11; y--; } return { calMonth: m, calYear: y }; }),
+      nextMonth: () => this.setState((s) => { let m = s.calMonth + 1, y = s.calYear; if (m > 11) { m = 0; y++; } return { calMonth: m, calYear: y }; }),
+      // recommended filters
+      dispGear: show('gear'),
+      dispApps: show('apps'),
+      dispRecovery: show('recovery'),
+      chipAll: this.chipStyle(filter === 'all'),
+      chipGear: this.chipStyle(filter === 'gear'),
+      chipApps: this.chipStyle(filter === 'apps'),
+      chipRecovery: this.chipStyle(filter === 'recovery'),
+      setAll: () => this.setState({ filter: 'all' }),
+      setGear: () => this.setState({ filter: 'gear' }),
+      setApps: () => this.setState({ filter: 'apps' }),
+      setRecovery: () => this.setState({ filter: 'recovery' }),
+    };
+  }
+}
+</script>
+</body>
+</html>
