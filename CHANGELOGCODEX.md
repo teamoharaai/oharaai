@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+<<<<<<< HEAD
+=======
+### Added (2026-07-20 — Phase 3 shared card foundation)
+- **`components/ui/Card.tsx`:** added a typed semantic card foundation with canonical surface and divider tokens, a 16px radius, compact/default/spacious padding, optional light-only elevation, section spacing, aligned headers, dividers, and shared title/subtitle/metadata hierarchy.
+
+### Changed (2026-07-20 — Phase 3 shared card foundation)
+- **`components/ui/EmptyStateCard.tsx` and `ReflectionCard.tsx`:** adopted the shared card foundation without changing their public APIs or product content; reflection surfaces and text now follow the canonical light/dark card and typography treatment.
+
+### Changed (2026-07-20 — Phase 2 global surfaces and typography)
+- **`components/layout/Screen.tsx`:** replaced static cream and landing-dark surface classes with the canonical runtime page and dark-surface tokens while preserving the shared screen API and scrolling behavior.
+- **`components/ui/Modal.tsx`, `Input.tsx`, and `AnchoredPopover.tsx`:** wired shared elevated surfaces, inputs, borders, dividers, placeholder text, and action text to canonical semantic theme tokens so the primitives share the same light/dark structure.
+- **`components/ui/Typography.tsx`:** routed the shared `section-eyebrow` variant through the approved accent text role and removed its static light-only Tailwind color while retaining caller-owned `badge-text` semantics.
+
+>>>>>>> fe0f489 (Standardize shared card system)
 ### Changed (2026-07-20 — Phase 1 theme foundation)
 - **`constants/colors.ts`:** made the canonical light/dark palette contract explicit with typed semantic theme and text-token interfaces while retaining the existing token structure and values.
 - **`app/(app)/dashboard.tsx`, `components/ui/EmptyStateCard.tsx`, `TodayGoalCard.tsx`, and `Typography.tsx`:** replaced Phase 1 dashboard, loading, action, empty-state, and typography color literals with runtime semantic tokens so the shared states respond consistently to light and dark mode.

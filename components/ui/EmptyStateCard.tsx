@@ -1,5 +1,6 @@
 import { TouchableOpacity, View } from 'react-native';
 import { useThemeColors } from '@/store/uiStore';
+import { Card, CardSubtitle, CardTitle } from './Card';
 import { Typography } from './Typography';
 
 interface EmptyStateCardProps {
@@ -18,10 +19,7 @@ export function EmptyStateCard({
   const colors = useThemeColors();
 
   return (
-    <View
-      className="items-center rounded-xl border px-6 py-10"
-      style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider }}
-    >
+    <Card padding="spacious" style={{ alignItems: 'center', paddingVertical: 40 }}>
       <View
         className="mb-4 h-12 w-12 items-center justify-center rounded-full border"
         style={{ backgroundColor: colors.background.selectedRow, borderColor: colors.border.divider }}
@@ -31,15 +29,14 @@ export function EmptyStateCard({
           style={{ backgroundColor: colors.accent.primary }}
         />
       </View>
-      <Typography variant="title" className="text-center">
+      <CardTitle style={{ textAlign: 'center' }}>
         {title}
-      </Typography>
-      <Typography
-        variant="subtitle"
-        className="mt-2 max-w-[260px] text-center leading-6"
+      </CardTitle>
+      <CardSubtitle
+        style={{ lineHeight: 24, marginTop: 8, maxWidth: 260, textAlign: 'center' }}
       >
         {description}
-      </Typography>
+      </CardSubtitle>
       {actionLabel && onActionPress ? (
         <TouchableOpacity
           className="mt-5 rounded-full px-4 py-2"
@@ -52,6 +49,6 @@ export function EmptyStateCard({
           </Typography>
         </TouchableOpacity>
       ) : null}
-    </View>
+    </Card>
   );
 }
