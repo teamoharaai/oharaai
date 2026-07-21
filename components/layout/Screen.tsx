@@ -1,5 +1,7 @@
 import { SafeAreaView, ScrollView } from 'react-native';
 import type { ReactNode } from 'react';
+import { DARK_THEME } from '@/constants/colors';
+import { useThemeColors } from '@/store/uiStore';
 
 interface ScreenProps {
   children: ReactNode;
@@ -8,12 +10,18 @@ interface ScreenProps {
 }
 
 export function Screen({ children, scrollable = true, dark = false }: ScreenProps) {
-  const bg = dark ? 'flex-1 bg-landing-dark-bg' : 'flex-1 bg-cream';
+  const colors = useThemeColors();
+  const backgroundColor = dark ? DARK_THEME.background.page : colors.background.page;
+
   if (!scrollable) {
-    return <SafeAreaView className={bg}>{children}</SafeAreaView>;
+    return (
+      <SafeAreaView className="flex-1" style={{ backgroundColor }}>
+        {children}
+      </SafeAreaView>
+    );
   }
   return (
-    <SafeAreaView className={bg}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor }}>
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 32 }}>
         {children}
       </ScrollView>

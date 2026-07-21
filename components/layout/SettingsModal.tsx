@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { authedFetch } from '@/lib/api/client';
 import type { ApiResponse } from '@/lib/api/contracts';
 import supabase from '@/lib/db/client';
 import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
+import { Toggle } from '@/components/ui/Toggle';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 
 interface SettingsProfileData {
@@ -126,79 +127,76 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
           Settings
         </Text>
 
-        <View className="mb-6">
+      <View className="mb-6">
+        <Typography
+          variant="eyebrow"
+          className="mb-3"
+          style={{ color: colors.text.secondary }}
+        >
+          Appearance
+        </Typography>
+        <View className="flex-row items-center justify-between">
+          <Text
+            className="text-base"
+            style={{ color: colors.text.primary, fontFamily: 'Inter-Medium' }}
+          >
+            Dark mode
+          </Text>
+          <Toggle
+            accessibilityLabel="Dark mode"
+            value={themeMode === 'dark'}
+            onValueChange={toggleTheme}
+          />
+        </View>
+        <Typography
+          variant="hint"
+          className="mt-2"
+          style={{ color: colors.text.secondary }}
+        >
+          Choose the app appearance manually.
+        </Typography>
+      </View>
+
+      {isLoading ? (
+        <ActivityIndicator size="small" color={colors.text.muted} />
+      ) : loadError ? (
+        <Typography variant="subtitle">
+          Couldn't load your settings. Please try again.
+        </Typography>
+      ) : (
+        <View>
           <Typography
             variant="eyebrow"
             className="mb-3"
             style={{ color: colors.text.secondary }}
           >
-            Appearance
+            Intelligence
           </Typography>
           <View className="flex-row items-center justify-between">
             <Text
               className="text-base"
               style={{ color: colors.text.primary, fontFamily: 'Inter-Medium' }}
             >
-              Dark mode
+              AI Reflections
             </Text>
-            <Switch
-              accessibilityLabel="Dark mode"
-              value={themeMode === 'dark'}
-              onValueChange={toggleTheme}
-              trackColor={{ false: colors.border.input, true: colors.accent.primary }}
-              thumbColor={colors.text.primary}
-            />
+            {isSaving ? (
+              <ActivityIndicator size="small" color={colors.text.muted} />
+            ) : (
+              <Toggle
+                accessibilityLabel="AI Reflections"
+                value={intelligenceEnabled}
+                onValueChange={handleToggle}
+              />
+            )}
           </View>
           <Typography
             variant="hint"
             className="mt-2"
             style={{ color: colors.text.secondary }}
           >
-            Choose the app appearance manually.
+            When off, Echo entries are saved without AI analysis.
           </Typography>
         </View>
-
-        {isLoading ? (
-          <ActivityIndicator size="small" color={colors.text.muted} />
-        ) : loadError ? (
-          <Typography variant="subtitle">
-            Couldn't load your settings. Please try again.
-          </Typography>
-        ) : (
-          <View>
-            <Typography
-              variant="eyebrow"
-              className="mb-3"
-              style={{ color: colors.text.secondary }}
-            >
-              Intelligence
-            </Typography>
-            <View className="flex-row items-center justify-between">
-              <Text
-                className="text-base"
-                style={{ color: colors.text.primary, fontFamily: 'Inter-Medium' }}
-              >
-                AI Reflections
-              </Text>
-              {isSaving ? (
-                <ActivityIndicator size="small" color={colors.text.muted} />
-              ) : (
-                <Switch
-                  value={intelligenceEnabled}
-                  onValueChange={handleToggle}
-                  trackColor={{ false: colors.border.input, true: colors.accent.primary }}
-                  thumbColor={colors.text.primary}
-                />
-              )}
-            </View>
-            <Typography
-              variant="hint"
-              className="mt-2"
-              style={{ color: colors.text.secondary }}
-            >
-              When off, Echo entries are saved without AI analysis.
-            </Typography>
-          </View>
         )}
 
         <View

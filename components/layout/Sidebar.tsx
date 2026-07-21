@@ -1,4 +1,5 @@
-import { View, Text, TouchableOpacity } from 'react-native';
+import { useState } from 'react';
+import { Pressable, View, Text } from 'react-native';
 import { router, usePathname } from 'expo-router';
 import { BrandIcon, type BrandIconName } from '@/components/ui/BrandIcon';
 import { FEATURES } from '@/constants/features';
@@ -40,14 +41,18 @@ const NAV_ICON_SIZE = {
 export function Sidebar() {
   const colors = useThemeColors();
   const pathname = usePathname();
+  const themeMode = useUIStore((state) => state.themeMode);
   const collapsed = useUIStore((state) => state.sidebarCollapsed);
   const toggleSidebarCollapsed = useUIStore((state) => state.toggleSidebarCollapsed);
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   return (
     <View
       style={{
         width: collapsed ? SIDEBAR_WIDTH.collapsed : SIDEBAR_WIDTH.expanded,
         backgroundColor: colors.background.sidebar,
+        borderRightColor: colors.border.divider,
+        borderRightWidth: 1,
         flexDirection: 'column',
         alignSelf: 'stretch',
       }}
@@ -64,26 +69,36 @@ export function Sidebar() {
         }}
       >
         {collapsed ? (
-          <TouchableOpacity
+          <Pressable
             onPress={toggleSidebarCollapsed}
             accessibilityLabel="Expand sidebar"
-            style={{
+            accessibilityRole="button"
+            style={({ pressed }) => ({
               width: BRAND_SIZE.collapsedLogoTarget,
               height: BRAND_SIZE.collapsedLogoTarget,
               alignItems: 'center',
               justifyContent: 'center',
-            }}
-            activeOpacity={0.7}
+              opacity: pressed ? 0.7 : 1,
+            })}
           >
-            <BrandIcon name="ohara" size={BRAND_SIZE.collapsedLogo} />
-          </TouchableOpacity>
+            <BrandIcon
+              name="ohara"
+              size={BRAND_SIZE.collapsedLogo}
+              tintColor={themeMode === 'light' ? colors.text.primary : undefined}
+            />
+          </Pressable>
         ) : (
           <View style={{ flexDirection: 'column', alignItems: 'stretch', flex: 1, minWidth: 0 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', minWidth: 0 }}>
-              <BrandIcon name="ohara" size={BRAND_SIZE.expandedLogo} style={{ marginRight: 10 }} />
+              <BrandIcon
+                name="ohara"
+                size={BRAND_SIZE.expandedLogo}
+                style={{ marginRight: 10 }}
+                tintColor={themeMode === 'light' ? colors.text.primary : undefined}
+              />
               <Text
                 style={{
-                  color: colors.text.inverse,
+                  color: colors.text.primary,
                   fontFamily: 'Inter-SemiBold',
                   fontSize: BRAND_SIZE.expandedText,
                   letterSpacing: 4,
@@ -92,23 +107,24 @@ export function Sidebar() {
                 OHARA
               </Text>
             </View>
-            <TouchableOpacity
+            <Pressable
               onPress={toggleSidebarCollapsed}
               accessibilityLabel="Collapse sidebar"
-              style={{
+              accessibilityRole="button"
+              style={({ pressed }) => ({
                 width: 22,
                 height: 22,
                 borderRadius: 11,
-                backgroundColor: 'rgba(255,255,255,0.08)',
+                backgroundColor: colors.background.input,
                 alignItems: 'center',
                 alignSelf: 'flex-end',
                 justifyContent: 'center',
                 marginTop: 8,
-              }}
-              activeOpacity={0.7}
+                opacity: pressed ? 0.65 : 1,
+              })}
             >
-              <Text style={{ color: colors.border.toggleGlyph, fontSize: 13, lineHeight: 13 }}>‹</Text>
-            </TouchableOpacity>
+              <Text style={{ color: colors.text.accent, fontSize: 13, lineHeight: 13 }}>‹</Text>
+            </Pressable>
           </View>
         )}
       </View>
@@ -121,14 +137,19 @@ export function Sidebar() {
             pathname.startsWith(item.match + '/') ||
             (item.href === '/(app)/dashboard' && pathname.startsWith('/goals/'));
           return (
-            <TouchableOpacity
+            <Pressable
               key={item.label}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !item.enabled, selected: isActive }}
+              disabled={!item.enabled}
+              onHoverIn={() => setHoveredItem(item.label)}
+              onHoverOut={() => setHoveredItem(null)}
               onPress={() => {
                 if (item.enabled) {
                   router.push(item.href as Parameters<typeof router.push>[0]);
                 }
               }}
-              style={{
+              style={({ pressed }) => ({
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: collapsed ? 'center' : 'flex-start',
@@ -137,24 +158,35 @@ export function Sidebar() {
                 borderRadius: 12,
                 marginHorizontal: 12,
                 marginBottom: 4,
-                backgroundColor: isActive ? '#2A4436' : 'transparent',
+                backgroundColor: isActive
+                  ? colors.background.selectedRow
+                  : hoveredItem === item.label || pressed
+                    ? colors.background.subtle
+                    : 'transparent',
                 opacity: item.enabled ? 1 : 0.4,
-              }}
-              activeOpacity={0.7}
+              })}
             >
               {item.icon && (
                 <BrandIcon
                   name={item.icon}
                   size={collapsed ? NAV_ICON_SIZE.collapsed : NAV_ICON_SIZE.expanded}
+                  tintColor={
+                    themeMode === 'light'
+                      ? isActive
+                        ? colors.text.accent
+                        : colors.text.secondary
+                      : undefined
+                  }
                   style={{
                     marginRight: collapsed ? 0 : 10,
+                    opacity: isActive ? 1 : item.enabled ? 0.72 : 0.4,
                   }}
                 />
               )}
               {(!collapsed || !item.icon) && (
                 <Text
                   style={{
-                    color: isActive ? colors.text.inverse : colors.text.mutedOnDark,
+                    color: isActive ? colors.text.accent : colors.text.secondary,
                     fontSize: 14,
                     fontFamily: 'Inter-Medium',
                   }}
@@ -162,7 +194,7 @@ export function Sidebar() {
                   {collapsed ? item.label.charAt(0) : item.label}
                 </Text>
               )}
-            </TouchableOpacity>
+            </Pressable>
           );
         })}
       </View>

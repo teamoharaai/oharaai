@@ -1,4 +1,7 @@
-import { Text, TouchableOpacity, View } from 'react-native';
+import { View } from 'react-native';
+import { useThemeColors } from '@/store/uiStore';
+import { Card, CardSubtitle, CardTitle } from './Card';
+import { Button } from './Button';
 
 interface EmptyStateCardProps {
   title: string;
@@ -13,24 +16,36 @@ export function EmptyStateCard({
   actionLabel,
   onActionPress,
 }: EmptyStateCardProps) {
+  const colors = useThemeColors();
+
   return (
-    <View className="items-center rounded-xl border border-border-color-subtle bg-white px-6 py-10">
-      <View className="mb-4 h-12 w-12 items-center justify-center rounded-full border border-[#1B7A5A]/50 bg-[#1B7A5A]/10">
-        <View className="h-2.5 w-2.5 rounded-full bg-[#6FDFB8]" />
+    <Card padding="spacious" style={{ alignItems: 'center', paddingVertical: 40 }}>
+      <View
+        className="mb-4 h-12 w-12 items-center justify-center rounded-full border"
+        style={{ backgroundColor: colors.background.selectedRow, borderColor: colors.border.divider }}
+      >
+        <View
+          className="h-2.5 w-2.5 rounded-full"
+          style={{ backgroundColor: colors.accent.primary }}
+        />
       </View>
-      <Text className="text-center text-lg font-inter-semibold text-near-black">{title}</Text>
-      <Text className="mt-2 max-w-[260px] text-center text-sm leading-6 text-muted">
+      <CardTitle style={{ textAlign: 'center' }}>
+        {title}
+      </CardTitle>
+      <CardSubtitle
+        style={{ lineHeight: 24, marginTop: 8, maxWidth: 260, textAlign: 'center' }}
+      >
         {description}
-      </Text>
+      </CardSubtitle>
       {actionLabel && onActionPress ? (
-        <TouchableOpacity
-          className="mt-5 rounded-full border border-[#1B7A5A]/60 bg-[#1B7A5A]/10 px-4 py-2"
+        <Button
+          size="compact"
+          style={{ marginTop: 20, minHeight: 40 }}
           onPress={onActionPress}
-          activeOpacity={0.8}
         >
-          <Text className="text-sm font-inter-semibold text-[#6FDFB8]">{actionLabel}</Text>
-        </TouchableOpacity>
+          {actionLabel}
+        </Button>
       ) : null}
-    </View>
+    </Card>
   );
 }

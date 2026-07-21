@@ -1,6 +1,9 @@
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
 import { resolveBrt, type BrtCategory } from '@/lib/utils/resolveBrt';
 import type { EchoBrt } from '@/types/brt';
+import { useThemeColors } from '@/store/uiStore';
+import { Card, CardHeader, CardMetadata } from './Card';
+import { Typography } from './Typography';
 
 export type ReflectionCardVariant = 'compact' | 'full';
 
@@ -17,25 +20,20 @@ const BRT_LABELS: Record<BrtCategory, 'Bud' | 'Rose' | 'Thorn'> = {
   thorn: 'Thorn',
 };
 
-// Matches EchoTrail.tsx's BrtBadge exactly — same colors, same shape.
+// BRT identity stays semantic while the pill surface follows the shared card palette.
 function BrtPill({ brt }: { brt: 'Bud' | 'Rose' | 'Thorn' }) {
-  if (brt === 'Bud') {
-    return (
-      <View className="bg-green-100 px-2 py-0.5 rounded-full">
-        <Text className="text-xs font-inter-medium text-green-700">Bud</Text>
-      </View>
-    );
-  }
-  if (brt === 'Rose') {
-    return (
-      <View className="bg-amber-100 px-2 py-0.5 rounded-full">
-        <Text className="text-xs font-inter-medium" style={{ color: '#F59E0B' }}>Rose</Text>
-      </View>
-    );
-  }
+  const colors = useThemeColors();
+  const textColor =
+    brt === 'Bud' ? colors.brt.bud : brt === 'Rose' ? colors.brt.rose : colors.brt.thorn;
+
   return (
-    <View className="bg-red-100 px-2 py-0.5 rounded-full">
-      <Text className="text-xs font-inter-medium text-red-700">Thorn</Text>
+    <View
+      className="rounded-full px-2 py-0.5"
+      style={{ backgroundColor: colors.background.subtle }}
+    >
+      <Typography variant="badge-text" style={{ color: textColor }}>
+        {brt}
+      </Typography>
     </View>
   );
 }
@@ -54,22 +52,19 @@ export function ReflectionCard({ variant, timestamp, aiResponse, brt }: Reflecti
   const isFull = variant === 'full';
 
   return (
-    <View className={isFull ? 'bg-white rounded-xl p-6 shadow-sm' : 'bg-white rounded-xl p-4 shadow-sm'}>
-      <View className="flex-row items-center justify-between mb-2">
-        <Text className={isFull ? 'text-sm text-[#A79E8E]' : 'text-xs text-[#A79E8E]'}>
+    <Card padding={isFull ? 'spacious' : 'compact'} elevated>
+      <CardHeader style={{ marginBottom: 8 }}>
+        <CardMetadata style={{ fontSize: isFull ? 14 : 12 }}>
           {formatTimestamp(timestamp)}
-        </Text>
+        </CardMetadata>
         {brtLabel ? <BrtPill brt={brtLabel} /> : null}
-      </View>
-      <Text
-        className={
-          isFull
-            ? 'text-near-black text-base leading-relaxed'
-            : 'text-near-black text-sm leading-relaxed'
-        }
+      </CardHeader>
+      <Typography
+        variant="content"
+        style={{ fontSize: isFull ? 15 : 14, lineHeight: isFull ? 24 : 21 }}
       >
         {aiResponse}
-      </Text>
-    </View>
+      </Typography>
+    </Card>
   );
 }

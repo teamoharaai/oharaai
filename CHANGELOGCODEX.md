@@ -2,21 +2,28 @@
 
 ## [Unreleased]
 
-### Added (2026-07-20 — Goal detail redesign and canonical goal evidence)
-- **`supabase/migrations/025_goal_milestones_trackers_archive.sql`, `types/supabase.ts`, `lib/goals/schema.ts`, and `features/goals/types.ts`:** added the real `archived` goal status, hard-renamed the recurring-measure tables and log foreign key to canonical `trackers`/`tracker_logs`/`tracker_id`, restricted tracker cadence to daily/weekly/monthly, and evolved milestones into ordered, one-time critical events with descriptions and timestamp-based completion.
-- **`MilestonesPanel.tsx`, `TrackersPanel.tsx`, `TrackerCard.tsx`, `IntelligencePanel.tsx`, `AnalyticsPanel.tsx`, and `RecommendedPanel.tsx`:** added the redesigned goal-detail evidence stack, including milestone and tracker CRUD, one-way milestone completion, responsive sample analytics/intelligence states, and clearly labeled non-transactional recommendation placeholders.
-- **`components/layout/SettingsModal.tsx`:** added an RLS-backed Archived section that lists archived goals and opens their read-only detail screens.
+### Fixed (2026-07-20 — New Goal rebase repair)
+- **`app/goals/create.tsx`:** repaired the malformed tracker metadata declaration and reconciled stale pre-rebase measurable identifiers with the upstream tracker/milestone model while retaining runtime semantic theme tokens throughout both editors.
+- **`components/layout/AvatarMenu.tsx` and `SettingsModal.tsx`:** repaired mismatched and unclosed JSX introduced by the rebase, restored the upstream archived-goal settings section, and retained the shared themed toggle controls.
+- **`scripts/test-rls.ts`:** replaced the undeclared `dotenv` import with Node's built-in environment-file loader so the repository typecheck can include the RLS script without changing its missing-environment behavior.
+- **`CHANGELOGCODEX.md`:** removed unresolved rebase markers while retaining both sides' existing phase history.
 
-### Changed (2026-07-20 — Goal detail redesign and canonical goal evidence)
-- **Goal creation, APIs, services, stores, prompts, evals, scripts, contracts, and current architecture documentation:** replaced the former measurable-domain naming with canonical Trackers while retaining SMART's distinct `measurable` criterion; renamed the tracker completion and due-today routes; creation and extension now write milestones and trackers through the canonical schema.
-- **`app/(app)/goals/[id]/index.tsx`, `GoalDetailHeader.tsx`, and `CountdownTimer.tsx`:** implemented the handoff hierarchy and responsive two-column desktop layout, kept the goal title fixed, limited inline goal editing to the description, exposed Move/Edit description/Archive in the actions menu, and made goal completion one-way with no reopen-to-active action.
-- **`app/(app)/dashboard.tsx`, goal/project list services and cards:** exclude archived goals from ordinary dashboard, active-feed, standalone-goal, and project-goal lists; archived records remain directly addressable only through Settings.
-- **`components/layout/AvatarMenu.tsx`:** labeled the account-menu trigger for assistive navigation to Settings.
+### Added (2026-07-20 — Phase 3 shared card foundation)
+- **`components/ui/Card.tsx`:** added a typed semantic card foundation with canonical surface and divider tokens, a 16px radius, compact/default/spacious padding, optional light-only elevation, section spacing, aligned headers, dividers, and shared title/subtitle/metadata hierarchy.
 
-### Fixed (2026-07-20 — Goal detail redesign and canonical goal evidence)
-- **`types/activity.ts`, goal activity mapping, and `ActivityFeed.tsx`:** separated recurring `tracker_logged` activity from one-time `milestone_completed` evidence.
-- Verification: migration 025 was applied to the linked Supabase project; linked `db lint` reported no schema errors; `npx tsc --noEmit`, `git diff --check`, and the 27-route Expo web export passed. A signed-in desktop smoke test confirmed the redesigned hierarchy, canonical Milestones/Trackers labels, description-only editor, actions menu, local recommendation filters, responsive activity rail, and Settings → Archived empty state.
+### Changed (2026-07-20 — Phase 3 shared card foundation)
+- **`components/ui/EmptyStateCard.tsx` and `ReflectionCard.tsx`:** adopted the shared card foundation without changing their public APIs or product content; reflection surfaces and text now follow the canonical light/dark card and typography treatment.
 
+### Changed (2026-07-20 — Phase 2 global surfaces and typography)
+- **`components/layout/Screen.tsx`:** replaced static cream and landing-dark surface classes with the canonical runtime page and dark-surface tokens while preserving the shared screen API and scrolling behavior.
+- **`components/ui/Modal.tsx`, `Input.tsx`, and `AnchoredPopover.tsx`:** wired shared elevated surfaces, inputs, borders, dividers, placeholder text, and action text to canonical semantic theme tokens so the primitives share the same light/dark structure.
+- **`components/ui/Typography.tsx`:** routed the shared `section-eyebrow` variant through the approved accent text role and removed its static light-only Tailwind color while retaining caller-owned `badge-text` semantics.
+
+### Changed (2026-07-20 — Phase 1 theme foundation)
+- **`constants/colors.ts`:** made the canonical light/dark palette contract explicit with typed semantic theme and text-token interfaces while retaining the existing token structure and values.
+- **`app/(app)/dashboard.tsx`, `components/ui/EmptyStateCard.tsx`, `TodayGoalCard.tsx`, and `Typography.tsx`:** replaced Phase 1 dashboard, loading, action, empty-state, and typography color literals with runtime semantic tokens so the shared states respond consistently to light and dark mode.
+- **`components/layout/Sidebar.tsx`:** routed the toggle container and selected navigation row through the existing quiet-border and selected-row tokens, preserving navigation behavior and disabled-state handling.
+- **`features/projects/components/CreateProjectModal.tsx` and `ProjectCard.tsx`:** removed the dashboard project modal's direct light-theme dependency, applied runtime input and feedback tokens, and disabled project-card shadow elevation in dark mode.
 ### Fixed (2026-07-20 — Branded web favicon)
 - **`app.json`:** replaced the default Expo web favicon with the existing Ohara logo asset so deployed browser tabs and site chrome display the product brand.
 

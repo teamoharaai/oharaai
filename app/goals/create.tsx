@@ -1,5 +1,4 @@
 import {
-  ActivityIndicator,
   Animated,
   Platform,
   Pressable,
@@ -22,12 +21,17 @@ import {
 } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { AppHeader } from '@/components/layout/AppHeader';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Toggle } from '@/components/ui/Toggle';
 import { Typography } from '@/components/ui/Typography';
-import { LIGHT_THEME } from '@/constants/colors';
+import type { ThemeColors } from '@/constants/colors';
 import { CATEGORY_COLOR_THEME, GOAL_THEMES } from '@/constants/themes';
 import { fetchGoalById } from '@/features/goals/services/goal-service';
 import { useGoalStore } from '@/features/goals/store';
 import { useProjectStore } from '@/features/projects/store';
+import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { authedFetch } from '@/lib/api/client';
 import type { ApiResponse } from '@/lib/api/contracts';
 import type { AiResponse } from '@/lib/ai/contracts';
@@ -61,41 +65,30 @@ type GoalSuggestion = ManualGoalCreationInput['milestones'][number];
 const aiAssistEnabled = true;
 const START_TRACKABLE = true;
 const INITIAL_COUNT = 3;
-const PROJECT_DOT_COLORS = ['#2F8F6D', '#B45309', '#4A7C5F'] as const;
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
 
-const TYPE_META: Record<
+function getTypeMeta(colors: ThemeColors): Record<
   GoalTrackerType,
   { label: string; color: string; backgroundColor: string }
-> = {
-  counter: {
-    label: 'Counter',
-    color: '#2F8F6D',
-    backgroundColor: 'rgba(47,143,109,0.12)',
-  },
-  habit: {
-    label: 'Habit',
-    color: '#4A7C5F',
-    backgroundColor: 'rgba(74,124,95,0.12)',
-  },
-  checklist: {
-    label: 'Checklist',
-    color: '#B45309',
-    backgroundColor: 'rgba(180,83,9,0.12)',
-  },
-};
-
-const CARD_STYLE = {
-  backgroundColor: LIGHT_THEME.background.card,
-  borderColor: LIGHT_THEME.border.warm,
-  borderRadius: 16,
-  borderWidth: 1,
-  elevation: 1,
-  shadowColor: '#000000',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.04,
-  shadowRadius: 12,
-} as const;
+> {
+  return {
+    counter: {
+      label: 'Counter',
+      color: colors.accent.tealMid,
+      backgroundColor: colors.background.selectedRow,
+    },
+    habit: {
+      label: 'Habit',
+      color: colors.text.accent,
+      backgroundColor: colors.background.selectedRow,
+    },
+    checklist: {
+      label: 'Checklist',
+      color: colors.feedback.pending.text,
+      backgroundColor: colors.feedback.pending.bg,
+    },
+  };
+}
 
 function todayDateValue(): string {
   const today = new Date();
@@ -145,12 +138,14 @@ function titleCase(value: string): string {
 }
 
 function Eyebrow({ children, style }: { children: ReactNode; style?: object }) {
+  const colors = useThemeColors();
+
   return (
     <Typography
       variant="eyebrow"
       style={[
         {
-          color: LIGHT_THEME.text.secondary,
+          color: colors.text.secondary,
           fontFamily: 'Inter-SemiBold',
           fontSize: 11,
           letterSpacing: 1.5,
@@ -165,18 +160,13 @@ function Eyebrow({ children, style }: { children: ReactNode; style?: object }) {
 
 function FormCard({ children, last = false }: { children: ReactNode; last?: boolean }) {
   return (
-    <View
-      style={[
-        CARD_STYLE,
-        {
-          marginBottom: last ? 20 : 16,
-          paddingHorizontal: 24,
-          paddingVertical: 20,
-        },
-      ]}
+    <Card
+      elevated
+      padding="spacious"
+      style={{ marginBottom: last ? 20 : 16, paddingVertical: 20 }}
     >
       {children}
-    </View>
+    </Card>
   );
 }
 
@@ -188,15 +178,21 @@ type DateFieldProps = {
 };
 
 function DateField({ error, onBlur, onChange, value }: DateFieldProps) {
-  const borderColor = error ? LIGHT_THEME.feedback.danger.text : LIGHT_THEME.border.input;
+  const colors = useThemeColors();
+  const [focused, setFocused] = useState(false);
+  const borderColor = error
+    ? colors.feedback.danger.border
+    : focused
+      ? colors.border.accent
+      : colors.border.input;
 
   if (Platform.OS === 'web') {
     const style: CSSProperties = {
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.background.input,
       border: `1px solid ${borderColor}`,
       borderRadius: 999,
       boxSizing: 'border-box',
-      color: LIGHT_THEME.text.primary,
+      color: colors.text.primary,
       fontFamily: 'Inter-Regular',
       fontSize: 13,
       height: 36,
@@ -210,11 +206,13 @@ function DateField({ error, onBlur, onChange, value }: DateFieldProps) {
       defaultValue: value,
       min: todayDateValue(),
       onBlur: (event: ChangeEvent<HTMLInputElement>) => {
+        setFocused(false);
         const nextValue = event.currentTarget.value;
         onChange(nextValue);
         onBlur(nextValue);
       },
       onChange: (event: ChangeEvent<HTMLInputElement>) => onChange(event.currentTarget.value),
+      onFocus: () => setFocused(true),
       onInput: (event: FormEvent<HTMLInputElement>) => onChange(event.currentTarget.value),
       style,
       type: 'date',
@@ -226,16 +224,20 @@ function DateField({ error, onBlur, onChange, value }: DateFieldProps) {
       accessibilityLabel="Target date"
       autoCapitalize="none"
       autoCorrect={false}
-      onBlur={() => onBlur(value)}
+      onBlur={() => {
+        setFocused(false);
+        onBlur(value);
+      }}
+      onFocus={() => setFocused(true)}
       onChangeText={onChange}
       placeholder="YYYY-MM-DD"
-      placeholderTextColor={LIGHT_THEME.text.muted}
+      placeholderTextColor={colors.text.muted}
       style={{
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.background.input,
         borderColor,
         borderRadius: 999,
         borderWidth: 1,
-        color: LIGHT_THEME.text.primary,
+        color: colors.text.primary,
         fontFamily: 'Inter-Regular',
         fontSize: 13,
         height: 36,
@@ -256,45 +258,29 @@ type CreateButtonProps = {
 };
 
 function CreateButton({ compact = false, enabled, saving, onPress }: CreateButtonProps) {
-  const interactive = enabled && !saving;
-
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ disabled: !interactive, busy: saving }}
-      disabled={!interactive}
+    <Button
+      disabled={!enabled}
+      loading={saving}
       onPress={onPress}
-      style={({ pressed }) => ({
-        alignItems: 'center',
-        backgroundColor: LIGHT_THEME.accent.primary,
-        borderRadius: compact ? 999 : 14,
-        justifyContent: 'center',
-        minHeight: compact ? 35 : 50,
-        opacity: interactive ? (pressed ? 0.82 : 1) : 0.45,
-        paddingHorizontal: compact ? 16 : 20,
-        paddingVertical: compact ? 9 : 15,
-        width: compact ? undefined : '100%',
-      })}
+      size={compact ? 'compact' : 'default'}
+      style={{ minHeight: compact ? 44 : 50, width: compact ? undefined : '100%' }}
+      textStyle={{ fontSize: compact ? 13 : 15 }}
     >
-      {saving ? (
-        <ActivityIndicator color="#FFFFFF" size="small" />
-      ) : (
-        <Typography
-          variant="emphasis-sm"
-          style={{
-            color: '#FFFFFF',
-            fontFamily: 'Inter-SemiBold',
-            fontSize: compact ? 13 : 15,
-          }}
-        >
-          Create goal
-        </Typography>
-      )}
-    </Pressable>
+      Create goal
+    </Button>
   );
 }
 
 export default function GoalCreateScreen() {
+  const colors = useThemeColors();
+  const themeMode = useUIStore((state) => state.themeMode);
+  const typeMeta = getTypeMeta(colors);
+  const projectDotColors = [
+    colors.accent.tealMid,
+    colors.feedback.pending.text,
+    colors.accent.primary,
+  ];
   const { projectId: incomingProjectId } = useLocalSearchParams<{ projectId?: string }>();
   const upsertGoal = useGoalStore((state) => state.upsertGoal);
   const projects = useProjectStore((state) => state.projects);
@@ -598,7 +584,7 @@ export default function GoalCreateScreen() {
   return (
     <SafeAreaView
       style={{
-        backgroundColor: LIGHT_THEME.background.page,
+        backgroundColor: colors.background.page,
         flex: 1,
         flexDirection: 'row',
       }}
@@ -606,49 +592,17 @@ export default function GoalCreateScreen() {
       <Sidebar />
 
       <View style={{ flex: 1, minWidth: 0 }}>
-        <View
-          style={{
-            alignItems: 'center',
-            backgroundColor: LIGHT_THEME.background.page,
-            borderBottomColor: LIGHT_THEME.background.subtle,
-            borderBottomWidth: 0.5,
-            flexDirection: 'row',
-            minHeight: 60,
-            paddingHorizontal: 24,
-            paddingVertical: 12,
-          }}
-        >
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.back()}
-            style={({ pressed }) => ({
-              alignItems: 'center',
-              flexDirection: 'row',
-              gap: 6,
-              marginRight: 12,
-              opacity: pressed ? 0.65 : 1,
-            })}
-          >
-            <Typography variant="nav-back">←</Typography>
-            <Typography variant="nav-back">Journey</Typography>
-          </Pressable>
-          <View
-            style={{
-              backgroundColor: LIGHT_THEME.background.subtle,
-              height: 16,
-              marginRight: 12,
-              width: 1,
-            }}
-          />
-          <Typography variant="nav-title">New goal</Typography>
-          <View style={{ flex: 1 }} />
-          <CreateButton
+        <AppHeader
+          backLabel="Journey"
+          onBack={() => router.back()}
+          title="New goal"
+          actions={<CreateButton
             compact
             enabled={createEnabled}
             onPress={handleCreateGoal}
             saving={saving}
-          />
-        </View>
+          />}
+        />
 
         <ScrollView
           style={{ flex: 1 }}
@@ -669,9 +623,9 @@ export default function GoalCreateScreen() {
               autoFocus
               onChangeText={setTitleText}
               placeholder="e.g. Lose 2 lbs by August 31"
-              placeholderTextColor={LIGHT_THEME.text.muted}
+              placeholderTextColor={colors.text.muted}
               style={{
-                color: LIGHT_THEME.text.primary,
+                color: colors.text.primary,
                 fontFamily: 'Inter-SemiBold',
                 fontSize: 26,
                 fontWeight: '600',
@@ -686,7 +640,7 @@ export default function GoalCreateScreen() {
 
             <View
               style={{
-                backgroundColor: LIGHT_THEME.border.warmSubtle,
+                backgroundColor: colors.border.warmSubtle,
                 height: 1,
                 marginBottom: 14,
                 marginTop: 16,
@@ -698,7 +652,7 @@ export default function GoalCreateScreen() {
               <Typography
                 variant="eyebrow"
                 style={{
-                  color: LIGHT_THEME.feedback.danger.text,
+                  color: colors.feedback.danger.text,
                   fontFamily: 'Inter-SemiBold',
                   fontSize: 11,
                   marginLeft: 3,
@@ -720,10 +674,12 @@ export default function GoalCreateScreen() {
                     onPress={() => setSelectedCategory(category)}
                     style={({ pressed }) => ({
                       alignItems: 'center',
-                      backgroundColor: selected ? LIGHT_THEME.background.sidebar : '#FFFFFF',
+                      backgroundColor: selected
+                        ? colors.background.selectedRow
+                        : colors.background.card,
                       borderColor: selected
-                        ? LIGHT_THEME.background.sidebar
-                        : LIGHT_THEME.background.subtle,
+                        ? colors.border.accent
+                        : colors.border.divider,
                       borderRadius: 999,
                       borderWidth: 1,
                       flexDirection: 'row',
@@ -744,9 +700,7 @@ export default function GoalCreateScreen() {
                     <Typography
                       variant="meta"
                       style={{
-                        color: selected
-                          ? LIGHT_THEME.text.inverse
-                          : LIGHT_THEME.text.secondary,
+                        color: selected ? colors.text.accent : colors.text.secondary,
                         fontSize: 13,
                         lineHeight: 16,
                       }}
@@ -760,7 +714,7 @@ export default function GoalCreateScreen() {
 
             <View
               style={{
-                backgroundColor: LIGHT_THEME.border.warmSubtle,
+                backgroundColor: colors.border.warmSubtle,
                 height: 1,
                 marginBottom: 14,
                 marginTop: 16,
@@ -774,9 +728,9 @@ export default function GoalCreateScreen() {
               numberOfLines={2}
               onChangeText={setWhyText}
               placeholder="Why is this worth it to you? What changes when you get there?"
-              placeholderTextColor={LIGHT_THEME.text.muted}
+              placeholderTextColor={colors.text.muted}
               style={{
-                color: LIGHT_THEME.text.accent,
+                color: colors.text.accent,
                 fontFamily: 'Lora-Italic',
                 fontSize: 16,
                 fontStyle: 'italic',
@@ -801,7 +755,7 @@ export default function GoalCreateScreen() {
                   Target date{' '}
                   <Typography
                     variant="field-label"
-                    style={{ color: LIGHT_THEME.feedback.danger.text, fontSize: 13 }}
+                    style={{ color: colors.feedback.danger.text, fontSize: 13 }}
                   >
                     *
                   </Typography>
@@ -820,7 +774,7 @@ export default function GoalCreateScreen() {
                   <Typography
                     variant="caption"
                     style={{
-                      color: LIGHT_THEME.feedback.danger.text,
+                      color: colors.feedback.danger.text,
                       fontSize: 12,
                       marginTop: 6,
                     }}
@@ -839,7 +793,7 @@ export default function GoalCreateScreen() {
                   <Typography
                     variant="field-label"
                     style={{
-                      color: LIGHT_THEME.text.muted,
+                      color: colors.text.muted,
                       fontFamily: 'Inter-Regular',
                       fontSize: 13,
                     }}
@@ -863,11 +817,11 @@ export default function GoalCreateScreen() {
                         style={({ pressed }) => ({
                           alignItems: 'center',
                           backgroundColor: selected
-                            ? LIGHT_THEME.background.sidebar
-                            : '#FFFFFF',
+                            ? colors.background.selectedRow
+                            : colors.background.card,
                           borderColor: selected
-                            ? LIGHT_THEME.background.sidebar
-                            : LIGHT_THEME.background.subtle,
+                            ? colors.border.accent
+                            : colors.border.divider,
                           borderRadius: 999,
                           borderWidth: 1,
                           flexDirection: 'row',
@@ -879,7 +833,7 @@ export default function GoalCreateScreen() {
                         <View
                           style={{
                             backgroundColor:
-                              PROJECT_DOT_COLORS[index % PROJECT_DOT_COLORS.length],
+                              projectDotColors[index % projectDotColors.length],
                             borderRadius: 3.5,
                             height: 7,
                             marginRight: 7,
@@ -889,9 +843,7 @@ export default function GoalCreateScreen() {
                         <Typography
                           variant="meta"
                           style={{
-                            color: selected
-                              ? LIGHT_THEME.text.inverse
-                              : LIGHT_THEME.text.secondary,
+                            color: selected ? colors.text.accent : colors.text.secondary,
                             fontSize: 13,
                             lineHeight: 16,
                           }}
@@ -908,8 +860,8 @@ export default function GoalCreateScreen() {
             <View
               style={{
                 alignItems: 'flex-start',
-                backgroundColor: LIGHT_THEME.background.goalCard,
-                borderColor: LIGHT_THEME.border.warmSubtle,
+                backgroundColor: colors.background.goalCard,
+                borderColor: colors.border.warmSubtle,
                 borderRadius: 12,
                 borderWidth: 1,
                 flexDirection: 'row',
@@ -921,14 +873,14 @@ export default function GoalCreateScreen() {
             >
               <Typography
                 variant="body"
-                style={{ color: LIGHT_THEME.text.accent, fontSize: 14, marginTop: 1 }}
+                style={{ color: colors.text.accent, fontSize: 14, marginTop: 1 }}
               >
                 ◷
               </Typography>
               <Typography
                 variant="body"
                 style={{
-                  color: LIGHT_THEME.text.secondary,
+                  color: colors.text.secondary,
                   flex: 1,
                   fontSize: 12.5,
                   lineHeight: 19.375,
@@ -939,7 +891,7 @@ export default function GoalCreateScreen() {
                 <Typography
                   variant="body"
                   style={{
-                    color: LIGHT_THEME.text.primary,
+                    color: colors.text.primary,
                     fontFamily: 'Inter-SemiBold',
                     fontSize: 12.5,
                   }}
@@ -964,40 +916,15 @@ export default function GoalCreateScreen() {
               <View style={{ alignItems: 'center', flexDirection: 'row', gap: 10 }}>
                 <Typography
                   variant="caption"
-                  style={{ color: LIGHT_THEME.text.secondary, fontSize: 12 }}
+                  style={{ color: colors.text.secondary, fontSize: 12 }}
                 >
                   Track a cadence
                 </Typography>
-                <Pressable
-                  accessibilityRole="switch"
-                  accessibilityState={{ checked: trackable }}
-                  onPress={() => setTrackable((current) => !current)}
-                  style={({ pressed }) => ({
-                    backgroundColor: trackable
-                      ? LIGHT_THEME.accent.primary
-                      : LIGHT_THEME.border.input,
-                    borderRadius: 13,
-                    height: 26,
-                    justifyContent: 'center',
-                    opacity: pressed ? 0.78 : 1,
-                    padding: 3,
-                    width: 46,
-                  })}
-                >
-                  <View
-                    style={{
-                      backgroundColor: '#FFFFFF',
-                      borderRadius: 10,
-                      height: 20,
-                      shadowColor: '#000000',
-                      shadowOffset: { width: 0, height: 1 },
-                      shadowOpacity: 0.25,
-                      shadowRadius: 2,
-                      transform: [{ translateX: trackable ? 20 : 0 }],
-                      width: 20,
-                    }}
-                  />
-                </Pressable>
+                <Toggle
+                  accessibilityLabel="Track a cadence"
+                  onValueChange={setTrackable}
+                  value={trackable}
+                />
               </View>
             </View>
 
@@ -1011,7 +938,7 @@ export default function GoalCreateScreen() {
                 </Typography>
                 <Typography
                   variant="caption"
-                  style={{ color: LIGHT_THEME.text.muted, fontSize: 12.5, marginBottom: 14 }}
+                  style={{ color: colors.text.muted, fontSize: 12.5, marginBottom: 14 }}
                 >
                   Pick a pace you can realistically keep — consistency beats intensity.
                 </Typography>
@@ -1019,7 +946,7 @@ export default function GoalCreateScreen() {
                 <View
                   style={{
                     alignSelf: 'flex-start',
-                    backgroundColor: LIGHT_THEME.background.input,
+                    backgroundColor: colors.background.input,
                     borderRadius: 10,
                     flexDirection: 'row',
                     marginBottom: 20,
@@ -1035,15 +962,15 @@ export default function GoalCreateScreen() {
                         key={option}
                         onPress={() => handlePeriodChange(option)}
                         style={({ pressed }) => ({
-                          backgroundColor: active ? '#FFFFFF' : 'transparent',
+                          backgroundColor: active ? colors.background.card : 'transparent',
                           borderRadius: 8,
                           elevation: active ? 1 : 0,
                           opacity: pressed ? 0.7 : 1,
                           paddingHorizontal: 16,
                           paddingVertical: 7,
-                          shadowColor: '#000000',
+                          shadowColor: colors.text.primary,
                           shadowOffset: { width: 0, height: 1 },
-                          shadowOpacity: active ? 0.08 : 0,
+                          shadowOpacity: active && themeMode === 'light' ? 0.08 : 0,
                           shadowRadius: active ? 3 : 0,
                         })}
                       >
@@ -1051,8 +978,8 @@ export default function GoalCreateScreen() {
                           variant="meta"
                           style={{
                             color: active
-                              ? LIGHT_THEME.text.primary
-                              : LIGHT_THEME.text.secondary,
+                              ? colors.text.primary
+                              : colors.text.secondary,
                             fontFamily: active ? 'Inter-SemiBold' : 'Inter-Medium',
                             fontSize: 13,
                             lineHeight: 18,
@@ -1077,7 +1004,7 @@ export default function GoalCreateScreen() {
                   <View
                     style={{
                       alignItems: 'center',
-                      borderColor: LIGHT_THEME.border.warm,
+                      borderColor: colors.border.warm,
                       borderRadius: 12,
                       borderWidth: 1,
                       flexDirection: 'row',
@@ -1098,7 +1025,7 @@ export default function GoalCreateScreen() {
                     >
                       <Typography
                         variant="body"
-                        style={{ color: LIGHT_THEME.text.accent, fontSize: 22, lineHeight: 26 }}
+                        style={{ color: colors.text.accent, fontSize: 22, lineHeight: 26 }}
                       >
                         −
                       </Typography>
@@ -1106,7 +1033,7 @@ export default function GoalCreateScreen() {
                     <Typography
                       variant="body"
                       style={{
-                        color: LIGHT_THEME.text.primary,
+                        color: colors.text.primary,
                         fontFamily: 'Inter-SemiBold',
                         fontSize: 24,
                         textAlign: 'center',
@@ -1133,7 +1060,7 @@ export default function GoalCreateScreen() {
                     >
                       <Typography
                         variant="body"
-                        style={{ color: LIGHT_THEME.text.accent, fontSize: 22, lineHeight: 26 }}
+                        style={{ color: colors.text.accent, fontSize: 22, lineHeight: 26 }}
                       >
                         +
                       </Typography>
@@ -1144,7 +1071,7 @@ export default function GoalCreateScreen() {
                     <Typography
                       variant="body"
                       style={{
-                        color: LIGHT_THEME.text.primary,
+                        color: colors.text.primary,
                         fontFamily: 'Lora-Regular',
                         fontSize: 18,
                         fontWeight: '600',
@@ -1155,7 +1082,7 @@ export default function GoalCreateScreen() {
                     </Typography>
                     <Typography
                       variant="caption"
-                      style={{ color: LIGHT_THEME.text.secondary, fontSize: 12, marginTop: 2 }}
+                      style={{ color: colors.text.secondary, fontSize: 12, marginTop: 2 }}
                     >
                       A checkmark lands each time you log progress.
                     </Typography>
@@ -1172,8 +1099,8 @@ export default function GoalCreateScreen() {
                           style={{
                             alignItems: 'center',
                             backgroundColor: filled
-                              ? LIGHT_THEME.accent.primary
-                              : LIGHT_THEME.background.input,
+                              ? colors.accent.primary
+                              : colors.background.input,
                             borderRadius: 15,
                             height: 30,
                             justifyContent: 'center',
@@ -1183,7 +1110,7 @@ export default function GoalCreateScreen() {
                           <Typography
                             variant="caption"
                             style={{
-                              color: filled ? '#FFFFFF' : LIGHT_THEME.text.muted,
+                              color: filled ? colors.text.onAccent : colors.text.muted,
                               fontFamily: 'Inter-SemiBold',
                               fontSize: 12,
                             }}
@@ -1207,7 +1134,7 @@ export default function GoalCreateScreen() {
               >
                 <View
                   style={{
-                    backgroundColor: LIGHT_THEME.text.muted,
+                    backgroundColor: colors.text.muted,
                     borderRadius: 4,
                     flexShrink: 0,
                     height: 8,
@@ -1225,7 +1152,7 @@ export default function GoalCreateScreen() {
                   <Typography
                     variant="body"
                     style={{
-                      color: LIGHT_THEME.text.secondary,
+                      color: colors.text.secondary,
                       fontSize: 13,
                       lineHeight: 19.5,
                     }}
@@ -1245,7 +1172,7 @@ export default function GoalCreateScreen() {
               <View style={{ paddingBottom: 4, paddingTop: 12 }}>
                 <Typography
                   variant="description"
-                  style={{ color: LIGHT_THEME.text.secondary, fontSize: 14, lineHeight: 21 }}
+                  style={{ color: colors.text.secondary, fontSize: 14, lineHeight: 21 }}
                 >
                   What recurring behavior or number will show that the goal is moving? Add only
                   the signals you will actually use.
@@ -1256,14 +1183,14 @@ export default function GoalCreateScreen() {
             {trackers.length > 0 ? (
               <View style={{ gap: 8, marginTop: 14 }}>
                 {trackers.map((tracker) => {
-                  const meta = TYPE_META[tracker.type];
+                  const meta = typeMeta[tracker.type];
                   return (
                     <View
                       key={tracker.id}
                       style={{
                         alignItems: 'center',
-                        backgroundColor: LIGHT_THEME.background.goalCard,
-                        borderColor: LIGHT_THEME.border.warmSubtle,
+                        backgroundColor: colors.background.goalCard,
+                        borderColor: colors.border.warmSubtle,
                         borderRadius: 12,
                         borderWidth: 1,
                         flexDirection: 'row',
@@ -1293,7 +1220,7 @@ export default function GoalCreateScreen() {
                       </View>
                       <Typography
                         variant="content"
-                        style={{ color: LIGHT_THEME.text.primary, flex: 1, fontSize: 14 }}
+                        style={{ color: colors.text.primary, flex: 1, fontSize: 14 }}
                       >
                         {tracker.title}
                       </Typography>
@@ -1313,7 +1240,7 @@ export default function GoalCreateScreen() {
                       >
                         <Typography
                           variant="body"
-                          style={{ color: LIGHT_THEME.text.muted, fontSize: 18, lineHeight: 18 }}
+                          style={{ color: colors.text.muted, fontSize: 18, lineHeight: 18 }}
                         >
                           ×
                         </Typography>
@@ -1327,8 +1254,8 @@ export default function GoalCreateScreen() {
             {showTrackerAddForm ? (
               <View
                 style={{
-                  backgroundColor: LIGHT_THEME.background.page,
-                  borderColor: LIGHT_THEME.background.subtle,
+                  backgroundColor: colors.background.page,
+                  borderColor: colors.border.divider,
                   borderRadius: 12,
                   borderWidth: 1,
                   marginTop: 12,
@@ -1341,13 +1268,13 @@ export default function GoalCreateScreen() {
                   onChangeText={setDraftTrackerTitle}
                   onSubmitEditing={addTracker}
                   placeholder="Tracker name"
-                  placeholderTextColor={LIGHT_THEME.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   style={{
-                    backgroundColor: LIGHT_THEME.background.input,
-                    borderColor: LIGHT_THEME.background.subtle,
+                    backgroundColor: colors.background.input,
+                    borderColor: colors.border.input,
                     borderRadius: 10,
                     borderWidth: 1,
-                    color: LIGHT_THEME.text.primary,
+                    color: colors.text.primary,
                     fontFamily: 'Inter-Regular',
                     fontSize: 13,
                     marginBottom: 10,
@@ -1360,7 +1287,7 @@ export default function GoalCreateScreen() {
 
                 <View style={{ flexDirection: 'row', gap: 6, marginBottom: 12 }}>
                   {GOAL_TRACKER_TYPES.map((type) => {
-                    const meta = TYPE_META[type];
+                    const meta = typeMeta[type];
                     const active = draftTrackerType === type;
                     return (
                       <Pressable
@@ -1371,7 +1298,7 @@ export default function GoalCreateScreen() {
                         style={({ pressed }) => ({
                           alignItems: 'center',
                           backgroundColor: active ? meta.backgroundColor : 'transparent',
-                          borderColor: active ? meta.color : LIGHT_THEME.background.subtle,
+                          borderColor: active ? meta.color : colors.border.divider,
                           borderRadius: 8,
                           borderWidth: 1,
                           flex: 1,
@@ -1382,7 +1309,7 @@ export default function GoalCreateScreen() {
                         <Typography
                           variant="caption"
                           style={{
-                            color: active ? meta.color : LIGHT_THEME.text.muted,
+                            color: active ? meta.color : colors.text.muted,
                             fontFamily: 'Inter-Medium',
                             fontSize: 12,
                           }}
@@ -1401,13 +1328,13 @@ export default function GoalCreateScreen() {
                       keyboardType="numeric"
                       onChangeText={setDraftTrackerTargetValue}
                       placeholder="Target"
-                      placeholderTextColor={LIGHT_THEME.text.muted}
+                      placeholderTextColor={colors.text.muted}
                       style={{
-                        backgroundColor: LIGHT_THEME.background.input,
-                        borderColor: LIGHT_THEME.background.subtle,
+                        backgroundColor: colors.background.input,
+                        borderColor: colors.border.input,
                         borderRadius: 10,
                         borderWidth: 1,
-                        color: LIGHT_THEME.text.primary,
+                        color: colors.text.primary,
                         flex: 1,
                         fontFamily: 'Inter-Regular',
                         fontSize: 13,
@@ -1421,13 +1348,13 @@ export default function GoalCreateScreen() {
                       accessibilityLabel="Tracker target unit"
                       onChangeText={setDraftTrackerTargetUnit}
                       placeholder="Unit (e.g. km)"
-                      placeholderTextColor={LIGHT_THEME.text.muted}
+                      placeholderTextColor={colors.text.muted}
                       style={{
-                        backgroundColor: LIGHT_THEME.background.input,
-                        borderColor: LIGHT_THEME.background.subtle,
+                        backgroundColor: colors.background.input,
+                        borderColor: colors.border.input,
                         borderRadius: 10,
                         borderWidth: 1,
-                        color: LIGHT_THEME.text.primary,
+                        color: colors.text.primary,
                         flex: 2,
                         fontFamily: 'Inter-Regular',
                         fontSize: 13,
@@ -1446,7 +1373,7 @@ export default function GoalCreateScreen() {
                     onPress={cancelTrackerAddForm}
                     style={({ pressed }) => ({
                       alignItems: 'center',
-                      borderColor: LIGHT_THEME.background.subtle,
+                      borderColor: colors.border.divider,
                       borderRadius: 8,
                       borderWidth: 1,
                       flex: 1,
@@ -1456,7 +1383,7 @@ export default function GoalCreateScreen() {
                   >
                     <Typography
                       variant="meta"
-                      style={{ color: LIGHT_THEME.text.secondary, fontSize: 13 }}
+                      style={{ color: colors.text.secondary, fontSize: 13 }}
                     >
                       Cancel
                     </Typography>
@@ -1468,7 +1395,7 @@ export default function GoalCreateScreen() {
                     onPress={addTracker}
                     style={({ pressed }) => ({
                       alignItems: 'center',
-                      backgroundColor: LIGHT_THEME.accent.primary,
+                      backgroundColor: colors.accent.primary,
                       borderRadius: 8,
                       flex: 1,
                       opacity: !canAddTracker ? 0.45 : pressed ? 0.75 : 1,
@@ -1477,7 +1404,11 @@ export default function GoalCreateScreen() {
                   >
                     <Typography
                       variant="meta"
-                      style={{ color: '#FFFFFF', fontFamily: 'Inter-SemiBold', fontSize: 13 }}
+                      style={{
+                        color: colors.text.onAccent,
+                        fontFamily: 'Inter-SemiBold',
+                        fontSize: 13,
+                      }}
                     >
                       Add
                     </Typography>
@@ -1492,7 +1423,7 @@ export default function GoalCreateScreen() {
                 onPress={openTrackerAddForm}
                 style={({ pressed }) => ({
                   alignItems: 'center',
-                  borderColor: LIGHT_THEME.border.input,
+                  borderColor: colors.border.input,
                   borderRadius: 10,
                   borderStyle: 'dashed',
                   borderWidth: 1,
@@ -1504,7 +1435,7 @@ export default function GoalCreateScreen() {
               >
                 <Typography
                   variant="meta"
-                  style={{ color: LIGHT_THEME.text.secondary, fontSize: 13 }}
+                  style={{ color: colors.text.secondary, fontSize: 13 }}
                 >
                   ＋ Add tracker
                 </Typography>
@@ -1516,7 +1447,7 @@ export default function GoalCreateScreen() {
             <Eyebrow style={{ marginBottom: 2 }}>Milestones</Eyebrow>
             <Typography
               variant="description"
-              style={{ color: LIGHT_THEME.text.secondary, fontSize: 14, lineHeight: 21, marginTop: 10 }}
+              style={{ color: colors.text.secondary, fontSize: 14, lineHeight: 21, marginTop: 10 }}
             >
               Add the one-time events that are critical to this goal. Recurring behaviors and
               numbers belong in Trackers.
@@ -1529,8 +1460,8 @@ export default function GoalCreateScreen() {
                     key={milestone.id}
                     style={{
                       alignItems: 'center',
-                      backgroundColor: LIGHT_THEME.background.goalCard,
-                      borderColor: LIGHT_THEME.border.warmSubtle,
+                      backgroundColor: colors.background.goalCard,
+                      borderColor: colors.border.warmSubtle,
                       borderRadius: 12,
                       borderWidth: 1,
                       flexDirection: 'row',
@@ -1541,21 +1472,21 @@ export default function GoalCreateScreen() {
                   >
                     <Typography
                       variant="meta"
-                      style={{ color: LIGHT_THEME.text.accent, fontSize: 14 }}
+                      style={{ color: colors.text.accent, fontSize: 14 }}
                     >
                       ◆
                     </Typography>
                     <View style={{ flex: 1 }}>
                       <Typography
                         variant="content"
-                        style={{ color: LIGHT_THEME.text.primary, fontSize: 14 }}
+                        style={{ color: colors.text.primary, fontSize: 14 }}
                       >
                         {milestone.title}
                       </Typography>
                       {milestone.description || milestone.dueDate ? (
                         <Typography
                           variant="caption"
-                          style={{ color: LIGHT_THEME.text.muted, fontSize: 11.5, marginTop: 2 }}
+                          style={{ color: colors.text.muted, fontSize: 11.5, marginTop: 2 }}
                         >
                           {[
                             milestone.description,
@@ -1582,7 +1513,7 @@ export default function GoalCreateScreen() {
                     >
                       <Typography
                         variant="body"
-                        style={{ color: LIGHT_THEME.text.muted, fontSize: 18, lineHeight: 18 }}
+                        style={{ color: colors.text.muted, fontSize: 18, lineHeight: 18 }}
                       >
                         ×
                       </Typography>
@@ -1595,8 +1526,8 @@ export default function GoalCreateScreen() {
             {showMilestoneAddForm ? (
               <View
                 style={{
-                  backgroundColor: LIGHT_THEME.background.page,
-                  borderColor: LIGHT_THEME.background.subtle,
+                  backgroundColor: colors.background.page,
+                  borderColor: colors.border.divider,
                   borderRadius: 12,
                   borderWidth: 1,
                   marginTop: 12,
@@ -1608,13 +1539,13 @@ export default function GoalCreateScreen() {
                   autoFocus
                   onChangeText={setDraftMilestoneTitle}
                   placeholder="Milestone name"
-                  placeholderTextColor={LIGHT_THEME.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   style={{
-                    backgroundColor: LIGHT_THEME.background.input,
-                    borderColor: LIGHT_THEME.background.subtle,
+                    backgroundColor: colors.background.input,
+                    borderColor: colors.border.input,
                     borderRadius: 10,
                     borderWidth: 1,
-                    color: LIGHT_THEME.text.primary,
+                    color: colors.text.primary,
                     fontFamily: 'Inter-Regular',
                     fontSize: 13,
                     marginBottom: 8,
@@ -1629,13 +1560,13 @@ export default function GoalCreateScreen() {
                   multiline
                   onChangeText={setDraftMilestoneDescription}
                   placeholder="Why this event matters (optional)"
-                  placeholderTextColor={LIGHT_THEME.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   style={{
-                    backgroundColor: LIGHT_THEME.background.input,
-                    borderColor: LIGHT_THEME.background.subtle,
+                    backgroundColor: colors.background.input,
+                    borderColor: colors.border.input,
                     borderRadius: 10,
                     borderWidth: 1,
-                    color: LIGHT_THEME.text.primary,
+                    color: colors.text.primary,
                     fontFamily: 'Inter-Regular',
                     fontSize: 13,
                     marginBottom: 8,
@@ -1652,16 +1583,16 @@ export default function GoalCreateScreen() {
                   autoCapitalize="none"
                   onChangeText={setDraftMilestoneDueDate}
                   placeholder="Due date (optional, YYYY-MM-DD)"
-                  placeholderTextColor={LIGHT_THEME.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   style={{
-                    backgroundColor: LIGHT_THEME.background.input,
+                    backgroundColor: colors.background.input,
                     borderColor:
                       milestoneDueDateValidation && !milestoneDueDateValidation.valid
-                        ? LIGHT_THEME.feedback.danger.text
-                        : LIGHT_THEME.background.subtle,
+                        ? colors.feedback.danger.text
+                        : colors.border.input,
                     borderRadius: 10,
                     borderWidth: 1,
-                    color: LIGHT_THEME.text.primary,
+                    color: colors.text.primary,
                     fontFamily: 'Inter-Regular',
                     fontSize: 13,
                     marginBottom: 12,
@@ -1677,7 +1608,7 @@ export default function GoalCreateScreen() {
                     onPress={cancelMilestoneAddForm}
                     style={({ pressed }) => ({
                       alignItems: 'center',
-                      borderColor: LIGHT_THEME.background.subtle,
+                      borderColor: colors.border.divider,
                       borderRadius: 8,
                       borderWidth: 1,
                       flex: 1,
@@ -1685,7 +1616,7 @@ export default function GoalCreateScreen() {
                       padding: 9,
                     })}
                   >
-                    <Typography variant="meta" style={{ color: LIGHT_THEME.text.secondary, fontSize: 13 }}>
+                    <Typography variant="meta" style={{ color: colors.text.secondary, fontSize: 13 }}>
                       Cancel
                     </Typography>
                   </Pressable>
@@ -1696,14 +1627,14 @@ export default function GoalCreateScreen() {
                     onPress={addMilestone}
                     style={({ pressed }) => ({
                       alignItems: 'center',
-                      backgroundColor: LIGHT_THEME.accent.primary,
+                      backgroundColor: colors.accent.primary,
                       borderRadius: 8,
                       flex: 1,
                       opacity: !canAddMilestone ? 0.45 : pressed ? 0.75 : 1,
                       padding: 9,
                     })}
                   >
-                    <Typography variant="meta" style={{ color: '#FFFFFF', fontFamily: 'Inter-SemiBold', fontSize: 13 }}>
+                    <Typography variant="meta" style={{ color: colors.text.onAccent, fontFamily: 'Inter-SemiBold', fontSize: 13 }}>
                       Add
                     </Typography>
                   </Pressable>
@@ -1717,7 +1648,7 @@ export default function GoalCreateScreen() {
                 onPress={openMilestoneAddForm}
                 style={({ pressed }) => ({
                   alignItems: 'center',
-                  borderColor: LIGHT_THEME.border.input,
+                  borderColor: colors.border.input,
                   borderRadius: 10,
                   borderStyle: 'dashed',
                   borderWidth: 1,
@@ -1726,7 +1657,7 @@ export default function GoalCreateScreen() {
                   paddingVertical: 10,
                 })}
               >
-                <Typography variant="meta" style={{ color: LIGHT_THEME.text.secondary, fontSize: 13 }}>
+                <Typography variant="meta" style={{ color: colors.text.secondary, fontSize: 13 }}>
                   ＋ Add milestone
                 </Typography>
               </Pressable>
@@ -1737,8 +1668,8 @@ export default function GoalCreateScreen() {
                 onPress={() => void suggestMilestone()}
                 style={({ pressed }) => ({
                   alignItems: 'center',
-                  backgroundColor: '#F1F6F2',
-                  borderColor: '#D6E4DB',
+                  backgroundColor: colors.feedback.info.bg,
+                  borderColor: colors.feedback.info.border,
                   borderRadius: 10,
                   borderWidth: 1,
                   flexDirection: 'row',
@@ -1748,12 +1679,19 @@ export default function GoalCreateScreen() {
                   paddingVertical: 10,
                 })}
               >
-                <Typography variant="meta" style={{ color: LIGHT_THEME.text.accent, fontSize: 13 }}>
+                <Typography
+                  variant="meta"
+                  style={{ color: colors.text.accent, fontSize: 13 }}
+                >
                   ✦
                 </Typography>
                 <Typography
                   variant="meta"
-                  style={{ color: LIGHT_THEME.text.accent, fontFamily: 'Inter-Medium', fontSize: 13 }}
+                  style={{
+                    color: colors.text.accent,
+                    fontFamily: 'Inter-Medium',
+                    fontSize: 13,
+                  }}
                 >
                   Suggest a milestone
                 </Typography>
@@ -1772,14 +1710,14 @@ export default function GoalCreateScreen() {
           >
             <Typography
               variant="meta"
-              style={{ color: LIGHT_THEME.text.muted, fontSize: 13 }}
+              style={{ color: colors.text.muted, fontSize: 13 }}
             >
               ✦
             </Typography>
             <Typography
               variant="body"
               style={{
-                color: LIGHT_THEME.text.muted,
+                color: colors.text.muted,
                 flex: 1,
                 fontSize: 12.5,
                 lineHeight: 18.75,
@@ -1794,7 +1732,7 @@ export default function GoalCreateScreen() {
               accessibilityRole="alert"
               variant="caption"
               style={{
-                color: LIGHT_THEME.feedback.danger.text,
+                color: colors.feedback.danger.text,
                 fontSize: 12,
                 marginBottom: 12,
                 textAlign: 'center',
@@ -1828,7 +1766,9 @@ export default function GoalCreateScreen() {
           <Animated.View
             style={{
               alignItems: 'center',
-              backgroundColor: '#FFFFFF',
+              backgroundColor: colors.background.card,
+              borderColor: colors.border.divider,
+              borderWidth: 1,
               borderRadius: 20,
               elevation: 12,
               marginHorizontal: 24,
@@ -1836,9 +1776,9 @@ export default function GoalCreateScreen() {
               opacity: overlayOpacity,
               paddingHorizontal: 48,
               paddingVertical: 40,
-              shadowColor: '#000000',
+              shadowColor: colors.text.primary,
               shadowOffset: { width: 0, height: 20 },
-              shadowOpacity: 0.25,
+              shadowOpacity: themeMode === 'light' ? 0.25 : 0,
               shadowRadius: 60,
               transform: [{ scale: overlayScale }],
               width: '100%',
@@ -1847,7 +1787,7 @@ export default function GoalCreateScreen() {
             <View
               style={{
                 alignItems: 'center',
-                backgroundColor: '#EAF3ED',
+                backgroundColor: colors.background.selectedRow,
                 borderRadius: 32,
                 height: 64,
                 justifyContent: 'center',
@@ -1857,7 +1797,7 @@ export default function GoalCreateScreen() {
             >
               <Typography
                 variant="body"
-                style={{ color: LIGHT_THEME.text.accent, fontSize: 32, lineHeight: 38 }}
+                style={{ color: colors.text.accent, fontSize: 32, lineHeight: 38 }}
               >
                 ✓
               </Typography>
@@ -1865,7 +1805,7 @@ export default function GoalCreateScreen() {
             <Typography
               variant="title"
               style={{
-                color: LIGHT_THEME.text.primary,
+                color: colors.text.primary,
                 fontFamily: 'Lora-Regular',
                 fontSize: 22,
                 fontWeight: '600',
@@ -1878,7 +1818,7 @@ export default function GoalCreateScreen() {
             <Typography
               variant="body"
               style={{
-                color: LIGHT_THEME.text.secondary,
+                color: colors.text.secondary,
                 fontSize: 14,
                 marginBottom: 24,
                 textAlign: 'center',
@@ -1891,7 +1831,7 @@ export default function GoalCreateScreen() {
                 accessibilityRole="button"
                 onPress={resetForm}
                 style={({ pressed }) => ({
-                  borderColor: LIGHT_THEME.border.warm,
+                  borderColor: colors.border.warm,
                   borderRadius: 999,
                   borderWidth: 1,
                   opacity: pressed ? 0.65 : 1,
@@ -1902,7 +1842,7 @@ export default function GoalCreateScreen() {
                 <Typography
                   variant="body"
                   style={{
-                    color: LIGHT_THEME.text.accent,
+                    color: colors.text.accent,
                     fontFamily: 'Inter-Medium',
                     fontSize: 14,
                   }}
@@ -1916,7 +1856,7 @@ export default function GoalCreateScreen() {
                 disabled={!createdGoalId}
                 onPress={goToCreatedGoal}
                 style={({ pressed }) => ({
-                  backgroundColor: LIGHT_THEME.accent.primary,
+                  backgroundColor: colors.accent.primary,
                   borderRadius: 999,
                   opacity: !createdGoalId ? 0.45 : pressed ? 0.75 : 1,
                   paddingHorizontal: 22,
@@ -1926,7 +1866,7 @@ export default function GoalCreateScreen() {
                 <Typography
                   variant="body"
                   style={{
-                    color: '#FFFFFF',
+                    color: colors.text.onAccent,
                     fontFamily: 'Inter-Medium',
                     fontSize: 14,
                   }}

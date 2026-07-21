@@ -1,11 +1,12 @@
 import { Text, type TextProps, type StyleProp, type TextStyle } from 'react-native';
+import type { ThemeTextColor } from '@/constants/colors';
 import { useThemeColors } from '@/store/uiStore';
 
 type Variant = 'heading' | 'title' | 'body' | 'label' | 'field-label' | 'caption' | 'ai' | 'ai-italic' | 'eyebrow' | 'section-eyebrow' | 'greeting' | 'emphasis-sm' | 'meta' | 'content' | 'nav-back' | 'section-header' | 'nav-title' | 'subtitle' | 'hint' | 'description' | 'badge-text' | 'micro-label' | 'card-title' | 'card-description' | 'goal-title' | 'active-goal-title' | 'echo-entry-title' | 'echo-entry-preview' | 'echo-entry-meta' | 'echo-add-button' | 'echo-detail-meta' | 'echo-detail-title' | 'echo-detail-body' | 'echo-empty-title' | 'echo-empty-subtitle';
 
 // Variants confirmed to route through theme text tokens.
 // Every other variant keeps its existing color behavior pending a follow-up prompt.
-const VARIANT_COLOR_KEY: Partial<Record<Variant, 'primary' | 'secondary' | 'muted' | 'accent' | 'inverse'>> = {
+const VARIANT_COLOR_KEY: Partial<Record<Variant, ThemeTextColor>> = {
   heading: 'primary',
   title: 'primary',
   body: 'secondary',
@@ -21,6 +22,9 @@ const VARIANT_COLOR_KEY: Partial<Record<Variant, 'primary' | 'secondary' | 'mute
   'echo-detail-title': 'primary',
   'echo-detail-body': 'primary',
   'echo-empty-title': 'primary',
+  'emphasis-sm': 'primary',
+  'active-goal-title': 'primary',
+  'section-eyebrow': 'accent',
   label: 'secondary',
   eyebrow: 'secondary',
   subtitle: 'secondary',
@@ -49,7 +53,7 @@ const VARIANT_CLASSES: Record<Variant, string> = {
   ai:              'font-serif text-base leading-relaxed',
   'ai-italic':     'font-serif-italic text-base leading-relaxed',
   eyebrow:         'font-sans text-[11px] font-inter-medium uppercase tracking-[1.5px]',
-  'section-eyebrow':'font-inter-semibold text-[11px] uppercase tracking-[2px] text-teal-soft',
+  'section-eyebrow':'font-inter-semibold text-[11px] uppercase tracking-[2px]',
   greeting:        'font-serif-italic-semibold text-[27px] tracking-[-0.2px]',
   'emphasis-sm':   'text-sm font-inter-semibold',
   meta:            'font-sans text-[13px] leading-5',
@@ -65,7 +69,7 @@ const VARIANT_CLASSES: Record<Variant, string> = {
   'card-title':      'font-inter-medium text-[15.5px]', // ProjectCard title (exact spec)
   'card-description':'font-sans text-[12px] leading-[18px]', // ProjectCard description (exact spec)
   'goal-title':      'font-inter-semibold text-[14.5px] leading-[19px]', // GoalRingCard title (exact spec)
-  'active-goal-title': 'font-inter-semibold text-[17px] leading-6 text-[#211F1A]', // dashboard ActiveGoalCard title (exact spec)
+  'active-goal-title': 'font-inter-semibold text-[17px] leading-6', // dashboard ActiveGoalCard title (exact spec)
   'echo-entry-title':   'font-inter-bold text-echo-sm', // EchoEntryRow title
   'echo-entry-preview': 'font-sans text-echo-xs', // EchoEntryRow snippet
   'echo-entry-meta':    'font-inter-medium text-echo-2xs', // EchoEntryRow timestamp caption

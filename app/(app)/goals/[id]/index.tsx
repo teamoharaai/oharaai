@@ -3,6 +3,7 @@ import { View, ScrollView, Pressable, useWindowDimensions, SafeAreaView } from '
 import { useFocusEffect, useLocalSearchParams, router } from 'expo-router';
 import { GOAL_THEMES } from '@/constants/themes';
 import { Typography } from '@/components/ui/Typography';
+import { AppHeader } from '@/components/layout/AppHeader';
 import { useGoalDetail } from '@/features/goals/hooks/useGoalDetail';
 import { GoalDetailHeader } from '@/features/goals/components/GoalDetailHeader';
 import { GoalProjectPickerModal } from '@/features/goals/components/GoalProjectPickerModal';
@@ -430,29 +431,18 @@ export default function GoalDetailScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.page }}>
-      {/* Nav bar */}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingHorizontal: 20,
-          paddingTop: 16,
-          paddingBottom: 12,
-        }}
-      >
-        <Pressable onPress={() => router.back()}>
-          <Typography variant="nav-back">← Journey</Typography>
-        </Pressable>
-        <Typography variant="nav-back" style={{ color: colors.text.muted, marginHorizontal: 8 }}>|</Typography>
-        <GoalTitleRow
+      <AppHeader
+        backLabel="Journey"
+        onBack={() => router.back()}
+        title={<GoalTitleRow
           title={goal.title}
           variant="nav-title"
           numberOfLines={1}
           iconSize={16}
-          style={{ alignItems: 'center', flex: 1 }}
+          style={{ alignItems: 'center' }}
           iconStyle={{ marginTop: 0 }}
-        />
-        {isDesktop && (
+        />}
+        actions={isDesktop ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginLeft: 20 }}>
             <Pressable
               onPress={() => router.push(`/(app)/goals/${goalId}/vault` as never)}
@@ -489,8 +479,8 @@ export default function GoalDetailScreen() {
               </View>
             </Pressable>
           </View>
-        )}
-      </View>
+        ) : undefined}
+      />
 
       {isDesktop ? (
         /* Desktop: main workspace (flex-2) + context rail (flex-1) */

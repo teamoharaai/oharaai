@@ -11,10 +11,12 @@ import {
 } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, router } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
+import { AppHeader } from '@/components/layout/AppHeader';
 import { useVault } from '@/features/goals/hooks/useVault';
 import { useEchoTrail } from '@/features/goals/hooks/useEchoTrail';
 import { VaultItemCard } from '@/features/goals/components/VaultItemCard';
 import { EchoTrail } from '@/features/goals/components/EchoTrail';
+import { useThemeColors } from '@/store/uiStore';
 
 const CARD_STYLE = {
   backgroundColor: '#FFFFFF',
@@ -258,6 +260,7 @@ function SaveLinkSheet({ onSave, onClose }: SaveLinkSheetProps) {
 // ─── Main screen ───────────────────────────────────────────────────────────────
 
 export default function VaultScreen() {
+  const colors = useThemeColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const goalId = Array.isArray(id) ? id[0] : (id ?? '');
 
@@ -294,27 +297,8 @@ export default function VaultScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F4EC' }}>
-      {/* Nav bar */}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingHorizontal: 20,
-          paddingTop: 16,
-          paddingBottom: 12,
-        }}
-      >
-        <Pressable onPress={() => router.back()}>
-          <Typography variant="nav-back">← Back</Typography>
-        </Pressable>
-        <Typography variant="nav-back" style={{ color: '#A79E8E', marginHorizontal: 8 }}>
-          |
-        </Typography>
-        <Typography variant="nav-title" style={{ flex: 1 }}>
-          Vault
-        </Typography>
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.page }}>
+      <AppHeader backLabel="Back" onBack={() => router.back()} title="Vault" />
 
       <ScrollView
         style={{ flex: 1 }}

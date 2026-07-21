@@ -15,10 +15,14 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import * as dotenv from 'dotenv';
+import { loadEnvFile } from 'node:process';
 import * as path from 'path';
 
-dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
+try {
+  loadEnvFile(path.resolve(__dirname, '../.env.local'));
+} catch {
+  // Preserve the existing missing-environment handling below.
+}
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;

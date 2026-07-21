@@ -3,7 +3,7 @@ import { View, Text, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
 import { GoalRingGrid } from '@/features/goals/components/GoalRingGrid';
-import { useThemeColors } from '@/store/uiStore';
+import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { ProjectTitleRow } from './ProjectTitleRow';
 import type { Project } from '@/features/projects/types';
 import type { GoalWithDetails } from '@/features/goals/types';
@@ -16,6 +16,7 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project, goals }: ProjectCardProps) {
   const colors = useThemeColors();
+  const themeMode = useUIStore((state) => state.themeMode);
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -28,11 +29,11 @@ export function ProjectCard({ project, goals }: ProjectCardProps) {
         marginBottom: 12,
         paddingVertical: 18,
         paddingHorizontal: 20,
-        shadowColor: 'rgb(30,25,15)',
-        shadowOpacity: 0.04,
+        shadowColor: colors.text.primary,
+        shadowOpacity: themeMode === 'dark' ? 0 : 0.04,
         shadowRadius: 12,
         shadowOffset: { width: 0, height: 2 },
-        elevation: 1,
+        elevation: themeMode === 'dark' ? 0 : 1,
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
