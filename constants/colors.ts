@@ -12,6 +12,7 @@ export interface ThemeColors {
     readonly primary: string;
     readonly secondary: string;
     readonly inverse: string;
+    readonly onAccent: string;
     readonly accent: string;
     readonly muted: string;
     readonly mutedOnDark: string;
@@ -67,6 +68,7 @@ export const LIGHT_THEME = {
     primary: '#211F1A', // reconciled: was #1A1F1C (warm ink)
     secondary: '#8A8172', // reconciled: was #6B7B6E (warm ink secondary)
     inverse: '#EDE7DA', // reconciled: was #E8EDE9 (on-dark / wordmark)
+    onAccent: '#EDE7DA', // high-contrast text on accent.primary
     accent: '#4A7C5F',
     muted: '#A79E8E', // reconciled: was #9CAF9F (warm ink muted)
     mutedOnDark: '#9C9483', // new: muted text on dark surfaces (checked hero)
@@ -126,6 +128,7 @@ export const DARK_THEME = {
     primary: '#FFFFFF',
     secondary: '#B8B8B8',
     inverse: '#F1F0ED', // derived, no Figma dark token
+    onAccent: '#111111', // high-contrast text on accent.primary
     accent: '#8FAE8A', // derived, no Figma dark token
     muted: '#A3A3A3', // derived, no Figma dark token
     mutedOnDark: '#8F8F8F', // derived, no Figma dark token

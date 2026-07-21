@@ -1,4 +1,5 @@
 import { View } from 'react-native';
+import { useThemeColors } from '@/store/uiStore';
 import { Typography } from './Typography';
 
 type BadgeVariant = 'new' | 'active' | 'ended' | 'complete' | 'ai' | 'category' | 'momentum' | 'paused' | 'archived';
@@ -8,33 +9,33 @@ interface BadgeProps {
   variant?: BadgeVariant;
 }
 
-const VARIANT_STYLES: Record<BadgeVariant, { bg: string; text: string }> = {
-  new: { bg: '#E09F3E26', text: '#E09F3E' },
-  active: { bg: '#E8F5EF', text: '#4A7C5F' },
-  ended: { bg: '#F7E6E2', text: '#C0483A' },
-  complete: { bg: '#EAE7E0', text: '#8A8172' },
-  paused: { bg: '#EAE7E0', text: '#8A8172' },
-  archived: { bg: '#EAE7E0', text: '#A79E8E' },
-  ai: { bg: '#6E5CE726', text: '#6E5CE7' },
-  category: { bg: '#F0EDE6', text: '#4A7C5F' },
-  momentum: { bg: '#E8F5EF', text: '#2F8F6D' },
-};
-
 export function Badge({ label, variant = 'active' }: BadgeProps) {
-  const style = VARIANT_STYLES[variant] ?? VARIANT_STYLES.category;
+  const colors = useThemeColors();
+  const styles: Record<BadgeVariant, { bg: string; text: string }> = {
+    new: { bg: colors.feedback.pending.bg, text: colors.feedback.pending.text },
+    active: { bg: colors.background.selectedRow, text: colors.text.accent },
+    ended: { bg: colors.feedback.danger.bg, text: colors.feedback.danger.text },
+    complete: { bg: colors.background.subtle, text: colors.text.secondary },
+    paused: { bg: colors.background.subtle, text: colors.text.secondary },
+    archived: { bg: colors.background.subtle, text: colors.text.muted },
+    ai: { bg: colors.feedback.info.bg, text: colors.feedback.info.text },
+    category: { bg: colors.background.input, text: colors.text.accent },
+    momentum: { bg: colors.background.selectedRow, text: colors.accent.tealMid },
+  };
+  const badgeStyle = styles[variant] ?? styles.category;
   const prefix = variant === 'ai' ? '✦ ' : '';
 
   return (
     <View
       style={{
-        backgroundColor: style.bg,
+        backgroundColor: badgeStyle.bg,
         borderRadius: 8,
         paddingHorizontal: 8,
         paddingVertical: 3,
         alignSelf: 'flex-start',
       }}
     >
-      <Typography variant="badge-text" style={{ color: style.text }}>
+      <Typography variant="badge-text" style={{ color: badgeStyle.text }}>
         {prefix}{label}
       </Typography>
     </View>

@@ -12,9 +12,10 @@ interface ProgressRingProps {
 }
 
 // Native fallback: simple bordered circle with percentage text
-export function ProgressRing({ progress, size = 64, strokeWidth = 5, color = '#5FA8D3', variant = 'default' }: ProgressRingProps) {
+export function ProgressRing({ progress, size = 64, strokeWidth = 5, color, variant = 'default' }: ProgressRingProps) {
   const colors = useThemeColors();
-  const textColor = variant === 'warm' ? colors.text.primary : color;
+  const resolvedColor = color ?? colors.accent.primary;
+  const textColor = variant === 'warm' ? colors.text.primary : resolvedColor;
   return (
     <View
       style={{
@@ -22,7 +23,7 @@ export function ProgressRing({ progress, size = 64, strokeWidth = 5, color = '#5
         height: size,
         borderRadius: size / 2,
         borderWidth: strokeWidth,
-        borderColor: color,
+        borderColor: resolvedColor,
         alignItems: 'center',
         justifyContent: 'center',
       }}

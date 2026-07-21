@@ -1,7 +1,7 @@
-import { TouchableOpacity, View } from 'react-native';
+import { View } from 'react-native';
 import { useThemeColors } from '@/store/uiStore';
 import { Card, CardSubtitle, CardTitle } from './Card';
-import { Typography } from './Typography';
+import { Button } from './Button';
 
 interface EmptyStateCardProps {
   title: string;
@@ -38,16 +38,13 @@ export function EmptyStateCard({
         {description}
       </CardSubtitle>
       {actionLabel && onActionPress ? (
-        <TouchableOpacity
-          className="mt-5 rounded-full px-4 py-2"
-          style={{ backgroundColor: colors.accent.primary }}
+        <Button
+          size="compact"
+          style={{ marginTop: 20, minHeight: 40 }}
           onPress={onActionPress}
-          activeOpacity={0.8}
         >
-          <Typography variant="emphasis-sm" style={{ color: colors.text.inverse }}>
-            {actionLabel}
-          </Typography>
-        </TouchableOpacity>
+          {actionLabel}
+        </Button>
       ) : null}
     </Card>
   );
