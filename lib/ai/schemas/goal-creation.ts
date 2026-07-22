@@ -1,185 +1,240 @@
 // Runtime schema for the goal creation finalization response.
-// Matches GOAL_CREATION_FINALIZE_PROMPT output.
+// Matches GOAL_CREATION_FINALIZE_PROMPT output: 3 goal templates the user
+// chooses from on the review screen.
 // See docs/AI_RESPONSE_SCHEMA.md for the full contract.
 // TODO: Replace manual validation with Zod once `zod` is installed.
 
 import {
-  GOAL_CATEGORIES,
+  GOAL_CREATION_CATEGORIES,
   GOAL_SMART_KEYS,
   GOAL_TRACKER_FREQUENCIES,
   GOAL_TRACKER_TYPES,
-  type GoalCategory,
+  type GoalCreationCategory,
   type GoalSmartData,
   type GoalTrackerFrequency,
   type GoalTrackerType,
 } from '@/lib/goals/schema';
 
-export interface GoalFinalizeMilestone {
+export interface GoalTemplateMilestone {
   title: string;
-  description: string | null;
-  dueDate: string | null;
+  description?: string | null;
+  dueDate?: string | null;
 }
 
-export interface GoalFinalizeTracker {
+export interface GoalTemplateTracker {
   title: string;
   type: GoalTrackerType;
-  targetValue: number | null;
-  targetUnit: string | null;
-  frequency: GoalTrackerFrequency;
+  targetValue?: number | null;
+  targetUnit?: string | null;
+  frequency?: GoalTrackerFrequency | null;
 }
 
-export interface GoalFinalizeGoal {
-  title: string;
-  description: string;
-  category: GoalCategory;
-  deadline: string | null;
-  smart: GoalSmartData;
+export interface GoalTemplateTargetFrequency {
+  times: number;
+  period: 'day' | 'week' | 'month';
 }
 
-export interface GoalFinalizeResponse {
-  goal: GoalFinalizeGoal;
-  milestones: GoalFinalizeMilestone[];
-  trackers: GoalFinalizeTracker[];
+export interface GoalTemplateOption {
+  strategy_name: string;
+  goal: {
+    title: string;
+    description: string;
+    category: GoalCreationCategory;
+    deadline: string;
+    smart: GoalSmartData;
+  };
+  milestones: GoalTemplateMilestone[];
+  trackers: GoalTemplateTracker[];
+  target_frequency: GoalTemplateTargetFrequency | null;
+}
+
+export interface GoalTemplateResponse {
+  templates: [GoalTemplateOption, GoalTemplateOption, GoalTemplateOption];
+  derived_category: GoalCreationCategory;
   reasoning: string;
   assumptions: string[];
 }
 
-function parseGoalFinalizeJson(raw: string): unknown {
-  const trimmed = raw.trim();
-  if (!trimmed) {
+export type ValidateResult =
+  | { success: true; data: GoalTemplateResponse }
+  | { success: false; error: string };
+
+const TARGET_FREQUENCY_PERIODS = ['day', 'week', 'month'] as const;
+
+function parseGoalTemplateJson(raw: string): unknown {
+  // Strip markdown fences and trim, then parse.
+  let cleaned = raw.trim();
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/, '')
+      .trim();
+  }
+  if (!cleaned) {
     throw new Error('Goal finalization response is empty');
   }
-
-  try {
-    return JSON.parse(trimmed);
-  } catch {
-    throw new Error('Goal finalization response is not valid JSON');
-  }
+  return JSON.parse(cleaned);
 }
 
-export function validateGoalFinalizeResponse(parsed: unknown): GoalFinalizeResponse {
-  if (typeof parsed !== 'object' || parsed === null) {
-    throw new Error('Goal finalization response must be a JSON object');
+function isFutureDate(value: string): boolean {
+  const time = new Date(value).getTime();
+  if (Number.isNaN(time)) return false;
+  return time > Date.now();
+}
+
+function validateTemplate(raw: unknown, index: number): GoalTemplateOption | string {
+  if (typeof raw !== 'object' || raw === null) {
+    return `templates[${index}] must be an object`;
+  }
+  const t = raw as Record<string, unknown>;
+
+  if (typeof t.strategy_name !== 'string' || t.strategy_name.trim() === '') {
+    return `templates[${index}].strategy_name must be a non-empty string`;
   }
 
-  const obj = parsed as Record<string, unknown>;
-
-  if (typeof obj.goal !== 'object' || obj.goal === null) {
-    throw new Error('goal must be an object');
+  if (typeof t.goal !== 'object' || t.goal === null) {
+    return `templates[${index}].goal must be an object`;
   }
+  const g = t.goal as Record<string, unknown>;
 
-  const g = obj.goal as Record<string, unknown>;
   if (typeof g.title !== 'string' || g.title.trim() === '') {
-    throw new Error('goal.title must be a non-empty string');
+    return `templates[${index}].goal.title must be a non-empty string`;
   }
   if (typeof g.description !== 'string') {
-    throw new Error('goal.description must be a string');
+    return `templates[${index}].goal.description must be a string`;
   }
-  if (!GOAL_CATEGORIES.includes(g.category as GoalCategory)) {
-    throw new Error(`goal.category must be one of: ${GOAL_CATEGORIES.join(', ')}`);
+  if (!GOAL_CREATION_CATEGORIES.includes(g.category as GoalCreationCategory)) {
+    return `templates[${index}].goal.category must be one of: ${GOAL_CREATION_CATEGORIES.join(', ')}`;
   }
-  if (g.deadline !== null && typeof g.deadline !== 'string') {
-    throw new Error('goal.deadline must be a string or null');
+  if (typeof g.deadline !== 'string' || g.deadline.trim() === '') {
+    return `templates[${index}].goal.deadline must be a non-empty ISO date string`;
+  }
+  if (!isFutureDate(g.deadline)) {
+    return `templates[${index}].goal.deadline must be a valid ISO date in the future`;
   }
   if (typeof g.smart !== 'object' || g.smart === null) {
-    throw new Error('goal.smart must be an object');
+    return `templates[${index}].goal.smart must be an object`;
   }
   const smart = g.smart as Record<string, unknown>;
   for (const key of GOAL_SMART_KEYS) {
-    if (typeof smart[key] !== 'string') {
-      throw new Error(`goal.smart.${key} must be a string`);
+    if (typeof smart[key] !== 'string' || smart[key].trim() === '') {
+      return `templates[${index}].goal.smart.${key} must be a non-empty string`;
     }
   }
 
-  if (!Array.isArray(obj.milestones)) {
-    throw new Error('milestones must be an array');
+  if (!Array.isArray(t.milestones)) {
+    return `templates[${index}].milestones must be an array`;
   }
-  for (const [index, m] of (obj.milestones as unknown[]).entries()) {
-    if (typeof m !== 'object' || m === null) throw new Error('each milestone must be an object');
+  for (const [mIndex, m] of (t.milestones as unknown[]).entries()) {
+    if (typeof m !== 'object' || m === null) {
+      return `templates[${index}].milestones[${mIndex}] must be an object`;
+    }
     const mObj = m as Record<string, unknown>;
     if (typeof mObj.title !== 'string' || mObj.title.trim() === '') {
-      throw new Error(`milestone[${index}].title must be a non-empty string`);
+      return `templates[${index}].milestones[${mIndex}].title must be a non-empty string`;
     }
-    if (mObj.description !== null && typeof mObj.description !== 'string') {
-      throw new Error(`milestone[${index}].description must be a string or null`);
+    if (
+      mObj.description !== undefined
+      && mObj.description !== null
+      && typeof mObj.description !== 'string'
+    ) {
+      return `templates[${index}].milestones[${mIndex}].description must be a string or null`;
     }
-    if (mObj.dueDate !== null && typeof mObj.dueDate !== 'string') {
-      throw new Error(`milestone[${index}].dueDate must be a string or null`);
+    if (mObj.dueDate !== undefined && mObj.dueDate !== null && typeof mObj.dueDate !== 'string') {
+      return `templates[${index}].milestones[${mIndex}].dueDate must be a string or null`;
     }
     if (
       typeof mObj.dueDate === 'string'
       && (mObj.dueDate.trim() === '' || Number.isNaN(new Date(mObj.dueDate).getTime()))
     ) {
-      throw new Error(`milestone[${index}].dueDate must be a parseable date or null`);
+      return `templates[${index}].milestones[${mIndex}].dueDate must be a parseable date or null`;
     }
   }
 
-  if (!Array.isArray(obj.trackers)) {
-    throw new Error('trackers must be an array');
+  if (!Array.isArray(t.trackers)) {
+    return `templates[${index}].trackers must be an array`;
   }
-  for (const [index, tracker] of (obj.trackers as unknown[]).entries()) {
+  for (const [trIndex, tracker] of (t.trackers as unknown[]).entries()) {
     if (typeof tracker !== 'object' || tracker === null) {
-      throw new Error('each tracker must be an object');
+      return `templates[${index}].trackers[${trIndex}] must be an object`;
     }
-    const trackerObj = tracker as Record<string, unknown>;
-    if (typeof trackerObj.title !== 'string' || trackerObj.title.trim() === '') {
-      throw new Error(`tracker[${index}].title must be a non-empty string`);
+    const tr = tracker as Record<string, unknown>;
+    if (typeof tr.title !== 'string' || tr.title.trim() === '') {
+      return `templates[${index}].trackers[${trIndex}].title must be a non-empty string`;
     }
-    if (!GOAL_TRACKER_TYPES.includes(trackerObj.type as GoalTrackerType)) {
-      throw new Error(`tracker[${index}].type must be one of: ${GOAL_TRACKER_TYPES.join(', ')}`);
+    if (!GOAL_TRACKER_TYPES.includes(tr.type as GoalTrackerType)) {
+      return `templates[${index}].trackers[${trIndex}].type must be one of: ${GOAL_TRACKER_TYPES.join(', ')}`;
     }
-    if (!GOAL_TRACKER_FREQUENCIES.includes(trackerObj.frequency as GoalTrackerFrequency)) {
-      throw new Error(
-        `tracker[${index}].frequency must be one of: ${GOAL_TRACKER_FREQUENCIES.join(', ')}`,
-      );
+    if (
+      tr.frequency !== undefined
+      && tr.frequency !== null
+      && !GOAL_TRACKER_FREQUENCIES.includes(tr.frequency as GoalTrackerFrequency)
+    ) {
+      return `templates[${index}].trackers[${trIndex}].frequency must be one of: ${GOAL_TRACKER_FREQUENCIES.join(', ')} or null`;
     }
-    if (trackerObj.targetValue !== null && typeof trackerObj.targetValue !== 'number') {
-      throw new Error(`tracker[${index}].targetValue must be a number or null`);
+    if (
+      tr.targetValue !== undefined
+      && tr.targetValue !== null
+      && typeof tr.targetValue !== 'number'
+    ) {
+      return `templates[${index}].trackers[${trIndex}].targetValue must be a number or null`;
     }
-    if (trackerObj.targetUnit !== null && typeof trackerObj.targetUnit !== 'string') {
-      throw new Error(`tracker[${index}].targetUnit must be a string or null`);
+    if (
+      tr.targetUnit !== undefined
+      && tr.targetUnit !== null
+      && typeof tr.targetUnit !== 'string'
+    ) {
+      return `templates[${index}].trackers[${trIndex}].targetUnit must be a string or null`;
     }
 
-    if (trackerObj.type === 'counter') {
+    if (tr.type === 'counter') {
       if (
-        typeof trackerObj.targetValue !== 'number'
-        || !Number.isFinite(trackerObj.targetValue)
-        || trackerObj.targetValue <= 0
+        typeof tr.targetValue !== 'number'
+        || !Number.isFinite(tr.targetValue)
+        || tr.targetValue <= 0
       ) {
-        throw new Error(
-          `tracker[${index}].targetValue must be greater than 0 for counter trackers`,
-        );
+        return `templates[${index}].trackers[${trIndex}].targetValue must be greater than 0 for counter trackers`;
       }
-      if (typeof trackerObj.targetUnit !== 'string' || trackerObj.targetUnit.trim() === '') {
-        throw new Error(`tracker[${index}].targetUnit is required for counter trackers`);
+      if (typeof tr.targetUnit !== 'string' || tr.targetUnit.trim() === '') {
+        return `templates[${index}].trackers[${trIndex}].targetUnit is required for counter trackers`;
       }
     }
 
-    if (trackerObj.type === 'checklist') {
-      if (trackerObj.targetValue !== null) {
-        throw new Error(`tracker[${index}].targetValue must be null for checklist trackers`);
+    if (tr.type === 'checklist') {
+      if (tr.targetValue !== undefined && tr.targetValue !== null) {
+        return `templates[${index}].trackers[${trIndex}].targetValue must be null for checklist trackers`;
       }
-      if (trackerObj.targetUnit !== null) {
-        throw new Error(`tracker[${index}].targetUnit must be null for checklist trackers`);
+      if (tr.targetUnit !== undefined && tr.targetUnit !== null) {
+        return `templates[${index}].trackers[${trIndex}].targetUnit must be null for checklist trackers`;
       }
     }
   }
 
-  if (typeof obj.reasoning !== 'string') {
-    throw new Error('reasoning must be a string');
-  }
-
-  const assumptions = obj.assumptions;
-  if (assumptions !== undefined && (!Array.isArray(assumptions) || assumptions.some((item) => typeof item !== 'string'))) {
-    throw new Error('assumptions must be an array of strings');
+  let targetFrequency: GoalTemplateTargetFrequency | null = null;
+  if (t.target_frequency !== undefined && t.target_frequency !== null) {
+    if (typeof t.target_frequency !== 'object') {
+      return `templates[${index}].target_frequency must be an object or null`;
+    }
+    const tf = t.target_frequency as Record<string, unknown>;
+    if (typeof tf.times !== 'number' || !Number.isFinite(tf.times) || tf.times <= 0) {
+      return `templates[${index}].target_frequency.times must be a number greater than 0`;
+    }
+    if (!TARGET_FREQUENCY_PERIODS.includes(tf.period as GoalTemplateTargetFrequency['period'])) {
+      return `templates[${index}].target_frequency.period must be one of: ${TARGET_FREQUENCY_PERIODS.join(', ')}`;
+    }
+    targetFrequency = {
+      times: tf.times,
+      period: tf.period as GoalTemplateTargetFrequency['period'],
+    };
   }
 
   return {
+    strategy_name: t.strategy_name.trim(),
     goal: {
       title: g.title.trim(),
       description: g.description.trim(),
-      category: g.category as GoalCategory,
-      deadline: g.deadline,
+      category: g.category as GoalCreationCategory,
+      deadline: g.deadline.trim(),
       smart: {
         specific: String(smart.specific).trim(),
         measurable: String(smart.measurable).trim(),
@@ -188,33 +243,94 @@ export function validateGoalFinalizeResponse(parsed: unknown): GoalFinalizeRespo
         timeBound: String(smart.timeBound).trim(),
       },
     },
-    milestones: (obj.milestones as unknown[]).map((milestone) => {
-      const milestoneObj = milestone as Record<string, unknown>;
+    milestones: (t.milestones as unknown[]).map((milestone) => {
+      const mObj = milestone as Record<string, unknown>;
       return {
-        title: String(milestoneObj.title).trim(),
+        title: String(mObj.title).trim(),
         description:
-          typeof milestoneObj.description === 'string'
-            ? milestoneObj.description.trim() || null
-            : null,
-        dueDate: typeof milestoneObj.dueDate === 'string' ? milestoneObj.dueDate.trim() : null,
+          typeof mObj.description === 'string' ? mObj.description.trim() || null : null,
+        dueDate: typeof mObj.dueDate === 'string' ? mObj.dueDate.trim() : null,
       };
     }),
-    trackers: (obj.trackers as unknown[]).map((tracker) => {
-      const trackerObj = tracker as Record<string, unknown>;
+    trackers: (t.trackers as unknown[]).map((tracker) => {
+      const tr = tracker as Record<string, unknown>;
       return {
-        title: String(trackerObj.title).trim(),
-        type: trackerObj.type as GoalTrackerType,
-        targetValue: trackerObj.targetValue as number | null,
-        targetUnit:
-          typeof trackerObj.targetUnit === 'string' ? trackerObj.targetUnit.trim() : null,
-        frequency: trackerObj.frequency as GoalTrackerFrequency,
+        title: String(tr.title).trim(),
+        type: tr.type as GoalTrackerType,
+        targetValue: typeof tr.targetValue === 'number' ? tr.targetValue : null,
+        targetUnit: typeof tr.targetUnit === 'string' ? tr.targetUnit.trim() || null : null,
+        frequency: GOAL_TRACKER_FREQUENCIES.includes(tr.frequency as GoalTrackerFrequency)
+          ? (tr.frequency as GoalTrackerFrequency)
+          : null,
       };
     }),
-    reasoning: obj.reasoning.trim(),
-    assumptions: (assumptions as string[] | undefined)?.map((item) => item.trim()).filter(Boolean) ?? [],
+    target_frequency: targetFrequency,
   };
 }
 
-export function parseGoalFinalizeResponse(raw: string): GoalFinalizeResponse {
-  return validateGoalFinalizeResponse(parseGoalFinalizeJson(raw));
+export function validateGoalTemplateResponse(parsed: unknown): ValidateResult {
+  if (typeof parsed !== 'object' || parsed === null) {
+    return { success: false, error: 'Goal finalization response must be a JSON object' };
+  }
+
+  const obj = parsed as Record<string, unknown>;
+
+  if (!Array.isArray(obj.templates)) {
+    return { success: false, error: 'templates must be an array' };
+  }
+  if (obj.templates.length !== 3) {
+    return { success: false, error: 'templates must contain exactly 3 items' };
+  }
+
+  const validated: GoalTemplateOption[] = [];
+  for (const [index, template] of obj.templates.entries()) {
+    const result = validateTemplate(template, index);
+    if (typeof result === 'string') {
+      return { success: false, error: result };
+    }
+    validated.push(result);
+  }
+
+  if (!GOAL_CREATION_CATEGORIES.includes(obj.derived_category as GoalCreationCategory)) {
+    return {
+      success: false,
+      error: `derived_category must be one of: ${GOAL_CREATION_CATEGORIES.join(', ')}`,
+    };
+  }
+
+  if (typeof obj.reasoning !== 'string') {
+    return { success: false, error: 'reasoning must be a string' };
+  }
+
+  const assumptions = obj.assumptions;
+  if (
+    assumptions !== undefined
+    && (!Array.isArray(assumptions) || assumptions.some((item) => typeof item !== 'string'))
+  ) {
+    return { success: false, error: 'assumptions must be an array of strings' };
+  }
+
+  return {
+    success: true,
+    data: {
+      templates: validated as [GoalTemplateOption, GoalTemplateOption, GoalTemplateOption],
+      derived_category: obj.derived_category as GoalCreationCategory,
+      reasoning: obj.reasoning.trim(),
+      assumptions:
+        (assumptions as string[] | undefined)?.map((item) => item.trim()).filter(Boolean) ?? [],
+    },
+  };
+}
+
+export function parseGoalTemplateResponse(raw: string): ValidateResult {
+  let parsed: unknown;
+  try {
+    parsed = parseGoalTemplateJson(raw);
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Goal finalization response is not valid JSON',
+    };
+  }
+  return validateGoalTemplateResponse(parsed);
 }
