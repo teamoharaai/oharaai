@@ -19,7 +19,7 @@ import { fetchActiveGoalsFeed } from '@/features/goals/services/goal-service';
 import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal';
 import { ProjectCard } from '@/features/projects/components/ProjectCard';
 import { FEATURES } from '@/constants/features';
-import { useThemeColors } from '@/store/uiStore';
+import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { authedFetch } from '@/lib/api/client';
 import supabase from '@/lib/db/client';
 import { formatRelativeTime } from '@/lib/utils/relativeTime';
@@ -622,10 +622,12 @@ export default function DashboardScreen() {
   const { user } = useAuth();
   const { projects, isLoading: projectsLoading, loadProjects } = useProjectStore();
   const { entries, isLoading: echoLoading } = useEntries();
+  const standaloneGoalsView = useUIStore((state) => state.dashboardGoalsView);
+  const setStandaloneGoalsView = useUIStore((state) => state.setDashboardGoalsView);
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [activeGoalsFeed, setActiveGoalsFeed] = useState<TodayCarouselGoal[]>([]);
   const [activeGoalsLoading, setActiveGoalsLoading] = useState(true);
-  const [standaloneGoalsCompact, setStandaloneGoalsCompact] = useState(false);
+  const [showAllStandaloneGoals, setShowAllStandaloneGoals] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -728,9 +730,15 @@ export default function DashboardScreen() {
   }, []);
 
   const standaloneGoals = useMemo(
-    () => goals.filter((g) => g.projectId === null),
+    () => goals
+      .filter((goal) => goal.projectId === null)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
     [goals],
   );
+  const hiddenStandaloneGoalCount = Math.max(0, standaloneGoals.length - 7);
+  const visibleStandaloneGoals = showAllStandaloneGoals
+    ? standaloneGoals
+    : standaloneGoals.slice(0, 7);
 
   const hasProjects = projects.length > 0;
 
@@ -813,25 +821,31 @@ export default function DashboardScreen() {
                   </Typography>
                   <Pressable
                     accessibilityLabel={
-                      standaloneGoalsCompact
+                      standaloneGoalsView === 'list'
                         ? 'Show goals as cards'
                         : 'Show goals as compact rows'
                     }
                     accessibilityRole="button"
                     hitSlop={8}
-                    onPress={() => setStandaloneGoalsCompact((compact) => !compact)}
+                    onPress={() => setStandaloneGoalsView(
+                      standaloneGoalsView === 'list' ? 'grid' : 'list',
+                    )}
                     style={({ pressed }) => ({
                       alignItems: 'center',
-                      height: 24,
+                      backgroundColor: colors.background.input,
+                      borderColor: colors.border.warm,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      height: 26,
                       justifyContent: 'center',
                       opacity: pressed ? 0.55 : 1,
-                      width: 24,
+                      width: 34,
                     })}
                   >
                     <Ionicons
                       color={colors.text.accent}
-                      name={standaloneGoalsCompact ? 'grid-outline' : 'list-outline'}
-                      size={18}
+                      name={standaloneGoalsView === 'list' ? 'grid-outline' : 'list-outline'}
+                      size={16}
                     />
                   </Pressable>
                 </View>
@@ -840,10 +854,10 @@ export default function DashboardScreen() {
                   onPress={() => router.push('/goals/create')}
                 />
               </View>
-              {standaloneGoalsCompact ? (
-                standaloneGoals.length > 0 ? (
+              {standaloneGoalsView === 'list' ? (
+                visibleStandaloneGoals.length > 0 ? (
                   <View style={{ gap: 8 }}>
-                    {standaloneGoals.map((goal) => (
+                    {visibleStandaloneGoals.map((goal) => (
                       <ProjectGoalRow key={goal.id} goal={goal} />
                     ))}
                   </View>
@@ -852,10 +866,32 @@ export default function DashboardScreen() {
                 )
               ) : (
                 <GoalRingGrid
-                  goals={standaloneGoals}
+                  goals={visibleStandaloneGoals}
                   emptyMessage="No standalone goals yet."
                 />
               )}
+              {hiddenStandaloneGoalCount > 0 ? (
+                <Pressable
+                  accessibilityLabel={
+                    showAllStandaloneGoals
+                      ? 'Hide older goals'
+                      : `Show ${hiddenStandaloneGoalCount} more goals`
+                  }
+                  accessibilityRole="button"
+                  onPress={() => setShowAllStandaloneGoals((showAll) => !showAll)}
+                  style={({ pressed }) => ({
+                    alignSelf: 'center',
+                    marginTop: 12,
+                    opacity: pressed ? 0.55 : 1,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                  })}
+                >
+                  <Typography variant="label" style={{ color: colors.text.accent }}>
+                    {showAllStandaloneGoals ? 'Hide' : `Show ${hiddenStandaloneGoalCount}+`}
+                  </Typography>
+                </Pressable>
+              ) : null}
             </View>
 
             {/* Zone 4: Echo */}

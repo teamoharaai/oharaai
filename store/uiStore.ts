@@ -5,16 +5,19 @@ import { Platform } from 'react-native';
 import { DARK_THEME, LIGHT_THEME } from '@/constants/colors';
 
 export type ThemeMode = 'light' | 'dark';
+export type DashboardGoalsView = 'grid' | 'list';
 
 interface UIStore {
   sidebarCollapsed: boolean;
   rightPaneWidth: number;
   echoMiddleMode: 'list' | 'tree';
+  dashboardGoalsView: DashboardGoalsView;
   themeMode: ThemeMode;
   setSidebarCollapsed: (collapsed: boolean) => void;
   toggleSidebarCollapsed: () => void;
   setRightPaneWidth: (width: number) => void;
   setEchoMiddleMode: (mode: 'list' | 'tree') => void;
+  setDashboardGoalsView: (view: DashboardGoalsView) => void;
   toggleTheme: () => void;
 }
 
@@ -44,12 +47,14 @@ export const useUIStore = create<UIStore>()(
       sidebarCollapsed: false,
       rightPaneWidth: 420,
       echoMiddleMode: 'list',
+      dashboardGoalsView: 'grid',
       themeMode: 'light',
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
       toggleSidebarCollapsed: () =>
         set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setRightPaneWidth: (width) => set({ rightPaneWidth: width }),
       setEchoMiddleMode: (mode) => set({ echoMiddleMode: mode }),
+      setDashboardGoalsView: (view) => set({ dashboardGoalsView: view }),
       toggleTheme: () =>
         set((state) => {
           const themeMode = state.themeMode === 'light' ? 'dark' : 'light';
@@ -64,6 +69,7 @@ export const useUIStore = create<UIStore>()(
         sidebarCollapsed: state.sidebarCollapsed,
         rightPaneWidth: state.rightPaneWidth,
         echoMiddleMode: state.echoMiddleMode,
+        dashboardGoalsView: state.dashboardGoalsView,
         themeMode: state.themeMode,
       }),
       onRehydrateStorage: () => (state) => {

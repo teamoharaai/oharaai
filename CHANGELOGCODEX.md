@@ -5,6 +5,7 @@
 ### Changed (2026-07-22 — Linear project goal entries)
 - **`features/goals/components/ProjectGoalRow.tsx` (new), `features/projects/components/ProjectCard.tsx`, `app/(app)/projects/[id].tsx`, and `app/_layout.tsx`:** replaced project-contained full goal cards with 56px compact rows containing a category-tinted goal icon, Lora title, deadline/commitment summary, and navigation arrow, and registered the intended upright semibold Lora face. The project rows intentionally remove the category/status pills and left-edge category stripe and are at least half the height of the initial linear treatment.
 - **`app/(app)/dashboard.tsx`:** replaced the Goals `+` collapse control with an accessible list/grid icon toggle. Standalone goals remain visible and can now switch between the full shared cards and the same compact linear rows used under Projects.
+- **`store/uiStore.ts` and `app/(app)/dashboard.tsx`:** persisted the selected dashboard Goals grid/list view in the existing UI settings store, explicitly sorted standalone goals newest-first, limited the initial collection to seven goals, and added `Show N+` / `Hide` controls for revealing or hiding older goals in either view.
 - **`app/(app)/projects/[id].tsx`:** removed the Goals collapse control so project goals remain visible in the compact linear format while the Add Goal action stays independent.
 - **`components/CLAUDE.md`:** documented the project-specific goal-row presentation so future card work preserves the intended distinction.
 
