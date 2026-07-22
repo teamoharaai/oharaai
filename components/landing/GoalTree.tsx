@@ -96,7 +96,6 @@ function TreeLabel({
       fontSize={size}
       fontFamily="Inter-SemiBold"
       fontStyle={italic ? "italic" : "normal"}
-      fontStyle={italic ? "italic" : "normal"}
       fontWeight={weight}
     >
       {children}

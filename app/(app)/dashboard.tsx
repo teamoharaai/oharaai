@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { BrandIcon } from '@/components/ui/BrandIcon';
 import { TodayCarousel, type TodayCarouselGoal } from '@/components/ui/TodayCarousel';
+import { Toast } from '@/components/ui/Toast';
 import { Typography } from '@/components/ui/Typography';
 import { useGoals } from '@/features/goals/hooks/useGoals';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -19,6 +20,11 @@ import { fetchActiveGoalsFeed } from '@/features/goals/services/goal-service';
 import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal';
 import { ProjectCard } from '@/features/projects/components/ProjectCard';
 import { FEATURES } from '@/constants/features';
+import {
+  DASHBOARD_DRAFTS_ROUTE,
+  DASHBOARD_DRAFT_SAVED_PARAM,
+  DASHBOARD_GOAL_FILTER_PARAM,
+} from '@/lib/navigation/dashboard';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { authedFetch } from '@/lib/api/client';
 import supabase from '@/lib/db/client';
@@ -618,6 +624,10 @@ type IntelligenceData = {
 
 export default function DashboardScreen() {
   const colors = useThemeColors();
+  const routeParams = useLocalSearchParams<{
+    draftSaved?: string | string[];
+    goalFilter?: string | string[];
+  }>();
   const { goals, isLoading: goalsLoading } = useGoals();
   const { user } = useAuth();
   const { projects, isLoading: projectsLoading, loadProjects } = useProjectStore();
@@ -628,6 +638,17 @@ export default function DashboardScreen() {
   const [activeGoalsFeed, setActiveGoalsFeed] = useState<TodayCarouselGoal[]>([]);
   const [activeGoalsLoading, setActiveGoalsLoading] = useState(true);
   const [showAllStandaloneGoals, setShowAllStandaloneGoals] = useState(false);
+
+  const draftsRequested = routeParams[DASHBOARD_GOAL_FILTER_PARAM] === 'drafts';
+  const draftSaved = routeParams[DASHBOARD_DRAFT_SAVED_PARAM] === '1';
+  const [draftToastVisible, setDraftToastVisible] = useState(draftSaved);
+
+  useEffect(() => {
+    if (!draftSaved) return;
+    setDraftToastVisible(true);
+    const timer = setTimeout(() => setDraftToastVisible(false), 4000);
+    return () => clearTimeout(timer);
+  }, [draftSaved]);
 
   useEffect(() => {
     let isActive = true;
@@ -735,10 +756,17 @@ export default function DashboardScreen() {
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
     [goals],
   );
-  const hiddenStandaloneGoalCount = Math.max(0, standaloneGoals.length - 7);
+  const draftGoals = useMemo(
+    () => goals
+      .filter((goal) => goal.status === 'draft')
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()),
+    [goals],
+  );
+  const displayedGoals = draftsRequested ? draftGoals : standaloneGoals;
+  const hiddenStandaloneGoalCount = Math.max(0, displayedGoals.length - 7);
   const visibleStandaloneGoals = showAllStandaloneGoals
-    ? standaloneGoals
-    : standaloneGoals.slice(0, 7);
+    ? displayedGoals
+    : displayedGoals.slice(0, 7);
 
   const hasProjects = projects.length > 0;
 
@@ -817,8 +845,30 @@ export default function DashboardScreen() {
               <View className="mb-4 flex-row items-center justify-between">
                 <View style={{ alignItems: 'center', flexDirection: 'row', gap: 6 }}>
                   <Typography variant="eyebrow">
-                    Goals
+                    {draftsRequested ? 'Drafts' : 'Goals'}
                   </Typography>
+                  <Pressable
+                    accessibilityLabel={draftsRequested ? 'Show all goals' : 'Show draft goals'}
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    onPress={() => {
+                      setShowAllStandaloneGoals(false);
+                      router.replace(draftsRequested ? '/dashboard' : DASHBOARD_DRAFTS_ROUTE);
+                    }}
+                    style={({ pressed }) => ({
+                      backgroundColor: draftsRequested ? colors.background.selectedRow : 'transparent',
+                      borderColor: colors.border.warm,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      opacity: pressed ? 0.55 : 1,
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                    })}
+                  >
+                    <Typography variant="badge-text" style={{ color: colors.text.accent }}>
+                      {draftsRequested ? 'All goals' : `Drafts${draftGoals.length ? ` · ${draftGoals.length}` : ''}`}
+                    </Typography>
+                  </Pressable>
                   <Pressable
                     accessibilityLabel={
                       standaloneGoalsView === 'list'
@@ -862,12 +912,14 @@ export default function DashboardScreen() {
                     ))}
                   </View>
                 ) : (
-                  <Typography variant="hint">No standalone goals yet.</Typography>
+                  <Typography variant="hint">
+                    {draftsRequested ? 'No drafts yet.' : 'No standalone goals yet.'}
+                  </Typography>
                 )
               ) : (
                 <GoalRingGrid
                   goals={visibleStandaloneGoals}
-                  emptyMessage="No standalone goals yet."
+                  emptyMessage={draftsRequested ? 'No drafts yet.' : 'No standalone goals yet.'}
                 />
               )}
               {hiddenStandaloneGoalCount > 0 ? (
@@ -911,6 +963,10 @@ export default function DashboardScreen() {
           </View>
         )}
       </ScrollView>
+      <Toast
+        message="Saved as draft — pick it back up anytime"
+        visible={draftToastVisible}
+      />
       <CreateProjectModal
         visible={projectModalOpen}
         onClose={() => setProjectModalOpen(false)}

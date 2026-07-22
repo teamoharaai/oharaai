@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&amp;display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#EDEAE1;color:#211F1A;font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:#2A9564;text-decoration:none;font-weight:500}
+  a:hover{color:#34B87A}
+  ::selection{background:rgba(52,184,122,.25)}
+</style>
+</helmet>
+
+<div style="padding:64px 56px 96px;display:flex;flex-direction:column;gap:56px;">
+
+  <div style="max-width:820px;">
+    <div style="display:inline-flex;align-items:center;gap:8px;background:#211F1A;color:#EDE7DA;font-size:10.5px;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:6px 12px;border-radius:999px;margin-bottom:14px;">
+      <span style="width:5px;height:5px;border-radius:50%;background:#34B87A;"></span> Ohara · AI Goal Creation
+    </div>
+    <h1 style="margin:0 0 8px;font-family:'Lora',Georgia,serif;font-weight:600;font-size:44px;line-height:1.05;letter-spacing:-.6px;color:#211F1A;">Echo — Focused Field.</h1>
+    <p style="margin:0;font-size:15.5px;line-height:1.6;color:#5F5B52;max-width:640px;">A conversational alternative to the manual builder. Echo commands the room: each AI turn is full-bleed serif, the user's replies stack small below as a running history. Templates compare side-by-side. Review is a dense blueprint. Health goals shown for the demo.</p>
+  </div>
+
+<section style="display:flex;flex-direction:column;gap:64px;">
+
+<div id="1b" style="display:flex;flex-direction:column;gap:20px;">
+  <div style="display:flex;align-items:flex-start;gap:18px;max-width:1100px;">
+    <div style="flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:#211F1A;color:#EDE7DA;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;letter-spacing:.5px;">✦</div>
+    <div style="flex:1;">
+      <div style="font-size:10.5px;font-weight:600;letter-spacing:2px;color:#8A8172;text-transform:uppercase;margin-bottom:4px;">Main template · dark · expressive</div>
+      <h2 style="margin:0 0 6px;font-family:'Lora',Georgia,serif;font-weight:600;font-size:26px;line-height:1.2;color:#211F1A;letter-spacing:-.3px;">Five phases · entry → conversation → templates → review → success</h2>
+      <p style="margin:0;font-size:14px;line-height:1.55;color:#5F5B52;max-width:780px;">The chosen direction. Full-bleed AI turns, running conversation history, three drafts to compare, an editable blueprint, and a landing state.</p>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:24px;overflow-x:auto;padding:8px 4px 20px;">
+
+    <div data-screen-label="1B · Entry" style="flex-shrink:0;width:1080px;height:720px;background:#141414;border-radius:20px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.35),0 2px 10px rgba(0,0,0,.2);display:flex;">
+      <aside style="width:220px;flex-shrink:0;background:#0E0E0E;display:flex;flex-direction:column;padding:24px 12px;">
+        <div style="display:flex;align-items:center;gap:10px;padding:0 6px 4px;">
+          <img src="assets/brand/ohara-logo.png" alt="" style="width:38px;height:38px;object-fit:contain;">
+          <span style="color:#EDE7DA;font-weight:600;font-size:18px;letter-spacing:4px;">OHARA</span>
+        </div>
+        <nav style="margin-top:24px;display:flex;flex-direction:column;gap:2px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;background:#222A23;">
+            <img src="assets/brand/goals-logo.png" style="width:18px;height:18px;">
+            <span style="color:#FFFFFF;font-size:13.5px;font-weight:500;">Goals</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;">
+            <img src="assets/brand/echo-logo.png" style="width:18px;height:18px;opacity:.85;">
+            <span style="color:#8F8F8F;font-size:13.5px;">Echo</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;">
+            <span style="width:18px;color:#8F8F8F;font-size:14px;text-align:center;">◇</span>
+            <span style="color:#8F8F8F;font-size:13.5px;">Explore</span>
+          </div>
+        </nav>
+        <div style="flex:1;"></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px;">
+          <div style="width:32px;height:32px;border-radius:50%;background:#292929;display:flex;align-items:center;justify-content:center;color:#EDE7DA;font-size:12px;font-weight:600;">JR</div>
+          <div style="line-height:1.2;flex:1;">
+            <div style="color:#FFFFFF;font-size:12.5px;">Jordan R.</div>
+            <div style="color:#8F8F8F;font-size:10.5px;">Free plan</div>
+          </div>
+        </div>
+      </aside>
+      <main style="flex:1;display:flex;flex-direction:column;">
+        <div style="padding:20px 40px;display:flex;align-items:center;font-size:13.5px;color:#8F8F8F;">
+          <span>← Goals</span>
+          <span style="margin:0 12px;color:#3A3A3A;">|</span>
+          <span style="color:#FFFFFF;font-weight:500;">New goal</span>
+        </div>
+        <div style="flex:1;padding:12px 48px 40px;display:flex;flex-direction:column;">
+          <div style="max-width:640px;width:100%;margin:24px auto 0;">
+            <div style="display:flex;justify-content:center;margin-bottom:44px;">
+              <div style="background:#1D1D1D;border:1px solid #292929;border-radius:12px;padding:4px;display:flex;gap:2px;">
+                <div style="padding:9px 20px;font-size:13px;color:#B8B8B8;cursor:default;">Build it myself</div>
+                <div style="padding:9px 20px;font-size:13px;background:#34B87A;color:#0B0B0B;font-weight:600;border-radius:9px;cursor:default;display:flex;align-items:center;gap:6px;"><span>✦</span> Chat with Echo</div>
+              </div>
+            </div>
+
+            <div style="text-align:center;">
+              <div style="font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:#34B87A;font-weight:600;margin-bottom:24px;display:inline-flex;align-items:center;gap:8px;"><span style="width:6px;height:6px;border-radius:50%;background:#34B87A;box-shadow:0 0 12px #34B87A;"></span> Echo · listening</div>
+              <h1 style="margin:0 0 26px;font-family:'Lora',Georgia,serif;font-weight:600;font-size:52px;line-height:1.05;color:#FFFFFF;letter-spacing:-.9px;">What do you want to work on?</h1>
+              <p style="margin:0 auto 42px;font-size:15.5px;line-height:1.6;color:#8F8F8F;max-width:460px;">One line is enough. I'll ask a couple of questions, then draft three ways to get there.</p>
+
+              <div style="background:#1A1A1A;border:1px solid #2D2D2D;border-radius:16px;padding:20px 22px;text-align:left;box-shadow:0 12px 32px rgba(0,0,0,.35);">
+                <div contenteditable="false" style="min-height:56px;font-family:'Lora',Georgia,serif;font-size:22px;line-height:1.4;color:#4A4A4A;letter-spacing:-.2px;">I want to get back into running—</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid #232323;">
+                  <div style="font-size:11.5px;color:#6B6B6B;">Enter to send · Shift+Enter for new line</div>
+                  <button style="background:#34B87A;color:#0B0B0B;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;border:none;border-radius:9px;padding:9px 18px;cursor:default;">Send →</button>
+                </div>
+              </div>
+
+              <div style="margin-top:34px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+                <div style="background:#1D1D1D;border:1px solid #2A2A2A;color:#B8B8B8;font-size:12px;padding:7px 14px;border-radius:999px;cursor:default;">Or try — Save $5,000 by year end</div>
+                <div style="background:#1D1D1D;border:1px solid #2A2A2A;color:#B8B8B8;font-size:12px;padding:7px 14px;border-radius:999px;cursor:default;">Read 20 books this year</div>
+                <div style="background:#1D1D1D;border:1px solid #2A2A2A;color:#B8B8B8;font-size:12px;padding:7px 14px;border-radius:999px;cursor:default;">Learn Spanish, B1 by June</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <div data-screen-label="1B · Conversation" style="flex-shrink:0;width:1080px;height:720px;background:#141414;border-radius:20px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.35),0 2px 10px rgba(0,0,0,.2);display:flex;">
+      <aside style="width:220px;flex-shrink:0;background:#0E0E0E;display:flex;flex-direction:column;padding:24px 12px;">
+        <div style="display:flex;align-items:center;gap:10px;padding:0 6px 4px;"><img src="assets/brand/ohara-logo.png" style="width:38px;height:38px;"><span style="color:#EDE7DA;font-weight:600;font-size:18px;letter-spacing:4px;">OHARA</span></div>
+        <nav style="margin-top:24px;display:flex;flex-direction:column;gap:2px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;background:#222A23;"><img src="assets/brand/goals-logo.png" style="width:18px;height:18px;"><span style="color:#FFFFFF;font-size:13.5px;font-weight:500;">Goals</span></div>
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;"><img src="assets/brand/echo-logo.png" style="width:18px;height:18px;opacity:.85;"><span style="color:#8F8F8F;font-size:13.5px;">Echo</span></div>
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;"><span style="width:18px;color:#8F8F8F;font-size:14px;text-align:center;">◇</span><span style="color:#8F8F8F;font-size:13.5px;">Explore</span></div>
+        </nav>
+        <div style="flex:1;"></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px;"><div style="width:32px;height:32px;border-radius:50%;background:#292929;display:flex;align-items:center;justify-content:center;color:#EDE7DA;font-size:12px;font-weight:600;">JR</div><div style="line-height:1.2;flex:1;"><div style="color:#FFFFFF;font-size:12.5px;">Jordan R.</div><div style="color:#8F8F8F;font-size:10.5px;">Free plan</div></div></div>
+      </aside>
+      <main style="flex:1;display:flex;flex-direction:column;min-width:0;">
+        <div style="padding:16px 40px;display:flex;align-items:center;font-size:13.5px;color:#8F8F8F;border-bottom:1px solid #232323;">
+          <span>← Goals</span><span style="margin:0 12px;color:#3A3A3A;">|</span>
+          <span style="color:#FFFFFF;font-weight:500;">New goal · with Echo</span>
+          <div style="flex:1;"></div>
+          <div style="display:inline-flex;background:#1A1A1A;border:1px solid #292929;border-radius:8px;padding:3px;gap:2px;">
+            <span style="padding:5px 10px;font-size:11.5px;color:#8F8F8F;">Myself</span>
+            <span style="padding:5px 10px;font-size:11.5px;background:#222A23;border-radius:6px;color:#FFFFFF;font-weight:500;">Echo</span>
+          </div>
+        </div>
+
+        <div style="flex:1;overflow-y:auto;padding:18px 72px 12px;display:flex;flex-direction:column;gap:14px;">
+
+          <div style="display:flex;flex-direction:column;gap:5px;">
+            <div style="font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:#34B87A;font-weight:600;display:flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#34B87A;box-shadow:0 0 8px #34B87A;"></span> Echo</div>
+            <div style="font-family:'Lora',Georgia,serif;font-size:16px;line-height:1.5;color:#EDE7DA;letter-spacing:-.1px;">Good to see you, Jordan. What would you like to work on?</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;padding-left:22%;">
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#6B6B6B;font-weight:600;">You</div>
+            <div style="font-size:13.5px;line-height:1.5;color:#B8B8B8;text-align:right;">Get back into running — haven't gone in six months.</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:5px;">
+            <div style="font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:#34B87A;font-weight:600;display:flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#34B87A;box-shadow:0 0 8px #34B87A;"></span> Echo</div>
+            <div style="font-family:'Lora',Georgia,serif;font-size:15.5px;line-height:1.55;color:#EDE7DA;">What would <em>feel</em> like being back — a distance, or just a rhythm? How many days a week?</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;padding-left:22%;">
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#6B6B6B;font-weight:600;">You</div>
+            <div style="font-size:13.5px;line-height:1.5;color:#B8B8B8;text-align:right;">A sub-30 5K. Probably 4 mornings a week.</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:#34B87A;font-weight:600;display:flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#34B87A;box-shadow:0 0 8px #34B87A;"></span> Echo</div>
+            <div style="font-family:'Lora',Georgia,serif;font-size:15.5px;line-height:1.55;color:#EDE7DA;">Two shapes for this. Pick one — you'll edit it next.</div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px;">
+
+              
+
+              
+
+            </div>
+          </div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;padding-left:22%;">
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#6B6B6B;font-weight:600;">You</div>
+            <div style="font-size:13.5px;line-height:1.5;color:#B8B8B8;text-align:right;">A sub-30 5K. Probably 4 mornings a week.</div>
+          </div><div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:#34B87A;font-weight:600;display:flex;align-items:center;gap:6px;"><span style="width:5px;height:5px;border-radius:50%;background:#34B87A;box-shadow:0 0 8px #34B87A;"></span> Echo</div>
+            <div style="font-family:'Lora',Georgia,serif;font-size:15.5px;line-height:1.55;color:#EDE7DA;">Two shapes for this. Pick one — you'll edit it next.</div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px;">
+
+              
+
+              
+
+            </div>
+          </div>
+
+        </div>
+
+        <div style="padding:10px 40px 14px;border-top:1px solid #232323;">
+          <div style="display:flex;align-items:center;gap:12px;background:#1A1A1A;border:1px solid #2D2D2D;border-radius:12px;padding:9px 14px;">
+            <div style="flex:1;font-size:13px;color:#4A4A4A;">Reply to Echo…</div>
+            <div style="width:28px;height:28px;border-radius:7px;background:#222222;display:flex;align-items:center;justify-content:center;color:#8F8F8F;font-size:13px;">↵</div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <div data-screen-label="1B · Templates" style="flex-shrink:0;width:1080px;height:720px;background:#141414;border-radius:20px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.35),0 2px 10px rgba(0,0,0,.2);display:flex;">
+      <aside style="width:220px;flex-shrink:0;background:#0E0E0E;display:flex;flex-direction:column;padding:24px 12px;">
+        <div style="display:flex;align-items:center;gap:10px;padding:0 6px 4px;"><img src="assets/brand/ohara-logo.png" style="width:38px;height:38px;"><span style="color:#EDE7DA;font-weight:600;font-size:18px;letter-spacing:4px;">OHARA</span></div>
+        <nav style="margin-top:24px;display:flex;flex-direction:column;gap:2px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;background:#222A23;"><img src="assets/brand/goals-logo.png" style="width:18px;height:18px;"><span style="color:#FFFFFF;font-size:13.5px;font-weight:500;">Goals</span></div>
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;"><img src="assets/brand/echo-logo.png" style="width:18px;height:18px;opacity:.85;"><span style="color:#8F8F8F;font-size:13.5px;">Echo</span></div>
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;"><span style="width:18px;color:#8F8F8F;font-size:14px;text-align:center;">◇</span><span style="color:#8F8F8F;font-size:13.5px;">Explore</span></div>
+        </nav>
+        <div style="flex:1;"></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px;"><div style="width:32px;height:32px;border-radius:50%;background:#292929;display:flex;align-items:center;justify-content:center;color:#EDE7DA;font-size:12px;font-weight:600;">JR</div><div style="line-height:1.2;flex:1;"><div style="color:#FFFFFF;font-size:12.5px;">Jordan R.</div><div style="color:#8F8F8F;font-size:10.5px;">Free plan</div></div></div>
+      </aside>
+      <main style="flex:1;display:flex;flex-direction:column;min-width:0;">
+        <div style="padding:16px 40px;display:flex;align-items:center;font-size:13.5px;color:#8F8F8F;border-bottom:1px solid #232323;">
+          <span>← Conversation</span><span style="margin:0 12px;color:#3A3A3A;">|</span>
+          <span style="color:#FFFFFF;font-weight:500;">Three drafts</span>
+          <div style="flex:1;"></div>
+          <span style="font-size:11.5px;color:#6B6B6B;">Hover to expand · click to pick</span>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:26px 60px 32px;">
+
+          <div style="text-align:center;margin-bottom:24px;">
+            <div style="font-size:10.5px;letter-spacing:2.5px;text-transform:uppercase;color:#34B87A;font-weight:600;margin-bottom:10px;">Echo</div>
+            <div style="font-family:'Lora',Georgia,serif;font-size:22px;line-height:1.35;color:#FFFFFF;letter-spacing:-.2px;max-width:640px;margin:0 auto;">Three routes to a sub-30 5K by <b style="font-weight:600;color:#FFFFFF;border-bottom:1.5px solid #34B87A;">August 30</b>. One is gentle, one is race-paced, one is habit-first.</div>
+          </div>
+
+          <div style="max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:12px;">
+
+            <div style="background:#1A1A1A;border:1px solid #262626;border-radius:16px;padding:18px 22px;">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:14px;">
+                <div>
+                  <div style="font-size:10.5px;letter-spacing:1.8px;text-transform:uppercase;color:#8F8F8F;font-weight:600;margin-bottom:4px;">Option 01 · The Gentle Return</div>
+                  <div style="font-family:'Lora',Georgia,serif;font-weight:600;font-size:20px;line-height:1.25;color:#FFFFFF;">Rebuild an easy 5K, no clock, by mid-October.</div>
+                </div>
+                <span style="font-size:14px;color:#8F8F8F;">＋</span>
+              </div>
+              <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:12px;color:#8F8F8F;margin-top:10px;">
+                <span><b style="color:#FFFFFF;font-weight:600;">3</b> milestones</span>
+                <span><b style="color:#FFFFFF;font-weight:600;">2</b> weekly trackers</span>
+                <span><b style="color:#FFFFFF;font-weight:600;">3</b> days/week</span>
+                <span><b style="color:#FFFFFF;font-weight:600;">12</b> weeks</span>
+              </div>
+            </div>
+
+            <div style="background:#1D1D1D;border:1.5px solid #34B87A;border-radius:16px;padding:22px 24px;box-shadow:0 24px 48px rgba(52,184,122,.14),0 2px 12px rgba(0,0,0,.4);position:relative;">
+              <div style="position:absolute;top:-11px;left:22px;background:#34B87A;color:#0B0B0B;font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:999px;">Hover · full detail</div>
+              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-bottom:14px;">
+                <div>
+                  <div style="font-size:10.5px;letter-spacing:1.8px;text-transform:uppercase;color:#34B87A;font-weight:600;margin-bottom:6px;">Option 02 · The Race-Paced Plan</div>
+                  <div style="font-family:'Lora',Georgia,serif;font-weight:600;font-size:24px;line-height:1.15;color:#FFFFFF;letter-spacing:-.3px;">Run a 5K under 30 minutes by August 30.</div>
+                </div>
+                <span style="font-size:14px;color:#34B87A;">−</span>
+              </div>
+              <div style="font-family:'Lora',Georgia,serif;font-style:italic;font-size:14.5px;line-height:1.55;color:#B8B8B8;margin-bottom:16px;">Anchored to a real date so the plan can't slip. Base → tempo → race week, in three arcs.</div>
+
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 24px;margin-bottom:14px;">
+                <div>
+                  <div style="font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;color:#6B6B6B;font-weight:600;margin-bottom:3px;">Category</div>
+                  <div style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:#FFFFFF;font-weight:500;"><span style="width:6px;height:6px;border-radius:50%;background:#34B87A;box-shadow:0 0 6px #34B87A;"></span> Health &amp; Fitness</div>
+                </div>
+                <div>
+                  <div style="font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;color:#6B6B6B;font-weight:600;margin-bottom:3px;">Deadline</div>
+                  <div style="font-size:12.5px;color:#FFFFFF;font-weight:500;">Aug 30, 2026 · 87 days</div>
+                </div>
+                <div>
+                  <div style="font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;color:#6B6B6B;font-weight:600;margin-bottom:3px;">Commitment</div>
+                  <div style="font-size:12.5px;color:#FFFFFF;font-weight:500;">4 days / week · mornings</div>
+                </div>
+                <div>
+                  <div style="font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;color:#6B6B6B;font-weight:600;margin-bottom:3px;">Difficulty</div>
+                  <div style="font-size:12.5px;color:#FFFFFF;font-weight:500;">Moderate · assumes base</div>
+                </div>
+              </div>
+
+              <div style="border-top:1px solid #262626;padding-top:12px;">
+                <div style="font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;color:#6B6B6B;font-weight:600;margin-bottom:8px;">Roadmap · 4 milestones</div>
+                <div style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:#B8B8B8;">
+                  <div style="display:flex;justify-content:space-between;"><span>· Register for a local 5K race</span><span style="color:#6B6B6B;">Week 1</span></div>
+                  <div style="display:flex;justify-content:space-between;"><span>· Run 2K continuously without walking</span><span style="color:#6B6B6B;">Week 4</span></div>
+                  <div style="display:flex;justify-content:space-between;"><span>· First timed 5K trial · sub-33</span><span style="color:#6B6B6B;">Week 8</span></div>
+                  <div style="display:flex;justify-content:space-between;"><span>· Race day · goal pace</span><span style="color:#6B6B6B;">Week 12</span></div>
+                </div>
+              </div>
+              <div style="margin-top:14px;display:flex;gap:6px;flex-wrap:wrap;">
+                <span style="background:#222A23;color:#8FBFA1;font-size:11px;font-weight:500;padding:4px 10px;border-radius:999px;">✓ Runs / week · 4</span>
+                <span style="background:#292520;color:#D4A843;font-size:11px;font-weight:500;padding:4px 10px;border-radius:999px;">↕ Weekly km · 20</span>
+                <span style="background:#241E2E;color:#B48EE5;font-size:11px;font-weight:500;padding:4px 10px;border-radius:999px;">◐ Long-run each week</span>
+              </div>
+              <div style="margin-top:16px;display:flex;justify-content:flex-end;">
+                <button style="background:#34B87A;color:#0B0B0B;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;border:none;border-radius:10px;padding:10px 22px;cursor:default;box-shadow:0 4px 14px rgba(52,184,122,.24);">Choose this one →</button>
+              </div>
+            </div>
+
+            
+
+            <div style="margin-top:6px;text-align:center;font-size:12.5px;color:#6B6B6B;">Don't love any? <span style="color:#34B87A;font-weight:500;">Ask Echo to try again</span></div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <div data-screen-label="1B · Review" style="flex-shrink:0;width:1080px;height:720px;background:#141414;border-radius:20px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.35),0 2px 10px rgba(0,0,0,.2);display:flex;">
+      <aside style="width:220px;flex-shrink:0;background:#0E0E0E;display:flex;flex-direction:column;padding:24px 12px;">
+        <div style="display:flex;align-items:center;gap:10px;padding:0 6px 4px;"><img src="assets/brand/ohara-logo.png" style="width:38px;height:38px;"><span style="color:#EDE7DA;font-weight:600;font-size:18px;letter-spacing:4px;">OHARA</span></div>
+        <nav style="margin-top:24px;display:flex;flex-direction:column;gap:2px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;background:#222A23;"><img src="assets/brand/goals-logo.png" style="width:18px;height:18px;"><span style="color:#FFFFFF;font-size:13.5px;font-weight:500;">Goals</span></div>
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;"><img src="assets/brand/echo-logo.png" style="width:18px;height:18px;opacity:.85;"><span style="color:#8F8F8F;font-size:13.5px;">Echo</span></div>
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;"><span style="width:18px;color:#8F8F8F;font-size:14px;text-align:center;">◇</span><span style="color:#8F8F8F;font-size:13.5px;">Explore</span></div>
+        </nav>
+        <div style="flex:1;"></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px;"><div style="width:32px;height:32px;border-radius:50%;background:#292929;display:flex;align-items:center;justify-content:center;color:#EDE7DA;font-size:12px;font-weight:600;">JR</div><div style="line-height:1.2;flex:1;"><div style="color:#FFFFFF;font-size:12.5px;">Jordan R.</div><div style="color:#8F8F8F;font-size:10.5px;">Free plan</div></div></div>
+      </aside>
+      <main style="flex:1;display:flex;flex-direction:column;min-width:0;">
+        <div style="padding:16px 40px;display:flex;align-items:center;font-size:13.5px;color:#8F8F8F;border-bottom:1px solid #232323;">
+          <span>← Drafts</span><span style="margin:0 12px;color:#3A3A3A;">|</span>
+          <span style="color:#FFFFFF;font-weight:500;">Blueprint · Race-Paced Plan</span>
+          <div style="flex:1;"></div>
+          <span style="font-size:11.5px;color:#6B6B6B;">Tap anything to edit</span>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:28px 56px 24px;">
+          <div style="max-width:800px;margin:0 auto;">
+
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <span style="display:inline-flex;align-items:center;gap:6px;background:#222A23;color:#8FBFA1;font-size:10.5px;font-weight:600;letter-spacing:1.5px;padding:4px 10px;border-radius:999px;text-transform:uppercase;"><span style="width:5px;height:5px;border-radius:50%;background:#34B87A;box-shadow:0 0 6px #34B87A;"></span> Health &amp; Fitness</span>
+              <span style="font-size:11.5px;color:#6B6B6B;">· drafted by Echo · edited by you</span>
+            </div>
+            <h1 style="margin:0 0 8px;font-family:'Lora',Georgia,serif;font-weight:600;font-size:32px;line-height:1.12;color:#FFFFFF;letter-spacing:-.5px;">Run a 5K under 30 minutes by August 30.</h1>
+            <div style="font-family:'Lora',Georgia,serif;font-style:italic;font-size:15px;line-height:1.55;color:#B8B8B8;margin-bottom:22px;padding-bottom:22px;border-bottom:1px solid #232323;">"Six months out of running and I miss what it does for my head. A race gives the date teeth."</div>
+
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding-bottom:22px;border-bottom:1px solid #232323;margin-bottom:22px;">
+              <div>
+                <div style="font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;color:#6B6B6B;font-weight:600;margin-bottom:4px;">Deadline</div>
+                <div style="font-size:13.5px;color:#FFFFFF;font-weight:600;">Aug 30, 2026</div>
+                <div style="font-size:11px;color:#8F8F8F;">87 days remaining</div>
+              </div>
+              <div>
+                <div style="font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;color:#6B6B6B;font-weight:600;margin-bottom:4px;">Commitment</div>
+                <div style="font-size:13.5px;color:#FFFFFF;font-weight:600;">4 days / week</div>
+                <div style="font-size:11px;color:#8F8F8F;">Mornings</div>
+              </div>
+              <div>
+                <div style="font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;color:#6B6B6B;font-weight:600;margin-bottom:4px;">Project</div>
+                <div style="font-size:13.5px;color:#FFFFFF;font-weight:600;">— <span style="color:#6B6B6B;font-weight:400;">not linked</span></div>
+              </div>
+              <div>
+                <div style="font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;color:#6B6B6B;font-weight:600;margin-bottom:4px;">Visibility</div>
+                <div style="font-size:13.5px;color:#FFFFFF;font-weight:600;">Circle</div>
+              </div>
+            </div>
+
+            <div style="margin-bottom:22px;">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;">
+                <div style="font-family:'Lora',Georgia,serif;font-weight:600;font-size:16px;color:#FFFFFF;">Roadmap</div>
+                <div style="font-size:11px;color:#6B6B6B;">4 milestones · drag to reorder</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:flex-start;gap:14px;padding:12px 14px;background:#1A1A1A;border:1px solid #262626;border-radius:12px;">
+                  <span style="flex-shrink:0;width:22px;height:22px;border-radius:50%;border:1.5px solid #3A3A3A;color:#8F8F8F;font-size:10.5px;font-weight:600;display:flex;align-items:center;justify-content:center;margin-top:1px;">1</span>
+                  <div style="flex:1;">
+                    <div style="font-size:14px;font-weight:600;color:#FFFFFF;">Register for a local 5K race</div>
+                    <div style="font-size:12px;color:#8F8F8F;margin-top:2px;">Committing to a real date makes it concrete.</div>
+                  </div>
+                  <span style="font-size:11.5px;color:#6B6B6B;white-space:nowrap;padding-top:2px;">Week 1 · Jun 8</span>
+                </div>
+                <div style="display:flex;align-items:flex-start;gap:14px;padding:12px 14px;background:#1A1A1A;border:1px solid #262626;border-radius:12px;">
+                  <span style="flex-shrink:0;width:22px;height:22px;border-radius:50%;border:1.5px solid #3A3A3A;color:#8F8F8F;font-size:10.5px;font-weight:600;display:flex;align-items:center;justify-content:center;margin-top:1px;">2</span>
+                  <div style="flex:1;">
+                    <div style="font-size:14px;font-weight:600;color:#FFFFFF;">Run 2K continuously without walking</div>
+                    <div style="font-size:12px;color:#8F8F8F;margin-top:2px;">Proves the endurance base is back.</div>
+                  </div>
+                  <span style="font-size:11.5px;color:#6B6B6B;white-space:nowrap;padding-top:2px;">Week 4 · Jun 29</span>
+                </div>
+                <div style="display:flex;align-items:flex-start;gap:14px;padding:12px 14px;background:#1A1A1A;border:1px solid #262626;border-radius:12px;">
+                  <span style="flex-shrink:0;width:22px;height:22px;border-radius:50%;border:1.5px solid #3A3A3A;color:#8F8F8F;font-size:10.5px;font-weight:600;display:flex;align-items:center;justify-content:center;margin-top:1px;">3</span>
+                  <div style="flex:1;">
+                    <div style="font-size:14px;font-weight:600;color:#FFFFFF;">First timed 5K trial · under 33 min</div>
+                    <div style="font-size:12px;color:#8F8F8F;margin-top:2px;">Benchmark before race week.</div>
+                  </div>
+                  <span style="font-size:11.5px;color:#6B6B6B;white-space:nowrap;padding-top:2px;">Week 8 · Jul 27</span>
+                </div>
+                <div style="display:flex;align-items:flex-start;gap:14px;padding:12px 14px;background:#1A1A1A;border:1px solid #262626;border-radius:12px;">
+                  <span style="flex-shrink:0;width:22px;height:22px;border-radius:50%;border:1.5px solid #34B87A;color:#34B87A;font-size:10.5px;font-weight:600;display:flex;align-items:center;justify-content:center;margin-top:1px;">4</span>
+                  <div style="flex:1;">
+                    <div style="font-size:14px;font-weight:600;color:#FFFFFF;">Race day · goal pace</div>
+                    <div style="font-size:12px;color:#8F8F8F;margin-top:2px;">The date the whole plan orbits.</div>
+                  </div>
+                  <span style="font-size:11.5px;color:#34B87A;white-space:nowrap;padding-top:2px;font-weight:600;">Week 12 · Aug 30</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;">
+                <div style="font-family:'Lora',Georgia,serif;font-weight:600;font-size:16px;color:#FFFFFF;">Weekly trackers</div>
+                <div style="font-size:11px;color:#6B6B6B;">3 metrics · 4 days / week</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                <div style="padding:14px 16px;background:#1A1A1A;border:1px solid #262626;border-radius:12px;">
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="background:#222A23;color:#8FBFA1;font-size:9.5px;font-weight:600;letter-spacing:1px;padding:2px 7px;border-radius:999px;text-transform:uppercase;">Habit</span></div>
+                  <div style="font-size:13.5px;color:#FFFFFF;font-weight:600;margin-bottom:4px;">Runs completed</div>
+                  <div style="font-size:11.5px;color:#8F8F8F;">Target: <b style="color:#FFFFFF;font-weight:600;">4</b> / week</div>
+                </div>
+                <div style="padding:14px 16px;background:#1A1A1A;border:1px solid #262626;border-radius:12px;">
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="background:#292520;color:#D4A843;font-size:9.5px;font-weight:600;letter-spacing:1px;padding:2px 7px;border-radius:999px;text-transform:uppercase;">Counter</span></div>
+                  <div style="font-size:13.5px;color:#FFFFFF;font-weight:600;margin-bottom:4px;">Weekly distance</div>
+                  <div style="font-size:11.5px;color:#8F8F8F;">Target: <b style="color:#FFFFFF;font-weight:600;">20</b> km / week</div>
+                </div>
+                <div style="padding:14px 16px;background:#1A1A1A;border:1px solid #262626;border-radius:12px;">
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="background:#241E2E;color:#B48EE5;font-size:9.5px;font-weight:600;letter-spacing:1px;padding:2px 7px;border-radius:999px;text-transform:uppercase;">Checklist</span></div>
+                  <div style="font-size:13.5px;color:#FFFFFF;font-weight:600;margin-bottom:4px;">Long-run each week</div>
+                  <div style="font-size:11.5px;color:#8F8F8F;">Sundays · one item</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:16px 40px;border-top:1px solid #232323;background:#141414;display:flex;align-items:center;gap:12px;">
+          <span style="font-size:13.5px;color:#8F8F8F;">← Back</span>
+          <div style="flex:1;"></div>
+          <span style="font-size:12px;color:#6B6B6B;">Everything look honest?</span>
+          <button style="background:transparent;color:#EDE7DA;font-family:'Inter',sans-serif;font-size:14px;font-weight:500;border:1px solid #3A3A3A;border-radius:10px;padding:11px 20px;cursor:default;display:inline-flex;align-items:center;gap:7px;"> Save draft</button>
+          <button style="background:#34B87A;color:#0B0B0B;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;border:none;border-radius:10px;padding:12px 26px;cursor:default;box-shadow:0 4px 14px rgba(52,184,122,.24);">Create this goal ✓</button>
+        </div>
+      </main>
+    </div>
+
+    <div data-screen-label="1B · Success" style="flex-shrink:0;width:1080px;height:720px;background:#141414;border-radius:20px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.35),0 2px 10px rgba(0,0,0,.2);display:flex;">
+      <aside style="width:220px;flex-shrink:0;background:#0E0E0E;display:flex;flex-direction:column;padding:24px 12px;">
+        <div style="display:flex;align-items:center;gap:10px;padding:0 6px 4px;"><img src="assets/brand/ohara-logo.png" style="width:38px;height:38px;"><span style="color:#EDE7DA;font-weight:600;font-size:18px;letter-spacing:4px;">OHARA</span></div>
+        <nav style="margin-top:24px;display:flex;flex-direction:column;gap:2px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;background:#222A23;"><img src="assets/brand/goals-logo.png" style="width:18px;height:18px;"><span style="color:#FFFFFF;font-size:13.5px;font-weight:500;">Goals</span></div>
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;"><img src="assets/brand/echo-logo.png" style="width:18px;height:18px;opacity:.85;"><span style="color:#8F8F8F;font-size:13.5px;">Echo</span></div>
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;"><span style="width:18px;color:#8F8F8F;font-size:14px;text-align:center;">◇</span><span style="color:#8F8F8F;font-size:13.5px;">Explore</span></div>
+        </nav>
+        <div style="flex:1;"></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px;"><div style="width:32px;height:32px;border-radius:50%;background:#292929;display:flex;align-items:center;justify-content:center;color:#EDE7DA;font-size:12px;font-weight:600;">JR</div><div style="line-height:1.2;flex:1;"><div style="color:#FFFFFF;font-size:12.5px;">Jordan R.</div><div style="color:#8F8F8F;font-size:10.5px;">Free plan</div></div></div>
+      </aside>
+      <main style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 60px;position:relative;overflow:hidden;">
+        <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 40%, rgba(52,184,122,.14), transparent 60%);pointer-events:none;"></div>
+        <div style="max-width:540px;width:100%;text-align:center;position:relative;">
+          <div style="display:inline-flex;align-items:center;justify-content:center;width:88px;height:88px;border-radius:50%;background:#222A23;color:#34B87A;margin-bottom:24px;box-shadow:0 0 0 6px rgba(52,184,122,.08),0 0 40px rgba(52,184,122,.24);">
+            <svg width="42" height="42" viewBox="0 0 44 44" fill="none">
+              <circle cx="22" cy="22" r="20" stroke="currentColor" stroke-width="2" opacity=".32"></circle>
+              <path d="M13 22.5 L20 29 L32 16" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+          </div>
+          <div style="font-size:10.5px;letter-spacing:2.5px;text-transform:uppercase;color:#34B87A;font-weight:600;margin-bottom:14px;">Goal created</div>
+          <h1 style="margin:0 0 12px;font-family:'Lora',Georgia,serif;font-weight:600;font-size:44px;line-height:1.1;color:#FFFFFF;letter-spacing:-.7px;">You're on the clock.</h1>
+          <p style="margin:0 0 30px;font-size:14.5px;line-height:1.6;color:#8F8F8F;">Echo saved the goal, this week's four runs, and the race-day milestone. First check-in is Monday morning.</p>
+
+          <div style="background:#1A1A1A;border:1px solid #292929;border-radius:16px;padding:18px 20px;text-align:left;box-shadow:0 12px 32px rgba(0,0,0,.35);margin-bottom:18px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:36px;height:36px;border-radius:10px;background:#222A23;display:flex;align-items:center;justify-content:center;">
+                <img src="assets/brand/goal-mark.png" alt="" style="width:22px;height:22px;">
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-family:'Lora',Georgia,serif;font-weight:600;font-size:15px;color:#FFFFFF;line-height:1.3;">Run a 5K under 30 minutes by August 30</div>
+                <div style="font-size:11.5px;color:#8F8F8F;margin-top:2px;">4 days / week · 4 milestones · 3 trackers</div>
+              </div>
+              <span style="color:#34B87A;font-size:16px;">→</span>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:center;align-items:center;gap:20px;font-size:13px;color:#8F8F8F;">
+            <span style="font-weight:500;color:#FFFFFF;cursor:default;">Open goal</span>
+            <span style="color:#3A3A3A;">·</span>
+            <span style="cursor:default;">Draft another with Echo</span>
+          </div>
+        </div>
+      </main>
+    </div>
+
+  </div>
+</div>
+
+</section>
+
+</div>
+
+</x-dc>
+</body>
+</html>

@@ -25,6 +25,12 @@ export interface GoalReviewScreenProps {
       origin: 'ai_chatbot';
     },
   ) => Promise<void>;
+  onSaveDraft: (
+    payload: ManualGoalCreationInput & {
+      smart_data: GoalSmartData;
+      origin: 'ai_chatbot';
+    },
+  ) => Promise<void>;
   onBack: () => void;
   isSubmitting: boolean;
 }
@@ -98,6 +104,7 @@ function capitalize(value: string): string {
 export function GoalReviewScreen({
   template,
   onSubmit,
+  onSaveDraft,
   onBack,
   isSubmitting,
 }: GoalReviewScreenProps) {
@@ -217,13 +224,11 @@ export function GoalReviewScreen({
     ]);
   }
 
-  async function handleSubmit() {
-    if (!canSubmit) return;
-
-    const payload: ManualGoalCreationInput & {
-      smart_data: GoalSmartData;
-      origin: 'ai_chatbot';
-    } = {
+  function buildPayload(): ManualGoalCreationInput & {
+    smart_data: GoalSmartData;
+    origin: 'ai_chatbot';
+  } {
+    return {
       title: title.trim(),
       description: description.trim() || null,
       deadline,
@@ -251,8 +256,16 @@ export function GoalReviewScreen({
         })),
       origin: 'ai_chatbot',
     };
+  }
 
-    await onSubmit(payload);
+  async function handleSubmit() {
+    if (!canSubmit) return;
+    await onSubmit(buildPayload());
+  }
+
+  async function handleSaveDraft() {
+    if (!canSubmit) return;
+    await onSaveDraft(buildPayload());
   }
 
   const inputStyle = {
@@ -267,6 +280,16 @@ export function GoalReviewScreen({
     paddingHorizontal: 12,
     paddingVertical: 10,
   } as const;
+  const reviewCardStyle = darkMode
+    ? {
+        backgroundColor: '#1A1A1A',
+        borderColor: '#292929',
+        shadowColor: '#000000',
+        shadowOffset: { height: 2, width: 0 },
+        shadowOpacity: 0.2,
+        shadowRadius: 10,
+      }
+    : undefined;
 
   function AiSuggestedBadge() {
     return (
@@ -293,7 +316,7 @@ export function GoalReviewScreen({
         style={{ flex: 1 }}
       >
         {/* Section 1 — Goal identity */}
-        <Card elevated padding="spacious" style={{ gap: 14 }}>
+        <Card elevated padding="spacious" style={[{ gap: 14 }, reviewCardStyle]}>
           <Typography variant="eyebrow">GOAL</Typography>
           <View>
             <Typography variant="field-label" style={{ marginBottom: 6 }}>
@@ -374,7 +397,7 @@ export function GoalReviewScreen({
         </Card>
 
         {/* Section 2 — Commitment */}
-        <Card elevated padding="spacious" style={{ gap: 12 }}>
+        <Card elevated padding="spacious" style={[{ gap: 12 }, reviewCardStyle]}>
           <Typography variant="eyebrow">COMMITMENT</Typography>
           <Typography variant="field-label">How many days a week?</Typography>
           <View style={{ flexDirection: 'row', gap: 6 }}>
@@ -417,7 +440,7 @@ export function GoalReviewScreen({
         </Card>
 
         {/* Section 3 — Milestones */}
-        <Card elevated padding="spacious" style={{ gap: 12 }}>
+        <Card elevated padding="spacious" style={[{ gap: 12 }, reviewCardStyle]}>
           <View
             style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}
           >
@@ -523,7 +546,7 @@ export function GoalReviewScreen({
         </Card>
 
         {/* Section 4 — Trackers */}
-        <Card elevated padding="spacious" style={{ gap: 12 }}>
+        <Card elevated padding="spacious" style={[{ gap: 12 }, reviewCardStyle]}>
           <View
             style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}
           >
@@ -674,7 +697,7 @@ export function GoalReviewScreen({
         </Card>
 
         {/* Section 5 — Privacy */}
-        <Card elevated padding="compact">
+        <Card elevated padding="compact" style={reviewCardStyle}>
           <View style={{ alignItems: 'center', flexDirection: 'row', gap: 14 }}>
             <View style={{ flex: 1 }}>
               <Typography variant="field-label">Keep this goal private</Typography>
@@ -710,19 +733,59 @@ export function GoalReviewScreen({
           borderTopWidth: 1,
           flexDirection: 'row',
           gap: 10,
+          paddingBottom: 14,
           paddingTop: 14,
         }}
       >
-        <Button onPress={onBack} variant="ghost">
+        <Button
+          onPress={onBack}
+          textStyle={{ color: colors.text.muted, fontFamily: 'Inter-Regular' }}
+          variant="ghost"
+        >
           ← Back
         </Button>
         <View style={{ flex: 1 }} />
+        <Typography
+          variant="caption"
+          style={{ color: colors.text.muted, fontFamily: 'Inter-Regular', fontSize: 12 }}
+        >
+          Everything look honest?
+        </Typography>
+        <Pressable
+          accessibilityLabel="Save this goal as a draft"
+          accessibilityRole="button"
+          disabled={!canSubmit}
+          onPress={() => void handleSaveDraft()}
+          style={({ pressed }) => ({
+            alignItems: 'center',
+            borderColor: '#3A3A3A',
+            borderRadius: 10,
+            borderWidth: 1,
+            flexDirection: 'row',
+            gap: 7,
+            opacity: !canSubmit ? 0.45 : pressed ? 0.75 : 1,
+            paddingHorizontal: 20,
+            paddingVertical: 11,
+          })}
+        >
+          <Typography variant="caption" style={{ color: colors.text.muted, fontSize: 12 }}>
+            ◐
+          </Typography>
+          <Typography
+            variant="body"
+            style={{ color: colors.text.inverse, fontFamily: 'Inter-Medium', fontSize: 14 }}
+          >
+            {isSubmitting ? 'Saving…' : 'Save draft'}
+          </Typography>
+        </Pressable>
         <Button
           disabled={!canSubmit}
           loading={isSubmitting}
           onPress={() => void handleSubmit()}
+          style={{ borderRadius: 10, minHeight: 46, paddingHorizontal: 26 }}
+          textStyle={{ color: '#0B0B0B', fontFamily: 'Inter-SemiBold' }}
         >
-          Create goal ✓
+          Create this goal ✓
         </Button>
       </View>
     </View>

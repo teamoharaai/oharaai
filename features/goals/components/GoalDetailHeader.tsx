@@ -24,12 +24,14 @@ interface GoalDetailHeaderProps {
 
 function getStatusBadgeVariant(
   status: GoalWithDetails['status'],
-): 'active' | 'complete' | 'paused' | 'archived' {
+): 'active' | 'complete' | 'paused' | 'archived' | 'draft' {
   switch (status) {
     case 'active':
       return 'active';
     case 'complete':
       return 'complete';
+    case 'draft':
+      return 'draft';
     case 'stagnant':
       return 'paused';
     case 'archived':
@@ -263,7 +265,7 @@ export function GoalDetailHeader({
                 width: 30,
               })}
             >
-              <Text style={{ color: colors.text.muted, fontSize: 17, letterSpacing: 1 }}>⋯</Text>
+              <Text style={{ color: colors.text.muted, fontFamily: 'Inter-Regular', fontSize: 17, letterSpacing: 1 }}>⋯</Text>
             </Pressable>
 
             {menuOpen ? (

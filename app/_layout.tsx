@@ -10,6 +10,14 @@ import {
   Inter_800ExtraBold,
   Inter_400Regular_Italic,
 } from '@expo-google-fonts/inter';
+import {
+  Lora_400Regular,
+  Lora_400Regular_Italic,
+  Lora_500Medium,
+  Lora_500Medium_Italic,
+  Lora_600SemiBold,
+  Lora_600SemiBold_Italic,
+} from '@expo-google-fonts/lora';
 import supabase from '@/lib/db/client';
 import { useAuthStore } from '@/features/auth/store';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
@@ -26,6 +34,13 @@ export default function RootLayout() {
     'Inter-Bold': Inter_700Bold,
     'Inter-ExtraBold': Inter_800ExtraBold,
     'Inter-Italic': Inter_400Regular_Italic,
+    // The focused Echo creation flow uses Lora for assistant voice and display hierarchy.
+    'Lora-Regular': Lora_400Regular,
+    'Lora-Italic': Lora_400Regular_Italic,
+    'Lora-Medium': Lora_500Medium,
+    'Lora-MediumItalic': Lora_500Medium_Italic,
+    'Lora-SemiBold': Lora_600SemiBold,
+    'Lora-SemiBoldItalic': Lora_600SemiBold_Italic,
   });
 
   const { session, loading, setSession, setLoading } = useAuthStore();

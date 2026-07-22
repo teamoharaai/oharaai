@@ -7,6 +7,7 @@ import { EMBEDDING_MODEL } from '@/lib/ai/constants';
 import { buildTrackerInsert } from '@/lib/db/tracker-inserts';
 import type {
   GoalCategory,
+  GoalDbStatus,
   GoalTrackerFrequency,
   GoalTrackerType,
   GoalVisibility,
@@ -99,6 +100,8 @@ export interface ManualGoalCreationInput {
     period: 'day' | 'week' | 'month';
   } | null;
   project_id: string | null;
+  /** Drafts are fully persisted goals that are not yet part of the active journey. */
+  status?: Extract<GoalDbStatus, 'active' | 'draft'>;
   smart_data?: {
     specific: string;
     measurable: string;
@@ -215,7 +218,7 @@ export async function createGoalWithMilestonesAndTrackers(
     title: input.title.trim(),
     description: input.description,
     category: input.category,
-    status: 'active' as const,
+    status: input.status ?? 'active',
     color_theme: CATEGORY_COLOR_THEME[input.category] ?? 'ocean',
     deadline: normalizedDeadline,
     target_frequency: input.target_frequency,

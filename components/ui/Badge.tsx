@@ -2,7 +2,7 @@ import { View } from 'react-native';
 import { useThemeColors } from '@/store/uiStore';
 import { Typography } from './Typography';
 
-type BadgeVariant = 'new' | 'active' | 'ended' | 'complete' | 'ai' | 'category' | 'momentum' | 'paused' | 'archived';
+type BadgeVariant = 'new' | 'active' | 'ended' | 'complete' | 'ai' | 'category' | 'momentum' | 'paused' | 'archived' | 'draft';
 
 interface BadgeProps {
   label: string;
@@ -18,6 +18,7 @@ export function Badge({ label, variant = 'active' }: BadgeProps) {
     complete: { bg: colors.background.subtle, text: colors.text.secondary },
     paused: { bg: colors.background.subtle, text: colors.text.secondary },
     archived: { bg: colors.background.subtle, text: colors.text.muted },
+    draft: { bg: colors.feedback.info.bg, text: colors.feedback.info.text },
     ai: { bg: colors.feedback.info.bg, text: colors.feedback.info.text },
     category: { bg: colors.background.input, text: colors.text.accent },
     momentum: { bg: colors.background.selectedRow, text: colors.accent.tealMid },

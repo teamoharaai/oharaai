@@ -60,8 +60,9 @@ function formatCommitment(goal: GoalWithDetails): string {
   return `${frequency.times} time${frequency.times === 1 ? '' : 's'} / ${frequency.period}`;
 }
 
-function statusVariant(status: GoalStatus): 'active' | 'complete' | 'paused' | 'archived' {
+function statusVariant(status: GoalStatus): 'active' | 'complete' | 'paused' | 'archived' | 'draft' {
   if (status === 'active') return 'active';
+  if (status === 'draft') return 'draft';
   if (status === 'complete') return 'complete';
   if (status === 'stagnant') return 'paused';
   return 'archived';

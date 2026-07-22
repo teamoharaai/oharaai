@@ -51,6 +51,7 @@ export type GoalTrackerFrequency = (typeof GOAL_TRACKER_FREQUENCIES)[number];
 
 export const GOAL_DB_STATUSES = [
   'active',
+  'draft',
   'complete',
   'stagnant',
   'discovered',

@@ -13,6 +13,7 @@ import {
   GOAL_TRACKER_TYPES,
   GOAL_VISIBILITIES,
   type GoalCategory,
+  type GoalDbStatus,
   type GoalTrackerFrequency,
   type GoalTrackerType,
   type GoalVisibility,
@@ -20,6 +21,7 @@ import {
 
 const TARGET_FREQUENCY_PERIODS = ['day', 'week', 'month'] as const;
 const GOAL_CREATION_ORIGINS = ['manual', 'ai_chatbot'] as const;
+const GOAL_CREATION_STATUSES = ['active', 'draft'] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -36,6 +38,16 @@ function validateOrigin(payload: unknown): GoalCreationOrigin {
     throw new Error(`origin must be one of: ${GOAL_CREATION_ORIGINS.join(', ')}`);
   }
   return origin as GoalCreationOrigin;
+}
+
+function validateCreationStatus(payload: unknown): Extract<GoalDbStatus, 'active' | 'draft'> {
+  if (!isRecord(payload)) return 'active';
+  const { status } = payload;
+  if (status === undefined || status === null) return 'active';
+  if (!GOAL_CREATION_STATUSES.includes(status as typeof GOAL_CREATION_STATUSES[number])) {
+    throw new Error(`status must be one of: ${GOAL_CREATION_STATUSES.join(', ')}`);
+  }
+  return status as Extract<GoalDbStatus, 'active' | 'draft'>;
 }
 
 function validateOptionalNullableString(
@@ -219,6 +231,7 @@ function validateManualGoalCreationInput(value: unknown): ManualGoalCreationInpu
     visibility: value.visibility as GoalVisibility,
     target_frequency: targetFrequency,
     project_id: validateOptionalNullableString(value, 'project_id'),
+    status: validateCreationStatus(value),
     smart_data: validateOptionalSmartData(value.smart_data),
     milestones,
     trackers,

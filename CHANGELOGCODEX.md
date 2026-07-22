@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Added (2026-07-22 — Echo focused goal-creation redesign)
+- **`features/goals/components/AIGoalCreation.tsx`, `components/ui/FocusedChatMessageList.tsx`, `features/goals/components/EchoGoalDraftCards.tsx`, `constants/focused-tokens.ts`, and `app/goals/create.tsx`:** added the focused Echo entry, bubble-less conversation, responsive concrete/open draft pair, and full-draft fallback while preserving the existing AI contract and manual wizard handoff.
+- **`supabase/migrations/027_goal_draft_status.sql`, `lib/goals/schema.ts`, `lib/db/goals.ts`, and `app/api/goals/index+api.ts`:** added the persisted `draft` goal status and narrowly extended goal creation so Save draft safely stores the same validated review payload without changing the default active-goal path.
+- **`lib/navigation/dashboard.ts` and `app/(app)/dashboard.tsx`:** added the Dashboard Drafts filter and post-save confirmation toast, including drafts associated with projects.
+
+### Changed (2026-07-22 — Echo focused goal-creation redesign)
+- **`features/goals/components/GoalTemplateCards.tsx` and `GoalReviewScreen.tsx`:** restyled the template/review stages for the focused dark treatment, added touch-friendly expand-then-choose cards, and added the outlined Save draft footer action.
+- **`app/_layout.tsx`, `package.json`, and `package-lock.json`:** restored the bundled Lora faces for the focused Echo-only serif hierarchy while retaining Inter as the shared UI typeface.
+- **`components/ui/Badge.tsx`, `GoalCard.tsx`, and `GoalDetailHeader.tsx`:** render the new draft status consistently when users filter or open saved drafts.
+- **`tsconfig.json`:** excludes the static `handoff_goal_ui_redesign` reference bundle from app type-checking because its intentionally non-shippable skeletons target a different schema.
+
 ### Changed (2026-07-22 — Unified application typography on Inter)
 - **`components/ui/Typography.tsx`, `tailwind.config.js`, `app/_layout.tsx`, `package.json`, and `package-lock.json`:** routed shared AI, greeting, and body typography through the loaded Inter faces and removed the Lora registrations/dependency so the app uses one font family with intentional regular, medium, semibold, bold, and italic roles.
 - **Goal creation/detail components and landing surfaces:** replaced remaining Lora font overrides with matching Inter weights while preserving existing sizes, line heights, spacing, and canonical color tokens; added Inter to a few raw text/glyph exceptions that could fall back to the platform font.

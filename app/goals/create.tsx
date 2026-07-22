@@ -1674,13 +1674,14 @@ export default function GoalCreateScreen() {
             ) : null
           }
         />
-        <View
-          style={{
-            backgroundColor: pageBackground,
-            paddingHorizontal: compact ? 16 : 40,
-            paddingTop: 12,
-          }}
-        >
+        {creationMode === 'manual' ? (
+          <View
+            style={{
+              backgroundColor: pageBackground,
+              paddingHorizontal: compact ? 16 : 40,
+              paddingTop: 12,
+            }}
+          >
           <View
             accessibilityRole="tablist"
             style={{
@@ -1727,7 +1728,8 @@ export default function GoalCreateScreen() {
               );
             })}
           </View>
-        </View>
+          </View>
+        ) : null}
 
         {creationMode === 'ai' ? (
           <AIGoalCreation onSwitchToManual={() => setCreationMode('manual')} />
