@@ -106,7 +106,7 @@ export function IntelligencePanel({
               width: 26,
             }}
           >
-            <Text style={{ color: dark ? colors.accent.teal : colors.text.accent, fontSize: 14 }}>✦</Text>
+            <Text style={{ color: dark ? colors.accent.teal : colors.text.accent, fontFamily: 'Inter-Regular', fontSize: 14 }}>✦</Text>
           </View>
           <Text
             style={{
@@ -155,7 +155,7 @@ export function IntelligencePanel({
         <Text
           style={{
             color: dark ? colors.text.inverse : colors.text.primary,
-            fontFamily: 'Lora-Italic',
+            fontFamily: 'Inter-Regular',
             fontSize: 18,
             lineHeight: 28,
             marginBottom: 16,

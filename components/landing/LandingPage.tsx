@@ -1,5 +1,3 @@
-import { Lora_600SemiBold } from "@expo-google-fonts/lora";
-import { useFonts } from "expo-font";
 import { Link, type Href } from "expo-router";
 import { useState } from "react";
 import {
@@ -91,7 +89,7 @@ function Hero({ compact, stacked }: { compact: boolean; stacked: boolean }) {
               animation: "riseIn 1s ease-out forwards",
               animationDelay: "0.9s",
               color: COLORS.ink,
-              fontFamily: "Lora-SemiBold-Italic, Lora-Italic, Georgia, serif",
+              fontFamily: "Inter-SemiBold",
               fontSize: compact ? 50 : 64,
               fontStyle: "italic",
               fontWeight: "600",
@@ -153,7 +151,7 @@ function SectionHeader({
       <Typography
         style={{
           color: COLORS.ink,
-          fontFamily: "Lora-SemiBold, Lora-Regular, Georgia, serif",
+          fontFamily: "Inter-SemiBold",
           fontSize: 32,
           fontWeight: "600",
           letterSpacing: -0.5,
@@ -300,7 +298,7 @@ function NumberedCard({
         width: stacked ? "100%" : undefined,
       }}
     >
-      <Typography style={{ color: COLORS.green, fontFamily: "Lora-Italic, Georgia, serif", fontSize: 15, fontStyle: "italic", lineHeight: 21, marginBottom: 14 }}>
+      <Typography style={{ color: COLORS.green, fontFamily: "Inter-Regular", fontSize: 15, fontStyle: "italic", lineHeight: 21, marginBottom: 14 }}>
         {number}
       </Typography>
       <Typography className="font-inter-semibold" style={{ color: COLORS.ink, fontSize: 16, lineHeight: 23, marginBottom: 8 }}>
@@ -345,13 +343,8 @@ function Footer({ compact }: { compact: boolean }) {
 
 export default function LandingPage() {
   const { width } = useWindowDimensions();
-  const [fontLoaded] = useFonts({ "Lora-SemiBold": Lora_600SemiBold });
   const compact = width < 760;
   const stacked = width < 860;
-
-  if (!fontLoaded) {
-    return <View style={{ backgroundColor: COLORS.background, flex: 1 }} />;
-  }
 
   return (
     <View nativeID="landing-page" style={{ backgroundColor: COLORS.background, flex: 1 }}>

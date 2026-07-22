@@ -287,7 +287,7 @@ export function AIGoalCreation({ onSwitchToManual }: AIGoalCreationProps) {
             style={{ flex: 1 }}
           >
             <View>
-              <Typography variant="title" style={{ fontFamily: 'Lora-SemiBold', fontSize: 19 }}>
+              <Typography variant="title" style={{ fontFamily: 'Inter-SemiBold', fontSize: 19 }}>
                 Three ways to approach this.
               </Typography>
               <Typography variant="caption" style={{ color: colors.text.secondary, marginTop: 4 }}>
@@ -373,7 +373,7 @@ export function AIGoalCreation({ onSwitchToManual }: AIGoalCreationProps) {
           </View>
           <Typography
             variant="heading"
-            style={{ fontFamily: 'Lora-SemiBold', fontSize: 28, textAlign: 'center' }}
+            style={{ fontFamily: 'Inter-SemiBold', fontSize: 28, textAlign: 'center' }}
           >
             Goal created.
           </Typography>

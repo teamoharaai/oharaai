@@ -101,7 +101,7 @@ function EchoTrailCard({ entry, onConfirmLink, onDismissLink }: EchoTrailCardPro
       </View>
 
       {/* Content — view-only (no tap-through; see OUTSTANDING.md EntryActionMenu extraction) */}
-      <Text numberOfLines={2} className="text-sm leading-relaxed" style={{ color: colors.text.primary }}>
+      <Text numberOfLines={2} className="font-sans text-sm leading-relaxed" style={{ color: colors.text.primary }}>
         {entry.content}
       </Text>
 
@@ -113,7 +113,7 @@ function EchoTrailCard({ entry, onConfirmLink, onDismissLink }: EchoTrailCardPro
         >
           <View className="flex-row items-center gap-1.5 mb-2">
             <Ionicons name="link-outline" size={12} color={colors.feedback.pending.text} />
-            <Text className="text-xs" style={{ color: colors.feedback.pending.text }}>
+            <Text className="font-sans text-xs" style={{ color: colors.feedback.pending.text }}>
               Ohara thinks this relates to your goal
             </Text>
           </View>

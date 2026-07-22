@@ -282,7 +282,7 @@ export function MilestonesPanel({
           <Text
             style={{
               color: colors.text.primary,
-              fontFamily: 'Lora-Regular',
+              fontFamily: 'Inter-Regular',
               fontSize: 19,
               marginTop: 3,
             }}
@@ -570,7 +570,7 @@ export function MilestonesPanel({
                         }}
                         style={{ alignItems: 'center', height: 30, justifyContent: 'center', width: 30 }}
                       >
-                        <Text style={{ color: colors.text.muted, fontSize: 14 }}>✎</Text>
+                        <Text style={{ color: colors.text.muted, fontFamily: 'Inter-Regular', fontSize: 14 }}>✎</Text>
                       </Pressable>
                     ) : null}
                     {onDelete ? (
@@ -583,7 +583,7 @@ export function MilestonesPanel({
                         }}
                         style={{ alignItems: 'center', height: 30, justifyContent: 'center', width: 30 }}
                       >
-                        <Text style={{ color: colors.text.muted, fontSize: 14 }}>⌫</Text>
+                        <Text style={{ color: colors.text.muted, fontFamily: 'Inter-Regular', fontSize: 14 }}>⌫</Text>
                       </Pressable>
                     ) : null}
                   </View>

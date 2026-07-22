@@ -94,7 +94,8 @@ function TreeLabel({
       textAnchor="middle"
       fill={fill}
       fontSize={size}
-      fontFamily={italic ? "Lora-Italic, Georgia, serif" : "Inter-SemiBold, Inter, sans-serif"}
+      fontFamily="Inter-SemiBold"
+      fontStyle={italic ? "italic" : "normal"}
       fontStyle={italic ? "italic" : "normal"}
       fontWeight={weight}
     >

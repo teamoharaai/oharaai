@@ -10,7 +10,7 @@ Post-redesign warm ramp (Sessions 1–4c). Canonical tokens: `constants/colors.t
 - Accent: earth green #4A7C5F (`accent.primary` / `text.accent` / `border.accent`, was #3D5247); teals `accent.tealMid` #2F8F6D, `accent.tealSoft` #9FD9C4
 - Text: #211F1A primary, #8A8172 secondary, #A79E8E muted (`text.*`; retired #1A1F1C / #6B7B6E / #9CAF9F)
 - Feedback: `feedback.danger` is `{ text, bg, border }` (not a flat hex) — danger/overdue text is `feedback.danger.text` #C0483A; `.bg`/`.border` are soft-tint values for error banners. Sibling groups: `feedback.pending.*` (unconfirmed AI-suggestion banners) and `feedback.info.*` (neutral info banners, e.g. Echo composer notices)
-- Typography: Inter for all UI, Lora for editorial moments only
+- Typography: Inter for all UI, including headings, greetings, goal titles, and editorial-style moments
 - BRT colors: Bud #4A7C5F, Rose #F59E0B, Thorn #EF4444
 
 ## Typography variants (components/ui/Typography.tsx)

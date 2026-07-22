@@ -96,7 +96,7 @@ export function GoalTemplateCards({
 
           <Typography
             variant="title"
-            style={{ fontFamily: 'Lora-SemiBold', fontSize: 19, lineHeight: 25 }}
+                style={{ fontFamily: 'Inter-SemiBold', fontSize: 19, lineHeight: 25 }}
           >
             {template.goal.title}
           </Typography>

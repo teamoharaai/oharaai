@@ -281,7 +281,7 @@ export function TrackerCard({
                 }}
                 style={{ alignItems: 'center', height: 30, justifyContent: 'center', width: 30 }}
               >
-                <Text style={{ color: colors.text.muted, fontSize: 14 }}>✎</Text>
+                <Text style={{ color: colors.text.muted, fontFamily: 'Inter-Regular', fontSize: 14 }}>✎</Text>
               </Pressable>
             ) : null}
             {onDelete ? (
@@ -294,7 +294,7 @@ export function TrackerCard({
                 }}
                 style={{ alignItems: 'center', height: 30, justifyContent: 'center', width: 30 }}
               >
-                <Text style={{ color: colors.text.muted, fontSize: 14 }}>⌫</Text>
+                <Text style={{ color: colors.text.muted, fontFamily: 'Inter-Regular', fontSize: 14 }}>⌫</Text>
               </Pressable>
             ) : null}
           </View>

@@ -229,7 +229,7 @@ export function CountdownTimer({
             width: 28,
           })}
         >
-          <Text style={{ color: colors.text.accent, fontSize: 16, letterSpacing: 1 }}>⋯</Text>
+              <Text style={{ color: colors.text.accent, fontFamily: 'Inter-Regular', fontSize: 16, letterSpacing: 1 }}>⋯</Text>
         </Pressable>
       </View>
 

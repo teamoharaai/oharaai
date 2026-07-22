@@ -32,6 +32,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
   },
   linkText: {
+    fontFamily: 'Inter-Regular',
     fontSize: 14,
     color: '#2e78b7',
   },

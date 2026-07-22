@@ -123,7 +123,7 @@ export function Sidebar() {
                 opacity: pressed ? 0.65 : 1,
               })}
             >
-              <Text style={{ color: colors.text.accent, fontSize: 13, lineHeight: 13 }}>‹</Text>
+              <Text style={{ color: colors.text.accent, fontFamily: 'Inter-Regular', fontSize: 13, lineHeight: 13 }}>‹</Text>
             </Pressable>
           </View>
         )}

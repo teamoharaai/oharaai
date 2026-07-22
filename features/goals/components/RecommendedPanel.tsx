@@ -125,7 +125,7 @@ export function RecommendedPanel({
           <Text
             style={{
               color: colors.text.primary,
-              fontFamily: 'Lora-Regular',
+              fontFamily: 'Inter-Regular',
               fontSize: 19,
               marginTop: 3,
             }}
@@ -247,7 +247,7 @@ export function RecommendedPanel({
                     width: 42,
                   }}
                 >
-                  <Text style={{ color: accentColor, fontSize: 20 }}>
+                  <Text style={{ color: accentColor, fontFamily: 'Inter-Regular', fontSize: 20 }}>
                     {placeholderGlyph(product.category)}
                   </Text>
                 </View>
@@ -276,7 +276,7 @@ export function RecommendedPanel({
               <Text
                 style={{
                   color: colors.text.primary,
-                  fontFamily: 'Lora-Regular',
+                  fontFamily: 'Inter-Regular',
                   fontSize: 16.5,
                   marginBottom: 5,
                   marginTop: 3,

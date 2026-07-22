@@ -188,7 +188,7 @@ export function WhatYouBuiltPanel({
             <Text
               style={{
                 color: '#5A5142',
-                fontFamily: 'Lora-Italic',
+                fontFamily: 'Inter-Regular',
                 fontSize: 15,
                 lineHeight: 24,
               }}

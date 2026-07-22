@@ -168,7 +168,7 @@ export function AnalyticsPanel({
           <Text
             style={{
               color: colors.text.primary,
-              fontFamily: 'Lora-Regular',
+              fontFamily: 'Inter-Regular',
               fontSize: 19,
               marginTop: 3,
             }}

@@ -343,7 +343,7 @@ export function GoalDetailHeader({
             style={{ alignItems: 'flex-start', marginBottom: goal.description || editingDescription ? 10 : 0 }}
             textStyle={{
               color: isSuperseded ? colors.text.secondary : colors.text.primary,
-              fontFamily: 'Lora-SemiBold',
+              fontFamily: 'Inter-SemiBold',
               fontSize: 32,
               letterSpacing: -0.4,
               lineHeight: 36,
@@ -459,7 +459,7 @@ export function GoalDetailHeader({
             padding: 16,
           }}
         >
-          <Text style={{ color: colors.text.primary, fontFamily: 'Lora-Italic', fontSize: 20, lineHeight: 26, marginBottom: 6 }}>
+          <Text style={{ color: colors.text.primary, fontFamily: 'Inter-Regular', fontSize: 20, lineHeight: 26, marginBottom: 6 }}>
             This goal has ended.
           </Text>
           <Typography variant="description" style={{ marginBottom: 14 }}>

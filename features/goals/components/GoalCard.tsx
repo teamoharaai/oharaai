@@ -272,7 +272,7 @@ export function GoalCard({
                 numberOfLines={2}
                 variant="title"
                 style={{
-                  fontFamily: 'Lora-SemiBold',
+                  fontFamily: 'Inter-SemiBold',
                   fontSize: 20,
                   letterSpacing: -0.2,
                   lineHeight: 25,
@@ -308,7 +308,7 @@ export function GoalCard({
                 borderTopColor: colors.border.warmSubtle,
                 borderTopWidth: 1,
                 color: colors.text.secondary,
-                fontFamily: 'Lora-Italic',
+                fontFamily: 'Inter-Regular',
                 fontSize: 13.5,
                 fontStyle: 'italic',
                 lineHeight: 21,

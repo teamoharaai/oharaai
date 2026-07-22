@@ -143,7 +143,7 @@ function SectionIntro({
       <Typography
         variant="heading"
         style={{
-          fontFamily: 'Lora-SemiBold',
+          fontFamily: 'Inter-SemiBold',
           fontSize: 32,
           letterSpacing: -0.4,
           lineHeight: 38,
@@ -502,7 +502,7 @@ export default function GoalCreateScreen() {
               borderBottomColor: colors.border.warm,
               borderBottomWidth: 1.5,
               color: colors.text.primary,
-              fontFamily: 'Lora-Medium',
+              fontFamily: 'Inter-Medium',
               fontSize: compact ? 24 : 28,
               lineHeight: compact ? 31 : 36,
               outlineWidth: 0,
@@ -534,7 +534,7 @@ export default function GoalCreateScreen() {
               </View>
               <Typography
                 variant="title"
-                style={{ fontFamily: 'Lora-SemiBold', fontSize: 20, lineHeight: 27, marginBottom: 14 }}
+                style={{ fontFamily: 'Inter-SemiBold', fontSize: 20, lineHeight: 27, marginBottom: 14 }}
               >
                 {wizard.template.suggestion}
               </Typography>
@@ -558,7 +558,7 @@ export default function GoalCreateScreen() {
             marginBottom: 14,
           }}
         >
-          <Typography variant="title" style={{ fontFamily: 'Lora-SemiBold', fontSize: 16 }}>
+          <Typography variant="title" style={{ fontFamily: 'Inter-SemiBold', fontSize: 16 }}>
             Pick a category
           </Typography>
           {!compact ? (
@@ -618,7 +618,7 @@ export default function GoalCreateScreen() {
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Typography
                     variant="title"
-                    style={{ fontFamily: 'Lora-SemiBold', fontSize: 17, marginBottom: 3 }}
+                    style={{ fontFamily: 'Inter-SemiBold', fontSize: 17, marginBottom: 3 }}
                   >
                     {categoryTemplate.label}
                   </Typography>
@@ -784,7 +784,7 @@ export default function GoalCreateScreen() {
           </View>
           <Typography
             variant="caption"
-            style={{ fontFamily: 'Lora-Italic', fontStyle: 'italic', marginTop: 12 }}
+            style={{ fontFamily: 'Inter-Regular', fontStyle: 'italic', marginTop: 12 }}
           >
             {wizard.template.daysNote}
           </Typography>
@@ -842,7 +842,7 @@ export default function GoalCreateScreen() {
           </View>
           <Typography
             variant="title"
-            style={{ fontFamily: 'Lora-SemiBold', fontSize: 22, lineHeight: 28, marginVertical: 14 }}
+            style={{ fontFamily: 'Inter-SemiBold', fontSize: 22, lineHeight: 28, marginVertical: 14 }}
           >
             {wizard.outcome || '—'}
           </Typography>
@@ -876,7 +876,7 @@ export default function GoalCreateScreen() {
               style={{
                 borderTopColor: colors.border.warmSubtle,
                 borderTopWidth: 1,
-                fontFamily: 'Lora-Italic',
+                fontFamily: 'Inter-Regular',
                 fontSize: 14,
                 fontStyle: 'italic',
                 lineHeight: 22,
@@ -1117,7 +1117,7 @@ export default function GoalCreateScreen() {
           >
             <Typography
               variant="caption"
-              style={{ flex: 1, fontFamily: 'Lora-Italic', fontStyle: 'italic' }}
+              style={{ flex: 1, fontFamily: 'Inter-Regular', fontStyle: 'italic' }}
             >
               What’s your current weekly distance? This optional baseline helps you choose a realistic target.
             </Typography>
@@ -1158,7 +1158,7 @@ export default function GoalCreateScreen() {
         />
 
         <View style={{ alignItems: 'baseline', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-          <Typography variant="title" style={{ fontFamily: 'Lora-SemiBold', fontSize: 16 }}>
+          <Typography variant="title" style={{ fontFamily: 'Inter-SemiBold', fontSize: 16 }}>
             Roadmap
           </Typography>
           <Typography variant="caption">Milestones along the way</Typography>
@@ -1170,7 +1170,7 @@ export default function GoalCreateScreen() {
           </View>
         ) : (
           <Card padding="spacious" style={{ alignItems: 'center', borderStyle: 'dashed' }}>
-            <Typography variant="title" style={{ fontFamily: 'Lora-Regular', fontSize: 16 }}>
+            <Typography variant="title" style={{ fontFamily: 'Inter-Regular', fontSize: 16 }}>
               No milestones yet.
             </Typography>
             <Typography variant="caption" style={{ marginTop: 4 }}>
@@ -1238,7 +1238,7 @@ export default function GoalCreateScreen() {
         <View style={{ backgroundColor: colors.border.warm, height: 1, marginVertical: 28 }} />
 
         <View style={{ alignItems: 'baseline', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-          <Typography variant="title" style={{ fontFamily: 'Lora-SemiBold', fontSize: 16 }}>
+          <Typography variant="title" style={{ fontFamily: 'Inter-SemiBold', fontSize: 16 }}>
             What you’ll track each week
           </Typography>
           <Typography variant="caption">
@@ -1403,7 +1403,7 @@ export default function GoalCreateScreen() {
         >
           <Typography variant="heading" style={{ color: accent.color, fontSize: 38 }}>✓</Typography>
         </View>
-        <Typography variant="heading" style={{ fontFamily: 'Lora-SemiBold', fontSize: 28, textAlign: 'center' }}>
+        <Typography variant="heading" style={{ fontFamily: 'Inter-SemiBold', fontSize: 28, textAlign: 'center' }}>
           Goal created.
         </Typography>
         <Typography variant="body" style={{ fontSize: 15, lineHeight: 23, marginBottom: 28, marginTop: 10, textAlign: 'center' }}>
@@ -1447,7 +1447,7 @@ export default function GoalCreateScreen() {
             <Typography variant="body" style={{ color: accent.color, fontSize: 20 }}>◆</Typography>
           </View>
           <View style={{ flex: 1 }}>
-            <Typography variant="title" style={{ fontFamily: 'Lora-SemiBold', fontSize: 16 }}>
+            <Typography variant="title" style={{ fontFamily: 'Inter-SemiBold', fontSize: 16 }}>
               {wizard.outcome}
             </Typography>
             <Typography variant="caption" style={{ marginTop: 2 }}>
@@ -1508,7 +1508,7 @@ export default function GoalCreateScreen() {
             </View>
             <Typography
               variant="heading"
-              style={{ fontFamily: 'Lora-SemiBold', fontSize: compact ? 26 : 30, lineHeight: compact ? 32 : 36 }}
+              style={{ fontFamily: 'Inter-SemiBold', fontSize: compact ? 26 : 30, lineHeight: compact ? 32 : 36 }}
             >
               {wizard.outcome}
             </Typography>
@@ -1547,7 +1547,7 @@ export default function GoalCreateScreen() {
                 style={{
                   borderBottomColor: colors.border.warmSubtle,
                   borderBottomWidth: 1,
-                  fontFamily: 'Lora-Italic',
+                  fontFamily: 'Inter-Regular',
                   fontSize: 14.5,
                   fontStyle: 'italic',
                   lineHeight: 23,

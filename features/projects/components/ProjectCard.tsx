@@ -67,6 +67,7 @@ export function ProjectCard({ project, goals }: ProjectCardProps) {
           <Text
             style={{
               color: colors.text.muted,
+              fontFamily: 'Inter-Regular',
               fontSize: 18,
               lineHeight: 18,
               transform: [{ rotate: expanded ? '90deg' : '-90deg' }],

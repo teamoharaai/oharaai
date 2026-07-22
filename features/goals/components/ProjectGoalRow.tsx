@@ -83,7 +83,7 @@ export function ProjectGoalRow({ goal }: ProjectGoalRowProps) {
           numberOfLines={1}
           variant="title"
           style={{
-            fontFamily: 'Lora-SemiBold',
+            fontFamily: 'Inter-SemiBold',
             fontSize: 15,
             letterSpacing: -0.1,
             lineHeight: 19,

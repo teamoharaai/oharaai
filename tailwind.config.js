@@ -65,9 +65,6 @@ module.exports = {
         'inter-semibold': ['Inter-SemiBold', 'System', 'sans-serif'],
         'inter-bold': ['Inter-Bold', 'System', 'sans-serif'],
         'inter-extrabold': ['Inter-ExtraBold', 'System', 'sans-serif'],
-        serif: ['Lora-Regular', 'Georgia', 'serif'],
-        'serif-italic': ['Lora-Italic', 'Georgia', 'serif'],
-        'serif-italic-semibold': ['Lora-SemiBold-Italic', 'Georgia', 'serif'],
       },
       fontSize: {
         '3xs': ['9px', { lineHeight: '12px' }],

@@ -133,7 +133,7 @@ function SummaryStep({
       <Text
         style={{
           color: '#211F1A',
-          fontFamily: 'Lora-Italic',
+          fontFamily: 'Inter-Regular',
           fontSize: 28,
           lineHeight: 36,
           marginBottom: 7,
@@ -277,7 +277,7 @@ function DeadlineStep({
       <Text
         style={{
           color: '#211F1A',
-          fontFamily: 'Lora-Italic',
+          fontFamily: 'Inter-Regular',
           fontSize: 28,
           lineHeight: 36,
           marginBottom: 7,
@@ -490,7 +490,7 @@ function ReflectionStep({
       <Text
         style={{
           color: '#211F1A',
-          fontFamily: 'Lora-Italic',
+          fontFamily: 'Inter-Regular',
           fontSize: 28,
           lineHeight: 36,
           marginBottom: 22,
@@ -511,7 +511,7 @@ function ReflectionStep({
           borderRadius: 10,
           borderWidth: 1,
           color: '#211F1A',
-          fontFamily: 'Lora-Italic',
+          fontFamily: 'Inter-Regular',
           fontSize: 16,
           lineHeight: 24,
           marginBottom: error ? 6 : 22,

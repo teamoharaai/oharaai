@@ -8,7 +8,7 @@ Phase 1 friends-and-family pilot.
 ## Stack
 Expo (React Native Web, SSR mode) → Vercel · Supabase (auth, DB, RLS) · Anthropic API (Haiku)
 NativeWind · Zustand · TypeScript strict mode
-Theme (post-redesign warm ramp, Sessions 1–4c): warm cream #F8F4EC page, white cards, earth green #4A7C5F accent, deep-emerald #1E3226 sidebar, warm ink text (#211F1A/#8A8172/#A79E8E), warm borders #EDE6D8, Inter + Lora. Tokens: constants/colors.ts LIGHT_THEME. Retired: #F5F1EA/#3D5247/#1A1F1C/#6B7B6E.
+Theme (post-redesign warm ramp, Sessions 1–4c): warm cream #F8F4EC page, white cards, earth green #4A7C5F accent, deep-emerald #1E3226 sidebar, warm ink text (#211F1A/#8A8172/#A79E8E), warm borders #EDE6D8, Inter throughout. Tokens: constants/colors.ts LIGHT_THEME. Retired: #F5F1EA/#3D5247/#1A1F1C/#6B7B6E.
 
 ## Lane Ownership
 - Ariel: `lib/ai/`, constants, types, architecture
