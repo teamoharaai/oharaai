@@ -125,7 +125,9 @@ export function AIGoalCreation({ onSwitchToManual }: AIGoalCreationProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: nextMessages.map((message) => ({
+          // The greeting is a local UI affordance, not an LLM response. Do not
+          // send it: Anthropic conversations must begin with a user message.
+          messages: nextMessages.filter((message) => message.id !== 'greeting').map((message) => ({
             role: message.role,
             content: message.content,
           })),

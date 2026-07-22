@@ -16,35 +16,42 @@
 
 ```json
 {
-  "goal": {
-    "title": "string — clear, energizing goal title",
-    "description": "string — 1–2 sentence description",
-    "category": "body | mind | money | create | connect | contribute",
-    "deadline": "YYYY-MM-DD or null",
-    "smart": {
-      "specific": "string — what exactly will they do or achieve",
-      "measurable": "string — how progress is tracked",
-      "achievable": "string — why this is realistic",
-      "relevant": "string — why this matters to them",
-      "timeBound": "string — deadline or timeframe"
-    }
-  },
-  "milestones": [
+  "templates": [
     {
-      "title": "string — one-time critical event",
-      "description": "string or null",
-      "dueDate": "YYYY-MM-DD or null"
+      "strategy_name": "string — memorable 2–4 word strategy name",
+      "goal": {
+        "title": "string — clear, outcome-oriented title",
+        "description": "string — one sentence",
+        "category": "health | finance | career | creative | education | relationships | growth",
+        "deadline": "YYYY-MM-DD future date",
+        "smart": {
+          "specific": "string",
+          "measurable": "string",
+          "achievable": "string",
+          "relevant": "string",
+          "timeBound": "string"
+        }
+      },
+      "milestones": [
+        {
+          "title": "string — one-time prospective checkpoint",
+          "description": "string or null",
+          "dueDate": "YYYY-MM-DD or null"
+        }
+      ],
+      "trackers": [
+        {
+          "title": "string — repeatable behavior or quantitative measure",
+          "type": "counter | habit | checklist",
+          "targetValue": "number or null",
+          "targetUnit": "string or null",
+          "frequency": "daily | weekly | monthly | null"
+        }
+      ],
+      "target_frequency": { "times": "number", "period": "day | week | month" }
     }
   ],
-  "trackers": [
-    {
-      "title": "string — repeatable behavior or quantitative measure",
-      "type": "counter | habit | checklist",
-      "targetValue": null,
-      "targetUnit": null,
-      "frequency": "daily | weekly | monthly"
-    }
-  ],
+  "derived_category": "the shared template category",
   "reasoning": "string — internal structuring rationale",
   "assumptions": ["string"]
 }
@@ -52,17 +59,19 @@
 
 ### Rules
 
-- `goal`, `milestones`, `trackers`, `reasoning`, and `assumptions` are the
-  canonical finalization fields. Both arrays are required, including when
-  empty.
+- `templates`, `derived_category`, `reasoning`, and `assumptions` are the
+  canonical finalization fields. `templates` contains exactly three items;
+  every item uses the same category as `derived_category`.
 - Milestones are one-time events critical to the goal. Their `description` and
   `dueDate` fields may be explicit `null` values.
 - Trackers are counter, habit, or checklist measures with repeatable
-  `daily`, `weekly`, or `monthly` cadence. `once` is not valid; model one-time
-  events as milestones.
+  `daily`, `weekly`, or `monthly` cadence, or a `null` cadence. `once` is not
+  valid; model one-time events as milestones.
 - Counter trackers require `targetValue > 0` and a non-empty `targetUnit`.
 - Checklist trackers require `targetValue: null` and `targetUnit: null`.
-- `goal.deadline` is an ISO date string (`YYYY-MM-DD`) or `null`.
+- Every `goal.deadline` is a future ISO date string (`YYYY-MM-DD`).
+- `target_frequency` is an overall cadence object or `null` for narrative,
+  non-trackable goals.
 - SMART keeps the field name `measurable`; it describes the SMART criterion and
   is not a legacy domain-object name.
 

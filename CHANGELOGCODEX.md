@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed
+- **`package.json` and `package-lock.json`:** added the missing `@expo-google-fonts/lora` runtime dependency so clean Vercel installs can resolve the Lora imports in `app/_layout.tsx`.
+- **`features/goals/components/AIGoalCreation.tsx` and `app/api/goals/chat+api.ts`:** kept the UI-only greeting out of LLM history and now validate user-first, alternating chat roles, preventing Anthropic goal-creation calls from failing on an initial assistant message.
+- **`docs/AI_RESPONSE_SCHEMA.md`:** synchronized the documented finalization contract with the live three-template goal pipeline and current categories, tracker cadence, deadlines, and target-frequency rules.
+
 ### Added (2026-07-22 — Echo focused goal-creation redesign)
 - **`features/goals/components/AIGoalCreation.tsx`, `components/ui/FocusedChatMessageList.tsx`, `features/goals/components/EchoGoalDraftCards.tsx`, `constants/focused-tokens.ts`, and `app/goals/create.tsx`:** added the focused Echo entry, bubble-less conversation, responsive concrete/open draft pair, and full-draft fallback while preserving the existing AI contract and manual wizard handoff.
 - **`supabase/migrations/027_goal_draft_status.sql`, `lib/goals/schema.ts`, `lib/db/goals.ts`, and `app/api/goals/index+api.ts`:** added the persisted `draft` goal status and narrowly extended goal creation so Save draft safely stores the same validated review payload without changing the default active-goal path.

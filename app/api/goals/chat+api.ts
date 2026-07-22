@@ -73,6 +73,16 @@ function validateMessages(payload: unknown): ChatMessage[] {
     throw new Error('The last message must have role: user');
   }
 
+  if (validated[0].role !== 'user') {
+    throw new Error('The first message must have role: user');
+  }
+
+  for (let index = 1; index < validated.length; index += 1) {
+    if (validated[index].role === validated[index - 1].role) {
+      throw new Error('messages must alternate between user and assistant roles');
+    }
+  }
+
   return validated;
 }
 
