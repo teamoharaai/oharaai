@@ -7,6 +7,7 @@ import {
 import type { ApiResponse } from '@/lib/api/contracts';
 import {
   GOAL_CATEGORIES,
+  GOAL_SMART_KEYS,
   GOAL_TRACKER_FREQUENCIES,
   GOAL_TRACKER_TYPES,
   GOAL_VISIBILITIES,
@@ -42,6 +43,31 @@ function validateOptionalDate(value: unknown, field: string): string | null {
     throw new Error(`${field} must be a parseable date`);
   }
   return trimmed;
+}
+
+function validateOptionalSmartData(
+  value: unknown,
+): ManualGoalCreationInput['smart_data'] {
+  if (value === undefined || value === null) return null;
+  if (!isRecord(value)) {
+    throw new Error('smart_data must be an object or null');
+  }
+  const keys = Object.keys(value);
+  if (keys.length !== GOAL_SMART_KEYS.length || !GOAL_SMART_KEYS.every((key) => key in value)) {
+    throw new Error(`smart_data must contain exactly: ${GOAL_SMART_KEYS.join(', ')}`);
+  }
+  for (const key of GOAL_SMART_KEYS) {
+    if (typeof value[key] !== 'string') {
+      throw new Error(`smart_data.${key} must be a string`);
+    }
+  }
+  return {
+    specific: value.specific as string,
+    measurable: value.measurable as string,
+    achievable: value.achievable as string,
+    relevant: value.relevant as string,
+    timeBound: value.timeBound as string,
+  };
 }
 
 function validateDeadline(value: unknown): string {
@@ -178,6 +204,7 @@ function validateManualGoalCreationInput(value: unknown): ManualGoalCreationInpu
     visibility: value.visibility as GoalVisibility,
     target_frequency: targetFrequency,
     project_id: validateOptionalNullableString(value, 'project_id'),
+    smart_data: validateOptionalSmartData(value.smart_data),
     milestones,
     trackers,
   };
@@ -228,7 +255,7 @@ async function handlePost(request: Request, _params: Record<string, string>, aut
     const result = await createGoalWithMilestonesAndTrackers(
       auth.userId,
       input,
-      undefined,
+      { origin: 'manual' },
       authedDb,
     );
     const body: ApiResponse<typeof result> = { ok: true, data: result, error: null };

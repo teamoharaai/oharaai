@@ -80,6 +80,14 @@ export async function getSuccessorGoalId(
   return (data as { id: string } | null)?.id ?? null;
 }
 
+/**
+ * Where a goal-creation request came from. Drives the AI-provenance flags on the
+ * goal and its children: 'manual' keeps them false (hand-authored), 'ai_chatbot'
+ * marks the goal and every child as AI-suggested. Defaults to 'manual' so the
+ * existing manual path is unchanged.
+ */
+export type GoalCreationOrigin = 'manual' | 'ai_chatbot';
+
 export interface ManualGoalCreationInput {
   title: string;
   description: string | null;
@@ -91,6 +99,13 @@ export interface ManualGoalCreationInput {
     period: 'day' | 'week' | 'month';
   } | null;
   project_id: string | null;
+  smart_data?: {
+    specific: string;
+    measurable: string;
+    achievable: string;
+    relevant: string;
+    timeBound: string;
+  } | null;
   milestones: Array<{
     title: string;
     description?: string | null;
@@ -114,6 +129,8 @@ export interface GoalVaultContext {
 export interface CreateGoalWithMilestonesAndTrackersOptions {
   requestId?: string;
   vaultContext?: GoalVaultContext;
+  /** Provenance of this creation. Defaults to 'manual'. */
+  origin?: GoalCreationOrigin;
 }
 
 function toNumber(raw: number | string | null | undefined, fallback = 0): number {
@@ -158,6 +175,8 @@ export async function createGoalWithMilestonesAndTrackers(
   db: SupabaseClient = supabase,
 ): Promise<CreateGoalWithMilestonesAndTrackersResult> {
   const requestId = options?.requestId ?? null;
+  const origin: GoalCreationOrigin = options?.origin ?? 'manual';
+  const isAiGenerated = origin === 'ai_chatbot';
 
   if (!input.title?.trim()) {
     const error = 'Goal payload is missing a title';
@@ -201,7 +220,11 @@ export async function createGoalWithMilestonesAndTrackers(
     deadline: normalizedDeadline,
     target_frequency: input.target_frequency,
     visibility: input.visibility,
-    ai_generated: false,
+    // goals.smart_data is `jsonb not null default '{}'`. Default to an empty
+    // object (not the string '{}', which Postgres would store as a JSON string)
+    // so the manual path stays identical to the prior DB default.
+    smart_data: input.smart_data ?? {},
+    ai_generated: isAiGenerated,
     project_id: input.project_id,
     embedding_text: embeddingText,
   };
@@ -255,12 +278,12 @@ export async function createGoalWithMilestonesAndTrackers(
     description: milestone.description?.trim() || null,
     due_date: milestone.dueDate ?? null,
     sort_order: index,
-    is_ai_suggested: false,
+    is_ai_suggested: isAiGenerated,
   }));
   const trackerInserts = input.trackers.map((tracker, index) =>
     buildTrackerInsert(goalId, {
       ...tracker,
-      isAiSuggested: false,
+      isAiSuggested: isAiGenerated,
       sortOrder: index,
     }),
   );
