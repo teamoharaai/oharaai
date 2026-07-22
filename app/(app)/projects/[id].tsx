@@ -6,7 +6,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
 import { deleteProject, fetchProjectWithGoals, updateProject } from '@/features/projects/services/project-service';
 import { ProjectTitleRow } from '@/features/projects/components/ProjectTitleRow';
-import { GoalCard } from '@/features/goals/components/GoalCard';
+import { ProjectGoalRow } from '@/features/goals/components/ProjectGoalRow';
 import type { ProjectWithGoals, ProjectStatus } from '@/features/projects/types';
 import { useThemeColors } from '@/store/uiStore';
 
@@ -265,9 +265,9 @@ export default function ProjectDetailScreen() {
                 </Pressable>
               </View>
             ) : (
-              <View style={{ gap: 12 }}>
+              <View style={{ gap: 8 }}>
                 {project.goals.map((goal) => (
-                  <GoalCard key={goal.id} goal={goal} />
+                  <ProjectGoalRow key={goal.id} goal={goal} />
                 ))}
               </View>
             )}

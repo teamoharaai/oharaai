@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-22 — Linear project goal entries)
+- **`features/goals/components/ProjectGoalRow.tsx` (new), `features/projects/components/ProjectCard.tsx`, `app/(app)/projects/[id].tsx`, and `app/_layout.tsx`:** replaced project-contained full goal cards with 56px compact rows containing a category-tinted goal icon, Lora title, deadline/commitment summary, and navigation arrow, and registered the intended upright semibold Lora face. The project rows intentionally remove the category/status pills and left-edge category stripe and are at least half the height of the initial linear treatment.
+- **`app/(app)/dashboard.tsx`:** replaced the Goals `+` collapse control with an accessible list/grid icon toggle. Standalone goals remain visible and can now switch between the full shared cards and the same compact linear rows used under Projects.
+- **`app/(app)/projects/[id].tsx`:** removed the Goals collapse control so project goals remain visible in the compact linear format while the Add Goal action stays independent.
+- **`components/CLAUDE.md`:** documented the project-specific goal-row presentation so future card work preserves the intended distinction.
+
 ### Changed (2026-07-21 — Unified goal-card redesign)
 - **`features/goals/components/GoalCard.tsx`, `GoalGrid.tsx`, and `GoalRingGrid.tsx`:** replaced the legacy list and deadline-ring goal treatments with one responsive category-accented card based on the goal-creation design, including category/status/visibility context, the Lora title and reason treatment, target date, time remaining, weekly commitment, activity, consistent navigation, and safe cross-platform goal deletion where actions are available.
 - **Dashboard standalone goals, goals expanded inside project cards, and project-detail goal lists:** now render the same shared goal card, including goals without deadlines that the prior ring grid omitted; the specialized 260px **Today’s Focus** carousel card remains unchanged by explicit design direction.

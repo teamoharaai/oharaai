@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
-import { GoalRingGrid } from '@/features/goals/components/GoalRingGrid';
+import { ProjectGoalRow } from '@/features/goals/components/ProjectGoalRow';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { ProjectTitleRow } from './ProjectTitleRow';
 import type { Project } from '@/features/projects/types';
@@ -77,7 +77,7 @@ export function ProjectCard({ project, goals }: ProjectCardProps) {
         </Pressable>
       </View>
 
-      {/* Expanded: warm divider + 2-column grid of goal ring cards */}
+      {/* Expanded: warm divider + linear project-goal entries */}
       {expanded && (
         <View style={{ marginTop: 16 }}>
           <View
@@ -87,7 +87,15 @@ export function ProjectCard({ project, goals }: ProjectCardProps) {
               marginBottom: 16,
             }}
           />
-          <GoalRingGrid goals={goals} emptyMessage="No goals in this project yet." />
+          {goals.length > 0 ? (
+            <View style={{ gap: 8 }}>
+              {goals.map((goal) => (
+                <ProjectGoalRow key={goal.id} goal={goal} />
+              ))}
+            </View>
+          ) : (
+            <Typography variant="hint">No goals in this project yet.</Typography>
+          )}
         </View>
       )}
     </View>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native';
 import { router } from 'expo-router';
 import { BrandIcon } from '@/components/ui/BrandIcon';
@@ -12,6 +13,7 @@ import { useEntries } from '@/features/echo/hooks/useEntries';
 import { useProfileStore } from '@/features/profile/store';
 import { useProjectStore } from '@/features/projects/store';
 import { GoalRingGrid } from '@/features/goals/components/GoalRingGrid';
+import { ProjectGoalRow } from '@/features/goals/components/ProjectGoalRow';
 import { GoalTitleRow } from '@/features/goals/components/GoalTitleRow';
 import { fetchActiveGoalsFeed } from '@/features/goals/services/goal-service';
 import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal';
@@ -623,6 +625,7 @@ export default function DashboardScreen() {
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [activeGoalsFeed, setActiveGoalsFeed] = useState<TodayCarouselGoal[]>([]);
   const [activeGoalsLoading, setActiveGoalsLoading] = useState(true);
+  const [standaloneGoalsCompact, setStandaloneGoalsCompact] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -804,18 +807,55 @@ export default function DashboardScreen() {
             {/* Zone 3: Standalone Goals */}
             <View>
               <View className="mb-4 flex-row items-center justify-between">
-                <Typography variant="eyebrow">
-                  Goals
-                </Typography>
+                <View style={{ alignItems: 'center', flexDirection: 'row', gap: 6 }}>
+                  <Typography variant="eyebrow">
+                    Goals
+                  </Typography>
+                  <Pressable
+                    accessibilityLabel={
+                      standaloneGoalsCompact
+                        ? 'Show goals as cards'
+                        : 'Show goals as compact rows'
+                    }
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    onPress={() => setStandaloneGoalsCompact((compact) => !compact)}
+                    style={({ pressed }) => ({
+                      alignItems: 'center',
+                      height: 24,
+                      justifyContent: 'center',
+                      opacity: pressed ? 0.55 : 1,
+                      width: 24,
+                    })}
+                  >
+                    <Ionicons
+                      color={colors.text.accent}
+                      name={standaloneGoalsCompact ? 'grid-outline' : 'list-outline'}
+                      size={18}
+                    />
+                  </Pressable>
+                </View>
                 <DashboardCreateButton
                   label="New Goal"
                   onPress={() => router.push('/goals/create')}
                 />
               </View>
-              <GoalRingGrid
-                goals={standaloneGoals}
-                emptyMessage="No standalone goals yet."
-              />
+              {standaloneGoalsCompact ? (
+                standaloneGoals.length > 0 ? (
+                  <View style={{ gap: 8 }}>
+                    {standaloneGoals.map((goal) => (
+                      <ProjectGoalRow key={goal.id} goal={goal} />
+                    ))}
+                  </View>
+                ) : (
+                  <Typography variant="hint">No standalone goals yet.</Typography>
+                )
+              ) : (
+                <GoalRingGrid
+                  goals={standaloneGoals}
+                  emptyMessage="No standalone goals yet."
+                />
+              )}
             </View>
 
             {/* Zone 4: Echo */}
