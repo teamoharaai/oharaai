@@ -1,4 +1,4 @@
-export const GOAL_CATEGORIES = [
+export const LEGACY_GOAL_CATEGORIES = [
   'body',
   'mind',
   'money',
@@ -7,6 +7,22 @@ export const GOAL_CATEGORIES = [
   'contribute',
 ] as const;
 
+export const GOAL_CREATION_CATEGORIES = [
+  'health',
+  'finance',
+  'career',
+  'creative',
+  'education',
+  'relationships',
+  'growth',
+] as const;
+
+export const GOAL_CATEGORIES = [
+  ...LEGACY_GOAL_CATEGORIES,
+  ...GOAL_CREATION_CATEGORIES,
+] as const;
+
+export type GoalCreationCategory = (typeof GOAL_CREATION_CATEGORIES)[number];
 export type GoalCategory = (typeof GOAL_CATEGORIES)[number];
 
 export const GOAL_SMART_KEYS = [

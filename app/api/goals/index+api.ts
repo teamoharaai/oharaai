@@ -9,9 +9,11 @@ import {
   GOAL_CATEGORIES,
   GOAL_TRACKER_FREQUENCIES,
   GOAL_TRACKER_TYPES,
+  GOAL_VISIBILITIES,
   type GoalCategory,
   type GoalTrackerFrequency,
   type GoalTrackerType,
+  type GoalVisibility,
 } from '@/lib/goals/schema';
 
 const TARGET_FREQUENCY_PERIODS = ['day', 'week', 'month'] as const;
@@ -80,6 +82,9 @@ function validateManualGoalCreationInput(value: unknown): ManualGoalCreationInpu
   }
   if (!GOAL_CATEGORIES.includes(value.category as GoalCategory)) {
     throw new Error(`category must be one of: ${GOAL_CATEGORIES.join(', ')}`);
+  }
+  if (!GOAL_VISIBILITIES.includes(value.visibility as GoalVisibility)) {
+    throw new Error(`visibility must be one of: ${GOAL_VISIBILITIES.join(', ')}`);
   }
 
   let targetFrequency: ManualGoalCreationInput['target_frequency'];
@@ -170,6 +175,7 @@ function validateManualGoalCreationInput(value: unknown): ManualGoalCreationInpu
     description: validateOptionalNullableString(value, 'description'),
     deadline: validateDeadline(value.deadline),
     category: value.category as GoalCategory,
+    visibility: value.visibility as GoalVisibility,
     target_frequency: targetFrequency,
     project_id: validateOptionalNullableString(value, 'project_id'),
     milestones,

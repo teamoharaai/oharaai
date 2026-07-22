@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Added (2026-07-21 — Goal creation wizard redesign)
+- **`lib/goals/templates.ts` and `features/goals/hooks/useGoalCreationWizard.ts`:** added seven category-specific starter packs and a four-step wizard state layer with static outcome suggestions, deadline presets, weekly commitments, dirty-aware template switching, milestone/tracker editing, a five-tracker cap, skip-tracking support, project selection, and submission conversion helpers so the redesigned flow remains deterministic and does not add a new AI pipeline.
+- **`components/ui/DateField.tsx` and `Toast.tsx`:** added reusable cross-platform date entry and accessible undo-toast primitives for custom deadlines and recoverable milestone/tracker removal.
+- **`supabase/migrations/026_goal_category_taxonomy.sql`:** added the seven-category creation taxonomy to the goals constraint and active agent-session RPC while keeping legacy category values valid for existing records.
+
+### Changed (2026-07-21 — Goal creation wizard redesign)
+- **`app/goals/create.tsx`:** replaced the single-page manual form with the responsive four-step Start, Details, Tracking, and Confirm experience from `design_goal_creation_flow`, preserving project linking, persistence hydration, dark-mode semantics, explicit success navigation, and the existing application shell without changing goal-card components.
+- **`lib/goals/schema.ts`, `constants/themes.ts`, `constants/index.ts`, `lib/ai/prompts/goal-creation.ts`, `app/api/sessions/start+api.ts`, and `features/sessions/types.ts`:** introduced the seven canonical creation categories, category-specific accent quartets, backward-compatible legacy typing, and updated AI/session defaults so new creation uses the redesigned taxonomy without invalidating existing goals.
+- **`app/api/goals/index+api.ts` and `lib/db/goals.ts`:** extended manual creation to validate and persist explicit goal visibility, allowing the wizard’s private toggle to create either private or circle-visible goals instead of remaining decorative.
+
+### Fixed (2026-07-21 — Goal creation wizard redesign)
+- **`lib/goals/templates.ts` and `features/goals/hooks/useGoalCreationWizard.ts`:** removed the unsupported Timer tracker type, replaced the invalid zero-target Finance counter with a positive No-spend-days habit, converted human milestone timing to deadline-capped ISO dates, and made tracker-limit enforcement atomic so the creation payload always satisfies the existing API contract.
+
 ### Changed (2026-07-21 — Landing hero and brand refinement)
 - **`components/landing/PublicNav.tsx` and `LandingPage.tsx`:** removed the header logo's enclosing medallion and rendered the mark directly in the canonical high-contrast green, removed the oversized duplicate hero logo, and recentered the hero copy and authentication actions with responsive spacing while preserving all existing destinations and behavior.
 

@@ -9,6 +9,7 @@ import type {
   GoalCategory,
   GoalTrackerFrequency,
   GoalTrackerType,
+  GoalVisibility,
 } from '@/lib/goals/schema';
 import type { ActivityItem } from '@/types/activity';
 import type { VaultItemType } from '@/types/vault';
@@ -84,6 +85,7 @@ export interface ManualGoalCreationInput {
   description: string | null;
   deadline: string;
   category: GoalCategory;
+  visibility: GoalVisibility;
   target_frequency: {
     times: number;
     period: 'day' | 'week' | 'month';
@@ -198,7 +200,7 @@ export async function createGoalWithMilestonesAndTrackers(
     color_theme: CATEGORY_COLOR_THEME[input.category] ?? 'ocean',
     deadline: normalizedDeadline,
     target_frequency: input.target_frequency,
-    visibility: 'private' as const,
+    visibility: input.visibility,
     ai_generated: false,
     project_id: input.project_id,
     embedding_text: embeddingText,

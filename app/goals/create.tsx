@@ -1,546 +1,436 @@
 import {
   Animated,
-  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
-  StyleSheet,
   TextInput,
+  useWindowDimensions,
   View,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
-import {
-  createElement,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type CSSProperties,
-  type FormEvent,
-  type ReactNode,
-} from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Sidebar } from '@/components/layout/Sidebar';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { Sidebar } from '@/components/layout/Sidebar';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { DateField } from '@/components/ui/DateField';
+import { Toast } from '@/components/ui/Toast';
 import { Toggle } from '@/components/ui/Toggle';
 import { Typography } from '@/components/ui/Typography';
-import type { ThemeColors } from '@/constants/colors';
-import { CATEGORY_COLOR_THEME, GOAL_THEMES } from '@/constants/themes';
+import {
+  CATEGORY_ACCENT_THEME,
+  type CategoryAccentTheme,
+} from '@/constants/themes';
+import {
+  GOAL_CREATION_MAX_ACTIVE_TRACKERS,
+  GOAL_CREATION_REASON_MAX_LENGTH,
+  type GoalCreationWizardMilestone,
+  type GoalCreationWizardTracker,
+  useGoalCreationWizard,
+} from '@/features/goals/hooks/useGoalCreationWizard';
 import { fetchGoalById } from '@/features/goals/services/goal-service';
 import { useGoalStore } from '@/features/goals/store';
 import { useProjectStore } from '@/features/projects/store';
-import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { authedFetch } from '@/lib/api/client';
 import type { ApiResponse } from '@/lib/api/contracts';
-import type { AiResponse } from '@/lib/ai/contracts';
 import type {
   CreateGoalWithMilestonesAndTrackersResult,
   ManualGoalCreationInput,
 } from '@/lib/db/goals';
 import {
-  GOAL_CATEGORIES,
+  GOAL_CREATION_CATEGORIES,
   GOAL_TRACKER_TYPES,
-  type GoalCategory,
+  type GoalCreationCategory,
   type GoalTrackerType,
 } from '@/lib/goals/schema';
+import {
+  getGoalCreationTemplate,
+  type GoalCreationDeadlinePreset,
+} from '@/lib/goals/templates';
+import { useThemeColors, useUIStore } from '@/store/uiStore';
 
-type Period = 'week' | 'month';
-type TrackerDraft = {
-  id: string;
-  title: string;
-  type: GoalTrackerType;
-  targetValue: number | null;
-  targetUnit: string | null;
+const STEP_LABELS = ['Start', 'Details', 'Tracking', 'Confirm'] as const;
+const DEADLINE_PRESETS = ['30', '60', '90', 'custom'] as const;
+const TRACKER_TYPE_LABELS: Record<GoalTrackerType, string> = {
+  habit: 'Habit',
+  counter: 'Counter',
+  checklist: 'Checklist',
 };
-type MilestoneDraft = {
-  id: string;
-  title: string;
-  description: string | null;
-  dueDate: string | null;
-};
-type GoalSuggestion = ManualGoalCreationInput['milestones'][number];
 
-const aiAssistEnabled = true;
-const START_TRACKABLE = true;
-const INITIAL_COUNT = 3;
-const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
+type UndoState =
+  | { kind: 'milestone'; item: GoalCreationWizardMilestone; index: number }
+  | { kind: 'tracker'; item: GoalCreationWizardTracker; index: number };
 
-function getTypeMeta(colors: ThemeColors): Record<
-  GoalTrackerType,
-  { label: string; color: string; backgroundColor: string }
-> {
-  return {
-    counter: {
-      label: 'Counter',
-      color: colors.accent.tealMid,
-      backgroundColor: colors.background.selectedRow,
-    },
-    habit: {
-      label: 'Habit',
-      color: colors.text.accent,
-      backgroundColor: colors.background.selectedRow,
-    },
-    checklist: {
-      label: 'Checklist',
-      color: colors.feedback.pending.text,
-      backgroundColor: colors.feedback.pending.bg,
-    },
-  };
-}
-
-function todayDateValue(): string {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
+function dateValue(value: Date): string {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
 
-function validateDeadline(
-  value: string,
-  showRequired = false,
-): { valid: boolean; iso: string | null; error: string | null } {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return {
-      valid: false,
-      iso: null,
-      error: showRequired ? 'A target date is required.' : null,
-    };
-  }
+function tomorrowValue(): string {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return dateValue(tomorrow);
+}
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    return { valid: false, iso: null, error: 'That date is not valid.' };
-  }
-
-  const [year, month, day] = trimmed.split('-').map(Number);
+function formatDate(value: string | null): string {
+  if (!value) return 'Pick a date';
+  const [year, month, day] = value.split('-').map(Number);
   const parsed = new Date(year, month - 1, day);
-  if (
-    Number.isNaN(parsed.getTime()) ||
-    parsed.getFullYear() !== year ||
-    parsed.getMonth() !== month - 1 ||
-    parsed.getDate() !== day
-  ) {
-    return { valid: false, iso: null, error: 'That date is not valid.' };
-  }
-
-  if (trimmed < todayDateValue()) {
-    return { valid: false, iso: null, error: 'Deadline must be in the future.' };
-  }
-
-  return { valid: true, iso: parsed.toISOString(), error: null };
+  if (Number.isNaN(parsed.getTime())) return 'Pick a date';
+  return parsed.toLocaleDateString('en-US', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
-function titleCase(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1);
+function daysUntil(value: string | null): number {
+  if (!value) return 0;
+  const [year, month, day] = value.split('-').map(Number);
+  const target = new Date(year, month - 1, day);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.max(0, Math.ceil((target.getTime() - today.getTime()) / 86_400_000));
 }
 
-function Eyebrow({ children, style }: { children: ReactNode; style?: object }) {
-  const colors = useThemeColors();
+function presetDeadline(preset: GoalCreationDeadlinePreset): string | null {
+  if (preset === 'custom') return null;
+  const value = new Date();
+  value.setDate(value.getDate() + Number(preset));
+  return dateValue(value);
+}
 
+function trackerTypeColor(type: GoalTrackerType, accent: CategoryAccentTheme) {
+  if (type === 'counter') return { backgroundColor: '#F6EBD3', color: '#B4892E' };
+  if (type === 'checklist') return { backgroundColor: '#F0E7FA', color: '#7C43C4' };
+  return { backgroundColor: accent.tint, color: accent.mid };
+}
+
+function nextTrackerType(type: GoalTrackerType): GoalTrackerType {
+  const index = GOAL_TRACKER_TYPES.indexOf(type);
+  return GOAL_TRACKER_TYPES[(index + 1) % GOAL_TRACKER_TYPES.length];
+}
+
+function SectionIntro({
+  accent,
+  eyebrow,
+  title,
+  description,
+}: {
+  accent: CategoryAccentTheme;
+  eyebrow: string;
+  title: string;
+  description: string;
+}) {
   return (
-    <Typography
-      variant="eyebrow"
+    <View style={{ alignItems: 'center', marginBottom: 28 }}>
+      <Typography
+        variant="eyebrow"
+        style={{
+          color: accent.mid,
+          fontFamily: 'Inter-SemiBold',
+          letterSpacing: 2,
+          marginBottom: 12,
+        }}
+      >
+        {eyebrow}
+      </Typography>
+      <Typography
+        variant="heading"
+        style={{
+          fontFamily: 'Lora-SemiBold',
+          fontSize: 32,
+          letterSpacing: -0.4,
+          lineHeight: 38,
+          textAlign: 'center',
+        }}
+      >
+        {title}
+      </Typography>
+      <Typography
+        variant="body"
+        style={{ fontSize: 15, lineHeight: 23, marginTop: 8, textAlign: 'center' }}
+      >
+        {description}
+      </Typography>
+    </View>
+  );
+}
+
+function CategoryBadge({
+  accent,
+  label,
+  darkMode,
+}: {
+  accent: CategoryAccentTheme;
+  label: string;
+  darkMode: boolean;
+}) {
+  const colors = useThemeColors();
+  return (
+    <View
+      style={{
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        backgroundColor: darkMode ? colors.background.input : accent.tint,
+        borderRadius: 999,
+        flexDirection: 'row',
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+      }}
+    >
+      <View style={{ backgroundColor: accent.color, borderRadius: 3, height: 6, width: 6 }} />
+      <Typography
+        variant="badge-text"
+        style={{ color: darkMode ? colors.text.primary : accent.mid, fontFamily: 'Inter-SemiBold' }}
+      >
+        {label}
+      </Typography>
+    </View>
+  );
+}
+
+function AccentButton({
+  accent,
+  children,
+  disabled,
+  loading,
+  onPress,
+  style,
+}: {
+  accent: CategoryAccentTheme;
+  children: ReactNode;
+  disabled?: boolean;
+  loading?: boolean;
+  onPress: () => void;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+    <Button
+      disabled={disabled}
+      loading={loading}
+      onPress={onPress}
       style={[
         {
-          color: colors.text.secondary,
-          fontFamily: 'Inter-SemiBold',
-          fontSize: 11,
-          letterSpacing: 1.5,
+          backgroundColor: accent.color,
+          borderColor: accent.color,
+          shadowColor: accent.color,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.2,
+          shadowRadius: 12,
         },
         style,
       ]}
     >
       {children}
-    </Typography>
+    </Button>
   );
 }
 
-function FormCard({ children, last = false }: { children: ReactNode; last?: boolean }) {
-  return (
-    <Card
-      elevated
-      padding="spacious"
-      style={{ marginBottom: last ? 20 : 16, paddingVertical: 20 }}
-    >
-      {children}
-    </Card>
-  );
-}
-
-type DateFieldProps = {
-  error: string | null;
-  onBlur: (value: string) => void;
-  onChange: (value: string) => void;
+function TextField({
+  accessibilityLabel,
+  multiline = false,
+  onChangeText,
+  placeholder,
+  value,
+}: {
+  accessibilityLabel: string;
+  multiline?: boolean;
+  onChangeText: (value: string) => void;
+  placeholder: string;
   value: string;
-};
-
-function DateField({ error, onBlur, onChange, value }: DateFieldProps) {
+}) {
   const colors = useThemeColors();
-  const [focused, setFocused] = useState(false);
-  const borderColor = error
-    ? colors.feedback.danger.border
-    : focused
-      ? colors.border.accent
-      : colors.border.input;
-
-  if (Platform.OS === 'web') {
-    const style: CSSProperties = {
-      backgroundColor: colors.background.input,
-      border: `1px solid ${borderColor}`,
-      borderRadius: 999,
-      boxSizing: 'border-box',
-      color: colors.text.primary,
-      fontFamily: 'Inter-Regular',
-      fontSize: 13,
-      height: 36,
-      outline: 'none',
-      padding: '8px 16px',
-      width: 170,
-    };
-
-    return createElement('input', {
-      'aria-label': 'Target date',
-      defaultValue: value,
-      min: todayDateValue(),
-      onBlur: (event: ChangeEvent<HTMLInputElement>) => {
-        setFocused(false);
-        const nextValue = event.currentTarget.value;
-        onChange(nextValue);
-        onBlur(nextValue);
-      },
-      onChange: (event: ChangeEvent<HTMLInputElement>) => onChange(event.currentTarget.value),
-      onFocus: () => setFocused(true),
-      onInput: (event: FormEvent<HTMLInputElement>) => onChange(event.currentTarget.value),
-      style,
-      type: 'date',
-    });
-  }
-
   return (
     <TextInput
-      accessibilityLabel="Target date"
-      autoCapitalize="none"
-      autoCorrect={false}
-      onBlur={() => {
-        setFocused(false);
-        onBlur(value);
-      }}
-      onFocus={() => setFocused(true)}
-      onChangeText={onChange}
-      placeholder="YYYY-MM-DD"
+      accessibilityLabel={accessibilityLabel}
+      multiline={multiline}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
       placeholderTextColor={colors.text.muted}
       style={{
         backgroundColor: colors.background.input,
-        borderColor,
-        borderRadius: 999,
+        borderColor: colors.border.warm,
+        borderRadius: 10,
         borderWidth: 1,
         color: colors.text.primary,
         fontFamily: 'Inter-Regular',
         fontSize: 13,
-        height: 36,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        width: 170,
+        minHeight: multiline ? 70 : 40,
+        outlineWidth: 0,
+        paddingHorizontal: 12,
+        paddingVertical: 9,
+        textAlignVertical: multiline ? 'top' : 'center',
       }}
       value={value}
     />
   );
 }
 
-type CreateButtonProps = {
-  compact?: boolean;
-  enabled: boolean;
-  saving: boolean;
-  onPress: () => void;
-};
-
-function CreateButton({ compact = false, enabled, saving, onPress }: CreateButtonProps) {
-  return (
-    <Button
-      disabled={!enabled}
-      loading={saving}
-      onPress={onPress}
-      size={compact ? 'compact' : 'default'}
-      style={{ minHeight: compact ? 44 : 50, width: compact ? undefined : '100%' }}
-      textStyle={{ fontSize: compact ? 13 : 15 }}
-    >
-      Create goal
-    </Button>
-  );
-}
-
 export default function GoalCreateScreen() {
   const colors = useThemeColors();
-  const themeMode = useUIStore((state) => state.themeMode);
-  const typeMeta = getTypeMeta(colors);
-  const projectDotColors = [
-    colors.accent.tealMid,
-    colors.feedback.pending.text,
-    colors.accent.primary,
-  ];
+  const themeMode = useUIStore((current) => current.themeMode);
+  const { width } = useWindowDimensions();
+  const compact = width < 720;
+  const medium = width < 1180;
+  const showSidebar = width >= 900;
   const { projectId: incomingProjectId } = useLocalSearchParams<{ projectId?: string }>();
-  const upsertGoal = useGoalStore((state) => state.upsertGoal);
-  const projects = useProjectStore((state) => state.projects);
-  const loadProjects = useProjectStore((state) => state.loadProjects);
+  const initialProjectId = typeof incomingProjectId === 'string' ? incomingProjectId : null;
+  const wizardOptions = useMemo(() => ({ initialProjectId }), [initialProjectId]);
+  const wizard = useGoalCreationWizard(wizardOptions);
+  const projects = useProjectStore((current) => current.projects);
+  const loadProjects = useProjectStore((current) => current.loadProjects);
+  const upsertGoal = useGoalStore((current) => current.upsertGoal);
+  const accent = CATEGORY_ACCENT_THEME[wizard.category];
+  const darkMode = themeMode === 'dark';
+  const pageBackground = darkMode ? colors.background.page : accent.pageBg;
 
-  const [titleText, setTitleText] = useState('');
-  const [whyText, setWhyText] = useState('');
-  const [deadline, setDeadline] = useState('');
-  const [deadlineError, setDeadlineError] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<GoalCategory | null>(null);
-  const [trackable, setTrackable] = useState(START_TRACKABLE);
-  const [period, setPeriod] = useState<Period>('week');
-  const [count, setCount] = useState(INITIAL_COUNT);
-  const [trackers, setTrackers] = useState<TrackerDraft[]>([]);
-  const [milestones, setMilestones] = useState<MilestoneDraft[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    typeof incomingProjectId === 'string' ? incomingProjectId : null,
-  );
-  const [showTrackerAddForm, setShowTrackerAddForm] = useState(false);
-  const [draftTrackerTitle, setDraftTrackerTitle] = useState('');
-  const [draftTrackerType, setDraftTrackerType] = useState<GoalTrackerType>('habit');
-  const [draftTrackerTargetValue, setDraftTrackerTargetValue] = useState('');
-  const [draftTrackerTargetUnit, setDraftTrackerTargetUnit] = useState('');
-  const [showMilestoneAddForm, setShowMilestoneAddForm] = useState(false);
-  const [draftMilestoneTitle, setDraftMilestoneTitle] = useState('');
-  const [draftMilestoneDescription, setDraftMilestoneDescription] = useState('');
-  const [draftMilestoneDueDate, setDraftMilestoneDueDate] = useState('');
-  const [created, setCreated] = useState(false);
-  const [createdGoalId, setCreatedGoalId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [suggesting, setSuggesting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [createdGoalId, setCreatedGoalId] = useState<string | null>(null);
+  const [created, setCreated] = useState(false);
+  const [expandedMilestones, setExpandedMilestones] = useState<string[]>([]);
+  const [addingMilestone, setAddingMilestone] = useState(false);
+  const [newMilestoneTitle, setNewMilestoneTitle] = useState('');
+  const [newMilestoneWeek, setNewMilestoneWeek] = useState('');
+  const [newMilestoneWhy, setNewMilestoneWhy] = useState('');
+  const [addingTracker, setAddingTracker] = useState(false);
+  const [newTrackerTitle, setNewTrackerTitle] = useState('');
+  const [newTrackerType, setNewTrackerType] = useState<GoalTrackerType>('habit');
+  const [newTrackerTarget, setNewTrackerTarget] = useState('1');
+  const [newTrackerUnit, setNewTrackerUnit] = useState('times');
+  const [undoState, setUndoState] = useState<UndoState | null>(null);
+  const [toastMessage, setToastMessage] = useState('');
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stepOpacity = useRef(new Animated.Value(1)).current;
+  const stepTranslate = useRef(new Animated.Value(0)).current;
 
-  const overlayScale = useRef(new Animated.Value(0.7)).current;
-  const overlayOpacity = useRef(new Animated.Value(0)).current;
-
-  const deadlineValidation = useMemo(() => validateDeadline(deadline), [deadline]);
-  const createEnabled =
-    titleText.trim().length > 0 && deadlineValidation.valid && selectedCategory !== null;
-  const parsedTrackerTargetValue = Number(draftTrackerTargetValue);
-  const canAddTracker = draftTrackerTitle.trim().length > 0 && (
-    draftTrackerType !== 'counter'
-    || (
-      Number.isFinite(parsedTrackerTargetValue)
-      && parsedTrackerTargetValue > 0
-      && draftTrackerTargetUnit.trim().length > 0
+  const deadlineValid = Boolean(wizard.deadline && wizard.deadline >= tomorrowValue());
+  const trackerInputsValid = wizard.trackerInputs.every((tracker) => (
+    tracker.title.trim().length > 0
+    && (
+      tracker.type !== 'counter'
+      || (
+        typeof tracker.targetValue === 'number'
+        && tracker.targetValue > 0
+        && Boolean(tracker.targetUnit?.trim())
+      )
     )
-  );
-  const milestoneDueDateValidation = draftMilestoneDueDate.trim()
-    ? validateDeadline(draftMilestoneDueDate)
-    : null;
-  const canAddMilestone = draftMilestoneTitle.trim().length > 0
-    && (milestoneDueDateValidation === null || milestoneDueDateValidation.valid);
+  ));
+  const trackingTitlesValid = wizard.milestones.every((milestone) => milestone.title.trim())
+    && wizard.activeTrackers.every((tracker) => tracker.title.trim());
+  const canSubmit = Boolean(wizard.outcome.trim())
+    && deadlineValid
+    && trackerInputsValid
+    && trackingTitlesValid;
+  const selectedProject = projects.find((project) => project.id === wizard.projectId) ?? null;
+  const remainingDays = daysUntil(wizard.deadline);
 
   useEffect(() => {
     void loadProjects();
   }, [loadProjects]);
 
   useEffect(() => {
-    if (typeof incomingProjectId === 'string') {
-      setSelectedProjectId(incomingProjectId);
-    }
-  }, [incomingProjectId]);
+    if (initialProjectId) wizard.setProjectId(initialProjectId);
+  }, [initialProjectId, wizard.setProjectId]);
 
   useEffect(() => {
-    if (!created) return;
-
-    overlayScale.setValue(0.7);
-    overlayOpacity.setValue(0);
+    stepOpacity.setValue(0.45);
+    stepTranslate.setValue(6);
     Animated.parallel([
-      Animated.spring(overlayScale, {
-        damping: 10,
-        mass: 0.7,
-        stiffness: 180,
-        toValue: 1,
-        useNativeDriver: true,
-      }),
-      Animated.timing(overlayOpacity, {
-        duration: 220,
-        toValue: 1,
-        useNativeDriver: true,
-      }),
+      Animated.timing(stepOpacity, { duration: 220, toValue: 1, useNativeDriver: true }),
+      Animated.timing(stepTranslate, { duration: 220, toValue: 0, useNativeDriver: true }),
     ]).start();
-  }, [created, overlayOpacity, overlayScale]);
+  }, [stepOpacity, stepTranslate, wizard.step]);
 
-  function handleDeadlineChange(value: string) {
-    setDeadline(value);
-    setDeadlineError(value.trim() ? validateDeadline(value).error : null);
+  useEffect(() => () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+  }, []);
+
+  function showUndo(message: string, nextUndo: UndoState) {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setUndoState(nextUndo);
+    setToastMessage(message);
+    toastTimer.current = setTimeout(() => setUndoState(null), 5000);
   }
 
-  function handlePeriodChange(nextPeriod: Period) {
-    setPeriod(nextPeriod);
-    setCount((current) => Math.min(current, nextPeriod === 'week' ? 7 : 30));
+  function undoRemoval() {
+    if (!undoState) return;
+    if (undoState.kind === 'milestone') {
+      wizard.insertMilestone(undoState.item, undoState.index);
+    } else {
+      wizard.insertTracker(undoState.item, undoState.index);
+    }
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setUndoState(null);
   }
 
-  function openTrackerAddForm() {
-    setShowTrackerAddForm(true);
-    setDraftTrackerTitle('');
-    setDraftTrackerType('habit');
-    setDraftTrackerTargetValue('');
-    setDraftTrackerTargetUnit('');
+  function removeMilestone(item: GoalCreationWizardMilestone) {
+    const index = wizard.milestones.findIndex((milestone) => milestone.id === item.id);
+    wizard.removeMilestone(item.id);
+    showUndo('Milestone removed', { kind: 'milestone', item, index });
   }
 
-  function cancelTrackerAddForm() {
-    setShowTrackerAddForm(false);
-    setDraftTrackerTitle('');
-    setDraftTrackerType('habit');
-    setDraftTrackerTargetValue('');
-    setDraftTrackerTargetUnit('');
-  }
-
-  function addTracker() {
-    const title = draftTrackerTitle.trim();
-    if (!canAddTracker) return;
-
-    setTrackers((current) => [
-      ...current,
-      {
-        id: `tracker-${Date.now()}-${current.length}`,
-        title,
-        type: draftTrackerType,
-        targetValue: draftTrackerType === 'counter' ? parsedTrackerTargetValue : null,
-        targetUnit: draftTrackerType === 'counter' ? draftTrackerTargetUnit.trim() : null,
-      },
-    ]);
-    cancelTrackerAddForm();
-  }
-
-  function openMilestoneAddForm() {
-    setShowMilestoneAddForm(true);
-    setDraftMilestoneTitle('');
-    setDraftMilestoneDescription('');
-    setDraftMilestoneDueDate('');
-  }
-
-  function cancelMilestoneAddForm() {
-    setShowMilestoneAddForm(false);
-    setDraftMilestoneTitle('');
-    setDraftMilestoneDescription('');
-    setDraftMilestoneDueDate('');
+  function removeTracker(item: GoalCreationWizardTracker) {
+    const index = wizard.trackers.findIndex((tracker) => tracker.id === item.id);
+    wizard.removeTracker(item.id);
+    showUndo('Tracker removed', { kind: 'tracker', item, index });
   }
 
   function addMilestone() {
-    if (!canAddMilestone) return;
-
-    setMilestones((current) => [
-      ...current,
-      {
-        id: `milestone-${Date.now()}-${current.length}`,
-        title: draftMilestoneTitle.trim(),
-        description: draftMilestoneDescription.trim() || null,
-        dueDate: milestoneDueDateValidation?.iso ?? null,
-      },
-    ]);
-    cancelMilestoneAddForm();
+    if (!wizard.addMilestone({
+      title: newMilestoneTitle,
+      week: newMilestoneWeek,
+      why: newMilestoneWhy,
+    })) return;
+    setNewMilestoneTitle('');
+    setNewMilestoneWeek('');
+    setNewMilestoneWhy('');
+    setAddingMilestone(false);
   }
 
-  async function suggestMilestone() {
-    if (!aiAssistEnabled || suggesting) return;
-
-    setSuggesting(true);
-    try {
-      const response = await authedFetch('/api/goals/suggest', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: titleText, why: whyText }),
-      });
-      const body = (await response.json()) as AiResponse<GoalSuggestion | null>;
-
-      if (!body.ok) {
-        console.error('[goal-suggestion] request failed:', body.error.code);
-        return;
-      }
-
-      const suggestion = body.data;
-      if (!suggestion) return;
-
-      setMilestones((current) => [
-        ...current,
-        {
-          id: `milestone-${Date.now()}-${current.length}`,
-          title: suggestion.title,
-          description: suggestion.description ?? null,
-          dueDate: suggestion.dueDate ?? null,
-        },
-      ]);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('[goal-suggestion] request failed:', message);
-    } finally {
-      setSuggesting(false);
-    }
+  function addTracker() {
+    const parsedTarget = Number(newTrackerTarget);
+    const targetValue = newTrackerType === 'checklist'
+      ? null
+      : Number.isFinite(parsedTarget) && parsedTarget > 0
+        ? parsedTarget
+        : 1;
+    if (!wizard.addTracker({
+      title: newTrackerTitle,
+      type: newTrackerType,
+      targetValue,
+      targetUnit: newTrackerType === 'checklist' ? null : newTrackerUnit,
+    })) return;
+    setNewTrackerTitle('');
+    setNewTrackerType('habit');
+    setNewTrackerTarget('1');
+    setNewTrackerUnit('times');
+    setAddingTracker(false);
   }
 
-  function resetForm() {
-    setTitleText('');
-    setWhyText('');
-    setDeadline('');
-    setDeadlineError(null);
-    setSelectedCategory(null);
-    setTrackable(START_TRACKABLE);
-    setPeriod('week');
-    setCount(INITIAL_COUNT);
-    setTrackers([]);
-    setMilestones([]);
-    setSelectedProjectId(null);
-    setShowTrackerAddForm(false);
-    setDraftTrackerTitle('');
-    setDraftTrackerType('habit');
-    setDraftTrackerTargetValue('');
-    setDraftTrackerTargetUnit('');
-    setShowMilestoneAddForm(false);
-    setDraftMilestoneTitle('');
-    setDraftMilestoneDescription('');
-    setDraftMilestoneDueDate('');
-    setSubmitError(null);
-    setCreatedGoalId(null);
-    setCreated(false);
-  }
-
-  function goToCreatedGoal() {
-    if (!createdGoalId) return;
-
-    router.replace(`/(app)/goals/${createdGoalId}` as never);
-  }
-
-  async function handleCreateGoal() {
-    if (saving) return;
-
-    const resolvedDeadline = validateDeadline(deadline, true);
-    if (!resolvedDeadline.valid || !resolvedDeadline.iso) {
-      setDeadlineError(resolvedDeadline.error);
-      return;
-    }
-    if (!titleText.trim() || !selectedCategory) return;
+  async function createGoal() {
+    if (saving || !canSubmit || !wizard.deadline) return;
 
     const payload: ManualGoalCreationInput = {
-      title: titleText,
-      description: whyText || null,
-      deadline: resolvedDeadline.iso,
-      category: selectedCategory,
-      target_frequency: trackable ? { times: count, period } : null,
-      project_id: selectedProjectId || null,
-      milestones: milestones.map(({ title, description, dueDate }) => ({
-        title,
-        description,
-        dueDate,
-      })),
-      trackers: trackers.map(({ title, type, targetValue, targetUnit }) => ({
-        title,
-        type,
-        targetValue,
-        targetUnit,
-        frequency: period === 'week' ? 'weekly' : 'monthly',
-      })),
+      title: wizard.outcome.trim(),
+      description: wizard.reason.trim() || null,
+      deadline: wizard.deadline,
+      category: wizard.category,
+      visibility: wizard.isPrivate ? 'private' : 'circle',
+      target_frequency: { period: 'week', times: wizard.daysPerWeek },
+      project_id: wizard.projectId,
+      milestones: wizard.milestoneInputs,
+      trackers: wizard.trackerInputs,
     };
 
     setSaving(true);
     setSubmitError(null);
-
     try {
       const response = await authedFetch('/api/goals', {
         method: 'POST',
@@ -548,30 +438,17 @@ export default function GoalCreateScreen() {
         body: JSON.stringify(payload),
       });
       const body = (await response.json()) as ApiResponse<CreateGoalWithMilestonesAndTrackersResult>;
-
-      if (!body.ok) {
-        throw new Error(body.error.message || 'Could not create the goal.');
-      }
-      if (!body.data.goalId) {
-        throw new Error(body.data.error || 'Could not create the goal.');
-      }
+      if (!body.ok) throw new Error(body.error.message || 'Could not create the goal.');
+      if (!body.data.goalId) throw new Error(body.data.error || 'Could not create the goal.');
 
       const savedGoal = await fetchGoalById(body.data.goalId);
-      if (savedGoal) {
-        upsertGoal(savedGoal);
-      } else {
-        console.warn('[manual-goal-create] goal saved but hydration returned no row', {
-          goalId: body.data.goalId,
-        });
-      }
-
+      if (savedGoal) upsertGoal(savedGoal);
       if (body.data.warning) {
         console.warn('[manual-goal-create] goal saved with warning', {
           goalId: body.data.goalId,
           warning: body.data.warning,
         });
       }
-
       setCreatedGoalId(body.data.goalId);
       setCreated(true);
     } catch (error) {
@@ -581,1303 +458,1325 @@ export default function GoalCreateScreen() {
     }
   }
 
-  return (
-    <SafeAreaView
-      style={{
-        backgroundColor: colors.background.page,
-        flex: 1,
-        flexDirection: 'row',
-      }}
-    >
-      <Sidebar />
+  function startAnother() {
+    wizard.reset({ initialProjectId: null });
+    setCreated(false);
+    setCreatedGoalId(null);
+    setSubmitError(null);
+    setExpandedMilestones([]);
+    setAddingMilestone(false);
+    setNewMilestoneTitle('');
+    setNewMilestoneWeek('');
+    setNewMilestoneWhy('');
+    setAddingTracker(false);
+    setNewTrackerTitle('');
+    setNewTrackerType('habit');
+    setNewTrackerTarget('1');
+    setNewTrackerUnit('times');
+    setUndoState(null);
+  }
 
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <AppHeader
-          backLabel="Journey"
-          onBack={() => router.back()}
-          title="New goal"
-          actions={<CreateButton
-            compact
-            enabled={createEnabled}
-            onPress={handleCreateGoal}
-            saving={saving}
-          />}
+  function renderStepOne() {
+    return (
+      <View style={{ alignSelf: 'center', maxWidth: 900, width: '100%' }}>
+        <SectionIntro
+          accent={accent}
+          description="Pick a category below and Ohara will draft a sharper version you can accept or override."
+          eyebrow="DEFINE · STEP 1 OF 4"
+          title="Name your outcome."
         />
 
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{
-            alignSelf: 'center',
-            maxWidth: 660,
-            paddingBottom: 80,
-            paddingHorizontal: 24,
-            paddingTop: 36,
-            width: '100%',
-          }}
-          keyboardShouldPersistTaps="handled"
-        >
-          <FormCard>
-            <Eyebrow style={{ marginBottom: 14 }}>Name the goal</Eyebrow>
-            <TextInput
-              accessibilityLabel="Goal title"
-              autoFocus
-              onChangeText={setTitleText}
-              placeholder="e.g. Lose 2 lbs by August 31"
-              placeholderTextColor={colors.text.muted}
-              style={{
-                color: colors.text.primary,
-                fontFamily: 'Inter-SemiBold',
-                fontSize: 26,
-                fontWeight: '600',
-                letterSpacing: -0.3,
-                lineHeight: 34,
-                margin: 0,
-                outlineWidth: 0,
-                padding: 0,
-              }}
-              value={titleText}
-            />
+        <View style={{ alignSelf: 'center', marginBottom: 34, maxWidth: 680, width: '100%' }}>
+          <View style={{ alignItems: 'center', marginBottom: 8 }}>
+            <CategoryBadge accent={accent} darkMode={darkMode} label={wizard.template.label} />
+          </View>
+          <TextInput
+            accessibilityLabel="Goal outcome"
+            autoFocus={!compact}
+            onChangeText={wizard.setOutcome}
+            placeholder="What do you want to achieve?"
+            placeholderTextColor={colors.text.muted}
+            style={{
+              borderBottomColor: colors.border.warm,
+              borderBottomWidth: 1.5,
+              color: colors.text.primary,
+              fontFamily: 'Lora-Medium',
+              fontSize: compact ? 24 : 28,
+              lineHeight: compact ? 31 : 36,
+              outlineWidth: 0,
+              paddingHorizontal: 8,
+              paddingVertical: 12,
+              textAlign: 'center',
+            }}
+            value={wizard.outcome}
+          />
 
-            <View
-              style={{
-                backgroundColor: colors.border.warmSubtle,
-                height: 1,
-                marginBottom: 14,
-                marginTop: 16,
-              }}
-            />
-
-            <View style={{ flexDirection: 'row', marginBottom: 9 }}>
-              <Eyebrow>Category</Eyebrow>
+          {wizard.suggestionState === 'visible' ? (
+            <Card elevated style={{ marginTop: 20, padding: 20 }}>
+              <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                <View
+                  style={{
+                    alignItems: 'center',
+                    backgroundColor: darkMode ? colors.background.input : accent.tint,
+                    borderRadius: 11,
+                    height: 22,
+                    justifyContent: 'center',
+                    width: 22,
+                  }}
+                >
+                  <Typography variant="caption" style={{ color: accent.mid }}>✦</Typography>
+                </View>
+                <Typography variant="eyebrow" style={{ color: colors.text.muted }}>
+                  A {wizard.template.label.toUpperCase()} VERSION MIGHT BE
+                </Typography>
+              </View>
               <Typography
-                variant="eyebrow"
-                style={{
-                  color: colors.feedback.danger.text,
-                  fontFamily: 'Inter-SemiBold',
-                  fontSize: 11,
-                  marginLeft: 3,
-                }}
+                variant="title"
+                style={{ fontFamily: 'Lora-SemiBold', fontSize: 20, lineHeight: 27, marginBottom: 14 }}
               >
-                *
+                {wizard.template.suggestion}
               </Typography>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                <AccentButton accent={accent} onPress={wizard.applySuggestion} style={{ minHeight: 40 }}>
+                  Use this
+                </AccentButton>
+                <Button onPress={wizard.dismissSuggestion} style={{ minHeight: 40 }} variant="secondary">
+                  Keep mine
+                </Button>
+              </View>
+            </Card>
+          ) : null}
+        </View>
+
+        <View
+          style={{
+            alignItems: 'baseline',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            marginBottom: 14,
+          }}
+        >
+          <Typography variant="title" style={{ fontFamily: 'Lora-SemiBold', fontSize: 16 }}>
+            Pick a category
+          </Typography>
+          {!compact ? (
+            <Typography variant="caption" style={{ color: colors.text.muted }}>
+              Choose one to see its starter template
+            </Typography>
+          ) : null}
+        </View>
+
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14 }}>
+          {GOAL_CREATION_CATEGORIES.map((category) => {
+            const template = wizard.category === category
+              ? wizard.template
+              : undefined;
+            const categoryTemplate = template ?? getGoalCreationTemplate(category);
+            const categoryAccent = CATEGORY_ACCENT_THEME[category];
+            const selected = wizard.category === category;
+            return (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                key={category}
+                onPress={() => wizard.setCategory(category)}
+                style={({ pressed }) => ({
+                  alignItems: 'flex-start',
+                  backgroundColor: colors.background.card,
+                  borderColor: selected ? categoryAccent.color : colors.border.warm,
+                  borderRadius: 16,
+                  borderWidth: 1.5,
+                  flexBasis: compact ? '100%' : medium ? '48%' : '31%',
+                  flexDirection: 'row',
+                  gap: 12,
+                  minWidth: compact ? '100%' : 250,
+                  opacity: pressed ? 0.72 : selected ? 1 : 0.66,
+                  paddingHorizontal: 18,
+                  paddingVertical: 16,
+                  shadowColor: selected ? categoryAccent.color : colors.text.primary,
+                  shadowOffset: { width: 0, height: selected ? 8 : 2 },
+                  shadowOpacity: darkMode ? 0 : selected ? 0.12 : 0.035,
+                  shadowRadius: selected ? 18 : 8,
+                })}
+              >
+                <View
+                  style={{
+                    alignItems: 'center',
+                    backgroundColor: darkMode ? colors.background.input : categoryAccent.tint,
+                    borderRadius: 11,
+                    height: 38,
+                    justifyContent: 'center',
+                    width: 38,
+                  }}
+                >
+                  <Typography style={{ color: categoryAccent.mid, fontSize: 18 }} variant="body">
+                    {categoryTemplate.icon}
+                  </Typography>
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Typography
+                    variant="title"
+                    style={{ fontFamily: 'Lora-SemiBold', fontSize: 17, marginBottom: 3 }}
+                  >
+                    {categoryTemplate.label}
+                  </Typography>
+                  <Typography variant="caption" style={{ lineHeight: 18 }}>
+                    {categoryTemplate.description}
+                  </Typography>
+                </View>
+                <View
+                  style={{
+                    alignItems: 'center',
+                    backgroundColor: selected ? categoryAccent.color : 'transparent',
+                    borderColor: selected ? categoryAccent.color : colors.border.warm,
+                    borderRadius: 11,
+                    borderWidth: 1.5,
+                    height: 22,
+                    justifyContent: 'center',
+                    width: 22,
+                  }}
+                >
+                  {selected ? (
+                    <Typography variant="caption" style={{ color: '#FFFFFF', fontSize: 11 }}>✓</Typography>
+                  ) : null}
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+    );
+  }
+
+  function renderStepTwo() {
+    return (
+      <View style={{ alignSelf: 'center', maxWidth: 660, width: '100%' }}>
+        <SectionIntro
+          accent={accent}
+          description="Why, when, and how often. A minute of clarity now saves weeks later."
+          eyebrow="DEFINE · STEP 2 OF 4"
+          title="The details that make it real."
+        />
+
+        <Card elevated padding="spacious" style={{ marginBottom: 14 }}>
+          <Typography variant="field-label" style={{ marginBottom: 4 }}>
+            Why does this matter to you?
+          </Typography>
+          <Typography variant="caption" style={{ color: colors.text.muted, marginBottom: 12 }}>
+            Even a sentence helps — this is a note to yourself.
+          </Typography>
+          <TextField
+            accessibilityLabel="Why this goal matters"
+            multiline
+            onChangeText={wizard.setReason}
+            placeholder="I want to…"
+            value={wizard.reason}
+          />
+          <Typography
+            variant="caption"
+            style={{ color: colors.text.muted, marginTop: 6, textAlign: 'right' }}
+          >
+            {wizard.reason.length} / {GOAL_CREATION_REASON_MAX_LENGTH}
+          </Typography>
+        </Card>
+
+        <Card elevated padding="spacious" style={{ marginBottom: 14 }}>
+          <Typography variant="field-label" style={{ marginBottom: 12 }}>
+            When do you want to achieve this?
+          </Typography>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {DEADLINE_PRESETS.map((preset) => {
+              const selected = wizard.preset === preset;
+              const date = preset === 'custom' ? wizard.customDate || null : presetDeadline(preset);
+              return (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  key={preset}
+                  onPress={() => wizard.setPreset(preset)}
+                  style={({ pressed }) => ({
+                    alignItems: 'center',
+                    backgroundColor: selected
+                      ? darkMode ? colors.background.selectedRow : accent.tint
+                      : colors.background.input,
+                    borderColor: selected ? accent.color : colors.border.warm,
+                    borderRadius: 14,
+                    borderWidth: 1.5,
+                    flex: 1,
+                    minWidth: 120,
+                    opacity: pressed ? 0.7 : 1,
+                    paddingHorizontal: 14,
+                    paddingVertical: 12,
+                  })}
+                >
+                  <Typography
+                    variant="meta"
+                    style={{ color: selected ? accent.mid : colors.text.primary, fontFamily: 'Inter-SemiBold' }}
+                  >
+                    {preset === 'custom' ? 'Custom' : `${preset} days`}
+                  </Typography>
+                  <Typography variant="caption" style={{ color: selected ? accent.mid : colors.text.muted }}>
+                    {formatDate(date)}
+                  </Typography>
+                </Pressable>
+              );
+            })}
+          </View>
+          {wizard.preset === 'custom' ? (
+            <View style={{ marginTop: 12 }}>
+              <DateField
+                accessibilityLabel="Custom goal deadline"
+                error={!deadlineValid && wizard.customDate ? 'Choose a future date.' : null}
+                minimumDate={tomorrowValue()}
+                onChange={wizard.setCustomDate}
+                value={wizard.customDate}
+              />
+              {!deadlineValid && wizard.customDate ? (
+                <Typography
+                  accessibilityRole="alert"
+                  variant="caption"
+                  style={{ color: colors.feedback.danger.text, marginTop: 6 }}
+                >
+                  Choose a valid future date.
+                </Typography>
+              ) : null}
             </View>
+          ) : null}
+        </Card>
+
+        <Card elevated padding="spacious" style={{ marginBottom: 14 }}>
+          <Typography variant="field-label" style={{ marginBottom: 12 }}>
+            How many days a week are you committing?
+          </Typography>
+          <View style={{ flexDirection: 'row', gap: 6 }}>
+            {[1, 2, 3, 4, 5, 6, 7].map((day) => {
+              const selected = wizard.daysPerWeek === day;
+              return (
+                <Pressable
+                  accessibilityLabel={`${day} ${day === 1 ? 'day' : 'days'} per week`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  key={day}
+                  onPress={() => wizard.setDaysPerWeek(day)}
+                  style={({ pressed }) => ({
+                    alignItems: 'center',
+                    backgroundColor: selected ? accent.color : colors.background.input,
+                    borderColor: selected ? accent.color : colors.border.warm,
+                    borderRadius: 10,
+                    borderWidth: 1.5,
+                    flex: 1,
+                    minWidth: 34,
+                    opacity: pressed ? 0.72 : 1,
+                    paddingVertical: 10,
+                  })}
+                >
+                  <Typography
+                    variant="meta"
+                    style={{ color: selected ? '#FFFFFF' : colors.text.primary, fontFamily: 'Inter-SemiBold' }}
+                  >
+                    {day}
+                  </Typography>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Typography
+            variant="caption"
+            style={{ fontFamily: 'Lora-Italic', fontStyle: 'italic', marginTop: 12 }}
+          >
+            {wizard.template.daysNote}
+          </Typography>
+        </Card>
+
+        <Card elevated padding="spacious" style={{ marginBottom: 14 }}>
+          <Typography variant="field-label" style={{ marginBottom: 4 }}>
+            Link to a project <Typography variant="caption">(optional)</Typography>
+          </Typography>
+          <Typography variant="caption" style={{ color: colors.text.muted, marginBottom: 12 }}>
+            Keep this goal grouped with an existing project.
+          </Typography>
+          {projects.length ? (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {GOAL_CATEGORIES.map((category) => {
-                const selected = selectedCategory === category;
-                const themeName = CATEGORY_COLOR_THEME[category];
-                const dotColor = GOAL_THEMES[themeName].accent;
+              {projects.map((project) => {
+                const selected = wizard.projectId === project.id;
                 return (
                   <Pressable
                     accessibilityRole="button"
                     accessibilityState={{ selected }}
-                    key={category}
-                    onPress={() => setSelectedCategory(category)}
+                    key={project.id}
+                    onPress={() => wizard.setProjectId(selected ? null : project.id)}
                     style={({ pressed }) => ({
                       alignItems: 'center',
-                      backgroundColor: selected
-                        ? colors.background.selectedRow
-                        : colors.background.card,
-                      borderColor: selected
-                        ? colors.border.accent
-                        : colors.border.divider,
+                      backgroundColor: selected ? colors.background.selectedRow : colors.background.input,
+                      borderColor: selected ? accent.color : colors.border.warm,
                       borderRadius: 999,
                       borderWidth: 1,
                       flexDirection: 'row',
-                      opacity: pressed ? 0.72 : 1,
+                      gap: 7,
+                      opacity: pressed ? 0.7 : 1,
                       paddingHorizontal: 14,
                       paddingVertical: 8,
                     })}
                   >
-                    <View
-                      style={{
-                        backgroundColor: dotColor,
-                        borderRadius: 3.5,
-                        height: 7,
-                        marginRight: 7,
-                        width: 7,
-                      }}
-                    />
-                    <Typography
-                      variant="meta"
-                      style={{
-                        color: selected ? colors.text.accent : colors.text.secondary,
-                        fontSize: 13,
-                        lineHeight: 16,
-                      }}
-                    >
-                      {titleCase(category)}
-                    </Typography>
+                    <View style={{ backgroundColor: accent.color, borderRadius: 4, height: 7, width: 7 }} />
+                    <Typography variant="meta">{project.title}</Typography>
                   </Pressable>
                 );
               })}
             </View>
+          ) : (
+            <Typography variant="caption">No projects available yet.</Typography>
+          )}
+        </Card>
 
-            <View
+        <Card
+          elevated
+          padding="spacious"
+          style={{ borderLeftColor: accent.color, borderLeftWidth: 4 }}
+        >
+          <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Typography variant="eyebrow">YOUR GOAL, SO FAR</Typography>
+            <CategoryBadge accent={accent} darkMode={darkMode} label={wizard.template.label} />
+          </View>
+          <Typography
+            variant="title"
+            style={{ fontFamily: 'Lora-SemiBold', fontSize: 22, lineHeight: 28, marginVertical: 14 }}
+          >
+            {wizard.outcome || '—'}
+          </Typography>
+          <View
+            style={{
+              borderTopColor: colors.border.warmSubtle,
+              borderTopWidth: 1,
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              gap: 24,
+              paddingTop: 14,
+            }}
+          >
+            <View>
+              <Typography variant="eyebrow">TARGET</Typography>
+              <Typography variant="meta" style={{ color: colors.text.primary, fontFamily: 'Inter-SemiBold' }}>
+                {formatDate(wizard.deadline)}
+              </Typography>
+              <Typography variant="caption">{remainingDays} days remaining</Typography>
+            </View>
+            <View>
+              <Typography variant="eyebrow">COMMITMENT</Typography>
+              <Typography variant="meta" style={{ color: colors.text.primary, fontFamily: 'Inter-SemiBold' }}>
+                {wizard.daysPerWeek} days / week
+              </Typography>
+            </View>
+          </View>
+          {wizard.reason ? (
+            <Typography
+              variant="body"
               style={{
-                backgroundColor: colors.border.warmSubtle,
-                height: 1,
-                marginBottom: 14,
-                marginTop: 16,
-              }}
-            />
-
-            <Eyebrow style={{ letterSpacing: 1, marginBottom: 8 }}>Why it matters</Eyebrow>
-            <TextInput
-              accessibilityLabel="Why this goal matters"
-              multiline
-              numberOfLines={2}
-              onChangeText={setWhyText}
-              placeholder="Why is this worth it to you? What changes when you get there?"
-              placeholderTextColor={colors.text.muted}
-              style={{
-                color: colors.text.accent,
+                borderTopColor: colors.border.warmSubtle,
+                borderTopWidth: 1,
                 fontFamily: 'Lora-Italic',
-                fontSize: 16,
+                fontSize: 14,
                 fontStyle: 'italic',
-                lineHeight: 24.8,
-                minHeight: 50,
+                lineHeight: 22,
+                marginTop: 14,
+                paddingTop: 14,
+              }}
+            >
+              “{wizard.reason}”
+            </Typography>
+          ) : null}
+        </Card>
+      </View>
+    );
+  }
+
+  function renderMilestone(item: GoalCreationWizardMilestone, index: number) {
+    const expanded = expandedMilestones.includes(item.id);
+    return (
+      <Card key={item.id} padding="compact" style={{ borderRadius: 14 }}>
+        <View style={{ alignItems: 'flex-start', flexDirection: 'row', gap: 10 }}>
+          <View style={{ paddingTop: 1 }}>
+            <Pressable
+              accessibilityLabel={`Move ${item.title} earlier`}
+              disabled={index === 0}
+              onPress={() => wizard.moveMilestone(item.id, -1)}
+              style={{ opacity: index === 0 ? 0.25 : 1, padding: 2 }}
+            >
+              <Typography variant="caption">▲</Typography>
+            </Pressable>
+            <Pressable
+              accessibilityLabel={`Move ${item.title} later`}
+              disabled={index === wizard.milestones.length - 1}
+              onPress={() => wizard.moveMilestone(item.id, 1)}
+              style={{ opacity: index === wizard.milestones.length - 1 ? 0.25 : 1, padding: 2 }}
+            >
+              <Typography variant="caption">▼</Typography>
+            </Pressable>
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <TextInput
+              accessibilityLabel="Milestone title"
+              onChangeText={(title) => wizard.updateMilestone(item.id, { title })}
+              style={{
+                color: colors.text.primary,
+                flex: 1,
+                fontFamily: 'Inter-SemiBold',
+                fontSize: 14.5,
                 outlineWidth: 0,
                 padding: 0,
-                textAlignVertical: 'top',
               }}
-              value={whyText}
+              value={item.title}
             />
-          </FormCard>
-
-          <FormCard>
-            <Eyebrow style={{ marginBottom: 14 }}>Set a deadline</Eyebrow>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 28 }}>
-              <View>
-                <Typography
-                  variant="field-label"
-                  style={{ fontSize: 13, marginBottom: 8 }}
-                >
-                  Target date{' '}
-                  <Typography
-                    variant="field-label"
-                    style={{ color: colors.feedback.danger.text, fontSize: 13 }}
-                  >
-                    *
-                  </Typography>
-                </Typography>
-                <DateField
-                  error={deadlineError}
-                  key={deadline ? 'selected-deadline' : 'empty-deadline'}
-                  onBlur={(value) => {
-                    setDeadline(value);
-                    setDeadlineError(validateDeadline(value, true).error);
-                  }}
-                  onChange={handleDeadlineChange}
-                  value={deadline}
-                />
-                {deadlineError ? (
-                  <Typography
-                    variant="caption"
-                    style={{
-                      color: colors.feedback.danger.text,
-                      fontSize: 12,
-                      marginTop: 6,
-                    }}
-                  >
-                    {deadlineError}
-                  </Typography>
-                ) : null}
-              </View>
-
-              <View style={{ flex: 1, minWidth: 220 }}>
-                <Typography
-                  variant="field-label"
-                  style={{ fontSize: 13, marginBottom: 8 }}
-                >
-                  Link to a project{' '}
-                  <Typography
-                    variant="field-label"
-                    style={{
-                      color: colors.text.muted,
-                      fontFamily: 'Inter-Regular',
-                      fontSize: 13,
-                    }}
-                  >
-                    (optional)
-                  </Typography>
-                </Typography>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  {projects.map((project, index) => {
-                    const selected = selectedProjectId === project.id;
-                    return (
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityState={{ selected }}
-                        key={project.id}
-                        onPress={() =>
-                          setSelectedProjectId((current) =>
-                            current === project.id ? null : project.id,
-                          )
-                        }
-                        style={({ pressed }) => ({
-                          alignItems: 'center',
-                          backgroundColor: selected
-                            ? colors.background.selectedRow
-                            : colors.background.card,
-                          borderColor: selected
-                            ? colors.border.accent
-                            : colors.border.divider,
-                          borderRadius: 999,
-                          borderWidth: 1,
-                          flexDirection: 'row',
-                          opacity: pressed ? 0.72 : 1,
-                          paddingHorizontal: 14,
-                          paddingVertical: 8,
-                        })}
-                      >
-                        <View
-                          style={{
-                            backgroundColor:
-                              projectDotColors[index % projectDotColors.length],
-                            borderRadius: 3.5,
-                            height: 7,
-                            marginRight: 7,
-                            width: 7,
-                          }}
-                        />
-                        <Typography
-                          variant="meta"
-                          style={{
-                            color: selected ? colors.text.accent : colors.text.secondary,
-                            fontSize: 13,
-                            lineHeight: 16,
-                          }}
-                        >
-                          {project.title}
-                        </Typography>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-            </View>
-
-            <View
-              style={{
-                alignItems: 'flex-start',
-                backgroundColor: colors.background.goalCard,
-                borderColor: colors.border.warmSubtle,
-                borderRadius: 12,
-                borderWidth: 1,
-                flexDirection: 'row',
-                gap: 10,
-                marginTop: 16,
-                paddingHorizontal: 14,
-                paddingVertical: 12,
-              }}
-            >
-              <Typography
-                variant="body"
-                style={{ color: colors.text.accent, fontSize: 14, marginTop: 1 }}
-              >
-                ◷
-              </Typography>
-              <Typography
-                variant="body"
+            <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 6 }}>
+              <TextInput
+                accessibilityLabel="Milestone timing"
+                onChangeText={(week) => wizard.updateMilestone(item.id, { week })}
                 style={{
                   color: colors.text.secondary,
-                  flex: 1,
-                  fontSize: 12.5,
-                  lineHeight: 19.375,
+                  fontFamily: 'Inter-Regular',
+                  fontSize: 12,
+                  minWidth: 70,
+                  outlineWidth: 0,
+                  padding: 0,
                 }}
+                value={item.week}
+              />
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setExpandedMilestones((current) => (
+                  current.includes(item.id)
+                    ? current.filter((id) => id !== item.id)
+                    : [...current, item.id]
+                ))}
               >
-                Progress is measured against this date. As the deadline approaches your goal
-                naturally fills toward{' '}
-                <Typography
-                  variant="body"
+                <Typography variant="caption" style={{ color: accent.mid, fontFamily: 'Inter-Medium' }}>
+                  {expanded ? '▾ Hide why' : '▸ Why this?'}
+                </Typography>
+              </Pressable>
+              {item.suggested ? (
+                <View
                   style={{
+                    backgroundColor: darkMode ? colors.background.input : accent.tint,
+                    borderRadius: 999,
+                    paddingHorizontal: 8,
+                    paddingVertical: 3,
+                  }}
+                >
+                  <Typography variant="badge-text" style={{ color: accent.mid }}>✦ Suggested</Typography>
+                </View>
+              ) : null}
+            </View>
+            {expanded ? (
+              <TextInput
+                accessibilityLabel="Why this milestone matters"
+                multiline
+                onChangeText={(why) => wizard.updateMilestone(item.id, { why })}
+                placeholder="Why does this checkpoint matter?"
+                placeholderTextColor={colors.text.muted}
+                style={{
+                  backgroundColor: colors.background.input,
+                  borderRadius: 10,
+                  color: colors.text.secondary,
+                  fontFamily: 'Inter-Regular',
+                  fontSize: 12.5,
+                  lineHeight: 19,
+                  marginTop: 10,
+                  minHeight: 58,
+                  outlineWidth: 0,
+                  padding: 10,
+                  textAlignVertical: 'top',
+                }}
+                value={item.why}
+              />
+            ) : null}
+          </View>
+          <Pressable
+            accessibilityLabel={`Remove ${item.title}`}
+            accessibilityRole="button"
+            hitSlop={6}
+            onPress={() => removeMilestone(item)}
+            style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: 4 })}
+          >
+            <Typography variant="body" style={{ color: colors.text.muted, fontSize: 16 }}>×</Typography>
+          </Pressable>
+        </View>
+      </Card>
+    );
+  }
+
+  function renderTracker(item: GoalCreationWizardTracker) {
+    const typeColors = trackerTypeColor(item.type, accent);
+    return (
+      <Card key={item.id} padding="compact" style={{ borderRadius: 14 }}>
+        <View style={{ alignItems: 'center', flexDirection: compact ? 'column' : 'row', gap: 10 }}>
+          <TextInput
+            accessibilityLabel="Tracker title"
+            onChangeText={(title) => wizard.updateTracker(item.id, { title })}
+            style={{
+              color: colors.text.primary,
+              flex: compact ? undefined : 1,
+              fontFamily: 'Inter-SemiBold',
+              fontSize: 14,
+              minWidth: compact ? '100%' : 160,
+              outlineWidth: 0,
+              padding: 0,
+              width: compact ? '100%' : undefined,
+            }}
+            value={item.title}
+          />
+          <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8, width: compact ? '100%' : undefined }}>
+            <Pressable
+              accessibilityLabel={`Tracker type ${TRACKER_TYPE_LABELS[item.type]}. Activate to change.`}
+              accessibilityRole="button"
+              onPress={() => {
+                const nextType = nextTrackerType(item.type);
+                wizard.updateTracker(item.id, {
+                  type: nextType,
+                  targetValue: nextType === 'checklist' ? null : item.targetValue ?? 1,
+                  targetUnit: nextType === 'checklist' ? null : item.targetUnit ?? 'times',
+                });
+              }}
+              style={({ pressed }) => ({
+                backgroundColor: darkMode ? colors.background.input : typeColors.backgroundColor,
+                borderRadius: 999,
+                opacity: pressed ? 0.68 : 1,
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+              })}
+            >
+              <Typography variant="badge-text" style={{ color: typeColors.color, fontFamily: 'Inter-SemiBold' }}>
+                {TRACKER_TYPE_LABELS[item.type]}
+              </Typography>
+            </Pressable>
+            {item.type !== 'checklist' ? (
+              <>
+                <TextInput
+                  accessibilityLabel={`${item.title} weekly target`}
+                  keyboardType="numeric"
+                  onChangeText={(value) => wizard.updateTracker(item.id, {
+                    targetValue: Number.isFinite(Number(value)) ? Number(value) : 0,
+                  })}
+                  style={{
+                    backgroundColor: colors.background.input,
+                    borderColor: colors.border.warm,
+                    borderRadius: 8,
+                    borderWidth: 1,
                     color: colors.text.primary,
                     fontFamily: 'Inter-SemiBold',
-                    fontSize: 12.5,
+                    fontSize: 13,
+                    outlineWidth: 0,
+                    paddingHorizontal: 8,
+                    paddingVertical: 6,
+                    textAlign: 'center',
+                    width: 54,
                   }}
-                >
-                  100%
-                </Typography>{' '}
-                — so even partial effort still counts as progress.
-              </Typography>
-            </View>
-          </FormCard>
-
-          <FormCard>
-            <View
-              style={{
-                alignItems: 'center',
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                marginBottom: 4,
-              }}
-            >
-              <Eyebrow>Your rhythm</Eyebrow>
-              <View style={{ alignItems: 'center', flexDirection: 'row', gap: 10 }}>
-                <Typography
-                  variant="caption"
-                  style={{ color: colors.text.secondary, fontSize: 12 }}
-                >
-                  Track a cadence
-                </Typography>
-                <Toggle
-                  accessibilityLabel="Track a cadence"
-                  onValueChange={setTrackable}
-                  value={trackable}
+                  value={String(item.targetValue ?? '')}
                 />
-              </View>
-            </View>
-
-            {trackable ? (
-              <View style={{ paddingTop: 14 }}>
-                <Typography
-                  variant="field-label"
-                  style={{ fontSize: 14, marginBottom: 3 }}
-                >
-                  How often will you show up?
-                </Typography>
-                <Typography
-                  variant="caption"
-                  style={{ color: colors.text.muted, fontSize: 12.5, marginBottom: 14 }}
-                >
-                  Pick a pace you can realistically keep — consistency beats intensity.
-                </Typography>
-
-                <View
+                <TextInput
+                  accessibilityLabel={`${item.title} target unit`}
+                  onChangeText={(targetUnit) => wizard.updateTracker(item.id, { targetUnit })}
                   style={{
-                    alignSelf: 'flex-start',
-                    backgroundColor: colors.background.input,
-                    borderRadius: 10,
-                    flexDirection: 'row',
-                    marginBottom: 20,
-                    padding: 3,
+                    color: colors.text.secondary,
+                    flex: compact ? 1 : undefined,
+                    fontFamily: 'Inter-Regular',
+                    fontSize: 12,
+                    minWidth: 72,
+                    outlineWidth: 0,
+                    padding: 0,
                   }}
-                >
-                  {(['week', 'month'] as const).map((option) => {
-                    const active = period === option;
-                    return (
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: active }}
-                        key={option}
-                        onPress={() => handlePeriodChange(option)}
-                        style={({ pressed }) => ({
-                          backgroundColor: active ? colors.background.card : 'transparent',
-                          borderRadius: 8,
-                          elevation: active ? 1 : 0,
-                          opacity: pressed ? 0.7 : 1,
-                          paddingHorizontal: 16,
-                          paddingVertical: 7,
-                          shadowColor: colors.text.primary,
-                          shadowOffset: { width: 0, height: 1 },
-                          shadowOpacity: active && themeMode === 'light' ? 0.08 : 0,
-                          shadowRadius: active ? 3 : 0,
-                        })}
-                      >
-                        <Typography
-                          variant="meta"
-                          style={{
-                            color: active
-                              ? colors.text.primary
-                              : colors.text.secondary,
-                            fontFamily: active ? 'Inter-SemiBold' : 'Inter-Medium',
-                            fontSize: 13,
-                            lineHeight: 18,
-                          }}
-                        >
-                          per {option}
-                        </Typography>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-
-                <View
-                  style={{
-                    alignItems: 'center',
-                    flexDirection: 'row',
-                    flexWrap: 'wrap',
-                    gap: 20,
-                    marginBottom: 20,
-                  }}
-                >
-                  <View
-                    style={{
-                      alignItems: 'center',
-                      borderColor: colors.border.warm,
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      flexDirection: 'row',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <Pressable
-                      accessibilityLabel="Decrease cadence"
-                      accessibilityRole="button"
-                      onPress={() => setCount((current) => Math.max(current - 1, 1))}
-                      style={({ pressed }) => ({
-                        alignItems: 'center',
-                        height: 44,
-                        justifyContent: 'center',
-                        opacity: pressed ? 0.6 : 1,
-                        width: 44,
-                      })}
-                    >
-                      <Typography
-                        variant="body"
-                        style={{ color: colors.text.accent, fontSize: 22, lineHeight: 26 }}
-                      >
-                        −
-                      </Typography>
-                    </Pressable>
-                    <Typography
-                      variant="body"
-                      style={{
-                        color: colors.text.primary,
-                        fontFamily: 'Inter-SemiBold',
-                        fontSize: 24,
-                        textAlign: 'center',
-                        width: 56,
-                      }}
-                    >
-                      {count}
-                    </Typography>
-                    <Pressable
-                      accessibilityLabel="Increase cadence"
-                      accessibilityRole="button"
-                      onPress={() =>
-                        setCount((current) =>
-                          Math.min(current + 1, period === 'week' ? 7 : 30),
-                        )
-                      }
-                      style={({ pressed }) => ({
-                        alignItems: 'center',
-                        height: 44,
-                        justifyContent: 'center',
-                        opacity: pressed ? 0.6 : 1,
-                        width: 44,
-                      })}
-                    >
-                      <Typography
-                        variant="body"
-                        style={{ color: colors.text.accent, fontSize: 22, lineHeight: 26 }}
-                      >
-                        +
-                      </Typography>
-                    </Pressable>
-                  </View>
-
-                  <View>
-                    <Typography
-                      variant="body"
-                      style={{
-                        color: colors.text.primary,
-                        fontFamily: 'Lora-Regular',
-                        fontSize: 18,
-                        fontWeight: '600',
-                        lineHeight: 24,
-                      }}
-                    >
-                      {count}× a {period}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      style={{ color: colors.text.secondary, fontSize: 12, marginTop: 2 }}
-                    >
-                      A checkmark lands each time you log progress.
-                    </Typography>
-                  </View>
-                </View>
-
-                {period === 'week' ? (
-                  <View style={{ flexDirection: 'row', gap: 10 }}>
-                    {DAY_LABELS.map((label, index) => {
-                      const filled = index < count;
-                      return (
-                        <View
-                          key={`${label}-${index}`}
-                          style={{
-                            alignItems: 'center',
-                            backgroundColor: filled
-                              ? colors.accent.primary
-                              : colors.background.input,
-                            borderRadius: 15,
-                            height: 30,
-                            justifyContent: 'center',
-                            width: 30,
-                          }}
-                        >
-                          <Typography
-                            variant="caption"
-                            style={{
-                              color: filled ? colors.text.onAccent : colors.text.muted,
-                              fontFamily: 'Inter-SemiBold',
-                              fontSize: 12,
-                            }}
-                          >
-                            {label}
-                          </Typography>
-                        </View>
-                      );
-                    })}
-                  </View>
-                ) : null}
-              </View>
-            ) : (
-              <View
-                style={{
-                  alignItems: 'flex-start',
-                  flexDirection: 'row',
-                  gap: 12,
-                  paddingTop: 14,
-                }}
-              >
-                <View
-                  style={{
-                    backgroundColor: colors.text.muted,
-                    borderRadius: 4,
-                    flexShrink: 0,
-                    height: 8,
-                    marginTop: 6,
-                    width: 8,
-                  }}
+                  value={item.targetUnit ?? ''}
                 />
-                <View style={{ flex: 1 }}>
-                  <Typography
-                    variant="field-label"
-                    style={{ fontSize: 14, marginBottom: 3 }}
-                  >
-                    A direction, not a streak
-                  </Typography>
-                  <Typography
-                    variant="body"
-                    style={{
-                      color: colors.text.secondary,
-                      fontSize: 13,
-                      lineHeight: 19.5,
-                    }}
-                  >
-                    This stays a narrative goal — no checkmarks or streaks, just something
-                    meaningful to move toward.
-                  </Typography>
-                </View>
-              </View>
-            )}
-          </FormCard>
-
-          <FormCard>
-            <Eyebrow style={{ marginBottom: 2 }}>Trackers</Eyebrow>
-
-            {trackers.length === 0 ? (
-              <View style={{ paddingBottom: 4, paddingTop: 12 }}>
-                <Typography
-                  variant="description"
-                  style={{ color: colors.text.secondary, fontSize: 14, lineHeight: 21 }}
-                >
-                  What recurring behavior or number will show that the goal is moving? Add only
-                  the signals you will actually use.
-                </Typography>
-              </View>
+                <Typography variant="caption">/ week</Typography>
+              </>
             ) : null}
+            <View style={{ flex: 1 }} />
+            <Pressable
+              accessibilityLabel={`Remove ${item.title}`}
+              accessibilityRole="button"
+              hitSlop={6}
+              onPress={() => removeTracker(item)}
+              style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: 4 })}
+            >
+              <Typography variant="body" style={{ color: colors.text.muted, fontSize: 16 }}>×</Typography>
+            </Pressable>
+          </View>
+        </View>
+        {item.baselinePrompt ? (
+          <View
+            style={{
+              alignItems: compact ? 'stretch' : 'center',
+              borderTopColor: colors.border.warmSubtle,
+              borderTopWidth: 1,
+              flexDirection: compact ? 'column' : 'row',
+              gap: 10,
+              marginTop: 12,
+              paddingTop: 12,
+            }}
+          >
+            <Typography
+              variant="caption"
+              style={{ flex: 1, fontFamily: 'Lora-Italic', fontStyle: 'italic' }}
+            >
+              What’s your current weekly distance? This optional baseline helps you choose a realistic target.
+            </Typography>
+            <TextInput
+              accessibilityLabel={`${item.title} current baseline`}
+              onChangeText={(baseline) => wizard.updateTracker(item.id, { baseline })}
+              placeholder="e.g. 4 km"
+              placeholderTextColor={colors.text.muted}
+              style={{
+                backgroundColor: colors.background.input,
+                borderColor: colors.border.warm,
+                borderRadius: 8,
+                borderWidth: 1,
+                color: colors.text.primary,
+                fontFamily: 'Inter-Regular',
+                fontSize: 12.5,
+                outlineWidth: 0,
+                paddingHorizontal: 10,
+                paddingVertical: 7,
+                width: compact ? '100%' : 120,
+              }}
+              value={item.baseline ?? ''}
+            />
+          </View>
+        ) : null}
+      </Card>
+    );
+  }
 
-            {trackers.length > 0 ? (
-              <View style={{ gap: 8, marginTop: 14 }}>
-                {trackers.map((tracker) => {
-                  const meta = typeMeta[tracker.type];
-                  return (
-                    <View
-                      key={tracker.id}
-                      style={{
-                        alignItems: 'center',
-                        backgroundColor: colors.background.goalCard,
-                        borderColor: colors.border.warmSubtle,
-                        borderRadius: 12,
-                        borderWidth: 1,
-                        flexDirection: 'row',
-                        gap: 12,
-                        paddingHorizontal: 14,
-                        paddingVertical: 12,
-                      }}
-                    >
-                      <View
-                        style={{
-                          backgroundColor: meta.backgroundColor,
-                          borderRadius: 6,
-                          paddingHorizontal: 8,
-                          paddingVertical: 3,
-                        }}
-                      >
-                        <Typography
-                          variant="badge-text"
-                          style={{
-                            color: meta.color,
-                            fontFamily: 'Inter-SemiBold',
-                            fontSize: 11,
-                          }}
-                        >
-                          {meta.label}
-                        </Typography>
-                      </View>
-                      <Typography
-                        variant="content"
-                        style={{ color: colors.text.primary, flex: 1, fontSize: 14 }}
-                      >
+  function renderStepThree() {
+    return (
+      <View style={{ alignSelf: 'center', maxWidth: 740, width: '100%' }}>
+        <SectionIntro
+          accent={accent}
+          description="A starter roadmap and a weekly pack. Adjust anything that doesn’t fit."
+          eyebrow="TRACK · STEP 3 OF 4"
+          title="Set up your tracking."
+        />
+
+        <View style={{ alignItems: 'baseline', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+          <Typography variant="title" style={{ fontFamily: 'Lora-SemiBold', fontSize: 16 }}>
+            Roadmap
+          </Typography>
+          <Typography variant="caption">Milestones along the way</Typography>
+        </View>
+
+        {wizard.milestones.length ? (
+          <View style={{ gap: 10 }}>
+            {wizard.milestones.map(renderMilestone)}
+          </View>
+        ) : (
+          <Card padding="spacious" style={{ alignItems: 'center', borderStyle: 'dashed' }}>
+            <Typography variant="title" style={{ fontFamily: 'Lora-Regular', fontSize: 16 }}>
+              No milestones yet.
+            </Typography>
+            <Typography variant="caption" style={{ marginTop: 4 }}>
+              You can add checkpoints now or from your goal page later.
+            </Typography>
+          </Card>
+        )}
+
+        {addingMilestone ? (
+          <Card padding="compact" style={{ gap: 8, marginTop: 12 }}>
+            <TextField
+              accessibilityLabel="New milestone title"
+              onChangeText={setNewMilestoneTitle}
+              placeholder="Milestone title"
+              value={newMilestoneTitle}
+            />
+            <View style={{ flexDirection: compact ? 'column' : 'row', gap: 8 }}>
+              <View style={{ flex: 1 }}>
+                <TextField
+                  accessibilityLabel="New milestone timing"
+                  onChangeText={setNewMilestoneWeek}
+                  placeholder="e.g. Week 6"
+                  value={newMilestoneWeek}
+                />
+              </View>
+              <View style={{ flex: 2 }}>
+                <TextField
+                  accessibilityLabel="New milestone reason"
+                  onChangeText={setNewMilestoneWhy}
+                  placeholder="Why this matters (optional)"
+                  value={newMilestoneWhy}
+                />
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'flex-end' }}>
+              <Button onPress={() => setAddingMilestone(false)} variant="ghost">Cancel</Button>
+              <AccentButton
+                accent={accent}
+                disabled={!newMilestoneTitle.trim()}
+                onPress={addMilestone}
+              >
+                Add milestone
+              </AccentButton>
+            </View>
+          </Card>
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setAddingMilestone(true)}
+            style={({ pressed }) => ({
+              alignItems: 'center',
+              borderColor: colors.border.input,
+              borderRadius: 14,
+              borderStyle: 'dashed',
+              borderWidth: 1,
+              marginTop: 12,
+              opacity: pressed ? 0.62 : 1,
+              padding: 14,
+            })}
+          >
+            <Typography variant="meta">＋ Add a milestone</Typography>
+          </Pressable>
+        )}
+
+        <View style={{ backgroundColor: colors.border.warm, height: 1, marginVertical: 28 }} />
+
+        <View style={{ alignItems: 'baseline', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+          <Typography variant="title" style={{ fontFamily: 'Lora-SemiBold', fontSize: 16 }}>
+            What you’ll track each week
+          </Typography>
+          <Typography variant="caption">
+            {wizard.activeTrackers.length} / {GOAL_CREATION_MAX_ACTIVE_TRACKERS} active
+          </Typography>
+        </View>
+
+        <View style={{ gap: 10 }}>
+          {wizard.trackers.filter((tracker) => tracker.enabled).map(renderTracker)}
+        </View>
+
+        {wizard.optionalTrackers.some((tracker) => !tracker.enabled) ? (
+          <View style={{ borderTopColor: colors.border.warm, borderTopWidth: 1, marginTop: 22, paddingTop: 20 }}>
+            <Typography variant="eyebrow" style={{ marginBottom: 12 }}>ALSO AVAILABLE</Typography>
+            <View style={{ gap: 8 }}>
+              {wizard.optionalTrackers.filter((tracker) => !tracker.enabled).map((tracker) => {
+                const typeColors = trackerTypeColor(tracker.type, accent);
+                return (
+                  <Card key={tracker.id} padding="compact" style={{ borderRadius: 12 }}>
+                    <View style={{ alignItems: 'center', flexDirection: 'row', gap: 10 }}>
+                      <Typography variant="meta" style={{ color: colors.text.primary, flex: 1 }}>
                         {tracker.title}
                       </Typography>
-                      <Pressable
-                        accessibilityLabel={`Remove ${tracker.title}`}
-                        accessibilityRole="button"
-                        hitSlop={6}
-                        onPress={() =>
-                          setTrackers((current) =>
-                            current.filter((item) => item.id !== tracker.id),
-                          )
-                        }
-                        style={({ pressed }) => ({
-                          opacity: pressed ? 0.55 : 1,
-                          padding: 4,
-                        })}
+                      <View
+                        style={{
+                          backgroundColor: darkMode ? colors.background.input : typeColors.backgroundColor,
+                          borderRadius: 999,
+                          paddingHorizontal: 9,
+                          paddingVertical: 4,
+                        }}
                       >
-                        <Typography
-                          variant="body"
-                          style={{ color: colors.text.muted, fontSize: 18, lineHeight: 18 }}
-                        >
-                          ×
+                        <Typography variant="badge-text" style={{ color: typeColors.color }}>
+                          {TRACKER_TYPE_LABELS[tracker.type]}
                         </Typography>
-                      </Pressable>
-                    </View>
-                  );
-                })}
-              </View>
-            ) : null}
-
-            {showTrackerAddForm ? (
-              <View
-                style={{
-                  backgroundColor: colors.background.page,
-                  borderColor: colors.border.divider,
-                  borderRadius: 12,
-                  borderWidth: 1,
-                  marginTop: 12,
-                  padding: 14,
-                }}
-              >
-                <TextInput
-                  accessibilityLabel="Tracker name"
-                  autoFocus
-                  onChangeText={setDraftTrackerTitle}
-                  onSubmitEditing={addTracker}
-                  placeholder="Tracker name"
-                  placeholderTextColor={colors.text.muted}
-                  style={{
-                    backgroundColor: colors.background.input,
-                    borderColor: colors.border.input,
-                    borderRadius: 10,
-                    borderWidth: 1,
-                    color: colors.text.primary,
-                    fontFamily: 'Inter-Regular',
-                    fontSize: 13,
-                    marginBottom: 10,
-                    outlineWidth: 0,
-                    paddingHorizontal: 12,
-                    paddingVertical: 9,
-                  }}
-                  value={draftTrackerTitle}
-                />
-
-                <View style={{ flexDirection: 'row', gap: 6, marginBottom: 12 }}>
-                  {GOAL_TRACKER_TYPES.map((type) => {
-                    const meta = typeMeta[type];
-                    const active = draftTrackerType === type;
-                    return (
+                      </View>
                       <Pressable
                         accessibilityRole="button"
-                        accessibilityState={{ selected: active }}
-                        key={type}
-                        onPress={() => setDraftTrackerType(type)}
+                        disabled={!wizard.canAddTracker}
+                        onPress={() => wizard.toggleTracker(tracker.id)}
                         style={({ pressed }) => ({
-                          alignItems: 'center',
-                          backgroundColor: active ? meta.backgroundColor : 'transparent',
-                          borderColor: active ? meta.color : colors.border.divider,
-                          borderRadius: 8,
-                          borderWidth: 1,
-                          flex: 1,
-                          opacity: pressed ? 0.68 : 1,
+                          backgroundColor: darkMode ? colors.background.input : accent.tint,
+                          borderRadius: 999,
+                          opacity: !wizard.canAddTracker ? 0.4 : pressed ? 0.7 : 1,
+                          paddingHorizontal: 13,
                           paddingVertical: 7,
                         })}
                       >
-                        <Typography
-                          variant="caption"
-                          style={{
-                            color: active ? meta.color : colors.text.muted,
-                            fontFamily: 'Inter-Medium',
-                            fontSize: 12,
-                          }}
-                        >
-                          {meta.label}
+                        <Typography variant="badge-text" style={{ color: accent.mid, fontFamily: 'Inter-SemiBold' }}>
+                          + Add this
                         </Typography>
                       </Pressable>
-                    );
-                  })}
-                </View>
-
-                {draftTrackerType === 'counter' ? (
-                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-                    <TextInput
-                      accessibilityLabel="Tracker target value"
-                      keyboardType="numeric"
-                      onChangeText={setDraftTrackerTargetValue}
-                      placeholder="Target"
-                      placeholderTextColor={colors.text.muted}
-                      style={{
-                        backgroundColor: colors.background.input,
-                        borderColor: colors.border.input,
-                        borderRadius: 10,
-                        borderWidth: 1,
-                        color: colors.text.primary,
-                        flex: 1,
-                        fontFamily: 'Inter-Regular',
-                        fontSize: 13,
-                        outlineWidth: 0,
-                        paddingHorizontal: 12,
-                        paddingVertical: 9,
-                      }}
-                      value={draftTrackerTargetValue}
-                    />
-                    <TextInput
-                      accessibilityLabel="Tracker target unit"
-                      onChangeText={setDraftTrackerTargetUnit}
-                      placeholder="Unit (e.g. km)"
-                      placeholderTextColor={colors.text.muted}
-                      style={{
-                        backgroundColor: colors.background.input,
-                        borderColor: colors.border.input,
-                        borderRadius: 10,
-                        borderWidth: 1,
-                        color: colors.text.primary,
-                        flex: 2,
-                        fontFamily: 'Inter-Regular',
-                        fontSize: 13,
-                        outlineWidth: 0,
-                        paddingHorizontal: 12,
-                        paddingVertical: 9,
-                      }}
-                      value={draftTrackerTargetUnit}
-                    />
-                  </View>
-                ) : null}
-
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={cancelTrackerAddForm}
-                    style={({ pressed }) => ({
-                      alignItems: 'center',
-                      borderColor: colors.border.divider,
-                      borderRadius: 8,
-                      borderWidth: 1,
-                      flex: 1,
-                      opacity: pressed ? 0.65 : 1,
-                      padding: 9,
-                    })}
-                  >
-                    <Typography
-                      variant="meta"
-                      style={{ color: colors.text.secondary, fontSize: 13 }}
-                    >
-                      Cancel
-                    </Typography>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityState={{ disabled: !canAddTracker }}
-                    disabled={!canAddTracker}
-                    onPress={addTracker}
-                    style={({ pressed }) => ({
-                      alignItems: 'center',
-                      backgroundColor: colors.accent.primary,
-                      borderRadius: 8,
-                      flex: 1,
-                      opacity: !canAddTracker ? 0.45 : pressed ? 0.75 : 1,
-                      padding: 9,
-                    })}
-                  >
-                    <Typography
-                      variant="meta"
-                      style={{
-                        color: colors.text.onAccent,
-                        fontFamily: 'Inter-SemiBold',
-                        fontSize: 13,
-                      }}
-                    >
-                      Add
-                    </Typography>
-                  </Pressable>
-                </View>
-              </View>
-            ) : null}
-
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 14 }}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={openTrackerAddForm}
-                style={({ pressed }) => ({
-                  alignItems: 'center',
-                  borderColor: colors.border.input,
-                  borderRadius: 10,
-                  borderStyle: 'dashed',
-                  borderWidth: 1,
-                  flexDirection: 'row',
-                  opacity: pressed ? 0.6 : 1,
-                  paddingHorizontal: 16,
-                  paddingVertical: 10,
-                })}
-              >
-                <Typography
-                  variant="meta"
-                  style={{ color: colors.text.secondary, fontSize: 13 }}
-                >
-                  ＋ Add tracker
-                </Typography>
-              </Pressable>
-            </View>
-          </FormCard>
-
-          <FormCard last>
-            <Eyebrow style={{ marginBottom: 2 }}>Milestones</Eyebrow>
-            <Typography
-              variant="description"
-              style={{ color: colors.text.secondary, fontSize: 14, lineHeight: 21, marginTop: 10 }}
-            >
-              Add the one-time events that are critical to this goal. Recurring behaviors and
-              numbers belong in Trackers.
-            </Typography>
-
-            {milestones.length > 0 ? (
-              <View style={{ gap: 8, marginTop: 14 }}>
-                {milestones.map((milestone) => (
-                  <View
-                    key={milestone.id}
-                    style={{
-                      alignItems: 'center',
-                      backgroundColor: colors.background.goalCard,
-                      borderColor: colors.border.warmSubtle,
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      flexDirection: 'row',
-                      gap: 12,
-                      paddingHorizontal: 14,
-                      paddingVertical: 12,
-                    }}
-                  >
-                    <Typography
-                      variant="meta"
-                      style={{ color: colors.text.accent, fontSize: 14 }}
-                    >
-                      ◆
-                    </Typography>
-                    <View style={{ flex: 1 }}>
-                      <Typography
-                        variant="content"
-                        style={{ color: colors.text.primary, fontSize: 14 }}
-                      >
-                        {milestone.title}
-                      </Typography>
-                      {milestone.description || milestone.dueDate ? (
-                        <Typography
-                          variant="caption"
-                          style={{ color: colors.text.muted, fontSize: 11.5, marginTop: 2 }}
-                        >
-                          {[
-                            milestone.description,
-                            milestone.dueDate
-                              ? `Due ${new Date(milestone.dueDate).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                })}`
-                              : null,
-                          ].filter(Boolean).join(' · ')}
-                        </Typography>
-                      ) : null}
                     </View>
-                    <Pressable
-                      accessibilityLabel={`Remove ${milestone.title}`}
-                      accessibilityRole="button"
-                      hitSlop={6}
-                      onPress={() =>
-                        setMilestones((current) =>
-                          current.filter((item) => item.id !== milestone.id),
-                        )
-                      }
-                      style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1, padding: 4 })}
-                    >
-                      <Typography
-                        variant="body"
-                        style={{ color: colors.text.muted, fontSize: 18, lineHeight: 18 }}
-                      >
-                        ×
-                      </Typography>
-                    </Pressable>
-                  </View>
-                ))}
-              </View>
-            ) : null}
+                  </Card>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
 
-            {showMilestoneAddForm ? (
-              <View
-                style={{
-                  backgroundColor: colors.background.page,
-                  borderColor: colors.border.divider,
-                  borderRadius: 12,
-                  borderWidth: 1,
-                  marginTop: 12,
-                  padding: 14,
-                }}
-              >
-                <TextInput
-                  accessibilityLabel="Milestone name"
-                  autoFocus
-                  onChangeText={setDraftMilestoneTitle}
-                  placeholder="Milestone name"
-                  placeholderTextColor={colors.text.muted}
-                  style={{
-                    backgroundColor: colors.background.input,
-                    borderColor: colors.border.input,
-                    borderRadius: 10,
+        {addingTracker ? (
+          <Card padding="compact" style={{ gap: 8, marginTop: 14 }}>
+            <TextField
+              accessibilityLabel="Custom tracker title"
+              onChangeText={setNewTrackerTitle}
+              placeholder="Custom tracker name"
+              value={newTrackerTitle}
+            />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {GOAL_TRACKER_TYPES.map((type) => (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: type === newTrackerType }}
+                  key={type}
+                  onPress={() => setNewTrackerType(type)}
+                  style={({ pressed }) => ({
+                    backgroundColor: type === newTrackerType ? accent.tint : colors.background.input,
+                    borderColor: type === newTrackerType ? accent.color : colors.border.warm,
+                    borderRadius: 999,
                     borderWidth: 1,
-                    color: colors.text.primary,
-                    fontFamily: 'Inter-Regular',
-                    fontSize: 13,
-                    marginBottom: 8,
-                    outlineWidth: 0,
+                    opacity: pressed ? 0.7 : 1,
                     paddingHorizontal: 12,
-                    paddingVertical: 9,
-                  }}
-                  value={draftMilestoneTitle}
-                />
-                <TextInput
-                  accessibilityLabel="Milestone description"
-                  multiline
-                  onChangeText={setDraftMilestoneDescription}
-                  placeholder="Why this event matters (optional)"
-                  placeholderTextColor={colors.text.muted}
-                  style={{
-                    backgroundColor: colors.background.input,
-                    borderColor: colors.border.input,
-                    borderRadius: 10,
-                    borderWidth: 1,
-                    color: colors.text.primary,
-                    fontFamily: 'Inter-Regular',
-                    fontSize: 13,
-                    marginBottom: 8,
-                    minHeight: 64,
-                    outlineWidth: 0,
-                    paddingHorizontal: 12,
-                    paddingVertical: 9,
-                    textAlignVertical: 'top',
-                  }}
-                  value={draftMilestoneDescription}
-                />
-                <TextInput
-                  accessibilityLabel="Milestone due date"
-                  autoCapitalize="none"
-                  onChangeText={setDraftMilestoneDueDate}
-                  placeholder="Due date (optional, YYYY-MM-DD)"
-                  placeholderTextColor={colors.text.muted}
-                  style={{
-                    backgroundColor: colors.background.input,
-                    borderColor:
-                      milestoneDueDateValidation && !milestoneDueDateValidation.valid
-                        ? colors.feedback.danger.text
-                        : colors.border.input,
-                    borderRadius: 10,
-                    borderWidth: 1,
-                    color: colors.text.primary,
-                    fontFamily: 'Inter-Regular',
-                    fontSize: 13,
-                    marginBottom: 12,
-                    outlineWidth: 0,
-                    paddingHorizontal: 12,
-                    paddingVertical: 9,
-                  }}
-                  value={draftMilestoneDueDate}
-                />
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={cancelMilestoneAddForm}
-                    style={({ pressed }) => ({
-                      alignItems: 'center',
-                      borderColor: colors.border.divider,
-                      borderRadius: 8,
-                      borderWidth: 1,
-                      flex: 1,
-                      opacity: pressed ? 0.65 : 1,
-                      padding: 9,
-                    })}
-                  >
-                    <Typography variant="meta" style={{ color: colors.text.secondary, fontSize: 13 }}>
-                      Cancel
-                    </Typography>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityState={{ disabled: !canAddMilestone }}
-                    disabled={!canAddMilestone}
-                    onPress={addMilestone}
-                    style={({ pressed }) => ({
-                      alignItems: 'center',
-                      backgroundColor: colors.accent.primary,
-                      borderRadius: 8,
-                      flex: 1,
-                      opacity: !canAddMilestone ? 0.45 : pressed ? 0.75 : 1,
-                      padding: 9,
-                    })}
-                  >
-                    <Typography variant="meta" style={{ color: colors.text.onAccent, fontFamily: 'Inter-SemiBold', fontSize: 13 }}>
-                      Add
-                    </Typography>
-                  </Pressable>
+                    paddingVertical: 7,
+                  })}
+                >
+                  <Typography variant="badge-text" style={{ color: type === newTrackerType ? accent.mid : colors.text.secondary }}>
+                    {TRACKER_TYPE_LABELS[type]}
+                  </Typography>
+                </Pressable>
+              ))}
+            </View>
+            {newTrackerType !== 'checklist' ? (
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <View style={{ flex: 1 }}>
+                  <TextField
+                    accessibilityLabel="Custom tracker target"
+                    onChangeText={setNewTrackerTarget}
+                    placeholder="Target"
+                    value={newTrackerTarget}
+                  />
+                </View>
+                <View style={{ flex: 2 }}>
+                  <TextField
+                    accessibilityLabel="Custom tracker unit"
+                    onChangeText={setNewTrackerUnit}
+                    placeholder="Unit, e.g. sessions"
+                    value={newTrackerUnit}
+                  />
                 </View>
               </View>
             ) : null}
-
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 14 }}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={openMilestoneAddForm}
-                style={({ pressed }) => ({
-                  alignItems: 'center',
-                  borderColor: colors.border.input,
-                  borderRadius: 10,
-                  borderStyle: 'dashed',
-                  borderWidth: 1,
-                  opacity: pressed ? 0.6 : 1,
-                  paddingHorizontal: 16,
-                  paddingVertical: 10,
-                })}
+            <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'flex-end' }}>
+              <Button onPress={() => setAddingTracker(false)} variant="ghost">Cancel</Button>
+              <AccentButton
+                accent={accent}
+                disabled={!newTrackerTitle.trim() || !wizard.canAddTracker}
+                onPress={addTracker}
               >
-                <Typography variant="meta" style={{ color: colors.text.secondary, fontSize: 13 }}>
-                  ＋ Add milestone
-                </Typography>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ disabled: !aiAssistEnabled || suggesting }}
-                disabled={!aiAssistEnabled || suggesting}
-                onPress={() => void suggestMilestone()}
-                style={({ pressed }) => ({
-                  alignItems: 'center',
-                  backgroundColor: colors.feedback.info.bg,
-                  borderColor: colors.feedback.info.border,
-                  borderRadius: 10,
-                  borderWidth: 1,
-                  flexDirection: 'row',
-                  gap: 6,
-                  opacity: !aiAssistEnabled || suggesting ? 0.45 : pressed ? 0.72 : 1,
-                  paddingHorizontal: 16,
-                  paddingVertical: 10,
-                })}
-              >
-                <Typography
-                  variant="meta"
-                  style={{ color: colors.text.accent, fontSize: 13 }}
-                >
-                  ✦
-                </Typography>
-                <Typography
-                  variant="meta"
-                  style={{
-                    color: colors.text.accent,
-                    fontFamily: 'Inter-Medium',
-                    fontSize: 13,
-                  }}
-                >
-                  Suggest a milestone
-                </Typography>
-              </Pressable>
+                Add tracker
+              </AccentButton>
             </View>
-          </FormCard>
+          </Card>
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            disabled={!wizard.canAddTracker}
+            onPress={() => setAddingTracker(true)}
+            style={({ pressed }) => ({
+              alignItems: 'center',
+              borderColor: colors.border.input,
+              borderRadius: 12,
+              borderStyle: 'dashed',
+              borderWidth: 1,
+              marginTop: 14,
+              opacity: !wizard.canAddTracker ? 0.42 : pressed ? 0.62 : 1,
+              padding: 12,
+            })}
+          >
+            <Typography variant="meta">
+              {wizard.canAddTracker ? '+ Add custom metric' : '5 is the max — remove one to add your own.'}
+            </Typography>
+          </Pressable>
+        )}
+      </View>
+    );
+  }
 
+  function renderSuccess() {
+    return (
+      <View style={{ alignItems: 'center', alignSelf: 'center', marginTop: 40, maxWidth: 520, width: '100%' }}>
+        <View
+          style={{
+            alignItems: 'center',
+            backgroundColor: darkMode ? colors.background.input : accent.tint,
+            borderColor: accent.color,
+            borderRadius: 44,
+            borderWidth: 2,
+            height: 88,
+            justifyContent: 'center',
+            marginBottom: 24,
+            width: 88,
+          }}
+        >
+          <Typography variant="heading" style={{ color: accent.color, fontSize: 38 }}>✓</Typography>
+        </View>
+        <Typography variant="heading" style={{ fontFamily: 'Lora-SemiBold', fontSize: 28, textAlign: 'center' }}>
+          Goal created.
+        </Typography>
+        <Typography variant="body" style={{ fontSize: 15, lineHeight: 23, marginBottom: 28, marginTop: 10, textAlign: 'center' }}>
+          {wizard.skipTracking
+            ? 'Your goal is ready. You can add milestones and trackers from its goal page whenever you’re ready.'
+            : 'Your first milestone and this week’s trackers are ready on the goal page.'}
+        </Typography>
+        <Pressable
+          accessibilityLabel={`View goal ${wizard.outcome}`}
+          accessibilityRole="button"
+          disabled={!createdGoalId}
+          onPress={() => createdGoalId && router.replace(`/(app)/goals/${createdGoalId}` as never)}
+          style={({ pressed }) => ({
+            alignItems: 'center',
+            backgroundColor: colors.background.card,
+            borderColor: colors.border.warm,
+            borderRadius: 16,
+            borderWidth: 1,
+            flexDirection: 'row',
+            gap: 12,
+            opacity: !createdGoalId ? 0.5 : pressed ? 0.72 : 1,
+            paddingHorizontal: 20,
+            paddingVertical: 18,
+            shadowColor: colors.text.primary,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: darkMode ? 0 : 0.06,
+            shadowRadius: 18,
+            width: '100%',
+          })}
+        >
           <View
             style={{
               alignItems: 'center',
-              flexDirection: 'row',
-              gap: 8,
-              marginBottom: 16,
-              paddingHorizontal: 2,
+              backgroundColor: darkMode ? colors.background.input : accent.tint,
+              borderRadius: 10,
+              height: 38,
+              justifyContent: 'center',
+              width: 38,
             }}
           >
-            <Typography
-              variant="meta"
-              style={{ color: colors.text.muted, fontSize: 13 }}
-            >
-              ✦
+            <Typography variant="body" style={{ color: accent.color, fontSize: 20 }}>◆</Typography>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Typography variant="title" style={{ fontFamily: 'Lora-SemiBold', fontSize: 16 }}>
+              {wizard.outcome}
             </Typography>
-            <Typography
-              variant="body"
-              style={{
-                color: colors.text.muted,
-                flex: 1,
-                fontSize: 12.5,
-                lineHeight: 18.75,
-              }}
-            >
-              Ohara only ever suggests. Nothing is written until you create the goal yourself.
+            <Typography variant="caption" style={{ marginTop: 2 }}>
+              {formatDate(wizard.deadline)} · {wizard.daysPerWeek} days / week
             </Typography>
           </View>
-
-          {submitError ? (
-            <Typography
-              accessibilityRole="alert"
-              variant="caption"
-              style={{
-                color: colors.feedback.danger.text,
-                fontSize: 12,
-                marginBottom: 12,
-                textAlign: 'center',
-              }}
-            >
-              {submitError}
-            </Typography>
-          ) : null}
-
-          <CreateButton
-            enabled={createEnabled}
-            onPress={handleCreateGoal}
-            saving={saving}
-          />
-        </ScrollView>
-      </View>
-
-      {created ? (
-        <View
-          accessibilityViewIsModal
-          style={[
-            StyleSheet.absoluteFillObject,
-            {
-              alignItems: 'center',
-              backgroundColor: 'rgba(30,50,38,0.55)',
-              justifyContent: 'center',
-              zIndex: 50,
-            },
-          ]}
+          <Typography variant="body" style={{ color: accent.color, fontSize: 18 }}>→</Typography>
+        </Pressable>
+        <AccentButton
+          accent={accent}
+          disabled={!createdGoalId}
+          onPress={() => createdGoalId && router.replace(`/(app)/goals/${createdGoalId}` as never)}
+          style={{ marginTop: 14, width: '100%' }}
         >
-          <Animated.View
-            style={{
-              alignItems: 'center',
-              backgroundColor: colors.background.card,
-              borderColor: colors.border.divider,
-              borderWidth: 1,
-              borderRadius: 20,
-              elevation: 12,
-              marginHorizontal: 24,
-              maxWidth: 540,
-              opacity: overlayOpacity,
-              paddingHorizontal: 48,
-              paddingVertical: 40,
-              shadowColor: colors.text.primary,
-              shadowOffset: { width: 0, height: 20 },
-              shadowOpacity: themeMode === 'light' ? 0.25 : 0,
-              shadowRadius: 60,
-              transform: [{ scale: overlayScale }],
-              width: '100%',
-            }}
-          >
-            <View
-              style={{
-                alignItems: 'center',
-                backgroundColor: colors.background.selectedRow,
-                borderRadius: 32,
-                height: 64,
-                justifyContent: 'center',
-                marginBottom: 18,
-                width: 64,
-              }}
-            >
-              <Typography
-                variant="body"
-                style={{ color: colors.text.accent, fontSize: 32, lineHeight: 38 }}
-              >
-                ✓
+          View goal
+        </AccentButton>
+        <Button onPress={startAnother} style={{ marginTop: 14 }} variant="ghost">
+          ↺ Start another
+        </Button>
+      </View>
+    );
+  }
+
+  function renderStepFour() {
+    if (created) return renderSuccess();
+    return (
+      <View style={{ alignSelf: 'center', maxWidth: 720, width: '100%' }}>
+        <SectionIntro
+          accent={accent}
+          description="Read it back to yourself. If it feels honest, start it."
+          eyebrow="CONFIRM · STEP 4 OF 4"
+          title="One last look."
+        />
+
+        <Card padding="compact" style={{ marginBottom: 14 }}>
+          <View style={{ alignItems: 'center', flexDirection: 'row', gap: 14 }}>
+            <View style={{ flex: 1 }}>
+              <Typography variant="field-label">Keep this goal private</Typography>
+              <Typography variant="caption" style={{ lineHeight: 18, marginTop: 2 }}>
+                Private goals stay out of circle features and recommendations. You can change this later.
               </Typography>
             </View>
-            <Typography
-              variant="title"
-              style={{
-                color: colors.text.primary,
-                fontFamily: 'Lora-Regular',
-                fontSize: 22,
-                fontWeight: '600',
-                marginBottom: 6,
-                textAlign: 'center',
-              }}
-            >
-              {titleText.trim() || 'New goal'}
-            </Typography>
-            <Typography
-              variant="body"
-              style={{
-                color: colors.text.secondary,
-                fontSize: 14,
-                marginBottom: 24,
-                textAlign: 'center',
-              }}
-            >
-              Your goal is created — exactly as you shaped it.
-            </Typography>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={resetForm}
-                style={({ pressed }) => ({
-                  borderColor: colors.border.warm,
-                  borderRadius: 999,
-                  borderWidth: 1,
-                  opacity: pressed ? 0.65 : 1,
-                  paddingHorizontal: 22,
-                  paddingVertical: 11,
-                })}
-              >
-                <Typography
-                  variant="body"
-                  style={{
-                    color: colors.text.accent,
-                    fontFamily: 'Inter-Medium',
-                    fontSize: 14,
-                  }}
-                >
-                  Create another
-                </Typography>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ disabled: !createdGoalId }}
-                disabled={!createdGoalId}
-                onPress={goToCreatedGoal}
-                style={({ pressed }) => ({
-                  backgroundColor: colors.accent.primary,
-                  borderRadius: 999,
-                  opacity: !createdGoalId ? 0.45 : pressed ? 0.75 : 1,
-                  paddingHorizontal: 22,
-                  paddingVertical: 11,
-                })}
-              >
-                <Typography
-                  variant="body"
-                  style={{
-                    color: colors.text.onAccent,
-                    fontFamily: 'Inter-Medium',
-                    fontSize: 14,
-                  }}
-                >
-                  Go back to goal
-                </Typography>
-              </Pressable>
+            <Toggle
+              accessibilityLabel="Keep this goal private"
+              onValueChange={wizard.setPrivate}
+              style={{ backgroundColor: wizard.isPrivate ? accent.color : colors.border.input }}
+              value={wizard.isPrivate}
+            />
+          </View>
+        </Card>
+
+        <Card elevated padding="none" style={{ borderRadius: 20, overflow: 'hidden' }}>
+          <View style={{ backgroundColor: accent.color, height: 6 }} />
+          <View style={{ padding: compact ? 20 : 28 }}>
+            <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 }}>
+              <CategoryBadge accent={accent} darkMode={darkMode} label={wizard.template.label} />
+              {wizard.isPrivate ? <Typography variant="caption">🔒 Private</Typography> : <Typography variant="caption">Circle</Typography>}
             </View>
-          </Animated.View>
+            <Typography
+              variant="heading"
+              style={{ fontFamily: 'Lora-SemiBold', fontSize: compact ? 26 : 30, lineHeight: compact ? 32 : 36 }}
+            >
+              {wizard.outcome}
+            </Typography>
+
+            <View
+              style={{
+                borderBottomColor: colors.border.warmSubtle,
+                borderBottomWidth: 1,
+                borderTopColor: colors.border.warmSubtle,
+                borderTopWidth: 1,
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                gap: compact ? 18 : 28,
+                marginTop: 16,
+                paddingVertical: 16,
+              }}
+            >
+              {[
+                ['TARGET DATE', formatDate(wizard.deadline)],
+                ['COMMITMENT', `${wizard.daysPerWeek} days / week`],
+                ['MILESTONES', `${wizard.milestones.length}${wizard.skipTracking ? ' (skipped)' : ''}`],
+                ['TRACKERS', `${wizard.activeTrackers.length}${wizard.skipTracking ? ' (skipped)' : ''}`],
+              ].map(([label, value]) => (
+                <View key={label} style={{ minWidth: 110 }}>
+                  <Typography variant="eyebrow">{label}</Typography>
+                  <Typography variant="meta" style={{ color: colors.text.primary, fontFamily: 'Inter-SemiBold' }}>
+                    {value}
+                  </Typography>
+                </View>
+              ))}
+            </View>
+
+            {wizard.reason ? (
+              <Typography
+                variant="body"
+                style={{
+                  borderBottomColor: colors.border.warmSubtle,
+                  borderBottomWidth: 1,
+                  fontFamily: 'Lora-Italic',
+                  fontSize: 14.5,
+                  fontStyle: 'italic',
+                  lineHeight: 23,
+                  paddingVertical: 16,
+                }}
+              >
+                “{wizard.reason}”
+              </Typography>
+            ) : null}
+
+            {selectedProject ? (
+              <View style={{ paddingTop: 16 }}>
+                <Typography variant="eyebrow">PROJECT</Typography>
+                <Typography variant="meta" style={{ color: colors.text.primary }}>{selectedProject.title}</Typography>
+              </View>
+            ) : null}
+
+            {wizard.milestones.length ? (
+              <View style={{ paddingTop: 16 }}>
+                <Typography variant="eyebrow" style={{ marginBottom: 8 }}>ROADMAP</Typography>
+                {wizard.milestones.slice(0, 3).map((milestone) => (
+                  <View key={milestone.id} style={{ alignItems: 'center', flexDirection: 'row', gap: 8, paddingVertical: 4 }}>
+                    <View style={{ borderColor: colors.border.input, borderRadius: 4, borderWidth: 1.5, height: 14, width: 14 }} />
+                    <Typography variant="meta" style={{ color: colors.text.primary, flex: 1 }}>
+                      {milestone.title}
+                    </Typography>
+                    <Typography variant="caption">{milestone.week}</Typography>
+                  </View>
+                ))}
+                {wizard.milestones.length > 3 ? (
+                  <Typography variant="caption" style={{ marginLeft: 22, marginTop: 4 }}>
+                    +{wizard.milestones.length - 3} more
+                  </Typography>
+                ) : null}
+              </View>
+            ) : null}
+
+            {wizard.activeTrackers.length ? (
+              <View style={{ paddingTop: 16 }}>
+                <Typography variant="eyebrow" style={{ marginBottom: 8 }}>TRACKERS</Typography>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {wizard.activeTrackers.map((tracker) => (
+                    <View
+                      key={tracker.id}
+                      style={{
+                        backgroundColor: colors.background.input,
+                        borderColor: colors.border.warm,
+                        borderRadius: 999,
+                        borderWidth: 1,
+                        paddingHorizontal: 10,
+                        paddingVertical: 5,
+                      }}
+                    >
+                      <Typography variant="caption" style={{ color: colors.text.primary }}>
+                        {tracker.title}
+                      </Typography>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null}
+          </View>
+        </Card>
+
+        {submitError ? (
+          <Typography
+            accessibilityRole="alert"
+            variant="caption"
+            style={{ color: colors.feedback.danger.text, marginTop: 12, textAlign: 'center' }}
+          >
+            {submitError}
+          </Typography>
+        ) : null}
+        {!trackerInputsValid ? (
+          <Typography
+            accessibilityRole="alert"
+            variant="caption"
+            style={{ color: colors.feedback.danger.text, marginTop: 8, textAlign: 'center' }}
+          >
+            Counter trackers need a target above zero and a unit.
+          </Typography>
+        ) : null}
+        {!trackingTitlesValid ? (
+          <Typography
+            accessibilityRole="alert"
+            variant="caption"
+            style={{ color: colors.feedback.danger.text, marginTop: 8, textAlign: 'center' }}
+          >
+            Milestones and active trackers need a title. Go back to edit or remove blank items.
+          </Typography>
+        ) : null}
+      </View>
+    );
+  }
+
+  const stepContent = wizard.step === 1
+    ? renderStepOne()
+    : wizard.step === 2
+      ? renderStepTwo()
+      : wizard.step === 3
+        ? renderStepThree()
+        : renderStepFour();
+
+  const nextEnabled = wizard.step === 1
+    ? Boolean(wizard.outcome.trim())
+    : wizard.step === 2
+      ? deadlineValid
+      : true;
+
+  return (
+    <SafeAreaView style={{ backgroundColor: pageBackground, flex: 1, flexDirection: 'row' }}>
+      {showSidebar ? <Sidebar /> : null}
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <AppHeader
+          backLabel="Journey"
+          onBack={() => router.back()}
+          style={{ backgroundColor: pageBackground }}
+          title="New goal"
+          actions={
+            <Typography variant="caption" style={{ color: colors.text.muted }}>
+              Step {wizard.step} of 4 · {STEP_LABELS[wizard.step - 1]}
+            </Typography>
+          }
+        />
+        <View style={{ backgroundColor: pageBackground, flexDirection: 'row', gap: 6, paddingHorizontal: compact ? 16 : 40, paddingTop: 12 }}>
+          {STEP_LABELS.map((label, index) => (
+            <View
+              accessibilityLabel={`${label}${index + 1 <= wizard.step ? ', completed' : ''}`}
+              key={label}
+              style={{
+                backgroundColor: index + 1 <= wizard.step ? accent.color : colors.border.warm,
+                borderRadius: 3,
+                flex: 1,
+                height: 5,
+              }}
+            />
+          ))}
         </View>
-      ) : null}
+
+        <ScrollView
+          contentContainerStyle={{
+            paddingBottom: 40,
+            paddingHorizontal: compact ? 16 : 40,
+            paddingTop: compact ? 24 : 30,
+          }}
+          keyboardShouldPersistTaps="handled"
+          style={{ flex: 1 }}
+        >
+          <Animated.View style={{ opacity: stepOpacity, transform: [{ translateY: stepTranslate }] }}>
+            {stepContent}
+          </Animated.View>
+        </ScrollView>
+
+        {!created ? (
+          <View
+            style={{
+              alignItems: 'center',
+              backgroundColor: pageBackground,
+              borderTopColor: colors.border.warm,
+              borderTopWidth: 1,
+              flexDirection: compact ? 'column' : 'row',
+              gap: 10,
+              paddingHorizontal: compact ? 16 : 40,
+              paddingVertical: compact ? 14 : 20,
+            }}
+          >
+            {compact ? (
+              <>
+                {wizard.step < 4 ? (
+                  <AccentButton
+                    accent={accent}
+                    disabled={!nextEnabled}
+                    onPress={wizard.next}
+                    style={{ width: '100%' }}
+                  >
+                    {wizard.step === 2 ? 'Set up tracking →' : 'Next →'}
+                  </AccentButton>
+                ) : (
+                  <AccentButton
+                    accent={accent}
+                    disabled={!canSubmit}
+                    loading={saving}
+                    onPress={() => void createGoal()}
+                    style={{ width: '100%' }}
+                  >
+                    Start this goal ✓
+                  </AccentButton>
+                )}
+                {wizard.step > 1 ? (
+                  <View
+                    style={{
+                      alignItems: 'center',
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      width: '100%',
+                    }}
+                  >
+                    <Button onPress={wizard.back} variant="ghost">← Back</Button>
+                    {wizard.step === 2 ? (
+                      <Button onPress={wizard.skipToConfirm} variant="ghost">Skip tracking</Button>
+                    ) : null}
+                  </View>
+                ) : null}
+              </>
+            ) : (
+              <>
+                {wizard.step > 1 ? (
+                  <Button onPress={wizard.back} variant="ghost">← Back</Button>
+                ) : null}
+                <View style={{ flex: 1 }} />
+                {wizard.step === 2 ? (
+                  <Button onPress={wizard.skipToConfirm} variant="ghost">
+                    Skip — I’ll add tracking later
+                  </Button>
+                ) : null}
+                {wizard.step < 4 ? (
+                  <AccentButton accent={accent} disabled={!nextEnabled} onPress={wizard.next}>
+                    {wizard.step === 2 ? 'Set up tracking →' : 'Next →'}
+                  </AccentButton>
+                ) : (
+                  <AccentButton accent={accent} disabled={!canSubmit} loading={saving} onPress={() => void createGoal()}>
+                    Start this goal ✓
+                  </AccentButton>
+                )}
+              </>
+            )}
+          </View>
+        ) : null}
+      </View>
+
+      <Toast message={toastMessage} onUndo={undoRemoval} visible={undoState !== null} />
     </SafeAreaView>
   );
 }

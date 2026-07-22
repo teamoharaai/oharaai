@@ -49,7 +49,7 @@ async function handlePost(
 
     const goalTitle = requiredString(body.goalTitle, 'goalTitle', 200);
     const goalDescription = optionalString(body.goalDescription, 'goalDescription', 4000);
-    const goalCategory = body.goalCategory ?? 'create';
+    const goalCategory = body.goalCategory ?? 'creative';
     if (!GOAL_CATEGORIES.includes(goalCategory as GoalCategory)) {
       throw new Error(`goalCategory must be one of: ${GOAL_CATEGORIES.join(', ')}`);
     }

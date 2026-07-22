@@ -12,7 +12,7 @@
 // so we keep the lower-latency/lower-cost model explicit instead of implying a stronger model in comments.
 // Output schema: docs/AI_RESPONSE_SCHEMA.md → Goal Creation (Finalize)
 
-import { GOAL_CATEGORIES } from '@/lib/goals/schema';
+import { GOAL_CREATION_CATEGORIES } from '@/lib/goals/schema';
 
 // ─── Phase 1: Conversation ────────────────────────────────────────────────────
 // Guides the user through defining their goal naturally.
@@ -187,7 +187,7 @@ export const GOAL_CREATION_FINALIZE_PROMPT = `Produce the final structured goal 
 Infer the best possible goal from the transcript. If details are missing, make reasonable assumptions and list them in "assumptions". Use null only when assuming would be misleading.
 
 CATEGORY:
-${GOAL_CATEGORIES.map((c) => `- "${c}"`).join('\n')}
+${GOAL_CREATION_CATEGORIES.map((c) => `- "${c}"`).join('\n')}
 
 TRACKER TYPES:
 - "counter": requires targetValue greater than 0 and non-empty targetUnit
@@ -220,7 +220,7 @@ Rules:
   "goal": {
     "title": "string — clear, action-oriented, max 100 chars",
     "description": "string — one sentence explaining the goal and what achieving it means, max 300 chars",
-    "category": "one of: body | mind | money | create | connect | contribute",
+    "category": "one of: ${GOAL_CREATION_CATEGORIES.join(' | ')}",
     "deadline": "ISO 8601 date string (YYYY-MM-DD) — must be in the future, or null if no deadline was mentioned",
     "smart": {
       "specific": "string — what exactly they will do or achieve",
@@ -272,14 +272,14 @@ Hard requirements:
 - The system may already begin the response with "{" for you; continue the JSON object and do not restart or wrap it
 
 CATEGORY — choose exactly one:
-${GOAL_CATEGORIES.map((c) => `- "${c}"`).join('\n')}
+${GOAL_CREATION_CATEGORIES.map((c) => `- "${c}"`).join('\n')}
 
 Required JSON shape:
 {
   "goal": {
     "title": "string",
     "description": "string",
-    "category": "body | mind | money | create | connect | contribute",
+    "category": "${GOAL_CREATION_CATEGORIES.join(' | ')}",
     "deadline": "YYYY-MM-DD string or null",
     "smart": {
       "specific": "string",

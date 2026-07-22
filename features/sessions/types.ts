@@ -1,3 +1,5 @@
+import type { GoalCategory } from '@/lib/goals/schema';
+
 export type AgentSessionStatus = 'active' | 'draft' | 'published' | 'failed';
 
 export type SessionEventType =
@@ -36,7 +38,7 @@ export type StartSessionInput = {
   endDate: string;
   goalTitle: string;
   goalDescription?: string | null;
-  goalCategory?: 'body' | 'mind' | 'money' | 'create' | 'connect' | 'contribute';
+  goalCategory?: GoalCategory;
 };
 
 export type StartSessionResult = {
