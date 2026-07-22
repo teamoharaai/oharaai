@@ -2,6 +2,7 @@ import { withAuth, type AuthContext } from '@/lib/api/auth';
 import { createAuthedClient } from '@/lib/db/client';
 import {
   createGoalWithMilestonesAndTrackers,
+  type GoalCreationOrigin,
   type ManualGoalCreationInput,
 } from '@/lib/db/goals';
 import type { ApiResponse } from '@/lib/api/contracts';
@@ -18,9 +19,23 @@ import {
 } from '@/lib/goals/schema';
 
 const TARGET_FREQUENCY_PERIODS = ['day', 'week', 'month'] as const;
+const GOAL_CREATION_ORIGINS = ['manual', 'ai_chatbot'] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+// Provenance of the creation. Absent/null defaults to 'manual' so the existing
+// manual wizard payload keeps behaving exactly as before; the AI chatbot flow
+// sends 'ai_chatbot', which persists as goals.ai_generated = true.
+function validateOrigin(payload: unknown): GoalCreationOrigin {
+  if (!isRecord(payload)) return 'manual';
+  const { origin } = payload;
+  if (origin === undefined || origin === null) return 'manual';
+  if (!GOAL_CREATION_ORIGINS.includes(origin as GoalCreationOrigin)) {
+    throw new Error(`origin must be one of: ${GOAL_CREATION_ORIGINS.join(', ')}`);
+  }
+  return origin as GoalCreationOrigin;
 }
 
 function validateOptionalNullableString(
@@ -237,8 +252,10 @@ async function handlePost(request: Request, _params: Record<string, string>, aut
   }
 
   let input: ManualGoalCreationInput;
+  let origin: GoalCreationOrigin;
   try {
     input = validateManualGoalCreationInput(payload);
+    origin = validateOrigin(payload);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Invalid goal payload';
     const errBody: ApiResponse<never> = {
@@ -255,7 +272,7 @@ async function handlePost(request: Request, _params: Record<string, string>, aut
     const result = await createGoalWithMilestonesAndTrackers(
       auth.userId,
       input,
-      { origin: 'manual' },
+      { origin },
       authedDb,
     );
     const body: ApiResponse<typeof result> = { ok: true, data: result, error: null };

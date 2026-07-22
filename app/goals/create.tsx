@@ -30,6 +30,7 @@ import {
   type GoalCreationWizardTracker,
   useGoalCreationWizard,
 } from '@/features/goals/hooks/useGoalCreationWizard';
+import { AIGoalCreation } from '@/features/goals/components/AIGoalCreation';
 import { fetchGoalById } from '@/features/goals/services/goal-service';
 import { useGoalStore } from '@/features/goals/store';
 import { useProjectStore } from '@/features/projects/store';
@@ -290,6 +291,7 @@ export default function GoalCreateScreen() {
   const darkMode = themeMode === 'dark';
   const pageBackground = darkMode ? colors.background.page : accent.pageBg;
 
+  const [creationMode, setCreationMode] = useState<'manual' | 'ai'>('manual');
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [createdGoalId, setCreatedGoalId] = useState<string | null>(null);
@@ -1665,11 +1667,72 @@ export default function GoalCreateScreen() {
           style={{ backgroundColor: pageBackground }}
           title="New goal"
           actions={
-            <Typography variant="caption" style={{ color: colors.text.muted }}>
-              Step {wizard.step} of 4 · {STEP_LABELS[wizard.step - 1]}
-            </Typography>
+            creationMode === 'manual' ? (
+              <Typography variant="caption" style={{ color: colors.text.muted }}>
+                Step {wizard.step} of 4 · {STEP_LABELS[wizard.step - 1]}
+              </Typography>
+            ) : null
           }
         />
+        <View
+          style={{
+            backgroundColor: pageBackground,
+            paddingHorizontal: compact ? 16 : 40,
+            paddingTop: 12,
+          }}
+        >
+          <View
+            accessibilityRole="tablist"
+            style={{
+              alignSelf: compact ? 'stretch' : 'flex-start',
+              backgroundColor: colors.background.input,
+              borderRadius: 12,
+              flexDirection: 'row',
+              gap: 4,
+              padding: 4,
+            }}
+          >
+            {([
+              ['manual', 'Build it myself'],
+              ['ai', 'Chat with AI'],
+            ] as const).map(([mode, label]) => {
+              const selected = creationMode === mode;
+              return (
+                <Pressable
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected }}
+                  key={mode}
+                  onPress={() => setCreationMode(mode)}
+                  style={({ pressed }) => ({
+                    alignItems: 'center',
+                    backgroundColor: selected ? colors.background.card : 'transparent',
+                    borderRadius: 9,
+                    flex: compact ? 1 : undefined,
+                    opacity: pressed ? 0.8 : 1,
+                    paddingHorizontal: 18,
+                    paddingVertical: 9,
+                    shadowColor: colors.text.primary,
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: selected && !darkMode ? 0.08 : 0,
+                    shadowRadius: 4,
+                  })}
+                >
+                  <Typography
+                    variant="emphasis-sm"
+                    style={{ color: selected ? colors.text.primary : colors.text.secondary }}
+                  >
+                    {label}
+                  </Typography>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        {creationMode === 'ai' ? (
+          <AIGoalCreation onSwitchToManual={() => setCreationMode('manual')} />
+        ) : (
+          <>
         <View style={{ backgroundColor: pageBackground, flexDirection: 'row', gap: 6, paddingHorizontal: compact ? 16 : 40, paddingTop: 12 }}>
           {STEP_LABELS.map((label, index) => (
             <View
@@ -1774,6 +1837,8 @@ export default function GoalCreateScreen() {
             )}
           </View>
         ) : null}
+          </>
+        )}
       </View>
 
       <Toast message={toastMessage} onUndo={undoRemoval} visible={undoState !== null} />
