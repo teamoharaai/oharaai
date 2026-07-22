@@ -88,3 +88,30 @@ export const CATEGORY_ACCENT_THEME: Record<GoalCreationCategory, CategoryAccentT
     pageBg: '#F7F3EC',
   },
 };
+
+const LEGACY_CATEGORY_ACCENT_THEME: Record<
+  Exclude<GoalCategory, GoalCreationCategory>,
+  CategoryAccentTheme
+> = {
+  body: CATEGORY_ACCENT_THEME.health,
+  mind: CATEGORY_ACCENT_THEME.education,
+  money: CATEGORY_ACCENT_THEME.finance,
+  create: CATEGORY_ACCENT_THEME.creative,
+  connect: CATEGORY_ACCENT_THEME.relationships,
+  contribute: CATEGORY_ACCENT_THEME.growth,
+};
+
+/**
+ * Resolves the creation-flow accent treatment for every persisted category.
+ * Legacy categories intentionally borrow the closest new category palette so
+ * older goals can use the redesigned card without changing their stored data.
+ */
+export function getCategoryAccentTheme(category: GoalCategory): CategoryAccentTheme {
+  if (category in CATEGORY_ACCENT_THEME) {
+    return CATEGORY_ACCENT_THEME[category as GoalCreationCategory];
+  }
+
+  return LEGACY_CATEGORY_ACCENT_THEME[
+    category as Exclude<GoalCategory, GoalCreationCategory>
+  ];
+}

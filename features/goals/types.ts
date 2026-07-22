@@ -12,6 +12,11 @@ export type GoalStatus = GoalDbStatus;
 export type TrackerType = GoalTrackerType;
 export type TrackerFrequency = GoalTrackerFrequency;
 
+export interface GoalTargetFrequency {
+  times: number;
+  period: 'day' | 'week' | 'month';
+}
+
 export interface Goal {
   id: string;
   userId: string;
@@ -20,6 +25,7 @@ export interface Goal {
   category: GoalCategory;
   colorTheme: GoalTheme;
   deadline: Date | null;
+  targetFrequency: GoalTargetFrequency | null;
   visibility: GoalVisibility;
   progress: number;
   status: GoalStatus;

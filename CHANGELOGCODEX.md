@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-21 — Unified goal-card redesign)
+- **`features/goals/components/GoalCard.tsx`, `GoalGrid.tsx`, and `GoalRingGrid.tsx`:** replaced the legacy list and deadline-ring goal treatments with one responsive category-accented card based on the goal-creation design, including category/status/visibility context, the Lora title and reason treatment, target date, time remaining, weekly commitment, activity, consistent navigation, and safe cross-platform goal deletion where actions are available.
+- **Dashboard standalone goals, goals expanded inside project cards, and project-detail goal lists:** now render the same shared goal card, including goals without deadlines that the prior ring grid omitted; the specialized 260px **Today’s Focus** carousel card remains unchanged by explicit design direction.
+- **`features/goals/types.ts`, `features/goals/services/goal-service.ts`, and `constants/themes.ts`:** exposed persisted `target_frequency` through the goal model and added a non-migrating legacy-category accent resolver so existing goals can display the redesigned metadata and closest new palette without changing stored categories.
+- Verification: `npx tsc --noEmit`, `git diff --check`, and a 27-route Expo web export passed; an authenticated desktop dashboard smoke test rendered the shared design for standalone goals with deadlines, overdue dates, no deadline, reasons, and both legacy and new cadence data.
+
 ### Added (2026-07-21 — Goal creation wizard redesign)
 - **`lib/goals/templates.ts` and `features/goals/hooks/useGoalCreationWizard.ts`:** added seven category-specific starter packs and a four-step wizard state layer with static outcome suggestions, deadline presets, weekly commitments, dirty-aware template switching, milestone/tracker editing, a five-tracker cap, skip-tracking support, project selection, and submission conversion helpers so the redesigned flow remains deterministic and does not add a new AI pipeline.
 - **`components/ui/DateField.tsx` and `Toast.tsx`:** added reusable cross-platform date entry and accessible undo-toast primitives for custom deadlines and recoverable milestone/tracker removal.

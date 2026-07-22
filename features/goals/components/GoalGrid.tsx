@@ -9,8 +9,8 @@ interface GoalGridProps {
 
 export function GoalGrid({ goals, newestId }: GoalGridProps) {
   const { width } = useWindowDimensions();
-  const numCols = width >= 1024 ? 4 : width >= 640 ? 2 : 1;
-  const gap = 12;
+  const numCols = width >= 1180 ? 3 : width >= 680 ? 2 : 1;
+  const gap = 14;
   const colPct = `${100 / numCols}%` as `${number}%`;
 
   return (

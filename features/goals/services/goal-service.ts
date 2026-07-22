@@ -10,6 +10,7 @@ import type {
   GoalMilestoneInput,
   GoalMilestoneUpdates,
   GoalStatus,
+  GoalTargetFrequency,
   GoalWithDetails,
   PriorPhaseSummaryItem,
   Tracker,
@@ -69,6 +70,7 @@ export type DbGoal = {
   smart_data: Record<string, unknown> | null;
   color_theme: string;
   deadline: string | null;
+  target_frequency: Record<string, unknown> | null;
   visibility: string;
   progress: number | string;
   status: string;
@@ -115,6 +117,23 @@ function toStatus(raw: string): GoalStatus {
 
 function toVisibility(raw: string): GoalVisibility {
   return GOAL_VISIBILITIES.includes(raw as GoalVisibility) ? (raw as GoalVisibility) : 'private';
+}
+
+function toTargetFrequency(raw: Record<string, unknown> | null): GoalTargetFrequency | null {
+  if (!raw) return null;
+
+  const times = typeof raw.times === 'number' || typeof raw.times === 'string'
+    ? toNumber(raw.times, 0)
+    : 0;
+  const period = raw.period;
+  if (
+    times < 1
+    || (period !== 'day' && period !== 'week' && period !== 'month')
+  ) {
+    return null;
+  }
+
+  return { times, period };
 }
 
 function toTrackerType(raw: string): TrackerType {
@@ -210,6 +229,7 @@ export function mapGoal(row: DbGoal): GoalWithDetails {
     category: toCategory(row.category),
     colorTheme: toTheme(row.color_theme),
     deadline: toDate(row.deadline),
+    targetFrequency: toTargetFrequency(row.target_frequency),
     visibility: toVisibility(row.visibility),
     progress: toNumber(row.progress, 0),
     status: toStatus(row.status),
@@ -334,7 +354,7 @@ async function fetchGoalSignals(
 
 export const GOAL_SELECT = `
   id, user_id, title, description, category, smart_data, color_theme, deadline,
-  visibility, progress, status, ai_generated, project_id, previous_goal_id,
+  target_frequency, visibility, progress, status, ai_generated, project_id, previous_goal_id,
   prior_phase_summary, reflection, reflected_at, created_at, updated_at,
   milestones (
     id, goal_id, user_id, title, description, due_date, completed_at,
