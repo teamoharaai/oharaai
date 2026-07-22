@@ -39,3 +39,4 @@ yarn-debug.log*
 
 # Supabase CLI scratch files
 supabase/.temp/
+supabase/.backups/
