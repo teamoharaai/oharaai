@@ -20,7 +20,10 @@ export class UnauthorizedError extends Error {
 export async function signOutAndRedirect(): Promise<void> {
   clearAllStores();
   useAuthStore.getState().setSession(null);
-  await supabase.auth.signOut({ scope: 'local' });
+  // Global scope revokes the refresh token server-side (not just locally), so a
+  // "Log out" actually ends the session everywhere rather than leaving a valid
+  // refresh token behind on a shared/compromised device.
+  await supabase.auth.signOut({ scope: 'global' });
   router.replace('/(auth)/login');
 }
 

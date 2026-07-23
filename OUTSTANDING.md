@@ -251,3 +251,31 @@
       independently, (4) manually verify each modal call site in-browser (no automated coverage
       for this). Found during 2026-07-06 console-warning triage audit, deliberately left
       unfixed (read-only pass).
+
+## Auth hardening (A1 remediation follow-ups)
+
+Code fixes landed 2026-07-23 (A1 remediation): `flowType: 'pkce'` (`lib/db/client.ts`),
+env-driven `emailRedirectTo` (`app/(auth)/signup.tsx`), generic login error copy
+(`app/(auth)/login.tsx`), `signOut({ scope: 'global' })` (`lib/api/client.ts`), 10-char
+client-side password minimum (`app/(auth)/signup.tsx`). Logged-out-screen smoke test passed
+in-browser (login generic error, signup 10-char guard, global logout redirect). Remaining:
+
+- [ ] **Full PKCE email-confirmation round-trip not yet smoke-tested.** The `flowType: 'pkce'`
+      change makes the previously-dead `exchangeCodeForSession` branch in
+      `app/(auth)/callback.tsx` live for the first time. Signup → confirmation email → callback →
+      login → logout was NOT exercised end-to-end this session (it creates a real account on the
+      production Supabase project + sends a real email; scoped out by request). Must be run
+      manually before A3/A4 ship.
+- [ ] **Dashboard dependency — allowed redirect URLs (A2).** The env-driven `emailRedirectTo`
+      resolves to `${EXPO_PUBLIC_SITE_URL || window.location.origin}/callback`. Every origin that
+      can initiate signup (`http://localhost:8081` for local dev, Vercel preview domains, prod)
+      must be in Supabase Auth → URL Configuration → Redirect URLs, or the confirmation link
+      fails with a redirect error. Confirm this is set for each environment as part of A2.
+- [ ] **Dashboard dependency — email-enumeration protection (A2).** Login-side leak is closed in
+      code (generic copy). Signup still surfaces `signUpError.message`; if the dashboard's
+      "prevent email enumeration" setting is off, `signUp` on an existing email can still return
+      `"User already registered"`. Enable the dashboard setting in A2 to fully close the signup
+      enumeration vector.
+- [ ] **`EXPO_PUBLIC_SITE_URL` not set in `.env.local`.** Added to `.env.example` this session.
+      Local dev currently falls back to `window.location.origin`. Set it per environment
+      (prod/preview) in Vercel so confirmation/OAuth links don't depend on the runtime origin.

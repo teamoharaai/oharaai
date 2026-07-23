@@ -13,6 +13,20 @@ import { Typography } from '@/components/ui/Typography';
 import { PublicNav } from '@/components/landing/PublicNav';
 import { LIGHT_THEME } from '@/constants/colors';
 
+// Resolve the base URL for auth redirect links (email confirmation, later OAuth).
+// Prefer the build-time EXPO_PUBLIC_SITE_URL so preview/prod deploys point at
+// themselves; fall back to the runtime origin on web (EXPO_PUBLIC_* is not
+// guaranteed at Vercel SSR runtime, but this only runs client-side on submit).
+// Final fallback is production so a misconfigured build still lands somewhere valid.
+function resolveSiteUrl(): string {
+  const configured = process.env.EXPO_PUBLIC_SITE_URL;
+  if (configured) return configured.replace(/\/$/, '');
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin;
+  }
+  return 'https://oharaai.vercel.app';
+}
+
 export default function SignupScreen() {
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -26,8 +40,8 @@ export default function SignupScreen() {
       setError('Please fill in all fields.');
       return;
     }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+    if (password.length < 10) {
+      setError('Password must be at least 10 characters.');
       return;
     }
     setLoading(true);
@@ -42,7 +56,7 @@ export default function SignupScreen() {
           display_name: displayName,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
-        emailRedirectTo: 'https://oharaai.vercel.app/callback',
+        emailRedirectTo: `${resolveSiteUrl()}/callback`,
       },
     });
     if (signUpError) {
@@ -119,7 +133,7 @@ export default function SignupScreen() {
         <TextInput
           className="rounded-2xl px-4 py-3.5 text-base mb-6"
           style={{ backgroundColor: LIGHT_THEME.background.input, borderColor: LIGHT_THEME.border.input, borderWidth: 1, color: LIGHT_THEME.text.primary }}
-          placeholder="At least 6 characters"
+          placeholder="At least 10 characters"
           placeholderTextColor={LIGHT_THEME.text.muted}
           value={password}
           onChangeText={setPassword}

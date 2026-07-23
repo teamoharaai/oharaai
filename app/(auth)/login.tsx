@@ -30,7 +30,11 @@ export default function LoginScreen() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
-      setError(error.message);
+      // Generic copy for every sign-in failure. Supabase returns a distinct
+      // "Email not confirmed" message for a known-but-unconfirmed account, which
+      // would confirm an email is registered (account-existence enumeration).
+      // Collapse all cases to one message so no path reveals existence.
+      setError('Incorrect email or password.');
     } else {
       router.replace('/(app)/dashboard');
     }
