@@ -98,8 +98,7 @@ Owner: CTO. Cascade Level 3.
   rate limiting on this now-anon-callable endpoint flagged in OUTSTANDING.md (not
   blocking). Verified against a local PG16: taken→false, available→true,
   malformed/null→false, exact-not-prefix, and called AS anon → succeeds (no
-  Unauthorized). Not yet applied to the live DB (direct DB + shared pooler
-  unreachable from the dev machine; apply via dashboard SQL editor, as 028 was).
+  Unauthorized). Applied and verified live 2026-07-23.
 - goals.mode column was dropped in the 2026-06-24 squash (was a single-value
   CHECK column, no longer carried). lib/db/goals.ts no longer inserts it.
 

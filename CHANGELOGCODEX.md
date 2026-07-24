@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-23 — Live migration 029)
+- **`supabase/migrations/029_check_username_available.sql` and `supabase/CLAUDE.md`:** applied the committed anonymous-safe username availability function to the live Supabase project and verified taken, available, malformed, null, and anonymous-role calls plus the required `anon` and `authenticated` execute grants.
+
 ### Fixed
 - **`package.json` and `package-lock.json`:** added the missing `@expo-google-fonts/lora` runtime dependency so clean Vercel installs can resolve the Lora imports in `app/_layout.tsx`.
 - **`features/goals/components/AIGoalCreation.tsx` and `app/api/goals/chat+api.ts`:** kept the UI-only greeting out of LLM history and now validate user-first, alternating chat roles, preventing Anthropic goal-creation calls from failing on an initial assistant message.
