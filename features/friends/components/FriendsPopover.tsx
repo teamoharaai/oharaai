@@ -15,6 +15,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Toggle } from '@/components/ui/Toggle';
 import { Typography } from '@/components/ui/Typography';
+import { SettingsPane } from '@/components/layout/SettingsModal';
 import { useFriends } from '@/features/friends/hooks/useFriends';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { AddPeoplePane } from './AddPeoplePane';
@@ -42,7 +43,6 @@ interface FriendsPopoverProps {
   onClose: () => void;
   onLogOut: () => void;
   onOpenAccount: () => void;
-  onOpenSettings: () => void;
   profile: {
     avatarUrl: string | null;
     displayName: string;
@@ -74,7 +74,6 @@ export function FriendsPopover({
   onClose,
   onLogOut,
   onOpenAccount,
-  onOpenSettings,
   profile,
   tab,
   visible,
@@ -218,7 +217,9 @@ export function FriendsPopover({
       ? 'My friends'
       : tab === 'requests'
         ? 'Requests'
-        : 'Add people';
+        : tab === 'add'
+          ? 'Add people'
+          : 'Settings';
   const subtitle =
     tab === 'friends'
       ? `${friendsController.friendCount} ${
@@ -228,7 +229,9 @@ export function FriendsPopover({
         ? requestCount === 1
           ? '1 person wants to connect with you.'
           : `${requestCount} people want to connect with you.`
-        : 'Search by the beginning of an @username.';
+        : tab === 'add'
+          ? 'Search by the beginning of an @username.'
+          : 'Manage your app preferences and archived goals.';
   const isUnhydratedError =
     !!friendsController.loadError && !friendsController.hasHydrated;
   const refreshError =
@@ -496,15 +499,20 @@ export function FriendsPopover({
                     />
                   </View>
                   <RailButton
+                    active={tab === 'settings'}
                     icon={
                       <Ionicons
-                        color={colors.text.muted}
+                        color={
+                          tab === 'settings'
+                            ? colors.text.accent
+                            : colors.text.muted
+                        }
                         name="settings-outline"
                         size={17}
                       />
                     }
                     label="Settings"
-                    onPress={onOpenSettings}
+                    onPress={() => selectTab('settings')}
                   />
                   <RailButton
                     danger
@@ -557,54 +565,56 @@ export function FriendsPopover({
                     {subtitle}
                   </Typography>
                 </View>
-                <Pressable
-                  accessibilityLabel="Refresh friends"
-                  accessibilityRole="button"
-                  accessibilityState={{
-                    busy: friendsController.isRefreshing,
-                    disabled:
+                {tab !== 'settings' ? (
+                  <Pressable
+                    accessibilityLabel="Refresh friends"
+                    accessibilityRole="button"
+                    accessibilityState={{
+                      busy: friendsController.isRefreshing,
+                      disabled:
                       friendsController.isInitialLoading ||
-                      friendsController.isRefreshing,
-                  }}
-                  disabled={
-                    friendsController.isInitialLoading ||
-                    friendsController.isRefreshing
-                  }
-                  hitSlop={5}
-                  onPress={() => void friendsController.refresh()}
-                  style={({ pressed }) => ({
-                    alignItems: 'center',
-                    backgroundColor: pressed
-                      ? colors.background.selectedRow
-                      : 'transparent',
-                    borderColor: colors.border.divider,
-                    borderRadius: 9,
-                    borderWidth: 1,
-                    height: 34,
-                    justifyContent: 'center',
-                    opacity:
+                        friendsController.isRefreshing,
+                    }}
+                    disabled={
                       friendsController.isInitialLoading ||
                       friendsController.isRefreshing
-                        ? 0.6
-                        : 1,
-                    width: 34,
-                  })}
-                >
-                  {friendsController.isRefreshing ? (
-                    <ActivityIndicator
-                      color={colors.text.muted}
-                      size="small"
-                    />
-                  ) : (
-                    <Ionicons
-                      color={colors.text.secondary}
-                      name="refresh"
-                      size={17}
-                    />
-                  )}
-                </Pressable>
+                    }
+                    hitSlop={5}
+                    onPress={() => void friendsController.refresh()}
+                    style={({ pressed }) => ({
+                      alignItems: 'center',
+                      backgroundColor: pressed
+                        ? colors.background.selectedRow
+                        : 'transparent',
+                      borderColor: colors.border.divider,
+                      borderRadius: 9,
+                      borderWidth: 1,
+                      height: 34,
+                      justifyContent: 'center',
+                      opacity:
+                        friendsController.isInitialLoading ||
+                        friendsController.isRefreshing
+                          ? 0.6
+                          : 1,
+                      width: 34,
+                    })}
+                  >
+                    {friendsController.isRefreshing ? (
+                      <ActivityIndicator
+                        color={colors.text.muted}
+                        size="small"
+                      />
+                    ) : (
+                      <Ionicons
+                        color={colors.text.secondary}
+                        name="refresh"
+                        size={17}
+                      />
+                    )}
+                  </Pressable>
+                ) : null}
                 <Pressable
-                  accessibilityLabel="Close account and friends"
+                  accessibilityLabel="Close account panel"
                   accessibilityRole="button"
                   hitSlop={5}
                   onPress={onClose}
@@ -635,7 +645,11 @@ export function FriendsPopover({
                 showsVerticalScrollIndicator
                 style={{ flex: 1 }}
               >
-                {refreshError ? (
+                {tab === 'settings' ? (
+                  <View style={{ padding: 24 }}>
+                    <SettingsPane active onClose={onClose} />
+                  </View>
+                ) : refreshError ? (
                   <View
                     accessibilityLiveRegion="polite"
                     style={{
@@ -669,10 +683,11 @@ export function FriendsPopover({
                   </View>
                 ) : null}
 
-                {friendsController.isInitialLoading &&
+                {tab !== 'settings' &&
+                friendsController.isInitialLoading &&
                 !friendsController.hasHydrated ? (
                   <LoadingPane />
-                ) : isUnhydratedError ? (
+                ) : tab !== 'settings' && isUnhydratedError ? (
                   <LoadErrorPane
                     message={getFriendErrorCopy(
                       friendsController.loadError!,
@@ -695,7 +710,7 @@ export function FriendsPopover({
                     onDecline={friendsController.declineRequest}
                     sentCount={friendsController.sentRequests.length}
                   />
-                ) : (
+                ) : tab === 'add' ? (
                   <AddPeoplePane
                     isSearchLoading={friendsController.isSearchLoading}
                     onQueryChange={friendsController.setSearchQuery}
@@ -716,7 +731,7 @@ export function FriendsPopover({
                     searchResults={friendsController.searchResults}
                     sendMutations={friendsController.sendMutations}
                   />
-                )}
+                ) : null}
               </ScrollView>
             </View>
           </View>

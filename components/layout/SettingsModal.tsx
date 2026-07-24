@@ -18,13 +18,18 @@ interface SettingsModalProps {
   onClose: () => void;
 }
 
+interface SettingsPaneProps {
+  active: boolean;
+  onClose: () => void;
+}
+
 interface ArchivedGoalSummary {
   id: string;
   title: string;
   updated_at: string;
 }
 
-export function SettingsModal({ visible, onClose }: SettingsModalProps) {
+export function SettingsPane({ active, onClose }: SettingsPaneProps) {
   const colors = useThemeColors();
   const themeMode = useUIStore((state) => state.themeMode);
   const toggleTheme = useUIStore((state) => state.toggleTheme);
@@ -37,8 +42,8 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const [archivedError, setArchivedError] = useState(false);
 
   useEffect(() => {
-    if (!visible) return;
-    let active = true;
+    if (!active) return;
+    let requestActive = true;
     setIsLoading(true);
     setLoadError(false);
     setArchivedLoading(true);
@@ -47,9 +52,9 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
     async function load() {
       try {
         const res = await authedFetch('/api/profile');
-        if (!active) return;
+        if (!requestActive) return;
         const body = (await res.json()) as ApiResponse<SettingsProfileData>;
-        if (!active) return;
+        if (!requestActive) return;
 
         if (body.ok) {
           setIntelligenceEnabled(body.data.intelligence_enabled);
@@ -57,9 +62,9 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
           setLoadError(true);
         }
       } catch {
-        if (active) setLoadError(true);
+        if (requestActive) setLoadError(true);
       } finally {
-        if (active) setIsLoading(false);
+        if (requestActive) setIsLoading(false);
       }
     }
 
@@ -72,7 +77,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
         .eq('status', 'archived')
         .order('updated_at', { ascending: false });
 
-      if (!active) return;
+      if (!requestActive) return;
       if (error) {
         setArchivedGoals([]);
         setArchivedError(true);
@@ -84,9 +89,9 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
 
     void loadArchivedGoals();
     return () => {
-      active = false;
+      requestActive = false;
     };
-  }, [visible]);
+  }, [active]);
 
   async function handleToggle(next: boolean) {
     const previous = intelligenceEnabled;
@@ -114,19 +119,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   }
 
   return (
-    <Modal visible={visible} onClose={onClose}>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 4 }}
-        showsVerticalScrollIndicator={false}
-        style={{ maxHeight: 620 }}
-      >
-        <Text
-          className="mb-5 text-xl"
-          style={{ color: colors.text.primary, fontFamily: 'Inter-SemiBold' }}
-        >
-          Settings
-        </Text>
-
+    <>
       <View className="mb-6">
         <Typography
           variant="eyebrow"
@@ -266,7 +259,28 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
               ))}
             </View>
           )}
-        </View>
+      </View>
+    </>
+  );
+}
+
+export function SettingsModal({ visible, onClose }: SettingsModalProps) {
+  const colors = useThemeColors();
+
+  return (
+    <Modal visible={visible} onClose={onClose}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 4 }}
+        showsVerticalScrollIndicator={false}
+        style={{ maxHeight: 620 }}
+      >
+        <Text
+          className="mb-5 text-xl"
+          style={{ color: colors.text.primary, fontFamily: 'Inter-SemiBold' }}
+        >
+          Settings
+        </Text>
+        <SettingsPane active={visible} onClose={onClose} />
       </ScrollView>
     </Modal>
   );

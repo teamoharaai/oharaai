@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-24 — Settings in anchored account panel)
+- **`features/friends/components/FriendsPopover.tsx`, `features/friends/components/types.ts`, `components/layout/AvatarMenu.tsx`, and `components/layout/SettingsModal.tsx`:** changed desktop Settings navigation to render the existing preferences and archived-goals menu in the anchored account surface's right-side panel, matching Friends, Requests, and Add People while preserving the compact/mobile Settings modal.
+
 ### Added (2026-07-24 — Anchored desktop Friends and account UI)
 - **`features/friends/components/`:** added the prop-driven 720/240/480 anchored desktop account/Friends surface with Friends, Requests, and Add tabs; viewport-clamped scrolling; intentional loading, refresh, retry, empty, search, and per-row mutation states; structured cooldown copy; accessible tab keyboard navigation; and informational-only friend rows.
 

@@ -391,10 +391,6 @@ export function AvatarMenu() {
             setFriendsOpen(false);
             setAccountOpen(true);
           }}
-          onOpenSettings={() => {
-            setFriendsOpen(false);
-            setSettingsOpen(true);
-          }}
           profile={{
             avatarUrl,
             displayName,
