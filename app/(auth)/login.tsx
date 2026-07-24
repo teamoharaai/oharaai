@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
-import { Link, router, useLocalSearchParams } from 'expo-router';
+import { Link, router, useLocalSearchParams, type Href } from 'expo-router';
 import supabase from '@/lib/db/client';
 import { Typography } from '@/components/ui/Typography';
 import { PublicNav } from '@/components/landing/PublicNav';
@@ -75,7 +75,19 @@ export default function LoginScreen() {
         />
 
         {/* Password */}
-        <Typography variant="field-label" className="mb-1.5">Password</Typography>
+        <View className="flex-row items-center justify-between mb-1.5">
+          <Typography variant="field-label">Password</Typography>
+          <Link href={'/(auth)/forgot-password' as Href} asChild>
+            <TouchableOpacity accessibilityRole="link">
+              <Typography
+                variant="emphasis-sm"
+                style={{ color: LIGHT_THEME.text.accent }}
+              >
+                Forgot password?
+              </Typography>
+            </TouchableOpacity>
+          </Link>
+        </View>
         <TextInput
           className="rounded-2xl px-4 py-3.5 text-base mb-6"
           style={{ backgroundColor: LIGHT_THEME.background.input, borderColor: LIGHT_THEME.border.input, borderWidth: 1, color: LIGHT_THEME.text.primary }}

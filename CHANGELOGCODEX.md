@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added (2026-07-24 — End-to-end password recovery)
+- **`app/(auth)/login.tsx`, `forgot-password.tsx`, `callback.tsx`, and `reset-password.tsx`:** added a visible Forgot password link, privacy-preserving reset-email request flow through the existing authorized callback, recovery-link validation and routing, matching-password checks, and authenticated Supabase password update with a return to the dashboard.
+- **`lib/auth/redirects.ts`:** added a shared environment-aware auth redirect URL resolver so signup confirmations and password recovery both work on local, preview, and production web origins.
+
+### Changed (2026-07-24 — End-to-end password recovery)
+- **`app/(auth)/signup.tsx`:** reused the shared auth redirect resolver without changing the existing confirmation callback behavior.
+- **`app/_layout.tsx` and `lib/db/client.ts`:** allowed temporary recovery sessions to complete on the callback and reset-password routes, and made the callback the single owner of PKCE code exchange so automatic URL detection cannot consume the same one-time code first.
+- Verification: `npx tsc --noEmit`, `git diff --check`, and an Expo web export passed; an isolated auth-js PKCE harness confirmed recovery exchanges return the `PASSWORD_RECOVERY` redirect type used by the callback router.
+
 ### Changed (2026-07-23 — Live migration 029)
 - **`supabase/migrations/029_check_username_available.sql` and `supabase/CLAUDE.md`:** applied the committed anonymous-safe username availability function to the live Supabase project and verified taken, available, malformed, null, and anonymous-role calls plus the required `anon` and `authenticated` execute grants.
 

@@ -10,10 +10,11 @@ export const supabase: SupabaseClient = isDatabaseConfigured
       auth: {
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: true,
-        // PKCE is the flow the auth callback (app/(auth)/callback.tsx) is written
-        // for (exchangeCodeForSession) and the recommended flow for the upcoming
-        // OAuth work. auth-js defaults to 'implicit', so this must be explicit.
+        // The auth callback explicitly exchanges PKCE codes so it can distinguish
+        // account confirmation from password recovery. Automatic URL detection
+        // would race that callback and try to consume the same one-time code.
+        detectSessionInUrl: false,
+        // auth-js defaults to 'implicit'; the callback is written for PKCE.
         flowType: 'pkce',
       },
     })

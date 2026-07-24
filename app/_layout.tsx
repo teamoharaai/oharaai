@@ -70,12 +70,18 @@ export default function RootLayout() {
     const seg = segments as unknown as string[];
     const inAppGroup = seg[0] === '(app)';
     const inAuthGroup = seg[0] === '(auth)';
+    const onAuthCompletionRoute =
+      inAuthGroup &&
+      (seg[1] === 'callback' || seg[1] === 'reset-password');
     const onLandingPage = seg.length === 0;
 
     // DEV BYPASS: comment out the first condition to skip auth and go straight to app
     if (!session && inAppGroup && !__DEV__) {
       router.replace('/(auth)/login');
-    } else if (session && (inAuthGroup || onLandingPage)) {
+    } else if (
+      session &&
+      ((inAuthGroup && !onAuthCompletionRoute) || onLandingPage)
+    ) {
       router.replace('/(app)/dashboard');
     }
   }, [session, loading, segments]);

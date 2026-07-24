@@ -12,20 +12,7 @@ import supabase from '@/lib/db/client';
 import { Typography } from '@/components/ui/Typography';
 import { PublicNav } from '@/components/landing/PublicNav';
 import { LIGHT_THEME } from '@/constants/colors';
-
-// Resolve the base URL for auth redirect links (email confirmation, later OAuth).
-// Prefer the build-time EXPO_PUBLIC_SITE_URL so preview/prod deploys point at
-// themselves; fall back to the runtime origin on web (EXPO_PUBLIC_* is not
-// guaranteed at Vercel SSR runtime, but this only runs client-side on submit).
-// Final fallback is production so a misconfigured build still lands somewhere valid.
-function resolveSiteUrl(): string {
-  const configured = process.env.EXPO_PUBLIC_SITE_URL;
-  if (configured) return configured.replace(/\/$/, '');
-  if (typeof window !== 'undefined' && window.location?.origin) {
-    return window.location.origin;
-  }
-  return 'https://oharaai.vercel.app';
-}
+import { resolveAuthSiteUrl } from '@/lib/auth/redirects';
 
 // Mirror the DB CHECK on profiles.username exactly (migration 028):
 // lowercase letters, digits, underscore, 3-20 chars.
@@ -112,7 +99,7 @@ export default function SignupScreen() {
           username,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
-        emailRedirectTo: `${resolveSiteUrl()}/callback`,
+        emailRedirectTo: `${resolveAuthSiteUrl()}/callback`,
       },
     });
     if (signUpError) {
