@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added (2026-07-24 — Friends API and server data layer)
+- **`features/friends/types.ts`, `lib/db/friends-core.ts`, and `lib/db/friends.ts`:** added the typed Friends snapshot/search/mutation contracts, deterministic row-to-domain mapping, paged connection reads, connection-scoped batched profile hydration, relationship annotation, RPC-only mutations, stable domain-error translation, and structured seven-day cooldown metadata required by the initial Friends surface.
+- **`app/api/friends/index+api.ts`, `search+api.ts`, `request+api.ts`, `[id]/accept+api.ts`, and `[id]/decline+api.ts`:** added the authenticated production Friends routes without a redundant requests endpoint or any direct `friend_connections` mutation.
+- **`scripts/test-friends-api.mjs` and `package.json`:** added a deterministic `npm run test:friends` harness covering snapshot ordering, all search relationship labels, UUID/prefix rejection, and safe RPC error classification without live mutations.
+
+### Changed (2026-07-24 — Friends API and server data layer)
+- **`lib/api/friends.ts`:** centralized Friends request validation and `ApiResponse` construction so expected invalid, missing, conflict, forbidden-transition, and cooldown failures have stable client-safe envelopes while unexpected Supabase/PostgreSQL prose remains server-only.
+
 ### Fixed (2026-07-24 — Password recovery Site URL fallback)
 - **`app/index.tsx` and `app/(auth)/forgot-password.tsx`:** send password recovery through the configured Supabase Site URL and forward one-time PKCE codes that arrive at `/` into the existing auth callback, preventing valid reset links from rendering the marketing landing page and then expiring unused.
 
