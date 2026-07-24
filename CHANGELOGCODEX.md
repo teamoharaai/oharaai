@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed (2026-07-24 — Password recovery Site URL fallback)
+- **`app/index.tsx` and `app/(auth)/forgot-password.tsx`:** send password recovery through the configured Supabase Site URL and forward one-time PKCE codes that arrive at `/` into the existing auth callback, preventing valid reset links from rendering the marketing landing page and then expiring unused.
+
 ### Added (2026-07-24 — End-to-end password recovery)
 - **`app/(auth)/login.tsx`, `forgot-password.tsx`, `callback.tsx`, and `reset-password.tsx`:** added a visible Forgot password link, privacy-preserving reset-email request flow through the existing authorized callback, recovery-link validation and routing, matching-password checks, and authenticated Supabase password update with a return to the dashboard.
 - **`lib/auth/redirects.ts`:** added a shared environment-aware auth redirect URL resolver so signup confirmations and password recovery both work on local, preview, and production web origins.

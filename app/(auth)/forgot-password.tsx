@@ -33,10 +33,10 @@ export default function ForgotPasswordScreen() {
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       normalizedEmail,
       {
-        // Reuse the existing Supabase-authorized callback URL. The callback
-        // identifies recovery codes and forwards their temporary session to
-        // the password form.
-        redirectTo: `${resolveAuthSiteUrl()}/callback`,
+        // The configured Site URL is always an authorized Supabase destination.
+        // The root route forwards the returned PKCE code to the callback before
+        // rendering the landing page.
+        redirectTo: `${resolveAuthSiteUrl()}/`,
       },
     );
 
