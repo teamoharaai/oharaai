@@ -1185,6 +1185,10 @@ export type Database = {
         Returns: string
       }
       redeem_invite_link: { Args: { code: string }; Returns: Json }
+      respond_to_friend_request: {
+        Args: { p_connection_id: string; p_response: string }
+        Returns: string
+      }
       search_profiles_by_username: {
         Args: { query: string }
         Returns: {
@@ -1193,6 +1197,10 @@ export type Database = {
           id: string
           username: string
         }[]
+      }
+      send_friend_request: {
+        Args: { p_addressee_id: string }
+        Returns: string
       }
       start_agent_session: {
         Args: {

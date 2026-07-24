@@ -14,6 +14,21 @@
 - **`app/_layout.tsx` and `lib/db/client.ts`:** allowed temporary recovery sessions to complete on the callback and reset-password routes, and made the callback the single owner of PKCE code exchange so automatic URL detection cannot consume the same one-time code first.
 - Verification: `npx tsc --noEmit`, `git diff --check`, and an Expo web export passed; an isolated auth-js PKCE harness confirmed recovery exchanges return the `PASSWORD_RECOVERY` redirect type used by the callback router.
 
+### Added (2026-07-24 — Friend connection security foundation)
+- **`supabase/migrations/030_friend_connection_security.sql`:** added capability-scoped friend mutations, immutable connection participants, a database-enforced pending-to-accepted/declined lifecycle, response timestamp consistency, idempotent outgoing requests, a seven-day same-direction cooldown after decline, and connection-scoped profile hydration so the social graph is secure before the Friends UI consumes it.
+- **`scripts/test-friend-security.ts`:** added a self-cleaning three-user Supabase security harness covering forged/direct writes, participant isolation, request/response authorization, idempotency, hydration scope, decline cooldown, and reverse-direction agency.
+- **`handoff_account_tab/`:** preserved the anchored desktop account/Friends prototype as an excluded, non-shippable reference bundle for the upcoming implementation sessions.
+- **`docs/handoffs/friends/02_api_data_layer.md`, `03_client_state.md`, and `04_anchored_desktop_ui.md`:** added self-contained implementation prompts with explicit API, concurrency, and anchored-UI ownership so decisions and follow-ups remain in the appropriate session.
+
+### Changed (2026-07-24 — Friend connection security foundation)
+- **`types/supabase.ts`:** added the generated-contract shapes for `send_friend_request(uuid)` and `respond_to_friend_request(uuid,text)`.
+- **`tsconfig.json`:** excluded the non-shippable `handoff_account_tab` reference bundle from application compilation while preserving it as the source prototype for the upcoming anchored Friends surface.
+- **`supabase/CLAUDE.md` and `docs/DECISIONS.md`:** documented migration 030, the next migration number, the capability-scoped relationship model, and the intentionally deferred relationship/profile/mobile lifecycle work.
+- **Linked Supabase migration state:** confirmed migrations 028 and 029 were already live through read-only table/RPC probes, repaired their missing migration-history records to `applied`, and applied migration 030. The live three-user security harness passed every authorization, isolation, lifecycle, hydration, and cooldown check and deleted its temporary users.
+
+### Fixed (2026-07-24 — Friend connection security foundation)
+- **`supabase/migrations/030_friend_connection_security.sql`:** closed migration 028's ability to forge accepted edges through direct inserts, repaired the pending-response path that its implicit `WITH CHECK` blocked, and removed the arbitrary authenticated-profile hydration path from `get_profiles_by_ids(uuid[])`.
+
 ### Changed (2026-07-23 — Live migration 029)
 - **`supabase/migrations/029_check_username_available.sql` and `supabase/CLAUDE.md`:** applied the committed anonymous-safe username availability function to the live Supabase project and verified taken, available, malformed, null, and anonymous-role calls plus the required `anon` and `authenticated` execute grants.
 

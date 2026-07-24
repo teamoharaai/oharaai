@@ -4,8 +4,8 @@ Owner: CTO. Cascade Level 3.
 
 ## Migration Conventions
 - supabase/migrations/ holds 6 narrative baseline files (001-006), squashed
-  2026-06-24 from the original 26 incremental migrations. 007-029 were added
-  after the squash (see below). Next new migration: 030.
+  2026-06-24 from the original 26 incremental migrations. 007-030 were added
+  after the squash (see below). Next new migration: 031.
 - The pre-squash files (original 001-026) are archived, untouched, in
   supabase/migrations_archive_pre_squash_2026-06-24/ for historical reference.
   Do not re-run or restore them — supabase_migrations.schema_migrations tracks
@@ -99,6 +99,18 @@ Owner: CTO. Cascade Level 3.
   blocking). Verified against a local PG16: taken→false, available→true,
   malformed/null→false, exact-not-prefix, and called AS anon → succeeds (no
   Unauthorized). Applied and verified live 2026-07-23.
+- 030_friend_connection_security.sql: hardens migration 028's relationship
+  lifecycle. Authenticated clients retain participant-scoped SELECT but lose
+  direct INSERT/UPDATE/DELETE; send_friend_request(uuid) and
+  respond_to_friend_request(uuid,text) are the only authenticated mutation
+  capabilities. Adds immutable participant fields, a database-enforced
+  pending -> accepted/declined state machine, response timestamp consistency,
+  idempotent outgoing sends, and a seven-day same-direction cooldown after a
+  decline while preserving the declining person's ability to initiate the
+  reverse request. Replaces get_profiles_by_ids(uuid[]) so it only hydrates
+  self or the other party of a live pending/accepted edge. Added 2026-07-24;
+  replayed with 028/029 and behavior-verified against disposable local PG16,
+  then applied and verified live with the three-user security harness.
 - goals.mode column was dropped in the 2026-06-24 squash (was a single-value
   CHECK column, no longer carried). lib/db/goals.ts no longer inserts it.
 

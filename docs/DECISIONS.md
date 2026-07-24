@@ -469,3 +469,39 @@ entries remain historical records of the architecture at their dates.
 semantics and completion evidence. Locking separate canonical names at the
 database, type, API, AI-contract, and UI layers prevents those concepts from
 drifting together again.
+
+### 2026-07-24 — Friends Are a Capability-Scoped Relationship Primitive
+
+**Status:** Locked for the initial Friends surface.
+
+**Decision:**
+
+- A friendship currently represents only an accepted relationship between two
+  profiles. It does not grant goal, Echo, project, feed, or profile-content
+  access. Future social features must add explicit authorization rules rather
+  than treating a friend edge as blanket access.
+- Authenticated clients may read only connection rows in which they are a
+  participant and may not write `friend_connections` directly.
+  `send_friend_request(uuid)` and
+  `respond_to_friend_request(uuid,text)` are the only authenticated mutation
+  capabilities in migration 030.
+- A connection has one immutable requester/addressee pair and a one-way
+  lifecycle: `pending -> accepted` or `pending -> declined`. Repeating the same
+  outgoing pending request is idempotent.
+- After a decline, the declined requester must wait seven days before sending
+  another request in the same direction. The person who declined retains the
+  agency to initiate a request in the reverse direction immediately.
+- `get_profiles_by_ids(uuid[])` may hydrate only the caller or the other party
+  of a live pending/accepted edge. Declined history does not authorize profile
+  hydration.
+
+**Rationale:** The relationship table is foundational authorization data even
+before Friends powers another product feature. Narrow database capabilities,
+immutable participants, and an explicit transition model prevent client
+bypasses and give later social features a dependable primitive without
+granting speculative access today.
+
+**Out of scope:** Cancel request, unfriend, block/report, friend profile
+visibility, and mobile presentation remain dedicated follow-up designs. The
+desktop implementation will preserve the handoff's anchored account surface
+and its light/dark toggle behind the social feature flag.
