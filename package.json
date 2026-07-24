@@ -6,7 +6,7 @@
     "start": "expo start",
     "web": "expo start --web",
     "eval:goal-creation": "node evals/goal-creation/run.mjs",
-    "test:friends": "node --experimental-strip-types --test scripts/test-friends-api.mjs",
+    "test:friends": "node --experimental-strip-types --test scripts/test-friends-api.mjs scripts/test-friends-client-state.mjs",
     "postinstall": "patch-package"
   },
   "dependencies": {

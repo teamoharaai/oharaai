@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useFonts } from 'expo-font';
@@ -21,6 +21,7 @@ import {
 import supabase from '@/lib/db/client';
 import { useAuthStore } from '@/features/auth/store';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
+import { clearAllStores } from '@/store/clearAllStores';
 import { colorScheme } from 'nativewind';
 import '../global.css';
 
@@ -44,6 +45,7 @@ export default function RootLayout() {
   });
 
   const { session, loading, setSession, setLoading } = useAuthStore();
+  const activeUserIdRef = useRef<string | null>(null);
   const segments = useSegments();
   const router = useRouter();
 
@@ -52,13 +54,25 @@ export default function RootLayout() {
   }, [themeMode]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    const applySession = (
+      nextSession: typeof session,
+    ): void => {
+      const previousUserId = activeUserIdRef.current;
+      const nextUserId = nextSession?.user.id ?? null;
+      if (previousUserId && previousUserId !== nextUserId) {
+        clearAllStores();
+      }
+      activeUserIdRef.current = nextUserId;
+      setSession(nextSession);
+    };
+
+    supabase.auth.getSession().then(({ data: { session: nextSession } }) => {
+      applySession(nextSession);
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      applySession(nextSession);
     });
 
     return () => subscription.unsubscribe();

@@ -2,6 +2,7 @@ import { useGoalStore } from '@/features/goals/store';
 import { useProfileStore } from '@/features/profile/store';
 import { useEchoStore } from '@/features/echo/store';
 import { useEchoDraftStore } from '@/features/echo/draft-store';
+import { useFriendsStore } from '@/features/friends/store';
 import { useProjectStore } from '@/features/projects/store';
 import { useUIStore } from '@/store/uiStore';
 
@@ -14,6 +15,8 @@ import { useUIStore } from '@/store/uiStore';
  * the next user does not inherit draft text from the previous session.
  */
 export function clearAllStores(): void {
+  useFriendsStore.getState().reset();
+
   useGoalStore.setState({ goals: [], selectedGoalId: null, isLoading: false });
 
   useProfileStore.setState({

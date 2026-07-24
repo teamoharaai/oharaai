@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Added (2026-07-24 — Friends client state and concurrency)
+- **`features/friends/services/friends-service.ts`, `state-core.ts`, `store.ts`, `hooks/useFriends.ts`, and `types.ts`:** added feature-owned authenticated API wrappers, `ApiResponse` error unwrapping with structured cooldown metadata, the Zustand Friends snapshot/search/controller state, and stable per-connection/per-profile mutation state for the anchored Friends UI.
+- **`scripts/test-friends-client-state.mjs` and `package.json`:** added deterministic client-state coverage for concurrent entity mutations, exact optimistic rollback, queued refresh during single-flight hydration, authoritative/idempotent sent-request IDs, already-handled reconciliation, stale/cleared searches, query normalization, and reset generation guards.
+
+### Changed (2026-07-24 — Friends client state and concurrency)
+- **`store/clearAllStores.ts` and `app/_layout.tsx`:** reset and abort all Friends work during logout or account-ID changes so a prior account's snapshot, searches, or in-flight mutations cannot populate the next account.
+
+### Fixed (2026-07-24 — Friends client state and concurrency)
+- **`features/friends/state-core.ts`:** used entity-specific optimistic forward/inverse patches, per-row operation tokens, queued explicit refreshes, abort plus monotonic search guards, and post-race snapshot reconciliation so unrelated successful mutations and newer relationship state survive concurrent failures and out-of-order responses.
+
 ### Added (2026-07-24 — Friends API and server data layer)
 - **`features/friends/types.ts`, `lib/db/friends-core.ts`, and `lib/db/friends.ts`:** added the typed Friends snapshot/search/mutation contracts, deterministic row-to-domain mapping, paged connection reads, connection-scoped batched profile hydration, relationship annotation, RPC-only mutations, stable domain-error translation, and structured seven-day cooldown metadata required by the initial Friends surface.
 - **`app/api/friends/index+api.ts`, `search+api.ts`, `request+api.ts`, `[id]/accept+api.ts`, and `[id]/decline+api.ts`:** added the authenticated production Friends routes without a redundant requests endpoint or any direct `friend_connections` mutation.

@@ -61,3 +61,21 @@ export type FriendErrorDetails =
       cooldown_days: number;
       retry_at: string | null;
     };
+
+export interface FriendClientError {
+  message: string;
+  code:
+    | 'UNAUTHORIZED'
+    | 'INVALID_INPUT'
+    | 'NOT_FOUND'
+    | 'CONFLICT'
+    | 'INTERNAL_ERROR'
+    | 'UNKNOWN_ERROR'
+    | null;
+  details: FriendErrorDetails | null;
+}
+
+export interface FriendMutationState {
+  isBusy: boolean;
+  error: FriendClientError | null;
+}
