@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -27,17 +27,72 @@ function resolveSiteUrl(): string {
   return 'https://oharaai.vercel.app';
 }
 
+// Mirror the DB CHECK on profiles.username exactly (migration 028):
+// lowercase letters, digits, underscore, 3-20 chars.
+const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
+
+// Advisory availability states. The server-side trigger (handle_new_user) is the
+// real source of truth and dedupes on its own, so 'error' never blocks submit.
+type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'error';
+
 export default function SignupScreen() {
   const [displayName, setDisplayName] = useState('');
+  const [username, setUsername] = useState('');
+  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  const usernameValid = USERNAME_RE.test(username);
+
+  // Lowercase as the user types (reject uppercase by normalizing, not erroring).
+  function handleUsernameChange(text: string) {
+    setUsername(text.toLowerCase());
+  }
+
+  // Debounced, advisory availability check. Only runs for well-formed usernames.
+  // Uses a monotonic request token so stale responses can't overwrite a newer state.
+  const checkTokenRef = useRef(0);
+  useEffect(() => {
+    if (!usernameValid) {
+      setUsernameStatus('idle');
+      return;
+    }
+    setUsernameStatus('checking');
+    const token = ++checkTokenRef.current;
+    const handle = setTimeout(async () => {
+      try {
+        const { data, error: rpcError } = await supabase.rpc(
+          'search_profiles_by_username',
+          { query: username },
+        );
+        if (token !== checkTokenRef.current) return; // superseded by newer input
+        if (rpcError) {
+          setUsernameStatus('error');
+          return;
+        }
+        const taken = (data ?? []).some(
+          (row: { username?: string | null }) =>
+            (row.username ?? '').toLowerCase() === username,
+        );
+        setUsernameStatus(taken ? 'taken' : 'available');
+      } catch {
+        if (token !== checkTokenRef.current) return;
+        setUsernameStatus('error');
+      }
+    }, 450);
+    return () => clearTimeout(handle);
+  }, [username, usernameValid]);
+
   async function handleSignup() {
-    if (!displayName || !email || !password) {
+    if (!displayName || !username || !email || !password) {
       setError('Please fill in all fields.');
+      return;
+    }
+    if (!usernameValid) {
+      setError('Username must be 3-20 characters: lowercase letters, numbers, or underscore.');
       return;
     }
     if (password.length < 10) {
@@ -54,6 +109,7 @@ export default function SignupScreen() {
       options: {
         data: {
           display_name: displayName,
+          username,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
         emailRedirectTo: `${resolveSiteUrl()}/callback`,
@@ -113,6 +169,43 @@ export default function SignupScreen() {
           autoCapitalize="words"
           autoComplete="name"
         />
+
+        {/* Username */}
+        <Typography variant="field-label" className="mb-1.5">Username</Typography>
+        <TextInput
+          className="rounded-2xl px-4 py-3.5 text-base mb-1.5"
+          style={{ backgroundColor: LIGHT_THEME.background.input, borderColor: LIGHT_THEME.border.input, borderWidth: 1, color: LIGHT_THEME.text.primary }}
+          placeholder="lowercase_handle"
+          placeholderTextColor={LIGHT_THEME.text.muted}
+          value={username}
+          onChangeText={handleUsernameChange}
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="username-new"
+          maxLength={20}
+        />
+        <Text
+          className="text-xs mb-4"
+          style={{
+            fontFamily: 'Inter-Regular',
+            color:
+              usernameStatus === 'taken'
+                ? LIGHT_THEME.feedback.danger.text
+                : usernameStatus === 'available'
+                ? LIGHT_THEME.text.accent
+                : LIGHT_THEME.text.muted,
+          }}
+        >
+          {!usernameValid
+            ? '3–20 characters: lowercase letters, numbers, or underscore.'
+            : usernameStatus === 'checking'
+            ? 'Checking availability…'
+            : usernameStatus === 'available'
+            ? 'Username available.'
+            : usernameStatus === 'taken'
+            ? 'That username is taken.'
+            : ' '}
+        </Text>
 
         {/* Email */}
         <Typography variant="field-label" className="mb-1.5">Email</Typography>
