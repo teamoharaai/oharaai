@@ -13,15 +13,19 @@ function unauthorizedResponse(): Response {
 
 interface ProfileData {
   display_name: string;
+  username: string;
   bio: string | null;
   avatar_url: string | null;
   interests_user: string[];
   timezone: string;
   intelligence_enabled: boolean;
+  username_changes_remaining: number;
+  username_change_next_available_at: string | null;
 }
 
 interface PatchBody {
   display_name?: unknown;
+  username?: unknown;
   bio?: unknown;
   avatar_url?: unknown;
   interests_user?: unknown;
@@ -29,16 +33,63 @@ interface PatchBody {
   intelligence_enabled?: unknown;
 }
 
-const PROFILE_SELECT = 'display_name, bio, avatar_url, interests_user, timezone, intelligence_enabled';
+interface UsernameChangeStatus {
+  remaining: number;
+  nextAvailableAt: string | null;
+}
 
-function toProfileData(data: Record<string, unknown>): ProfileData {
+const PROFILE_SELECT =
+  'display_name, username, bio, avatar_url, interests_user, timezone, intelligence_enabled';
+const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
+const USERNAME_CHANGE_LIMIT = 3;
+const USERNAME_CHANGE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+function toProfileData(
+  data: Record<string, unknown>,
+  usernameStatus: UsernameChangeStatus,
+): ProfileData {
   return {
     display_name: (data.display_name as string) ?? '',
+    username: (data.username as string) ?? '',
     bio: (data.bio as string | null) ?? null,
     avatar_url: (data.avatar_url as string | null) ?? null,
     interests_user: (data.interests_user as string[] | null) ?? [],
     timezone: (data.timezone as string) ?? 'UTC',
     intelligence_enabled: (data.intelligence_enabled as boolean) ?? true,
+    username_changes_remaining: usernameStatus.remaining,
+    username_change_next_available_at: usernameStatus.nextAvailableAt,
+  };
+}
+
+async function getUsernameChangeStatus(
+  db: ReturnType<typeof createAuthedClient>,
+  userId: string,
+): Promise<UsernameChangeStatus> {
+  const { data, error } = await db
+    .from('username_change_limits')
+    .select('change_timestamps')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[profile] Failed to load username change status:', error.message);
+    return { remaining: USERNAME_CHANGE_LIMIT, nextAvailableAt: null };
+  }
+
+  const cutoff = Date.now() - USERNAME_CHANGE_WINDOW_MS;
+  const recentChanges = Array.isArray(data?.change_timestamps)
+    ? data.change_timestamps
+        .map((value) => new Date(value).getTime())
+        .filter((value) => Number.isFinite(value) && value > cutoff)
+        .sort((left, right) => left - right)
+    : [];
+
+  return {
+    remaining: Math.max(0, USERNAME_CHANGE_LIMIT - recentChanges.length),
+    nextAvailableAt:
+      recentChanges.length >= USERNAME_CHANGE_LIMIT
+        ? new Date(recentChanges[0] + USERNAME_CHANGE_WINDOW_MS).toISOString()
+        : null,
   };
 }
 
@@ -63,9 +114,10 @@ async function handleGet(_request: Request, _params: Record<string, string>, aut
     return Response.json(body, { status: 404 });
   }
 
+  const usernameStatus = await getUsernameChangeStatus(db, auth.userId);
   const body: ApiResponse<ProfileData> = {
     ok: true,
-    data: toProfileData(data),
+    data: toProfileData(data, usernameStatus),
     error: null,
   };
   return Response.json(body, { status: 200 });
@@ -94,6 +146,7 @@ async function handlePatch(request: Request, _params: Record<string, string>, au
   // silently ignored rather than errored on.
   const updates: Partial<{
     display_name: string;
+    username: string;
     bio: string;
     avatar_url: string;
     interests_user: unknown[];
@@ -111,6 +164,31 @@ async function handlePatch(request: Request, _params: Record<string, string>, au
       return Response.json(body, { status: 400 });
     }
     updates.display_name = payload.display_name.trim();
+  }
+
+  if (payload.username !== undefined) {
+    if (typeof payload.username !== 'string') {
+      const body: ApiResponse<never> = {
+        ok: false,
+        data: null,
+        error: { code: 'INVALID_INPUT', message: 'username must be a string' },
+      };
+      return Response.json(body, { status: 400 });
+    }
+
+    const username = payload.username.trim().toLowerCase();
+    if (!USERNAME_RE.test(username)) {
+      const body: ApiResponse<never> = {
+        ok: false,
+        data: null,
+        error: {
+          code: 'INVALID_INPUT',
+          message: 'Username must be 3–20 lowercase letters, numbers, or underscores.',
+        },
+      };
+      return Response.json(body, { status: 400 });
+    }
+    updates.username = username;
   }
 
   if (payload.timezone !== undefined) {
@@ -191,6 +269,33 @@ async function handlePatch(request: Request, _params: Record<string, string>, au
     .single();
 
   if (error || !data) {
+    if (error?.code === '23505') {
+      const body: ApiResponse<never> = {
+        ok: false,
+        data: null,
+        error: { code: 'CONFLICT', message: 'That username is already taken.' },
+      };
+      return Response.json(body, { status: 409 });
+    }
+
+    if (error?.message.includes('USERNAME_CHANGE_LIMIT_REACHED')) {
+      const usernameStatus = await getUsernameChangeStatus(db, auth.userId);
+      const body: ApiResponse<never> = {
+        ok: false,
+        data: null,
+        error: {
+          code: 'RATE_LIMITED',
+          message: 'You can change your username up to 3 times in any 7-day period.',
+          details: {
+            username_changes_remaining: usernameStatus.remaining,
+            username_change_next_available_at: usernameStatus.nextAvailableAt,
+          },
+        },
+      };
+      return Response.json(body, { status: 429 });
+    }
+
+    console.error('[profile] Failed to update profile:', error?.message ?? 'No profile returned');
     const body: ApiResponse<never> = {
       ok: false,
       data: null,
@@ -199,9 +304,10 @@ async function handlePatch(request: Request, _params: Record<string, string>, au
     return Response.json(body, { status: 500 });
   }
 
+  const usernameStatus = await getUsernameChangeStatus(db, auth.userId);
   const body: ApiResponse<ProfileData> = {
     ok: true,
-    data: toProfileData(data),
+    data: toProfileData(data, usernameStatus),
     error: null,
   };
   return Response.json(body, { status: 200 });

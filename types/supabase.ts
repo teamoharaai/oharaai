@@ -942,6 +942,29 @@ export type Database = {
           },
         ]
       }
+      username_change_limits: {
+        Row: {
+          change_timestamps: string[]
+          user_id: string
+        }
+        Insert: {
+          change_timestamps?: string[]
+          user_id: string
+        }
+        Update: {
+          change_timestamps?: string[]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "username_change_limits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vault_items: {
         Row: {
           content: string | null

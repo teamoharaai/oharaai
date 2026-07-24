@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Added (2026-07-24 — Username editing and rolling change limit)
+- **`supabase/migrations/031_username_change_limit.sql`:** added a protected per-user rolling-window counter and database trigger that allows at most three successful username changes in any seven-day period, including for direct profile updates.
+- **`app/api/profile/index+api.ts`:** added username reads and writes, shared username normalization/validation, duplicate and rate-limit responses, and remaining-change status for the Account UI.
+
+### Changed (2026-07-24 — Username editing and rolling change limit)
+- **`components/layout/AccountModal.tsx`:** replaced the Display name field with an availability-checked Username field, remaining-change guidance, and authoritative server error handling while retaining the stored display name for existing avatar and social surfaces.
+- **`components/layout/AvatarMenu.tsx`, `components/ui/Input.tsx`, `lib/api/contracts.ts`, and `types/supabase.ts`:** refresh the account chrome immediately after username changes, expose username-ready input behavior and rate-limit contracts, and describe the new limiter table.
+- **`supabase/CLAUDE.md`:** documented migration 031 and advanced the next migration number to 032.
+- Verification: `npx tsc --noEmit`, `npm run test:friends`, `git diff --check`, and an Expo web export passed; a disposable PostgreSQL 16 harness verified the three-change rolling limit, unchanged/failed update accounting, expiry pruning, and normalization. Migration 031 was applied to the linked Supabase project, local/remote migration history is aligned through 031, and linked `db lint` reported no schema errors.
+
 ### Changed (2026-07-24 — Settings in anchored account panel)
 - **`features/friends/components/FriendsPopover.tsx`, `features/friends/components/types.ts`, `components/layout/AvatarMenu.tsx`, and `components/layout/SettingsModal.tsx`:** changed desktop Settings navigation to render the existing preferences and archived-goals menu in the anchored account surface's right-side panel, matching Friends, Requests, and Add People while preserving the compact/mobile Settings modal.
 

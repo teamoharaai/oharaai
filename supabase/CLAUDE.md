@@ -4,8 +4,8 @@ Owner: CTO. Cascade Level 3.
 
 ## Migration Conventions
 - supabase/migrations/ holds 6 narrative baseline files (001-006), squashed
-  2026-06-24 from the original 26 incremental migrations. 007-030 were added
-  after the squash (see below). Next new migration: 031.
+  2026-06-24 from the original 26 incremental migrations. 007-031 were added
+  after the squash (see below). Next new migration: 032.
 - The pre-squash files (original 001-026) are archived, untouched, in
   supabase/migrations_archive_pre_squash_2026-06-24/ for historical reference.
   Do not re-run or restore them — supabase_migrations.schema_migrations tracks
@@ -111,6 +111,12 @@ Owner: CTO. Cascade Level 3.
   self or the other party of a live pending/accepted edge. Added 2026-07-24;
   replayed with 028/029 and behavior-verified against disposable local PG16,
   then applied and verified live with the three-user security harness.
+- 031_username_change_limit.sql: adds the owner-readable,
+  trigger-write-only username_change_limits table and a SECURITY DEFINER
+  profiles trigger that normalizes username updates and atomically allows at
+  most three successful changes in any rolling seven-day window. Unchanged
+  updates do not consume a change, and failed profile updates roll back the
+  limiter write with the username update.
 - goals.mode column was dropped in the 2026-06-24 squash (was a single-value
   CHECK column, no longer carried). lib/db/goals.ts no longer inserts it.
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import supabase from '@/lib/db/client';
@@ -11,12 +11,18 @@ import { Typography } from '@/components/ui/Typography';
 
 interface AccountProfileData {
   display_name: string;
+  username: string;
   bio: string | null;
   avatar_url: string | null;
   interests_user: string[];
   timezone: string;
   intelligence_enabled: boolean;
+  username_changes_remaining: number;
+  username_change_next_available_at: string | null;
 }
+
+const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
+type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'error';
 
 // Only needed for the Supabase Storage upload path below (avatars/<userId>/avatar.jpg),
 // which uses the ambient client session directly rather than a Bearer header. All
@@ -31,13 +37,23 @@ async function getUserId(): Promise<string | null> {
 interface AccountModalProps {
   visible: boolean;
   onClose: () => void;
-  onSaved: (profile: { display_name: string; avatar_url: string | null }) => void;
+  onSaved: (profile: {
+    display_name: string;
+    username: string;
+    avatar_url: string | null;
+  }) => void;
 }
 
 export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [displayName, setDisplayName] = useState('');
+  const [username, setUsername] = useState('');
+  const [originalUsername, setOriginalUsername] = useState('');
+  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle');
+  const [usernameChangesRemaining, setUsernameChangesRemaining] = useState(3);
+  const [usernameChangeNextAvailableAt, setUsernameChangeNextAvailableAt] =
+    useState<string | null>(null);
   const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [timezone, setTimezone] = useState('');
@@ -62,6 +78,13 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
 
         if (body.ok) {
           setDisplayName(body.data.display_name);
+          setUsername(body.data.username);
+          setOriginalUsername(body.data.username);
+          setUsernameStatus('idle');
+          setUsernameChangesRemaining(body.data.username_changes_remaining);
+          setUsernameChangeNextAvailableAt(
+            body.data.username_change_next_available_at,
+          );
           setBio(body.data.bio ?? '');
           setAvatarUrl(body.data.avatar_url);
           setTimezone(body.data.timezone);
@@ -81,6 +104,41 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
       active = false;
     };
   }, [visible]);
+
+  const usernameCheckTokenRef = useRef(0);
+  const usernameChanged = username !== originalUsername;
+  const usernameValid = USERNAME_RE.test(username);
+
+  useEffect(() => {
+    const token = ++usernameCheckTokenRef.current;
+    if (!visible || !usernameChanged || !usernameValid) {
+      setUsernameStatus('idle');
+      return;
+    }
+
+    setUsernameStatus('checking');
+    const handle = setTimeout(async () => {
+      try {
+        const { data, error: rpcError } = await supabase.rpc(
+          'check_username_available',
+          { check_username: username },
+        );
+        if (token !== usernameCheckTokenRef.current) return;
+        setUsernameStatus(rpcError ? 'error' : data ? 'available' : 'taken');
+      } catch {
+        if (token !== usernameCheckTokenRef.current) return;
+        setUsernameStatus('error');
+      }
+    }, 400);
+
+    return () => {
+      clearTimeout(handle);
+    };
+  }, [username, usernameChanged, usernameValid, visible]);
+
+  function handleUsernameChange(text: string) {
+    setUsername(text.trimStart().toLowerCase());
+  }
 
   async function handlePickAvatar() {
     setError(null);
@@ -129,7 +187,11 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
       if (!patchBody.ok) throw new Error(patchBody.error.message);
 
       setAvatarUrl(patchBody.data.avatar_url);
-      onSaved({ display_name: patchBody.data.display_name, avatar_url: patchBody.data.avatar_url });
+      onSaved({
+        display_name: patchBody.data.display_name,
+        username: patchBody.data.username,
+        avatar_url: patchBody.data.avatar_url,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update avatar.');
     } finally {
@@ -140,8 +202,16 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
   async function handleSave() {
     setError(null);
 
-    if (displayName.trim() === '') {
-      setError('Display name cannot be empty.');
+    if (!usernameValid) {
+      setError('Username must be 3–20 lowercase letters, numbers, or underscores.');
+      return;
+    }
+    if (usernameChanged && usernameStatus === 'taken') {
+      setError('That username is already taken.');
+      return;
+    }
+    if (usernameChanged && usernameChangesRemaining === 0) {
+      setError('You have used all 3 username changes for the current 7-day period.');
       return;
     }
 
@@ -156,7 +226,7 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          display_name: displayName.trim(),
+          username,
           bio,
           timezone: timezone.trim(),
           interests_user: interestsArray,
@@ -165,7 +235,16 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
       const body = (await res.json()) as ApiResponse<AccountProfileData>;
 
       if (body.ok) {
-        onSaved({ display_name: body.data.display_name, avatar_url: body.data.avatar_url });
+        setOriginalUsername(body.data.username);
+        setUsernameChangesRemaining(body.data.username_changes_remaining);
+        setUsernameChangeNextAvailableAt(
+          body.data.username_change_next_available_at,
+        );
+        onSaved({
+          display_name: body.data.display_name,
+          username: body.data.username,
+          avatar_url: body.data.avatar_url,
+        });
         onClose();
       } else {
         setError(body.error.message);
@@ -230,7 +309,37 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
           </View>
 
           <View className="mb-4">
-            <Input label="Display name" value={displayName} onChangeText={setDisplayName} placeholder="Your name" autoCapitalize="words" />
+            <Input
+              label="Username"
+              value={username}
+              onChangeText={handleUsernameChange}
+              placeholder="your_username"
+              autoCapitalize="none"
+              autoComplete="username"
+              autoCorrect={false}
+              maxLength={20}
+              error={
+                username.length > 0 && !usernameValid
+                  ? 'Use 3–20 lowercase letters, numbers, or underscores.'
+                  : usernameStatus === 'taken'
+                    ? 'That username is already taken.'
+                    : null
+              }
+            />
+            <Typography variant="hint" className="mt-1.5">
+              {usernameChanged && usernameStatus === 'checking'
+                ? 'Checking availability…'
+                : usernameChanged && usernameStatus === 'available'
+                  ? 'Username available. '
+                  : ''}
+              {usernameChangesRemaining > 0
+                ? `${usernameChangesRemaining} of 3 changes remaining in the current 7-day period.`
+                : usernameChangeNextAvailableAt
+                  ? `Next change available ${new Date(
+                      usernameChangeNextAvailableAt,
+                    ).toLocaleString()}.`
+                  : 'All 3 changes have been used in the current 7-day period.'}
+            </Typography>
           </View>
 
           <View className="mb-4">

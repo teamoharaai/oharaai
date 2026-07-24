@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, TextInput } from 'react-native';
+import { View, TextInput, type TextInputProps } from 'react-native';
 import { Typography } from '@/components/ui/Typography';
 import { useThemeColors } from '@/store/uiStore';
 
@@ -10,6 +10,9 @@ interface InputProps {
   placeholder?: string;
   multiline?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  autoComplete?: TextInputProps['autoComplete'];
+  autoCorrect?: boolean;
+  maxLength?: number;
   disabled?: boolean;
   error?: string | null;
 }
@@ -21,6 +24,9 @@ export function Input({
   placeholder,
   multiline = false,
   autoCapitalize,
+  autoComplete,
+  autoCorrect,
+  maxLength,
   disabled = false,
   error = null,
 }: InputProps) {
@@ -50,6 +56,9 @@ export function Input({
         numberOfLines={multiline ? 4 : undefined}
         textAlignVertical={multiline ? 'top' : undefined}
         autoCapitalize={autoCapitalize}
+        autoComplete={autoComplete}
+        autoCorrect={autoCorrect}
+        maxLength={maxLength}
         editable={!disabled}
         onBlur={() => setFocused(false)}
         onFocus={() => setFocused(true)}

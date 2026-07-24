@@ -21,5 +21,6 @@ export type ApiErrorCode =
   | 'INVALID_INPUT'
   | 'NOT_FOUND'
   | 'CONFLICT'
+  | 'RATE_LIMITED'
   | 'INTERNAL_ERROR'
   | 'UNKNOWN_ERROR';

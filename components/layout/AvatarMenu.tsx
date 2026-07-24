@@ -19,19 +19,17 @@ import {
 } from '@/features/friends/components/FriendsPopover';
 import type { FriendsTab } from '@/features/friends/components/types';
 import { useAuthStore } from '@/features/auth/store';
-import supabase from '@/lib/db/client';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { AccountModal } from './AccountModal';
 import { SettingsModal } from './SettingsModal';
 
 interface ProfileApiSummary {
   display_name: string;
+  username: string;
   avatar_url: string | null;
 }
 
-interface ProfileSummary extends ProfileApiSummary {
-  username: string;
-}
+type ProfileSummary = ProfileApiSummary;
 
 function MenuRow({
   danger = false,
@@ -108,29 +106,14 @@ export function AvatarMenu() {
 
     async function load() {
       try {
-        const profileRequest = authedFetch('/api/profile');
-        const usernameRequest = FEATURES.SOCIAL_ENABLED
-          ? supabase
-              .from('profiles')
-              .select('username')
-              .eq('id', activeUserId)
-              .maybeSingle()
-          : Promise.resolve({ data: null, error: null });
-        const [res, usernameResult] = await Promise.all([
-          profileRequest,
-          usernameRequest,
-        ]);
+        const res = await authedFetch('/api/profile');
         if (!active) return;
         const body = (await res.json()) as ApiResponse<ProfileApiSummary>;
         if (active && body.ok) {
-          const username =
-            typeof usernameResult.data?.username === 'string'
-              ? usernameResult.data.username
-              : metadataUsername;
           setProfile({
             display_name: body.data.display_name,
             avatar_url: body.data.avatar_url,
-            username,
+            username: body.data.username,
           });
         }
       } catch {
@@ -370,12 +353,7 @@ export function AvatarMenu() {
       <AccountModal
         visible={accountOpen}
         onClose={() => setAccountOpen(false)}
-        onSaved={(updated) =>
-          setProfile((current) => ({
-            ...updated,
-            username: current?.username ?? username,
-          }))
-        }
+        onSaved={setProfile}
       />
 
       <SettingsModal visible={settingsOpen} onClose={() => setSettingsOpen(false)} />
