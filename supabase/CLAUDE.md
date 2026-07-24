@@ -4,8 +4,8 @@ Owner: CTO. Cascade Level 3.
 
 ## Migration Conventions
 - supabase/migrations/ holds 6 narrative baseline files (001-006), squashed
-  2026-06-24 from the original 26 incremental migrations. 007-025 were added
-  after the squash (see below). Next new migration: 026.
+  2026-06-24 from the original 26 incremental migrations. 007-029 were added
+  after the squash (see below). Next new migration: 030.
 - The pre-squash files (original 001-026) are archived, untouched, in
   supabase/migrations_archive_pre_squash_2026-06-24/ for historical reference.
   Do not re-run or restore them — supabase_migrations.schema_migrations tracks
@@ -63,6 +63,43 @@ Owner: CTO. Cascade Level 3.
   trackers and measurable_logs to tracker_logs, makes milestones one-time
   events with completed_at evidence, and adds archived as the fifth goal
   status. No old-name compatibility views or aliases are canonical after 025.
+- 026_goal_category_taxonomy.sql: expands goals.category CHECK to the
+  seven-category redesign taxonomy (legacy values kept valid); realigns the
+  start_agent_session() category guard to match.
+- 027_goal_draft_status.sql: adds `draft` as a goals.status value; keeps
+  `active` as the default.
+- 028_friend_connections_invite_links_usernames.sql: social-graph foundation.
+  Adds profiles.username (citext, NOT NULL, UNIQUE, `^[a-z0-9_]{3,20}$` format
+  CHECK), backfilled from display_name via slugify+dedupe. Creates
+  friend_connections (request/accept, partial unique index on the unordered
+  {requester,addressee} pair WHERE status in pending/accepted — declined rows
+  persist as history) and invite_links (crypto-random code via
+  generate_invite_code(), owner-only RLS, no public SELECT). RPCs (all SECURITY
+  DEFINER, none broaden profiles RLS): get_friend_count, search_profiles_by_username
+  (3-char min, prefix, cap 20), get_profiles_by_ids, redeem_invite_link (writes
+  accepted directly, atomic uses_count, self/expired/exhausted guards,
+  already-connected + pending-upgrade handled gracefully). handle_new_user()
+  (008) now populates username from raw_user_meta_data->>'username' when valid
+  and free, else slugify-fallback; exception-wrapping preserved. citext
+  extension enabled. Shared helper generate_unique_username(base, id) drives both
+  backfill and signup. Applied and verified live 2026-07-23.
+- 029_check_username_available.sql: adds check_username_available(check_username
+  text) RETURNS boolean — SECURITY DEFINER, STABLE, search_path public,extensions.
+  Anonymous-safe availability check for the signup form: 028's
+  search_profiles_by_username is authenticated-only and returns profile data, so
+  it can't serve the pre-signup (anon) check. This function normalizes input with
+  btrim(lower(...)) (matching handle_new_user), applies the same
+  `^[a-z0-9_]{3,20}$` format guard as the column CHECK and returns false (never
+  raises) on a non-match, then returns NOT EXISTS on an exact case-insensitive
+  (citext) match — a boolean only, no name/avatar/list exposed. GRANT EXECUTE to
+  BOTH anon and authenticated (anon by design for pre-signup; reused later in
+  authenticated profile-edit). Additive only: does not touch
+  search_profiles_by_username, its grants, or any 028 table/policy. API-layer
+  rate limiting on this now-anon-callable endpoint flagged in OUTSTANDING.md (not
+  blocking). Verified against a local PG16: taken→false, available→true,
+  malformed/null→false, exact-not-prefix, and called AS anon → succeeds (no
+  Unauthorized). Not yet applied to the live DB (direct DB + shared pooler
+  unreachable from the dev machine; apply via dashboard SQL editor, as 028 was).
 - goals.mode column was dropped in the 2026-06-24 squash (was a single-value
   CHECK column, no longer carried). lib/db/goals.ts no longer inserts it.
 

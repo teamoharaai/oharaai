@@ -279,3 +279,33 @@ in-browser (login generic error, signup 10-char guard, global logout redirect). 
 - [ ] **`EXPO_PUBLIC_SITE_URL` not set in `.env.local`.** Added to `.env.example` this session.
       Local dev currently falls back to `window.location.origin`. Set it per environment
       (prod/preview) in Vercel so confirmation/OAuth links don't depend on the runtime origin.
+
+## Social graph (migration 028/029 — deferred by explicit scope)
+
+- [ ] **API-layer rate limiting on `check_username_available` (migration 029).** The signup
+      availability-check RPC is granted to `anon` by design (it runs pre-signup), so it is
+      callable without a session. It exposes only a boolean (no profile data, exact match only),
+      but being anon-callable it can be hit unthrottled. Worth adding rate limiting at the API
+      layer eventually; not blocking (single boolean, no enumeration of profile fields — a
+      `false` only confirms a specific candidate is taken/malformed). Flagged when 029 landed
+      2026-07-23.
+
+
+- [ ] **Unfriend / removal flow.** Migration 028 (`friend_connections`) intentionally ships
+      no way to remove an accepted friendship. The partial unique index on the unordered pair
+      only excludes `declined` rows, so any future unfriend design must decide whether removal
+      deletes the row, flips it to `declined`, or introduces a new status — and how re-friending
+      after removal interacts with the index. Not designed around speculatively; revisit as its
+      own task.
+- [ ] **Signup-path `display_name` server-side validation gap.** The signup path still lacks a
+      server-side trim/non-empty check on `display_name`; 028 deliberately did not touch
+      `display_name` validation. Empty/whitespace display names currently fall through to the
+      `user_<short id>` username fallback in `generate_unique_username()`, which masks but does
+      not fix the underlying missing validation. Separate, already-logged concern.
+- [ ] **Frontend signup form field for `username`.** `handle_new_user()` (008, updated in 028)
+      already reads `raw_user_meta_data->>'username'` when present, valid (`^[a-z0-9_]{3,20}$`),
+      and free — but no signup UI collects it yet, so every real signup currently takes the
+      slugify-from-display_name fallback. Wiring the field is a separate scoped task.
+- [ ] **Public / browsable profile directory — will not build.** Per product decision, username
+      lookup exists only inside the send-friend-request flow via `search_profiles_by_username`
+      (3-char min, prefix match, cap 20). Do not add a general directory or broaden that RPC.

@@ -404,6 +404,48 @@ export type Database = {
           },
         ]
       }
+      friend_connections: {
+        Row: {
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          responded_at: string | null
+          status: string
+        }
+        Insert: {
+          addressee_id: string
+          created_at?: string
+          id?: string
+          requester_id: string
+          responded_at?: string | null
+          status?: string
+        }
+        Update: {
+          addressee_id?: string
+          created_at?: string
+          id?: string
+          requester_id?: string
+          responded_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friend_connections_addressee_id_fkey"
+            columns: ["addressee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friend_connections_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           ai_generated: boolean
@@ -558,87 +600,40 @@ export type Database = {
           },
         ]
       }
-      tracker_logs: {
+      invite_links: {
         Row: {
-          id: string
-          logged_at: string
-          note: string | null
-          tracker_id: string
-          value: number
-        }
-        Insert: {
-          id?: string
-          logged_at?: string
-          note?: string | null
-          tracker_id: string
-          value?: number
-        }
-        Update: {
-          id?: string
-          logged_at?: string
-          note?: string | null
-          tracker_id?: string
-          value?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tracker_logs_tracker_id_fkey"
-            columns: ["tracker_id"]
-            isOneToOne: false
-            referencedRelation: "trackers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      trackers: {
-        Row: {
+          code: string
           created_at: string
-          current_value: number
-          frequency: string | null
-          goal_id: string
+          created_by: string
+          expires_at: string | null
           id: string
-          is_ai_suggested: boolean
-          sort_order: number
-          target_unit: string | null
-          target_value: number | null
-          title: string
-          type: string
-          updated_at: string
+          max_uses: number | null
+          uses_count: number
         }
         Insert: {
+          code?: string
           created_at?: string
-          current_value?: number
-          frequency?: string | null
-          goal_id: string
+          created_by: string
+          expires_at?: string | null
           id?: string
-          is_ai_suggested?: boolean
-          sort_order?: number
-          target_unit?: string | null
-          target_value?: number | null
-          title: string
-          type: string
-          updated_at?: string
+          max_uses?: number | null
+          uses_count?: number
         }
         Update: {
+          code?: string
           created_at?: string
-          current_value?: number
-          frequency?: string | null
-          goal_id?: string
+          created_by?: string
+          expires_at?: string | null
           id?: string
-          is_ai_suggested?: boolean
-          sort_order?: number
-          target_unit?: string | null
-          target_value?: number | null
-          title?: string
-          type?: string
-          updated_at?: string
+          max_uses?: number | null
+          uses_count?: number
         }
         Relationships: [
           {
-            foreignKeyName: "trackers_goal_id_fkey"
-            columns: ["goal_id"]
+            foreignKeyName: "invite_links_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "goals"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -709,6 +704,7 @@ export type Database = {
           onboarding_complete: boolean
           timezone: string
           updated_at: string
+          username: string
         }
         Insert: {
           avatar_url?: string | null
@@ -725,6 +721,7 @@ export type Database = {
           onboarding_complete?: boolean
           timezone?: string
           updated_at?: string
+          username: string
         }
         Update: {
           avatar_url?: string | null
@@ -741,6 +738,7 @@ export type Database = {
           onboarding_complete?: boolean
           timezone?: string
           updated_at?: string
+          username?: string
         }
         Relationships: []
       }
@@ -859,6 +857,91 @@ export type Database = {
         }
         Relationships: []
       }
+      tracker_logs: {
+        Row: {
+          id: string
+          logged_at: string
+          note: string | null
+          tracker_id: string
+          value: number
+        }
+        Insert: {
+          id?: string
+          logged_at?: string
+          note?: string | null
+          tracker_id: string
+          value?: number
+        }
+        Update: {
+          id?: string
+          logged_at?: string
+          note?: string | null
+          tracker_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracker_logs_tracker_id_fkey"
+            columns: ["tracker_id"]
+            isOneToOne: false
+            referencedRelation: "trackers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trackers: {
+        Row: {
+          created_at: string
+          current_value: number
+          frequency: string | null
+          goal_id: string
+          id: string
+          is_ai_suggested: boolean
+          sort_order: number
+          target_unit: string | null
+          target_value: number | null
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_value?: number
+          frequency?: string | null
+          goal_id: string
+          id?: string
+          is_ai_suggested?: boolean
+          sort_order?: number
+          target_unit?: string | null
+          target_value?: number | null
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_value?: number
+          frequency?: string | null
+          goal_id?: string
+          id?: string
+          is_ai_suggested?: boolean
+          sort_order?: number
+          target_unit?: string | null
+          target_value?: number | null
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trackers_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vault_items: {
         Row: {
           content: string | null
@@ -968,17 +1051,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_echo_entry_with_container: {
-        Args: {
-          p_ai_insight_requested: boolean
-          p_brt: Json | null
-          p_content: string
-          p_embedding_text: string | null
-          p_emotion: Json | null
-          p_goal_id: string | null
-          p_title: string | null
-        }
-        Returns: string
+      check_username_available: {
+        Args: { check_username: string }
+        Returns: boolean
       }
       consume_daily_ai_quota: {
         Args: { p_date: string; p_limit?: number }
@@ -986,6 +1061,18 @@ export type Database = {
           allowed: boolean
           count: number
         }[]
+      }
+      create_echo_entry_with_container: {
+        Args: {
+          p_ai_insight_requested: boolean
+          p_brt: Json
+          p_content: string
+          p_embedding_text: string
+          p_emotion: Json
+          p_goal_id: string
+          p_title: string
+        }
+        Returns: string
       }
       delete_folder_reassign: {
         Args: { p_folder_id: string; p_general_folder_id: string }
@@ -995,16 +1082,35 @@ export type Database = {
         Args: { p_folder_id: string }
         Returns: undefined
       }
+      finish_agent_session: {
+        Args: {
+          p_idempotency_key: string
+          p_session_id: string
+          p_summary: Json
+        }
+        Returns: {
+          final_entry_id: string
+          requires_approval: boolean
+          session_status: string
+        }[]
+      }
+      generate_invite_code: { Args: never; Returns: string }
+      generate_unique_username: {
+        Args: { p_base: string; p_id: string }
+        Returns: string
+      }
+      get_friend_count: { Args: { user_id: string }; Returns: number }
       get_or_create_general_folder: {
         Args: { p_user_id: string }
         Returns: string
       }
-      finish_agent_session: {
-        Args: { p_idempotency_key: string; p_session_id: string; p_summary: Json }
+      get_profiles_by_ids: {
+        Args: { user_ids: string[] }
         Returns: {
-          final_entry_id: string | null
-          requires_approval: boolean
-          session_status: string
+          avatar_url: string
+          display_name: string
+          id: string
+          username: string
         }[]
       }
       match_echo_entries: {
@@ -1061,7 +1167,7 @@ export type Database = {
       publish_agent_session: {
         Args: {
           p_content: string
-          p_embedding_text: string | null
+          p_embedding_text: string
           p_idempotency_key: string
           p_session_id: string
           p_title: string
@@ -1078,17 +1184,27 @@ export type Database = {
         }
         Returns: string
       }
+      redeem_invite_link: { Args: { code: string }; Returns: Json }
+      search_profiles_by_username: {
+        Args: { query: string }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          id: string
+          username: string
+        }[]
+      }
       start_agent_session: {
         Args: {
           p_end_date: string
           p_external_session_id: string
           p_goal_category: string
           p_goal_color_theme: string
-          p_goal_description: string | null
+          p_goal_description: string
           p_goal_title: string
           p_period_key: string
-          p_project_description: string | null
-          p_project_id: string | null
+          p_project_description: string
+          p_project_id: string
           p_project_title: string
           p_start_date: string
         }
