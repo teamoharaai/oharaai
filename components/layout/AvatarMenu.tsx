@@ -1,16 +1,36 @@
-import { useEffect, useState } from 'react';
-import { Modal, Pressable, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  Modal,
+  Pressable,
+  Text,
+  View,
+  useWindowDimensions,
+  type GestureResponderEvent,
+} from 'react-native';
 import { authedFetch, signOutAndRedirect } from '@/lib/api/client';
 import type { ApiResponse } from '@/lib/api/contracts';
 import { Avatar } from '@/components/ui/Avatar';
 import { BrandIcon } from '@/components/ui/BrandIcon';
+import { FEATURES } from '@/constants/features';
+import {
+  FriendsPopover,
+  shouldUseDesktopFriendsPopover,
+  type FriendsAnchorRect,
+} from '@/features/friends/components/FriendsPopover';
+import type { FriendsTab } from '@/features/friends/components/types';
+import { useAuthStore } from '@/features/auth/store';
+import supabase from '@/lib/db/client';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { AccountModal } from './AccountModal';
 import { SettingsModal } from './SettingsModal';
 
-interface ProfileSummary {
+interface ProfileApiSummary {
   display_name: string;
   avatar_url: string | null;
+}
+
+interface ProfileSummary extends ProfileApiSummary {
+  username: string;
 }
 
 function MenuRow({
@@ -53,21 +73,65 @@ export function AvatarMenu() {
   const colors = useThemeColors();
   const themeMode = useUIStore((state) => state.themeMode);
   const toggleTheme = useUIStore((state) => state.toggleTheme);
+  const activeUserId = useAuthStore((state) => state.session?.user.id ?? null);
+  const metadataUsername = useAuthStore((state) => {
+    const value = state.session?.user.user_metadata.username;
+    return typeof value === 'string' ? value : '';
+  });
+  const { width: viewportWidth } = useWindowDimensions();
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [profile, setProfile] = useState<ProfileSummary | null>(null);
+  const [friendsOpen, setFriendsOpen] = useState(false);
+  const [friendsTab, setFriendsTab] = useState<FriendsTab>('friends');
+  const [anchorRect, setAnchorRect] =
+    useState<FriendsAnchorRect | null>(null);
+  const triggerRef = useRef<View | null>(null);
+  const avatarAnchorRef = useRef<View | null>(null);
+
+  useEffect(() => {
+    setMenuOpen(false);
+    setFriendsOpen(false);
+    setAccountOpen(false);
+    setSettingsOpen(false);
+    setAnchorRect(null);
+    setFriendsTab('friends');
+  }, [activeUserId]);
 
   useEffect(() => {
     let active = true;
+    setProfile(null);
+    if (!activeUserId) return () => {
+      active = false;
+    };
 
     async function load() {
       try {
-        const res = await authedFetch('/api/profile');
+        const profileRequest = authedFetch('/api/profile');
+        const usernameRequest = FEATURES.SOCIAL_ENABLED
+          ? supabase
+              .from('profiles')
+              .select('username')
+              .eq('id', activeUserId)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null });
+        const [res, usernameResult] = await Promise.all([
+          profileRequest,
+          usernameRequest,
+        ]);
         if (!active) return;
-        const body = (await res.json()) as ApiResponse<ProfileSummary>;
+        const body = (await res.json()) as ApiResponse<ProfileApiSummary>;
         if (active && body.ok) {
-          setProfile({ display_name: body.data.display_name, avatar_url: body.data.avatar_url });
+          const username =
+            typeof usernameResult.data?.username === 'string'
+              ? usernameResult.data.username
+              : metadataUsername;
+          setProfile({
+            display_name: body.data.display_name,
+            avatar_url: body.data.avatar_url,
+            username,
+          });
         }
       } catch {
         // Silent — avatar falls back to initials/empty. Non-blocking, matches
@@ -81,10 +145,11 @@ export function AvatarMenu() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [activeUserId, metadataUsername]);
 
   async function handleSignOut() {
     setMenuOpen(false);
+    setFriendsOpen(false);
     // RN's core Image component (in use here — expo-image is not installed) has
     // no cross-platform cache-clear API, unlike expo-image's clearDiskCache/
     // clearMemoryCache. Nothing to call. Flagged in OUTSTANDING.md.
@@ -93,13 +158,96 @@ export function AvatarMenu() {
 
   const displayName = profile?.display_name ?? '';
   const avatarUrl = profile?.avatar_url ?? null;
+  const username = profile?.username ?? metadataUsername;
+  const useDesktopFriends =
+    FEATURES.SOCIAL_ENABLED &&
+    shouldUseDesktopFriendsPopover(viewportWidth);
+
+  const restoreTriggerFocus = useCallback(() => {
+    const focus = () => {
+      const node = triggerRef.current as
+        | (View & { focus?: () => void })
+        | null;
+      node?.focus?.();
+    };
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(focus);
+    } else {
+      setTimeout(focus, 0);
+    }
+  }, []);
+
+  const closeFriends = useCallback(() => {
+    setFriendsOpen(false);
+    restoreTriggerFocus();
+  }, [restoreTriggerFocus]);
+
+  function makeAnchorRect(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ): FriendsAnchorRect {
+    return {
+      x,
+      y,
+      width,
+      height,
+      top: y,
+      left: x,
+      right: x + width,
+      bottom: y + height,
+    };
+  }
+
+  function openFromAvatar(event: GestureResponderEvent) {
+    if (!useDesktopFriends) {
+      setMenuOpen(true);
+      return;
+    }
+
+    const anchorNode = avatarAnchorRef.current as
+      | (View & {
+          measureInWindow?: (
+            callback: (
+              x: number,
+              y: number,
+              width: number,
+              height: number,
+            ) => void,
+          ) => void;
+        })
+      | null;
+    if (anchorNode?.measureInWindow) {
+      anchorNode.measureInWindow((x, y, width, height) => {
+        setAnchorRect(makeAnchorRect(x, y, width, height));
+        setFriendsOpen(true);
+      });
+      return;
+    }
+
+    const currentTarget = (
+      event as GestureResponderEvent & {
+        currentTarget?: { getBoundingClientRect?: () => DOMRect };
+      }
+    ).currentTarget;
+    const rect = currentTarget?.getBoundingClientRect?.();
+    setAnchorRect(
+      rect
+        ? makeAnchorRect(rect.left, rect.top, rect.width, rect.height)
+        : null,
+    );
+    setFriendsOpen(true);
+  }
 
   return (
     <>
       <Pressable
-        accessibilityLabel="Open account menu"
+        ref={triggerRef}
+        accessibilityLabel="Open account and friends"
         accessibilityRole="button"
-        onPress={() => setMenuOpen(true)}
+        accessibilityState={{ expanded: menuOpen || friendsOpen }}
+        onPress={openFromAvatar}
         style={({ pressed }) => ({
           flexDirection: 'row',
           alignItems: 'center',
@@ -110,7 +258,9 @@ export function AvatarMenu() {
           opacity: pressed ? 0.7 : 1,
         })}
       >
-        <Avatar avatarUrl={avatarUrl} displayName={displayName} size={36} />
+        <View collapsable={false} ref={avatarAnchorRef}>
+          <Avatar avatarUrl={avatarUrl} displayName={displayName} size={36} />
+        </View>
       </Pressable>
 
       <Modal
@@ -220,10 +370,40 @@ export function AvatarMenu() {
       <AccountModal
         visible={accountOpen}
         onClose={() => setAccountOpen(false)}
-        onSaved={(updated) => setProfile(updated)}
+        onSaved={(updated) =>
+          setProfile((current) => ({
+            ...updated,
+            username: current?.username ?? username,
+          }))
+        }
       />
 
       <SettingsModal visible={settingsOpen} onClose={() => setSettingsOpen(false)} />
+
+      {FEATURES.SOCIAL_ENABLED ? (
+        <FriendsPopover
+          key={activeUserId ?? 'signed-out'}
+          anchorRect={anchorRect}
+          onChangeTab={setFriendsTab}
+          onClose={closeFriends}
+          onLogOut={() => void handleSignOut()}
+          onOpenAccount={() => {
+            setFriendsOpen(false);
+            setAccountOpen(true);
+          }}
+          onOpenSettings={() => {
+            setFriendsOpen(false);
+            setSettingsOpen(true);
+          }}
+          profile={{
+            avatarUrl,
+            displayName,
+            username,
+          }}
+          tab={friendsTab}
+          visible={friendsOpen}
+        />
+      ) : null}
     </>
   );
 }

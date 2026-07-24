@@ -44,6 +44,10 @@ export interface ThemeColors {
     readonly pending: FeedbackColors;
     readonly info: FeedbackColors;
   };
+  readonly effects: {
+    readonly overlay: string;
+    readonly shadow: string;
+  };
 }
 
 interface FeedbackColors {
@@ -112,6 +116,10 @@ export const LIGHT_THEME = {
       text: '#5F6B66',
     },
   },
+  effects: {
+    overlay: 'rgba(36,35,31,0.24)',
+    shadow: '#1E3226',
+  },
 } as const satisfies ThemeColors;
 
 export const DARK_THEME = {
@@ -171,5 +179,9 @@ export const DARK_THEME = {
       border: '#33362F', // derived, no Figma dark token
       text: '#B8BDB4', // derived, no Figma dark token
     },
+  },
+  effects: {
+    overlay: 'rgba(0,0,0,0.48)',
+    shadow: '#000000',
   },
 } as const satisfies ThemeColors;

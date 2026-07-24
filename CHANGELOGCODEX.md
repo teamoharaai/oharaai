@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added (2026-07-24 — Anchored desktop Friends and account UI)
+- **`features/friends/components/`:** added the prop-driven 720/240/480 anchored desktop account/Friends surface with Friends, Requests, and Add tabs; viewport-clamped scrolling; intentional loading, refresh, retry, empty, search, and per-row mutation states; structured cooldown copy; accessible tab keyboard navigation; and informational-only friend rows.
+
+### Changed (2026-07-24 — Anchored desktop Friends and account UI)
+- **`components/layout/AvatarMenu.tsx`:** routes the avatar trigger to the anchored Friends surface on web at 900 px and above when `SOCIAL_ENABLED`, preserves the existing compact menu below the breakpoint and while the flag is disabled, restores trigger focus on dismissal, reloads account chrome on user changes, and resolves the signed-in account's real username for the rail summary.
+- **`constants/colors.ts`:** added semantic overlay and elevated-shadow effect tokens so the new anchored shell uses the shared light/dark theme instead of component-local colors.
+- **`constants/features.ts`:** enabled `SOCIAL_ENABLED` for the user-run signed-in desktop verification after the automated Friends tests, typecheck, diff validation, and Expo web export passed.
+
 ### Added (2026-07-24 — Friends client state and concurrency)
 - **`features/friends/services/friends-service.ts`, `state-core.ts`, `store.ts`, `hooks/useFriends.ts`, and `types.ts`:** added feature-owned authenticated API wrappers, `ApiResponse` error unwrapping with structured cooldown metadata, the Zustand Friends snapshot/search/controller state, and stable per-connection/per-profile mutation state for the anchored Friends UI.
 - **`scripts/test-friends-client-state.mjs` and `package.json`:** added deterministic client-state coverage for concurrent entity mutations, exact optimistic rollback, queued refresh during single-flight hydration, authoritative/idempotent sent-request IDs, already-handled reconciliation, stale/cleared searches, query normalization, and reset generation guards.
