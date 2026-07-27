@@ -1,6 +1,11 @@
-import { createElement, useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type FormEvent } from 'react';
-import { Easing, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Easing, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
+import {
+  DatePicker,
+  formatCalendarDate,
+  parseCalendarDate,
+} from '@/components/ui/DatePicker';
 import { Modal } from '@/components/ui/Modal';
 import { authedFetch } from '@/lib/api/client';
 import type { ApiResponse } from '@/lib/api/contracts';
@@ -54,10 +59,7 @@ function getDateAfterDays(days: number): Date {
 }
 
 function formatDateInput(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return formatCalendarDate(date);
 }
 
 function getMinimumCustomDate(): string {
@@ -65,18 +67,8 @@ function getMinimumCustomDate(): string {
 }
 
 function getCustomDeadline(value: string): { iso: string | null; error: string | null } {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return { iso: null, error: 'Choose a valid date.' };
-  }
-
-  const [year, month, day] = value.split('-').map(Number);
-  const parsed = new Date(year, month - 1, day);
-  if (
-    Number.isNaN(parsed.getTime()) ||
-    parsed.getFullYear() !== year ||
-    parsed.getMonth() !== month - 1 ||
-    parsed.getDate() !== day
-  ) {
+  const parsed = parseCalendarDate(value);
+  if (!parsed) {
     return { iso: null, error: 'Choose a valid date.' };
   }
 
@@ -349,7 +341,15 @@ function DeadlineStep({
           <Text style={{ color: '#6B6257', fontFamily: 'Inter-Regular', fontSize: 13, marginBottom: 7 }}>
             Choose a future date
           </Text>
-          <CustomDateInput value={customDate} onChange={onCustomDateChange} invalid={customValidation.iso === null} />
+          <DatePicker
+            accessibilityLabel="Custom deadline"
+            error={customValidation.iso === null ? customValidation.error : null}
+            minimumDate={getMinimumCustomDate()}
+            onChange={onCustomDateChange}
+            placeholder="Choose a custom deadline"
+            style={{ width: '100%' }}
+            value={customDate}
+          />
           {customValidation.error && (
             <Text style={{ color: '#C0483A', fontFamily: 'Inter-Regular', fontSize: 12, marginTop: 6 }}>
               {customValidation.error}
@@ -415,58 +415,6 @@ function DeadlineOptionButton({ label, onPress, selected }: { label: string; onP
         {label}
       </Text>
     </TouchableOpacity>
-  );
-}
-
-function CustomDateInput({ invalid, onChange, value }: { invalid: boolean; onChange: (value: string) => void; value: string }) {
-  const borderColor = invalid ? '#C0483A' : '#D8D0C2';
-
-  if (Platform.OS === 'web') {
-    const style: CSSProperties = {
-      backgroundColor: '#FFFFFF',
-      border: `1px solid ${borderColor}`,
-      borderRadius: 10,
-      boxSizing: 'border-box',
-      color: '#211F1A',
-      fontFamily: 'Inter-Regular',
-      fontSize: 14,
-      height: 42,
-      outline: 'none',
-      padding: '8px 12px',
-      width: '100%',
-    };
-    return createElement('input', {
-      'aria-label': 'Custom deadline',
-      min: getMinimumCustomDate(),
-      onChange: (event: ChangeEvent<HTMLInputElement>) => onChange(event.currentTarget.value),
-      onInput: (event: FormEvent<HTMLInputElement>) => onChange(event.currentTarget.value),
-      style,
-      type: 'date',
-      value,
-    });
-  }
-
-  return (
-    <TextInput
-      accessibilityLabel="Custom deadline"
-      autoCapitalize="none"
-      autoCorrect={false}
-      onChangeText={onChange}
-      placeholder="YYYY-MM-DD"
-      placeholderTextColor="#A79E8E"
-      style={{
-        backgroundColor: '#FFFFFF',
-        borderColor,
-        borderRadius: 10,
-        borderWidth: 1,
-        color: '#211F1A',
-        fontFamily: 'Inter-Regular',
-        fontSize: 14,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-      }}
-      value={value}
-    />
   );
 }
 

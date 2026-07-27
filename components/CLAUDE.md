@@ -17,6 +17,12 @@ Post-redesign warm ramp (Sessions 1–4c). Canonical tokens: `constants/colors.t
 Use the `Typography` component with a `variant` — do not hardcode font/size/color. Beyond the base set (`heading`, `title`, `body`, `label`, `caption`, `ai`/`ai-italic`, `eyebrow`, `greeting`, …), redesign added exact-spec variants: `card-title` (15.5px, ProjectCard title), `card-description` (12px/18, ProjectCard description), `goal-title` (14.5px/19, GoalRingCard title).
 
 ## Key Components
+- DatePicker.tsx: app-wide controlled calendar input for `YYYY-MM-DD` values. It presents a
+  token-driven, mobile-friendly calendar with temporary selection, Cancel/Apply, month
+  navigation, min/max bounds, optional clearing, and the canonical local-calendar parse/format
+  helpers. All date inputs should import `DatePicker` directly; do not add native date inputs
+  or raw date-text fields. Keep persisted/API values as local-calendar `YYYY-MM-DD` strings and
+  format human-readable labels only in the UI.
 - GoalCard.tsx: shows title, status, progress, vault activity line, BRT micro-dots
 - ProjectCard.tsx: teal status dot, project title + description, chevron toggle (collapsed by default); expands to a single-column list of compact ProjectGoalRows.
 - ProjectGoalRow.tsx: compact 56px linear goal entry used by dashboard ProjectCard expansions, project-detail Goals, and the dashboard Goals list-view option; includes only the category-tinted goal icon, title, deadline/commitment line, and navigation arrow, intentionally omitting category/status pills and the full GoalCard left accent stripe.

@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Added (2026-07-27 — Reusable app calendar picker)
+- **`components/ui/DatePicker.tsx`:** added a token-driven, cross-platform calendar picker with human-readable trigger text, month navigation, temporary selected-date state, minimum/maximum bounds, accessible 44px day targets, optional clearing, and explicit Cancel/Apply behavior.
+
+### Changed (2026-07-27 — Reusable app calendar picker)
+- **`components/ui/DateField.tsx`:** removed the now-unused legacy date-field alias so `components/ui/DatePicker.tsx` is the sole date-input implementation.
+- **`app/goals/create.tsx` and `features/goals/components/GoalReviewScreen.tsx`:** routed manual and AI-reviewed goal deadlines and milestone dates through the shared picker.
+- **`features/goals/components/CountdownTimer.tsx`, `MilestonesPanel.tsx`, and `ExtendGoalModal.tsx`:** routed goal end-date editing, milestone add/edit dates, and custom goal-extension deadlines through the shared picker and its local-calendar helpers while preserving existing validation and persistence contracts.
+- **`components/CLAUDE.md`:** documented `DatePicker` as the sole source of truth for future user-facing date inputs.
+- Verification: `npx tsc --noEmit`, `git diff --check`, and a production-style Expo web export passed.
+
 ### Added (2026-07-27 — Dashboard hierarchy and Momentum prototype)
 - **`app/(app)/dashboard.tsx`:** added a code-native seven-point sample Momentum card and expanded sample panel, plus an accessible floating Create menu backed only by the existing goal route and project modal; the reflection option remains disabled and labeled Coming soon because no safe direct composer route exists.
 - **`features/goals/components/GoalEchoAnalysisCard.tsx`:** added a shared, category-aware Echo Analysis preview for expanded standalone dashboard goals using the seven specified sample metrics, canonical category accents, and a neutral fallback without any API, AI, or mutation behavior.

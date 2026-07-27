@@ -16,7 +16,7 @@ import { AppHeader } from '@/components/layout/AppHeader';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { DateField } from '@/components/ui/DateField';
+import { DatePicker } from '@/components/ui/DatePicker';
 import {
   GoalCreationModeToggle,
   type GoalCreationMode,
@@ -757,7 +757,7 @@ export default function GoalCreateScreen() {
           </View>
           {wizard.preset === 'custom' ? (
             <View style={{ marginTop: 12 }}>
-              <DateField
+              <DatePicker
                 accessibilityLabel="Custom goal deadline"
                 error={!deadlineValid && wizard.customDate ? 'Choose a future date.' : null}
                 minimumDate={tomorrowValue()}

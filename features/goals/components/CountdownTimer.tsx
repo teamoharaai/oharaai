@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import {
+  DatePicker,
+  formatCalendarDate,
+  parseCalendarDate,
+} from '@/components/ui/DatePicker';
 import { Typography } from '@/components/ui/Typography';
 import { useThemeColors } from '@/store/uiStore';
 
@@ -48,26 +53,14 @@ function getElapsed(createdAt: Date, deadline: Date | null, now: number) {
 }
 
 function formatDateInput(date: Date | null): string {
-  if (!date) return '';
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return date ? formatCalendarDate(date) : '';
 }
 
 function parseDateInput(value: string): Date | null | undefined {
   const trimmed = value.trim();
   if (!trimmed) return null;
-  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return undefined;
-  const parsed = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-  if (
-    parsed.getFullYear() !== Number(match[1])
-    || parsed.getMonth() !== Number(match[2]) - 1
-    || parsed.getDate() !== Number(match[3])
-  ) {
-    return undefined;
-  }
+  const parsed = parseCalendarDate(trimmed);
+  if (!parsed) return undefined;
   parsed.setHours(12, 0, 0, 0);
   return parsed;
 }
@@ -123,7 +116,7 @@ export function CountdownTimer({
   async function saveDeadline() {
     const parsed = parseDateInput(dateInput);
     if (parsed === undefined) {
-      setError('Use a valid date in YYYY-MM-DD format.');
+      setError('Choose a valid end date.');
       return;
     }
     setSaving(true);
@@ -252,30 +245,18 @@ export function CountdownTimer({
             width: '100%',
           }}
         >
-          <Typography variant="micro-label">END DATE · YYYY-MM-DD</Typography>
-          <TextInput
+          <Typography variant="micro-label">END DATE</Typography>
+          <DatePicker
             accessibilityLabel="Goal end date"
-            autoFocus
-            editable={!saving}
-            onChangeText={(value) => {
+            allowClear
+            disabled={saving}
+            error={error}
+            onChange={(value) => {
               setDateInput(value);
               if (error) setError(null);
             }}
-            onSubmitEditing={saveDeadline}
-            placeholder="2026-08-30"
-            placeholderTextColor={colors.text.muted}
-            returnKeyType="done"
-            style={{
-              backgroundColor: colors.background.input,
-              borderColor: error ? colors.feedback.danger.text : colors.border.input,
-              borderRadius: 9,
-              borderWidth: 1,
-              color: colors.text.primary,
-              fontFamily: 'Inter-Regular',
-              fontSize: 13,
-              paddingHorizontal: 11,
-              paddingVertical: 9,
-            }}
+            placeholder="Choose an end date"
+            style={{ width: '100%' }}
             value={dateInput}
           />
           {error ? (

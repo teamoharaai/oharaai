@@ -2,7 +2,11 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { DateField } from '@/components/ui/DateField';
+import {
+  DatePicker,
+  formatCalendarDate,
+  parseCalendarDate,
+} from '@/components/ui/DatePicker';
 import { Toggle } from '@/components/ui/Toggle';
 import { Typography } from '@/components/ui/Typography';
 import { getCategoryAccentTheme } from '@/constants/themes';
@@ -73,12 +77,11 @@ function localId(prefix: string): string {
 
 function toDateInput(value: string | null | undefined): string {
   if (!value) return '';
+  const calendarDate = parseCalendarDate(value);
+  if (calendarDate) return formatCalendarDate(calendarDate);
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return '';
-  const year = parsed.getFullYear();
-  const month = String(parsed.getMonth() + 1).padStart(2, '0');
-  const day = String(parsed.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return formatCalendarDate(parsed);
 }
 
 function tomorrowInput(): string {
@@ -386,7 +389,7 @@ export function GoalReviewScreen({
             <Typography variant="field-label" style={{ marginBottom: 6 }}>
               Deadline
             </Typography>
-            <DateField
+            <DatePicker
               accessibilityLabel="Goal deadline"
               error={!deadlineValid ? 'Choose a future date.' : null}
               minimumDate={tomorrowInput()}
@@ -520,7 +523,7 @@ export function GoalReviewScreen({
                 }}
                 value={milestone.description}
               />
-              <DateField
+              <DatePicker
                 accessibilityLabel="Milestone due date"
                 onChange={(value) => updateMilestone(milestone.id, { dueDate: value })}
                 style={{ width: 170 }}

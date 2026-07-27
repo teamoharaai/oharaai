@@ -1,5 +1,10 @@
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import {
+  DatePicker,
+  formatCalendarDate,
+  parseCalendarDate,
+} from '@/components/ui/DatePicker';
 import { useThemeColors } from '@/store/uiStore';
 import type {
   GoalMilestone,
@@ -40,26 +45,15 @@ function formatDate(value: Date): string {
 }
 
 function toDateInput(value: Date | null | undefined): string {
-  if (!value) return '';
-  const year = value.getFullYear();
-  const month = String(value.getMonth() + 1).padStart(2, '0');
-  const day = String(value.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return value ? formatCalendarDate(value) : '';
 }
 
 function parseDateInput(value: string): Date | null | undefined {
   const trimmed = value.trim();
   if (!trimmed) return null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return undefined;
-  const [year, month, day] = trimmed.split('-').map(Number);
-  const parsed = new Date(year, month - 1, day, 12);
-  if (
-    parsed.getFullYear() !== year ||
-    parsed.getMonth() !== month - 1 ||
-    parsed.getDate() !== day
-  ) {
-    return undefined;
-  }
+  const parsed = parseCalendarDate(trimmed);
+  if (!parsed) return undefined;
+  parsed.setHours(12, 0, 0, 0);
   return parsed;
 }
 
@@ -81,7 +75,7 @@ function MilestoneEditor({ initial, submitLabel, onCancel, onSubmit }: Milestone
     }
     const parsedDueDate = parseDateInput(dueDate);
     if (parsedDueDate === undefined) {
-      setValidationError('Use YYYY-MM-DD for the target date.');
+      setValidationError('Choose a valid target date.');
       return;
     }
 
@@ -141,16 +135,12 @@ function MilestoneEditor({ initial, submitLabel, onCancel, onSubmit }: Milestone
         style={[inputStyle, { minHeight: 64, textAlignVertical: 'top' }]}
         value={description}
       />
-      <TextInput
-        accessibilityHint="Enter a date in year-month-day format"
+      <DatePicker
         accessibilityLabel="Milestone target date"
-        inputMode="numeric"
-        onChangeText={setDueDate}
-        onSubmitEditing={() => void handleSubmit()}
-        placeholder="Target date · YYYY-MM-DD"
-        placeholderTextColor={colors.text.muted}
-        returnKeyType="done"
-        style={inputStyle}
+        allowClear
+        onChange={setDueDate}
+        placeholder="Choose a target date"
+        style={{ width: '100%' }}
         value={dueDate}
       />
       {validationError ? (
