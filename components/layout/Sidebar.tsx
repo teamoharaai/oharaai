@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pressable, View, Text, useWindowDimensions } from 'react-native';
 import { router, usePathname } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { BrandIcon, type BrandIconName } from '@/components/ui/BrandIcon';
 import { FEATURES } from '@/constants/features';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
@@ -16,6 +17,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Journey',       href: '/(app)/dashboard',     match: '/dashboard',     enabled: true, icon: 'goals' },
+  { label: 'Momentum',      href: '/(app)/momentum',      match: '/momentum',      enabled: true },
   { label: 'Echo',          href: '/(app)/echo',          match: '/echo',          enabled: FEATURES.ECHO_ENABLED, icon: 'echo' },
   { label: 'Constellation', href: '/(app)/constellation', match: '/constellation', enabled: FEATURES.CONSTELLATION_ENABLED },
   { label: 'Explore',       href: '/(app)/explore',       match: '/explore',       enabled: FEATURES.DISCOVERY_ENABLED },
@@ -187,7 +189,16 @@ export function Sidebar() {
                   }}
                 />
               )}
-              {(!collapsed || !item.icon) && (
+              {!item.icon && item.label === 'Momentum' ? (
+                <Ionicons
+                  accessible={false}
+                  color={isActive ? colors.text.accent : colors.text.secondary}
+                  name="trending-up-outline"
+                  size={collapsed ? NAV_ICON_SIZE.collapsed : NAV_ICON_SIZE.expanded}
+                  style={{ marginRight: collapsed ? 0 : 10, opacity: isActive ? 1 : 0.72 }}
+                />
+              ) : null}
+              {(!collapsed || (!item.icon && item.label !== 'Momentum')) && (
                 <Text
                   style={{
                     color: isActive ? colors.text.accent : colors.text.secondary,

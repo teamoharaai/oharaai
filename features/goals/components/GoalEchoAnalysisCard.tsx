@@ -1,9 +1,11 @@
-import { View } from 'react-native';
+import { Pressable, View, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
 import { getCategoryAccentTheme } from '@/constants/themes';
+import { getGoalCreationTemplate } from '@/lib/goals/templates';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
-import type { GoalCategory } from '@/lib/goals/schema';
+import type { GoalCategory, GoalCreationCategory } from '@/lib/goals/schema';
 
 type AnalysisPreview = {
   copy: string;
@@ -82,29 +84,198 @@ export function getGoalEchoAnalysisPreview(category: string | null | undefined):
 export function GoalEchoAnalysisCard({
   category,
   embedded = false,
+  goalId,
+  goalTitle,
+  navigationAction,
+  highlighted = false,
+  presentation = 'card',
 }: {
   category: GoalCategory | null | undefined;
   embedded?: boolean;
+  goalId?: string;
+  goalTitle?: string;
+  navigationAction?: 'goal' | 'momentum';
+  highlighted?: boolean;
+  presentation?: 'card' | 'row';
 }) {
   const colors = useThemeColors();
+  const { width } = useWindowDimensions();
   const darkMode = useUIStore((state) => state.themeMode) === 'dark';
   const preview = getGoalEchoAnalysisPreview(category);
   const normalized = category?.trim().toLowerCase() ?? '';
   const recognized = Boolean(ANALYSIS_PREVIEWS[CATEGORY_ALIASES[normalized] ?? normalized]);
   const accent = recognized && category ? getCategoryAccentTheme(category) : null;
   const accentColor = accent?.color ?? colors.text.muted;
+  const resolvedCategory = (CATEGORY_ALIASES[normalized] ?? normalized) as GoalCreationCategory;
+  const categoryTemplate = recognized ? getGoalCreationTemplate(resolvedCategory) : null;
+  const categoryLabel = categoryTemplate?.label ?? 'Uncategorized';
+  const categoryIcon = categoryTemplate?.icon ?? '○';
+  const rowStacked = width < 900;
+
+  const navigation = goalId && navigationAction ? (
+    <Pressable
+      accessibilityRole="link"
+      onPress={() => {
+        if (navigationAction === 'goal') {
+          router.push({
+            pathname: '/(app)/goals/[id]' as never,
+            params: { id: goalId },
+          });
+          return;
+        }
+        router.push({
+          pathname: '/(app)/momentum' as never,
+          params: { goalId },
+        });
+      }}
+      style={({ pressed }) => ({
+        alignSelf: rowStacked ? 'flex-start' : 'center',
+        opacity: pressed ? 0.55 : 1,
+        paddingHorizontal: 2,
+        paddingVertical: 6,
+      })}
+    >
+      <Typography variant="emphasis-sm" style={{ color: colors.text.accent, fontSize: 12 }}>
+        {navigationAction === 'goal' ? 'Open goal →' : 'See full Momentum →'}
+      </Typography>
+    </Pressable>
+  ) : null;
+
+  if (presentation === 'row') {
+    return (
+      <View
+        accessibilityLabel={`Goal Momentum preview. ${preview.metric}, ${preview.status}, ${preview.value} percent.`}
+        style={{
+          backgroundColor: colors.background.card,
+          borderColor: highlighted ? accentColor : colors.border.divider,
+          borderRadius: 14,
+          borderWidth: 1,
+          padding: rowStacked ? 16 : 18,
+        }}
+      >
+        <View
+          style={{
+            alignItems: rowStacked ? 'stretch' : 'center',
+            flexDirection: rowStacked ? 'column' : 'row',
+            gap: rowStacked ? 16 : 22,
+          }}
+        >
+          <View
+            style={{
+              alignItems: 'center',
+              flexDirection: 'row',
+              gap: 12,
+              width: rowStacked ? '100%' : '29%',
+            }}
+          >
+            <View
+              style={{
+                alignItems: 'center',
+                backgroundColor: darkMode ? colors.background.input : accent?.tint ?? colors.background.input,
+                borderRadius: 10,
+                height: 38,
+                justifyContent: 'center',
+                width: 38,
+              }}
+            >
+              <Typography variant="title" style={{ color: accentColor }}>
+                {categoryIcon}
+              </Typography>
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="title" style={{ color: colors.text.primary, lineHeight: 21 }}>
+                {goalTitle}
+              </Typography>
+              <View style={{ alignItems: 'center', flexDirection: 'row', gap: 7, marginTop: 5 }}>
+                <Typography variant="caption" style={{ color: accentColor }}>
+                  {categoryLabel}
+                </Typography>
+                <PreviewBadge accentColor={accentColor} backgroundColor={
+                  darkMode ? colors.background.input : accent?.tint ?? colors.background.input
+                } />
+              </View>
+            </View>
+          </View>
+
+          <View style={{ width: rowStacked ? '100%' : '16%' }}>
+            <Typography variant="caption" style={{ color: colors.text.muted }}>
+              {preview.metric}
+            </Typography>
+            <Typography variant="title" style={{ color: colors.text.primary, marginTop: 3 }}>
+              {preview.status}
+            </Typography>
+          </View>
+
+          <View style={{ width: rowStacked ? '100%' : '17%' }}>
+            <Typography
+              variant="heading"
+              style={{ color: accentColor, fontFamily: 'Inter-SemiBold', fontSize: 24 }}
+            >
+              {preview.value}%
+            </Typography>
+            <View
+              style={{
+                backgroundColor: colors.background.input,
+                borderRadius: 999,
+                height: 6,
+                marginTop: 8,
+                overflow: 'hidden',
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: accentColor,
+                  borderRadius: 999,
+                  height: '100%',
+                  width: `${preview.value}%`,
+                }}
+              />
+            </View>
+          </View>
+
+          <Typography
+            variant="caption"
+            style={{
+              color: colors.text.secondary,
+              flex: rowStacked ? undefined : 1,
+              lineHeight: 18,
+            }}
+          >
+            {preview.copy}
+          </Typography>
+
+          <View style={{ minWidth: rowStacked ? 0 : 92 }}>
+            {navigation}
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View
       accessibilityLabel={`Goal Momentum preview. ${preview.metric}, ${preview.status}, ${preview.value} percent.`}
       style={{
         backgroundColor: embedded ? 'transparent' : colors.background.card,
-        borderColor: embedded ? 'transparent' : colors.border.divider,
+        borderColor: embedded
+          ? 'transparent'
+          : highlighted
+            ? accentColor
+            : colors.border.divider,
         borderRadius: embedded ? 0 : 14,
         borderWidth: embedded ? 0 : 1,
         padding: embedded ? 0 : 16,
       }}
     >
+      {goalTitle ? (
+        <Typography
+          numberOfLines={2}
+          variant="title"
+          style={{ color: colors.text.primary, marginBottom: 12 }}
+        >
+          {goalTitle}
+        </Typography>
+      ) : null}
       <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}>
         <View style={{ alignItems: 'center', flexDirection: 'row', gap: 7 }}>
           <Ionicons color={accentColor} name="pulse-outline" size={16} />
@@ -178,6 +349,30 @@ export function GoalEchoAnalysisCard({
         style={{ color: colors.text.secondary, lineHeight: 18, marginTop: 10 }}
       >
         {preview.copy}
+      </Typography>
+      {navigation ? <View style={{ marginTop: 8 }}>{navigation}</View> : null}
+    </View>
+  );
+}
+
+function PreviewBadge({
+  accentColor,
+  backgroundColor,
+}: {
+  accentColor: string;
+  backgroundColor: string;
+}) {
+  return (
+    <View
+      style={{
+        backgroundColor,
+        borderRadius: 999,
+        paddingHorizontal: 7,
+        paddingVertical: 3,
+      }}
+    >
+      <Typography variant="badge-text" style={{ color: accentColor }}>
+        Preview
       </Typography>
     </View>
   );

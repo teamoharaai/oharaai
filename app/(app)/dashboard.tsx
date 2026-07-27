@@ -10,7 +10,6 @@ import {
   type GestureResponderEvent,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Svg, { Circle, Polyline } from 'react-native-svg';
 import { SafeAreaView } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { AnchoredPopover, type AnchorRect } from '@/components/ui/AnchoredPopover';
@@ -28,6 +27,7 @@ import { useProjectStore } from '@/features/projects/store';
 import { GoalRingGrid } from '@/features/goals/components/GoalRingGrid';
 import { GoalCard } from '@/features/goals/components/GoalCard';
 import { GoalEchoAnalysisCard } from '@/features/goals/components/GoalEchoAnalysisCard';
+import { MomentumTrendChart } from '@/features/momentum/components/MomentumTrendChart';
 import { ProjectGoalRow } from '@/features/goals/components/ProjectGoalRow';
 import { GoalTitleRow } from '@/features/goals/components/GoalTitleRow';
 import { fetchActiveGoalsFeed } from '@/features/goals/services/goal-service';
@@ -230,39 +230,6 @@ function TodayFocusSummary({ goals }: { goals: TodayCarouselGoal[] }) {
   );
 }
 
-const MOMENTUM_POINTS = '8,82 47,70 86,75 125,54 164,59 203,35 242,25';
-
-function MomentumChart({ height = 96 }: { height?: number }) {
-  const colors = useThemeColors();
-  const points = [
-    [8, 82], [47, 70], [86, 75], [125, 54], [164, 59], [203, 35], [242, 25],
-  ];
-
-  return (
-    <Svg accessibilityLabel="Sample seven-point momentum trend" height={height} viewBox="0 0 250 100" width="100%">
-      <Polyline
-        fill="none"
-        points={MOMENTUM_POINTS}
-        stroke={colors.accent.primary}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="3"
-      />
-      {points.map(([cx, cy]) => (
-        <Circle
-          cx={cx}
-          cy={cy}
-          fill={colors.background.card}
-          key={`${cx}-${cy}`}
-          r="4"
-          stroke={colors.accent.primary}
-          strokeWidth="2.5"
-        />
-      ))}
-    </Svg>
-  );
-}
-
 function MomentumCard() {
   const colors = useThemeColors();
   const [expanded, setExpanded] = useState(false);
@@ -317,8 +284,30 @@ function MomentumCard() {
               <Ionicons color={colors.text.accent} name="expand-outline" size={16} />
             </Pressable>
           </View>
-          <View style={{ marginTop: 12, pointerEvents: 'none' }}>
-            <MomentumChart />
+          <View style={{ marginTop: 12 }}>
+            <MomentumTrendChart />
+          </View>
+          <View
+            style={{
+              borderTopColor: colors.border.warmSubtle,
+              borderTopWidth: 1,
+              marginTop: 8,
+              paddingTop: 10,
+            }}
+          >
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => router.push('/(app)/momentum' as never)}
+              style={({ pressed }) => ({
+                alignSelf: 'flex-start',
+                opacity: pressed ? 0.55 : 1,
+                paddingVertical: 3,
+              })}
+            >
+              <Typography variant="emphasis-sm" style={{ color: colors.text.accent, fontSize: 12 }}>
+                See full Momentum →
+              </Typography>
+            </Pressable>
           </View>
         </View>
       </Card>
@@ -376,7 +365,11 @@ function MomentumCard() {
               </Pressable>
             </View>
             <View style={{ marginVertical: 20, pointerEvents: 'none' }}>
-              <MomentumChart height={180} />
+              <MomentumTrendChart
+                height={260}
+                showAxes
+                xLabels={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
+              />
             </View>
             <Typography variant="caption" style={{ color: colors.text.muted }}>
               Sample Ohara Momentum data for layout preview only.
@@ -1434,7 +1427,11 @@ export default function DashboardScreen() {
                         {expandedStandaloneGoalIds.has(goal.id) ? (
                           <View style={{ gap: 8 }}>
                             <GoalCard goal={goal} showMenu={false} />
-                            <GoalEchoAnalysisCard category={goal.category} />
+                            <GoalEchoAnalysisCard
+                              category={goal.category}
+                              goalId={goal.id}
+                              navigationAction="momentum"
+                            />
                           </View>
                         ) : null}
                       </View>

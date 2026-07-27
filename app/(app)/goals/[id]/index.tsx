@@ -353,6 +353,7 @@ export default function GoalDetailScreen() {
       <View style={{ marginBottom: 16 }}>
         <IntelligencePanel
           goalCategory={goal.category}
+          goalId={goal.id}
           onSeeWhatHelps={() => {
             mainScrollRef.current?.scrollTo({ animated: true, y: Math.max(0, recommendedOffset - 20) });
           }}

@@ -20,6 +20,7 @@ export interface IntelligencePanelProps {
   stats?: readonly IntelligenceStat[];
   onSeeWhatHelps?: () => void;
   goalCategory?: GoalCategory | null;
+  goalId?: string;
 }
 
 const STUB_INSIGHT =
@@ -43,6 +44,7 @@ export function IntelligencePanel({
   stats,
   onSeeWhatHelps,
   goalCategory,
+  goalId,
 }: IntelligencePanelProps) {
   const colors = useThemeColors();
   const themeMode = useUIStore((store) => store.themeMode);
@@ -177,7 +179,12 @@ export function IntelligencePanel({
             paddingTop: 18,
           }}
         >
-          <GoalEchoAnalysisCard category={goalCategory} embedded />
+          <GoalEchoAnalysisCard
+            category={goalCategory}
+            embedded
+            goalId={goalId}
+            navigationAction="momentum"
+          />
         </View>
 
         <View
