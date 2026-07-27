@@ -42,6 +42,23 @@
 - **`components/CLAUDE.md`:** documented `DatePicker` as the sole source of truth for future user-facing date inputs.
 - Verification: `npx tsc --noEmit`, `git diff --check`, and a production-style Expo web export passed.
 
+### Changed (2026-07-27 — Momentum page formatting)
+- **`app/(app)/momentum.tsx` and `features/goals/components/GoalEchoAnalysisCard.tsx`:** replaced the active-goal preview grid with full-width, category-icon rows whose desktop regions align independently of title length and stack cleanly on narrow screens; also normalized section spacing and removed forced secondary-card heights without changing filters, mappings, values, copy, or navigation.
+- **`features/momentum/components/MomentumTrendChart.tsx` and `app/(app)/dashboard.tsx`:** upgraded the shared sample chart with a 0–100 Y-axis, range-appropriate time labels, visible axes and titles, and theme-aware horizontal/vertical gridlines on the Momentum page and expanded dashboard preview while preserving the compact dashboard sparkline.
+
+### Added (2026-07-27 — Momentum page prototype)
+- **`app/(app)/momentum.tsx` and `app/(app)/_layout.tsx`:** added the responsive `/momentum` prototype route with a shared sample trend, local time-range controls, preview drivers, active-goal category previews, an explicit activity empty state, sample Echo patterns and guidance, and an accessible How Momentum works modal without new APIs, persistence, AI, or calculations.
+- **`features/momentum/components/MomentumTrendChart.tsx`:** extracted the existing code-native SVG trend into a reusable sample-chart component for the dashboard and Momentum page.
+
+### Changed (2026-07-27 — Momentum page prototype)
+- **`components/layout/Sidebar.tsx`:** added Momentum between Journey and Echo using the existing Ionicons trend treatment while preserving active, hover, responsive, and collapsed navigation behavior.
+- **`app/(app)/dashboard.tsx`, `app/(app)/goals/[id]/index.tsx`, `features/goals/components/IntelligencePanel.tsx`, and `GoalEchoAnalysisCard.tsx`:** added explicit See full Momentum navigation to the dashboard overview and both standalone and embedded goal previews; goal-aware links pass the existing goal ID for safe local highlighting, while the shared preview retains all category mappings and canonical accents.
+
+### Changed (2026-07-27 — Dashboard width and shared Goal Momentum)
+- **`app/(app)/dashboard.tsx`:** widened the centered dashboard container to a fluid 1560px maximum with responsive viewport padding and renamed the dashboard sample presentation to Ohara Momentum without changing its placeholder data or interactions.
+- **`features/goals/components/GoalEchoAnalysisCard.tsx`:** renamed the shared category-specific preview to Goal Momentum and added an embedded presentation variant that preserves the exact category mappings, canonical accents, Preview label, and neutral fallback.
+- **`features/goals/components/IntelligencePanel.tsx` and `app/(app)/goals/[id]/index.tsx`:** embedded the shared Goal Momentum preview directly below the existing AI summary on every goal-detail screen and italicized only the insight prose without changing generation, retrieval, actions, or navigation.
+
 ### Added (2026-07-27 — Dashboard hierarchy and Momentum prototype)
 - **`app/(app)/dashboard.tsx`:** added a code-native seven-point sample Momentum card and expanded sample panel, plus an accessible floating Create menu backed only by the existing goal route and project modal; the reflection option remains disabled and labeled Coming soon because no safe direct composer route exists.
 - **`features/goals/components/GoalEchoAnalysisCard.tsx`:** added a shared, category-aware Echo Analysis preview for expanded standalone dashboard goals using the seven specified sample metrics, canonical category accents, and a neutral fallback without any API, AI, or mutation behavior.
