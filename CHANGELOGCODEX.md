@@ -12,6 +12,11 @@
 - **`components/CLAUDE.md`:** documented `DatePicker` as the sole source of truth for future user-facing date inputs.
 - Verification: `npx tsc --noEmit`, `git diff --check`, and a production-style Expo web export passed.
 
+### Changed (2026-07-27 — Dashboard width and shared Goal Momentum)
+- **`app/(app)/dashboard.tsx`:** widened the centered dashboard container to a fluid 1560px maximum with responsive viewport padding and renamed the dashboard sample presentation to Ohara Momentum without changing its placeholder data or interactions.
+- **`features/goals/components/GoalEchoAnalysisCard.tsx`:** renamed the shared category-specific preview to Goal Momentum and added an embedded presentation variant that preserves the exact category mappings, canonical accents, Preview label, and neutral fallback.
+- **`features/goals/components/IntelligencePanel.tsx` and `app/(app)/goals/[id]/index.tsx`:** embedded the shared Goal Momentum preview directly below the existing AI summary on every goal-detail screen and italicized only the insight prose without changing generation, retrieval, actions, or navigation.
+
 ### Added (2026-07-27 — Dashboard hierarchy and Momentum prototype)
 - **`app/(app)/dashboard.tsx`:** added a code-native seven-point sample Momentum card and expanded sample panel, plus an accessible floating Create menu backed only by the existing goal route and project modal; the reflection option remains disabled and labeled Coming soon because no safe direct composer route exists.
 - **`features/goals/components/GoalEchoAnalysisCard.tsx`:** added a shared, category-aware Echo Analysis preview for expanded standalone dashboard goals using the seven specified sample metrics, canonical category accents, and a neutral fallback without any API, AI, or mutation behavior.

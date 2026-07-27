@@ -275,7 +275,7 @@ function MomentumCard() {
             <View>
               <View style={{ alignItems: 'center', flexDirection: 'row', gap: 7 }}>
                 <Typography variant="eyebrow" style={{ color: colors.text.accent }}>
-                  Momentum
+                  Ohara Momentum
                 </Typography>
                 <View
                   style={{
@@ -300,7 +300,7 @@ function MomentumCard() {
               </View>
             </View>
             <Pressable
-              accessibilityLabel="Expand sample Momentum chart"
+              accessibilityLabel="Expand sample Ohara Momentum chart"
               accessibilityRole="button"
               hitSlop={10}
               onPress={() => setExpanded(true)}
@@ -338,7 +338,7 @@ function MomentumCard() {
           }}
         >
           <Pressable
-            accessibilityLabel="Close expanded Momentum chart"
+            accessibilityLabel="Close expanded Ohara Momentum chart"
             accessibilityRole="button"
             onPress={() => setExpanded(false)}
             style={{
@@ -363,7 +363,7 @@ function MomentumCard() {
           >
             <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}>
               <View>
-                <Typography variant="eyebrow" style={{ color: colors.text.accent }}>Momentum</Typography>
+                <Typography variant="eyebrow" style={{ color: colors.text.accent }}>Ohara Momentum</Typography>
                 <Typography variant="title" style={{ marginTop: 6 }}>Building · +8% this week</Typography>
               </View>
               <Pressable
@@ -379,7 +379,7 @@ function MomentumCard() {
               <MomentumChart height={180} />
             </View>
             <Typography variant="caption" style={{ color: colors.text.muted }}>
-              Sample Momentum data for layout preview only.
+              Sample Ohara Momentum data for layout preview only.
             </Typography>
           </View>
         </View>
@@ -1118,6 +1118,7 @@ export default function DashboardScreen() {
   const { width } = useWindowDimensions();
   const compact = width < 720;
   const primaryRowSideBySide = width >= 1100;
+  const dashboardHorizontalPadding = width >= 1600 ? 56 : width >= 1024 ? 36 : width >= 720 ? 28 : 20;
   const routeParams = useLocalSearchParams<{
     draftSaved?: string | string[];
     goalFilter?: string | string[];
@@ -1289,12 +1290,12 @@ export default function DashboardScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: dashboardHorizontalPadding,
           paddingBottom: 104,
-          paddingTop: 16,
+          paddingTop: compact ? 16 : 28,
         }}
       >
-        <View style={{ alignSelf: 'center', maxWidth: 1220, width: '100%' }}>
+        <View style={{ alignSelf: 'center', maxWidth: 1560, width: '100%' }}>
         {/* Header */}
         <View style={{ marginBottom: 20 }}>
           <View>

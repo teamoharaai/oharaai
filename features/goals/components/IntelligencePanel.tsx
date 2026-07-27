@@ -1,6 +1,8 @@
 import { Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { GoalEchoAnalysisCard } from '@/features/goals/components/GoalEchoAnalysisCard';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
+import type { GoalCategory } from '@/lib/goals/schema';
 
 export type IntelligencePanelState = 'stub' | 'disconnected' | 'connected';
 
@@ -17,6 +19,7 @@ export interface IntelligencePanelProps {
   insight?: string | null;
   stats?: readonly IntelligenceStat[];
   onSeeWhatHelps?: () => void;
+  goalCategory?: GoalCategory | null;
 }
 
 const STUB_INSIGHT =
@@ -39,6 +42,7 @@ export function IntelligencePanel({
   insight,
   stats,
   onSeeWhatHelps,
+  goalCategory,
 }: IntelligencePanelProps) {
   const colors = useThemeColors();
   const themeMode = useUIStore((store) => store.themeMode);
@@ -157,12 +161,24 @@ export function IntelligencePanel({
             color: dark ? colors.text.inverse : colors.text.primary,
             fontFamily: 'Inter-Regular',
             fontSize: 18,
+            fontStyle: 'italic',
             lineHeight: 28,
             marginBottom: 16,
           }}
         >
           “{displayInsight}”
         </Text>
+
+        <View
+          style={{
+            borderTopColor: dark ? colors.border.default : colors.border.warm,
+            borderTopWidth: 1,
+            marginBottom: 18,
+            paddingTop: 18,
+          }}
+        >
+          <GoalEchoAnalysisCard category={goalCategory} embedded />
+        </View>
 
         <View
           style={{

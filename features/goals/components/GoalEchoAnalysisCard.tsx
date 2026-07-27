@@ -79,7 +79,13 @@ export function getGoalEchoAnalysisPreview(category: string | null | undefined):
   return ANALYSIS_PREVIEWS[resolved] ?? FALLBACK_PREVIEW;
 }
 
-export function GoalEchoAnalysisCard({ category }: { category: GoalCategory | null | undefined }) {
+export function GoalEchoAnalysisCard({
+  category,
+  embedded = false,
+}: {
+  category: GoalCategory | null | undefined;
+  embedded?: boolean;
+}) {
   const colors = useThemeColors();
   const darkMode = useUIStore((state) => state.themeMode) === 'dark';
   const preview = getGoalEchoAnalysisPreview(category);
@@ -90,20 +96,20 @@ export function GoalEchoAnalysisCard({ category }: { category: GoalCategory | nu
 
   return (
     <View
-      accessibilityLabel={`Echo Analysis preview. ${preview.metric}, ${preview.status}, ${preview.value} percent.`}
+      accessibilityLabel={`Goal Momentum preview. ${preview.metric}, ${preview.status}, ${preview.value} percent.`}
       style={{
-        backgroundColor: colors.background.card,
-        borderColor: colors.border.divider,
-        borderRadius: 14,
-        borderWidth: 1,
-        padding: 16,
+        backgroundColor: embedded ? 'transparent' : colors.background.card,
+        borderColor: embedded ? 'transparent' : colors.border.divider,
+        borderRadius: embedded ? 0 : 14,
+        borderWidth: embedded ? 0 : 1,
+        padding: embedded ? 0 : 16,
       }}
     >
       <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}>
         <View style={{ alignItems: 'center', flexDirection: 'row', gap: 7 }}>
           <Ionicons color={accentColor} name="pulse-outline" size={16} />
           <Typography variant="eyebrow" style={{ color: accentColor }}>
-            Echo Analysis
+            Goal Momentum
           </Typography>
         </View>
         <View
