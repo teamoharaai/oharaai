@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added (2026-07-27 — Constellation access gate and concept 1e empty state)
+- **`features/constellation/services/constellation-service.ts`, `gate.ts`, and `hooks/useConstellationGate.ts`:** added a typed, authenticated wrapper for the existing dashboard summary endpoint and a feature-owned onboarding gate with explicit loading, success, retryable-error, cancellation, and stale-response handling. The gate exposes `accessEligible` independently from `hasGraphData`, which remains unknown because activity counts cannot prove an earned graph entity exists.
+- **`features/constellation/components/ConstellationSeedPreview.tsx`, `ConstellationEmptyState.tsx`, and `ConstellationScreen.tsx`:** added the responsive concept-1e seed-and-ghost-orbit onboarding view, accessible headings and progress bars, intentional loading/retry UI, and working Set a goal / Write an Echo actions without rendering a mock unlocked graph.
+- **`features/constellation/gate.test.ts` and `package.json`:** added deterministic coverage for the onboarding thresholds, invalid dashboard-summary payloads, and the rule that counts never infer graph data.
+
+### Changed (2026-07-27 — Constellation access gate and concept 1e empty state)
+- **`app/(app)/constellation.tsx` and `features/constellation/copy.ts`:** made the app route a thin feature-screen consumer and centralized the concept-1e copy while retaining `FEATURES.CONSTELLATION_ENABLED: false` and leaving `ConstellationSample` unchanged.
+- **`docs/constellation/CHANGELOG.md`:** recorded this shippable slice and the exact dashboard-summary limitation: it returns all-time goals across all statuses, including drafts, so the current “Set 3 goals” progress cannot be strictly lifetime non-draft without a separately scoped endpoint change.
+
 ### Added (2026-07-27 — Constellation feature foundation)
 - **features/constellation/types.ts, copy.ts, tokens.ts, graph.ts, and fixtures.ts:** added an isolated, production-data-only Constellation domain foundation with discriminated earned nodes, annotations, virtual BRT clusters, and graph edges; semantic lowercase bud/rose/thorn values; explicit kind-versus-valence edge semantics; deterministic development/test fixtures; and pure graph selection, validation, filtering, grouping, adaptation, and render-budget utilities. No route, API, database, feature flag, or UI-store behavior changed.
 - **features/constellation/graph.test.ts, package.json, and tsconfig.json:** added the Node built-in Constellation test harness and test:constellation script, with TypeScript extension imports enabled for Node's built-in type stripping. The suite covers malformed edges, duplicate IDs, empty graphs, evidence grouping, stable virtual BRT IDs, annotation exclusion from earned counts, and the 30-node render budget.

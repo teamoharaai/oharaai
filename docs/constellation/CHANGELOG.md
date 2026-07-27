@@ -1,5 +1,23 @@
 # Constellation Implementation Changelog
 
+## 2026-07-27 — Access gate and concept 1e empty state
+
+1. Added a feature-owned typed dashboard-summary service and `useConstellationGate`
+   hook with loading, success, retryable error, explicit cancellation, and
+   stale-response protection. The onboarding result exposes `accessEligible`
+   separately from `hasGraphData`; the latter remains unknown because this slice
+   does not fetch a graph DTO.
+2. Added the responsive concept-1e seed preview and empty-state screen, including
+   semantic progress bars, intentional loading/retry states, and working routes
+   to set a goal or write an Echo. The route is now a thin feature consumer; no
+   mock unlocked graph is rendered and `FEATURES.CONSTELLATION_ENABLED` remains
+   false.
+3. Limitation: the existing `GET /api/dashboard/summary` endpoint returns
+   all-time `goalCount` across every goal status, including `draft`. It does not
+   expose a lifetime non-draft goal count, so this session keeps the endpoint
+   unchanged and cannot make the displayed “Set 3 goals” count strictly
+   non-draft.
+
 ## 2026-07-27 — Feature foundation
 
 1. Added the isolated features/constellation domain contract with discriminated
