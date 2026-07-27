@@ -47,7 +47,7 @@ export const useUIStore = create<UIStore>()(
       sidebarCollapsed: false,
       rightPaneWidth: 420,
       echoMiddleMode: 'list',
-      dashboardGoalsView: 'grid',
+      dashboardGoalsView: 'list',
       themeMode: 'light',
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
       toggleSidebarCollapsed: () =>
@@ -64,6 +64,11 @@ export const useUIStore = create<UIStore>()(
     }),
     {
       name: 'ohara-ui-state',
+      version: 2,
+      migrate: (persistedState) => ({
+        ...(persistedState as UIStore),
+        dashboardGoalsView: 'list',
+      }),
       storage: createJSONStorage(() => webStorage),
       partialize: (state) => ({
         sidebarCollapsed: state.sidebarCollapsed,

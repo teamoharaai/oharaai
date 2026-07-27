@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+### Added (2026-07-27 — Dashboard hierarchy and Momentum prototype)
+- **`app/(app)/dashboard.tsx`:** added a code-native seven-point sample Momentum card and expanded sample panel, plus an accessible floating Create menu backed only by the existing goal route and project modal; the reflection option remains disabled and labeled Coming soon because no safe direct composer route exists.
+- **`features/goals/components/GoalEchoAnalysisCard.tsx`:** added a shared, category-aware Echo Analysis preview for expanded standalone dashboard goals using the seven specified sample metrics, canonical category accents, and a neutral fallback without any API, AI, or mutation behavior.
+
+### Changed (2026-07-27 — Dashboard hierarchy and Momentum prototype)
+- **`app/(app)/dashboard.tsx`:** consolidated the live Today’s Focus feed into one compact three-row summary, rebalanced responsive section spacing, reduced Echo to a two-line recent-reflection preview, and made section-level creation actions visually secondary.
+- **`app/(app)/dashboard.tsx`:** added each focus goal’s existing stored progress percentage and a compact indicator, explicitly labeled Momentum as Preview, and integrated Echo Analysis only into expanded standalone-goal details.
+- **`features/goals/components/ProjectGoalRow.tsx` and `store/uiStore.ts`:** made compact standalone-goal rows the migrated default and added optional dashboard disclosure controls while preserving goal navigation and the existing detailed card content.
+- **`components/layout/Sidebar.tsx`:** automatically uses the existing collapsed sidebar presentation below 720px so the dashboard remains usable at mobile widths without changing stored desktop sidebar preferences.
+
+### Added (2026-07-27 — Manual goal creation visual alignment)
+- **`components/ui/GoalCreationModeToggle.tsx`:** added a shared creation-mode segmented control so manual and Echo goal creation use the same centered dimensions, spacing, styling, and selected states without shifting between modes.
+
+### Changed (2026-07-27 — Manual goal creation visual alignment)
+- **`app/goals/create.tsx`:** refined all four manual goal-creation steps with Echo-inspired input surfaces, accessible theme-aware focus treatment, tighter desktop spacing, consistent content rhythm, and a responsive centered 2/3/2 category-card layout while preserving wizard behavior and every canonical category accent.
+- **`app/goals/create.tsx`:** kept medium-width categories in two columns while sizing and centering the final Personal Growth card like its peers instead of allowing it to span the row.
+- **`features/goals/components/AIGoalCreation.tsx`:** moved the entry-mode toggle presentation to the shared parent-level control and rebalanced entry spacing without changing AI behavior.
+
 ### Added (2026-07-24 — Username editing and rolling change limit)
 - **`supabase/migrations/031_username_change_limit.sql`:** added a protected per-user rolling-window counter and database trigger that allows at most three successful username changes in any seven-day period, including for direct profile updates.
 - **`app/api/profile/index+api.ts`:** added username reads and writes, shared username normalization/validation, duplicate and rate-limit responses, and remaining-change status for the Account UI.

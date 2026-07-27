@@ -385,49 +385,6 @@ export function AIGoalCreation({ onSwitchToManual }: AIGoalCreationProps) {
         style={{ flex: 1 }}
       >
         <View style={{ alignItems: 'center', maxWidth: 640, width: '100%' }}>
-          <View
-            accessibilityRole="tablist"
-            style={{
-              backgroundColor: colors.background.input,
-              borderRadius: 999,
-              flexDirection: 'row',
-              gap: 4,
-              marginBottom: compact ? 42 : 66,
-              padding: 4,
-            }}
-          >
-            <Pressable
-              accessibilityRole="tab"
-              accessibilityState={{ selected: false }}
-              disabled={!onSwitchToManual}
-              onPress={onSwitchToManual}
-              style={({ pressed }) => ({
-                borderRadius: 999,
-                opacity: pressed ? 0.7 : onSwitchToManual ? 1 : 0.5,
-                paddingHorizontal: compact ? 12 : 16,
-                paddingVertical: 9,
-              })}
-            >
-              <Typography variant="emphasis-sm" style={{ color: colors.text.secondary }}>
-                Build it myself
-              </Typography>
-            </Pressable>
-            <View
-              accessibilityRole="tab"
-              accessibilityState={{ selected: true }}
-              style={{
-                backgroundColor: colors.accent.primary,
-                borderRadius: 999,
-                paddingHorizontal: compact ? 12 : 16,
-                paddingVertical: 9,
-              }}
-            >
-              <Typography variant="emphasis-sm" style={{ color: colors.text.onAccent }}>
-                ✦ Chat with Echo
-              </Typography>
-            </View>
-          </View>
-
           <Typography
             variant="heading"
             style={{
@@ -447,7 +404,7 @@ export function AIGoalCreation({ onSwitchToManual }: AIGoalCreationProps) {
               color: colors.text.secondary,
               fontSize: 15.5,
               lineHeight: 23,
-              marginTop: 16,
+              marginTop: compact ? 20 : 28,
               maxWidth: 460,
               textAlign: 'center',
             }}

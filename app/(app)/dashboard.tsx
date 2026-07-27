@@ -1,10 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, Pressable, TouchableOpacity } from 'react-native';
+import {
+  Modal,
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  TouchableOpacity,
+  useWindowDimensions,
+  type GestureResponderEvent,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Circle, Polyline } from 'react-native-svg';
 import { SafeAreaView } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { AnchoredPopover, type AnchorRect } from '@/components/ui/AnchoredPopover';
 import { BrandIcon } from '@/components/ui/BrandIcon';
-import { TodayCarousel, type TodayCarouselGoal } from '@/components/ui/TodayCarousel';
+import { Card } from '@/components/ui/Card';
+import type { TodayCarouselGoal } from '@/components/ui/TodayCarousel';
 import { Toast } from '@/components/ui/Toast';
 import { Typography } from '@/components/ui/Typography';
 import { useGoals } from '@/features/goals/hooks/useGoals';
@@ -14,6 +26,8 @@ import { useEntries } from '@/features/echo/hooks/useEntries';
 import { useProfileStore } from '@/features/profile/store';
 import { useProjectStore } from '@/features/projects/store';
 import { GoalRingGrid } from '@/features/goals/components/GoalRingGrid';
+import { GoalCard } from '@/features/goals/components/GoalCard';
+import { GoalEchoAnalysisCard } from '@/features/goals/components/GoalEchoAnalysisCard';
 import { ProjectGoalRow } from '@/features/goals/components/ProjectGoalRow';
 import { GoalTitleRow } from '@/features/goals/components/GoalTitleRow';
 import { fetchActiveGoalsFeed } from '@/features/goals/services/goal-service';
@@ -72,20 +86,480 @@ function DashboardCreateButton({
       accessibilityLabel={label}
       onPress={onPress}
       style={({ pressed }) => ({
-        backgroundColor: colors.background.selectedRow,
-        borderRadius: 999,
         opacity: pressed ? 0.72 : 1,
-        paddingHorizontal: 12,
-        paddingVertical: 7,
+        paddingHorizontal: 4,
+        paddingVertical: 5,
       })}
     >
       <Typography
         variant="emphasis-sm"
-        style={{ color: colors.text.accent, fontSize: 13 }}
+        style={{ color: colors.text.accent, fontSize: 12 }}
       >
         + {label}
       </Typography>
     </Pressable>
+  );
+}
+
+function TodayFocusSummary({ goals }: { goals: TodayCarouselGoal[] }) {
+  const colors = useThemeColors();
+  const visibleGoals = goals.slice(0, 3);
+
+  return (
+    <Card padding="none" style={{ flex: 1, minHeight: 224, overflow: 'hidden' }}>
+      <View
+        style={{
+          alignItems: 'center',
+          borderBottomColor: colors.border.divider,
+          borderBottomWidth: 1,
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          paddingHorizontal: 18,
+          paddingVertical: 15,
+        }}
+      >
+        <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
+          <BrandIcon name="today" size={17} />
+          <Typography variant="eyebrow" style={{ color: colors.text.accent }}>
+            Today&apos;s Focus
+          </Typography>
+        </View>
+        <Typography variant="caption" style={{ color: colors.text.muted }}>
+          {visibleGoals.length} {visibleGoals.length === 1 ? 'priority' : 'priorities'}
+        </Typography>
+      </View>
+
+      {visibleGoals.length ? (
+        <View style={{ paddingHorizontal: 18 }}>
+          {visibleGoals.map((goal, index) => (
+            <View
+              key={goal.id}
+              style={{
+                alignItems: 'center',
+                borderBottomColor: colors.border.warmSubtle,
+                borderBottomWidth: index < visibleGoals.length - 1 ? 1 : 0,
+                flexDirection: 'row',
+                gap: 12,
+                minHeight: 56,
+                paddingVertical: 10,
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: colors.accent.primary,
+                  borderRadius: 4,
+                  height: 8,
+                  opacity: 0.72,
+                  width: 8,
+                }}
+              />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Typography
+                  ellipsizeMode="tail"
+                  numberOfLines={1}
+                  variant="content"
+                  style={{ fontFamily: 'Inter-Medium', fontSize: 14 }}
+                >
+                  {goal.title}
+                </Typography>
+                <View style={{ alignItems: 'center', flexDirection: 'row', gap: 7, marginTop: 3 }}>
+                  <Typography
+                    ellipsizeMode="tail"
+                    numberOfLines={1}
+                    variant="caption"
+                    style={{ color: colors.text.muted, flex: 1, fontSize: 10.5 }}
+                  >
+                    {goal.projectTitle ?? `${goal.category.charAt(0).toUpperCase()}${goal.category.slice(1)}`}
+                  </Typography>
+                  <Typography variant="caption" style={{ color: colors.text.accent, fontSize: 10.5 }}>
+                    {Math.round(goal.progress)}% complete
+                  </Typography>
+                </View>
+                <View
+                  style={{
+                    backgroundColor: colors.background.input,
+                    borderRadius: 999,
+                    height: 3,
+                    marginTop: 5,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <View
+                    style={{
+                      backgroundColor: colors.accent.primary,
+                      borderRadius: 999,
+                      height: '100%',
+                      width: `${Math.min(100, Math.max(0, goal.progress))}%`,
+                    }}
+                  />
+                </View>
+              </View>
+              <Pressable
+                accessibilityHint="Opens this goal"
+                accessibilityLabel={`Open ${goal.title}`}
+                accessibilityRole="button"
+                hitSlop={10}
+                onPress={() => router.push({
+                  pathname: '/(app)/goals/[id]' as never,
+                  params: { id: goal.id },
+                })}
+                style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: 4 })}
+              >
+                <Ionicons color={colors.text.accent} name="chevron-forward" size={17} />
+              </Pressable>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <View style={{ flex: 1, justifyContent: 'center', padding: 18 }}>
+          <Typography variant="meta" style={{ color: colors.text.muted }}>
+            No active goals yet.
+          </Typography>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/goals/create')}
+            style={({ pressed }) => ({ alignSelf: 'flex-start', marginTop: 10, opacity: pressed ? 0.6 : 1 })}
+          >
+            <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>
+              Create a goal
+            </Typography>
+          </Pressable>
+        </View>
+      )}
+    </Card>
+  );
+}
+
+const MOMENTUM_POINTS = '8,82 47,70 86,75 125,54 164,59 203,35 242,25';
+
+function MomentumChart({ height = 96 }: { height?: number }) {
+  const colors = useThemeColors();
+  const points = [
+    [8, 82], [47, 70], [86, 75], [125, 54], [164, 59], [203, 35], [242, 25],
+  ];
+
+  return (
+    <Svg accessibilityLabel="Sample seven-point momentum trend" height={height} viewBox="0 0 250 100" width="100%">
+      <Polyline
+        fill="none"
+        points={MOMENTUM_POINTS}
+        stroke={colors.accent.primary}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="3"
+      />
+      {points.map(([cx, cy]) => (
+        <Circle
+          cx={cx}
+          cy={cy}
+          fill={colors.background.card}
+          key={`${cx}-${cy}`}
+          r="4"
+          stroke={colors.accent.primary}
+          strokeWidth="2.5"
+        />
+      ))}
+    </Svg>
+  );
+}
+
+function MomentumCard() {
+  const colors = useThemeColors();
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <>
+      <Card padding="none" style={{ flex: 1, minHeight: 224, overflow: 'hidden' }}>
+        <View style={{ padding: 18 }}>
+          <View style={{ alignItems: 'flex-start', flexDirection: 'row', justifyContent: 'space-between' }}>
+            <View>
+              <View style={{ alignItems: 'center', flexDirection: 'row', gap: 7 }}>
+                <Typography variant="eyebrow" style={{ color: colors.text.accent }}>
+                  Momentum
+                </Typography>
+                <View
+                  style={{
+                    backgroundColor: colors.background.input,
+                    borderRadius: 999,
+                    paddingHorizontal: 7,
+                    paddingVertical: 3,
+                  }}
+                >
+                  <Typography variant="badge-text" style={{ color: colors.text.accent }}>
+                    Preview
+                  </Typography>
+                </View>
+              </View>
+              <View style={{ alignItems: 'baseline', flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                <Typography variant="title" style={{ fontFamily: 'Inter-SemiBold', fontSize: 18 }}>
+                  Building
+                </Typography>
+                <Typography variant="caption" style={{ color: colors.text.accent }}>
+                  +8% this week
+                </Typography>
+              </View>
+            </View>
+            <Pressable
+              accessibilityLabel="Expand sample Momentum chart"
+              accessibilityRole="button"
+              hitSlop={10}
+              onPress={() => setExpanded(true)}
+              style={({ pressed }) => ({
+                alignItems: 'center',
+                backgroundColor: colors.background.input,
+                borderRadius: 9,
+                height: 30,
+                justifyContent: 'center',
+                opacity: pressed ? 0.58 : 1,
+                width: 30,
+              })}
+            >
+              <Ionicons color={colors.text.accent} name="expand-outline" size={16} />
+            </Pressable>
+          </View>
+          <View style={{ marginTop: 12, pointerEvents: 'none' }}>
+            <MomentumChart />
+          </View>
+        </View>
+      </Card>
+
+      <Modal
+        animationType="fade"
+        onRequestClose={() => setExpanded(false)}
+        transparent
+        visible={expanded}
+      >
+        <View
+          style={{
+            alignItems: 'center',
+            flex: 1,
+            justifyContent: 'center',
+            padding: 24,
+          }}
+        >
+          <Pressable
+            accessibilityLabel="Close expanded Momentum chart"
+            accessibilityRole="button"
+            onPress={() => setExpanded(false)}
+            style={{
+              backgroundColor: colors.effects.overlay,
+              bottom: 0,
+              left: 0,
+              position: 'absolute',
+              right: 0,
+              top: 0,
+            }}
+          />
+          <View
+            style={{
+              backgroundColor: colors.background.card,
+              borderColor: colors.border.divider,
+              borderRadius: 18,
+              borderWidth: 1,
+              maxWidth: 620,
+              padding: 24,
+              width: '100%',
+            }}
+          >
+            <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}>
+              <View>
+                <Typography variant="eyebrow" style={{ color: colors.text.accent }}>Momentum</Typography>
+                <Typography variant="title" style={{ marginTop: 6 }}>Building · +8% this week</Typography>
+              </View>
+              <Pressable
+                accessibilityLabel="Close"
+                accessibilityRole="button"
+                onPress={() => setExpanded(false)}
+                style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1, padding: 6 })}
+              >
+                <Ionicons color={colors.text.primary} name="close" size={20} />
+              </Pressable>
+            </View>
+            <View style={{ marginVertical: 20, pointerEvents: 'none' }}>
+              <MomentumChart height={180} />
+            </View>
+            <Typography variant="caption" style={{ color: colors.text.muted }}>
+              Sample Momentum data for layout preview only.
+            </Typography>
+          </View>
+        </View>
+      </Modal>
+    </>
+  );
+}
+
+function FloatingCreateControl({
+  compact,
+  onNewProject,
+}: {
+  compact: boolean;
+  onNewProject: () => void;
+}) {
+  const colors = useThemeColors();
+  const [open, setOpen] = useState(false);
+  const [anchorRect, setAnchorRect] = useState<AnchorRect | null>(null);
+  const anchorRef = useRef<View>(null);
+
+  function rectFromValues(x: number, y: number, width: number, height: number): AnchorRect {
+    return {
+      bottom: y + height,
+      height,
+      left: x,
+      right: x + width,
+      top: y,
+      width,
+      x,
+      y,
+    };
+  }
+
+  function openMenu(event: GestureResponderEvent) {
+    const node = anchorRef.current as
+      | (View & {
+          measureInWindow?: (
+            callback: (x: number, y: number, width: number, height: number) => void,
+          ) => void;
+        })
+      | null;
+    if (node?.measureInWindow) {
+      node.measureInWindow((x, y, width, height) => {
+        setAnchorRect(rectFromValues(x, y, width, height));
+        setOpen(true);
+      });
+      return;
+    }
+
+    const currentTarget = (
+      event as GestureResponderEvent & {
+        currentTarget?: { getBoundingClientRect?: () => DOMRect };
+      }
+    ).currentTarget;
+    const rect = currentTarget?.getBoundingClientRect?.();
+    if (rect) setAnchorRect(rectFromValues(rect.left, rect.top, rect.width, rect.height));
+    setOpen(true);
+  }
+
+  function closeMenu() {
+    setOpen(false);
+  }
+
+  const menuItems = [
+    {
+      icon: 'flag-outline' as const,
+      label: 'New goal',
+      onPress: () => router.push('/goals/create'),
+    },
+    {
+      icon: 'folder-outline' as const,
+      label: 'New project',
+      onPress: onNewProject,
+    },
+  ];
+
+  return (
+    <>
+      <View
+        collapsable={false}
+        ref={anchorRef}
+        style={{ bottom: compact ? 18 : 24, position: 'absolute', right: compact ? 16 : 24 }}
+      >
+        <Pressable
+          accessibilityLabel="Create"
+          accessibilityRole="button"
+          accessibilityState={{ expanded: open }}
+          onPress={openMenu}
+          style={({ pressed }) => ({
+            alignItems: 'center',
+            backgroundColor: colors.background.sidebar,
+            borderColor: colors.border.divider,
+            borderRadius: 999,
+            borderWidth: 1,
+            flexDirection: 'row',
+            gap: 6,
+            height: 44,
+            justifyContent: 'center',
+            opacity: pressed ? 0.72 : 1,
+            paddingHorizontal: compact ? 0 : 16,
+            shadowColor: colors.effects.shadow,
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.08,
+            shadowRadius: 10,
+            width: compact ? 44 : undefined,
+          })}
+        >
+          <Ionicons color={colors.text.accent} name="add" size={19} />
+          {!compact ? (
+            <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>
+              Create
+            </Typography>
+          ) : null}
+        </Pressable>
+      </View>
+
+      <AnchoredPopover
+        anchorRect={anchorRect}
+        contentStyle={{
+          borderRadius: 14,
+          borderWidth: 1,
+          minWidth: 210,
+          padding: 8,
+          shadowColor: colors.effects.shadow,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 14,
+        }}
+        onDismiss={closeMenu}
+        visible={open}
+      >
+        {menuItems.map((item) => (
+          <Pressable
+            accessibilityLabel={item.label}
+            accessibilityRole="menuitem"
+            key={item.label}
+            onPress={() => {
+              closeMenu();
+              item.onPress();
+            }}
+            style={({ pressed }) => ({
+              alignItems: 'center',
+              backgroundColor: pressed ? colors.background.selectedRow : 'transparent',
+              borderRadius: 9,
+              flexDirection: 'row',
+              gap: 10,
+              paddingHorizontal: 11,
+              paddingVertical: 10,
+            })}
+          >
+            <Ionicons color={colors.text.accent} name={item.icon} size={17} />
+            <Typography variant="meta" style={{ color: colors.text.primary }}>
+              {item.label}
+            </Typography>
+          </Pressable>
+        ))}
+        <View style={{ backgroundColor: colors.border.warmSubtle, height: 1, marginVertical: 4 }} />
+        <View
+          accessibilityLabel="New reflection, coming soon"
+          accessibilityRole="menuitem"
+          accessibilityState={{ disabled: true }}
+          style={{
+            alignItems: 'center',
+            flexDirection: 'row',
+            gap: 10,
+            opacity: 0.5,
+            paddingHorizontal: 11,
+            paddingVertical: 10,
+          }}
+        >
+          <Ionicons color={colors.text.muted} name="chatbubble-ellipses-outline" size={17} />
+          <Typography variant="meta" style={{ color: colors.text.secondary, flex: 1 }}>
+            New reflection
+          </Typography>
+          <Typography variant="badge-text" style={{ color: colors.text.muted }}>
+            Coming soon
+          </Typography>
+        </View>
+      </AnchoredPopover>
+    </>
   );
 }
 
@@ -488,48 +962,65 @@ function EchoZone({
 
   return (
     <View
-      className="rounded-2xl border p-5"
-      style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider }}
+      className="rounded-2xl border"
+      style={{
+        backgroundColor: colors.background.card,
+        borderColor: colors.border.divider,
+        paddingHorizontal: 18,
+        paddingVertical: 15,
+      }}
     >
-      <Typography variant="eyebrow" className="mb-3">
-        Echo
-      </Typography>
-      <Pressable
-        className="mb-4 self-start rounded-full px-4 py-2.5"
-        style={{ backgroundColor: colors.background.selectedRow }}
-        onPress={() => router.push('/(app)/echo' as never)}
-      >
-        <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>
-          Reflect in Echo
-        </Typography>
-      </Pressable>
-
-      {echoLoading ? (
-        <View
-          className="h-3 w-1/2 rounded-full"
-          style={{ backgroundColor: colors.background.subtle }}
-        />
-      ) : latestEntryContent && latestEntryDate ? (
-        <View>
-          <Typography
-            variant="meta"
-            className="mb-1.5"
-            style={{ color: colors.text.accent }}
-            numberOfLines={2}
-          >
-            {latestEntryContent.length > 100
-              ? `${latestEntryContent.slice(0, 100)}\u2026`
-              : latestEntryContent}
+      <View style={{ alignItems: 'center', flexDirection: 'row', gap: 18 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="eyebrow" style={{ color: colors.text.accent, marginBottom: 7 }}>
+            Recent Echo reflection
           </Typography>
-          <Typography variant="caption">
-            Last reflected: {formatRelativeTime(latestEntryDate.toISOString())}
-          </Typography>
+          {echoLoading ? (
+            <View
+              className="h-3 w-1/2 rounded-full"
+              style={{ backgroundColor: colors.background.subtle }}
+            />
+          ) : latestEntryContent && latestEntryDate ? (
+            <>
+              <Typography
+                ellipsizeMode="tail"
+                numberOfLines={2}
+                variant="meta"
+                style={{ color: colors.text.primary, lineHeight: 18 }}
+              >
+                {latestEntryContent}
+              </Typography>
+              <Typography variant="caption" style={{ marginTop: 4 }}>
+                Last reflected: {formatRelativeTime(latestEntryDate.toISOString())}
+              </Typography>
+            </>
+          ) : (
+            <Typography variant="meta" style={{ color: colors.text.muted }}>
+              Your reflections will appear here.
+            </Typography>
+          )}
         </View>
-      ) : (
-        <Typography variant="meta" style={{ color: colors.text.muted }}>
-          Your reflections will appear here.
-        </Typography>
-      )}
+        <Pressable
+          accessibilityLabel="Reflect in Echo"
+          accessibilityRole="button"
+          onPress={() => router.push('/(app)/echo' as never)}
+          style={({ pressed }) => ({
+            alignItems: 'center',
+            backgroundColor: colors.background.selectedRow,
+            borderRadius: 999,
+            flexDirection: 'row',
+            gap: 5,
+            opacity: pressed ? 0.68 : 1,
+            paddingHorizontal: 13,
+            paddingVertical: 8,
+          })}
+        >
+          <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>
+            Open Echo
+          </Typography>
+          <Ionicons color={colors.text.accent} name="arrow-forward" size={14} />
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -624,6 +1115,9 @@ type IntelligenceData = {
 
 export default function DashboardScreen() {
   const colors = useThemeColors();
+  const { width } = useWindowDimensions();
+  const compact = width < 720;
+  const primaryRowSideBySide = width >= 1100;
   const routeParams = useLocalSearchParams<{
     draftSaved?: string | string[];
     goalFilter?: string | string[];
@@ -638,6 +1132,9 @@ export default function DashboardScreen() {
   const [activeGoalsFeed, setActiveGoalsFeed] = useState<TodayCarouselGoal[]>([]);
   const [activeGoalsLoading, setActiveGoalsLoading] = useState(true);
   const [showAllStandaloneGoals, setShowAllStandaloneGoals] = useState(false);
+  const [expandedStandaloneGoalIds, setExpandedStandaloneGoalIds] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   const draftsRequested = routeParams[DASHBOARD_GOAL_FILTER_PARAM] === 'drafts';
   const draftSaved = routeParams[DASHBOARD_DRAFT_SAVED_PARAM] === '1';
@@ -793,12 +1290,13 @@ export default function DashboardScreen() {
         className="flex-1"
         contentContainerStyle={{
           paddingHorizontal: 20,
-          paddingBottom: 40,
+          paddingBottom: 104,
           paddingTop: 16,
         }}
       >
+        <View style={{ alignSelf: 'center', maxWidth: 1220, width: '100%' }}>
         {/* Header */}
-        <View className="mb-6">
+        <View style={{ marginBottom: 20 }}>
           <View>
             <Typography variant="greeting">
               {greeting}
@@ -812,13 +1310,26 @@ export default function DashboardScreen() {
         {goalsLoading || projectsLoading || activeGoalsLoading ? (
           <DashboardSkeleton />
         ) : (
-          <View className="gap-3">
+          <View style={{ gap: 24 }}>
             {/* Zone 1: Today's Focus */}
-            <TodayCarousel goals={todayGoals} />
+            <View
+              style={{
+                alignItems: 'stretch',
+                flexDirection: primaryRowSideBySide ? 'row' : 'column',
+                gap: 14,
+              }}
+            >
+              <View style={{ flex: primaryRowSideBySide ? 1.65 : undefined }}>
+                <TodayFocusSummary goals={todayGoals} />
+              </View>
+              <View style={{ flex: primaryRowSideBySide ? 1 : undefined }}>
+                <MomentumCard />
+              </View>
+            </View>
 
             {/* Zone 2: Projects */}
             <View>
-              <View className="mb-4 flex-row items-center justify-between">
+              <View className="mb-3 flex-row items-center justify-between">
                 <Typography variant="eyebrow">
                   Projects
                 </Typography>
@@ -842,7 +1353,7 @@ export default function DashboardScreen() {
 
             {/* Zone 3: Standalone Goals */}
             <View>
-              <View className="mb-4 flex-row items-center justify-between">
+              <View className="mb-3 flex-row items-center justify-between">
                 <View style={{ alignItems: 'center', flexDirection: 'row', gap: 6 }}>
                   <Typography variant="eyebrow">
                     {draftsRequested ? 'Drafts' : 'Goals'}
@@ -908,7 +1419,24 @@ export default function DashboardScreen() {
                 visibleStandaloneGoals.length > 0 ? (
                   <View style={{ gap: 8 }}>
                     {visibleStandaloneGoals.map((goal) => (
-                      <ProjectGoalRow key={goal.id} goal={goal} />
+                      <View key={goal.id} style={{ gap: 8 }}>
+                        <ProjectGoalRow
+                          expanded={expandedStandaloneGoalIds.has(goal.id)}
+                          goal={goal}
+                          onToggleExpanded={() => setExpandedStandaloneGoalIds((current) => {
+                            const next = new Set(current);
+                            if (next.has(goal.id)) next.delete(goal.id);
+                            else next.add(goal.id);
+                            return next;
+                          })}
+                        />
+                        {expandedStandaloneGoalIds.has(goal.id) ? (
+                          <View style={{ gap: 8 }}>
+                            <GoalCard goal={goal} showMenu={false} />
+                            <GoalEchoAnalysisCard category={goal.category} />
+                          </View>
+                        ) : null}
+                      </View>
                     ))}
                   </View>
                 ) : (
@@ -946,6 +1474,12 @@ export default function DashboardScreen() {
               ) : null}
             </View>
 
+            {/* Zone 5: Intelligence */}
+            <IntelligenceZone
+              insight={cachedInsight}
+              isLoading={insightLoading}
+            />
+
             {/* Zone 4: Echo */}
             {FEATURES.ECHO_ENABLED ? (
               <EchoZone
@@ -954,14 +1488,9 @@ export default function DashboardScreen() {
                 echoLoading={echoLoading}
               />
             ) : null}
-
-            {/* Zone 5: Intelligence */}
-            <IntelligenceZone
-              insight={cachedInsight}
-              isLoading={insightLoading}
-            />
           </View>
         )}
+        </View>
       </ScrollView>
       <Toast
         message="Saved as draft — pick it back up anytime"
@@ -970,6 +1499,10 @@ export default function DashboardScreen() {
       <CreateProjectModal
         visible={projectModalOpen}
         onClose={() => setProjectModalOpen(false)}
+      />
+      <FloatingCreateControl
+        compact={compact}
+        onNewProject={() => setProjectModalOpen(true)}
       />
     </SafeAreaView>
   );

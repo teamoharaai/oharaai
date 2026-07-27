@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, View, Text } from 'react-native';
+import { Pressable, View, Text, useWindowDimensions } from 'react-native';
 import { router, usePathname } from 'expo-router';
 import { BrandIcon, type BrandIconName } from '@/components/ui/BrandIcon';
 import { FEATURES } from '@/constants/features';
@@ -41,8 +41,11 @@ const NAV_ICON_SIZE = {
 export function Sidebar() {
   const colors = useThemeColors();
   const pathname = usePathname();
+  const { width } = useWindowDimensions();
   const themeMode = useUIStore((state) => state.themeMode);
-  const collapsed = useUIStore((state) => state.sidebarCollapsed);
+  const storedCollapsed = useUIStore((state) => state.sidebarCollapsed);
+  const compactViewport = width < 720;
+  const collapsed = compactViewport || storedCollapsed;
   const toggleSidebarCollapsed = useUIStore((state) => state.toggleSidebarCollapsed);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
@@ -70,8 +73,9 @@ export function Sidebar() {
       >
         {collapsed ? (
           <Pressable
-            onPress={toggleSidebarCollapsed}
-            accessibilityLabel="Expand sidebar"
+            disabled={compactViewport}
+            onPress={compactViewport ? undefined : toggleSidebarCollapsed}
+            accessibilityLabel={compactViewport ? 'Ohara' : 'Expand sidebar'}
             accessibilityRole="button"
             style={({ pressed }) => ({
               width: BRAND_SIZE.collapsedLogoTarget,

@@ -6,6 +6,7 @@ import {
   TextInput,
   useWindowDimensions,
   View,
+  type TextInputProps,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -16,6 +17,10 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { DateField } from '@/components/ui/DateField';
+import {
+  GoalCreationModeToggle,
+  type GoalCreationMode,
+} from '@/components/ui/GoalCreationModeToggle';
 import { Toast } from '@/components/ui/Toast';
 import { Toggle } from '@/components/ui/Toggle';
 import { Typography } from '@/components/ui/Typography';
@@ -128,14 +133,14 @@ function SectionIntro({
   description: string;
 }) {
   return (
-    <View style={{ alignItems: 'center', marginBottom: 28 }}>
+    <View style={{ alignItems: 'center', marginBottom: 20 }}>
       <Typography
         variant="eyebrow"
         style={{
           color: accent.mid,
           fontFamily: 'Inter-SemiBold',
           letterSpacing: 2,
-          marginBottom: 12,
+          marginBottom: 8,
         }}
       >
         {eyebrow}
@@ -144,9 +149,9 @@ function SectionIntro({
         variant="heading"
         style={{
           fontFamily: 'Inter-SemiBold',
-          fontSize: 32,
+          fontSize: 30,
           letterSpacing: -0.4,
-          lineHeight: 38,
+          lineHeight: 36,
           textAlign: 'center',
         }}
       >
@@ -154,7 +159,7 @@ function SectionIntro({
       </Typography>
       <Typography
         variant="body"
-        style={{ fontSize: 15, lineHeight: 23, marginTop: 8, textAlign: 'center' }}
+        style={{ fontSize: 14.5, lineHeight: 21, marginTop: 6, textAlign: 'center' }}
       >
         {description}
       </Typography>
@@ -233,52 +238,61 @@ function AccentButton({
   );
 }
 
-function TextField({
-  accessibilityLabel,
+function ManualTextInput({
   multiline = false,
-  onChangeText,
-  placeholder,
-  value,
-}: {
-  accessibilityLabel: string;
-  multiline?: boolean;
-  onChangeText: (value: string) => void;
-  placeholder: string;
-  value: string;
-}) {
+  style,
+  ...props
+}: TextInputProps) {
   const colors = useThemeColors();
+  const themeMode = useUIStore((current) => current.themeMode);
+  const [focused, setFocused] = useState(false);
   return (
     <TextInput
-      accessibilityLabel={accessibilityLabel}
       multiline={multiline}
-      onChangeText={onChangeText}
-      placeholder={placeholder}
-      placeholderTextColor={colors.text.muted}
-      style={{
-        backgroundColor: colors.background.input,
-        borderColor: colors.border.warm,
-        borderRadius: 10,
-        borderWidth: 1,
-        color: colors.text.primary,
-        fontFamily: 'Inter-Regular',
-        fontSize: 13,
-        minHeight: multiline ? 70 : 40,
-        outlineWidth: 0,
-        paddingHorizontal: 12,
-        paddingVertical: 9,
-        textAlignVertical: multiline ? 'top' : 'center',
+      onBlur={(event) => {
+        setFocused(false);
+        props.onBlur?.(event);
       }}
-      value={value}
+      onFocus={(event) => {
+        setFocused(true);
+        props.onFocus?.(event);
+      }}
+      placeholderTextColor={colors.text.muted}
+      style={[
+        {
+          backgroundColor: colors.background.card,
+          borderColor: focused ? colors.accent.primary : colors.border.input,
+          borderRadius: 14,
+          borderWidth: focused ? 2 : 1,
+          color: colors.text.primary,
+          fontFamily: 'Inter-Regular',
+          fontSize: 14,
+          minHeight: multiline ? 76 : 44,
+          outlineColor: 'transparent',
+          outlineStyle: 'solid',
+          outlineWidth: 0,
+          paddingHorizontal: focused ? 13 : 14,
+          paddingVertical: multiline ? 12 : 10,
+          shadowColor: colors.text.primary,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: themeMode === 'dark' ? 0 : focused ? 0.07 : 0.035,
+          shadowRadius: focused ? 10 : 6,
+          textAlignVertical: multiline ? 'top' : 'center',
+        },
+        style,
+      ]}
+      {...props}
     />
   );
 }
+
+const TextField = ManualTextInput;
 
 export default function GoalCreateScreen() {
   const colors = useThemeColors();
   const themeMode = useUIStore((current) => current.themeMode);
   const { width } = useWindowDimensions();
   const compact = width < 720;
-  const medium = width < 1180;
   const showSidebar = width >= 900;
   const { projectId: incomingProjectId } = useLocalSearchParams<{ projectId?: string }>();
   const initialProjectId = typeof incomingProjectId === 'string' ? incomingProjectId : null;
@@ -291,7 +305,7 @@ export default function GoalCreateScreen() {
   const darkMode = themeMode === 'dark';
   const pageBackground = darkMode ? colors.background.page : accent.pageBg;
 
-  const [creationMode, setCreationMode] = useState<'manual' | 'ai'>('manual');
+  const [creationMode, setCreationMode] = useState<GoalCreationMode>('manual');
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [createdGoalId, setCreatedGoalId] = useState<string | null>(null);
@@ -488,26 +502,22 @@ export default function GoalCreateScreen() {
           title="Name your outcome."
         />
 
-        <View style={{ alignSelf: 'center', marginBottom: 34, maxWidth: 680, width: '100%' }}>
+        <View style={{ alignSelf: 'center', marginBottom: 22, maxWidth: 680, width: '100%' }}>
           <View style={{ alignItems: 'center', marginBottom: 8 }}>
             <CategoryBadge accent={accent} darkMode={darkMode} label={wizard.template.label} />
           </View>
-          <TextInput
+          <ManualTextInput
             accessibilityLabel="Goal outcome"
             autoFocus={!compact}
             onChangeText={wizard.setOutcome}
             placeholder="What do you want to achieve?"
-            placeholderTextColor={colors.text.muted}
             style={{
-              borderBottomColor: colors.border.warm,
-              borderBottomWidth: 1.5,
-              color: colors.text.primary,
-              fontFamily: 'Inter-Medium',
-              fontSize: compact ? 24 : 28,
-              lineHeight: compact ? 31 : 36,
-              outlineWidth: 0,
-              paddingHorizontal: 8,
-              paddingVertical: 12,
+              fontFamily: 'Lora-Regular',
+              fontSize: compact ? 20 : 22,
+              lineHeight: compact ? 27 : 30,
+              minHeight: compact ? 58 : 64,
+              paddingHorizontal: 18,
+              paddingVertical: 13,
               textAlign: 'center',
             }}
             value={wizard.outcome}
@@ -568,8 +578,25 @@ export default function GoalCreateScreen() {
           ) : null}
         </View>
 
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14 }}>
-          {GOAL_CREATION_CATEGORIES.map((category) => {
+        <View style={{ gap: 10 }}>
+          {(width >= 1180
+            ? [
+                GOAL_CREATION_CATEGORIES.slice(0, 2),
+                GOAL_CREATION_CATEGORIES.slice(2, 5),
+                GOAL_CREATION_CATEGORIES.slice(5, 7),
+              ]
+            : [GOAL_CREATION_CATEGORIES]
+          ).map((categoryRow, rowIndex) => (
+            <View
+              key={`category-row-${rowIndex}`}
+              style={{
+                flexDirection: 'row',
+                flexWrap: width >= 1180 ? 'nowrap' : 'wrap',
+                gap: 10,
+                justifyContent: 'center',
+              }}
+            >
+          {categoryRow.map((category) => {
             const template = wizard.category === category
               ? wizard.template
               : undefined;
@@ -586,15 +613,17 @@ export default function GoalCreateScreen() {
                   alignItems: 'flex-start',
                   backgroundColor: colors.background.card,
                   borderColor: selected ? categoryAccent.color : colors.border.warm,
-                  borderRadius: 16,
+                  borderRadius: 14,
                   borderWidth: 1.5,
-                  flexBasis: compact ? '100%' : medium ? '48%' : '31%',
+                  flexBasis: compact ? '100%' : width >= 1180 ? 250 : '48%',
+                  flexGrow: 0,
                   flexDirection: 'row',
-                  gap: 12,
-                  minWidth: compact ? '100%' : 250,
+                  gap: 10,
+                  height: width >= 1180 ? 78 : undefined,
+                  minWidth: compact ? '100%' : width >= 1180 ? 250 : 230,
                   opacity: pressed ? 0.72 : selected ? 1 : 0.66,
-                  paddingHorizontal: 18,
-                  paddingVertical: 16,
+                  paddingHorizontal: 14,
+                  paddingVertical: 12,
                   shadowColor: selected ? categoryAccent.color : colors.text.primary,
                   shadowOffset: { width: 0, height: selected ? 8 : 2 },
                   shadowOpacity: darkMode ? 0 : selected ? 0.12 : 0.035,
@@ -606,9 +635,9 @@ export default function GoalCreateScreen() {
                     alignItems: 'center',
                     backgroundColor: darkMode ? colors.background.input : categoryAccent.tint,
                     borderRadius: 11,
-                    height: 38,
+                    height: 34,
                     justifyContent: 'center',
-                    width: 38,
+                    width: 34,
                   }}
                 >
                   <Typography style={{ color: categoryAccent.mid, fontSize: 18 }} variant="body">
@@ -618,11 +647,11 @@ export default function GoalCreateScreen() {
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Typography
                     variant="title"
-                    style={{ fontFamily: 'Inter-SemiBold', fontSize: 17, marginBottom: 3 }}
+                    style={{ fontFamily: 'Inter-SemiBold', fontSize: 15.5, marginBottom: 2 }}
                   >
                     {categoryTemplate.label}
                   </Typography>
-                  <Typography variant="caption" style={{ lineHeight: 18 }}>
+                  <Typography numberOfLines={2} variant="caption" style={{ lineHeight: 16 }}>
                     {categoryTemplate.description}
                   </Typography>
                 </View>
@@ -645,6 +674,8 @@ export default function GoalCreateScreen() {
               </Pressable>
             );
           })}
+            </View>
+          ))}
         </View>
       </View>
     );
@@ -916,7 +947,7 @@ export default function GoalCreateScreen() {
             </Pressable>
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <TextInput
+            <ManualTextInput
               accessibilityLabel="Milestone title"
               onChangeText={(title) => wizard.updateMilestone(item.id, { title })}
               style={{
@@ -924,13 +955,14 @@ export default function GoalCreateScreen() {
                 flex: 1,
                 fontFamily: 'Inter-SemiBold',
                 fontSize: 14.5,
-                outlineWidth: 0,
-                padding: 0,
+                minHeight: 40,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
               }}
               value={item.title}
             />
             <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 6 }}>
-              <TextInput
+              <ManualTextInput
                 accessibilityLabel="Milestone timing"
                 onChangeText={(week) => wizard.updateMilestone(item.id, { week })}
                 style={{
@@ -938,8 +970,9 @@ export default function GoalCreateScreen() {
                   fontFamily: 'Inter-Regular',
                   fontSize: 12,
                   minWidth: 70,
-                  outlineWidth: 0,
-                  padding: 0,
+                  minHeight: 36,
+                  paddingHorizontal: 10,
+                  paddingVertical: 7,
                 }}
                 value={item.week}
               />
@@ -969,22 +1002,18 @@ export default function GoalCreateScreen() {
               ) : null}
             </View>
             {expanded ? (
-              <TextInput
+              <ManualTextInput
                 accessibilityLabel="Why this milestone matters"
                 multiline
                 onChangeText={(why) => wizard.updateMilestone(item.id, { why })}
                 placeholder="Why does this checkpoint matter?"
-                placeholderTextColor={colors.text.muted}
                 style={{
-                  backgroundColor: colors.background.input,
-                  borderRadius: 10,
                   color: colors.text.secondary,
                   fontFamily: 'Inter-Regular',
                   fontSize: 12.5,
                   lineHeight: 19,
                   marginTop: 10,
                   minHeight: 58,
-                  outlineWidth: 0,
                   padding: 10,
                   textAlignVertical: 'top',
                 }}
@@ -1011,7 +1040,7 @@ export default function GoalCreateScreen() {
     return (
       <Card key={item.id} padding="compact" style={{ borderRadius: 14 }}>
         <View style={{ alignItems: 'center', flexDirection: compact ? 'column' : 'row', gap: 10 }}>
-          <TextInput
+          <ManualTextInput
             accessibilityLabel="Tracker title"
             onChangeText={(title) => wizard.updateTracker(item.id, { title })}
             style={{
@@ -1020,8 +1049,9 @@ export default function GoalCreateScreen() {
               fontFamily: 'Inter-SemiBold',
               fontSize: 14,
               minWidth: compact ? '100%' : 160,
-              outlineWidth: 0,
-              padding: 0,
+              minHeight: 40,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
               width: compact ? '100%' : undefined,
             }}
             value={item.title}
@@ -1052,21 +1082,18 @@ export default function GoalCreateScreen() {
             </Pressable>
             {item.type !== 'checklist' ? (
               <>
-                <TextInput
+                <ManualTextInput
                   accessibilityLabel={`${item.title} weekly target`}
                   keyboardType="numeric"
                   onChangeText={(value) => wizard.updateTracker(item.id, {
                     targetValue: Number.isFinite(Number(value)) ? Number(value) : 0,
                   })}
                   style={{
-                    backgroundColor: colors.background.input,
-                    borderColor: colors.border.warm,
                     borderRadius: 8,
-                    borderWidth: 1,
                     color: colors.text.primary,
                     fontFamily: 'Inter-SemiBold',
                     fontSize: 13,
-                    outlineWidth: 0,
+                    minHeight: 36,
                     paddingHorizontal: 8,
                     paddingVertical: 6,
                     textAlign: 'center',
@@ -1074,7 +1101,7 @@ export default function GoalCreateScreen() {
                   }}
                   value={String(item.targetValue ?? '')}
                 />
-                <TextInput
+                <ManualTextInput
                   accessibilityLabel={`${item.title} target unit`}
                   onChangeText={(targetUnit) => wizard.updateTracker(item.id, { targetUnit })}
                   style={{
@@ -1083,8 +1110,9 @@ export default function GoalCreateScreen() {
                     fontFamily: 'Inter-Regular',
                     fontSize: 12,
                     minWidth: 72,
-                    outlineWidth: 0,
-                    padding: 0,
+                    minHeight: 36,
+                    paddingHorizontal: 10,
+                    paddingVertical: 7,
                   }}
                   value={item.targetUnit ?? ''}
                 />
@@ -1121,20 +1149,16 @@ export default function GoalCreateScreen() {
             >
               What’s your current weekly distance? This optional baseline helps you choose a realistic target.
             </Typography>
-            <TextInput
+            <ManualTextInput
               accessibilityLabel={`${item.title} current baseline`}
               onChangeText={(baseline) => wizard.updateTracker(item.id, { baseline })}
               placeholder="e.g. 4 km"
-              placeholderTextColor={colors.text.muted}
               style={{
-                backgroundColor: colors.background.input,
-                borderColor: colors.border.warm,
                 borderRadius: 8,
-                borderWidth: 1,
                 color: colors.text.primary,
                 fontFamily: 'Inter-Regular',
                 fontSize: 12.5,
-                outlineWidth: 0,
+                minHeight: 38,
                 paddingHorizontal: 10,
                 paddingVertical: 7,
                 width: compact ? '100%' : 120,
@@ -1674,68 +1698,25 @@ export default function GoalCreateScreen() {
             ) : null
           }
         />
-        {creationMode === 'manual' ? (
-          <View
-            style={{
-              backgroundColor: pageBackground,
-              paddingHorizontal: compact ? 16 : 40,
-              paddingTop: 12,
-            }}
-          >
-          <View
-            accessibilityRole="tablist"
-            style={{
-              alignSelf: compact ? 'stretch' : 'flex-start',
-              backgroundColor: colors.background.input,
-              borderRadius: 12,
-              flexDirection: 'row',
-              gap: 4,
-              padding: 4,
-            }}
-          >
-            {([
-              ['manual', 'Build it myself'],
-              ['ai', 'Chat with AI'],
-            ] as const).map(([mode, label]) => {
-              const selected = creationMode === mode;
-              return (
-                <Pressable
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected }}
-                  key={mode}
-                  onPress={() => setCreationMode(mode)}
-                  style={({ pressed }) => ({
-                    alignItems: 'center',
-                    backgroundColor: selected ? colors.background.card : 'transparent',
-                    borderRadius: 9,
-                    flex: compact ? 1 : undefined,
-                    opacity: pressed ? 0.8 : 1,
-                    paddingHorizontal: 18,
-                    paddingVertical: 9,
-                    shadowColor: colors.text.primary,
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: selected && !darkMode ? 0.08 : 0,
-                    shadowRadius: 4,
-                  })}
-                >
-                  <Typography
-                    variant="emphasis-sm"
-                    style={{ color: selected ? colors.text.primary : colors.text.secondary }}
-                  >
-                    {label}
-                  </Typography>
-                </Pressable>
-              );
-            })}
-          </View>
-          </View>
-        ) : null}
+        <View
+          style={{
+            backgroundColor: pageBackground,
+            paddingHorizontal: compact ? 16 : 40,
+            paddingTop: 10,
+          }}
+        >
+          <GoalCreationModeToggle
+            compact={compact}
+            mode={creationMode}
+            onChange={setCreationMode}
+          />
+        </View>
 
         {creationMode === 'ai' ? (
           <AIGoalCreation onSwitchToManual={() => setCreationMode('manual')} />
         ) : (
           <>
-        <View style={{ backgroundColor: pageBackground, flexDirection: 'row', gap: 6, paddingHorizontal: compact ? 16 : 40, paddingTop: 12 }}>
+        <View style={{ backgroundColor: pageBackground, flexDirection: 'row', gap: 6, paddingHorizontal: compact ? 16 : 40, paddingTop: 10 }}>
           {STEP_LABELS.map((label, index) => (
             <View
               accessibilityLabel={`${label}${index + 1 <= wizard.step ? ', completed' : ''}`}
@@ -1752,9 +1733,9 @@ export default function GoalCreateScreen() {
 
         <ScrollView
           contentContainerStyle={{
-            paddingBottom: 40,
+            paddingBottom: 24,
             paddingHorizontal: compact ? 16 : 40,
-            paddingTop: compact ? 24 : 30,
+            paddingTop: compact ? 20 : 18,
           }}
           keyboardShouldPersistTaps="handled"
           style={{ flex: 1 }}
@@ -1774,7 +1755,7 @@ export default function GoalCreateScreen() {
               flexDirection: compact ? 'column' : 'row',
               gap: 10,
               paddingHorizontal: compact ? 16 : 40,
-              paddingVertical: compact ? 14 : 20,
+              paddingVertical: compact ? 12 : 14,
             }}
           >
             {compact ? (
