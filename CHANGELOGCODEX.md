@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Added (2026-07-27 — Constellation feature foundation)
+- **features/constellation/types.ts, copy.ts, tokens.ts, graph.ts, and fixtures.ts:** added an isolated, production-data-only Constellation domain foundation with discriminated earned nodes, annotations, virtual BRT clusters, and graph edges; semantic lowercase bud/rose/thorn values; explicit kind-versus-valence edge semantics; deterministic development/test fixtures; and pure graph selection, validation, filtering, grouping, adaptation, and render-budget utilities. No route, API, database, feature flag, or UI-store behavior changed.
+- **features/constellation/graph.test.ts, package.json, and tsconfig.json:** added the Node built-in Constellation test harness and test:constellation script, with TypeScript extension imports enabled for Node's built-in type stripping. The suite covers malformed edges, duplicate IDs, empty graphs, evidence grouping, stable virtual BRT IDs, annotation exclusion from earned counts, and the 30-node render budget.
+- **docs/constellation/CHANGELOG.md:** added the session-ordered Constellation implementation changelog, documenting the feature slice, deterministic-fixture boundary, and verification scope.
+
 ### Added (2026-07-27 — Canonical Constellation decision and graph contract)
 - **`docs/constellation/DECISIONS.md`:** added the canonical Constellation domain and implementation contract so earned nodes, user-authored annotations, manual Echo evidence, virtual BRT clusters, edge kind/valence semantics, graph DTO, ownership, archival/deletion, URL selection, excerpt privacy, production-data rules, delivery phases, and migration sequencing have one source of truth.
 
