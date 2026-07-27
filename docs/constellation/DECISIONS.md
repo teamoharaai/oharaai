@@ -496,8 +496,8 @@ prototype depicts them.
 ## 11. Migration sequencing
 
 The repository currently contains migrations through
-`031_username_change_limit.sql`. As of 2026-07-27, the next available migration
-number is `032`.
+`032_constellation_persistence.sql`. As of 2026-07-27, the next available
+migration number is `033`.
 
 No migration number is permanently reserved by this document. The implementation
 session must re-list `supabase/migrations/` immediately before creating a migration

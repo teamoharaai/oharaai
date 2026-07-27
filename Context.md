@@ -21,7 +21,7 @@ Theme (post-redesign warm ramp, Sessions 1–4c): warm cream #F8F4EC page, white
 `CHANGELOGCODEX.md` · `docs/context.md` (deprecated — root CONTEXT.md is canonical)
 
 ## Current State
-- Migrations: through 031 (squashed baseline 001-006, followed by 007-031). Migration 031 adds the username rolling change limit. `supabase/CLAUDE.md` is the canonical migration ledger. Next migration number: 032 as of 2026-07-27; re-resolve immediately before creating a migration.
+- Migrations: through 032 (squashed baseline 001-006, followed by 007-032). Migration 032 adds the normalized Constellation persistence and RLS boundary. `supabase/CLAUDE.md` is the canonical migration ledger. Next migration number: 033 as of 2026-07-27; re-resolve immediately before creating a migration.
 - `tsc --noEmit`: clean
 - RLS: verified across all tables
 - Auth: Supabase auth working; `/auth/callback` 404 parked (teammate has Auth0 solution)
@@ -61,7 +61,7 @@ Theme (post-redesign warm ramp, Sessions 1–4c): warm cream #F8F4EC page, white
 - Visibility: `private / circle / public` — non-owner access conservative until social ships
 - vault_items has no milestone_id — milestone context not in schema yet
 - spaces.owner_id is the owner column (renamed from user_id in migration 022); space_members.user_id is unchanged
-- Next migration number: 032 as of 2026-07-27
+- Next migration number: 033 as of 2026-07-27
 
 ## Constellation Contract (2026-07-27)
 - Canonical decisions: `docs/constellation/DECISIONS.md`
@@ -87,4 +87,4 @@ Theme (post-redesign warm ramp, Sessions 1–4c): warm cream #F8F4EC page, white
 - Codex writes to CHANGELOGCODEX.md after every session
 - Run `npx tsc --noEmit` before and after every task
 
-last migration: 031 — migrations 001-006 are the 2026-06-24 narrative baseline; 007-031 are the current post-squash sequence. See `supabase/CLAUDE.md` for the complete ledger. Next new migration is 032 as of 2026-07-27.
+last migration: 032 — migrations 001-006 are the 2026-06-24 narrative baseline; 007-032 are the current post-squash sequence. See `supabase/CLAUDE.md` for the complete ledger. Next new migration is 033 as of 2026-07-27.

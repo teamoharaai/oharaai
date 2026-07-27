@@ -101,6 +101,258 @@ export type Database = {
         }
         Relationships: []
       }
+      constellation_annotations: {
+        Row: {
+          anchor_earned_node_id: string | null
+          archived_at: string | null
+          authorship: string
+          body: string | null
+          created_at: string
+          id: string
+          is_draft: boolean
+          kind: string
+          label: string
+          owner_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          anchor_earned_node_id?: string | null
+          archived_at?: string | null
+          authorship?: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_draft?: boolean
+          kind: string
+          label: string
+          owner_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          anchor_earned_node_id?: string | null
+          archived_at?: string | null
+          authorship?: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_draft?: boolean
+          kind?: string
+          label?: string
+          owner_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "constellation_annotations_anchor_earned_node_id_fkey"
+            columns: ["anchor_earned_node_id"]
+            isOneToOne: false
+            referencedRelation: "constellation_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      constellation_edges: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          id: string
+          kind: string
+          last_activity_at: string | null
+          owner_id: string
+          source_node_id: string
+          status: string
+          target_node_id: string
+          updated_at: string
+          valence: string | null
+          weight: number | null
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          last_activity_at?: string | null
+          owner_id: string
+          source_node_id: string
+          status?: string
+          target_node_id: string
+          updated_at?: string
+          valence?: string | null
+          weight?: number | null
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          last_activity_at?: string | null
+          owner_id?: string
+          source_node_id?: string
+          status?: string
+          target_node_id?: string
+          updated_at?: string
+          valence?: string | null
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "constellation_edges_source_node_fkey"
+            columns: ["source_node_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "constellation_nodes"
+            referencedColumns: ["id", "owner_id"]
+          },
+          {
+            foreignKeyName: "constellation_edges_target_node_fkey"
+            columns: ["target_node_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "constellation_nodes"
+            referencedColumns: ["id", "owner_id"]
+          },
+        ]
+      }
+      constellation_evidence_links: {
+        Row: {
+          brt_category: string
+          created_at: string
+          echo_entry_id: string
+          goal_id: string
+          id: string
+          note: string | null
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          brt_category: string
+          created_at?: string
+          echo_entry_id: string
+          goal_id: string
+          id?: string
+          note?: string | null
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          brt_category?: string
+          created_at?: string
+          echo_entry_id?: string
+          goal_id?: string
+          id?: string
+          note?: string | null
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "constellation_evidence_links_echo_owner_fkey"
+            columns: ["echo_entry_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "echo_entries"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "constellation_evidence_links_goal_owner_fkey"
+            columns: ["goal_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
+      constellation_nodes: {
+        Row: {
+          archived_at: string | null
+          authorship: string
+          created_at: string
+          description: string | null
+          first_seen_at: string | null
+          id: string
+          is_earned: boolean
+          kind: string
+          label: string
+          last_activity_at: string | null
+          owner_id: string
+          season_id: string | null
+          source_goal_id: string | null
+          source_key: string | null
+          source_profile_id: string | null
+          source_project_id: string | null
+          source_type: string
+          status: string
+          updated_at: string
+          visibility_score: number | null
+        }
+        Insert: {
+          archived_at?: string | null
+          authorship?: string
+          created_at?: string
+          description?: string | null
+          first_seen_at?: string | null
+          id?: string
+          is_earned?: boolean
+          kind: string
+          label: string
+          last_activity_at?: string | null
+          owner_id: string
+          season_id?: string | null
+          source_goal_id?: string | null
+          source_key?: string | null
+          source_profile_id?: string | null
+          source_project_id?: string | null
+          source_type: string
+          status?: string
+          updated_at?: string
+          visibility_score?: number | null
+        }
+        Update: {
+          archived_at?: string | null
+          authorship?: string
+          created_at?: string
+          description?: string | null
+          first_seen_at?: string | null
+          id?: string
+          is_earned?: boolean
+          kind?: string
+          label?: string
+          last_activity_at?: string | null
+          owner_id?: string
+          season_id?: string | null
+          source_goal_id?: string | null
+          source_key?: string | null
+          source_profile_id?: string | null
+          source_project_id?: string | null
+          source_type?: string
+          status?: string
+          updated_at?: string
+          visibility_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "constellation_nodes_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "constellation_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "constellation_nodes_source_goal_fkey"
+            columns: ["source_goal_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "constellation_nodes_source_project_fkey"
+            columns: ["source_project_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
       daily_ai_usage: {
         Row: {
           count: number

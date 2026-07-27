@@ -4,8 +4,8 @@ Owner: CTO. Cascade Level 3.
 
 ## Migration Conventions
 - supabase/migrations/ holds 6 narrative baseline files (001-006), squashed
-  2026-06-24 from the original 26 incremental migrations. 007-031 were added
-  after the squash (see below). Next new migration: 032.
+  2026-06-24 from the original 26 incremental migrations. 007-032 were added
+  after the squash (see below). Next new migration: 033.
 - The pre-squash files (original 001-026) are archived, untouched, in
   supabase/migrations_archive_pre_squash_2026-06-24/ for historical reference.
   Do not re-run or restore them — supabase_migrations.schema_migrations tracks
@@ -117,6 +117,16 @@ Owner: CTO. Cascade Level 3.
   most three successful changes in any rolling seven-day window. Unchanged
   updates do not consume a change, and failed profile updates roll back the
   limiter write with the username update.
+- 032_constellation_persistence.sql: adds owner-scoped, normalized
+  constellation_nodes, constellation_edges, constellation_annotations, and
+  constellation_evidence_links. Earned nodes and persisted system edges are
+  authenticated-read-only; annotations retain invariant user/draft provenance
+  and archive instead of direct deletion; Evidence Links keep their owner,
+  Echo, and goal immutable while allowing Bud/Rose/Thorn category and a
+  280-character trimmed note to be updated on the unique relation.
+  Composite FKs enforce same-owner sources and explicit cascades, annotation
+  anchors become null when a node disappears, every new table has RLS, and
+  virtual BRT clusters remain unpersisted.
 - goals.mode column was dropped in the 2026-06-24 squash (was a single-value
   CHECK column, no longer carried). lib/db/goals.ts no longer inserts it.
 

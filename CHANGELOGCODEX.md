@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added (2026-07-27 — Constellation persistence and database security)
+- **`supabase/migrations/032_constellation_persistence.sql`:** added normalized, owner-scoped persistence for system-managed earned nodes and graph edges, user-authored draft annotations, and manual Echo-to-goal Evidence Links. The migration enforces the six-kind earned taxonomy, typed source provenance, same-owner source FKs, duplicate-active-source prevention, annotation provenance/lifecycle checks, immutable evidence endpoints with mutable bounded Bud/Rose/Thorn categorization, explicit source-deletion behavior, graph/source lookup indexes, and RLS on every new table; virtual BRT clusters remain derived and no `echo_entry_links` or `brt_user` behavior is changed.
+- **`scripts/test-constellation-security.sh`, `constellation-security-bootstrap.sql`, and `constellation-security.test.sql`:** added a credential-free, disposable PostgreSQL 16 harness that applies migration 032 to an isolated source-schema fixture and verifies cross-user reads/writes, forged ownership, invalid annotation/BRT values, duplicate and updatable evidence relations, annotation archival, FK cascades/anchor nulling, system-table write denial, and preservation of the one-confirmed Echo container invariant.
+
+### Changed (2026-07-27 — Constellation persistence and database security)
+- **`types/supabase.ts`:** added generated-style Row/Insert/Update/Relationship shapes for `constellation_nodes`, `constellation_edges`, `constellation_annotations`, and `constellation_evidence_links`.
+- **`Context.md`, `supabase/CLAUDE.md`, `docs/constellation/DECISIONS.md`, and `docs/constellation/CHANGELOG.md`:** recorded migration 032 as the current Constellation persistence boundary and advanced the next migration number to 033 so later schema sessions do not reuse 032.
+
 ### Added (2026-07-27 — Constellation access gate and concept 1e empty state)
 - **`features/constellation/services/constellation-service.ts`, `gate.ts`, and `hooks/useConstellationGate.ts`:** added a typed, authenticated wrapper for the existing dashboard summary endpoint and a feature-owned onboarding gate with explicit loading, success, retryable-error, cancellation, and stale-response handling. The gate exposes `accessEligible` independently from `hasGraphData`, which remains unknown because activity counts cannot prove an earned graph entity exists.
 - **`features/constellation/components/ConstellationSeedPreview.tsx`, `ConstellationEmptyState.tsx`, and `ConstellationScreen.tsx`:** added the responsive concept-1e seed-and-ghost-orbit onboarding view, accessible headings and progress bars, intentional loading/retry UI, and working Set a goal / Write an Echo actions without rendering a mock unlocked graph.

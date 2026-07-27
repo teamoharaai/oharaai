@@ -1,5 +1,20 @@
 # Constellation Implementation Changelog
 
+## 2026-07-27 — Persistence schema and isolated database security
+
+1. Added migration 032 with normalized owner-scoped earned nodes, persisted
+   system edges, user-authored annotations, and manual Echo-to-goal Evidence
+   Links. Earned sources use typed provenance and same-owner FKs; annotations
+   remain structurally user-authored drafts; evidence categories are limited to
+   lowercase bud, rose, or thorn with one mutable relation per Echo/goal pair.
+2. Kept Bud/Rose/Thorn goal clusters virtual. The Evidence Link table has no
+   trigger or write path into `echo_entry_links`, legacy `echo_entries.goal_id`,
+   `echo_entries.brt_user`, or graph-node storage.
+3. Added a disposable local PostgreSQL harness covering constraint enforcement,
+   cross-user RLS, forged ownership, archival, evidence uniqueness/category
+   updates, source deletion, anchor nulling, and the canonical Echo container
+   invariant. No linked/live Supabase migration was applied.
+
 ## 2026-07-27 — Access gate and concept 1e empty state
 
 1. Added a feature-owned typed dashboard-summary service and `useConstellationGate`
