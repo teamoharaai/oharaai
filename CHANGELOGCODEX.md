@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added (2026-07-27 — Canonical Constellation decision and graph contract)
+- **`docs/constellation/DECISIONS.md`:** added the canonical Constellation domain and implementation contract so earned nodes, user-authored annotations, manual Echo evidence, virtual BRT clusters, edge kind/valence semantics, graph DTO, ownership, archival/deletion, URL selection, excerpt privacy, production-data rules, delivery phases, and migration sequencing have one source of truth.
+
+### Changed (2026-07-27 — Canonical Constellation decision and graph contract)
+- **`ohara_constellation_spec.md`:** reconciled stale goal statuses and phase language with the current schema, locked the six-kind earned taxonomy, and deferred conflicting annotation, Evidence Link, virtual-cluster, DTO, and production-data details to the canonical decision record.
+- **`Context.md`:** replaced the stale migration-011/next-012 and four-status guidance with the repository's current migration-031/next-032 ledger, the six current goal statuses from `lib/goals/schema.ts`, and a compact Constellation contract summary.
+- These documentation changes prevent the old handoff's already-consumed migration 012, mock-production graph, future-node, and relationship-as-valence assumptions from driving implementation. Affected files: `docs/constellation/DECISIONS.md`, `ohara_constellation_spec.md`, `Context.md`, and `CHANGELOGCODEX.md`.
+
 ### Added (2026-07-27 — Reusable app calendar picker)
 - **`components/ui/DatePicker.tsx`:** added a token-driven, cross-platform calendar picker with human-readable trigger text, month navigation, temporary selected-date state, minimum/maximum bounds, accessible 44px day targets, optional clearing, and explicit Cancel/Apply behavior.
 

@@ -1,9 +1,16 @@
 # Ohara Constellation Spec
 
-**Version:** 1.0  
-**Date:** April 2026  
-**Status:** Architecture & Governance Reference  
+**Version:** 1.1
+**Date:** July 2026
+**Status:** Architecture & Governance Reference
 **Audience:** Engineering, VP Product, AI coding agents (Claude Code, Codex)
+
+> **Canonical contract:** `docs/constellation/DECISIONS.md` is authoritative for
+> node taxonomy, annotations, manual Evidence Links, virtual BRT clusters, edge
+> kinds/valence, the graph DTO, production-data rules, privacy, and phase
+> boundaries. This spec remains authoritative for extraction, validation,
+> scoring, and archival concepts only where it does not conflict with that
+> decision record.
 
 ---
 
@@ -27,7 +34,7 @@ Every design decision downstream — extraction thresholds, visibility budgets, 
 |----------|-----------|--------|----------------|-------------|------------|
 | **Season** | The human anchor. Represents the user's current chapter of life — a temporal and emotional container for all other nodes. | System-generated at account creation; transitions triggered by user or by Season Archive graduation. | Largest node. Central position. Primary brand color. Circular. | Exactly 1 in active graph. | Always visible. User-visible. |
 | **Ambition** | Project-level intent. Represents a sustained direction the user is pursuing — broader than any single goal. | Sourced from the `projects` table. One Ambition node per active project. | Medium-large node. Rounded rectangle. Secondary brand color. | Max 5 in active graph (matches reasonable active project limit). | User-visible. Subject to visibility scoring when exceeding budget. |
-| **Goal** | Execution layer. Represents a specific SMART goal the user is actively working toward. | Sourced from the `goals` table. Only goals with status `active` or `in_progress` generate nodes. | Medium node. Diamond shape. Goal-status accent color (active vs. near-complete vs. stalled). | Max 12 in active graph. Completed goals archive after grace period. | User-visible. Active goals always rendered. |
+| **Goal** | Execution layer. Represents a specific SMART goal the user is actively working toward. | Sourced from the `goals` table. Goals with status `active` may generate nodes; `complete` goals remain eligible during the grace period. `draft`, `stagnant`, `discovered`, and `archived` goals are excluded from the active graph. | Medium node. Diamond shape. Goal-status accent color (active vs. near-complete vs. stalled). | Max 12 in active graph. Complete goals archive after the grace period. | User-visible. Eligible active-graph goals are always rendered. |
 | **Reflection** | A proven pattern of meaning extracted from Echo entries. Not a mirror of any single entry — a distillation across multiple entries that passed full validation. | Candidate extraction pipeline over Echo entries (see Section 3). | Small node. Circle. Reflection accent color. Glow intensity scales with aggregated score. | Max 20 in active graph. Strictly governed by validation thresholds. | User-visible. |
 | **Trait** | A durable characteristic proven across multiple seasons. Traits are the slowest-moving, highest-confidence nodes. | Derived from character profile JSONB. Requires evidence across ≥2 seasons. | Small-medium node. Hexagon. Trait accent color (distinct from Reflection). | Max 8 in active graph. | User-visible. |
 | **Tension** | An unresolved contradiction between two patterns in the user's behavior or values. Tensions are not failures — they are complexity made visible. | Contradiction detection pipeline (see Section 3d). | Small node. Two overlapping circles (Venn shape). Tension accent color. | Max 5 in active graph. | User-visible. System-generated. |
@@ -36,8 +43,25 @@ Every design decision downstream — extraction thresholds, visibility budgets, 
 
 - **Reflection vs. Trait distinction:** A Reflection node represents a pattern observed within the current season (or across a small number of recent entries). A Trait node represents a pattern that has persisted across season boundaries. Reflection nodes may graduate to Trait nodes over time; this is a promotion, not a duplication.
 - **Tension nodes** are the only node type that requires two existing candidates as inputs. They cannot exist without at least two validated or near-validated Reflection or Trait candidates in opposition.
-- **Goal nodes** are the only node type directly tied to a mutable application-level status. When a goal transitions to `completed`, the node enters a 14-day grace period before archiving.
+- **Goal nodes** are the only node type directly tied to a mutable application-level status. The canonical values from `lib/goals/schema.ts` are `active`, `draft`, `complete`, `stagnant`, `discovered`, and `archived`. When a goal transitions to `complete`, the node enters a 14-day grace period before archiving.
 - All visual identity descriptions are semantic, not literal. Implementation will map these to the design system's token layer (colors, sizes, shapes). No hex values or pixel dimensions are specified here.
+
+### 2c. Separate User-Authored and Organizational Domains
+
+- The earned/system taxonomy is closed: Season, Ambition, Goal, Reflection,
+  Trait, and Tension.
+- User-authored notes and projections are `ConstellationAnnotation` records,
+  always marked as user-authored draft material. They are not earned nodes and
+  never participate in validation, scoring, promotion, edge weights, or earned
+  counts.
+- Manual Echo-to-goal organization is represented by
+  `ConstellationEvidenceLink`, not by graph edges, `echo_entry_links`, or
+  `echo_entries.brt_user`.
+- Goal-level Bud/Rose/Thorn display clusters are virtual read models derived
+  from Evidence Links. They are never persisted as graph nodes.
+
+See `docs/constellation/DECISIONS.md` for the complete persistence and DTO
+contracts.
 
 ---
 
@@ -200,6 +224,12 @@ A candidate is promoted to a Reflection node when **all** of the following are m
 
 Edges represent meaningful relationships between nodes. They are not created because two nodes coexist in the graph.
 
+Every edge has a `GraphEdgeKind` describing why its endpoints are related and a
+separate nullable `GraphEdgeValence` describing emotional/behavioral character.
+Structural relationship kinds must never be encoded as valence values. Manual
+Evidence Links are their own domain; the goal-to-virtual-BRT-cluster edge is a
+derived presentation edge with no graph weight.
+
 ### 4a. Edge Creation Conditions
 
 An edge between Node A and Node B is created when **at least one** of the following conditions is met:
@@ -282,7 +312,7 @@ The following nodes bypass visibility scoring and are always rendered:
 | Node Type | Condition |
 |-----------|-----------|
 | Season | Always (exactly 1). |
-| Goal | Status is `active` or `in_progress`. Completed goals within 14-day grace period are also always rendered. |
+| Goal | Status is `active`. `complete` goals within the 14-day grace period are also always rendered. `draft`, `stagnant`, `discovered`, and `archived` goals are excluded. |
 | Tension | Always rendered while active. Tensions are high-signal and should never be hidden by budget constraints. |
 
 Always-rendered nodes count against the 30-node budget. The remaining budget is filled by highest-visibility-score Reflection, Trait, and Ambition nodes.
@@ -544,17 +574,30 @@ WITH (m = 16, ef_construction = 64);
 
 ## 9. What Remains Deferred
 
+### 9a. Canonical Delivery Phases
+
+- **Initial:** honest empty states and a read-only graph backed by real owner
+  data.
+- **Next:** annotation creation, Evidence Link management, derived virtual BRT
+  clusters, and owner-only inspectors.
+- **Deferred:** force layout, pan/zoom, Timeline, Season Archive, arbitrary
+  node-to-node manual topology, and sharing.
+
+Mock graph data is development/test-only. Production must render real data, a
+Season-only state, or an honest `patterns_forming` state. It must never fall
+back to fixtures.
+
 | Item | Status | Rationale |
 |------|--------|-----------|
-| **Force simulation and dynamic graph layout** | Deferred to implementation phase | This spec defines the data model and rules. Layout algorithms (force-directed, radial, hierarchical) are a rendering concern that depends on the chosen visualization library (e.g., D3, react-force-graph, custom Canvas/SVG). The spec constrains the layout indirectly via node budgets, edge limits, and always-rendered rules. |
+| **Force simulation and dynamic graph layout** | Deferred | This spec defines the data model and rules. Layout algorithms (force-directed, radial, hierarchical) remain outside the initial and next phases. |
 | **Multi-model routing for candidate extraction** | Deferred to Phase 2 | Phase 1 uses Haiku for all AI interactions including candidate extraction. Sonnet or a larger model for extraction is a Phase 2 optimization once extraction quality can be measured against pilot data. |
 | **Vector infrastructure implementation** | Deferred (field contracts are in scope; column additions and index creation are Conversation 3) | This spec defines the contracts and schemas. Actual `ALTER TABLE` statements, pgvector extension setup, and embedding pipeline code are implementation tasks. |
 | **Swift/SwiftUI native Constellation** | Deferred pending codebase decision | Constellation Phase 1 renders in React Native Web. A native Swift implementation may be pursued for performance on iOS but requires a separate architecture decision about maintaining two rendering codebases. |
 | **Embedding model selection beyond pilot** | Deferred to self-hosting timeline | Pilot uses `text-embedding-3-small`. The production embedding model will be the self-hosted LLM's embedding layer, which is not yet selected. |
 | **Phase 3 features** | Deferred | Includes: Institutional and Community Space types, project description embedding, community-level Constellation aggregation, cross-user pattern analysis (requires explicit consent architecture). |
-| **Constellation interactive manipulation** | Deferred to Phase 2 | Phase 1 ships as a read-only preview with a progress indicator. Interactive features (node tap-to-expand, drag, zoom, manual edge creation) are Phase 2. |
+| **Constellation interactive manipulation** | Deferred | Selection and inspectors may ship in the next phase, but force layout, drag, pan/zoom, and arbitrary manual edge creation remain deferred. |
 | **AI-generated season summaries** | Deferred to Phase 2 | The system could generate a narrative summary when a season closes. This requires summarization prompt design and is not necessary for the Phase 1 data model. |
-| **Constellation sharing / public view** | Deferred to Phase 2+ | Sharing a Constellation graph (or a subset) requires the `visibility` enum migration (`private` → `circle` → `public`) and the social layer from Phase 1.5. Not in scope for this spec. |
+| **Constellation sharing / public view** | Deferred | The goal visibility model already exists, but Constellation sharing still requires a separate consent, authorization, and excerpt-privacy design. |
 
 ---
 

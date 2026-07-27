@@ -21,7 +21,7 @@ Theme (post-redesign warm ramp, Sessions 1–4c): warm cream #F8F4EC page, white
 `CHANGELOGCODEX.md` · `docs/context.md` (deprecated — root CONTEXT.md is canonical)
 
 ## Current State
-- Migrations: through 011 (squashed baseline 001-006, 2026-06-24; 007 echo_entries.title/brt_ai/brt_user; 008 profiles.timezone + handle_new_user()/on_auth_user_created trigger; 009 echo ai_status; 010 echo retry tracking; 011 profiles account expansion + avatars bucket), all applied live per npx supabase db push (CHANGELOGCODEX.md, 2026-07-01 session). Next migration number: 012.
+- Migrations: through 031 (squashed baseline 001-006, followed by 007-031). Migration 031 adds the username rolling change limit. `supabase/CLAUDE.md` is the canonical migration ledger. Next migration number: 032 as of 2026-07-27; re-resolve immediately before creating a migration.
 - `tsc --noEmit`: clean
 - RLS: verified across all tables
 - Auth: Supabase auth working; `/auth/callback` 404 parked (teammate has Auth0 solution)
@@ -55,13 +55,21 @@ Theme (post-redesign warm ramp, Sessions 1–4c): warm cream #F8F4EC page, white
 - Summarization over storage: raw conversations never persisted; only structured summaries update character profile (JSONB)
 
 ## Canonical Schema Rules
-- Goal status: `active / complete / stagnant / discovered` (never paused/completed/archived)
+- Goal status: `active / draft / complete / stagnant / discovered / archived` from `lib/goals/schema.ts` (never `paused`, `completed`, or `in_progress`)
 - Assumptions: always `string[]`, never optional
 - All measurable writes scoped through RLS via `goal_id → goals.user_id = auth.uid()`
 - Visibility: `private / circle / public` — non-owner access conservative until social ships
 - vault_items has no milestone_id — milestone context not in schema yet
 - spaces.owner_id is the owner column (renamed from user_id in migration 022); space_members.user_id is unchanged
-- Next migration number: 012
+- Next migration number: 032 as of 2026-07-27
+
+## Constellation Contract (2026-07-27)
+- Canonical decisions: `docs/constellation/DECISIONS.md`
+- Earned/system nodes: `season / ambition / goal / reflection / trait / tension`
+- User-authored `note / projection` content is a separate draft Annotation domain.
+- Manual Echo-to-goal BRT organization uses separate Evidence Links; it never mutates the canonical Echo container row or `brt_user`.
+- Bud/Rose/Thorn goal clusters are virtual, production fixtures are forbidden, and `accessEligible` is distinct from `hasGraphData`.
+- Initial delivery is honest empty states plus a real-data read-only graph; annotations, Evidence Links, and inspectors are next; layout interaction, Timeline, Season Archive, arbitrary topology, and sharing are deferred.
 
 ## Outstanding (Phase 1)
 - Dashboard redesign: Echo entry point, Ohara voice/Guide presence, badge fix
@@ -79,4 +87,4 @@ Theme (post-redesign warm ramp, Sessions 1–4c): warm cream #F8F4EC page, white
 - Codex writes to CHANGELOGCODEX.md after every session
 - Run `npx tsc --noEmit` before and after every task
 
-last migration: 011 — migrations squashed 2026-06-24 from original 001-026 into narrative baselines 001-006, all confirmed applied live via schema_migrations. Migration 007 (echo_entries.title, brt_ai, brt_user) added 2026-06-24, confirmed applied live. Migrations 008 (profiles.timezone + handle_new_user()/on_auth_user_created trigger), 009 (echo ai_status), 010 (echo retry tracking), and 011 (profiles account expansion + avatars bucket) added since, all applied live per npx supabase db push (CHANGELOGCODEX.md, 2026-07-01 session). Old numbers (e.g. 023, 026) are historical/archived only; next new migration is 012.
+last migration: 031 — migrations 001-006 are the 2026-06-24 narrative baseline; 007-031 are the current post-squash sequence. See `supabase/CLAUDE.md` for the complete ledger. Next new migration is 032 as of 2026-07-27.
