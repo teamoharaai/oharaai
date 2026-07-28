@@ -77,20 +77,6 @@ export function ConstellationAccessibleList({
       ) : null}
       {graph.nodes.map((node) => {
         const selected = node.selectionKey === selectedKey;
-        if (hiddenVisually) {
-          return (
-            <Text
-              key={`${node.entityType}:${node.selectionKey}`}
-              style={{
-                color: tokens.text.primary,
-                fontFamily: 'Inter-Medium',
-                fontSize: 1,
-              }}
-            >
-              {nodeDescription(node)}
-            </Text>
-          );
-        }
         return (
           <Pressable
             accessibilityLabel={nodeDescription(node)}
@@ -107,7 +93,7 @@ export function ConstellationAccessibleList({
                 : tokens.panel.border,
               borderRadius: 10,
               borderWidth: selected || focusedKey === node.selectionKey ? 2 : 1,
-              padding: 12,
+              padding: hiddenVisually ? 0 : 12,
             }}
           >
             <Text

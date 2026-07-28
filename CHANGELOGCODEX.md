@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+### Added (2026-07-28 — Constellation web-first pan and zoom)
+- **`features/constellation/components/ConstellationCanvasShell.tsx` and `features/constellation/viewport.ts`:** added a bounded graph-only viewport with left-pointer and one-finger drag pan, touch pinch zoom, wheel/touchpad pan, Control/Command-wheel zoom, keyboard arrow/plus/minus/zero controls, functional 44px zoom buttons, and an animated reset-to-fit that becomes immediate when reduced motion is enabled. The GPU-composited transform wraps only graph SVG content, leaving the header, legend, inspector, accessible list, and zoom chrome fixed; gesture updates do not rerender the render-budgeted nodes or edges.
+- **`features/constellation/viewport.test.ts` and `package.json`:** added deterministic coverage for the `0.65×` to `2.5×` zoom range, focal-point preservation, reset-to-fit, and bounded pan at the existing 30-node/90-edge render limits.
+
+### Changed (2026-07-28 — Constellation gesture dependency)
+- **`package.json`, `package-lock.json`, `app/_layout.tsx`, and `previews/constellation/app/_layout.tsx`:** installed Expo SDK 55's supported `react-native-gesture-handler` `~2.30.0` as a direct dependency instead of relying on Expo Router's optional peer, and configured `GestureHandlerRootView` at both application roots. No edge authoring or drag-to-connect path was added; manual evidence linking remains exclusively in the validated Echo-to-goal reference workflow.
+
+### Fixed (2026-07-28 — Constellation web SVG accessibility rendering)
+- **`features/constellation/components/EarnedNodeShape.tsx`, `AnnotationShape.tsx`, and `VirtualBrtClusterShape.tsx`:** removed React Native accessibility and keyboard props from interactive SVG groups because React Native Web converted button-role `<G>` elements into invalid HTML `<button>` descendants inside the SVG, hiding earned nodes, annotations, and virtual BRT clusters and producing React DOM nesting/property warnings. SVG groups retain pointer selection.
+- **`features/constellation/components/ConstellationAccessibleList.tsx` and `ConstellationCanvasShell.tsx`:** kept keyboard and screen-reader node selection in the existing visually hidden accessible-list layer using real `Pressable` controls, retained post-inspector focus restoration through those controls, and removed the invalid SVG focus path without changing graph selection architecture.
+- **`features/constellation/svg-rendering.test.ts` and `package.json`:** added regression guards that prohibit DOM accessibility/keyboard props on interactive SVG groups while requiring pointer handlers and keyboard-selectable controls in the accessible list; the Constellation suite now runs the guard.
+- **Verification:** all 63 `npm run test:constellation` tests, `npx tsc --noEmit`, `git diff --check`, and an isolated production-style Constellation web export passed. The exported fixture contains 31 SVG groups and 156 SVG shapes, zero button elements inside SVG, and 27 keyboard-selectable accessible-list node buttons outside SVG.
+
+### Added (2026-07-28 — Constellation viewport navigation)
+- **`features/constellation/components/ConstellationCanvasShell.tsx`, `features/constellation/viewport.ts`, `app/_layout.tsx`, `previews/constellation/app/_layout.tsx`, `package.json`, and `package-lock.json`:** added bounded mouse, touch, trackpad, wheel, pinch, button, and keyboard pan/zoom navigation around the existing static graph selection architecture, including reduced-motion-aware reset/zoom transitions, a stationary backdrop, and the required gesture-handler roots.
+- **`features/constellation/viewport.test.ts`:** added deterministic coverage for fit reset, zoom limits, focal-point preservation, and bounded pan/zoom translation.
+
 ### Changed (2026-07-28 — Constellation production enablement)
 - **`constants/features.ts`:** enabled `FEATURES.CONSTELLATION_ENABLED` after the release owner confirmed the current `main` artifact is deployed. The linked Supabase project already has migration 032, the required RLS boundaries, and completed Constellation verification; affected file: `constants/features.ts`.
 

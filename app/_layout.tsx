@@ -23,6 +23,7 @@ import { useAuthStore } from '@/features/auth/store';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { clearAllStores } from '@/store/clearAllStores';
 import { colorScheme } from 'nativewind';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import '../global.css';
 
 export default function RootLayout() {
@@ -102,19 +103,23 @@ export default function RootLayout() {
 
   if (!fontsLoaded || loading) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background.page }}>
-        <ActivityIndicator size="large" color={colors.text.primary} />
-      </View>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background.page }}>
+          <ActivityIndicator size="large" color={colors.text.primary} />
+        </View>
+      </GestureHandlerRootView>
     );
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="about" />
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(app)" />
-      <Stack.Screen name="+not-found" />
-    </Stack>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="about" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(app)" />
+        <Stack.Screen name="+not-found" />
+      </Stack>
+    </GestureHandlerRootView>
   );
 }

@@ -5,16 +5,13 @@ import {
   Rect,
   Text as SvgText,
 } from 'react-native-svg';
-import { Platform } from 'react-native';
 import type { ConstellationNodeLayout } from '../layout.ts';
 import type { ConstellationEarnedNodeDTO } from '../types.ts';
 import type { ConstellationVisualTokens } from '../visual-tokens.ts';
-import { constellationNodeFocusId } from './ConstellationInspectorSurface';
 
 interface EarnedNodeShapeProps {
   layout: ConstellationNodeLayout;
   node: ConstellationEarnedNodeDTO;
-  onFocus: (selectionKey: string | null) => void;
   onSelect: (selectionKey: string) => void;
   tokens: ConstellationVisualTokens;
 }
@@ -64,37 +61,16 @@ function NodeLabel({
 export function EarnedNodeShape({
   layout,
   node,
-  onFocus,
   onSelect,
   tokens,
 }: EarnedNodeShapeProps) {
   const handlePress = () => onSelect(node.selectionKey);
   const { x, y } = layout.center;
-  const interactiveProps = {
-    accessible: true,
-    accessibilityHint: 'Press Enter to open details.',
-    accessibilityLabel: `Earned ${node.kind}: ${node.label}`,
-    accessibilityRole: 'button',
-    nativeID: constellationNodeFocusId(node.selectionKey),
-    onBlur: () => onFocus(null),
-    onFocus: () => onFocus(node.selectionKey),
-    // react-native-svg omits DOM keyboard props from its web declarations.
-    ...(Platform.OS === 'web' ? {
-      focusable: true,
-      onKeyDown: (event: { key?: string; preventDefault?: () => void }) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault?.();
-          handlePress();
-        }
-      },
-      tabIndex: 0,
-    } : {}),
-  };
 
   switch (node.kind) {
     case 'season':
       return (
-        <G {...interactiveProps} onPress={handlePress}>
+        <G onPress={handlePress}>
           <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
           <Circle
             cx={x}
@@ -129,7 +105,7 @@ export function EarnedNodeShape({
       );
     case 'ambition':
       return (
-        <G {...interactiveProps} onPress={handlePress}>
+        <G onPress={handlePress}>
           <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
           <Rect
             fill={tokens.node.ambitionFill}
@@ -155,7 +131,7 @@ export function EarnedNodeShape({
       );
     case 'goal':
       return (
-        <G {...interactiveProps} onPress={handlePress}>
+        <G onPress={handlePress}>
           <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
           <Polygon
             fill={tokens.node.goalFill}
@@ -168,7 +144,7 @@ export function EarnedNodeShape({
       );
     case 'reflection':
       return (
-        <G {...interactiveProps} onPress={handlePress}>
+        <G onPress={handlePress}>
           <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
           <Circle
             cx={x}
@@ -190,7 +166,7 @@ export function EarnedNodeShape({
       );
     case 'trait':
       return (
-        <G {...interactiveProps} onPress={handlePress}>
+        <G onPress={handlePress}>
           <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
           <Polygon
             fill={tokens.node.traitFill}
@@ -203,7 +179,7 @@ export function EarnedNodeShape({
       );
     case 'tension':
       return (
-        <G {...interactiveProps} onPress={handlePress}>
+        <G onPress={handlePress}>
           <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
           <Circle
             cx={x - 12}

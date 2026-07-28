@@ -1,6 +1,7 @@
 import { ActivityIndicator, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   Inter_400Regular,
   Inter_400Regular_Italic,
@@ -20,18 +21,24 @@ export default function ConstellationPreviewLayout() {
 
   if (!fontsLoaded) {
     return (
-      <View
-        style={{
-          alignItems: 'center',
-          backgroundColor: LIGHT_THEME.background.page,
-          flex: 1,
-          justifyContent: 'center',
-        }}
-      >
-        <ActivityIndicator color={LIGHT_THEME.accent.primary} size="large" />
-      </View>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <View
+          style={{
+            alignItems: 'center',
+            backgroundColor: LIGHT_THEME.background.page,
+            flex: 1,
+            justifyContent: 'center',
+          }}
+        >
+          <ActivityIndicator color={LIGHT_THEME.accent.primary} size="large" />
+        </View>
+      </GestureHandlerRootView>
     );
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Stack screenOptions={{ headerShown: false }} />
+    </GestureHandlerRootView>
+  );
 }

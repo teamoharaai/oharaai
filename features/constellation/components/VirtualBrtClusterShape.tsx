@@ -4,16 +4,13 @@ import {
   Rect,
   Text as SvgText,
 } from 'react-native-svg';
-import { Platform } from 'react-native';
 import type { ConstellationNodeLayout } from '../layout.ts';
 import type { ConstellationVirtualBrtClusterDTO } from '../types.ts';
 import type { ConstellationVisualTokens } from '../visual-tokens.ts';
-import { constellationNodeFocusId } from './ConstellationInspectorSurface';
 
 interface VirtualBrtClusterShapeProps {
   layout: ConstellationNodeLayout;
   node: ConstellationVirtualBrtClusterDTO;
-  onFocus: (selectionKey: string | null) => void;
   onSelect: (selectionKey: string) => void;
   tokens: ConstellationVisualTokens;
 }
@@ -21,7 +18,6 @@ interface VirtualBrtClusterShapeProps {
 export function VirtualBrtClusterShape({
   layout,
   node,
-  onFocus,
   onSelect,
   tokens,
 }: VirtualBrtClusterShapeProps) {
@@ -30,24 +26,7 @@ export function VirtualBrtClusterShape({
 
   return (
     <G
-      accessible
-      accessibilityHint="Press Enter to open the goal-specific evidence list."
-      accessibilityLabel={`Virtual ${node.label} evidence cluster with ${node.evidenceLinkCount} references`}
-      accessibilityRole="button"
-      nativeID={constellationNodeFocusId(node.selectionKey)}
-      onBlur={() => onFocus(null)}
-      onFocus={() => onFocus(node.selectionKey)}
       onPress={() => onSelect(node.selectionKey)}
-      {...(Platform.OS === 'web' ? {
-        focusable: true,
-        onKeyDown: (event: { key?: string; preventDefault?: () => void }) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault?.();
-            onSelect(node.selectionKey);
-          }
-        },
-        tabIndex: 0,
-      } : {})}
     >
       <Rect
         fill="transparent"

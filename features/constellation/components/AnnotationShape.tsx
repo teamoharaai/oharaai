@@ -5,16 +5,13 @@ import {
   Rect,
   Text as SvgText,
 } from 'react-native-svg';
-import { Platform } from 'react-native';
 import type { ConstellationNodeLayout } from '../layout.ts';
 import type { ConstellationAnnotationDTO } from '../types.ts';
 import type { ConstellationVisualTokens } from '../visual-tokens.ts';
-import { constellationNodeFocusId } from './ConstellationInspectorSurface';
 
 interface AnnotationShapeProps {
   layout: ConstellationNodeLayout;
   node: ConstellationAnnotationDTO;
-  onFocus: (selectionKey: string | null) => void;
   onSelect: (selectionKey: string) => void;
   tokens: ConstellationVisualTokens;
 }
@@ -22,7 +19,6 @@ interface AnnotationShapeProps {
 export function AnnotationShape({
   layout,
   node,
-  onFocus,
   onSelect,
   tokens,
 }: AnnotationShapeProps) {
@@ -31,29 +27,10 @@ export function AnnotationShape({
   const visibleLabel = node.label.length > 26
     ? `${node.label.slice(0, 25)}…`
     : node.label;
-  const interactiveProps = {
-    accessible: true,
-    accessibilityHint: 'Press Enter to open this user-authored draft.',
-    accessibilityLabel: `User-authored ${node.kind} draft: ${node.label}`,
-    accessibilityRole: 'button',
-    nativeID: constellationNodeFocusId(node.selectionKey),
-    onBlur: () => onFocus(null),
-    onFocus: () => onFocus(node.selectionKey),
-    ...(Platform.OS === 'web' ? {
-      focusable: true,
-      onKeyDown: (event: { key?: string; preventDefault?: () => void }) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault?.();
-          handlePress();
-        }
-      },
-      tabIndex: 0,
-    } : {}),
-  };
 
   if (node.kind === 'projection') {
     return (
-      <G {...interactiveProps} onPress={handlePress}>
+      <G onPress={handlePress}>
         <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
         <Circle
           cx={x}
@@ -118,7 +95,7 @@ export function AnnotationShape({
   }
 
   return (
-    <G {...interactiveProps} onPress={handlePress}>
+    <G onPress={handlePress}>
       <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
       <Rect
         fill={tokens.annotation.fill}
