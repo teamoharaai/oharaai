@@ -548,3 +548,18 @@ Only after those records exist may a separately authorized release change set
 `FEATURES.CONSTELLATION_ENABLED` to `true`. A missing database migration, missing
 API deployment, unavailable smoke environment, or failed validation keeps the
 flag disabled; no fixture or mock-data fallback is permitted.
+
+## 14. Historical concept-reference boundary
+
+The five 1a–1e handoff PNGs from commit `5df3a3b` are retained only under the
+commit-addressed, digest-pinned documentation tree described in
+[`REFERENCE_CONCEPTS.md`](REFERENCE_CONCEPTS.md). Production source cannot import
+that tree, and the images can never become runtime assets, empty-state samples, or
+fetch-failure fallbacks.
+
+That reference also records the locked prototype reconciliation: Note and
+Projection are user-authored draft annotations rather than earned nodes, and
+Bud/Rose/Thorn clusters are goal-specific virtual Evidence Link summaries rather
+than Reflection classifications or persisted graph nodes. The deterministic
+preview is the implementation comparison surface; the historical PNGs do not
+override the domain, ownership, privacy, or responsive decisions in this document.

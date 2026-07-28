@@ -2,7 +2,7 @@
 
 This Expo Router app root exists only for internal development and screenshot QA.
 It is outside the production `app/` route tree and is the only browser route that
-imports the renderer fixture.
+imports the renderer and inspector fixtures.
 
 Run:
 
@@ -10,6 +10,28 @@ Run:
 npm run preview:constellation
 ```
 
-Use `/` for concept 1a's light treatment and `/?appearance=dark` for concept 1b's
-dark treatment. Node selection is functional; pan, zoom, filters, Timeline,
-Archive, and draft-link controls are intentionally absent.
+Use both fixed query parameters for repeatable screenshots:
+
+| Preview | Query | Viewport |
+|---|---|---:|
+| restrained light canvas | `/?appearance=light&state=canvas` | 1180 × 760 |
+| atmospheric dark canvas | `/?appearance=dark&state=canvas` | 1180 × 760 |
+| Goal inspector | `/?appearance=light&state=goal` | 1180 × 760 |
+| Reflection inspector | `/?appearance=light&state=reflection` | 1180 × 760 |
+| empty state | `/?appearance=light&state=empty` | 960 × 640 |
+
+Capture at 1× browser scale after fonts finish loading. `appearance` accepts only
+`light` or `dark`; an absent or invalid value resolves to `light`. `state` accepts
+only `canvas`, `goal`, `reflection`, or `empty`; an absent or invalid value resolves
+to `canvas`. Appearance is independent of state, so dark inspector and empty-state
+coverage can be requested without adding another fixture.
+
+The inspector captures intentionally use 1180 × 760 instead of the historical
+820 × 720 frame so the current responsive production inspector remains beside the
+graph. Production's narrow replacement behavior is unchanged.
+
+The source images, their original frame sizes, immutable digests, and intentional
+prototype deviations are recorded in
+[`docs/constellation/REFERENCE_CONCEPTS.md`](../../docs/constellation/REFERENCE_CONCEPTS.md).
+Node selection and pan/zoom are functional. Filters, Timeline, Season Archive,
+Draft Link, and arbitrary edge-authoring controls remain intentionally absent.

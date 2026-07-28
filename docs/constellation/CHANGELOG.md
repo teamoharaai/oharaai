@@ -1,5 +1,20 @@
 # Constellation Implementation Changelog
 
+## 2026-07-28 — Immutable concept references and deterministic preview states
+
+1. Restored the five 1a–1e `handoff_constellation` PNGs from commit `5df3a3b`
+   into a commit-addressed documentation-only reference tree. Fixture-boundary
+   coverage pins each file's name, dimensions, and SHA-256 digest and rejects
+   production imports of the reference tree.
+2. Extended the isolated preview with fixed `appearance` and `state` parameters
+   for restrained light canvas, atmospheric dark canvas, Goal inspector,
+   Reflection inspector, and the gated empty state. The inspector fixtures reuse
+   the production presentation components without making network requests.
+3. Documented canonical screenshot viewports, source-frame dimensions, and the
+   intentional model deviations: user-authored Note/Projection drafts,
+   goal-specific virtual BRT clusters, read-only Reflection evidence, functional
+   controls only, real-count empty states, and responsive inspector replacement.
+
 ## 2026-07-28 — Production enablement
 
 1. Enabled `FEATURES.CONSTELLATION_ENABLED` after the release owner confirmed

@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added (2026-07-28 — Constellation immutable concept references)
+- **`docs/constellation/reference/5df3a3b/concepts/` and `docs/constellation/REFERENCE_CONCEPTS.md`:** restored the five original `handoff_constellation` concept PNGs byte-for-byte from commit `5df3a3b` into a commit-addressed documentation-only location, recorded their source and frame sizes, and documented the intentional production deviations for user-authored Note/Projection annotations, goal-specific virtual Bud/Rose/Thorn clusters, inspector data/actions, appearance, responsive behavior, and honest empty states.
+- **`features/constellation/fixture-boundary.test.ts`:** pinned the exact reference filename set, PNG dimensions, and SHA-256 digests; added a production-wide import guard for the documentation reference tree; and covered deterministic preview query parsing.
+
+### Changed (2026-07-28 — Deterministic Constellation preview states)
+- **`previews/constellation/app/index.tsx`, `previews/constellation/README.md`, and `features/constellation/dev/`:** extended the isolated fixture preview with fixed `appearance=light|dark` and `state=canvas|goal|reflection|empty` parameters, deterministic Goal/Reflection/empty fixtures, production inspector presentation reuse without network reads, and documented canonical screenshot viewports. Production routes and real-data fallback behavior are unchanged.
+- **`docs/constellation/DECISIONS.md` and `docs/constellation/CHANGELOG.md`:** recorded the immutable historical-reference boundary and made the prototype reconciliation explicit without changing the current domain contract.
+
 ### Added (2026-07-28 — Constellation web-first pan and zoom)
 - **`features/constellation/components/ConstellationCanvasShell.tsx` and `features/constellation/viewport.ts`:** added a bounded graph-only viewport with left-pointer and one-finger drag pan, touch pinch zoom, wheel/touchpad pan, Control/Command-wheel zoom, keyboard arrow/plus/minus/zero controls, functional 44px zoom buttons, and an animated reset-to-fit that becomes immediate when reduced motion is enabled. The GPU-composited transform wraps only graph SVG content, leaving the header, legend, inspector, accessible list, and zoom chrome fixed; gesture updates do not rerender the render-budgeted nodes or edges.
 - **`features/constellation/viewport.test.ts` and `package.json`:** added deterministic coverage for the `0.65×` to `2.5×` zoom range, focal-point preservation, reset-to-fit, and bounded pan at the existing 30-node/90-edge render limits.
