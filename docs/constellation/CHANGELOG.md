@@ -9,6 +9,9 @@
    without mutation, edit from Note to Projection, exact earned-count
    isolation, archive persistence, and active-graph removal against the live
    test account.
+3. Deferred invalid URL-selection cleanup while an annotation mutation is
+   saving so optimistic archive cannot navigate away and abort its own API
+   request. Exact rollback can restore the selected draft and retry surface.
 
 ## 2026-07-28 — End-to-end user-authored annotations
 

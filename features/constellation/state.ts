@@ -30,6 +30,25 @@ export const INITIAL_CONSTELLATION_CLIENT_STATE: ConstellationClientState = {
   refreshError: null,
 };
 
+export function shouldClearConstellationSelection({
+  hasDto,
+  hasSelectionParam,
+  isMutationSaving,
+  selectedKey,
+}: {
+  hasDto: boolean;
+  hasSelectionParam: boolean;
+  isMutationSaving: boolean;
+  selectedKey: string | null;
+}): boolean {
+  return (
+    hasDto
+    && hasSelectionParam
+    && selectedKey === null
+    && !isMutationSaving
+  );
+}
+
 /**
  * Keeps the last successful owner-scoped DTO during refresh. A failed refresh
  * is surfaced separately from a first-load failure so a transient outage does

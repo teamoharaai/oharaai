@@ -27,6 +27,7 @@ import {
   createConstellationLayoutSpec,
 } from '../layout';
 import { isPersistedAnnotationAnchorTarget } from '../annotation-state';
+import { shouldClearConstellationSelection } from '../state';
 import type { ConstellationAnnotationKind } from '../types';
 import { createConstellationVisualTokens } from '../visual-tokens';
 import { ConstellationAnnotationPanel } from './ConstellationAnnotationPanel';
@@ -161,14 +162,20 @@ export function ConstellationScreen() {
   );
 
   useEffect(() => {
-    if (
-      constellation.dto
-      && hasSelectionParam
-      && selectedKey === null
-    ) {
+    if (shouldClearConstellationSelection({
+      hasDto: constellation.dto !== null,
+      hasSelectionParam,
+      isMutationSaving: constellation.mutation.isSaving,
+      selectedKey,
+    })) {
       router.replace('/constellation');
     }
-  }, [constellation.dto, hasSelectionParam, selectedKey]);
+  }, [
+    constellation.dto,
+    constellation.mutation.isSaving,
+    hasSelectionParam,
+    selectedKey,
+  ]);
 
   const seasonLabel = graph?.nodes.find(
     (node) => node.entityType === 'earned_node' && node.node.kind === 'season',

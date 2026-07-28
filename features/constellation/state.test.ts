@@ -4,7 +4,29 @@ import { constellationFixtureGraph } from './fixtures.ts';
 import {
   INITIAL_CONSTELLATION_CLIENT_STATE,
   reduceConstellationClientState,
+  shouldClearConstellationSelection,
 } from './state.ts';
+
+test('selection cleanup waits for optimistic annotation mutations to settle', () => {
+  assert.equal(shouldClearConstellationSelection({
+    hasDto: true,
+    hasSelectionParam: true,
+    isMutationSaving: true,
+    selectedKey: null,
+  }), false);
+  assert.equal(shouldClearConstellationSelection({
+    hasDto: true,
+    hasSelectionParam: true,
+    isMutationSaving: false,
+    selectedKey: null,
+  }), true);
+  assert.equal(shouldClearConstellationSelection({
+    hasDto: true,
+    hasSelectionParam: true,
+    isMutationSaving: false,
+    selectedKey: 'annotation:owned-draft',
+  }), false);
+});
 
 test('first-load failures become retryable errors instead of empty graph states', () => {
   const failed = reduceConstellationClientState(

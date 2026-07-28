@@ -16,6 +16,7 @@
 
 ### Fixed (2026-07-28 — Constellation live mutation smoke test)
 - **`features/constellation/annotation-state.ts`, `annotation-state.test.ts`, and `components/ConstellationScreen.tsx`:** excluded synthetic fallback nodes such as `season:<derived-id>` from annotation anchor choices because the existing mutation API accepts only UUID-backed persisted earned nodes. The signed-in smoke test exposed the mismatch when the retryable create failure preserved the form after rejecting the fallback Current Season anchor.
+- **`features/constellation/state.ts`, `state.test.ts`, and `components/ConstellationScreen.tsx`:** deferred invalid URL-selection cleanup while an annotation mutation is saving. This prevents optimistic archive from removing its selected draft, navigating the route, and aborting the archive request before it reaches the authenticated API; failures can now restore the exact DTO and remount the retryable inspector.
 
 ### Added (2026-07-27 — Live Constellation route integration)
 - **`features/constellation/dto.ts`, `state.ts`, `hooks/useConstellation.ts`, and `services/constellation-service.ts`:** added runtime validation for the real versioned `GET /api/constellation` DTO plus feature-owned transient request state with cancellation, stale-response protection, retry classification, and last-successful-data retention during failed refreshes. This replaces the route's dashboard-count proxy without adding Constellation data, selection, filters, or annotations to the persisted global UI store.
