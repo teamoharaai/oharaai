@@ -18,7 +18,8 @@ type ReflectionInspectorController = ComponentProps<
 const GOAL_ID = 'renderer-goal-train-source';
 const FIXTURE_TIMESTAMP = '2026-07-27T18:00:00.000Z';
 
-const goalEvidenceItems: readonly ConstellationGoalEvidenceItem[] = [
+export const constellationPreviewGoalEvidenceItems:
+readonly ConstellationGoalEvidenceItem[] = [
   {
     id: 'renderer-evidence-train-bud',
     ownerId: 'renderer-owner',
@@ -80,23 +81,25 @@ async function doNothing(): Promise<void> {
   return undefined;
 }
 
+export const constellationPreviewGoalEvidenceDto = {
+  goal: {
+    id: GOAL_ID,
+    title: 'Train three times weekly',
+    description: 'Build a durable relationship with movement and recovery.',
+    status: 'active',
+    deadline: '2026-09-30T23:59:59.000Z',
+    project: {
+      id: 'renderer-project-health',
+      title: 'Body & Health',
+    },
+    vaultId: 'renderer-vault-train',
+  },
+  items: constellationPreviewGoalEvidenceItems,
+} satisfies NonNullable<GoalEvidenceController['dto']>;
+
 export const constellationPreviewGoalEvidence = {
   status: 'ready',
-  dto: {
-    goal: {
-      id: GOAL_ID,
-      title: 'Train three times weekly',
-      description: 'Build a durable relationship with movement and recovery.',
-      status: 'active',
-      deadline: '2026-09-30T23:59:59.000Z',
-      project: {
-        id: 'renderer-project-health',
-        title: 'Body & Health',
-      },
-      vaultId: 'renderer-vault-train',
-    },
-    items: goalEvidenceItems,
-  },
+  dto: constellationPreviewGoalEvidenceDto,
   error: null,
   retryable: true,
   mutation: {
@@ -124,7 +127,8 @@ export const constellationPreviewGoalEvidence = {
   unlinkReference: returnFalse,
 } satisfies GoalEvidenceController;
 
-const reflectionDto: ConstellationReflectionInspectorDTO = {
+export const constellationPreviewReflectionInspectorDto:
+ConstellationReflectionInspectorDTO = {
   nodeId: 'renderer-reflection-motion',
   label: 'Movement clears the fog',
   description: 'Physical movement repeatedly precedes clearer attention.',
@@ -183,7 +187,7 @@ const reflectionDto: ConstellationReflectionInspectorDTO = {
 };
 
 export const constellationPreviewReflectionInspector = {
-  dto: reflectionDto,
+  dto: constellationPreviewReflectionInspectorDto,
   error: null,
   retry: doNothing,
   retryable: true,

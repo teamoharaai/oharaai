@@ -12,11 +12,32 @@ const svgNodeShapeFiles = [
   'VirtualBrtClusterShape.tsx',
 ];
 
-test('interactive SVG groups keep pointer handlers without React Native accessibility props', () => {
+test('interactive SVG groups use a web-safe pointer wrapper without accessibility props', () => {
+  const interactionSource = readFileSync(
+    resolve(componentRoot, 'InteractiveSvgGroup.tsx'),
+    'utf8',
+  );
+  const webInteractionSource = readFileSync(
+    resolve(componentRoot, 'InteractiveSvgGroup.web.tsx'),
+    'utf8',
+  );
+  assert.match(
+    interactionSource,
+    /<G onPress=/,
+  );
+  assert.match(
+    webInteractionSource,
+    /<g onClick=/,
+  );
+
   for (const file of svgNodeShapeFiles) {
     const source = readFileSync(resolve(componentRoot, file), 'utf8');
 
-    assert.match(source, /<G[\s\S]*?onPress=/, `${file} must retain pointer selection`);
+    assert.match(
+      source,
+      /<InteractiveSvgGroup onActivate=/,
+      `${file} must preserve web and native pointer selection`,
+    );
     assert.doesNotMatch(
       source,
       /\b(?:accessible|accessibility\w+|focusable|nativeID|onBlur|onFocus|onKeyDown|role|tabIndex)\b/,

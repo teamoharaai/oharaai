@@ -1,4 +1,5 @@
 import {
+  Platform,
   View,
   type FlexStyle,
   type StyleProp,
@@ -37,6 +38,19 @@ export function Card({
   const colors = useThemeColors();
   const themeMode = useUIStore((state) => state.themeMode);
   const hasShadow = elevated && themeMode === 'light';
+  const shadowStyle: ViewStyle = Platform.OS === 'web'
+    ? {
+        boxShadow: hasShadow
+          ? `0 2px 12px ${colors.text.primary}0A`
+          : undefined,
+      }
+    : {
+        elevation: hasShadow ? 1 : 0,
+        shadowColor: colors.text.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: hasShadow ? 0.04 : 0,
+        shadowRadius: hasShadow ? 12 : 0,
+      };
 
   return (
     <View
@@ -47,12 +61,8 @@ export function Card({
           borderRadius: 16,
           borderWidth: 1,
           padding: CARD_PADDING[padding],
-          shadowColor: colors.text.primary,
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: hasShadow ? 0.04 : 0,
-          shadowRadius: hasShadow ? 12 : 0,
-          elevation: hasShadow ? 1 : 0,
         },
+        shadowStyle,
         style,
       ]}
       {...rest}

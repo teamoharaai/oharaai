@@ -1,6 +1,5 @@
 import {
   Circle,
-  G,
   Polygon,
   Rect,
   Text as SvgText,
@@ -8,6 +7,7 @@ import {
 import type { ConstellationNodeLayout } from '../layout.ts';
 import type { ConstellationEarnedNodeDTO } from '../types.ts';
 import type { ConstellationVisualTokens } from '../visual-tokens.ts';
+import { InteractiveSvgGroup } from './InteractiveSvgGroup';
 
 interface EarnedNodeShapeProps {
   layout: ConstellationNodeLayout;
@@ -70,7 +70,7 @@ export function EarnedNodeShape({
   switch (node.kind) {
     case 'season':
       return (
-        <G onPress={handlePress}>
+        <InteractiveSvgGroup onActivate={handlePress}>
           <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
           <Circle
             cx={x}
@@ -101,11 +101,11 @@ export function EarnedNodeShape({
           >
             {node.description ?? 'CURRENT'}
           </SvgText>
-        </G>
+        </InteractiveSvgGroup>
       );
     case 'ambition':
       return (
-        <G onPress={handlePress}>
+        <InteractiveSvgGroup onActivate={handlePress}>
           <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
           <Rect
             fill={tokens.node.ambitionFill}
@@ -127,11 +127,11 @@ export function EarnedNodeShape({
           >
             {node.label.length > 24 ? `${node.label.slice(0, 23)}…` : node.label}
           </SvgText>
-        </G>
+        </InteractiveSvgGroup>
       );
     case 'goal':
       return (
-        <G onPress={handlePress}>
+        <InteractiveSvgGroup onActivate={handlePress}>
           <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
           <Polygon
             fill={tokens.node.goalFill}
@@ -140,11 +140,11 @@ export function EarnedNodeShape({
             strokeWidth={2}
           />
           <NodeLabel fill={tokens.text.secondary} label={node.label} layout={layout} />
-        </G>
+        </InteractiveSvgGroup>
       );
     case 'reflection':
       return (
-        <G onPress={handlePress}>
+        <InteractiveSvgGroup onActivate={handlePress}>
           <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
           <Circle
             cx={x}
@@ -162,11 +162,11 @@ export function EarnedNodeShape({
             r={5}
           />
           <NodeLabel fill={tokens.text.secondary} label={node.label} layout={layout} offset={-1} />
-        </G>
+        </InteractiveSvgGroup>
       );
     case 'trait':
       return (
-        <G onPress={handlePress}>
+        <InteractiveSvgGroup onActivate={handlePress}>
           <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
           <Polygon
             fill={tokens.node.traitFill}
@@ -175,11 +175,11 @@ export function EarnedNodeShape({
             strokeWidth={1.4}
           />
           <NodeLabel fill={tokens.text.accent} label={node.label} layout={layout} />
-        </G>
+        </InteractiveSvgGroup>
       );
     case 'tension':
       return (
-        <G onPress={handlePress}>
+        <InteractiveSvgGroup onActivate={handlePress}>
           <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
           <Circle
             cx={x - 12}
@@ -198,7 +198,7 @@ export function EarnedNodeShape({
             strokeWidth={2}
           />
           <NodeLabel fill={tokens.node.tensionStroke} label={node.label} layout={layout} />
-        </G>
+        </InteractiveSvgGroup>
       );
   }
 }

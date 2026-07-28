@@ -138,9 +138,8 @@ function CanvasBackdrop({
   return (
     <Svg
       height="100%"
-      pointerEvents="none"
       preserveAspectRatio="xMidYMid slice"
-      style={StyleSheet.absoluteFill}
+      style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}
       viewBox={`0 0 ${layout.viewBox.width} ${layout.viewBox.height}`}
       width="100%"
     >
@@ -528,6 +527,136 @@ function ConstellationViewport(props: ConstellationViewportProps) {
     if (Platform.OS !== 'web') return;
     const element = interactionRef.current as unknown as HTMLElement | null;
     if (!element) return;
+    const activePointers = new Map<number, { x: number; y: number }>();
+    let gestureStartTransform = currentTransform();
+    let gestureStartPoint = { x: 0, y: 0 };
+    let pinchStartCenter = { x: 0, y: 0 };
+    let pinchStartDistance = 1;
+
+    const localPoint = (event: PointerEvent) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      };
+    };
+
+    const pointerPair = () => {
+      const [first, second] = [...activePointers.values()];
+      if (!first || !second) return null;
+      return {
+        center: {
+          x: (first.x + second.x) / 2,
+          y: (first.y + second.y) / 2,
+        },
+        distance: Math.max(
+          1,
+          Math.hypot(second.x - first.x, second.y - first.y),
+        ),
+      };
+    };
+
+    const startSinglePointer = (point: { x: number; y: number }) => {
+      cancelAnimation(translationX);
+      cancelAnimation(translationY);
+      gestureStartTransform = currentTransform();
+      gestureStartPoint = point;
+    };
+
+    const startPointerPair = () => {
+      const pair = pointerPair();
+      if (!pair) return;
+      cancelAnimation(scale);
+      cancelAnimation(translationX);
+      cancelAnimation(translationY);
+      gestureStartTransform = currentTransform();
+      pinchStartCenter = pair.center;
+      pinchStartDistance = pair.distance;
+    };
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
+      const point = localPoint(event);
+      activePointers.set(event.pointerId, point);
+      if (activePointers.size === 1) {
+        startSinglePointer(point);
+      } else if (activePointers.size === 2) {
+        for (const pointerId of activePointers.keys()) {
+          element.setPointerCapture?.(pointerId);
+        }
+        startPointerPair();
+      }
+    };
+
+    const handlePointerMove = (event: PointerEvent) => {
+      if (!activePointers.has(event.pointerId)) return;
+      const point = localPoint(event);
+      activePointers.set(event.pointerId, point);
+
+      if (activePointers.size === 1) {
+        const delta = {
+          x: point.x - gestureStartPoint.x,
+          y: point.y - gestureStartPoint.y,
+        };
+        if (Math.hypot(delta.x, delta.y) < 6) return;
+        if (!element.hasPointerCapture?.(event.pointerId)) {
+          element.setPointerCapture?.(event.pointerId);
+        }
+        const next = clampConstellationTranslation(
+          {
+            x: gestureStartTransform.x + delta.x,
+            y: gestureStartTransform.y + delta.y,
+          },
+          gestureStartTransform.scale,
+          {
+            height: viewportHeight.value,
+            width: viewportWidth.value,
+          },
+        );
+        translationX.value = next.x;
+        translationY.value = next.y;
+      } else {
+        const pair = pointerPair();
+        if (!pair) return;
+        const zoomed = zoomConstellationViewportAt(
+          gestureStartTransform,
+          gestureStartTransform.scale
+            * (pair.distance / pinchStartDistance),
+          pinchStartCenter,
+          {
+            height: viewportHeight.value,
+            width: viewportWidth.value,
+          },
+        );
+        const moved = clampConstellationTranslation(
+          {
+            x: zoomed.x + pair.center.x - pinchStartCenter.x,
+            y: zoomed.y + pair.center.y - pinchStartCenter.y,
+          },
+          zoomed.scale,
+          {
+            height: viewportHeight.value,
+            width: viewportWidth.value,
+          },
+        );
+        scale.value = zoomed.scale;
+        translationX.value = moved.x;
+        translationY.value = moved.y;
+      }
+
+      if (event.cancelable) event.preventDefault();
+    };
+
+    const handlePointerEnd = (event: PointerEvent) => {
+      activePointers.delete(event.pointerId);
+      if (element.hasPointerCapture?.(event.pointerId)) {
+        element.releasePointerCapture(event.pointerId);
+      }
+      const remaining = [...activePointers.values()][0];
+      if (remaining) {
+        startSinglePointer(remaining);
+      }
+    };
 
     const handleWheel = (event: WheelEvent) => {
       const lineMultiplier = event.deltaMode === 1 ? 16 : 1;
@@ -578,9 +707,50 @@ function ConstellationViewport(props: ConstellationViewportProps) {
       if (event.cancelable) event.preventDefault();
     };
 
+    element.addEventListener('pointerdown', handlePointerDown);
+    element.addEventListener('pointermove', handlePointerMove);
+    element.addEventListener('pointerup', handlePointerEnd);
+    element.addEventListener('pointercancel', handlePointerEnd);
     element.addEventListener('wheel', handleWheel, { passive: false });
-    return () => element.removeEventListener('wheel', handleWheel);
+    return () => {
+      element.removeEventListener('pointerdown', handlePointerDown);
+      element.removeEventListener('pointermove', handlePointerMove);
+      element.removeEventListener('pointerup', handlePointerEnd);
+      element.removeEventListener('pointercancel', handlePointerEnd);
+      element.removeEventListener('wheel', handleWheel);
+    };
   });
+
+  const interactionSurface = (
+    <View
+      accessibilityHint="Drag or use two fingers to pan. Pinch, or hold Control or Command while scrolling, to zoom. Use arrow keys, plus, minus, or zero from the keyboard."
+      accessibilityLabel="Interactive Constellation graph viewport"
+      collapsable={false}
+      onLayout={handleLayout}
+      ref={interactionRef}
+      role="region"
+      style={{
+        ...StyleSheet.absoluteFillObject,
+        touchAction: 'none',
+        userSelect: 'none',
+      }}
+      {...(Platform.OS === 'web' ? {
+        onKeyDown: handleKeyDown,
+        tabIndex: 0 as const,
+      } : {})}
+    >
+      <Animated.View style={[StyleSheet.absoluteFill, graphLayerStyle]}>
+        <SvgGraph
+          graph={props.graph}
+          layout={props.layout}
+          onSelect={props.onSelect}
+          selectedKey={props.selectedKey}
+          sproutedLabel={props.sproutedLabel}
+          tokens={props.tokens}
+        />
+      </Animated.View>
+    </View>
+  );
 
   return (
     <View
@@ -591,36 +761,11 @@ function ConstellationViewport(props: ConstellationViewportProps) {
       }}
     >
       <CanvasBackdrop layout={props.layout} tokens={props.tokens} />
-      <GestureDetector gesture={composedGesture}>
-        <View
-          accessibilityHint="Drag or use two fingers to pan. Pinch, or hold Control or Command while scrolling, to zoom. Use arrow keys, plus, minus, or zero from the keyboard."
-          accessibilityLabel="Interactive Constellation graph viewport"
-          collapsable={false}
-          onLayout={handleLayout}
-          ref={interactionRef}
-          role="region"
-          style={{
-            ...StyleSheet.absoluteFillObject,
-            touchAction: 'none',
-            userSelect: 'none',
-          }}
-          {...(Platform.OS === 'web' ? {
-            onKeyDown: handleKeyDown,
-            tabIndex: 0 as const,
-          } : {})}
-        >
-          <Animated.View style={[StyleSheet.absoluteFill, graphLayerStyle]}>
-            <SvgGraph
-              graph={props.graph}
-              layout={props.layout}
-              onSelect={props.onSelect}
-              selectedKey={props.selectedKey}
-              sproutedLabel={props.sproutedLabel}
-              tokens={props.tokens}
-            />
-          </Animated.View>
-        </View>
-      </GestureDetector>
+      {Platform.OS === 'web' ? interactionSurface : (
+        <GestureDetector gesture={composedGesture}>
+          {interactionSurface}
+        </GestureDetector>
+      )}
       <View
         accessibilityLabel="Constellation zoom controls"
         style={{

@@ -404,6 +404,7 @@ function EvidenceItemCard({
 
   return (
     <View
+      accessibilityLabel={`Echo evidence ${echoTitle(item.echo)}`}
       style={{
         backgroundColor: colors.background.input,
         borderColor: colors.border.input,

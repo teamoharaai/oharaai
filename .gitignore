@@ -34,6 +34,10 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 
+# Browser acceptance artifacts (visual baselines remain committed)
+playwright-report/
+test-results/
+
 # Turbo (future-proof)
 .turbo/
 

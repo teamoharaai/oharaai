@@ -35,3 +35,35 @@ prototype deviations are recorded in
 [`docs/constellation/REFERENCE_CONCEPTS.md`](../../docs/constellation/REFERENCE_CONCEPTS.md).
 Node selection and pan/zoom are functional. Filters, Timeline, Season Archive,
 Draft Link, and arbitrary edge-authoring controls remain intentionally absent.
+
+## Automated acceptance
+
+The Playwright suite uses this preview in two deliberately separate ways:
+
+- the root route captures the five deterministic concept states without API
+  access or product mutations;
+- `/constellation` mounts the real production screen while Playwright intercepts
+  its authenticated, owner-scoped API boundary with deterministic responses.
+
+Run the committed visual and interaction baselines with:
+
+```sh
+npm run test:constellation:acceptance
+```
+
+Deliberately accept reviewed visual changes with:
+
+```sh
+npm run test:constellation:acceptance:update
+```
+
+Every concept is compared at its canonical desktop capture size, `768 × 1024`
+tablet, and `390 × 844` narrow viewport. The suite also exercises Focus and URL
+selection, inspector dismissal, annotation lifecycle, Echo search, the existing
+goal-specific Bud/Rose/Thorn picker, evidence linking/editing/unlinking, retry
+states, and empty-state navigation. Any browser console error, uncaught page
+error, or React warning fails the owning test.
+
+The API interception and preview session exist only under
+`previews/constellation/` and `tests/constellation/`; production code retains
+real-data-only behavior and never imports these fixtures.

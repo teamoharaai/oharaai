@@ -1,6 +1,5 @@
 import {
   Circle,
-  G,
   Line,
   Rect,
   Text as SvgText,
@@ -8,6 +7,7 @@ import {
 import type { ConstellationNodeLayout } from '../layout.ts';
 import type { ConstellationAnnotationDTO } from '../types.ts';
 import type { ConstellationVisualTokens } from '../visual-tokens.ts';
+import { InteractiveSvgGroup } from './InteractiveSvgGroup';
 
 interface AnnotationShapeProps {
   layout: ConstellationNodeLayout;
@@ -30,7 +30,7 @@ export function AnnotationShape({
 
   if (node.kind === 'projection') {
     return (
-      <G onPress={handlePress}>
+      <InteractiveSvgGroup onActivate={handlePress}>
         <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
         <Circle
           cx={x}
@@ -90,12 +90,12 @@ export function AnnotationShape({
         >
           DRAFT
         </SvgText>
-      </G>
+      </InteractiveSvgGroup>
     );
   }
 
   return (
-    <G onPress={handlePress}>
+    <InteractiveSvgGroup onActivate={handlePress}>
       <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
       <Rect
         fill={tokens.annotation.fill}
@@ -128,6 +128,6 @@ export function AnnotationShape({
       >
         {visibleLabel}
       </SvgText>
-    </G>
+    </InteractiveSvgGroup>
   );
 }

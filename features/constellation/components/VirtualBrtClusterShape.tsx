@@ -1,12 +1,12 @@
 import {
   Circle,
-  G,
   Rect,
   Text as SvgText,
 } from 'react-native-svg';
 import type { ConstellationNodeLayout } from '../layout.ts';
 import type { ConstellationVirtualBrtClusterDTO } from '../types.ts';
 import type { ConstellationVisualTokens } from '../visual-tokens.ts';
+import { InteractiveSvgGroup } from './InteractiveSvgGroup';
 
 interface VirtualBrtClusterShapeProps {
   layout: ConstellationNodeLayout;
@@ -25,9 +25,7 @@ export function VirtualBrtClusterShape({
   const { x, y } = layout.center;
 
   return (
-    <G
-      onPress={() => onSelect(node.selectionKey)}
-    >
+    <InteractiveSvgGroup onActivate={() => onSelect(node.selectionKey)}>
       <Rect
         fill="transparent"
         height={Math.max(52, layout.height)}
@@ -67,6 +65,6 @@ export function VirtualBrtClusterShape({
       >
         {`${node.evidenceLinkCount} ${node.evidenceLinkCount === 1 ? 'reference' : 'references'}`}
       </SvgText>
-    </G>
+    </InteractiveSvgGroup>
   );
 }
