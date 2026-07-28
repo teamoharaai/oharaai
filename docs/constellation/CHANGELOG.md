@@ -1,5 +1,27 @@
 # Constellation Implementation Changelog
 
+## 2026-07-27 — Fixture-only static renderer and screenshot harness
+
+1. Added a feature-owned, static `react-native-svg` renderer whose pure layout
+   layer maps normalized coordinates into a stable 1200 × 760 viewBox. The
+   rendering layer owns the canvas shell, all six earned-node shapes, visibly
+   draft-coded annotations/projections, goal-scoped virtual BRT summaries,
+   semantic edges, selection ring, sprouted goal label, legend, header metadata,
+   and native/screen-reader list representation.
+2. Matched concepts 1a and 1b through the current canonical contract: the light
+   renderer uses the restrained warm treatment; dark uses atmospheric gradients,
+   grain, halos, and orbits; old future-self circles are represented as explicit
+   `Projection · Draft` annotations; and BRT clusters show category plus evidence
+   reference count without entering earned-node counts.
+3. Added an isolated `previews/constellation/` Expo Router app root and synthetic
+   fixture under `features/constellation/dev/` for screenshot QA. The production
+   `/constellation` route is unchanged and imports neither module. Automated
+   boundary tests fail if a production route or production Constellation module
+   imports fixtures or the development preview.
+4. Deliberately omitted pan/zoom and inactive Timeline, Archive, Filter, Draft
+   Link, and zoom controls. Production graph wiring, feature-flag changes, and
+   fixture fallback behavior remain outside this slice.
+
 ## 2026-07-27 — Authenticated graph and write APIs
 
 1. Added `GET /api/constellation` with a server-only feature service and

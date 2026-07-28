@@ -5,8 +5,9 @@
   "scripts": {
     "start": "expo start",
     "web": "expo start --web",
+    "preview:constellation": "OHARA_PREVIEW_ROUTER_ROOT=previews/constellation/app expo start --web",
     "eval:goal-creation": "node evals/goal-creation/run.mjs",
-    "test:constellation": "node --experimental-strip-types --test features/constellation/graph.test.ts features/constellation/gate.test.ts features/constellation/server.test.ts",
+    "test:constellation": "node --experimental-strip-types --test features/constellation/graph.test.ts features/constellation/gate.test.ts features/constellation/layout.test.ts features/constellation/fixture-boundary.test.ts features/constellation/server.test.ts",
     "test:friends": "node --experimental-strip-types --test scripts/test-friends-api.mjs scripts/test-friends-client-state.mjs",
     "postinstall": "patch-package"
   },
