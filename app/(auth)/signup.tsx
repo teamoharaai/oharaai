@@ -5,14 +5,13 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  ScrollView,
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import supabase from '@/lib/db/client';
 import { Typography } from '@/components/ui/Typography';
-import { PublicNav } from '@/components/landing/PublicNav';
 import { LIGHT_THEME } from '@/constants/colors';
 import { resolveAuthSiteUrl } from '@/lib/auth/redirects';
+import { PublicAuthShell, publicInputStyle } from '@/components/landing/PublicAuthShell';
 
 // Mirror the DB CHECK on profiles.username exactly (migration 028):
 // lowercase letters, digits, underscore, 3-20 chars.
@@ -119,18 +118,7 @@ export default function SignupScreen() {
   }
 
   return (
-    <View style={{ backgroundColor: LIGHT_THEME.background.page, flex: 1 }}>
-      <PublicNav />
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-      <View className="flex-1 justify-center px-6" style={{ maxWidth: 420, width: '100%', alignSelf: 'center', paddingVertical: 40 }}>
-        {/* Wordmark */}
-        <Text className="text-3xl tracking-tight mb-2" style={{ color: LIGHT_THEME.text.primary, fontFamily: 'Inter-Bold' }}>
-          Ohara
-        </Text>
-        <Typography variant="body" className="mb-10">
-          Create your account.
-        </Typography>
-
+    <PublicAuthShell mode="signup" title="Start your journey." subtitle="Create your OHARA account and begin with what matters now.">
         {/* Error */}
         {error && (
           <View className="rounded-2xl px-4 py-3 mb-6" style={{ backgroundColor: LIGHT_THEME.feedback.danger.bg, borderColor: LIGHT_THEME.feedback.danger.border, borderWidth: 1 }}>
@@ -147,8 +135,8 @@ export default function SignupScreen() {
         {/* Display name */}
         <Typography variant="field-label" className="mb-1.5">Display name</Typography>
         <TextInput
-          className="rounded-2xl px-4 py-3.5 text-base mb-4"
-          style={{ backgroundColor: LIGHT_THEME.background.input, borderColor: LIGHT_THEME.border.input, borderWidth: 1, color: LIGHT_THEME.text.primary }}
+          className="public-auth-input mb-4"
+          style={publicInputStyle}
           placeholder="Your name"
           placeholderTextColor={LIGHT_THEME.text.muted}
           value={displayName}
@@ -160,8 +148,8 @@ export default function SignupScreen() {
         {/* Username */}
         <Typography variant="field-label" className="mb-1.5">Username</Typography>
         <TextInput
-          className="rounded-2xl px-4 py-3.5 text-base mb-1.5"
-          style={{ backgroundColor: LIGHT_THEME.background.input, borderColor: LIGHT_THEME.border.input, borderWidth: 1, color: LIGHT_THEME.text.primary }}
+          className="public-auth-input mb-1.5"
+          style={publicInputStyle}
           placeholder="lowercase_handle"
           placeholderTextColor={LIGHT_THEME.text.muted}
           value={username}
@@ -197,8 +185,8 @@ export default function SignupScreen() {
         {/* Email */}
         <Typography variant="field-label" className="mb-1.5">Email</Typography>
         <TextInput
-          className="rounded-2xl px-4 py-3.5 text-base mb-4"
-          style={{ backgroundColor: LIGHT_THEME.background.input, borderColor: LIGHT_THEME.border.input, borderWidth: 1, color: LIGHT_THEME.text.primary }}
+          className="public-auth-input mb-4"
+          style={publicInputStyle}
           placeholder="you@example.com"
           placeholderTextColor={LIGHT_THEME.text.muted}
           value={email}
@@ -211,8 +199,8 @@ export default function SignupScreen() {
         {/* Password */}
         <Typography variant="field-label" className="mb-1.5">Password</Typography>
         <TextInput
-          className="rounded-2xl px-4 py-3.5 text-base mb-6"
-          style={{ backgroundColor: LIGHT_THEME.background.input, borderColor: LIGHT_THEME.border.input, borderWidth: 1, color: LIGHT_THEME.text.primary }}
+          className="public-auth-input mb-6"
+          style={publicInputStyle}
           placeholder="At least 10 characters"
           placeholderTextColor={LIGHT_THEME.text.muted}
           value={password}
@@ -224,7 +212,7 @@ export default function SignupScreen() {
         {/* Submit */}
         <TouchableOpacity
           className="rounded-full py-4 items-center mb-6"
-          style={{ backgroundColor: LIGHT_THEME.accent.primary, opacity: loading ? 0.65 : 1 }}
+          style={{ backgroundColor: LIGHT_THEME.accent.primary, minHeight: 50, opacity: loading ? 0.65 : 1 }}
           onPress={handleSignup}
           disabled={loading}
         >
@@ -244,8 +232,6 @@ export default function SignupScreen() {
             </TouchableOpacity>
           </Link>
         </View>
-      </View>
-      </ScrollView>
-    </View>
+    </PublicAuthShell>
   );
 }

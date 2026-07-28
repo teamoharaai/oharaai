@@ -13,13 +13,12 @@ import Svg, {
   Text as SvgText,
 } from 'react-native-svg';
 
-import { useThemeColors, useUIStore } from '@/store/uiStore';
+import { PUBLIC_COLORS } from '@/components/landing/PublicPrimitives';
 
-export type MomentumTrendPoint = number;
+const PUBLIC_MOMENTUM_POINTS = [18, 30, 52, 36, 62, 55, 86] as const;
+const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
 
-export const SEVEN_DAY_MOMENTUM_POINTS: readonly MomentumTrendPoint[] = [
-  18, 30, 25, 46, 41, 65, 75,
-];
+type ChartVariant = 'compact' | 'standard' | 'expanded';
 
 function createCurvePath(points: readonly (readonly [number, number])[]) {
   if (!points.length) return '';
@@ -41,74 +40,56 @@ function createCurvePath(points: readonly (readonly [number, number])[]) {
   return path;
 }
 
-export function MomentumTrendChart({
-  height,
-  points = SEVEN_DAY_MOMENTUM_POINTS,
-  showAxes = false,
-  xLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+export function PublicMomentumTrendChart({
+  dark = false,
+  variant = 'standard',
 }: {
-  height?: number;
-  points?: readonly MomentumTrendPoint[];
-  showAxes?: boolean;
-  xLabels?: readonly string[];
+  dark?: boolean;
+  variant?: ChartVariant;
 }) {
-  const colors = useThemeColors();
-  const themeMode = useUIStore((state) => state.themeMode);
   const instanceId = useId().replace(/:/g, '');
-  const gradientId = `authenticated-momentum-gradient-${instanceId}`;
-  const clipId = `authenticated-momentum-clip-${instanceId}`;
-  const viewWidth = showAxes ? 620 : 440;
-  const viewHeight = showAxes ? 300 : 180;
-  const left = showAxes ? 62 : 34;
-  const right = showAxes ? 20 : 12;
-  const top = showAxes ? 20 : 13;
-  const bottom = showAxes ? 62 : 34;
+  const gradientId = `public-momentum-gradient-${instanceId}`;
+  const clipId = `public-momentum-clip-${instanceId}`;
+  const compact = variant === 'compact';
+  const expanded = variant === 'expanded';
+  const viewWidth = compact ? 440 : 620;
+  const viewHeight = compact ? 180 : expanded ? 300 : 270;
+  const left = compact ? 34 : 62;
+  const right = compact ? 12 : 20;
+  const top = compact ? 13 : 20;
+  const bottom = compact ? 34 : 62;
   const plotWidth = viewWidth - left - right;
   const plotHeight = viewHeight - top - bottom;
   const plotBottom = top + plotHeight;
-  const yTicks = showAxes ? [0, 25, 50, 75, 100] : [0, 50, 100];
-  const verticalIndexes = showAxes
-    ? points.map((_, index) => index)
-    : points.map((_, index) => index).filter((index) => index % 2 === 0 || index === points.length - 1);
-  const lineColor = colors.accent.primary;
-  const gridColor = colors.border.subtle;
-  const axisColor = colors.border.divider;
-  const labelColor = colors.text.muted;
-  const markerFill = colors.background.card;
-  const pointCoordinates = points.map((value, index) => {
-    const x = left + (index / Math.max(1, points.length - 1)) * plotWidth;
+  const lineColor = dark ? '#A8C4AE' : PUBLIC_COLORS.forest;
+  const markerFill = dark ? PUBLIC_COLORS.forestDark : PUBLIC_COLORS.surface;
+  const gridColor = dark ? 'rgba(237,230,216,0.11)' : 'rgba(216,209,197,0.34)';
+  const axisColor = dark ? 'rgba(237,230,216,0.32)' : 'rgba(124,118,107,0.46)';
+  const labelColor = dark ? '#D8E3DA' : PUBLIC_COLORS.quiet;
+  const yTicks = compact ? [0, 50, 100] : [0, 25, 50, 75, 100];
+  const verticalIndexes = compact ? [0, 2, 4, 6] : [0, 1, 2, 3, 4, 5, 6];
+  const coordinates = PUBLIC_MOMENTUM_POINTS.map((value, index) => {
+    const x = left + (index / (PUBLIC_MOMENTUM_POINTS.length - 1)) * plotWidth;
     const y = top + ((100 - value) / 100) * plotHeight;
     return [x, y] as const;
   });
-  const linePath = createCurvePath(pointCoordinates);
-  const areaPath = pointCoordinates.length
-    ? `${linePath} L ${pointCoordinates[pointCoordinates.length - 1][0]} ${plotBottom} L ${pointCoordinates[0][0]} ${plotBottom} Z`
-    : '';
-  const displayedXLabels = showAxes
-    ? xLabels
-    : xLabels.map((label) => label.length <= 3 ? label.charAt(0) : label);
+  const linePath = createCurvePath(coordinates);
+  const areaPath = `${linePath} L ${coordinates[coordinates.length - 1][0]} ${plotBottom} L ${coordinates[0][0]} ${plotBottom} Z`;
+  const visibleXLabels = compact ? DAY_LABELS.map((label) => label.charAt(0)) : DAY_LABELS;
 
   return (
     <View style={{ pointerEvents: 'none', width: '100%' }}>
       <Svg
-        accessibilityLabel="Sample Momentum trend preview on a zero to one hundred scale"
-        height={height ?? (showAxes ? 280 : 112)}
+        accessibilityLabel="Preview Momentum trend over seven days on a zero to one hundred scale"
+        height={compact ? 126 : expanded ? 280 : 230}
         preserveAspectRatio="xMidYMid meet"
         viewBox={`0 0 ${viewWidth} ${viewHeight}`}
         width="100%"
       >
         <Defs>
           <LinearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
-            <Stop
-              offset="0%"
-              stopColor={lineColor}
-              stopOpacity={themeMode === 'dark' ? 0.16 : 0.24}
-            />
-            <Stop
-              offset="56%"
-              stopColor={lineColor}
-              stopOpacity={themeMode === 'dark' ? 0.06 : 0.11}
-            />
+            <Stop offset="0%" stopColor={lineColor} stopOpacity={dark ? 0.18 : 0.24} />
+            <Stop offset="56%" stopColor={lineColor} stopOpacity={dark ? 0.07 : 0.11} />
             <Stop offset="100%" stopColor={lineColor} stopOpacity={0} />
           </LinearGradient>
           <ClipPath id={clipId}>
@@ -121,20 +102,13 @@ export function MomentumTrendChart({
             const y = top + ((100 - tick) / 100) * plotHeight;
             return (
               <G key={`y-${tick}`}>
-                <Line
-                  stroke={gridColor}
-                  strokeWidth={1}
-                  x1={left}
-                  x2={viewWidth - right}
-                  y1={y}
-                  y2={y}
-                />
+                <Line stroke={gridColor} strokeWidth={1} x1={left} x2={viewWidth - right} y1={y} y2={y} />
                 <SvgText
                   fill={labelColor}
                   fontFamily="Inter-Regular"
-                  fontSize={showAxes ? 10.5 : 9}
+                  fontSize={compact ? 9 : 10.5}
                   textAnchor="end"
-                  x={left - (showAxes ? 10 : 7)}
+                  x={left - (compact ? 7 : 10)}
                   y={y + 3.5}
                 >
                   {tick}
@@ -144,8 +118,8 @@ export function MomentumTrendChart({
           })}
 
           {verticalIndexes.map((index) => {
-            const x = pointCoordinates[index]?.[0];
-            return x === undefined ? null : (
+            const x = coordinates[index][0];
+            return (
               <Line
                 key={`x-${index}`}
                 stroke={gridColor}
@@ -158,22 +132,8 @@ export function MomentumTrendChart({
             );
           })}
 
-          <Line
-            stroke={axisColor}
-            strokeWidth={1}
-            x1={left}
-            x2={viewWidth - right}
-            y1={plotBottom}
-            y2={plotBottom}
-          />
-          <Line
-            stroke={axisColor}
-            strokeWidth={1}
-            x1={left}
-            x2={left}
-            y1={top}
-            y2={plotBottom}
-          />
+          <Line stroke={axisColor} strokeWidth={1} x1={left} x2={viewWidth - right} y1={plotBottom} y2={plotBottom} />
+          <Line stroke={axisColor} strokeWidth={1} x1={left} x2={left} y1={top} y2={plotBottom} />
 
           <G clipPath={`url(#${clipId})`}>
             <Path d={areaPath} fill={`url(#${gradientId})`} />
@@ -184,35 +144,35 @@ export function MomentumTrendChart({
             stroke={lineColor}
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeWidth={showAxes ? 3.4 : 3}
+            strokeWidth={compact ? 3 : 3.4}
           />
-          {pointCoordinates.map(([cx, cy], index) => (
+          {coordinates.map(([cx, cy], index) => (
             <Circle
               cx={cx}
               cy={cy}
               fill={markerFill}
               key={`point-${index}`}
-              r={showAxes ? 4 : 3.2}
+              r={compact ? 3.2 : 4}
               stroke={lineColor}
-              strokeWidth={showAxes ? 2.4 : 2}
+              strokeWidth={compact ? 2 : 2.4}
             />
           ))}
 
-          {pointCoordinates.map(([x], index) => (
+          {coordinates.map(([x], index) => (
             <SvgText
               fill={labelColor}
               fontFamily="Inter-Medium"
-              fontSize={showAxes ? 10.5 : 9}
+              fontSize={compact ? 9 : 10.5}
               key={`label-${index}`}
               textAnchor="middle"
               x={x}
-              y={plotBottom + (showAxes ? 21 : 18)}
+              y={plotBottom + (compact ? 18 : 21)}
             >
-              {displayedXLabels[index] ?? ''}
+              {visibleXLabels[index]}
             </SvgText>
           ))}
 
-          {showAxes ? (
+          {!compact ? (
             <>
               <SvgText
                 fill={labelColor}
