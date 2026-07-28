@@ -1,9 +1,19 @@
 import type {
   ConstellationAnnotationDTO,
+  ConstellationEarnedNodeDTO,
   ConstellationGraphDTO,
   ConstellationGraphEdgeDTO,
   ConstellationRenderState,
 } from './types.ts';
+
+const PERSISTED_NODE_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function isPersistedAnnotationAnchorTarget(
+  node: ConstellationEarnedNodeDTO,
+): boolean {
+  return PERSISTED_NODE_ID_PATTERN.test(node.id);
+}
 
 function annotationEdge(
   dto: ConstellationGraphDTO,

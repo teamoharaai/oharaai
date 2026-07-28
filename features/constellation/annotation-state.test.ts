@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   addActiveAnnotation,
   archiveActiveAnnotation,
+  isPersistedAnnotationAnchorTarget,
   replaceActiveAnnotation,
   replaceOptimisticAnnotation,
 } from './annotation-state.ts';
@@ -133,6 +134,17 @@ test('archive removes an annotation from the active graph without earned side ef
   );
   assert.deepEqual(archived.counts.source, before.counts.source);
   assert.equal(archived.earnedNodes.length, before.earnedNodes.length);
+});
+
+test('annotation anchors expose only UUID-backed earned nodes', () => {
+  const fallbackSeason = constellationFixtureGraph.earnedNodes[0];
+  const persistedGoal = {
+    ...constellationFixtureGraph.earnedNodes[1],
+    id: '8c1a5197-2976-4bba-910f-0365494087e5',
+  };
+
+  assert.equal(isPersistedAnnotationAnchorTarget(fallbackSeason), false);
+  assert.equal(isPersistedAnnotationAnchorTarget(persistedGoal), true);
 });
 
 test('failed optimistic work can restore the exact immutable pre-save DTO', () => {

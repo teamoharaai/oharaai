@@ -26,6 +26,7 @@ import {
   calculateSproutedLabelLayout,
   createConstellationLayoutSpec,
 } from '../layout';
+import { isPersistedAnnotationAnchorTarget } from '../annotation-state';
 import type { ConstellationAnnotationKind } from '../types';
 import { createConstellationVisualTokens } from '../visual-tokens';
 import { ConstellationAnnotationPanel } from './ConstellationAnnotationPanel';
@@ -180,7 +181,10 @@ export function ConstellationScreen() {
     : undefined;
   const visibleEarnedNodes = useMemo(
     () => graph?.nodes.flatMap((node) => (
-      node.entityType === 'earned_node' ? [node.node] : []
+      node.entityType === 'earned_node'
+      && isPersistedAnnotationAnchorTarget(node.node)
+        ? [node.node]
+        : []
     )) ?? [],
     [graph],
   );

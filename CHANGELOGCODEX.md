@@ -14,6 +14,9 @@
 - **`docs/constellation/CHANGELOG.md`:** recorded the end-to-end annotation authoring slice and its isolation/archival boundaries.
 - **Verification:** baseline and final `npx tsc --noEmit`, all 44 `npm run test:constellation` tests, `git diff --check`, and a production-style Expo web export completed successfully.
 
+### Fixed (2026-07-28 — Constellation live mutation smoke test)
+- **`features/constellation/annotation-state.ts`, `annotation-state.test.ts`, and `components/ConstellationScreen.tsx`:** excluded synthetic fallback nodes such as `season:<derived-id>` from annotation anchor choices because the existing mutation API accepts only UUID-backed persisted earned nodes. The signed-in smoke test exposed the mismatch when the retryable create failure preserved the form after rejecting the fallback Current Season anchor.
+
 ### Added (2026-07-27 — Live Constellation route integration)
 - **`features/constellation/dto.ts`, `state.ts`, `hooks/useConstellation.ts`, and `services/constellation-service.ts`:** added runtime validation for the real versioned `GET /api/constellation` DTO plus feature-owned transient request state with cancellation, stale-response protection, retry classification, and last-successful-data retention during failed refreshes. This replaces the route's dashboard-count proxy without adding Constellation data, selection, filters, or annotations to the persisted global UI store.
 - **`features/constellation/layout.ts`:** added deterministic static geometry for arbitrary live view models so earned nodes, user annotations, persisted system edges, and virtual goal-scoped Bud/Rose/Thorn clusters can use the existing renderer without production fixture coordinates or deferred force-layout behavior.

@@ -1,5 +1,15 @@
 # Constellation Implementation Changelog
 
+## 2026-07-28 — Live annotation mutation smoke follow-up
+
+1. Excluded synthetic fallback nodes from annotation anchor choices. Only
+   UUID-backed persisted earned nodes can now be offered to the existing
+   annotation mutation API.
+2. Verified signed-in create, retry after a rejected synthetic anchor, cancel
+   without mutation, edit from Note to Projection, exact earned-count
+   isolation, archive persistence, and active-graph removal against the live
+   test account.
+
 ## 2026-07-28 — End-to-end user-authored annotations
 
 1. Added focused Note and Projection authoring through the existing
