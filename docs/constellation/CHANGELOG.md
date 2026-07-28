@@ -1,5 +1,12 @@
 # Constellation Implementation Changelog
 
+## 2026-07-28 — Production enablement
+
+1. Enabled `FEATURES.CONSTELLATION_ENABLED` after the release owner confirmed
+   that the current `main` artifact is deployed. The linked Supabase project
+   already has migration 032, the normalized Constellation tables, RLS, and a
+   live cross-user owner/isolation smoke result.
+
 ## 2026-07-28 — Final rollout review
 
 1. Reviewed the current real-data Constellation feature slice without adding

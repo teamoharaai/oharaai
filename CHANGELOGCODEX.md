@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed (2026-07-28 — Constellation production enablement)
+- **`constants/features.ts`:** enabled `FEATURES.CONSTELLATION_ENABLED` after the release owner confirmed the current `main` artifact is deployed. The linked Supabase project already has migration 032, the required RLS boundaries, and completed Constellation verification; affected file: `constants/features.ts`.
+
 ### Changed (2026-07-28 — Constellation final rollout review)
 - **`docs/constellation/DECISIONS.md` and `docs/constellation/CHANGELOG.md`:** documented the final release verification and the exact migration, API deployment, cross-user, retry, responsive-smoke, and build prerequisites for enabling `FEATURES.CONSTELLATION_ENABLED`. The flag remains `false` because this workspace cannot prove the intended deployment has migration 032 and the Constellation API routes live. No production fixture fallback, application code, migration, or feature-flag behavior changed.
 
