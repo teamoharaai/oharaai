@@ -4,17 +4,19 @@ import { Typography } from '@/components/ui/Typography';
 
 interface ConstellationSeedPreviewProps {
   compact?: boolean;
+  seasonLabel?: string;
 }
 
 export function ConstellationSeedPreview({
   compact = false,
+  seasonLabel = 'Current Season',
 }: ConstellationSeedPreviewProps) {
   const colors = useThemeColors();
   const opacity = compact ? 0.16 : 0.22;
 
   return (
     <View
-      accessibilityLabel="A Season 01 seed surrounded by possible future patterns"
+      accessibilityLabel={`${seasonLabel} seed surrounded by possible future patterns`}
       style={{
         alignSelf: 'center',
         height: compact ? 270 : 500,
@@ -82,7 +84,7 @@ export function ConstellationSeedPreview({
           variant="section-eyebrow"
           style={{ color: colors.text.onAccent, fontSize: compact ? 9 : 10 }}
         >
-          SEASON 01
+          {seasonLabel.toUpperCase()}
         </Typography>
         <Typography
           variant="caption"

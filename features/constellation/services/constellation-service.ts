@@ -1,8 +1,9 @@
-import { authedFetch } from '@/lib/api/client';
 import {
-  parseDashboardSummary,
-  type DashboardSummary,
-} from '../gate';
+  authedFetch,
+  UnauthorizedError,
+} from '@/lib/api/client';
+import { parseConstellationGraphDTO } from '../dto';
+import type { ConstellationGraphDTO } from '../types';
 
 export class ConstellationServiceError extends Error {
   readonly retryable: boolean;
@@ -14,14 +15,40 @@ export class ConstellationServiceError extends Error {
   }
 }
 
-export async function fetchDashboardSummary(
+function isAbortError(error: unknown): boolean {
+  return (
+    (typeof DOMException !== 'undefined'
+      && error instanceof DOMException
+      && error.name === 'AbortError')
+    || (
+      error instanceof Error
+      && error.name === 'AbortError'
+    )
+  );
+}
+
+export async function fetchConstellationGraph(
   signal?: AbortSignal,
-): Promise<DashboardSummary> {
-  const response = await authedFetch('/api/dashboard/summary', { signal });
+): Promise<ConstellationGraphDTO> {
+  let response: Response;
+  try {
+    response = await authedFetch('/api/constellation', { signal });
+  } catch (error) {
+    if (isAbortError(error)) throw error;
+    if (error instanceof UnauthorizedError) {
+      throw new ConstellationServiceError(
+        'Your session ended. Sign in again to view Constellation.',
+        false,
+      );
+    }
+    throw new ConstellationServiceError(
+      'Constellation could not be reached. Check your connection and try again.',
+    );
+  }
 
   if (!response.ok) {
     throw new ConstellationServiceError(
-      'Your activity progress could not be loaded.',
+      'Constellation could not be loaded. Please try again.',
       response.status >= 500 || response.status === 408 || response.status === 429,
     );
   }
@@ -30,13 +57,17 @@ export async function fetchDashboardSummary(
   try {
     body = await response.json();
   } catch {
-    throw new ConstellationServiceError('The activity summary was not readable.');
+    throw new ConstellationServiceError(
+      'Constellation returned an unreadable response.',
+    );
   }
 
-  const summary = parseDashboardSummary(body);
-  if (!summary) {
-    throw new ConstellationServiceError('The activity summary was not valid.');
+  const graph = parseConstellationGraphDTO(body);
+  if (!graph) {
+    throw new ConstellationServiceError(
+      'Constellation returned an invalid response.',
+    );
   }
 
-  return summary;
+  return graph;
 }

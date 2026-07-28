@@ -1,5 +1,30 @@
 # Constellation Implementation Changelog
 
+## 2026-07-27 — Live route, resilient client state, and URL selection
+
+1. Replaced the production route's dashboard-summary proxy with a feature
+   service that calls the authenticated real `GET /api/constellation`
+   contract, validates the versioned DTO and `dataOrigin: real`, and passes it
+   through the tested DTO-to-view-model adapter. Production code has no
+   fixture import or fallback.
+2. Added feature-owned transient request state for initial load, retryable
+   error, cancellation/stale-response guards, refresh, and safe retention of
+   the last successful DTO when a refresh fails. No graph data, annotations,
+   selection, or filters were added to the persisted global UI store.
+3. Added explicit access-gate, Season-only, patterns-forming, and populated
+   graph branches. The graph renders real earned nodes, active user
+   annotations, valid system edges, and derived goal-scoped Bud/Rose/Thorn
+   clusters; the existing accessible list keeps the same information
+   available outside SVG geometry.
+4. Added deterministic static layout for arbitrary live view models and
+   `selected` URL handling. Valid owner DTO entities remain selectable within
+   the render budget; malformed, unknown, archived-by-default, or
+   unauthorized IDs clear with replacement navigation without revealing
+   ownership. Inspectors remain deferred.
+5. Kept `FEATURES.CONSTELLATION_ENABLED` false and retained the existing
+   isolated development preview. No user-controlled production bypass or
+   feature-flag change was introduced.
+
 ## 2026-07-27 — Fixture-only static renderer and screenshot harness
 
 1. Added a feature-owned, static `react-native-svg` renderer whose pure layout

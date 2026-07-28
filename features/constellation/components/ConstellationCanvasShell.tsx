@@ -32,8 +32,11 @@ import { VirtualBrtClusterShape } from './VirtualBrtClusterShape';
 interface ConstellationCanvasShellProps {
   fixture?: boolean;
   graph: ConstellationGraphViewModel;
+  isRefreshing?: boolean;
   layout: ConstellationLayout;
+  onRefresh?: () => void;
   onSelect: (selectionKey: string | null) => void;
+  refreshError?: string | null;
   seasonLabel: string;
   selectedKey: string | null;
   sproutedLabel: SproutedLabelLayout | null;
@@ -260,6 +263,9 @@ export function ConstellationCanvasShell(props: ConstellationCanvasShellProps) {
         <ConstellationHeaderMetadata
           counts={props.graph.counts}
           fixture={props.fixture}
+          isRefreshing={props.isRefreshing}
+          onRefresh={props.onRefresh}
+          refreshError={props.refreshError}
           seasonLabel={props.seasonLabel}
           tokens={props.tokens}
         />
@@ -278,6 +284,9 @@ export function ConstellationCanvasShell(props: ConstellationCanvasShellProps) {
       <ConstellationHeaderMetadata
         counts={props.graph.counts}
         fixture={props.fixture}
+        isRefreshing={props.isRefreshing}
+        onRefresh={props.onRefresh}
+        refreshError={props.refreshError}
         seasonLabel={props.seasonLabel}
         tokens={props.tokens}
       />

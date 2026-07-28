@@ -1,4 +1,8 @@
-import { ActivityIndicator, View, useWindowDimensions } from 'react-native';
+import {
+  ActivityIndicator,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { router } from 'expo-router';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -8,14 +12,25 @@ import {
   CONSTELLATION_ECHO_ACCESS_GATE,
   CONSTELLATION_GOAL_ACCESS_GATE,
 } from '../gate';
-import { useConstellationGate } from '../hooks/useConstellationGate';
 import { CONSTELLATION_COPY } from '../copy';
+import type {
+  ConstellationGraphCountsDTO,
+  ConstellationRenderState,
+} from '../types';
 import { ConstellationSeedPreview } from './ConstellationSeedPreview';
 
-type ConstellationGate = ReturnType<typeof useConstellationGate>;
+type EmptyRenderState = Extract<
+  ConstellationRenderState,
+  'locked' | 'season_only' | 'patterns_forming'
+>;
 
 interface ConstellationEmptyStateProps {
-  gate: ConstellationGate;
+  counts: ConstellationGraphCountsDTO;
+  isRefreshing?: boolean;
+  onRefresh?: () => void;
+  refreshError?: string | null;
+  renderState: EmptyRenderState;
+  seasonLabel: string;
 }
 
 interface GateProgressProps {
@@ -62,104 +77,113 @@ function GateProgress({ current, label, maximum }: GateProgressProps) {
   );
 }
 
-function ActivityProgress({ gate }: ConstellationEmptyStateProps) {
-  const colors = useThemeColors();
+function nonDraftGoalCount(
+  counts: ConstellationGraphCountsDTO,
+): number {
+  const goals = counts.source.goalsByStatus;
+  return (
+    goals.active
+    + goals.complete
+    + goals.stagnant
+    + goals.discovered
+    + goals.archived
+  );
+}
 
-  if (gate.status === 'loading') {
-    return (
-      <View
-        accessibilityLabel="Loading your Constellation activity progress"
-        accessibilityRole="progressbar"
-        accessibilityState={{ busy: true }}
-        style={{ alignItems: 'center', gap: 10, paddingVertical: 28 }}
-      >
-        <ActivityIndicator color={colors.accent.primary} size="small" />
-        <Typography variant="description" style={{ textAlign: 'center' }}>
-          Loading your activity progress…
-        </Typography>
-      </View>
-    );
-  }
-
-  if (gate.status === 'error' || gate.status === 'cancelled') {
-    const cancelled = gate.status === 'cancelled';
-    return (
-      <View style={{ alignItems: 'center', gap: 14, paddingVertical: 18 }}>
-        <Typography accessibilityRole="alert" variant="description" style={{ textAlign: 'center' }}>
-          {cancelled ? 'Loading was paused.' : gate.error ?? CONSTELLATION_COPY.graphUnavailable}
-        </Typography>
-        <Button
-          accessibilityLabel="Retry loading Constellation activity progress"
-          onPress={gate.retry}
-          size="compact"
-          variant="secondary"
-        >
-          Retry
-        </Button>
-      </View>
-    );
-  }
-
-  if (!gate.summary) return null;
-
+function AccessProgress({
+  counts,
+}: Pick<ConstellationEmptyStateProps, 'counts'>) {
   return (
     <View style={{ gap: 16 }}>
       <GateProgress
-        current={gate.summary.goalCount}
+        current={nonDraftGoalCount(counts)}
         label={CONSTELLATION_COPY.emptyGateGoals}
         maximum={CONSTELLATION_GOAL_ACCESS_GATE}
       />
       <GateProgress
-        current={gate.summary.echoCount}
+        current={counts.source.echoEntries}
         label={CONSTELLATION_COPY.emptyGateEchoes}
         maximum={CONSTELLATION_ECHO_ACCESS_GATE}
       />
-      {gate.accessEligible ? (
-        <View
-          accessibilityRole="summary"
-          style={{
-            backgroundColor: colors.background.subtle,
-            borderRadius: 10,
-            padding: 12,
-          }}
-        >
-          <Typography variant="caption" style={{ color: colors.text.accent, textAlign: 'center' }}>
-            Your activity gate is complete. Patterns still appear here only when they are proven.
-          </Typography>
-        </View>
-      ) : null}
     </View>
   );
 }
 
-function IntroductionCard({ gate }: ConstellationEmptyStateProps) {
+function stateCopy(renderState: EmptyRenderState) {
+  switch (renderState) {
+    case 'locked':
+      return {
+        headline: CONSTELLATION_COPY.emptyHeadline,
+        body: CONSTELLATION_COPY.lockedBody,
+        status: 'Access gate not met',
+      };
+    case 'season_only':
+      return {
+        headline: CONSTELLATION_COPY.seasonOnlyHeadline,
+        body: CONSTELLATION_COPY.seasonOnlyBody,
+        status: 'Season only',
+      };
+    case 'patterns_forming':
+      return {
+        headline: CONSTELLATION_COPY.patternsFormingHeadline,
+        body: CONSTELLATION_COPY.patternsFormingBody,
+        status: 'Patterns forming',
+      };
+  }
+}
+
+function IntroductionCard({
+  counts,
+  renderState,
+}: Omit<ConstellationEmptyStateProps, 'seasonLabel'>) {
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
   const compact = width < 720;
+  const copy = stateCopy(renderState);
 
   return (
-    <Card
-      elevated
-      padding="spacious"
-      style={{
-        maxWidth: 360,
-        width: '100%',
-      }}
-    >
+    <Card elevated padding="spacious" style={{ maxWidth: 380, width: '100%' }}>
       <View style={{ gap: 16 }}>
         <View style={{ gap: 8 }}>
           <Typography variant="section-eyebrow" style={{ color: colors.text.muted }}>
             {CONSTELLATION_COPY.emptyEyebrow}
           </Typography>
-          <Typography accessibilityRole="header" variant="heading" style={{ fontSize: compact ? 24 : 28, lineHeight: compact ? 31 : 35 }}>
-            {CONSTELLATION_COPY.emptyHeadline}
+          <Typography
+            accessibilityRole="header"
+            variant="heading"
+            style={{
+              fontSize: compact ? 24 : 28,
+              lineHeight: compact ? 31 : 35,
+            }}
+          >
+            {copy.headline}
           </Typography>
-          <Typography variant="description">
-            {CONSTELLATION_COPY.emptyBody}
-          </Typography>
+          <Typography variant="description">{copy.body}</Typography>
         </View>
 
-        <ActivityProgress gate={gate} />
+        {renderState === 'locked' ? (
+          <AccessProgress counts={counts} />
+        ) : (
+          <View
+            accessibilityRole="summary"
+            style={{
+              backgroundColor: colors.background.subtle,
+              borderRadius: 10,
+              gap: 4,
+              padding: 12,
+            }}
+          >
+            <Typography
+              variant="section-eyebrow"
+              style={{ color: colors.text.accent }}
+            >
+              {copy.status}
+            </Typography>
+            <Typography variant="caption">
+              {`${counts.source.echoEntries} Echoes · ${nonDraftGoalCount(counts)} goals · ${counts.source.qualifiedCandidates} qualified patterns`}
+            </Typography>
+          </View>
+        )}
 
         <View
           style={{
@@ -199,20 +223,62 @@ function IntroductionCard({ gate }: ConstellationEmptyStateProps) {
   );
 }
 
-export function ConstellationEmptyState({ gate }: ConstellationEmptyStateProps) {
+export function ConstellationEmptyState({
+  counts,
+  isRefreshing = false,
+  onRefresh,
+  refreshError,
+  renderState,
+  seasonLabel,
+}: ConstellationEmptyStateProps) {
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
   const compact = width < 720;
+  const copy = stateCopy(renderState);
 
   return (
     <View style={{ backgroundColor: colors.background.page, flex: 1 }}>
-      <View style={{ paddingHorizontal: compact ? 20 : 32, paddingTop: compact ? 24 : 28 }}>
-        <Typography accessibilityRole="header" variant="heading">
-          Constellation
-        </Typography>
-        <Typography variant="subtitle" style={{ marginTop: 2 }}>
-          Season 01 · beginning
-        </Typography>
+      <View
+        style={{
+          paddingHorizontal: compact ? 20 : 32,
+          paddingTop: compact ? 24 : 28,
+        }}
+      >
+        <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Typography accessibilityRole="header" variant="heading">
+              Constellation
+            </Typography>
+            <Typography variant="subtitle" style={{ marginTop: 2 }}>
+              {`${seasonLabel} · ${copy.status.toLowerCase()}`}
+            </Typography>
+          </View>
+          {onRefresh ? (
+            <Button
+              accessibilityLabel={isRefreshing ? 'Refreshing Constellation' : 'Refresh Constellation'}
+              disabled={isRefreshing}
+              onPress={onRefresh}
+              size="compact"
+              variant="secondary"
+            >
+              {isRefreshing ? (
+                <View style={{ alignItems: 'center', flexDirection: 'row', gap: 7 }}>
+                  <ActivityIndicator color={colors.accent.primary} size="small" />
+                  <Typography variant="label">Refreshing…</Typography>
+                </View>
+              ) : 'Refresh'}
+            </Button>
+          ) : null}
+        </View>
+        {refreshError ? (
+          <Typography
+            accessibilityRole="alert"
+            variant="caption"
+            style={{ marginTop: 10 }}
+          >
+            {CONSTELLATION_COPY.staleRefresh}
+          </Typography>
+        ) : null}
       </View>
 
       <View
@@ -226,14 +292,14 @@ export function ConstellationEmptyState({ gate }: ConstellationEmptyStateProps) 
       >
         {compact ? (
           <View style={{ alignItems: 'center', gap: 8, width: '100%' }}>
-            <ConstellationSeedPreview compact />
-            <IntroductionCard gate={gate} />
+            <ConstellationSeedPreview compact seasonLabel={seasonLabel} />
+            <IntroductionCard counts={counts} renderState={renderState} />
           </View>
         ) : (
           <View style={{ alignSelf: 'center', height: 520, maxWidth: 1040, position: 'relative', width: '100%' }}>
-            <ConstellationSeedPreview />
+            <ConstellationSeedPreview seasonLabel={seasonLabel} />
             <View style={{ position: 'absolute', right: 0, top: 36 }}>
-              <IntroductionCard gate={gate} />
+              <IntroductionCard counts={counts} renderState={renderState} />
             </View>
           </View>
         )}
@@ -249,7 +315,9 @@ export function ConstellationEmptyState({ gate }: ConstellationEmptyStateProps) 
           textAlign: 'center',
         }}
       >
-        {CONSTELLATION_COPY.emptyFooter}
+        {renderState === 'locked'
+          ? CONSTELLATION_COPY.emptyFooter
+          : 'Nothing is filled in with sample data. New nodes will appear only when the evidence supports them.'}
       </Typography>
     </View>
   );

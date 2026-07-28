@@ -5,6 +5,7 @@ import {
   countEarnedNodes,
   filterGraphNodes,
   groupGoalEvidenceByBrt,
+  resolveGraphSelection,
   selectConnectedNeighborhood,
   selectRenderBudget,
   stableVirtualBrtClusterId,
@@ -140,4 +141,48 @@ test('filtering and render-budget selection never mutate source data and cap the
   assert.equal(selected.length, 30);
   assert.equal(selected[0].id, 'fixture-season');
   assert.ok(selected.some((node) => node.id === 'goal-39'));
+});
+
+test('URL selections resolve only against entities present in the owner DTO', () => {
+  assert.equal(
+    resolveGraphSelection(constellationFixtureGraph, 'node:fixture-goal'),
+    'node:fixture-goal',
+  );
+  assert.equal(
+    resolveGraphSelection(constellationFixtureGraph, 'node:unknown'),
+    null,
+  );
+  assert.equal(
+    resolveGraphSelection(constellationFixtureGraph, 'annotation:fixture-note'),
+    'annotation:fixture-note',
+  );
+});
+
+test('a valid URL-selected entity remains in the render budget', () => {
+  const season = fixtureNodes().find(
+    (node) => node.entityType === 'earned_node' && node.node.kind === 'season',
+  )!;
+  const goals = Array.from({ length: 40 }, (_, index) => ({
+    entityType: 'earned_node' as const,
+    id: 'selected-goal-' + index,
+    selectionKey: 'node:selected-goal-' + index,
+    node: {
+      ...constellationFixtureGraph.earnedNodes[1],
+      id: 'selected-goal-' + index,
+      selectionKey: ('node:selected-goal-' + index) as `node:${string}`,
+      label: 'Selected goal ' + index,
+      visibilityScore: index,
+    },
+  }));
+  const selected = selectRenderBudget(
+    [season, ...goals],
+    30,
+    'node:selected-goal-0',
+  );
+
+  assert.equal(selected.length, 30);
+  assert.ok(selected.some((node) => node.selectionKey === 'node:selected-goal-0'));
+  assert.ok(selected.some((node) => (
+    node.entityType === 'earned_node' && node.node.kind === 'season'
+  )));
 });

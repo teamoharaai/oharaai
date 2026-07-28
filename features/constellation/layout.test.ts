@@ -4,6 +4,7 @@ import {
   CONSTELLATION_VIEW_BOX,
   calculateConstellationLayout,
   calculateSproutedLabelLayout,
+  createConstellationLayoutSpec,
 } from './layout.ts';
 import {
   CONSTELLATION_RENDERER_INITIAL_SELECTION,
@@ -34,6 +35,27 @@ test('renderer fixture uses normalized coordinates and fills the stable viewBox 
     && node.normalized.y >= 0
     && node.normalized.y <= 1
   )));
+});
+
+test('real graph view models receive complete deterministic non-fixture geometry', () => {
+  const firstSpec = createConstellationLayoutSpec(
+    constellationRendererFixtureGraph,
+  );
+  const secondSpec = createConstellationLayoutSpec(
+    constellationRendererFixtureGraph,
+  );
+  const layout = calculateConstellationLayout(
+    constellationRendererFixtureGraph,
+    firstSpec,
+  );
+
+  assert.deepEqual(firstSpec, secondSpec);
+  assert.equal(
+    Object.keys(firstSpec.nodePositions).length,
+    constellationRendererFixtureGraph.nodes.length,
+  );
+  assert.deepEqual(layout.missingNodeSelectionKeys, []);
+  assert.deepEqual(layout.missingEdgeIds, []);
 });
 
 test('sprouted labels are calculated outside rendering and remain inside the viewBox', () => {

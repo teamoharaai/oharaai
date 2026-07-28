@@ -73,6 +73,103 @@ interface NodeDimensions {
   boundaryRadius: number;
 }
 
+interface EllipseRing {
+  readonly center: NormalizedPoint;
+  readonly radiusX: number;
+  readonly radiusY: number;
+  readonly startAngle: number;
+}
+
+const LIVE_LAYOUT_RINGS = {
+  ambition: {
+    center: { x: 0.5, y: 0.5 },
+    radiusX: 0.19,
+    radiusY: 0.16,
+    startAngle: -Math.PI / 2,
+  },
+  goal: {
+    center: { x: 0.5, y: 0.5 },
+    radiusX: 0.3,
+    radiusY: 0.27,
+    startAngle: -Math.PI / 2 + 0.16,
+  },
+  outer: {
+    center: { x: 0.5, y: 0.5 },
+    radiusX: 0.41,
+    radiusY: 0.38,
+    startAngle: -Math.PI / 2 - 0.08,
+  },
+} as const satisfies Record<string, EllipseRing>;
+
+function positionsOnRing(
+  nodes: readonly ConstellationGraphViewNode[],
+  ring: EllipseRing,
+): Readonly<Record<string, NormalizedPoint>> {
+  if (nodes.length === 0) return {};
+
+  return Object.fromEntries(
+    [...nodes]
+      .sort((left, right) => left.selectionKey.localeCompare(right.selectionKey))
+      .map((node, index) => {
+        const angle = ring.startAngle + (index / nodes.length) * Math.PI * 2;
+        return [
+          node.selectionKey,
+          {
+            x: ring.center.x + Math.cos(angle) * ring.radiusX,
+            y: ring.center.y + Math.sin(angle) * ring.radiusY,
+          },
+        ];
+      }),
+  );
+}
+
+/**
+ * Produces a deterministic static layout for real DTO-backed entities. This is
+ * intentionally not a force simulation: it keeps the initial read-only phase
+ * stable while ensuring every adapted node receives non-fixture geometry.
+ */
+export function createConstellationLayoutSpec(
+  graph: ConstellationGraphViewModel,
+): ConstellationLayoutSpec {
+  const seasonNodes = graph.nodes.filter(
+    (node) => node.entityType === 'earned_node' && node.node.kind === 'season',
+  );
+  const ambitionNodes = graph.nodes.filter(
+    (node) => node.entityType === 'earned_node' && node.node.kind === 'ambition',
+  );
+  const goalNodes = graph.nodes.filter(
+    (node) => node.entityType === 'earned_node' && node.node.kind === 'goal',
+  );
+  const reserved = new Set([
+    ...seasonNodes,
+    ...ambitionNodes,
+    ...goalNodes,
+  ].map((node) => node.selectionKey));
+  const outerNodes = graph.nodes.filter(
+    (node) => !reserved.has(node.selectionKey),
+  );
+  const nodePositions: Record<string, NormalizedPoint> = {
+    ...positionsOnRing(ambitionNodes, LIVE_LAYOUT_RINGS.ambition),
+    ...positionsOnRing(goalNodes, LIVE_LAYOUT_RINGS.goal),
+    ...positionsOnRing(outerNodes, LIVE_LAYOUT_RINGS.outer),
+  };
+
+  for (const season of seasonNodes) {
+    nodePositions[season.selectionKey] = { x: 0.5, y: 0.5 };
+  }
+
+  const edgeBends = Object.fromEntries(
+    [...graph.edges]
+      .sort((left, right) => left.id.localeCompare(right.id))
+      .map((edge, index) => [
+        edge.id,
+        ((index % 3) - 1) * 0.012,
+      ]),
+  );
+
+  return { nodePositions, edgeBends };
+}
+
 function dimensionsForNode(node: ConstellationGraphViewNode): NodeDimensions {
   switch (node.entityType) {
     case 'annotation':

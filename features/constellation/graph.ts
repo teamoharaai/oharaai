@@ -41,6 +41,7 @@ export interface ConnectedNeighborhood {
 export interface ConstellationViewModelOptions {
   filters?: ConstellationGraphFilters;
   renderBudget?: number;
+  selectedKey?: string | null;
 }
 
 export function findGraphNode(
@@ -296,10 +297,11 @@ function activityTimestamp(node: ConstellationGraphViewNode): string {
 export function selectRenderBudget(
   nodes: readonly ConstellationGraphViewNode[],
   budget = CONSTELLATION_RENDER_BUDGET,
+  selectedKey: string | null = null,
 ): readonly ConstellationGraphViewNode[] {
   if (budget <= 0) return [];
 
-  return nodes
+  const sorted = nodes
     .map((node, index) => ({ node, index }))
     .sort((left, right) => {
       const priority = renderPriority(left.node) - renderPriority(right.node);
@@ -314,8 +316,30 @@ export function selectRenderBudget(
       const id = left.node.id.localeCompare(right.node.id);
       return id !== 0 ? id : left.index - right.index;
     })
-    .slice(0, budget)
     .map(({ node }) => node);
+  const selected = selectedKey
+    ? sorted.find((node) => node.selectionKey === selectedKey)
+    : undefined;
+  const visible = sorted.slice(0, budget);
+
+  if (
+    !selected
+    || visible.some((node) => node.selectionKey === selected.selectionKey)
+  ) {
+    return visible;
+  }
+
+  const replaceIndex = [...visible]
+    .reverse()
+    .findIndex((node) => (
+      node.entityType !== 'earned_node'
+      || node.node.kind !== 'season'
+    ));
+  if (replaceIndex === -1) return visible;
+
+  const result = [...visible];
+  result[result.length - 1 - replaceIndex] = selected;
+  return result;
 }
 
 export function countEarnedNodes(
@@ -365,6 +389,16 @@ function toViewNodes(dto: ConstellationGraphDTO): readonly ConstellationGraphVie
   ];
 }
 
+export function resolveGraphSelection(
+  dto: ConstellationGraphDTO,
+  selectionKey: string | null,
+): string | null {
+  if (!selectionKey) return null;
+  return toViewNodes(dto).some((node) => node.selectionKey === selectionKey)
+    ? selectionKey
+    : null;
+}
+
 /**
  * Converts a versioned DTO into a render-safe view model. It never substitutes
  * fixtures and drops edges whose endpoints are not in the selected render set.
@@ -374,7 +408,11 @@ export function adaptGraphDtoToViewModel(
   options: ConstellationViewModelOptions = {},
 ): ConstellationGraphViewModel {
   const filteredNodes = filterGraphNodes(toViewNodes(dto), options.filters);
-  const nodes = selectRenderBudget(filteredNodes, options.renderBudget);
+  const nodes = selectRenderBudget(
+    filteredNodes,
+    options.renderBudget,
+    options.selectedKey,
+  );
   const edges = dto.edges.filter((edge) => validateEdgeEndpoints(nodes, edge).isValid);
 
   return {
