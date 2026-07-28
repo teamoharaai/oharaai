@@ -668,6 +668,119 @@ Get the authenticated user's AI usage stats.
 
 ---
 
+## Constellation endpoints (Expo API routes)
+
+These owner-only routes are intentionally outside the legacy `/api/v1`
+prefix. They require a Supabase bearer token, derive the owner ID only from
+that token, and execute through a token-scoped Supabase client so RLS remains
+authoritative.
+
+`GET /api/constellation` returns the raw versioned
+`ConstellationGraphDTO` defined in `docs/constellation/DECISIONS.md`. It
+contains real owner data only: active earned nodes, active annotations,
+persisted system edges, derived annotation/cluster edges, virtual goal-level
+Bud/Rose/Thorn summaries, and graph/source counts. It never contains raw Echo
+content or excerpts. Archived annotations are counted but omitted from the
+default annotation list.
+
+The current server access policy requires at least three lifetime non-draft
+goals and ten Echo entries. `accessEligible` reports that policy result;
+`hasGraphData` independently reports whether a renderable entity exists.
+
+Constellation write successes use:
+
+```typescript
+{ ok: true, data: T, error: null }
+```
+
+Write and read failures use:
+
+```typescript
+{
+  ok: false,
+  data: null,
+  error: {
+    code:
+      | "UNAUTHORIZED"
+      | "INVALID_INPUT"
+      | "NOT_FOUND"
+      | "CONFLICT"
+      | "INTERNAL_ERROR",
+    message: string
+  }
+}
+```
+
+Non-owned IDs resolve to `404 NOT_FOUND` without revealing whether another
+user owns the record. Expected input, missing-record, and lifecycle conflicts
+return stable `400`, `404`, and `409` envelopes; raw Supabase/PostgreSQL prose
+is never returned.
+
+### `POST /api/constellation/annotations`
+
+Creates a user-authored draft note or projection. Returns the
+`ConstellationAnnotationDTO` with status `201`.
+
+```typescript
+{
+  kind: "note" | "projection",
+  label: string,                    // trimmed, 1–120 characters
+  body?: string | null,             // trimmed, max 5,000 characters
+  anchorEarnedNodeId?: string | null
+}
+```
+
+The optional anchor must be an earned node owned by the authenticated user.
+
+### `PATCH /api/constellation/annotations/:id`
+
+Edits one or more of `kind`, `label`, `body`, or `anchorEarnedNodeId` on an
+owned draft annotation. Archived annotations return `409 CONFLICT`.
+
+### `POST /api/constellation/annotations/:id/archive`
+
+Archives an owned draft annotation. Repeating the request for an already
+archived annotation is idempotent and returns the archived DTO.
+
+### `POST /api/constellation/evidence-references`
+
+Creates or idempotently updates one Echo/goal evidence relation:
+
+```typescript
+{
+  echoEntryId: string,
+  goalId: string,
+  brtCategory: "bud" | "rose" | "thorn",
+  note?: string | null               // trimmed, max 280 characters
+}
+```
+
+Returns the `ConstellationEvidenceLink` with `201` when inserted and `200`
+when the existing Echo/goal pair is unchanged or its category/note is updated.
+When updating an existing pair, an omitted `note` preserves the stored note;
+an explicit `null` clears it.
+The Echo and goal must both belong to the authenticated user. This route never
+changes the Echo's canonical container, `echo_entries.goal_id`,
+`echo_entries.brt_user`, or any `echo_entry_links` row.
+
+### `PATCH /api/constellation/evidence-references/:id`
+
+Updates one or both mutable fields, `brtCategory` and `note`, on an owned
+evidence reference. The owner, Echo, and goal endpoints are not accepted in
+the request body and remain immutable.
+
+### `DELETE /api/constellation/evidence-references/:id`
+
+Deletes only the owned evidence-reference row and returns:
+
+```typescript
+{ ok: true, data: { id: string }, error: null }
+```
+
+The referenced Echo entry and goal are never deleted or moved.
+
+---
+
 ## Phase 2 Extension Points (DO NOT BUILD YET)
 
 These are documented so the Phase 1 schema and endpoints don't block Phase 2 work.
@@ -711,4 +824,4 @@ PATCH  /api/v1/instance/:id/settings     — instance-level settings
 6. **Never change a field's type** (e.g., `string` → `number`) — that's a breaking change requiring a new endpoint version.
 
 > Contract version: 2.0 — Phase 1 canonical milestone/tracker cutover
-> Last updated: 2026-07-20
+> Last updated: 2026-07-27

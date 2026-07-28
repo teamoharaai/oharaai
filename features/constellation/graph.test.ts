@@ -125,7 +125,7 @@ test('filtering and render-budget selection never mutate source data and cap the
     node: {
       ...constellationFixtureGraph.earnedNodes[1],
       id: 'goal-' + index,
-      selectionKey: 'node:goal-' + index,
+      selectionKey: ('node:goal-' + index) as `node:${string}`,
       label: 'Goal ' + index,
       visibilityScore: index,
       lastActivityAt: '2026-07-04T12:00:00.000Z',

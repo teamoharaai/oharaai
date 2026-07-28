@@ -1,5 +1,28 @@
 # Constellation Implementation Changelog
 
+## 2026-07-27 — Authenticated graph and write APIs
+
+1. Added `GET /api/constellation` with a server-only feature service and
+   owner-scoped Supabase data access. The service assembles the approved
+   versioned graph DTO from real persisted nodes, active annotations, system
+   edges, exact source counts, and virtual goal-level BRT summaries. It uses a
+   deterministic opaque fallback Season ID where no persisted Season exists,
+   distinguishes access eligibility from graph data, performs no per-entity
+   reads, counts only non-draft goals toward the retained three-goal access
+   threshold, and never selects Echo content or production fixtures.
+2. Added note/projection create, edit, and idempotent archive endpoints plus
+   Echo/goal evidence-reference create-or-update, edit, and delete endpoints.
+   Every write derives the owner from auth, verifies source ownership before
+   mutation, runs under the caller JWT for RLS, bounds private notes, and
+   exposes stable client-safe 400/404/409 envelopes. Evidence writes only
+   mutate `constellation_evidence_links`; they cannot move Echo containers or
+   update `echo_entries.brt_user`.
+3. Added deterministic server/API coverage for unauthenticated access,
+   eligible empty graphs, owner isolation, one Echo across several goals,
+   duplicate-insert recovery, idempotent category updates, annotation
+   lifecycle, note bounds, and safe database-error translation. Documented
+   the additive Expo API contracts in `docs/API_CONTRACT.md`.
+
 ## 2026-07-27 — Persistence schema and isolated database security
 
 1. Added migration 032 with normalized owner-scoped earned nodes, persisted

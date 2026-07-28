@@ -135,11 +135,13 @@ export function selectConnectedNeighborhood(
   };
 }
 
-export function stableVirtualBrtClusterId(
+export function stableVirtualBrtClusterId<
+  TCategory extends ConstellationBrtCategory,
+>(
   goalId: string,
-  category: ConstellationBrtCategory,
-): string {
-  return 'brt:' + goalId + ':' + category;
+  category: TCategory,
+): `brt:${string}:${TCategory}` {
+  return `brt:${goalId}:${category}`;
 }
 
 function toVirtualCluster(
@@ -153,8 +155,6 @@ function toVirtualCluster(
     null,
   );
   const common = {
-    id: stableVirtualBrtClusterId(goalId, category),
-    selectionKey: stableVirtualBrtClusterId(goalId, category),
     goalId,
     goalNodeId,
     evidenceLinkCount: evidenceLinks.length,
@@ -165,11 +165,29 @@ function toVirtualCluster(
 
   switch (category) {
     case 'bud':
-      return { ...common, brtCategory: 'bud', label: 'Bud' };
+      return {
+        ...common,
+        id: stableVirtualBrtClusterId(goalId, 'bud'),
+        selectionKey: stableVirtualBrtClusterId(goalId, 'bud'),
+        brtCategory: 'bud',
+        label: 'Bud',
+      };
     case 'rose':
-      return { ...common, brtCategory: 'rose', label: 'Rose' };
+      return {
+        ...common,
+        id: stableVirtualBrtClusterId(goalId, 'rose'),
+        selectionKey: stableVirtualBrtClusterId(goalId, 'rose'),
+        brtCategory: 'rose',
+        label: 'Rose',
+      };
     case 'thorn':
-      return { ...common, brtCategory: 'thorn', label: 'Thorn' };
+      return {
+        ...common,
+        id: stableVirtualBrtClusterId(goalId, 'thorn'),
+        selectionKey: stableVirtualBrtClusterId(goalId, 'thorn'),
+        brtCategory: 'thorn',
+        label: 'Thorn',
+      };
   }
 }
 

@@ -66,7 +66,7 @@ interface EarnedNodeBase<
   TSource,
 > {
   id: string;
-  selectionKey: string;
+  selectionKey: `node:${string}`;
   kind: TKind;
   label: string;
   description: string | null;
@@ -95,7 +95,7 @@ export type ConstellationEarnedNodeDTO =
 
 interface AnnotationNodeBase<TKind extends ConstellationAnnotationKind> {
   id: string;
-  selectionKey: string;
+  selectionKey: `annotation:${string}`;
   kind: TKind;
   status: ConstellationAnnotationStatus;
   authorship: 'user';
@@ -115,8 +115,8 @@ export type ConstellationAnnotationDTO =
   | ConstellationProjectionAnnotationDTO;
 
 interface VirtualBrtClusterBase<TCategory extends ConstellationBrtCategory, TLabel extends string> {
-  id: string;
-  selectionKey: string;
+  id: `brt:${string}:${TCategory}`;
+  selectionKey: `brt:${string}:${TCategory}`;
   goalId: string;
   goalNodeId: string;
   brtCategory: TCategory;
@@ -211,6 +211,41 @@ export interface ConstellationEvidenceLink {
   note: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CreateConstellationAnnotationInput {
+  kind: ConstellationAnnotationKind;
+  label: string;
+  body: string | null;
+  anchorEarnedNodeId: string | null;
+}
+
+export interface UpdateConstellationAnnotationInput {
+  kind?: ConstellationAnnotationKind;
+  label?: string;
+  body?: string | null;
+  anchorEarnedNodeId?: string | null;
+}
+
+export interface CreateConstellationEvidenceReferenceInput {
+  echoEntryId: string;
+  goalId: string;
+  brtCategory: ConstellationBrtCategory;
+  note?: string | null;
+}
+
+export interface UpdateConstellationEvidenceReferenceInput {
+  brtCategory?: ConstellationBrtCategory;
+  note?: string | null;
+}
+
+export interface ConstellationEvidenceReferenceWriteResult {
+  evidenceReference: ConstellationEvidenceLink;
+  created: boolean;
+}
+
+export interface ConstellationDeleteResult {
+  id: string;
 }
 
 export interface ConstellationEarnedNodeCounts {

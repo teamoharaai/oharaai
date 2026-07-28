@@ -1,4 +1,4 @@
-import supabase, { isDatabaseConfigured } from '@/lib/db/client';
+import supabase, { isDatabaseConfigured } from '../db/client.ts';
 
 export interface AuthContext {
   userId: string;
