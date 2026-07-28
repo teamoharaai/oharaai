@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Dimensions, Pressable, SafeAreaView, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,8 +24,15 @@ const MIDDLE_COLUMN_MIN_WIDTH = 220;
 
 export function EchoScreen() {
   const colors = useThemeColors();
-  const { goalId: routeGoalIdParam } = useLocalSearchParams<{ goalId?: string | string[] }>();
+  const {
+    entryId: routeEntryIdParam,
+    goalId: routeGoalIdParam,
+  } = useLocalSearchParams<{
+    entryId?: string | string[];
+    goalId?: string | string[];
+  }>();
   const routeGoalId = Array.isArray(routeGoalIdParam) ? routeGoalIdParam[0] : routeGoalIdParam;
+  const routeEntryId = Array.isArray(routeEntryIdParam) ? routeEntryIdParam[0] : routeEntryIdParam;
   const {
     entries,
     isLoading,
@@ -55,6 +62,7 @@ export function EchoScreen() {
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [createFolderError, setCreateFolderError] = useState<string | null>(null);
+  const appliedEntryDeepLinkRef = useRef<string | null>(null);
 
   const selectedEntry = selectedEntryId
     ? entries.find((entry) => entry.id === selectedEntryId) ?? null
@@ -67,6 +75,23 @@ export function EchoScreen() {
     }
     return entries.filter((entry) => entry.folderId === selectedScope.id);
   }, [entries, selectedScope]);
+
+  useEffect(() => {
+    if (
+      isLoading
+      || !routeEntryId
+      || routeEntryId.length > 200
+      || entries.length === 0
+      || appliedEntryDeepLinkRef.current === routeEntryId
+    ) {
+      return;
+    }
+    appliedEntryDeepLinkRef.current = routeEntryId;
+    if (!entries.some((entry) => entry.id === routeEntryId)) return;
+    setSelectedScope(ALL_SCOPE);
+    setSelectedEntryId(routeEntryId);
+    setDetailMode('view');
+  }, [entries, isLoading, routeEntryId]);
 
   const clampRightPaneWidth = useCallback(
     (width: number) => {

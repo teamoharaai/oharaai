@@ -1,4 +1,8 @@
-import { CONSTELLATION_RENDER_BUDGET } from './tokens.ts';
+import {
+  CONSTELLATION_EDGE_PER_NODE_BUDGET,
+  CONSTELLATION_EDGE_RENDER_BUDGET,
+  CONSTELLATION_RENDER_BUDGET,
+} from './tokens.ts';
 import type {
   ConstellationBrtCategory,
   ConstellationEarnedNodeCounts,
@@ -133,6 +137,32 @@ export function selectConnectedNeighborhood(
     center,
     nodes: nodes.filter((node) => connectedIds.has(node.id)),
     edges: connectedEdges,
+  };
+}
+
+/**
+ * Narrows a render model to the selected entity and its valid one-hop
+ * connections. Counts remain global metadata so Focus mode does not imply
+ * that unrelated live entities disappeared from the underlying graph.
+ */
+export function focusGraphViewModel(
+  graph: ConstellationGraphViewModel,
+  selectedKey: string | null,
+): ConstellationGraphViewModel {
+  if (!selectedKey) return graph;
+  const selected = graph.nodes.find((node) => node.selectionKey === selectedKey);
+  if (!selected) return graph;
+  const neighborhood = selectConnectedNeighborhood(
+    graph.nodes,
+    graph.edges,
+    selected.id,
+  );
+  if (!neighborhood) return graph;
+
+  return {
+    ...graph,
+    nodes: neighborhood.nodes,
+    edges: neighborhood.edges,
   };
 }
 
@@ -342,6 +372,44 @@ export function selectRenderBudget(
   return result;
 }
 
+/**
+ * Makes dense live graphs predictable to render. The persisted graph contract
+ * already limits every node to six relationships; this client guard enforces
+ * the same ceiling and a 90-edge upper bound even when a malformed or stale
+ * response exceeds the server budget.
+ */
+export function selectRenderEdges(
+  nodes: readonly ConstellationGraphViewNode[],
+  edges: readonly ConstellationGraphEdgeDTO[],
+  edgeBudget = CONSTELLATION_EDGE_RENDER_BUDGET,
+  perNodeBudget = CONSTELLATION_EDGE_PER_NODE_BUDGET,
+): readonly ConstellationGraphEdgeDTO[] {
+  if (edgeBudget <= 0 || perNodeBudget <= 0) return [];
+
+  const degree = new Map<string, number>();
+  const candidates = edges
+    .filter((edge) => validateEdgeEndpoints(nodes, edge).isValid)
+    .slice()
+    .sort((left, right) => {
+      const weight = (right.weight ?? 0) - (left.weight ?? 0);
+      return weight !== 0 ? weight : left.id.localeCompare(right.id);
+    });
+  const selected: ConstellationGraphEdgeDTO[] = [];
+
+  for (const edge of candidates) {
+    if (selected.length >= edgeBudget) break;
+    const fromDegree = degree.get(edge.from.id) ?? 0;
+    const toDegree = degree.get(edge.to.id) ?? 0;
+    if (fromDegree >= perNodeBudget || toDegree >= perNodeBudget) continue;
+
+    selected.push(edge);
+    degree.set(edge.from.id, fromDegree + 1);
+    degree.set(edge.to.id, toDegree + 1);
+  }
+
+  return selected;
+}
+
 export function countEarnedNodes(
   nodes: readonly ConstellationGraphViewNode[],
 ): ConstellationEarnedNodeCounts {
@@ -413,7 +481,7 @@ export function adaptGraphDtoToViewModel(
     options.renderBudget,
     options.selectedKey,
   );
-  const edges = dto.edges.filter((edge) => validateEdgeEndpoints(nodes, edge).isValid);
+  const edges = selectRenderEdges(nodes, dto.edges);
 
   return {
     state: dto.state,

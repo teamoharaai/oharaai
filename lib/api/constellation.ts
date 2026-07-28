@@ -15,6 +15,7 @@ const UUID_PATTERN =
 const ANNOTATION_LABEL_MAX_LENGTH = 120;
 const ANNOTATION_BODY_MAX_LENGTH = 5_000;
 const EVIDENCE_NOTE_MAX_LENGTH = 280;
+const ECHO_SEARCH_QUERY_MAX_LENGTH = 120;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -167,6 +168,19 @@ export function parseConstellationResourceId(
   fieldName: string,
 ): string {
   return parseUuid(params.id, fieldName);
+}
+
+export function parseConstellationEchoSearchQuery(
+  request: Request,
+): string {
+  const value = new URL(request.url).searchParams.get('query') ?? '';
+  const normalized = value.trim().replace(/\s+/g, ' ');
+  if (normalized.length > ECHO_SEARCH_QUERY_MAX_LENGTH) {
+    return invalidInput(
+      `query must not exceed ${ECHO_SEARCH_QUERY_MAX_LENGTH} characters.`,
+    );
+  }
+  return normalized;
 }
 
 export async function parseCreateAnnotationRequest(

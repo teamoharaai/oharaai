@@ -1,5 +1,4 @@
 import {
-  ActivityIndicator,
   Pressable,
   Text,
   View,
@@ -11,10 +10,12 @@ import type {
   ConstellationGraphCountsDTO,
 } from '../types.ts';
 import type { ConstellationVisualTokens } from '../visual-tokens.ts';
+import { ConstellationLoadingMark } from './ConstellationLoadingMark';
 
 interface ConstellationHeaderMetadataProps {
   counts: ConstellationGraphCountsDTO;
   fixture?: boolean;
+  focusLabel?: string | null;
   isRefreshing?: boolean;
   onCreateAnnotation?: (kind: ConstellationAnnotationKind) => void;
   onRefresh?: () => void;
@@ -26,6 +27,7 @@ interface ConstellationHeaderMetadataProps {
 export function ConstellationHeaderMetadata({
   counts,
   fixture = false,
+  focusLabel,
   isRefreshing = false,
   onCreateAnnotation,
   onRefresh,
@@ -36,7 +38,7 @@ export function ConstellationHeaderMetadata({
   const { width } = useWindowDimensions();
   const compact = width < 760;
   const metadata = [
-    seasonLabel,
+    focusLabel ? `Focus · ${focusLabel}` : seasonLabel,
     `${counts.earnedNodes.total} earned`,
     `${counts.edges} connections`,
     `${counts.annotations.draft} drafts`,
@@ -70,9 +72,10 @@ export function ConstellationHeaderMetadata({
               letterSpacing: -0.4,
             }}
           >
-            Constellation
+            {focusLabel ? 'Constellation · Focus' : 'Constellation'}
           </Text>
           <Text
+            numberOfLines={2}
             style={{
               color: tokens.text.secondary,
               fontFamily: 'Inter-Regular',
@@ -130,7 +133,7 @@ export function ConstellationHeaderMetadata({
                       borderRadius: 999,
                       borderWidth: 1,
                       justifyContent: 'center',
-                      minHeight: 38,
+                      minHeight: 44,
                       opacity: pressed ? 0.68 : 1,
                       paddingHorizontal: 13,
                     })}
@@ -163,13 +166,13 @@ export function ConstellationHeaderMetadata({
                   borderWidth: 1,
                   flexDirection: 'row',
                   gap: 7,
-                  minHeight: 38,
+                  minHeight: 44,
                   opacity: pressed || isRefreshing ? 0.68 : 1,
                   paddingHorizontal: 13,
                 })}
               >
                 {isRefreshing ? (
-                  <ActivityIndicator color={tokens.text.accent} size="small" />
+                  <ConstellationLoadingMark color={tokens.text.accent} />
                 ) : null}
                 <Text
                   style={{

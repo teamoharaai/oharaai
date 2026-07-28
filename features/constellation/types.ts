@@ -213,6 +213,81 @@ export interface ConstellationEvidenceLink {
   updatedAt: string;
 }
 
+export interface ConstellationEvidenceEchoSummary {
+  id: string;
+  title: string | null;
+  excerpt: string;
+  excerptTruncated: boolean;
+  createdAt: string;
+}
+
+export interface ConstellationGoalEvidenceItem
+  extends ConstellationEvidenceLink {
+  echo: ConstellationEvidenceEchoSummary;
+}
+
+export interface ConstellationGoalEvidenceDTO {
+  goal: {
+    id: string;
+    title: string;
+    description: string | null;
+    status: GoalDbStatus;
+    deadline: string | null;
+    project: {
+      id: string;
+      title: string;
+    } | null;
+    vaultId: string | null;
+  };
+  items: readonly ConstellationGoalEvidenceItem[];
+}
+
+export type ConstellationReflectionValence =
+  | 'positive'
+  | 'negative'
+  | 'neutral'
+  | 'mixed';
+
+export interface ConstellationReflectionValenceEvent {
+  valence: ConstellationReflectionValence;
+  echoEntryId: string;
+  timestamp: string;
+}
+
+export interface ConstellationReflectionEvidenceItem
+  extends ConstellationEvidenceEchoSummary {
+  valence: ConstellationReflectionValence | null;
+}
+
+export interface ConstellationReflectionInspectorDTO {
+  nodeId: string;
+  label: string;
+  description: string | null;
+  candidateKey: string;
+  candidateType: 'theme' | 'trait' | 'tension' | 'insight';
+  occurrences: number;
+  aggregatedScore: number | null;
+  firstSeenAt: string | null;
+  lastSeenAt: string | null;
+  dominantValence: ConstellationReflectionValence | null;
+  valenceHistory: readonly ConstellationReflectionValenceEvent[];
+  evidence: readonly ConstellationReflectionEvidenceItem[];
+}
+
+export interface ConstellationEchoSearchOption
+  extends ConstellationEvidenceEchoSummary {
+  existingReference: {
+    id: string;
+    brtCategory: ConstellationBrtCategory;
+  } | null;
+}
+
+export interface ConstellationEchoSearchDTO {
+  goalId: string;
+  query: string;
+  options: readonly ConstellationEchoSearchOption[];
+}
+
 export interface CreateConstellationAnnotationInput {
   kind: ConstellationAnnotationKind;
   label: string;

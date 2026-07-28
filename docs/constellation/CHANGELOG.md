@@ -1,5 +1,92 @@
 # Constellation Implementation Changelog
 
+## 2026-07-28 — Release hardening and concept reconciliation
+
+1. Hardened the real-data Canvas for the delivered visual contract: light mode
+   uses the restrained, flat warm 1a treatment; the atmospheric gradient,
+   grain, and orbit treatment remains dark-mode-only as 1b. No ambient
+   override exists on the light theme, and the public Constellation feature
+   flag remains disabled.
+2. Added keyboard-operable, labeled SVG graph entities with a visible selection
+   ring on focus, enlarged graph hit regions, 44px inspector/header targets,
+   stable Escape/back behavior, bounded inspector and SVG labels, and
+   screen-reader node provenance plus per-edge relationship summaries. Native
+   continues to use the semantic list fallback rather than attempting an SVG
+   interaction model it cannot faithfully provide.
+3. Standardized desktop, compact-sidebar, tablet, and narrow behavior. A
+   compact rail preserves a two-column graph/inspector layout at narrower
+   desktop widths; tablets and narrow layouts replace the canvas with a
+   full-width, scrollable inspector and visible Back action. Long private
+   labels/excerpts remain clipped to their owner-only inspector surfaces.
+4. Added deterministic client guardrails for a 30-node render maximum, six
+   edges per node, and 90 visible edges; per-canvas SVG paint-server IDs are
+   now unique and SSR-stable; reduced-motion users receive static loading marks
+   and the graph remains intentionally non-animated.
+5. Screenshot/release comparison deviations are intentional: original
+   future-self circles render as explicit user-authored Projection drafts;
+   Bud/Rose/Thorn clusters are labeled virtual evidence summaries rather than
+   earned nodes; Goal and Reflection actions expose only working owner-scoped
+   evidence/Vault/Echo operations; and concept-only Timeline, Archive, Filter,
+   zoom, and Draft Link controls remain absent rather than appearing inert.
+   The 1c/1d side inspector becomes a full-width responsive replacement at
+   tablet/narrow widths instead of overlaying the graph.
+
+## 2026-07-28 — Live selection, Focus mode, and inspectors
+
+1. URL-addressable selection now moves the real graph into one-hop Focus mode.
+   Desktop reserves an approximately 360px inspector column and reflows the
+   canvas; narrow screens use a full-width, scrollable inspector with a visible
+   Back action, contained keyboard focus, Escape close, and graph/node focus
+   restoration.
+2. Added first-class Goal and Reflection inspectors. Goal combines live goal
+   metadata with the complete manual Bud/Rose/Thorn evidence groups and Add,
+   Edit, and Unlink actions. Reflection reads the active owner candidate on
+   demand and shows its real occurrences, score, valence history, and only
+   owner-verified bounded Echo evidence; it exposes no local-only BRT override.
+3. Added safe read-only inspectors for Season, Ambition, Trait, Tension, Note,
+   Projection, and virtual BRT clusters. Annotation drafts expose explicit Edit
+   and Archive actions. A virtual cluster lists and manages the referenced
+   Echoes for that goal/category while remaining virtual and weightless.
+4. Added destination guards: Open in vault appears only when an owned Vault row
+   exists, and Read in Echo appears only for an owned Echo returned by the
+   Reflection evidence endpoint. Missing deep-link targets select nothing.
+   No Draft Link action, production fixture fallback, schema change, migration,
+   feature-flag change, or fake graph data was introduced.
+5. Added focused tests for neighborhood isolation, private Reflection response
+   validation, fake-valence rejection, additive Goal metadata, and
+   unauthenticated inspector access. Final strict TypeScript, all 58 targeted
+   tests, the Expo web export, and `git diff --check` passed. An authenticated
+   live-Supabase browser smoke verified the real 26-goal/10-Echo empty graph,
+   URL-selected Season inspector, desktop/narrow layout, Back/Escape focus
+   restoration, and stale-selection cleanup without inserting fixtures. That
+   account had no qualified Goal or Reflection nodes for positive live UI
+   coverage.
+
+## 2026-07-28 — Manual Echo evidence references
+
+1. Added a selected-goal Evidence inspector backed by owner-scoped read routes
+   and the existing evidence-reference mutations. Users can browse recent
+   owned Echoes, search owned Echo title/content, select one, assign semantic
+   `bud`, `rose`, or `thorn`, add an optional 280-character note, and later
+   edit the goal-specific category/note or confirm unlinking.
+2. Added grouped Bud/Rose/Thorn evidence lists with bounded 240-character Echo
+   excerpts and selected-goal duplicate markers. The workflow keeps one
+   mutable relation per Echo/goal pair while allowing the same Echo to use a
+   different category under another owned goal.
+3. Added exact optimistic create, edit, and unlink reconciliation. Failures
+   restore the prior evidence list and virtual cluster graph, preserve local
+   form input for retry, and never delete or move the Echo. Search results are
+   ignored when they belong to an older goal, query, or request.
+4. Recomputed the selected goal's virtual Bud/Rose/Thorn cluster nodes,
+   derived edges, per-cluster counts, and aggregate evidence count from the
+   complete local goal-evidence list. Earned nodes, annotations, persisted
+   graph edges, other goals, and all canonical Echo state remain unchanged.
+5. Added focused tests for duplicate submission, category changes, exact
+   unlink rollback, two-sided cross-user rejection, stale search results,
+   DTO identity/category validation, and cluster-count recomputation. No
+   fixture data, migration, feature-flag change, `echo_entry_links` write, or
+   `echo_entries.brt_user` write was introduced.
+
 ## 2026-07-28 — Live annotation mutation smoke follow-up
 
 1. Excluded synthetic fallback nodes from annotation anchor choices. Only

@@ -6,6 +6,10 @@ import type {
 } from './types.ts';
 
 export const CONSTELLATION_RENDER_BUDGET = 30;
+export const CONSTELLATION_EDGE_PER_NODE_BUDGET = 6;
+export const CONSTELLATION_EDGE_RENDER_BUDGET = Math.floor(
+  (CONSTELLATION_RENDER_BUDGET * CONSTELLATION_EDGE_PER_NODE_BUDGET) / 2,
+);
 
 export const CONSTELLATION_EARNED_NODE_KINDS = [
   'season',

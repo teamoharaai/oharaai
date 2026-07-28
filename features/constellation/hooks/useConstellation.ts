@@ -11,6 +11,7 @@ import {
   replaceActiveAnnotation,
   replaceOptimisticAnnotation,
 } from '../annotation-state';
+import { replaceGoalEvidenceInGraph } from '../evidence-state';
 import {
   ConstellationServiceError,
   archiveConstellationAnnotation,
@@ -25,6 +26,7 @@ import {
 import type {
   ConstellationAnnotationDTO,
   ConstellationGraphDTO,
+  ConstellationGoalEvidenceItem,
   CreateConstellationAnnotationInput,
   UpdateConstellationAnnotationInput,
 } from '../types';
@@ -257,6 +259,15 @@ export function useConstellation() {
     ));
   }, []);
 
+  const syncGoalEvidence = useCallback((
+    goalId: string,
+    items: readonly ConstellationGoalEvidenceItem[],
+  ) => {
+    const dto = dtoRef.current;
+    if (!dto) return;
+    replaceDto(replaceGoalEvidenceInGraph(dto, goalId, items));
+  }, [replaceDto]);
+
   return {
     ...state,
     mutation,
@@ -266,5 +277,6 @@ export function useConstellation() {
     editAnnotation,
     retry: load,
     refresh: mutation.isSaving ? () => undefined : load,
+    syncGoalEvidence,
   };
 }

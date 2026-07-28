@@ -765,6 +765,113 @@ The Echo and goal must both belong to the authenticated user. This route never
 changes the Echo's canonical container, `echo_entries.goal_id`,
 `echo_entries.brt_user`, or any `echo_entry_links` row.
 
+### `GET /api/constellation/goals/:id/evidence`
+
+Returns the complete current evidence-reference list for one owned goal:
+
+```typescript
+{
+  goal: {
+    id: string,
+    title: string,
+    description: string | null,
+    status: "active" | "draft" | "complete" | "stagnant" | "discovered" | "archived",
+    deadline: string | null,
+    project: { id: string, title: string } | null,
+    vaultId: string | null
+  },
+  items: {
+    id: string,
+    ownerId: string,
+    echoEntryId: string,
+    goalId: string,
+    brtCategory: "bud" | "rose" | "thorn",
+    note: string | null,
+    createdAt: string,
+    updatedAt: string,
+    echo: {
+      id: string,
+      title: string | null,
+      excerpt: string,                // normalized, at most 240 characters
+      excerptTruncated: boolean,
+      createdAt: string
+    }
+  }[]
+}
+```
+
+This read is owner-scoped for both the goal and every returned Echo. It returns
+only the bounded display excerpt needed by the evidence inspector, not full
+Echo content.
+
+### `GET /api/constellation/reflections/:id`
+
+Returns live validation and private evidence details for one active owned
+Reflection node. The route first resolves the node under the authenticated
+owner, then reads its candidate from the owner's character profile and returns
+only contributing Echoes that also resolve under that owner.
+
+```typescript
+{
+  nodeId: string,
+  label: string,
+  description: string | null,
+  candidateKey: string,
+  candidateType: "theme" | "trait" | "tension" | "insight",
+  occurrences: number,
+  aggregatedScore: number | null,
+  firstSeenAt: string | null,
+  lastSeenAt: string | null,
+  dominantValence: "positive" | "negative" | "neutral" | "mixed" | null,
+  valenceHistory: {
+    valence: "positive" | "negative" | "neutral" | "mixed",
+    echoEntryId: string,
+    timestamp: string
+  }[],
+  evidence: {
+    id: string,
+    title: string | null,
+    excerpt: string,                  // normalized, at most 240 characters
+    excerptTruncated: boolean,
+    createdAt: string,
+    valence: "positive" | "negative" | "neutral" | "mixed" | null
+  }[]
+}
+```
+
+Missing, archived, malformed, and non-owned node IDs share the same `404`
+semantics. Full Echo bodies, unavailable Echo IDs, and any local BRT override
+are never returned.
+
+### `GET /api/constellation/goals/:id/echo-options?query=...`
+
+Returns selectable owned Echo entries for one owned goal. An empty query
+returns recent entries; a non-empty query searches owned Echo titles and
+content. The normalized query is limited to 120 characters and the result set
+is bounded.
+
+```typescript
+{
+  goalId: string,
+  query: string,
+  options: {
+    id: string,
+    title: string | null,
+    excerpt: string,                  // normalized, at most 240 characters
+    excerptTruncated: boolean,
+    createdAt: string,
+    existingReference: {
+      id: string,
+      brtCategory: "bud" | "rose" | "thorn"
+    } | null
+  }[]
+}
+```
+
+`existingReference` describes only the Echo/selected-goal pair, so the same
+Echo may remain selectable for another owned goal with a different category.
+These reads do not infer or mutate canonical Echo containment.
+
 ### `PATCH /api/constellation/evidence-references/:id`
 
 Updates one or both mutable fields, `brtCategory` and `note`, on an owned
@@ -826,4 +933,4 @@ PATCH  /api/v1/instance/:id/settings     — instance-level settings
 6. **Never change a field's type** (e.g., `string` → `number`) — that's a breaking change requiring a new endpoint version.
 
 > Contract version: 2.0 — Phase 1 canonical milestone/tracker cutover
-> Last updated: 2026-07-27
+> Last updated: 2026-07-28

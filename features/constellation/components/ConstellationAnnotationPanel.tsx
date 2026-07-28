@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Pressable,
-  ScrollView,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -16,6 +14,7 @@ import type {
   ConstellationEarnedNodeDTO,
   CreateConstellationAnnotationInput,
 } from '../types';
+import { ConstellationInspectorSurface } from './ConstellationInspectorSurface';
 
 const LABEL_MAX_LENGTH = 120;
 const BODY_MAX_LENGTH = 5_000;
@@ -51,8 +50,6 @@ export function ConstellationAnnotationPanel({
   visibleEarnedNodes,
 }: ConstellationAnnotationPanelProps) {
   const colors = useThemeColors();
-  const { width } = useWindowDimensions();
-  const narrow = width < 760;
   const [kind, setKind] = useState<ConstellationAnnotationKind>(
     annotation?.kind ?? initialKind,
   );
@@ -64,6 +61,7 @@ export function ConstellationAnnotationPanel({
   const [labelError, setLabelError] = useState<string | null>(null);
   const [archiveConfirmation, setArchiveConfirmation] = useState(false);
   const [lastAction, setLastAction] = useState<'save' | 'archive'>('save');
+  const [editing, setEditing] = useState(annotation === undefined);
 
   const visibleAnchorIds = useMemo(
     () => new Set(visibleEarnedNodes.map((node) => node.id)),
@@ -83,6 +81,7 @@ export function ConstellationAnnotationPanel({
     setLabelError(null);
     setArchiveConfirmation(false);
     setLastAction('save');
+    setEditing(annotation === undefined);
   }, [annotation?.id, initialKind]);
 
   useEffect(() => {
@@ -130,27 +129,125 @@ export function ConstellationAnnotationPanel({
     : annotation
       ? 'Save changes'
       : `Create ${kindLabel(kind)}`;
+  const anchorNode = annotation?.anchorEarnedNodeId
+    ? visibleEarnedNodes.find(
+        (node) => node.id === annotation.anchorEarnedNodeId,
+      )
+    : undefined;
+
+  if (annotation && !editing) {
+    return (
+      <ConstellationInspectorSurface
+        accessibilityLabel={`${kindLabel(annotation.kind)} inspector for ${annotation.label}`}
+        closeDisabled={mutation.isSaving}
+        onClose={onCancel}
+        selectionKey={annotation.selectionKey}
+      >
+        <View style={{ gap: 7 }}>
+          <Typography
+            variant="section-eyebrow"
+            style={{ color: colors.text.accent }}
+          >
+            {`USER ${kindLabel(annotation.kind).toUpperCase()} · DRAFT`}
+          </Typography>
+          <Typography accessibilityRole="header" numberOfLines={3} variant="heading">
+            {annotation.label}
+          </Typography>
+          <Typography numberOfLines={6} variant="description">
+            {annotation.body ?? 'No private body text was added to this draft.'}
+          </Typography>
+        </View>
+
+        <View
+          style={{
+            backgroundColor: colors.background.subtle,
+            borderRadius: 10,
+            gap: 5,
+            padding: 13,
+          }}
+        >
+          <Typography variant="caption">Anchor</Typography>
+          <Typography variant="label">
+            {anchorNode?.label ?? 'No active earned-node anchor'}
+          </Typography>
+          <Typography variant="caption">
+            User-authored drafts never change earned patterns, evidence, or
+            system confidence.
+          </Typography>
+        </View>
+
+        {mutation.error ? (
+          <View
+            accessibilityRole="alert"
+            style={{
+              backgroundColor: colors.feedback.danger.bg,
+              borderColor: colors.feedback.danger.border,
+              borderRadius: 10,
+              borderWidth: 1,
+              gap: 4,
+              padding: 12,
+            }}
+          >
+            <Typography
+              variant="label"
+              style={{ color: colors.feedback.danger.text }}
+            >
+              Archive failed
+            </Typography>
+            <Typography
+              variant="caption"
+              style={{ color: colors.feedback.danger.text }}
+            >
+              {mutation.error}
+            </Typography>
+          </View>
+        ) : null}
+
+        <View style={{ gap: 9, marginTop: 'auto' }}>
+          <Button
+            disabled={mutation.isSaving}
+            onPress={() => {
+              setArchiveConfirmation(false);
+              setEditing(true);
+            }}
+            variant="secondary"
+          >
+            Edit
+          </Button>
+          <Button
+            accessibilityLabel={
+              archiveConfirmation
+                ? 'Confirm archive annotation'
+                : 'Archive annotation'
+            }
+            loading={mutation.isSaving && lastAction === 'archive'}
+            onPress={() => void archive()}
+            variant="danger"
+          >
+            {mutation.error && mutation.retryable
+              ? 'Retry archive'
+              : archiveConfirmation
+                ? 'Confirm archive'
+                : 'Archive'}
+          </Button>
+          {archiveConfirmation && !mutation.isSaving ? (
+            <Typography variant="caption" style={{ textAlign: 'center' }}>
+              This removes the draft from the active graph while retaining its
+              archived account record.
+            </Typography>
+          ) : null}
+        </View>
+      </ConstellationInspectorSurface>
+    );
+  }
 
   return (
-    <View
-      accessibilityLabel={`${title} annotation panel`}
-      style={{
-        backgroundColor: colors.background.card,
-        borderColor: colors.border.warm,
-        borderLeftWidth: narrow ? 0 : 1,
-        flex: narrow ? 1 : undefined,
-        minHeight: 0,
-        width: narrow ? '100%' : 390,
-      }}
+    <ConstellationInspectorSurface
+      accessibilityLabel={`${title} annotation inspector`}
+      closeDisabled={mutation.isSaving}
+      onClose={onCancel}
+      selectionKey={annotation?.selectionKey}
     >
-      <ScrollView
-        contentContainerStyle={{
-          flexGrow: 1,
-          gap: 22,
-          padding: narrow ? 20 : 26,
-        }}
-        keyboardShouldPersistTaps="handled"
-      >
         <View style={{ gap: 7 }}>
           <Typography
             variant="section-eyebrow"
@@ -158,7 +255,7 @@ export function ConstellationAnnotationPanel({
           >
             USER-AUTHORED · DRAFT
           </Typography>
-          <Typography accessibilityRole="header" variant="heading">
+          <Typography accessibilityRole="header" numberOfLines={3} variant="heading">
             {title}
           </Typography>
           <Typography variant="description">
@@ -345,7 +442,7 @@ export function ConstellationAnnotationPanel({
         <View style={{ gap: 9, marginTop: 'auto' }}>
           <View
             style={{
-              flexDirection: narrow ? 'column-reverse' : 'row',
+              flexDirection: 'row',
               gap: 8,
             }}
           >
@@ -353,7 +450,7 @@ export function ConstellationAnnotationPanel({
               accessibilityLabel="Cancel annotation changes"
               disabled={mutation.isSaving}
               onPress={onCancel}
-              style={{ flex: narrow ? undefined : 1 }}
+              style={{ flex: 1 }}
               variant="secondary"
             >
               Cancel
@@ -362,7 +459,7 @@ export function ConstellationAnnotationPanel({
               accessibilityLabel={saveLabel}
               loading={mutation.isSaving && lastAction === 'save'}
               onPress={() => void save()}
-              style={{ flex: narrow ? undefined : 1 }}
+              style={{ flex: 1 }}
             >
               {saveLabel}
             </Button>
@@ -397,7 +494,6 @@ export function ConstellationAnnotationPanel({
             </Typography>
           ) : null}
         </View>
-      </ScrollView>
-    </View>
+    </ConstellationInspectorSurface>
   );
 }

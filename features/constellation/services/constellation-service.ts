@@ -4,13 +4,24 @@ import {
 } from '@/lib/api/client';
 import {
   parseConstellationAnnotationDTO,
+  parseConstellationEchoSearchDTO,
+  parseConstellationEvidenceLinkDTO,
+  parseConstellationGoalEvidenceDTO,
   parseConstellationGraphDTO,
+  parseConstellationReflectionInspectorDTO,
 } from '../dto';
 import type {
   ConstellationAnnotationDTO,
+  ConstellationDeleteResult,
+  ConstellationEchoSearchDTO,
+  ConstellationEvidenceLink,
   ConstellationGraphDTO,
+  ConstellationGoalEvidenceDTO,
+  ConstellationReflectionInspectorDTO,
   CreateConstellationAnnotationInput,
+  CreateConstellationEvidenceReferenceInput,
   UpdateConstellationAnnotationInput,
+  UpdateConstellationEvidenceReferenceInput,
 } from '../types';
 
 export class ConstellationServiceError extends Error {
@@ -145,6 +156,168 @@ export function archiveConstellationAnnotation(
     { method: 'POST', signal },
     'The annotation could not be archived.',
   );
+}
+
+async function evidenceRequest(
+  path: string,
+  init: RequestInit,
+  fallback: string,
+): Promise<unknown> {
+  let response: Response;
+  try {
+    response = await authedFetch(path, init);
+  } catch (error) {
+    if (isAbortError(error)) throw error;
+    if (error instanceof UnauthorizedError) {
+      throw new ConstellationServiceError(
+        'Your session ended. Sign in again to view private Constellation details.',
+        false,
+      );
+    }
+    throw new ConstellationServiceError(
+      `${fallback} Check your connection and try again.`,
+    );
+  }
+
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    throw new ConstellationServiceError(
+      response.ok ? `${fallback} The response was unreadable.` : fallback,
+      response.status >= 500 || response.status === 408 || response.status === 429,
+    );
+  }
+  if (!response.ok) {
+    throw new ConstellationServiceError(
+      mutationMessage(body, fallback),
+      response.status >= 500 || response.status === 408 || response.status === 429,
+    );
+  }
+  return isRecord(body) && body.ok === true ? body.data : null;
+}
+
+export async function fetchConstellationGoalEvidence(
+  goalId: string,
+  signal?: AbortSignal,
+): Promise<ConstellationGoalEvidenceDTO> {
+  const data = await evidenceRequest(
+    `/api/constellation/goals/${encodeURIComponent(goalId)}/evidence`,
+    { method: 'GET', signal },
+    'Goal evidence could not be loaded.',
+  );
+  const dto = parseConstellationGoalEvidenceDTO(data);
+  if (!dto) {
+    throw new ConstellationServiceError(
+      'Goal evidence returned an invalid response.',
+    );
+  }
+  return dto;
+}
+
+export async function fetchConstellationReflectionInspector(
+  nodeId: string,
+  signal?: AbortSignal,
+): Promise<ConstellationReflectionInspectorDTO> {
+  const data = await evidenceRequest(
+    `/api/constellation/reflections/${encodeURIComponent(nodeId)}`,
+    { method: 'GET', signal },
+    'Reflection details could not be loaded.',
+  );
+  const dto = parseConstellationReflectionInspectorDTO(data);
+  if (!dto || dto.nodeId !== nodeId) {
+    throw new ConstellationServiceError(
+      'Reflection details returned an invalid response.',
+    );
+  }
+  return dto;
+}
+
+export async function searchConstellationEchoes(
+  goalId: string,
+  query: string,
+  signal?: AbortSignal,
+): Promise<ConstellationEchoSearchDTO> {
+  const data = await evidenceRequest(
+    `/api/constellation/goals/${encodeURIComponent(goalId)}/echo-options?query=${encodeURIComponent(query)}`,
+    { method: 'GET', signal },
+    'Echo entries could not be searched.',
+  );
+  const dto = parseConstellationEchoSearchDTO(data);
+  if (!dto) {
+    throw new ConstellationServiceError(
+      'Echo search returned an invalid response.',
+    );
+  }
+  return dto;
+}
+
+export async function createConstellationEvidenceReference(
+  input: CreateConstellationEvidenceReferenceInput,
+  signal?: AbortSignal,
+): Promise<ConstellationEvidenceLink> {
+  const data = await evidenceRequest(
+    '/api/constellation/evidence-references',
+    {
+      body: JSON.stringify(input),
+      headers: { 'content-type': 'application/json' },
+      method: 'POST',
+      signal,
+    },
+    'The Echo reference could not be added.',
+  );
+  const link = parseConstellationEvidenceLinkDTO(data);
+  if (!link) {
+    throw new ConstellationServiceError(
+      'The Echo reference returned an invalid response.',
+    );
+  }
+  return link;
+}
+
+export async function updateConstellationEvidenceReference(
+  evidenceReferenceId: string,
+  input: UpdateConstellationEvidenceReferenceInput,
+  signal?: AbortSignal,
+): Promise<ConstellationEvidenceLink> {
+  const data = await evidenceRequest(
+    `/api/constellation/evidence-references/${encodeURIComponent(evidenceReferenceId)}`,
+    {
+      body: JSON.stringify(input),
+      headers: { 'content-type': 'application/json' },
+      method: 'PATCH',
+      signal,
+    },
+    'The Echo reference could not be updated.',
+  );
+  const link = parseConstellationEvidenceLinkDTO(data);
+  if (!link) {
+    throw new ConstellationServiceError(
+      'The Echo reference returned an invalid response.',
+    );
+  }
+  return link;
+}
+
+export async function deleteConstellationEvidenceReference(
+  evidenceReferenceId: string,
+  signal?: AbortSignal,
+): Promise<ConstellationDeleteResult> {
+  const data = await evidenceRequest(
+    `/api/constellation/evidence-references/${encodeURIComponent(evidenceReferenceId)}`,
+    { method: 'DELETE', signal },
+    'The Echo reference could not be unlinked.',
+  );
+  if (
+    !isRecord(data)
+    || typeof data.id !== 'string'
+    || data.id !== evidenceReferenceId
+  ) {
+    throw new ConstellationServiceError(
+      'The unlink response was invalid.',
+    );
+  }
+  return { id: data.id };
 }
 
 export async function fetchConstellationGraph(

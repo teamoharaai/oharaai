@@ -1,9 +1,11 @@
 import { Pressable, Text, View, type ViewStyle } from 'react-native';
+import { useState } from 'react';
 import type {
   ConstellationGraphViewModel,
   ConstellationGraphViewNode,
 } from '../types.ts';
 import type { ConstellationVisualTokens } from '../visual-tokens.ts';
+import { constellationNodeFocusId } from './ConstellationInspectorSurface';
 
 interface ConstellationAccessibleListProps {
   graph: ConstellationGraphViewModel;
@@ -24,6 +26,19 @@ function nodeDescription(node: ConstellationGraphViewNode): string {
   }
 }
 
+function edgeDescription(
+  edge: ConstellationGraphViewModel['edges'][number],
+  nodes: readonly ConstellationGraphViewNode[],
+): string {
+  const from = nodes.find((node) => node.id === edge.from.id);
+  const to = nodes.find((node) => node.id === edge.to.id);
+  const fromLabel = from ? nodeDescription(from) : 'Unavailable source';
+  const toLabel = to ? nodeDescription(to) : 'Unavailable destination';
+  const relationship = edge.kind.replaceAll('_', ' ');
+  const valence = edge.valence ? `, ${edge.valence} valence` : '';
+  return `${fromLabel} connects to ${toLabel}: ${relationship}${valence}.`;
+}
+
 export function ConstellationAccessibleList({
   graph,
   hiddenVisually = false,
@@ -31,6 +46,7 @@ export function ConstellationAccessibleList({
   selectedKey,
   tokens,
 }: ConstellationAccessibleListProps) {
+  const [focusedKey, setFocusedKey] = useState<string | null>(null);
   const hiddenStyle: ViewStyle | undefined = hiddenVisually
     ? {
         height: 1,
@@ -61,25 +77,44 @@ export function ConstellationAccessibleList({
       ) : null}
       {graph.nodes.map((node) => {
         const selected = node.selectionKey === selectedKey;
+        if (hiddenVisually) {
+          return (
+            <Text
+              key={`${node.entityType}:${node.selectionKey}`}
+              style={{
+                color: tokens.text.primary,
+                fontFamily: 'Inter-Medium',
+                fontSize: 1,
+              }}
+            >
+              {nodeDescription(node)}
+            </Text>
+          );
+        }
         return (
           <Pressable
             accessibilityLabel={nodeDescription(node)}
             accessibilityRole="button"
             accessibilityState={{ selected }}
             key={`${node.entityType}:${node.selectionKey}`}
+            nativeID={constellationNodeFocusId(node.selectionKey)}
+            onBlur={() => setFocusedKey(null)}
+            onFocus={() => setFocusedKey(node.selectionKey)}
             onPress={() => onSelect(node.selectionKey)}
             style={{
-              borderColor: selected ? tokens.node.selection : tokens.panel.border,
+              borderColor: selected || focusedKey === node.selectionKey
+                ? tokens.node.selection
+                : tokens.panel.border,
               borderRadius: 10,
-              borderWidth: 1,
-              padding: hiddenVisually ? 0 : 12,
+              borderWidth: selected || focusedKey === node.selectionKey ? 2 : 1,
+              padding: 12,
             }}
           >
             <Text
               style={{
                 color: tokens.text.primary,
                 fontFamily: 'Inter-Medium',
-                fontSize: hiddenVisually ? 1 : 14,
+                fontSize: 14,
               }}
             >
               {nodeDescription(node)}
@@ -87,6 +122,22 @@ export function ConstellationAccessibleList({
           </Pressable>
         );
       })}
+      <View accessibilityLabel={`${graph.edges.length} graph connection summaries`} style={{ gap: 6 }}>
+        <Text
+          accessibilityRole="header"
+          style={{ color: tokens.text.primary, fontFamily: 'Inter-SemiBold', fontSize: hiddenVisually ? 1 : 14 }}
+        >
+          Connections
+        </Text>
+        {graph.edges.map((edge) => (
+          <Text
+            key={edge.id}
+            style={{ color: tokens.text.secondary, fontFamily: 'Inter-Regular', fontSize: hiddenVisually ? 1 : 13 }}
+          >
+            {edgeDescription(edge, graph.nodes)}
+          </Text>
+        ))}
+      </View>
     </View>
   );
 }

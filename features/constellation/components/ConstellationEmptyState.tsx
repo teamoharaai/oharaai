@@ -1,5 +1,4 @@
 import {
-  ActivityIndicator,
   View,
   useWindowDimensions,
 } from 'react-native';
@@ -19,6 +18,7 @@ import type {
   ConstellationRenderState,
 } from '../types';
 import { ConstellationSeedPreview } from './ConstellationSeedPreview';
+import { ConstellationLoadingMark } from './ConstellationLoadingMark';
 
 type EmptyRenderState = Extract<
   ConstellationRenderState,
@@ -287,7 +287,7 @@ export function ConstellationEmptyState({
               >
                 {isRefreshing ? (
                   <View style={{ alignItems: 'center', flexDirection: 'row', gap: 7 }}>
-                    <ActivityIndicator color={colors.accent.primary} size="small" />
+                    <ConstellationLoadingMark color={colors.accent.primary} />
                     <Typography variant="label">Refreshing…</Typography>
                   </View>
                 ) : 'Refresh'}

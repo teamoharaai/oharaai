@@ -12,9 +12,19 @@ import type {
   ConstellationSnapshot,
 } from '../../features/constellation/services/constellation-server-core.ts';
 import type {
+  ConstellationBrtCategory,
+  ConstellationEchoSearchDTO,
+  ConstellationEchoSearchOption,
+  ConstellationEvidenceEchoSummary,
+  ConstellationGoalEvidenceDTO,
+  ConstellationGoalEvidenceItem,
+  ConstellationReflectionInspectorDTO,
+  ConstellationReflectionValence,
+  ConstellationReflectionValenceEvent,
   CreateConstellationAnnotationInput,
   CreateConstellationEvidenceReferenceInput,
 } from '../../features/constellation/types.ts';
+import type { GoalDbStatus } from '../goals/schema.ts';
 import supabase from './client.ts';
 
 type DbClient = SupabaseClient;
@@ -74,10 +84,47 @@ const EVIDENCE_REFERENCE_COLUMNS = [
   'created_at',
   'updated_at',
 ].join(', ');
+const ECHO_EVIDENCE_COLUMNS = [
+  'id',
+  'title',
+  'content',
+  'created_at',
+].join(', ');
+const ECHO_EXCERPT_MAX_LENGTH = 240;
+const ECHO_SEARCH_RESULT_LIMIT = 50;
+
+interface ConstellationEvidenceEchoRow {
+  id: string;
+  title: string | null;
+  content: string;
+  created_at: string;
+}
+
+interface ConstellationGoalSummaryRow {
+  id: string;
+  title: string;
+  description: string | null;
+  status: GoalDbStatus;
+  deadline: string | null;
+  project_id: string | null;
+}
+
+interface ConstellationProjectSummaryRow {
+  id: string;
+  title: string;
+}
+
+interface ConstellationVaultSummaryRow {
+  id: string;
+}
 
 interface PageResult {
   data: unknown;
   error: unknown;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 async function fetchPagedRows<TRow>(
@@ -241,6 +288,418 @@ export async function loadConstellationSnapshot(
     echoEntryCount,
     characterProfile,
   };
+}
+
+function evidenceExcerpt(content: string): {
+  excerpt: string;
+  excerptTruncated: boolean;
+} {
+  const normalized = content.trim().replace(/\s+/g, ' ');
+  if (normalized.length <= ECHO_EXCERPT_MAX_LENGTH) {
+    return { excerpt: normalized, excerptTruncated: false };
+  }
+  return {
+    excerpt: `${normalized.slice(0, ECHO_EXCERPT_MAX_LENGTH - 1).trimEnd()}…`,
+    excerptTruncated: true,
+  };
+}
+
+function mapEvidenceEcho(
+  row: ConstellationEvidenceEchoRow,
+): ConstellationEvidenceEchoSummary {
+  return {
+    id: row.id,
+    title: row.title,
+    ...evidenceExcerpt(row.content),
+    createdAt: row.created_at,
+  };
+}
+
+async function findOwnedGoalSummary(
+  ownerId: string,
+  goalId: string,
+  client: DbClient,
+): Promise<ConstellationGoalSummaryRow | null> {
+  const { data, error } = await client
+    .from('goals')
+    .select('id, title, description, status, deadline, project_id')
+    .eq('id', goalId)
+    .eq('user_id', ownerId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as unknown as ConstellationGoalSummaryRow | null;
+}
+
+async function loadGoalInspectorDestinations(
+  ownerId: string,
+  goal: ConstellationGoalSummaryRow,
+  client: DbClient,
+): Promise<{
+  project: ConstellationProjectSummaryRow | null;
+  vaultId: string | null;
+}> {
+  const [projectResult, vaultResult] = await Promise.all([
+    goal.project_id
+      ? client
+          .from('projects')
+          .select('id, title')
+          .eq('id', goal.project_id)
+          .eq('user_id', ownerId)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    client
+      .from('vaults')
+      .select('id')
+      .eq('goal_id', goal.id)
+      .eq('user_id', ownerId)
+      .maybeSingle(),
+  ]);
+  if (projectResult.error) throw projectResult.error;
+  if (vaultResult.error) throw vaultResult.error;
+
+  return {
+    project: projectResult.data as unknown as ConstellationProjectSummaryRow | null,
+    vaultId: (
+      vaultResult.data as unknown as ConstellationVaultSummaryRow | null
+    )?.id ?? null,
+  };
+}
+
+async function fetchEvidenceReferencesForGoal(
+  ownerId: string,
+  goalId: string,
+  client: DbClient,
+): Promise<ConstellationEvidenceReferenceRow[]> {
+  return fetchPagedRows((from, to) => client
+    .from('constellation_evidence_links')
+    .select(EVIDENCE_REFERENCE_COLUMNS)
+    .eq('owner_id', ownerId)
+    .eq('goal_id', goalId)
+    .order('updated_at', { ascending: false })
+    .order('id', { ascending: true })
+    .range(from, to));
+}
+
+async function fetchOwnedEvidenceEchoesById(
+  ownerId: string,
+  echoEntryIds: readonly string[],
+  client: DbClient,
+): Promise<ConstellationEvidenceEchoRow[]> {
+  const rows: ConstellationEvidenceEchoRow[] = [];
+  const batchSize = 200;
+
+  for (let index = 0; index < echoEntryIds.length; index += batchSize) {
+    const ids = echoEntryIds.slice(index, index + batchSize);
+    const { data, error } = await client
+      .from('echo_entries')
+      .select(ECHO_EVIDENCE_COLUMNS)
+      .eq('user_id', ownerId)
+      .in('id', [...ids]);
+    if (error) throw error;
+    if (Array.isArray(data)) {
+      rows.push(...data as unknown as ConstellationEvidenceEchoRow[]);
+    }
+  }
+
+  return rows;
+}
+
+/**
+ * Returns a selected owner's goal evidence with only bounded Echo excerpts.
+ * The canonical Echo container and Echo-level BRT fields are not selected.
+ */
+export async function loadConstellationGoalEvidence(
+  ownerId: string,
+  goalId: string,
+  client: DbClient = supabase,
+): Promise<ConstellationGoalEvidenceDTO | null> {
+  const goal = await findOwnedGoalSummary(ownerId, goalId, client);
+  if (!goal) return null;
+
+  const references = await fetchEvidenceReferencesForGoal(
+    ownerId,
+    goalId,
+    client,
+  );
+  const echoRows = await fetchOwnedEvidenceEchoesById(
+    ownerId,
+    references.map((reference) => reference.echo_entry_id),
+    client,
+  );
+  const echoById = new Map(echoRows.map((row) => [row.id, row]));
+  const destinations = await loadGoalInspectorDestinations(
+    ownerId,
+    goal,
+    client,
+  );
+  const items: ConstellationGoalEvidenceItem[] = references.flatMap(
+    (reference) => {
+      const echo = echoById.get(reference.echo_entry_id);
+      if (!echo) return [];
+      return [{
+        id: reference.id,
+        ownerId: reference.owner_id,
+        echoEntryId: reference.echo_entry_id,
+        goalId: reference.goal_id,
+        brtCategory: reference.brt_category as ConstellationGoalEvidenceItem['brtCategory'],
+        note: reference.note,
+        createdAt: reference.created_at,
+        updatedAt: reference.updated_at,
+        echo: mapEvidenceEcho(echo),
+      }];
+    },
+  );
+
+  return {
+    goal: {
+      id: goal.id,
+      title: goal.title,
+      description: goal.description,
+      status: goal.status,
+      deadline: goal.deadline,
+      project: destinations.project,
+      vaultId: destinations.vaultId,
+    },
+    items,
+  };
+}
+
+function reflectionCandidateType(
+  value: unknown,
+): ConstellationReflectionInspectorDTO['candidateType'] | null {
+  return value === 'theme'
+    || value === 'trait'
+    || value === 'tension'
+    || value === 'insight'
+    ? value
+    : null;
+}
+
+function reflectionValence(
+  value: unknown,
+): ConstellationReflectionValence | null {
+  return value === 'positive'
+    || value === 'negative'
+    || value === 'neutral'
+    || value === 'mixed'
+    ? value
+    : null;
+}
+
+function finiteNonNegativeNumber(value: unknown): number | null {
+  return typeof value === 'number'
+    && Number.isFinite(value)
+    && value >= 0
+    ? value
+    : null;
+}
+
+function nullableIsoString(value: unknown): string | null {
+  return typeof value === 'string' && Number.isFinite(Date.parse(value))
+    ? value
+    : null;
+}
+
+function candidateEchoIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter(
+    (id): id is string => typeof id === 'string' && id.length > 0 && id.length <= 200,
+  ))].slice(0, 500);
+}
+
+function candidateValenceHistory(
+  value: unknown,
+): ConstellationReflectionValenceEvent[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((event) => {
+    if (!isRecord(event)) return [];
+    const valence = reflectionValence(event.valence);
+    const echoEntryId = typeof event.echo_id === 'string'
+      ? event.echo_id
+      : null;
+    const timestamp = nullableIsoString(event.timestamp);
+    return valence && echoEntryId && timestamp
+      ? [{ valence, echoEntryId, timestamp }]
+      : [];
+  });
+}
+
+function dominantReflectionValence(
+  history: readonly ConstellationReflectionValenceEvent[],
+): ConstellationReflectionValence | null {
+  if (history.length === 0) return null;
+  const counts: Record<ConstellationReflectionValence, number> = {
+    positive: 0,
+    negative: 0,
+    neutral: 0,
+    mixed: 0,
+  };
+  for (const event of history) counts[event.valence] += 1;
+  return (Object.keys(counts) as ConstellationReflectionValence[])
+    .sort((left, right) => counts[right] - counts[left])[0] ?? null;
+}
+
+/**
+ * Loads private Reflection evidence only after resolving an active owner node.
+ * Full Echo bodies remain inside this server data function and are reduced to
+ * the same bounded summaries used by goal evidence before they are returned.
+ */
+export async function loadConstellationReflectionInspector(
+  ownerId: string,
+  nodeId: string,
+  client: DbClient = supabase,
+): Promise<ConstellationReflectionInspectorDTO | null> {
+  const { data: nodeData, error: nodeError } = await client
+    .from('constellation_nodes')
+    .select('id, label, description, source_key')
+    .eq('id', nodeId)
+    .eq('owner_id', ownerId)
+    .eq('kind', 'reflection')
+    .eq('status', 'active')
+    .maybeSingle();
+  if (nodeError) throw nodeError;
+  if (
+    !isRecord(nodeData)
+    || typeof nodeData.id !== 'string'
+    || typeof nodeData.label !== 'string'
+    || typeof nodeData.source_key !== 'string'
+  ) {
+    return null;
+  }
+
+  const characterProfile = await fetchCharacterProfile(ownerId, client);
+  const candidates = isRecord(characterProfile)
+    ? characterProfile.constellation_candidates
+    : null;
+  const candidate = isRecord(candidates)
+    ? candidates[nodeData.source_key]
+    : null;
+  const type = isRecord(candidate)
+    ? reflectionCandidateType(candidate.type)
+    : null;
+  if (!isRecord(candidate) || !type) return null;
+
+  const echoIds = candidateEchoIds(candidate.source_echo_ids);
+  const history = candidateValenceHistory(candidate.valence_history);
+  const echoRows = await fetchOwnedEvidenceEchoesById(
+    ownerId,
+    echoIds,
+    client,
+  );
+  const ownedEchoIds = new Set(echoRows.map((row) => row.id));
+  const ownedHistory = history.filter((event) => (
+    ownedEchoIds.has(event.echoEntryId)
+  ));
+  const latestValenceByEchoId = new Map<string, ConstellationReflectionValence>();
+  for (const event of ownedHistory) {
+    latestValenceByEchoId.set(event.echoEntryId, event.valence);
+  }
+  const evidence = echoRows
+    .sort((left, right) => (
+      right.created_at.localeCompare(left.created_at)
+      || left.id.localeCompare(right.id)
+    ))
+    .map((row) => ({
+      ...mapEvidenceEcho(row),
+      valence: latestValenceByEchoId.get(row.id) ?? null,
+    }));
+
+  return {
+    nodeId: nodeData.id,
+    label: nodeData.label,
+    description: typeof nodeData.description === 'string'
+      ? nodeData.description
+      : null,
+    candidateKey: nodeData.source_key,
+    candidateType: type,
+    occurrences: Math.floor(finiteNonNegativeNumber(candidate.occurrences) ?? echoIds.length),
+    aggregatedScore: finiteNonNegativeNumber(candidate.aggregated_score),
+    firstSeenAt: nullableIsoString(candidate.first_seen),
+    lastSeenAt: nullableIsoString(candidate.last_seen),
+    dominantValence: dominantReflectionValence(ownedHistory),
+    valenceHistory: ownedHistory,
+    evidence,
+  };
+}
+
+function literalIlikePattern(query: string): string {
+  return `%${query.replace(/[\\%_]/g, '\\$&')}%`;
+}
+
+async function searchOwnedEchoRows(
+  ownerId: string,
+  query: string,
+  client: DbClient,
+): Promise<ConstellationEvidenceEchoRow[]> {
+  const baseQuery = () => client
+    .from('echo_entries')
+    .select(ECHO_EVIDENCE_COLUMNS)
+    .eq('user_id', ownerId)
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: true })
+    .limit(ECHO_SEARCH_RESULT_LIMIT);
+
+  if (query.length === 0) {
+    const { data, error } = await baseQuery();
+    if (error) throw error;
+    return Array.isArray(data)
+      ? data as unknown as ConstellationEvidenceEchoRow[]
+      : [];
+  }
+
+  const pattern = literalIlikePattern(query);
+  const [titleResult, contentResult] = await Promise.all([
+    baseQuery().ilike('title', pattern),
+    baseQuery().ilike('content', pattern),
+  ]);
+  if (titleResult.error) throw titleResult.error;
+  if (contentResult.error) throw contentResult.error;
+
+  const unique = new Map<string, ConstellationEvidenceEchoRow>();
+  for (const row of [
+    ...(Array.isArray(titleResult.data) ? titleResult.data : []),
+    ...(Array.isArray(contentResult.data) ? contentResult.data : []),
+  ] as unknown as ConstellationEvidenceEchoRow[]) {
+    unique.set(row.id, row);
+  }
+  return [...unique.values()]
+    .sort((left, right) => (
+      right.created_at.localeCompare(left.created_at)
+      || left.id.localeCompare(right.id)
+    ))
+    .slice(0, ECHO_SEARCH_RESULT_LIMIT);
+}
+
+export async function searchConstellationEchoOptions(
+  ownerId: string,
+  goalId: string,
+  query: string,
+  client: DbClient = supabase,
+): Promise<ConstellationEchoSearchDTO | null> {
+  const goal = await findOwnedGoalSummary(ownerId, goalId, client);
+  if (!goal) return null;
+
+  const [echoRows, references] = await Promise.all([
+    searchOwnedEchoRows(ownerId, query, client),
+    fetchEvidenceReferencesForGoal(ownerId, goalId, client),
+  ]);
+  const referenceByEchoId = new Map(
+    references.map((reference) => [reference.echo_entry_id, reference]),
+  );
+  const options: ConstellationEchoSearchOption[] = echoRows.map((row) => {
+    const existing = referenceByEchoId.get(row.id);
+    return {
+      ...mapEvidenceEcho(row),
+      existingReference: existing
+        ? {
+            id: existing.id,
+            brtCategory: existing.brt_category as ConstellationBrtCategory,
+          }
+        : null,
+    };
+  });
+
+  return { goalId: goal.id, query, options };
 }
 
 async function rowExists(

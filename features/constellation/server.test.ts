@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { GET as getConstellationRoute } from '../../app/api/constellation/index+api.ts';
 import {
+  GET as getReflectionInspectorRoute,
+} from '../../app/api/constellation/reflections/[id]+api.ts';
+import {
   constellationErrorResponse,
   parseCreateAnnotationRequest,
   parseCreateEvidenceReferenceRequest,
@@ -282,6 +285,19 @@ test('GET /api/constellation rejects unauthenticated requests with the stable en
   });
 });
 
+test('GET Reflection inspector rejects unauthenticated IDs without disclosing data', async () => {
+  const response = await getReflectionInspectorRoute(
+    new Request(`http://localhost/api/constellation/reflections/${NODE_ID}`),
+    { id: NODE_ID },
+  );
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), {
+    ok: false,
+    data: null,
+    error: { code: 'UNAUTHORIZED', message: 'Unauthorized' },
+  });
+});
+
 test('eligible empty graphs return one deterministic real Season and no fixtures', () => {
   const graph = assembleConstellationGraphDTO(
     OWNER_ID,
@@ -541,6 +557,46 @@ test('evidence writes verify ownership before any insert or update', async () =>
   );
   assert.equal(repository.evidenceInsertCount, 0);
   assert.equal(repository.evidenceUpdateCount, 0);
+});
+
+test('owned goals cannot reference a cross-user Echo and owned Echoes cannot reference a cross-user goal', async () => {
+  const foreignEchoRepository = new MemoryConstellationRepository();
+  foreignEchoRepository.ownedEchoEntries.delete(ECHO_ID);
+  await assert.rejects(
+    createOrUpdateConstellationEvidenceReference(
+      OWNER_ID,
+      {
+        echoEntryId: ECHO_ID,
+        goalId: GOAL_A_ID,
+        brtCategory: 'bud',
+        note: null,
+      },
+      foreignEchoRepository,
+    ),
+    (error) =>
+      error instanceof ConstellationDataError
+      && error.code === 'NOT_FOUND',
+  );
+  assert.equal(foreignEchoRepository.evidenceInsertCount, 0);
+
+  const foreignGoalRepository = new MemoryConstellationRepository();
+  foreignGoalRepository.ownedGoals.delete(GOAL_A_ID);
+  await assert.rejects(
+    createOrUpdateConstellationEvidenceReference(
+      OWNER_ID,
+      {
+        echoEntryId: ECHO_ID,
+        goalId: GOAL_A_ID,
+        brtCategory: 'rose',
+        note: null,
+      },
+      foreignGoalRepository,
+    ),
+    (error) =>
+      error instanceof ConstellationDataError
+      && error.code === 'NOT_FOUND',
+  );
+  assert.equal(foreignGoalRepository.evidenceInsertCount, 0);
 });
 
 test('annotation creation, editing, archival, and archived conflict are deterministic', async () => {

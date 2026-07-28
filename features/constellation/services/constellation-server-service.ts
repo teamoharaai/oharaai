@@ -1,11 +1,15 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   createConstellationMutationRepository,
+  loadConstellationGoalEvidence,
+  loadConstellationReflectionInspector,
   loadConstellationSnapshot,
+  searchConstellationEchoOptions,
 } from '../../../lib/db/constellation.ts';
 import {
   archiveConstellationAnnotation,
   assembleConstellationGraphDTO,
+  ConstellationDataError,
   createConstellationAnnotation,
   createOrUpdateConstellationEvidenceReference,
   deleteConstellationEvidenceReference,
@@ -15,9 +19,12 @@ import {
 import type {
   ConstellationAnnotationDTO,
   ConstellationDeleteResult,
+  ConstellationEchoSearchDTO,
   ConstellationEvidenceLink,
   ConstellationEvidenceReferenceWriteResult,
   ConstellationGraphDTO,
+  ConstellationGoalEvidenceDTO,
+  ConstellationReflectionInspectorDTO,
   CreateConstellationAnnotationInput,
   CreateConstellationEvidenceReferenceInput,
   UpdateConstellationAnnotationInput,
@@ -35,6 +42,56 @@ export async function getConstellationGraph(
     snapshot,
     generatedAt ?? new Date().toISOString(),
   );
+}
+
+export async function getConstellationGoalEvidence(
+  ownerId: string,
+  goalId: string,
+  client: SupabaseClient,
+): Promise<ConstellationGoalEvidenceDTO> {
+  const result = await loadConstellationGoalEvidence(
+    ownerId,
+    goalId,
+    client,
+  );
+  if (!result) {
+    throw new ConstellationDataError('NOT_FOUND', 'Goal not found.');
+  }
+  return result;
+}
+
+export async function getConstellationReflectionInspector(
+  ownerId: string,
+  nodeId: string,
+  client: SupabaseClient,
+): Promise<ConstellationReflectionInspectorDTO> {
+  const result = await loadConstellationReflectionInspector(
+    ownerId,
+    nodeId,
+    client,
+  );
+  if (!result) {
+    throw new ConstellationDataError('NOT_FOUND', 'Reflection not found.');
+  }
+  return result;
+}
+
+export async function getConstellationEchoOptions(
+  ownerId: string,
+  goalId: string,
+  query: string,
+  client: SupabaseClient,
+): Promise<ConstellationEchoSearchDTO> {
+  const result = await searchConstellationEchoOptions(
+    ownerId,
+    goalId,
+    query,
+    client,
+  );
+  if (!result) {
+    throw new ConstellationDataError('NOT_FOUND', 'Goal not found.');
+  }
+  return result;
 }
 
 export function addConstellationAnnotation(

@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { parseConstellationGraphDTO } from './dto.ts';
+import {
+  parseConstellationEchoSearchDTO,
+  parseConstellationGoalEvidenceDTO,
+  parseConstellationGraphDTO,
+  parseConstellationReflectionInspectorDTO,
+} from './dto.ts';
 import { constellationFixtureGraph } from './fixtures.ts';
 
 function cloneFixture(): Record<string, unknown> {
@@ -45,4 +50,123 @@ test('locked DTOs expose counts but no owner graph entities', () => {
 
   locked.annotations = constellationFixtureGraph.annotations;
   assert.equal(parseConstellationGraphDTO(locked), null);
+});
+
+test('goal evidence and Echo search DTOs reject mismatched goal or Echo identities', () => {
+  const goal = {
+    id: 'goal-id',
+    title: 'Owned goal',
+    description: 'A live goal description.',
+    status: 'active',
+    deadline: null,
+    project: null,
+    vaultId: 'vault-id',
+  };
+  const item = {
+    id: 'reference-id',
+    ownerId: 'owner-id',
+    echoEntryId: 'echo-id',
+    goalId: 'goal-id',
+    brtCategory: 'bud',
+    note: null,
+    createdAt: '2026-07-28T12:00:00.000Z',
+    updatedAt: '2026-07-28T12:00:00.000Z',
+    echo: {
+      id: 'echo-id',
+      title: 'Owned Echo',
+      excerpt: 'A bounded excerpt.',
+      excerptTruncated: false,
+      createdAt: '2026-07-28T11:00:00.000Z',
+    },
+  };
+  assert.ok(parseConstellationGoalEvidenceDTO({
+    goal,
+    items: [item],
+  }));
+  assert.equal(parseConstellationGoalEvidenceDTO({
+    goal: { ...goal, id: 'another-goal' },
+    items: [item],
+  }), null);
+
+  assert.ok(parseConstellationEchoSearchDTO({
+    goalId: 'goal-id',
+    query: 'bounded',
+    options: [{
+      ...item.echo,
+      existingReference: {
+        id: item.id,
+        brtCategory: 'thorn',
+      },
+    }],
+  }));
+  assert.equal(parseConstellationEchoSearchDTO({
+    goalId: 'goal-id',
+    query: 'bounded',
+    options: [{
+      ...item.echo,
+      existingReference: {
+        id: item.id,
+        brtCategory: 'B',
+      },
+    }],
+  }), null);
+  assert.equal(parseConstellationGoalEvidenceDTO({
+    goal,
+    items: [{ ...item, note: 'n'.repeat(281) }],
+  }), null);
+  assert.equal(parseConstellationEchoSearchDTO({
+    goalId: 'goal-id',
+    query: 'q'.repeat(121),
+    options: [],
+  }), null);
+  assert.equal(parseConstellationEchoSearchDTO({
+    goalId: 'goal-id',
+    query: 'bounded',
+    options: [{
+      ...item.echo,
+      excerpt: 'e'.repeat(241),
+      existingReference: null,
+    }],
+  }), null);
+});
+
+test('Reflection inspector DTO accepts bounded owned evidence and rejects fake valence data', () => {
+  const reflection = {
+    nodeId: 'reflection-node',
+    label: 'Creative autonomy',
+    description: 'A validated live pattern.',
+    candidateKey: 'creative autonomy',
+    candidateType: 'theme',
+    occurrences: 3,
+    aggregatedScore: 6.5,
+    firstSeenAt: '2026-07-01T12:00:00.000Z',
+    lastSeenAt: '2026-07-28T12:00:00.000Z',
+    dominantValence: 'mixed',
+    valenceHistory: [{
+      valence: 'positive',
+      echoEntryId: 'echo-id',
+      timestamp: '2026-07-28T12:00:00.000Z',
+    }],
+    evidence: [{
+      id: 'echo-id',
+      title: 'Owned Echo',
+      excerpt: 'A bounded excerpt.',
+      excerptTruncated: false,
+      createdAt: '2026-07-28T12:00:00.000Z',
+      valence: 'positive',
+    }],
+  };
+
+  assert.ok(parseConstellationReflectionInspectorDTO(reflection));
+  assert.equal(parseConstellationReflectionInspectorDTO({
+    ...reflection,
+    dominantValence: 'thorn',
+  }), null);
+  assert.equal(parseConstellationReflectionInspectorDTO({
+    ...reflection,
+    evidence: [{
+      ...reflection.evidence[0],
+      excerpt: 'x'.repeat(241),
+    }],
+  }), null);
 });

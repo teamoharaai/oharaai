@@ -1,4 +1,11 @@
-import { Platform, ScrollView, View } from 'react-native';
+import { useId, useState } from 'react';
+import {
+  Platform,
+  ScrollView,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import { useUIStore } from '@/store/uiStore';
 import Svg, {
   Circle,
   Defs,
@@ -29,9 +36,15 @@ import { EarnedNodeShape } from './EarnedNodeShape';
 import { SelectionRing } from './SelectionRing';
 import { SproutedLabel } from './SproutedLabel';
 import { VirtualBrtClusterShape } from './VirtualBrtClusterShape';
+import { getConstellationResponsiveLayout } from '../responsive';
+import {
+  createConstellationGradientIds,
+  type ConstellationGradientIds,
+} from '../svg-ids';
 
 interface ConstellationCanvasShellProps {
   fixture?: boolean;
+  focusLabel?: string | null;
   graph: ConstellationGraphViewModel;
   isRefreshing?: boolean;
   layout: ConstellationLayout;
@@ -44,17 +57,6 @@ interface ConstellationCanvasShellProps {
   sproutedLabel: SproutedLabelLayout | null;
   tokens: ConstellationVisualTokens;
 }
-
-const GRADIENT_IDS = {
-  ambient: 'constellation-ambient',
-  background: 'constellation-background',
-  grain: 'constellation-grain',
-  mixedEdge: 'constellation-edge-mixed',
-  budHalo: 'constellation-halo-bud',
-  roseHalo: 'constellation-halo-rose',
-  thornHalo: 'constellation-halo-thorn',
-  tealHalo: 'constellation-halo-teal',
-} as const;
 
 function nodeForLayout(
   graph: ConstellationGraphViewModel,
@@ -79,43 +81,47 @@ function HaloGradient({
   );
 }
 
-function GraphDefinitions({ tokens }: { tokens: ConstellationVisualTokens }) {
+function GraphDefinitions({
+  gradientIds,
+  tokens,
+}: {
+  gradientIds: ConstellationGradientIds;
+  tokens: ConstellationVisualTokens;
+}) {
   return (
     <Defs>
-      <LinearGradient id={GRADIENT_IDS.background} x1="0%" x2="100%" y1="0%" y2="100%">
-        <Stop offset="0%" stopColor={tokens.canvas.background} stopOpacity={1} />
-        <Stop offset="100%" stopColor={tokens.canvas.backgroundDeep} stopOpacity={1} />
-      </LinearGradient>
-      <RadialGradient id={GRADIENT_IDS.ambient}>
+      <RadialGradient id={gradientIds.ambient}>
         <Stop offset="0%" stopColor={tokens.node.seasonStroke} stopOpacity={0.16} />
         <Stop offset="48%" stopColor={tokens.canvas.backgroundDeep} stopOpacity={0.9} />
         <Stop offset="100%" stopColor={tokens.canvas.background} stopOpacity={1} />
       </RadialGradient>
-      <LinearGradient id={GRADIENT_IDS.mixedEdge} x1="0%" x2="100%" y1="0%" y2="0%">
+      <LinearGradient id={gradientIds.mixedEdge} x1="0%" x2="100%" y1="0%" y2="0%">
         <Stop offset="0%" stopColor={tokens.brt.bud} stopOpacity={0.82} />
         <Stop offset="52%" stopColor={tokens.brt.rose} stopOpacity={0.82} />
         <Stop offset="100%" stopColor={tokens.brt.thorn} stopOpacity={0.82} />
       </LinearGradient>
       <Pattern
         height={12}
-        id={GRADIENT_IDS.grain}
+        id={gradientIds.grain}
         patternUnits="userSpaceOnUse"
         width={12}
       >
         <Circle cx={2} cy={2} fill={tokens.canvas.grain} fillOpacity={0.3} r={0.8} />
       </Pattern>
-      <HaloGradient color={tokens.canvas.halo.bud} id={GRADIENT_IDS.budHalo} />
-      <HaloGradient color={tokens.canvas.halo.rose} id={GRADIENT_IDS.roseHalo} />
-      <HaloGradient color={tokens.canvas.halo.thorn} id={GRADIENT_IDS.thornHalo} />
-      <HaloGradient color={tokens.canvas.halo.teal} id={GRADIENT_IDS.tealHalo} />
+      <HaloGradient color={tokens.canvas.halo.bud} id={gradientIds.budHalo} />
+      <HaloGradient color={tokens.canvas.halo.rose} id={gradientIds.roseHalo} />
+      <HaloGradient color={tokens.canvas.halo.thorn} id={gradientIds.thornHalo} />
+      <HaloGradient color={tokens.canvas.halo.teal} id={gradientIds.tealHalo} />
     </Defs>
   );
 }
 
 function GraphHalos({
+  gradientIds,
   graph,
   layout,
 }: {
+  gradientIds: ConstellationGradientIds;
   graph: ConstellationGraphViewModel;
   layout: ConstellationLayout;
 }) {
@@ -127,12 +133,12 @@ function GraphHalos({
 
         if (node?.entityType === 'virtual_brt_cluster') {
           gradientId = {
-            bud: GRADIENT_IDS.budHalo,
-            rose: GRADIENT_IDS.roseHalo,
-            thorn: GRADIENT_IDS.thornHalo,
+            bud: gradientIds.budHalo,
+            rose: gradientIds.roseHalo,
+            thorn: gradientIds.thornHalo,
           }[node.node.brtCategory];
         } else if (node?.entityType === 'annotation' && node.node.kind === 'projection') {
-          gradientId = GRADIENT_IDS.tealHalo;
+          gradientId = gradientIds.tealHalo;
         }
 
         if (!gradientId) return null;
@@ -158,9 +164,18 @@ function SvgGraph({
   selectedKey,
   sproutedLabel,
   tokens,
-}: Omit<ConstellationCanvasShellProps, 'fixture' | 'seasonLabel'>) {
-  const selectedLayout = layout.nodes.find((node) => node.selectionKey === selectedKey);
+}: Omit<
+  ConstellationCanvasShellProps,
+  'fixture' | 'focusLabel' | 'seasonLabel'
+>) {
+  const reactId = useId();
+  const gradientIds = createConstellationGradientIds(reactId);
+  const [focusedKey, setFocusedKey] = useState<string | null>(null);
   const selectedNode = selectedKey ? nodeForLayout(graph, selectedKey) : undefined;
+  const highlightedKey = selectedKey ?? focusedKey;
+  const highlightedLayout = layout.nodes.find(
+    (node) => node.selectionKey === highlightedKey,
+  );
 
   return (
     <Svg
@@ -170,15 +185,17 @@ function SvgGraph({
       viewBox={`0 0 ${layout.viewBox.width} ${layout.viewBox.height}`}
       width="100%"
     >
-      <GraphDefinitions tokens={tokens} />
+      <GraphDefinitions gradientIds={gradientIds} tokens={tokens} />
       <Rect
-        fill={`url(#${tokens.appearance === 'dark' ? GRADIENT_IDS.ambient : GRADIENT_IDS.background})`}
+        fill={tokens.appearance === 'dark'
+          ? `url(#${gradientIds.ambient})`
+          : tokens.canvas.background}
         height={layout.viewBox.height}
         width={layout.viewBox.width}
       />
       {tokens.appearance === 'dark' ? (
         <Rect
-          fill={`url(#${GRADIENT_IDS.grain})`}
+          fill={`url(#${gradientIds.grain})`}
           height={layout.viewBox.height}
           opacity={0.42}
           width={layout.viewBox.width}
@@ -199,12 +216,12 @@ function SvgGraph({
           />
         ))}
       </G>
-      <GraphHalos graph={graph} layout={layout} />
+      <GraphHalos gradientIds={gradientIds} graph={graph} layout={layout} />
       <G>
         {layout.edges.map((edge) => (
           <ConstellationEdge
             edge={edge}
-            gradientId={GRADIENT_IDS.mixedEdge}
+            gradientId={gradientIds.mixedEdge}
             key={edge.id}
             nodes={graph.nodes}
             tokens={tokens}
@@ -223,6 +240,7 @@ function SvgGraph({
                   key={node.selectionKey}
                   layout={nodeLayout}
                   node={node.node}
+                  onFocus={setFocusedKey}
                   onSelect={onSelect}
                   tokens={tokens}
                 />
@@ -233,6 +251,7 @@ function SvgGraph({
                   key={node.selectionKey}
                   layout={nodeLayout}
                   node={node.node}
+                  onFocus={setFocusedKey}
                   onSelect={onSelect}
                   tokens={tokens}
                 />
@@ -243,6 +262,7 @@ function SvgGraph({
                   key={node.selectionKey}
                   layout={nodeLayout}
                   node={node.node}
+                  onFocus={setFocusedKey}
                   onSelect={onSelect}
                   tokens={tokens}
                 />
@@ -250,7 +270,7 @@ function SvgGraph({
           }
         })}
       </G>
-      {selectedLayout ? <SelectionRing node={selectedLayout} tokens={tokens} /> : null}
+      {highlightedLayout ? <SelectionRing node={highlightedLayout} tokens={tokens} /> : null}
       {sproutedLabel && selectedNode?.entityType === 'earned_node' ? (
         <SproutedLabel layout={sproutedLabel} node={selectedNode.node} tokens={tokens} />
       ) : null}
@@ -259,12 +279,16 @@ function SvgGraph({
 }
 
 export function ConstellationCanvasShell(props: ConstellationCanvasShellProps) {
+  const { width } = useWindowDimensions();
+  const sidebarCollapsed = useUIStore((state) => state.sidebarCollapsed);
+  const { compact } = getConstellationResponsiveLayout(width, sidebarCollapsed);
   if (Platform.OS !== 'web') {
     return (
       <ScrollView style={{ backgroundColor: props.tokens.canvas.background }}>
         <ConstellationHeaderMetadata
           counts={props.graph.counts}
           fixture={props.fixture}
+          focusLabel={props.focusLabel}
           isRefreshing={props.isRefreshing}
           onCreateAnnotation={props.onCreateAnnotation}
           onRefresh={props.onRefresh}
@@ -283,10 +307,14 @@ export function ConstellationCanvasShell(props: ConstellationCanvasShellProps) {
   }
 
   return (
-    <View style={{ backgroundColor: props.tokens.canvas.background, flex: 1, minHeight: 640 }}>
+    <View
+      accessibilityLabel="Constellation graph canvas"
+      style={{ backgroundColor: props.tokens.canvas.background, flex: 1, minHeight: 640 }}
+    >
       <ConstellationHeaderMetadata
         counts={props.graph.counts}
         fixture={props.fixture}
+        focusLabel={props.focusLabel}
         isRefreshing={props.isRefreshing}
         onCreateAnnotation={props.onCreateAnnotation}
         onRefresh={props.onRefresh}
@@ -303,7 +331,7 @@ export function ConstellationCanvasShell(props: ConstellationCanvasShellProps) {
           sproutedLabel={props.sproutedLabel}
           tokens={props.tokens}
         />
-        <ConstellationLegend tokens={props.tokens} />
+        {!compact ? <ConstellationLegend tokens={props.tokens} /> : null}
         <ConstellationAccessibleList
           graph={props.graph}
           hiddenVisually

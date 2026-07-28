@@ -1,17 +1,28 @@
 import type {
   ConstellationAnnotationDTO,
   ConstellationBrtCategory,
+  ConstellationEchoSearchDTO,
   ConstellationEarnedNodeDTO,
   ConstellationEarnedNodeKind,
+  ConstellationEvidenceEchoSummary,
+  ConstellationEvidenceLink,
   ConstellationGraphCountsDTO,
   ConstellationGraphDTO,
   ConstellationGraphEdgeDTO,
+  ConstellationGoalEvidenceDTO,
+  ConstellationGoalEvidenceItem,
+  ConstellationReflectionInspectorDTO,
+  ConstellationReflectionValence,
   ConstellationRenderState,
   ConstellationVirtualBrtClusterDTO,
   GraphEdgeKind,
   GraphEdgeValence,
   GraphEntityRef,
 } from './types.ts';
+
+const EVIDENCE_NOTE_MAX_LENGTH = 280;
+const ECHO_EXCERPT_MAX_LENGTH = 240;
+const ECHO_SEARCH_QUERY_MAX_LENGTH = 120;
 
 const EARNED_NODE_KINDS = [
   'season',
@@ -56,6 +67,18 @@ const GOAL_STATUSES = [
   'stagnant',
   'discovered',
   'archived',
+] as const;
+const REFLECTION_VALENCES = [
+  'positive',
+  'negative',
+  'neutral',
+  'mixed',
+] as const satisfies readonly ConstellationReflectionValence[];
+const REFLECTION_CANDIDATE_TYPES = [
+  'theme',
+  'trait',
+  'tension',
+  'insight',
 ] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -162,6 +185,162 @@ export function parseConstellationAnnotationDTO(
   value: unknown,
 ): ConstellationAnnotationDTO | null {
   return isAnnotation(value) ? value : null;
+}
+
+function isEvidenceLink(value: unknown): value is ConstellationEvidenceLink {
+  return (
+    isRecord(value)
+    && isNonEmptyString(value.id)
+    && isNonEmptyString(value.ownerId)
+    && isNonEmptyString(value.echoEntryId)
+    && isNonEmptyString(value.goalId)
+    && includes(BRT_CATEGORIES, value.brtCategory)
+    && isNullableString(value.note)
+    && (value.note === null || value.note.length <= EVIDENCE_NOTE_MAX_LENGTH)
+    && isNonEmptyString(value.createdAt)
+    && isNonEmptyString(value.updatedAt)
+  );
+}
+
+export function parseConstellationEvidenceLinkDTO(
+  value: unknown,
+): ConstellationEvidenceLink | null {
+  return isEvidenceLink(value) ? value : null;
+}
+
+function isEvidenceEchoSummary(
+  value: unknown,
+): value is ConstellationEvidenceEchoSummary {
+  return (
+    isRecord(value)
+    && isNonEmptyString(value.id)
+    && isNullableString(value.title)
+    && typeof value.excerpt === 'string'
+    && value.excerpt.length <= ECHO_EXCERPT_MAX_LENGTH
+    && typeof value.excerptTruncated === 'boolean'
+    && isNonEmptyString(value.createdAt)
+  );
+}
+
+function isGoalEvidenceItem(
+  value: unknown,
+): value is ConstellationGoalEvidenceItem {
+  if (!isEvidenceLink(value) || !isRecord(value)) return false;
+  const record = value as unknown as Record<string, unknown>;
+  return (
+    isEvidenceEchoSummary(record.echo)
+    && record.echo.id === value.echoEntryId
+  );
+}
+
+export function parseConstellationGoalEvidenceDTO(
+  value: unknown,
+): ConstellationGoalEvidenceDTO | null {
+  if (!isRecord(value) || !isRecord(value.goal)) return null;
+  const goal = value.goal;
+  if (
+    !isNonEmptyString(goal.id)
+    || !isNonEmptyString(goal.title)
+    || !isNullableString(goal.description)
+    || !includes(GOAL_STATUSES, goal.status)
+    || !isNullableString(goal.deadline)
+    || !(
+      goal.project === null
+      || (
+        isRecord(goal.project)
+        && isNonEmptyString(goal.project.id)
+        && isNonEmptyString(goal.project.title)
+      )
+    )
+    || !isNullableString(goal.vaultId)
+    || !Array.isArray(value.items)
+    || !value.items.every(isGoalEvidenceItem)
+    || value.items.some((item) => item.goalId !== goal.id)
+  ) {
+    return null;
+  }
+
+  return value as unknown as ConstellationGoalEvidenceDTO;
+}
+
+export function parseConstellationReflectionInspectorDTO(
+  value: unknown,
+): ConstellationReflectionInspectorDTO | null {
+  if (
+    !isRecord(value)
+    || !isNonEmptyString(value.nodeId)
+    || !isNonEmptyString(value.label)
+    || !isNullableString(value.description)
+    || !isNonEmptyString(value.candidateKey)
+    || !includes(REFLECTION_CANDIDATE_TYPES, value.candidateType)
+    || !isCount(value.occurrences)
+    || !(
+      value.aggregatedScore === null
+      || (
+        typeof value.aggregatedScore === 'number'
+        && Number.isFinite(value.aggregatedScore)
+        && value.aggregatedScore >= 0
+      )
+    )
+    || !isNullableString(value.firstSeenAt)
+    || !isNullableString(value.lastSeenAt)
+    || !(
+      value.dominantValence === null
+      || includes(REFLECTION_VALENCES, value.dominantValence)
+    )
+    || !Array.isArray(value.valenceHistory)
+    || !value.valenceHistory.every((event) => (
+      isRecord(event)
+      && includes(REFLECTION_VALENCES, event.valence)
+      && isNonEmptyString(event.echoEntryId)
+      && isNonEmptyString(event.timestamp)
+    ))
+    || !Array.isArray(value.evidence)
+    || !value.evidence.every((item) => (
+      isEvidenceEchoSummary(item)
+      && isRecord(item)
+      && (
+        item.valence === null
+        || includes(REFLECTION_VALENCES, item.valence)
+      )
+    ))
+  ) {
+    return null;
+  }
+
+  return value as unknown as ConstellationReflectionInspectorDTO;
+}
+
+function isEchoSearchOption(value: unknown): boolean {
+  if (!isEvidenceEchoSummary(value) || !isRecord(value)) return false;
+  return (
+    value.existingReference === null
+    || (
+      isRecord(value.existingReference)
+      && isNonEmptyString(value.existingReference.id)
+      && includes(
+        BRT_CATEGORIES,
+        value.existingReference.brtCategory,
+      )
+    )
+  );
+}
+
+export function parseConstellationEchoSearchDTO(
+  value: unknown,
+): ConstellationEchoSearchDTO | null {
+  if (
+    !isRecord(value)
+    || !isNonEmptyString(value.goalId)
+    || typeof value.query !== 'string'
+    || value.query.length > ECHO_SEARCH_QUERY_MAX_LENGTH
+    || !Array.isArray(value.options)
+    || !value.options.every(isEchoSearchOption)
+  ) {
+    return null;
+  }
+
+  return value as unknown as ConstellationEchoSearchDTO;
 }
 
 function isVirtualBrtCluster(
