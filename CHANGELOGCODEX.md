@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Added (2026-07-28 — Constellation release certification)
+- **`tests/constellation/acceptance-api.ts` and `constellation.acceptance.spec.ts`:** added deterministic delayed-graph coverage that proves the production Constellation screen exposes its intentional initial loading state before real graph content arrives, completing explicit loading/retry/empty-state release evidence.
+- **`docs/constellation/RELEASE_CERTIFICATION_2026-07-28.md`:** recorded the controlled two-user live smoke, RLS/privacy/API results, TypeScript/test/database/export/visual gates, rollback exercise, cleanup proof, Expo compatibility review, and pass decision.
+
+### Changed (2026-07-28 — Constellation release certification)
+- **`docs/constellation/CHANGELOG.md`:** updated the acceptance count from 21 to 22 after adding the initial-loading journey.
+
 ### Added (2026-07-28 — Constellation acceptance contract)
 - **`tests/constellation/`, `package.json`, and `package-lock.json`:** added a Playwright acceptance suite for all five handoff concepts and the final production architecture contract, including 15 committed screenshot baselines at the canonical desktop, `768 × 1024` tablet, and `390 × 844` narrow sizes. Browser journeys cover visible SVG node selection, Focus mode, URL-addressable Goal/Reflection inspectors, Close/Escape dismissal, annotation create/edit/archive, Echo search, goal-specific Bud/Rose/Thorn evidence add/edit/unlink, graph/Goal/Reflection/search retry states, and both empty-state CTAs.
 - **`previews/constellation/app/constellation.tsx`, `previews/constellation/app/(app)/echo.tsx`, `previews/constellation/app/goals/create.tsx`, and `tests/constellation/acceptance-api.ts`:** added preview-only production-screen hosting and deterministic authenticated API interception so the suite exercises the real Constellation UI, client validation, routing, and mutation state without importing fixtures into production routes or changing product fallbacks.

@@ -137,6 +137,18 @@ test.describe('five handoff concepts and responsive architecture', () => {
 });
 
 test.describe('final architecture interaction contract', () => {
+  test('shows the intentional initial loading state before graph data arrives', async ({
+    page,
+  }) => {
+    await installConstellationAcceptanceApi(page, {
+      graphDelayMs: 1_000,
+    });
+    await page.goto('/constellation');
+
+    await expect(page.getByLabel('Loading Constellation')).toBeVisible();
+    await expect(page.getByLabel('Constellation graph canvas')).toBeVisible();
+  });
+
   test('node selection enters Focus mode, writes URL selection, and closes cleanly', async ({
     page,
   }) => {

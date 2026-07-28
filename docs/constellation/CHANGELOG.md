@@ -9,16 +9,17 @@
 2. Added production-screen browser journeys for visible graph selection, Focus
    mode, URL selection, Goal/Reflection inspector dismissal, annotation
    create/edit/archive, Echo search, Bud/Rose/Thorn evidence
-   link/edit/unlink, retryable graph/evidence/Reflection/search failures, and
-   both empty-state destinations. The existing goal-specific BRT picker is the
-   only user selector; no global BRT override or duplicate picker was added.
+   link/edit/unlink, intentional initial loading, retryable
+   graph/evidence/Reflection/search failures, and both empty-state
+   destinations. The existing goal-specific BRT picker is the only user
+   selector; no global BRT override or duplicate picker was added.
 3. Added a browser-wide failure gate for console errors, uncaught page errors,
    React warnings, invalid DOM event handlers, and React Native Web prop
    deprecations. Platform-specific SVG interaction wrappers and viewport-level
    web pointer handling remove those warnings while retaining native
    `onPress`, visible web node clicks, drag/pinch navigation, and keyboard
    selection.
-4. Verification passes all 66 targeted Constellation tests and all 21 browser
+4. Verification passes all 66 targeted Constellation tests and all 22 browser
    acceptance tests. The reviewed visual set contains five concepts across
    desktop, tablet, and narrow layouts without error overlays.
 

@@ -25,6 +25,7 @@ export type AcceptanceFailureTarget =
 interface AcceptanceApiOptions {
   failOnce?: readonly AcceptanceFailureTarget[];
   graph?: ConstellationGraphDTO;
+  graphDelayMs?: number;
 }
 
 const FIXED_TIME = '2026-07-28T14:00:00.000Z';
@@ -101,6 +102,11 @@ export async function installConstellationAcceptanceApi(
 
     if (path === '/api/constellation' && method === 'GET') {
       if (await failOnce('graph', route)) return;
+      if (options.graphDelayMs) {
+        await new Promise((resolve) => {
+          setTimeout(resolve, options.graphDelayMs);
+        });
+      }
       await json(route, graph);
       return;
     }
