@@ -18,7 +18,7 @@ function nodeDescription(node: ConstellationGraphViewNode): string {
     case 'earned_node':
       return `Earned ${node.node.kind}: ${node.node.label}`;
     case 'annotation':
-      return `${node.node.kind === 'projection' ? 'Projection' : 'Note'} draft: ${node.node.label}`;
+      return `User-authored ${node.node.kind === 'projection' ? 'Projection' : 'Note'} draft: ${node.node.label}`;
     case 'virtual_brt_cluster':
       return `${node.node.label} goal evidence summary, ${node.node.evidenceLinkCount} ${node.node.evidenceLinkCount === 1 ? 'reference' : 'references'}`;
   }

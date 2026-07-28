@@ -158,6 +158,12 @@ function isAnnotation(
   );
 }
 
+export function parseConstellationAnnotationDTO(
+  value: unknown,
+): ConstellationAnnotationDTO | null {
+  return isAnnotation(value) ? value : null;
+}
+
 function isVirtualBrtCluster(
   value: unknown,
 ): value is ConstellationVirtualBrtClusterDTO {

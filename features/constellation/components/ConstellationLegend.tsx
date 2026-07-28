@@ -193,7 +193,7 @@ export function ConstellationLegend({ tokens }: ConstellationLegendProps) {
       <LegendRow kind="reflection" label="Reflection" tokens={tokens} />
       <LegendRow kind="trait" label="Trait" tokens={tokens} />
       <LegendRow kind="tension" label="Tension" tokens={tokens} />
-      <LegendRow kind="annotation" label="Draft annotation" tokens={tokens} />
+      <LegendRow kind="annotation" label="User-authored draft" tokens={tokens} />
       <LegendRow kind="evidence" label="Goal BRT summary" tokens={tokens} />
       <View style={{ backgroundColor: tokens.panel.border, height: 1, marginVertical: 2 }} />
       <EdgeSample color={tokens.edge.positive.color} label="Positive" tokens={tokens} />

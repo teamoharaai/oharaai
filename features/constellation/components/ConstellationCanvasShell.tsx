@@ -15,6 +15,7 @@ import type {
   SproutedLabelLayout,
 } from '../layout.ts';
 import type {
+  ConstellationAnnotationKind,
   ConstellationGraphViewModel,
   ConstellationGraphViewNode,
 } from '../types.ts';
@@ -34,6 +35,7 @@ interface ConstellationCanvasShellProps {
   graph: ConstellationGraphViewModel;
   isRefreshing?: boolean;
   layout: ConstellationLayout;
+  onCreateAnnotation?: (kind: ConstellationAnnotationKind) => void;
   onRefresh?: () => void;
   onSelect: (selectionKey: string | null) => void;
   refreshError?: string | null;
@@ -264,6 +266,7 @@ export function ConstellationCanvasShell(props: ConstellationCanvasShellProps) {
           counts={props.graph.counts}
           fixture={props.fixture}
           isRefreshing={props.isRefreshing}
+          onCreateAnnotation={props.onCreateAnnotation}
           onRefresh={props.onRefresh}
           refreshError={props.refreshError}
           seasonLabel={props.seasonLabel}
@@ -285,6 +288,7 @@ export function ConstellationCanvasShell(props: ConstellationCanvasShellProps) {
         counts={props.graph.counts}
         fixture={props.fixture}
         isRefreshing={props.isRefreshing}
+        onCreateAnnotation={props.onCreateAnnotation}
         onRefresh={props.onRefresh}
         refreshError={props.refreshError}
         seasonLabel={props.seasonLabel}

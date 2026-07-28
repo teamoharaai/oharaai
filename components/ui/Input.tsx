@@ -37,6 +37,7 @@ export function Input({
     <View>
       <Typography variant="field-label" className="mb-1.5">{label}</Typography>
       <TextInput
+        accessibilityLabel={label}
         className="rounded-2xl border px-4 py-3.5 font-sans text-base"
         style={{
           backgroundColor: colors.background.input,

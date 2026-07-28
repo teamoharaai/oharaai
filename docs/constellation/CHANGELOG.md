@@ -1,5 +1,28 @@
 # Constellation Implementation Changelog
 
+## 2026-07-28 — End-to-end user-authored annotations
+
+1. Added focused Note and Projection authoring through the existing
+   authenticated annotation APIs: create, edit label/body/kind/optional anchor,
+   and archive. Desktop uses a side inspector beside the graph; narrow screens
+   use a full-width accessible surface instead of a graph-covering modal.
+2. Added client validation for non-empty labels, bounded optional bodies,
+   note/projection-only kinds, and anchors offered only from the visible earned
+   render set. The server now also requires an active owner node, and
+   single-flight mutation guards prevent duplicate submissions.
+3. Added exact immutable rollback around optimistic create, edit, and archive.
+   Retryable failures retain the local form values and expose retry actions;
+   Cancel closes the local draft without calling a mutation API.
+4. Kept annotations visibly user-authored and draft-coded. Client
+   reconciliation changes only active annotation rows, annotation counts, and
+   derived weightless anchor presentation edges; it does not alter earned
+   counts, source/evidence counts, visibility scores, candidate confidence,
+   Traits, Tensions, or persisted system edges.
+5. Archive remains the only removal operation. Archived drafts disappear from
+   the active DTO/render, increment the archived contract count, and remain
+   persisted for a future archive surface; no hard-delete route or archive UI
+   was added.
+
 ## 2026-07-27 — Live route, resilient client state, and URL selection
 
 1. Replaced the production route's dashboard-summary proxy with a feature

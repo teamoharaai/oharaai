@@ -167,7 +167,10 @@ export interface ConstellationEvidenceReferenceRowPatch {
 }
 
 export interface ConstellationMutationRepository {
-  hasOwnedEarnedNode(ownerId: string, nodeId: string): Promise<boolean>;
+  hasOwnedVisibleEarnedNode(
+    ownerId: string,
+    nodeId: string,
+  ): Promise<boolean>;
   findAnnotation(
     ownerId: string,
     annotationId: string,
@@ -826,7 +829,12 @@ async function requireOwnedAnchor(
 ): Promise<void> {
   if (
     anchorEarnedNodeId
-    && !(await repository.hasOwnedEarnedNode(ownerId, anchorEarnedNodeId))
+    && !(
+      await repository.hasOwnedVisibleEarnedNode(
+        ownerId,
+        anchorEarnedNodeId,
+      )
+    )
   ) {
     throw new ConstellationDataError(
       'NOT_FOUND',

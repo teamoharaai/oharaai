@@ -1,9 +1,10 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   SafeAreaView,
   ScrollView,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import {
   router,
@@ -25,7 +26,9 @@ import {
   calculateSproutedLabelLayout,
   createConstellationLayoutSpec,
 } from '../layout';
+import type { ConstellationAnnotationKind } from '../types';
 import { createConstellationVisualTokens } from '../visual-tokens';
+import { ConstellationAnnotationPanel } from './ConstellationAnnotationPanel';
 import { ConstellationCanvasShell } from './ConstellationCanvasShell';
 import { ConstellationEmptyState } from './ConstellationEmptyState';
 
@@ -120,6 +123,10 @@ function ConstellationErrorState({
 export function ConstellationScreen() {
   const colors = useThemeColors();
   const themeMode = useUIStore((state) => state.themeMode);
+  const { width } = useWindowDimensions();
+  const narrow = width < 760;
+  const [createKind, setCreateKind] =
+    useState<ConstellationAnnotationKind | null>(null);
   const params = useLocalSearchParams<{
     selected?: string | string[];
   }>();
@@ -168,6 +175,16 @@ export function ConstellationScreen() {
   const selectedNode = graph?.nodes.find(
     (node) => node.selectionKey === selectedKey,
   );
+  const selectedAnnotation = selectedNode?.entityType === 'annotation'
+    ? selectedNode.node
+    : undefined;
+  const visibleEarnedNodes = useMemo(
+    () => graph?.nodes.flatMap((node) => (
+      node.entityType === 'earned_node' ? [node.node] : []
+    )) ?? [],
+    [graph],
+  );
+  const annotationPanelOpen = createKind !== null || selectedAnnotation !== undefined;
   const sproutedLabel = (
     layout
     && selectedNode?.entityType === 'earned_node'
@@ -176,17 +193,91 @@ export function ConstellationScreen() {
     ? calculateSproutedLabelLayout(layout, selectedKey)
     : null;
 
-  function updateSelection(nextSelection: string | null) {
-    const next = nextSelection === selectedKey ? null : nextSelection;
-    if (!next) {
+  function navigateSelection(nextSelection: string | null) {
+    if (!nextSelection) {
       router.push('/constellation');
       return;
     }
     router.push({
       pathname: '/constellation',
-      params: { selected: next },
+      params: { selected: nextSelection },
     } as Href);
   }
+
+  function updateSelection(nextSelection: string | null) {
+    setCreateKind(null);
+    constellation.clearMutationError();
+    navigateSelection(nextSelection === selectedKey ? null : nextSelection);
+  }
+
+  function openCreatePanel(kind: ConstellationAnnotationKind) {
+    constellation.clearMutationError();
+    setCreateKind(kind);
+    if (selectedKey) navigateSelection(null);
+  }
+
+  function closeAnnotationPanel() {
+    constellation.clearMutationError();
+    setCreateKind(null);
+    if (selectedAnnotation) navigateSelection(null);
+  }
+
+  async function saveAnnotation(
+    input: Parameters<typeof constellation.createAnnotation>[0],
+  ): Promise<boolean> {
+    const annotation = selectedAnnotation
+      ? await constellation.editAnnotation(selectedAnnotation.id, input)
+      : await constellation.createAnnotation(input);
+    if (!annotation) return false;
+
+    setCreateKind(null);
+    navigateSelection(annotation.selectionKey);
+    return true;
+  }
+
+  async function archiveAnnotation(): Promise<boolean> {
+    if (!selectedAnnotation) return false;
+    const archived = await constellation.archiveAnnotation(
+      selectedAnnotation.id,
+    );
+    if (!archived) return false;
+
+    setCreateKind(null);
+    navigateSelection(null);
+    return true;
+  }
+
+  const readyContent = graph && layout && constellation.dto
+    ? constellation.dto.state.renderState === 'graph'
+      ? (
+          <ConstellationCanvasShell
+            graph={graph}
+            isRefreshing={constellation.isRefreshing}
+            layout={layout}
+            onCreateAnnotation={openCreatePanel}
+            onRefresh={constellation.refresh}
+            onSelect={updateSelection}
+            refreshError={constellation.refreshError}
+            seasonLabel={seasonLabel}
+            selectedKey={selectedKey}
+            sproutedLabel={sproutedLabel}
+            tokens={tokens}
+          />
+        )
+      : (
+          <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+            <ConstellationEmptyState
+              counts={graph.counts}
+              isRefreshing={constellation.isRefreshing}
+              onCreateAnnotation={openCreatePanel}
+              onRefresh={constellation.refresh}
+              refreshError={constellation.refreshError}
+              renderState={constellation.dto.state.renderState}
+              seasonLabel={seasonLabel}
+            />
+          </ScrollView>
+        )
+    : null;
 
   return (
     <SafeAreaView
@@ -204,32 +295,25 @@ export function ConstellationScreen() {
           onRetry={constellation.retry}
           retryable={constellation.retryable}
         />
-      ) : graph && layout && constellation.dto ? (
-        constellation.dto.state.renderState === 'graph' ? (
-          <ConstellationCanvasShell
-            graph={graph}
-            isRefreshing={constellation.isRefreshing}
-            layout={layout}
-            onRefresh={constellation.refresh}
-            onSelect={updateSelection}
-            refreshError={constellation.refreshError}
-            seasonLabel={seasonLabel}
-            selectedKey={selectedKey}
-            sproutedLabel={sproutedLabel}
-            tokens={tokens}
-          />
-        ) : (
-          <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-            <ConstellationEmptyState
-              counts={graph.counts}
-              isRefreshing={constellation.isRefreshing}
-              onRefresh={constellation.refresh}
-              refreshError={constellation.refreshError}
-              renderState={constellation.dto.state.renderState}
-              seasonLabel={seasonLabel}
+      ) : readyContent && constellation.dto ? (
+        <View style={{ flex: 1, flexDirection: 'row', minHeight: 0 }}>
+          {narrow && annotationPanelOpen ? null : (
+            <View style={{ flex: 1, minHeight: 0 }}>
+              {readyContent}
+            </View>
+          )}
+          {annotationPanelOpen ? (
+            <ConstellationAnnotationPanel
+              annotation={selectedAnnotation}
+              initialKind={createKind ?? selectedAnnotation?.kind}
+              mutation={constellation.mutation}
+              onArchive={archiveAnnotation}
+              onCancel={closeAnnotationPanel}
+              onSave={saveAnnotation}
+              visibleEarnedNodes={visibleEarnedNodes}
             />
-          </ScrollView>
-        )
+          ) : null}
+        </View>
       ) : (
         <ConstellationErrorState
           error={CONSTELLATION_COPY.graphUnavailable}

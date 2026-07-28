@@ -3,7 +3,9 @@ import test from 'node:test';
 import { GET as getConstellationRoute } from '../../app/api/constellation/index+api.ts';
 import {
   constellationErrorResponse,
+  parseCreateAnnotationRequest,
   parseCreateEvidenceReferenceRequest,
+  parseUpdateAnnotationRequest,
 } from '../../lib/api/constellation.ts';
 import {
   archiveConstellationAnnotation,
@@ -104,7 +106,7 @@ implements ConstellationMutationRepository {
   concurrentDuplicate: ConstellationEvidenceReferenceRow | null = null;
   private idSequence = 20;
 
-  hasOwnedEarnedNode(
+  hasOwnedVisibleEarnedNode(
     ownerId: string,
     nodeId: string,
   ): Promise<boolean> {
@@ -588,6 +590,28 @@ test('annotation creation, editing, archival, and archived conflict are determin
   );
 });
 
+test('annotation anchors must resolve to an active owner-visible earned node', async () => {
+  const repository = new MemoryConstellationRepository();
+  repository.ownedNodes.delete(NODE_ID);
+
+  await assert.rejects(
+    createConstellationAnnotation(
+      OWNER_ID,
+      {
+        kind: 'note',
+        label: 'Cannot anchor here',
+        body: null,
+        anchorEarnedNodeId: NODE_ID,
+      },
+      repository,
+    ),
+    (error) =>
+      error instanceof ConstellationDataError
+      && error.code === 'NOT_FOUND',
+  );
+  assert.equal(repository.annotationInsertCount, 0);
+});
+
 test('evidence update and delete return 404 semantics for non-owned IDs', async () => {
   const repository = new MemoryConstellationRepository();
   repository.evidenceReferences.set(EVIDENCE_ID, evidenceRow());
@@ -655,6 +679,84 @@ test('API validation bounds private evidence notes and rejects identity fields',
   );
   await assert.rejects(
     parseCreateEvidenceReferenceRequest(forgedOwner),
+    (error) =>
+      error instanceof ConstellationDataError
+      && error.code === 'INVALID_INPUT',
+  );
+});
+
+test('annotation API validation bounds content and limits editable fields', async () => {
+  const valid = await parseCreateAnnotationRequest(new Request(
+    'http://localhost/api/constellation/annotations',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        kind: 'projection',
+        label: '  Possible direction  ',
+        body: '  Private context.  ',
+        anchorEarnedNodeId: NODE_ID,
+      }),
+    },
+  ));
+  assert.deepEqual(valid, {
+    kind: 'projection',
+    label: 'Possible direction',
+    body: 'Private context.',
+    anchorEarnedNodeId: NODE_ID,
+  });
+
+  for (const body of [
+    {
+      kind: 'future',
+      label: 'Invalid kind',
+      body: null,
+      anchorEarnedNodeId: null,
+    },
+    {
+      kind: 'note',
+      label: '   ',
+      body: null,
+      anchorEarnedNodeId: null,
+    },
+    {
+      kind: 'note',
+      label: 'Bounded body',
+      body: 'x'.repeat(5_001),
+      anchorEarnedNodeId: null,
+    },
+    {
+      ownerId: OTHER_OWNER_ID,
+      kind: 'note',
+      label: 'Forged owner',
+      body: null,
+      anchorEarnedNodeId: null,
+    },
+  ]) {
+    await assert.rejects(
+      parseCreateAnnotationRequest(new Request(
+        'http://localhost/api/constellation/annotations',
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        },
+      )),
+      (error) =>
+        error instanceof ConstellationDataError
+        && error.code === 'INVALID_INPUT',
+    );
+  }
+
+  await assert.rejects(
+    parseUpdateAnnotationRequest(new Request(
+      `http://localhost/api/constellation/annotations/${ANNOTATION_ID}`,
+      {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: '{}',
+      },
+    )),
     (error) =>
       error instanceof ConstellationDataError
       && error.code === 'INVALID_INPUT',

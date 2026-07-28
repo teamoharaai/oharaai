@@ -730,7 +730,9 @@ Creates a user-authored draft note or projection. Returns the
 }
 ```
 
-The optional anchor must be an earned node owned by the authenticated user.
+The optional anchor must be an active earned node owned by the authenticated
+user. The authoring UI offers only earned nodes visible in the current
+render-safe graph.
 
 ### `PATCH /api/constellation/annotations/:id`
 

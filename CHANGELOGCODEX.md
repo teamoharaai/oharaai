@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Added (2026-07-28 — User-authored Constellation annotations)
+- **`features/constellation/components/ConstellationAnnotationPanel.tsx`, `ConstellationScreen.tsx`, `ConstellationCanvasShell.tsx`, `ConstellationHeaderMetadata.tsx`, `ConstellationEmptyState.tsx`, `AnnotationShape.tsx`, `ConstellationAccessibleList.tsx`, and `ConstellationLegend.tsx`:** added focused create/edit/archive authoring for user-authored Note and Projection drafts, including a desktop side inspector, a full-width narrow-screen surface, local cancel-without-write behavior, concise label and bounded-body validation, kind editing, visible earned-node anchors, duplicate-submit blocking, archive confirmation, accessible controls, retryable inline failures, and explicit user-authored origin labels in both visual and accessible graph representations.
+- **`features/constellation/annotation-state.ts`, `hooks/useConstellation.ts`, `services/constellation-service.ts`, and `dto.ts`:** added authenticated client mutations with runtime response validation and exact immutable optimistic rollback for create, edit, and archive. Draft mutations update only active annotations and derived anchor presentation edges; earned counts, source evidence, visibility scores, candidate confidence, Traits, Tensions, and persisted system edges remain unchanged.
+- **`features/constellation/annotation-state.test.ts`, `server.test.ts`, and `package.json`:** added deterministic coverage for draft-only optimistic updates, authoritative reconciliation, edit/anchor replacement, active-graph archival, immutable rollback snapshots, earned-domain isolation, note/projection-only request validation, bounded content, unknown identity fields, and empty edit rejection.
+
+### Changed (2026-07-28 — User-authored Constellation annotations)
+- **`features/constellation/services/constellation-server-core.ts`, `lib/db/constellation.ts`, `server.test.ts`, and `docs/API_CONTRACT.md`:** tightened annotation anchors to active owner nodes at the API data boundary and documented that the authoring surface offers only currently visible earned targets.
+- **`features/constellation/state.ts`:** added scoped DTO replacement for annotation mutation reconciliation without moving graph or form data into the persisted global UI store.
+- **`components/ui/Input.tsx`:** associated the existing visible input label with its native text input accessibility label so the new annotation fields and existing shared-input consumers are announced correctly.
+- **`docs/constellation/CHANGELOG.md`:** recorded the end-to-end annotation authoring slice and its isolation/archival boundaries.
+- **Verification:** baseline and final `npx tsc --noEmit`, all 44 `npm run test:constellation` tests, `git diff --check`, and a production-style Expo web export completed successfully.
+
 ### Added (2026-07-27 — Live Constellation route integration)
 - **`features/constellation/dto.ts`, `state.ts`, `hooks/useConstellation.ts`, and `services/constellation-service.ts`:** added runtime validation for the real versioned `GET /api/constellation` DTO plus feature-owned transient request state with cancellation, stale-response protection, retry classification, and last-successful-data retention during failed refreshes. This replaces the route's dashboard-count proxy without adding Constellation data, selection, filters, or annotations to the persisted global UI store.
 - **`features/constellation/layout.ts`:** added deterministic static geometry for arbitrary live view models so earned nodes, user annotations, persisted system edges, and virtual goal-scoped Bud/Rose/Thorn clusters can use the existing renderer without production fixture coordinates or deferred force-layout behavior.

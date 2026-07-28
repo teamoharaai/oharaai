@@ -265,15 +265,16 @@ export function createConstellationMutationRepository(
   client: DbClient = supabase,
 ): ConstellationMutationRepository {
   return {
-    hasOwnedEarnedNode(ownerId, nodeId) {
-      return rowExists(
-        client,
-        'constellation_nodes',
-        'id',
-        'owner_id',
-        ownerId,
-        nodeId,
-      );
+    async hasOwnedVisibleEarnedNode(ownerId, nodeId) {
+      const { data, error } = await client
+        .from('constellation_nodes')
+        .select('id')
+        .eq('id', nodeId)
+        .eq('owner_id', ownerId)
+        .eq('status', 'active')
+        .maybeSingle();
+      if (error) throw error;
+      return data !== null;
     },
 
     async findAnnotation(ownerId, annotationId) {

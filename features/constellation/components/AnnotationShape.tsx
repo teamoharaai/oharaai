@@ -63,7 +63,7 @@ export function AnnotationShape({
           x={x}
           y={y - 19}
         >
-          PROJECTION
+          USER PROJECTION
         </SvgText>
         <SvgText
           fill={tokens.annotation.badgeText}
@@ -112,7 +112,7 @@ export function AnnotationShape({
         x={x - layout.width / 2 + 13}
         y={y - 9}
       >
-        DRAFT NOTE
+        USER DRAFT NOTE
       </SvgText>
       <SvgText
         fill={tokens.text.primary}

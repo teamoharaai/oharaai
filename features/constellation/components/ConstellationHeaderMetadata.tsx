@@ -3,15 +3,20 @@ import {
   Pressable,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { CONSTELLATION_COPY } from '../copy';
-import type { ConstellationGraphCountsDTO } from '../types.ts';
+import type {
+  ConstellationAnnotationKind,
+  ConstellationGraphCountsDTO,
+} from '../types.ts';
 import type { ConstellationVisualTokens } from '../visual-tokens.ts';
 
 interface ConstellationHeaderMetadataProps {
   counts: ConstellationGraphCountsDTO;
   fixture?: boolean;
   isRefreshing?: boolean;
+  onCreateAnnotation?: (kind: ConstellationAnnotationKind) => void;
   onRefresh?: () => void;
   refreshError?: string | null;
   seasonLabel: string;
@@ -22,11 +27,14 @@ export function ConstellationHeaderMetadata({
   counts,
   fixture = false,
   isRefreshing = false,
+  onCreateAnnotation,
   onRefresh,
   refreshError,
   seasonLabel,
   tokens,
 }: ConstellationHeaderMetadataProps) {
+  const { width } = useWindowDimensions();
+  const compact = width < 760;
   const metadata = [
     seasonLabel,
     `${counts.earnedNodes.total} earned`,
@@ -44,7 +52,14 @@ export function ConstellationHeaderMetadata({
         paddingVertical: 17,
       }}
     >
-      <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}>
+      <View
+        style={{
+          alignItems: compact ? 'stretch' : 'center',
+          flexDirection: compact ? 'column' : 'row',
+          gap: compact ? 12 : 18,
+          justifyContent: 'space-between',
+        }}
+      >
         <View style={{ flex: 1, gap: 4, minWidth: 0 }}>
           <Text
             accessibilityRole="header"
@@ -90,39 +105,85 @@ export function ConstellationHeaderMetadata({
               Development fixture
             </Text>
           </View>
-        ) : onRefresh ? (
-          <Pressable
-            accessibilityLabel={isRefreshing ? 'Refreshing Constellation' : 'Refresh Constellation'}
-            accessibilityRole="button"
-            accessibilityState={{ busy: isRefreshing, disabled: isRefreshing }}
-            disabled={isRefreshing}
-            onPress={onRefresh}
-            style={({ pressed }) => ({
-              alignItems: 'center',
-              borderColor: tokens.panel.border,
-              borderRadius: 999,
-              borderWidth: 1,
+        ) : (
+          <View
+            style={{
               flexDirection: 'row',
-              gap: 7,
-              minHeight: 38,
-              opacity: pressed || isRefreshing ? 0.68 : 1,
-              paddingHorizontal: 13,
-            })}
+              flexWrap: 'wrap',
+              gap: 8,
+            }}
           >
-            {isRefreshing ? (
-              <ActivityIndicator color={tokens.text.accent} size="small" />
+            {onCreateAnnotation ? (
+              <>
+                {(['note', 'projection'] as const).map((kind) => (
+                  <Pressable
+                    accessibilityLabel={`Create ${kind}`}
+                    accessibilityRole="button"
+                    key={kind}
+                    onPress={() => onCreateAnnotation(kind)}
+                    style={({ pressed }) => ({
+                      alignItems: 'center',
+                      backgroundColor: kind === 'projection'
+                        ? tokens.annotation.badgeFill
+                        : tokens.panel.background,
+                      borderColor: tokens.annotation.stroke,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      justifyContent: 'center',
+                      minHeight: 38,
+                      opacity: pressed ? 0.68 : 1,
+                      paddingHorizontal: 13,
+                    })}
+                  >
+                    <Text
+                      style={{
+                        color: tokens.annotation.badgeText,
+                        fontFamily: 'Inter-SemiBold',
+                        fontSize: 12,
+                        textTransform: 'capitalize',
+                      }}
+                    >
+                      {`+ ${kind}`}
+                    </Text>
+                  </Pressable>
+                ))}
+              </>
             ) : null}
-            <Text
-              style={{
-                color: tokens.text.accent,
-                fontFamily: 'Inter-SemiBold',
-                fontSize: 12,
-              }}
-            >
-              {isRefreshing ? 'Refreshing…' : 'Refresh'}
-            </Text>
-          </Pressable>
-        ) : null}
+            {onRefresh ? (
+              <Pressable
+                accessibilityLabel={isRefreshing ? 'Refreshing Constellation' : 'Refresh Constellation'}
+                accessibilityRole="button"
+                accessibilityState={{ busy: isRefreshing, disabled: isRefreshing }}
+                disabled={isRefreshing}
+                onPress={onRefresh}
+                style={({ pressed }) => ({
+                  alignItems: 'center',
+                  borderColor: tokens.panel.border,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  flexDirection: 'row',
+                  gap: 7,
+                  minHeight: 38,
+                  opacity: pressed || isRefreshing ? 0.68 : 1,
+                  paddingHorizontal: 13,
+                })}
+              >
+                {isRefreshing ? (
+                  <ActivityIndicator color={tokens.text.accent} size="small" />
+                ) : null}
+                <Text
+                  style={{
+                    color: tokens.text.accent,
+                    fontFamily: 'Inter-SemiBold',
+                    fontSize: 12,
+                  }}
+                >
+                  {isRefreshing ? 'Refreshing…' : 'Refresh'}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        )}
       </View>
       {refreshError ? (
         <Text

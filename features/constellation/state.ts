@@ -14,6 +14,7 @@ export interface ConstellationClientState {
 export type ConstellationClientAction =
   | { type: 'request_started' }
   | { type: 'request_succeeded'; dto: ConstellationGraphDTO }
+  | { type: 'dto_replaced'; dto: ConstellationGraphDTO }
   | {
       type: 'request_failed';
       error: string;
@@ -57,6 +58,12 @@ export function reduceConstellationClientState(
         retryable: true,
         isRefreshing: false,
         refreshError: null,
+      };
+    case 'dto_replaced':
+      return {
+        ...state,
+        status: 'ready',
+        dto: action.dto,
       };
     case 'request_failed':
       return state.dto && action.retryable

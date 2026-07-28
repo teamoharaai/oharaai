@@ -14,6 +14,7 @@ import {
 } from '../gate';
 import { CONSTELLATION_COPY } from '../copy';
 import type {
+  ConstellationAnnotationKind,
   ConstellationGraphCountsDTO,
   ConstellationRenderState,
 } from '../types';
@@ -27,6 +28,7 @@ type EmptyRenderState = Extract<
 interface ConstellationEmptyStateProps {
   counts: ConstellationGraphCountsDTO;
   isRefreshing?: boolean;
+  onCreateAnnotation?: (kind: ConstellationAnnotationKind) => void;
   onRefresh?: () => void;
   refreshError?: string | null;
   renderState: EmptyRenderState;
@@ -226,6 +228,7 @@ function IntroductionCard({
 export function ConstellationEmptyState({
   counts,
   isRefreshing = false,
+  onCreateAnnotation,
   onRefresh,
   refreshError,
   renderState,
@@ -253,22 +256,44 @@ export function ConstellationEmptyState({
               {`${seasonLabel} · ${copy.status.toLowerCase()}`}
             </Typography>
           </View>
-          {onRefresh ? (
-            <Button
-              accessibilityLabel={isRefreshing ? 'Refreshing Constellation' : 'Refresh Constellation'}
-              disabled={isRefreshing}
-              onPress={onRefresh}
-              size="compact"
-              variant="secondary"
-            >
-              {isRefreshing ? (
-                <View style={{ alignItems: 'center', flexDirection: 'row', gap: 7 }}>
-                  <ActivityIndicator color={colors.accent.primary} size="small" />
-                  <Typography variant="label">Refreshing…</Typography>
-                </View>
-              ) : 'Refresh'}
-            </Button>
-          ) : null}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {renderState !== 'locked' && onCreateAnnotation ? (
+              <>
+                <Button
+                  accessibilityLabel="Create note annotation"
+                  onPress={() => onCreateAnnotation('note')}
+                  size="compact"
+                  variant="secondary"
+                >
+                  + Note
+                </Button>
+                <Button
+                  accessibilityLabel="Create projection annotation"
+                  onPress={() => onCreateAnnotation('projection')}
+                  size="compact"
+                  variant="secondary"
+                >
+                  + Projection
+                </Button>
+              </>
+            ) : null}
+            {onRefresh ? (
+              <Button
+                accessibilityLabel={isRefreshing ? 'Refreshing Constellation' : 'Refresh Constellation'}
+                disabled={isRefreshing}
+                onPress={onRefresh}
+                size="compact"
+                variant="secondary"
+              >
+                {isRefreshing ? (
+                  <View style={{ alignItems: 'center', flexDirection: 'row', gap: 7 }}>
+                    <ActivityIndicator color={colors.accent.primary} size="small" />
+                    <Typography variant="label">Refreshing…</Typography>
+                  </View>
+                ) : 'Refresh'}
+              </Button>
+            ) : null}
+          </View>
         </View>
         {refreshError ? (
           <Typography
