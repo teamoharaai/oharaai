@@ -520,3 +520,31 @@ The following choices are not locked by this contract:
 
 Those choices may be resolved in the relevant implementation session without
 changing the domain boundaries or `ConstellationGraphDTO` semantics above.
+
+## 13. Release deployment and enablement prerequisites
+
+`FEATURES.CONSTELLATION_ENABLED` remains `false` until all of the following are
+recorded against the intended deployment environment:
+
+1. Migration `032_constellation_persistence.sql` is applied and present in that
+   project's migration history. The four Constellation tables and their RLS
+   policies must exist; virtual BRT clusters must not be persisted.
+2. The deployed Expo/Vercel artifact includes the owner-scoped Constellation API
+   routes: graph read, annotation create/update/archive, Evidence Link
+   create/update/delete, goal evidence/search, and Reflection inspection.
+3. Authenticated owner smoke checks confirm the deployed graph returns only real
+   owner data, no production fixture imports or fixture DTO origins, and failed
+   graph, inspector, and evidence requests retain an explicit retry path.
+4. Cross-user verification passes in the deployed environment: one account
+   cannot read or mutate another account's nodes, annotations, Evidence Links,
+   goal evidence, Echo options, or Reflection evidence.
+5. Release validation passes from the deployable source state: strict
+   TypeScript, the Constellation test suite, the isolated migration/RLS harness,
+   `git diff --check`, and an Expo web export. Light mode, dark mode, and the
+   narrow inspector replacement require a final authenticated browser smoke on
+   the deployed artifact.
+
+Only after those records exist may a separately authorized release change set
+`FEATURES.CONSTELLATION_ENABLED` to `true`. A missing database migration, missing
+API deployment, unavailable smoke environment, or failed validation keeps the
+flag disabled; no fixture or mock-data fallback is permitted.

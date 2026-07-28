@@ -1,5 +1,29 @@
 # Constellation Implementation Changelog
 
+## 2026-07-28 — Final rollout review
+
+1. Reviewed the current real-data Constellation feature slice without adding
+   product behavior, changing the migration, or enabling the public feature
+   flag. Production routes remain isolated from development/test fixtures.
+2. Verified the source-level access/data split, annotation earned-count
+   isolation, Evidence Link separation from Echo containers and global BRT,
+   deterministic virtual Bud/Rose/Thorn derivation, owner-scoped action
+   destinations, explicit retry states, and responsive light/dark/narrow
+   implementation paths.
+3. Verification passed: `npx tsc --noEmit`, all 58
+   `npm run test:constellation` tests, the credential-free disposable
+   PostgreSQL migration-032/RLS harness, and `npx expo export --platform web`.
+   The export includes the complete Constellation API route set.
+4. Confirmed the linked Supabase project has migration `032`, all four required
+   Constellation tables, and RLS on each table. A self-cleaning two-user live
+   smoke also confirmed owner reads/writes and cross-user read/forged-write
+   denial.
+5. Kept `FEATURES.CONSTELLATION_ENABLED` disabled. The authenticated Vercel
+   account has no Ohara project or team scope, so the intended application/API
+   artifact cannot be deployed or browser-smoked. Canonical deployment and
+   enablement prerequisites remain in `docs/constellation/DECISIONS.md` section
+   13; no mock-data substitute is permitted for that missing evidence.
+
 ## 2026-07-28 — Release hardening and concept reconciliation
 
 1. Hardened the real-data Canvas for the delivered visual contract: light mode
