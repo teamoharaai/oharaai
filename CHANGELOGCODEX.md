@@ -177,6 +177,28 @@
 - **`ohara_constellation_spec.md`:** reconciled stale goal statuses and phase language with the current schema, locked the six-kind earned taxonomy, and deferred conflicting annotation, Evidence Link, virtual-cluster, DTO, and production-data details to the canonical decision record.
 - **`Context.md`:** replaced the stale migration-011/next-012 and four-status guidance with the repository's current migration-031/next-032 ledger, the six current goal statuses from `lib/goals/schema.ts`, and a compact Constellation contract summary.
 - These documentation changes prevent the old handoff's already-consumed migration 012, mock-production graph, future-node, and relationship-as-valence assumptions from driving implementation. Affected files: `docs/constellation/DECISIONS.md`, `ohara_constellation_spec.md`, `Context.md`, and `CHANGELOGCODEX.md`.
+### Added
+- Added `components/landing/PublicMomentumTrendChart.tsx` with compact, standard, and expanded public chart variants, instance-safe SVG gradients and clipping, responsive axes, and the existing public seven-point sample trend.
+- Added reusable public-experience primitives for the shared navigation, responsive page canvas, buttons, feature previews, footer, and authentication shell in `components/landing/PublicPrimitives.tsx` and `components/landing/PublicAuthShell.tsx`, with a consistent accessible focus treatment in `global.css`.
+- Added separately exported official vein, branch, and wood-grain artwork under `assets/brand/artwork/` plus the responsive, decorative-only `components/landing/BrandArtwork.tsx` presentation layer.
+
+### Changed
+- Upgraded the authenticated shared `MomentumTrendChart` used by the Home dashboard, expanded dashboard preview, and Momentum page with the same polished curved line, clipped sage gradient, restrained markers, subtle axes/gridlines, responsive labels, and light/dark theme treatment as the public preview while preserving all existing sample datasets and range controls.
+- Replaced the default-looking public Momentum graphs with a shared curved OHARA-green trend, clipped area gradient, restrained markers, subtle axes and gridlines, responsive tick density, and explicit Preview hierarchy without changing public sample values or Momentum calculations.
+- Redesigned the code-native landing page around the official OHARA logo, canonical warm/forest palette, Inter typography, layered product previews, alternating product sections, and responsive editorial layout in `components/landing/LandingPage.tsx`.
+- Updated `app/about.tsx`, `app/(auth)/login.tsx`, and `app/(auth)/signup.tsx` to share the same public visual system while preserving their existing routes and authentication handlers.
+- Refactored `components/landing/PublicNav.tsx` to expose the shared responsive public header across existing public and authentication routes.
+- Rebuilt the landing hero preview stage with coordinated desktop layering, non-overlapping tablet/mobile layouts, a stronger irregular organic imprint, and fully contained preview cards in `components/landing/LandingPage.tsx` and `components/landing/PublicPrimitives.tsx`.
+- Replaced the oversized public Constellation examples with shared compact and detailed SVG variants in `components/constellation/PublicConstellation.tsx`, retaining the existing `ConstellationSample` entry points.
+- Replaced the landing page’s manual goal-builder mockup with an inert, code-native Chat with Echo preview in `components/landing/AIGoalCreationPreview.tsx`, and changed the hero to preserve one proportional composed stage through desktop and tablet widths before switching to a mobile list.
+- Replaced the generated public leaf approximation with the supplied OHARA artwork across the hero, selected landing sections, About page, and authentication shell; reduced public-header and landing-section divider contrast without changing layout or interactions.
+- Replaced the hero product stack’s leaf-vein backdrop with the supplied official wood-grain artwork, extending the transparent treatment across the full preview stage to avoid visible artwork boundaries.
+- Expanded the subtle official wood-grain treatment behind the complete landing hero row and slightly increased its visibility while preserving hero content hierarchy and responsive structure.
+- Removed the hero artwork’s inset/rotation boundary and extended the same lower-contrast, borderless wood-grain backdrop across every remaining light landing-page row.
+- Moved the hero artwork layer to the full-width row container so every textured landing section fills both axes while its readable content remains centered at the existing maximum width.
+
+### Fixed
+- Made Product, Echo, Momentum, and Constellation public-header links scroll the landing page’s internal web scroll container reliably from both the landing page and other public routes.
 
 ### Added (2026-07-27 — Reusable app calendar picker)
 - **`components/ui/DatePicker.tsx`:** added a token-driven, cross-platform calendar picker with human-readable trigger text, month navigation, temporary selected-date state, minimum/maximum bounds, accessible 44px day targets, optional clearing, and explicit Cancel/Apply behavior.

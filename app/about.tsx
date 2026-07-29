@@ -1,209 +1,98 @@
-import { Link } from "expo-router";
-import type { Href } from "expo-router";
-import { ScrollView, TouchableOpacity, View } from "react-native";
-import { Typography } from "@/components/ui/Typography";
+import { ScrollView, useWindowDimensions, View } from 'react-native';
 
-function NavLink({
-  label,
-  href,
-}: {
-  label: string;
-  href: Href;
-}) {
+import { BrandArtwork } from '@/components/landing/BrandArtwork';
+import {
+  PublicButton,
+  PublicFooter,
+  PublicHeader,
+  PublicPageCanvas,
+  PublicSectionHeading,
+  PUBLIC_COLORS,
+} from '@/components/landing/PublicPrimitives';
+import { Typography } from '@/components/ui/Typography';
+
+function StoryBlock({ eyebrow, children }: { eyebrow: string; children: React.ReactNode }) {
   return (
-    <Link href={href} asChild>
-      <TouchableOpacity>
-        <Typography variant="label">{label}</Typography>
-      </TouchableOpacity>
-    </Link>
+    <View style={{ borderTopColor: PUBLIC_COLORS.border, borderTopWidth: 1, paddingTop: 28 }}>
+      <Typography className="font-inter-semibold" style={{ color: PUBLIC_COLORS.forest, fontSize: 11, letterSpacing: 1.8, lineHeight: 16, textTransform: 'uppercase' }}>
+        {eyebrow}
+      </Typography>
+      <View style={{ gap: 16, marginTop: 18 }}>{children}</View>
+    </View>
   );
 }
 
 export default function AboutPage() {
+  const { width } = useWindowDimensions();
+  const compact = width < 760;
+
   return (
-    <View className="flex-1 bg-landing-dark-bg">
-      {/* Background Glow */}
-      <View className="absolute inset-0 overflow-hidden">
-        <View
-          className="absolute left-1/2 top-1/2 h-72 w-72 -translate-x-36 -translate-y-36 rounded-full bg-white/10"
-          style={
-            {
-              filter: "blur(120px)",
-            } as any
-          }
-        />
-        <View className="absolute inset-0 bg-landing-dark-bg/78" />
-      </View>
-
-      {/* Header */}
-      <View
-        className="px-6 pt-6"
-        style={
-          {
-            position: "sticky",
-            top: 0,
-            zIndex: 50,
-            backdropFilter: "blur(18px)",
-            WebkitBackdropFilter: "blur(18px)",
-          } as any
-        }
-      >
-        <View className="mx-auto w-full max-w-6xl flex-row items-center justify-between rounded-full border border-white/10 bg-white/5 px-5 py-4">
-  <Link href="/" asChild>
-    <TouchableOpacity>
-      <Typography
-        variant="label"
-        className="font-inter-semibold text-base tracking-[0.24em] text-ink"
-      >
-        OharaAI
-      </Typography>
-    </TouchableOpacity>
-  </Link>
-
-  <View className="flex-row items-center gap-5">
-    <NavLink label="About Us" href={"/about" as Href} />
-    <NavLink label="Log in" href="/(auth)/login" />
-    <NavLink label="Sign up" href="/(auth)/signup" />
-    <NavLink label="Roadmap" href="/" />
-  </View>
-</View>
-      </View>
-
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingBottom: 80 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View className="mx-auto w-full max-w-5xl px-6 py-24">
-          {/* Hero */}
-          <Typography
-            variant="heading"
-            className="mb-6 text-center"
-            style={
-              {
-                fontSize: "clamp(3.5rem, 9vw, 6.5rem)",
-                lineHeight: 1,
-                letterSpacing: -3,
-              } as any
-            }
-          >
-            About OHARA
-          </Typography>
-
-          <Typography
-            variant="body"
-            className="mb-20 text-center leading-7"
-            style={{ maxWidth: 560, alignSelf: "center" }}
-          >
-            Helping people understand themselves, not just track themselves.
-          </Typography>
-
-          {/* Why We Exist */}
-          <View className="mb-10 rounded-3xl border border-white/10 bg-white/[0.04] p-8 items-center">
-            <Typography
-              variant="caption"
-              className="mb-4 text-center font-inter-medium uppercase tracking-[0.28em]"
-            >
-              Why We Exist
-            </Typography>
-
-            <Typography
-              variant="body"
-              className="text-center leading-7"
-              style={{ maxWidth: 720 }}
-            >
-              Most productivity and habit-tracking apps measure actions. OHARA
-              is designed to uncover the patterns, beliefs, habits, and
-              behaviors beneath those actions.
-            </Typography>
-
-            <Typography
-              variant="body"
-              className="mt-4 text-center leading-7"
-              style={{ maxWidth: 720 }}
-            >
-              We believe meaningful growth comes from understanding why we do
-              what we do, not simply recording what happened.
-            </Typography>
-          </View>
-
-          {/* What Makes OHARA Different */}
-          <View className="mb-10 rounded-3xl border border-white/10 bg-white/[0.04] p-8 items-center">
-            <Typography
-              variant="caption"
-              className="mb-4 text-center font-inter-medium uppercase tracking-[0.28em]"
-            >
-              What Makes OHARA Different
-            </Typography>
-
-            <Typography
-              variant="body"
-              className="text-center leading-7"
-              style={{ maxWidth: 720 }}
-            >
-              Goals are connected to identity. Habits are connected to context.
-              Progress is connected to reflection.
-            </Typography>
-
-            <Typography
-              variant="body"
-              className="mt-4 text-center leading-7"
-              style={{ maxWidth: 720 }}
-            >
-              Rather than treating goals as isolated checklists, OHARA looks for
-              connections across the different areas of a person's life.
-            </Typography>
-          </View>
-
-          {/* Long-Term Vision */}
-          <View className="mb-16 rounded-3xl border border-white/10 bg-white/[0.04] p-8 items-center">
-            <Typography
-              variant="caption"
-              className="mb-4 text-center font-inter-medium uppercase tracking-[0.28em]"
-            >
-              Long-Term Vision
-            </Typography>
-
-            <Typography
-              variant="body"
-              className="text-center leading-7"
-              style={{ maxWidth: 720 }}
-            >
-              Our vision is to create a personalized system for
-              self-understanding.
-            </Typography>
-
-            <Typography
-              variant="body"
-              className="mt-4 text-center leading-7"
-              style={{ maxWidth: 720 }}
-            >
-              In the future, OHARA will be able to connect data from goals,
-              habits, reflections, and external applications to provide deeper
-              insights and recommendations tailored to each individual.
-            </Typography>
-
-            <Typography
-              variant="body"
-              className="mt-4 text-center leading-7"
-              style={{ maxWidth: 720 }}
-            >
-              Every person's life is different. Their guidance should be too.
-            </Typography>
-          </View>
-
-          {/* Footer */}
-          <View className="border-t border-white/10 pt-10">
-            <Typography
-              variant="caption"
-              className="text-center"
-              style={{ opacity: 0.7 }}
-            >
-              © 2026 OharaAI
-            </Typography>
+    <PublicPageCanvas>
+      <PublicHeader />
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+        <View style={{ minHeight: compact ? 520 : 620, overflow: 'hidden', position: 'relative' }}>
+          <BrandArtwork opacity={compact ? 0.055 : 0.09} style={{ bottom: -80, height: 610, position: 'absolute', right: -80, width: 610 }} variant="vein" />
+          <View style={{ justifyContent: 'center', marginHorizontal: 'auto', maxWidth: 1220, minHeight: compact ? 520 : 620, paddingHorizontal: compact ? 24 : 56, width: '100%' }}>
+            <PublicSectionHeading
+              eyebrow="About OHARA"
+              title="Helping people understand themselves, not just track themselves."
+              body="OHARA brings goals, habits, context, and reflection into one evolving view of personal growth."
+            />
           </View>
         </View>
+
+        <View style={{ backgroundColor: PUBLIC_COLORS.surface, borderBottomColor: PUBLIC_COLORS.border, borderBottomWidth: 1, borderTopColor: PUBLIC_COLORS.border, borderTopWidth: 1 }}>
+          <View style={{ flexDirection: compact ? 'column' : 'row', gap: compact ? 46 : 90, marginHorizontal: 'auto', maxWidth: 1120, paddingHorizontal: compact ? 24 : 56, paddingVertical: compact ? 72 : 96, width: '100%' }}>
+            <Typography className="font-inter-medium" style={{ color: PUBLIC_COLORS.ink, flex: 0.8, fontSize: compact ? 31 : 40, letterSpacing: -1.3, lineHeight: compact ? 40 : 49 }}>
+              Growth starts with understanding why we do what we do.
+            </Typography>
+            <View style={{ flex: 1, gap: 40 }}>
+              <StoryBlock eyebrow="Why we exist">
+                <Typography style={{ color: PUBLIC_COLORS.muted, fontSize: 16, lineHeight: 27 }}>
+                  Most productivity and habit-tracking apps measure actions. OHARA is designed to uncover the patterns, beliefs, habits, and behaviors beneath those actions.
+                </Typography>
+                <Typography style={{ color: PUBLIC_COLORS.muted, fontSize: 16, lineHeight: 27 }}>
+                  We believe meaningful growth comes from understanding why we do what we do, not simply recording what happened.
+                </Typography>
+              </StoryBlock>
+              <StoryBlock eyebrow="What makes OHARA different">
+                <Typography style={{ color: PUBLIC_COLORS.muted, fontSize: 16, lineHeight: 27 }}>
+                  Goals are connected to identity. Habits are connected to context. Progress is connected to reflection.
+                </Typography>
+                <Typography style={{ color: PUBLIC_COLORS.muted, fontSize: 16, lineHeight: 27 }}>
+                  Rather than treating goals as isolated checklists, OHARA looks for connections across the different areas of a person&apos;s life.
+                </Typography>
+              </StoryBlock>
+            </View>
+          </View>
+        </View>
+
+        <View style={{ backgroundColor: PUBLIC_COLORS.forestDark, overflow: 'hidden', position: 'relative' }}>
+          <BrandArtwork dark fit="cover" opacity={compact ? 0.065 : 0.1} style={{ bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 }} variant="vein" />
+          <View style={{ marginHorizontal: 'auto', maxWidth: 920, paddingHorizontal: compact ? 24 : 56, paddingVertical: 94, position: 'relative', width: '100%', zIndex: 1 }}>
+            <Typography className="font-inter-semibold" style={{ color: '#A8C4AE', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase' }}>Long-term vision</Typography>
+            <Typography className="font-inter-medium" style={{ color: '#F7F4EE', fontSize: compact ? 32 : 42, letterSpacing: -1.3, lineHeight: compact ? 41 : 51, marginTop: 18 }}>
+              A personalized system for self-understanding.
+            </Typography>
+            <View style={{ gap: 17, marginTop: 26, maxWidth: 760 }}>
+              <Typography style={{ color: '#D8E3DA', fontSize: 16, lineHeight: 27 }}>
+                In the future, OHARA will be able to connect data from goals, habits, reflections, and external applications to provide deeper insights and recommendations tailored to each individual.
+              </Typography>
+              <Typography style={{ color: '#D8E3DA', fontSize: 16, lineHeight: 27 }}>
+                Every person&apos;s life is different. Their guidance should be too.
+              </Typography>
+            </View>
+          </View>
+        </View>
+
+        <View style={{ alignItems: 'center', paddingHorizontal: 24, paddingVertical: 90 }}>
+          <Typography className="font-inter-medium" style={{ color: PUBLIC_COLORS.ink, fontSize: compact ? 32 : 40, letterSpacing: -1.2, lineHeight: compact ? 40 : 48, marginBottom: 28, textAlign: 'center' }}>
+            Begin with what matters to you.
+          </Typography>
+          <PublicButton href="/(auth)/signup" label="Start your journey" primary />
+        </View>
+        <PublicFooter />
       </ScrollView>
-    </View>
+    </PublicPageCanvas>
   );
 }

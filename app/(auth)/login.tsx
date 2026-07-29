@@ -5,13 +5,12 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  ScrollView,
 } from 'react-native';
 import { Link, router, useLocalSearchParams, type Href } from 'expo-router';
 import supabase from '@/lib/db/client';
 import { Typography } from '@/components/ui/Typography';
-import { PublicNav } from '@/components/landing/PublicNav';
 import { LIGHT_THEME } from '@/constants/colors';
+import { PublicAuthShell, publicInputStyle } from '@/components/landing/PublicAuthShell';
 
 export default function LoginScreen() {
   const params = useLocalSearchParams<{ error?: string }>();
@@ -41,18 +40,7 @@ export default function LoginScreen() {
   }
 
   return (
-    <View style={{ backgroundColor: LIGHT_THEME.background.page, flex: 1 }}>
-      <PublicNav />
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-      <View className="flex-1 justify-center px-6" style={{ maxWidth: 420, width: '100%', alignSelf: 'center', paddingVertical: 40 }}>
-        {/* Wordmark */}
-        <Text className="text-3xl tracking-tight mb-2" style={{ color: LIGHT_THEME.text.primary, fontFamily: 'Inter-Bold' }}>
-          Ohara
-        </Text>
-        <Typography variant="body" className="mb-10">
-          Welcome back.
-        </Typography>
-
+    <PublicAuthShell mode="login" title="Welcome back." subtitle="Continue your journey with OHARA.">
         {/* Error */}
         {error && (
           <View className="rounded-2xl px-4 py-3 mb-6" style={{ backgroundColor: LIGHT_THEME.feedback.danger.bg, borderColor: LIGHT_THEME.feedback.danger.border, borderWidth: 1 }}>
@@ -63,8 +51,8 @@ export default function LoginScreen() {
         {/* Email */}
         <Typography variant="field-label" className="mb-1.5">Email</Typography>
         <TextInput
-          className="rounded-2xl px-4 py-3.5 text-base mb-4"
-          style={{ backgroundColor: LIGHT_THEME.background.input, borderColor: LIGHT_THEME.border.input, borderWidth: 1, color: LIGHT_THEME.text.primary }}
+          className="public-auth-input mb-4"
+          style={publicInputStyle}
           placeholder="you@example.com"
           placeholderTextColor={LIGHT_THEME.text.muted}
           value={email}
@@ -89,8 +77,8 @@ export default function LoginScreen() {
           </Link>
         </View>
         <TextInput
-          className="rounded-2xl px-4 py-3.5 text-base mb-6"
-          style={{ backgroundColor: LIGHT_THEME.background.input, borderColor: LIGHT_THEME.border.input, borderWidth: 1, color: LIGHT_THEME.text.primary }}
+          className="public-auth-input mb-6"
+          style={publicInputStyle}
           placeholder="••••••••"
           placeholderTextColor={LIGHT_THEME.text.muted}
           value={password}
@@ -102,7 +90,7 @@ export default function LoginScreen() {
         {/* Submit */}
         <TouchableOpacity
           className="rounded-full py-4 items-center mb-6"
-          style={{ backgroundColor: LIGHT_THEME.accent.primary, opacity: loading ? 0.65 : 1 }}
+          style={{ backgroundColor: LIGHT_THEME.accent.primary, minHeight: 50, opacity: loading ? 0.65 : 1 }}
           onPress={handleLogin}
           disabled={loading}
         >
@@ -122,8 +110,6 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </Link>
         </View>
-      </View>
-      </ScrollView>
-    </View>
+    </PublicAuthShell>
   );
 }
