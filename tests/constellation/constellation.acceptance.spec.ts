@@ -261,10 +261,10 @@ test.describe('final architecture interaction contract', () => {
       page.getByLabel('Goal inspector for Train three times weekly'),
     ).toBeVisible();
 
-    await page.getByRole('button', { name: 'Add Echo reference' }).click();
-    await page.getByLabel('Search your Echoes').fill('new practice');
+    await page.getByRole('button', { name: 'Add entry reference' }).click();
+    await page.getByLabel('Search your entries').fill('new practice');
     await page.getByRole('button', {
-      name: `Select Echo ${acceptanceEchoOption.title}`,
+      name: `Select entry ${acceptanceEchoOption.title}`,
     }).click();
     await page.getByRole('button', {
       name: 'Bud evidence category',
@@ -322,7 +322,7 @@ test.describe('final architecture interaction contract', () => {
     )).toBeVisible();
     await page.getByRole('button', { name: 'Retry', exact: true }).click();
     await expect(
-      page.getByRole('button', { name: 'Add Echo reference' }),
+      page.getByRole('button', { name: 'Add entry reference' }),
     ).toBeEnabled();
     await page.getByRole('button', { name: 'Close inspector' }).click();
     await expect(page).toHaveURL(/\/constellation$/);
@@ -340,14 +340,14 @@ test.describe('final architecture interaction contract', () => {
     await expect(page).toHaveURL(/\/constellation$/);
 
     await selectNode(page, 'goal', 'Train three times weekly');
-    await page.getByRole('button', { name: 'Add Echo reference' }).click();
+    await page.getByRole('button', { name: 'Add entry reference' }).click();
     await expect(page.getByText(
-      'Could not search Echo entries',
+      'Could not search entries',
       { exact: true },
     )).toBeVisible();
     await page.getByRole('button', { name: 'Retry search' }).click();
     await expect(page.getByRole('button', {
-      name: `Select Echo ${acceptanceEchoOption.title}`,
+      name: `Select entry ${acceptanceEchoOption.title}`,
     })).toBeVisible();
   });
 
@@ -371,7 +371,7 @@ test.describe('final architecture interaction contract', () => {
     ).toBeVisible();
 
     await page.goto('/constellation');
-    await page.getByRole('button', { name: 'Write an Echo' }).click();
+    await page.getByRole('button', { name: 'Write an entry' }).click();
     await expect(page).toHaveURL(/\/echo$/);
     await expect(
       page.getByLabel('Acceptance Echo destination'),
