@@ -599,3 +599,9 @@ override the domain, ownership, privacy, or responsive decisions in this documen
      as intentional, not drift
    - gate.ts: remove now-dead access-gate constants + dashboard-summary residue 
      (tied to decision #1)
+
+
+8. Annotation anchoring: constellation_annotations gains anchor_goal_id (nullable, parallel to 
+   anchor_earned_node_id, at-most-one-set) to support anchoring to direct-read goal nodes now that 
+   they no longer live in constellation_nodes. No prior working behavior lost — no writer ever 
+   populated goal nodes, so goal-anchoring has never functioned until this change.

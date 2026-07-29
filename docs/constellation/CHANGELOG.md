@@ -1,5 +1,14 @@
 # Constellation Implementation Changelog
 
+## 2026-07-29 — Current state note
+
+`FEATURES.CONSTELLATION_ENABLED` is `true` in `constants/features.ts`. This is
+the current, intentional state following the 2026-07-28 "Production
+enablement" entry below. Earlier entries in this file (2026-07-28 "Final
+rollout review" and older) describe the flag as disabled — that was accurate
+at the time each entry was written, before the deploy blocker was resolved,
+and should be read as history rather than current state.
+
 ## 2026-07-28 — Automated acceptance contract
 
 1. Added 15 Playwright screenshot comparisons for concepts 1a–1e at their

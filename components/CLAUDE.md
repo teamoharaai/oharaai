@@ -28,7 +28,6 @@ Use the `Typography` component with a `variant` — do not hardcode font/size/co
 - ProjectGoalRow.tsx: compact 56px linear goal entry used by dashboard ProjectCard expansions, project-detail Goals, and the dashboard Goals list-view option; includes only the category-tinted goal icon, title, deadline/commitment line, and navigation arrow, intentionally omitting category/status pills and the full GoalCard left accent stripe.
 - VaultItemCard.tsx: renders vault items by type (note/link/insight/action_update/document)
 - EchoTrail.tsx: filtered echo entries for a goal, read-only, tap navigates to Echo
-- ConstellationPreview.tsx: sample SVG graph + progress indicator (Phase 1 preview)
 - Typography.tsx: shared typography component (components/ui/Typography.tsx)
 
 ## Rules
