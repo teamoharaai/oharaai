@@ -119,11 +119,11 @@ export function EchoEntryList({
         }}
       >
         <EmptyStateCard
-          title={groupBy === 'none' ? 'No entries here yet.' : 'No Echo entries yet.'}
+          title={groupBy === 'none' ? 'No entries here yet.' : 'No entries yet.'}
           description={
             groupBy === 'none'
-              ? 'This container does not have any Echo entries yet.'
-              : 'Add a reflection to start building your Echo.'
+              ? 'This container does not have any entries yet.'
+              : 'Add an entry to begin.'
           }
         />
       </View>

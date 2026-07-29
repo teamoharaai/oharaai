@@ -39,7 +39,7 @@ async function handleGet(
   } catch (error) {
     return constellationErrorResponse(
       error,
-      'Failed to search Echo entries.',
+      'Failed to search entries.',
     );
   }
 }

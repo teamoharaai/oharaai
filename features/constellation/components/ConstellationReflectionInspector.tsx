@@ -73,7 +73,7 @@ export function ConstellationReflectionInspector({
         <Typography numberOfLines={5} variant="description">
           {inspector.dto?.description
             ?? node.description
-            ?? 'A validated pattern drawn from your Echo history.'}
+            ?? 'A validated pattern drawn from your entry history.'}
         </Typography>
       </View>
 
@@ -181,7 +181,7 @@ export function ConstellationReflectionInspector({
 
           <View style={{ gap: 10 }}>
             <Typography variant="section-eyebrow">
-              {`Contributing Echoes · ${inspector.dto.evidence.length}`}
+              {`Contributing entries · ${inspector.dto.evidence.length}`}
             </Typography>
             {inspector.dto.evidence.length === 0 ? (
               <Typography variant="description">
@@ -205,21 +205,21 @@ export function ConstellationReflectionInspector({
               >
                 <View style={{ gap: 3 }}>
                   <Typography numberOfLines={2} variant="label">
-                    {item.title?.trim() || 'Untitled Echo'}
+                    {item.title?.trim() || 'Untitled Entry'}
                   </Typography>
                   <Typography variant="caption">
                     {`${formattedDate(item.createdAt)} · ${valenceLabel(item.valence)}`}
                   </Typography>
                 </View>
                 <Typography numberOfLines={4} variant="caption">
-                  {item.excerpt || 'This Echo has no preview text.'}
+                  {item.excerpt || 'This entry has no preview text.'}
                 </Typography>
                 <Button
                   onPress={() => onReadInEcho(item.id)}
                   size="compact"
                   variant="secondary"
                 >
-                  Read in Echo
+                  Read entry
                 </Button>
               </View>
             ))}

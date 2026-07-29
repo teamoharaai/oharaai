@@ -187,7 +187,7 @@ export function SettingsPane({ active, onClose }: SettingsPaneProps) {
             className="mt-2"
             style={{ color: colors.text.secondary }}
           >
-            When off, Echo entries are saved without AI analysis.
+            When off, entries are saved without AI analysis.
           </Typography>
         </View>
         )}

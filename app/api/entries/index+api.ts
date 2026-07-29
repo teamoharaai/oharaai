@@ -3,7 +3,7 @@ import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 import { buildEchoEmbeddingText } from '@/lib/ai/embedding-text';
 import { generateEmbedding } from '@/lib/ai/embeddings';
 import { EMBEDDING_MODEL } from '@/lib/ai/constants';
-import { isRecord, optionalString, optionalUuid, requiredString } from '@/lib/sessions/schema';
+import { isRecord, optionalUuid, requiredString } from '@/lib/sessions/schema';
 
 type ConfirmedContainer =
   | { type: 'goal'; goalId: string; goalTitle?: string }
@@ -26,7 +26,7 @@ async function handlePost(
     if (!isRecord(body)) throw new Error('Entry payload must be an object');
 
     const content = requiredString(body.content, 'content', 20000);
-    const title = optionalString(body.title, 'title', 200);
+    const title = requiredString(body.title, 'title', 200);
     const goalId = optionalUuid(body.goalId, 'goalId');
     const aiInsightRequested = body.aiInsightRequested === true;
     const brt = body.brt === undefined || body.brt === null ? null : body.brt;

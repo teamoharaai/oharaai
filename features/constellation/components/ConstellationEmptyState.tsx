@@ -182,7 +182,7 @@ function IntroductionCard({
               {copy.status}
             </Typography>
             <Typography variant="caption">
-              {`${counts.source.echoEntries} Echoes · ${nonDraftGoalCount(counts)} goals · ${counts.source.qualifiedCandidates} qualified patterns`}
+              {`${counts.source.echoEntries} entries · ${nonDraftGoalCount(counts)} goals · ${counts.source.qualifiedCandidates} qualified patterns`}
             </Typography>
           </View>
         )}
@@ -212,12 +212,12 @@ function IntroductionCard({
             Set a goal
           </Button>
           <Button
-            accessibilityLabel="Write an Echo"
+            accessibilityLabel="Write an entry"
             onPress={() => router.push('/(app)/echo')}
             style={{ flex: compact ? undefined : 1 }}
             variant="secondary"
           >
-            Write an Echo
+            Write an entry
           </Button>
         </View>
       </View>

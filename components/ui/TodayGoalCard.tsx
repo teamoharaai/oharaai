@@ -127,7 +127,7 @@ export function TodayGoalCard({ goal, projectTitle }: TodayGoalCardProps) {
         {ringProgress === null ? 'No deadline set' : `${progress}% Complete`}
       </Typography>
       <Typography variant="caption" style={{ marginTop: 5 }}>
-        Last Reflection: {lastReflection ?? 'No reflections yet'}
+        Last Entry: {lastReflection ?? 'No entries yet'}
       </Typography>
     </View>
   );

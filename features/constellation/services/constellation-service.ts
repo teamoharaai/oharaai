@@ -241,12 +241,12 @@ export async function searchConstellationEchoes(
   const data = await evidenceRequest(
     `/api/constellation/goals/${encodeURIComponent(goalId)}/echo-options?query=${encodeURIComponent(query)}`,
     { method: 'GET', signal },
-    'Echo entries could not be searched.',
+    'Entries could not be searched.',
   );
   const dto = parseConstellationEchoSearchDTO(data);
   if (!dto) {
     throw new ConstellationServiceError(
-      'Echo search returned an invalid response.',
+      'Entry search returned an invalid response.',
     );
   }
   return dto;
@@ -264,12 +264,12 @@ export async function createConstellationEvidenceReference(
       method: 'POST',
       signal,
     },
-    'The Echo reference could not be added.',
+    'The entry reference could not be added.',
   );
   const link = parseConstellationEvidenceLinkDTO(data);
   if (!link) {
     throw new ConstellationServiceError(
-      'The Echo reference returned an invalid response.',
+      'The entry reference returned an invalid response.',
     );
   }
   return link;
@@ -288,12 +288,12 @@ export async function updateConstellationEvidenceReference(
       method: 'PATCH',
       signal,
     },
-    'The Echo reference could not be updated.',
+    'The entry reference could not be updated.',
   );
   const link = parseConstellationEvidenceLinkDTO(data);
   if (!link) {
     throw new ConstellationServiceError(
-      'The Echo reference returned an invalid response.',
+      'The entry reference returned an invalid response.',
     );
   }
   return link;
@@ -306,7 +306,7 @@ export async function deleteConstellationEvidenceReference(
   const data = await evidenceRequest(
     `/api/constellation/evidence-references/${encodeURIComponent(evidenceReferenceId)}`,
     { method: 'DELETE', signal },
-    'The Echo reference could not be unlinked.',
+    'The entry reference could not be unlinked.',
   );
   if (
     !isRecord(data)

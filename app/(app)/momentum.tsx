@@ -24,7 +24,7 @@ import { useThemeColors } from '@/store/uiStore';
 
 type TimeRange = '7D' | '30D' | '3M' | '1Y';
 type GoalFilter = 'All goals' | 'Building' | 'Steady' | 'Needs attention';
-type ActivityFilter = 'All' | 'Progress' | 'Reflections' | 'Changes';
+type ActivityFilter = 'All' | 'Progress' | 'Entries' | 'Changes';
 
 const SAMPLE_TRENDS: Record<TimeRange, readonly MomentumTrendPoint[]> = {
   '7D': [18, 30, 25, 46, 41, 65, 75],
@@ -356,7 +356,7 @@ export default function MomentumScreen() {
                 <SectionHeading title="Activity" />
                 <Card>
                   <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                    {(['All', 'Progress', 'Reflections', 'Changes'] as ActivityFilter[]).map((filter) => (
+                    {(['All', 'Progress', 'Entries', 'Changes'] as ActivityFilter[]).map((filter) => (
                       <FilterPill
                         active={activityFilter === filter}
                         key={filter}
@@ -379,7 +379,7 @@ export default function MomentumScreen() {
               </View>
 
               <View style={{ flex: 1, minWidth: 0 }}>
-                <SectionHeading preview title="Patterns from Echo" />
+                <SectionHeading preview title="Patterns from entries" />
                 <Card>
                   <Typography variant="caption" style={{ color: colors.text.secondary, lineHeight: 19 }}>
                     Examples of future pattern recognition—not observations derived from your account.

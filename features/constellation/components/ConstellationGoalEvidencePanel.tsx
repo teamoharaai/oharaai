@@ -46,7 +46,7 @@ interface ConstellationGoalEvidencePanelProps {
 function echoTitle(
   echo: Pick<ConstellationGoalEvidenceItem['echo'], 'title'>,
 ): string {
-  return echo.title?.trim() || 'Untitled Echo';
+  return echo.title?.trim() || 'Untitled Entry';
 }
 
 function formattedDate(value: string): string {
@@ -120,7 +120,7 @@ function EchoOptionRow({
       accessibilityLabel={
         existing
           ? `${echoTitle(option)} is already referenced as ${brtDisplayLabel(existing.brtCategory)}`
-          : `Select Echo ${echoTitle(option)}`
+          : `Select entry ${echoTitle(option)}`
       }
       accessibilityRole="button"
       accessibilityState={{
@@ -162,7 +162,7 @@ function EchoOptionRow({
         </Typography>
       </View>
       <Typography numberOfLines={3} variant="caption">
-        {option.excerpt || 'This Echo has no preview text.'}
+        {option.excerpt || 'This entry has no preview text.'}
       </Typography>
     </Pressable>
   );
@@ -229,11 +229,11 @@ function AddEvidenceForm({
     <View style={{ gap: 18 }}>
       <View style={{ gap: 5 }}>
         <Typography variant="section-eyebrow">
-          Add Echo reference
+          Add entry reference
         </Typography>
         <Typography variant="description">
-          Choose one of your Echoes. This adds goal-specific evidence without
-          moving or reclassifying the Echo itself.
+          Choose one of your entries. This adds goal-specific evidence without
+          moving or reclassifying the entry itself.
         </Typography>
       </View>
 
@@ -241,32 +241,32 @@ function AddEvidenceForm({
         autoCapitalize="none"
         autoCorrect={false}
         disabled={saving}
-        label="Search your Echoes"
+        label="Search your entries"
         maxLength={SEARCH_MAX_LENGTH}
         onChangeText={(value) => {
           setQuery(value);
           setSelectedEchoId(null);
           evidence.clearMutationError();
         }}
-        placeholder="Search titles or reflection text"
+        placeholder="Search entry titles or content"
         value={query}
       />
 
       <View style={{ gap: 8 }}>
         {evidence.search.status === 'loading' ? (
           <View
-            accessibilityLabel="Searching Echo entries"
+            accessibilityLabel="Searching entries"
             accessibilityRole="progressbar"
             style={{ alignItems: 'center', gap: 8, paddingVertical: 20 }}
           >
             <ConstellationLoadingMark color={colors.accent.primary} />
-            <Typography variant="caption">Searching your Echoes…</Typography>
+            <Typography variant="caption">Searching your entries…</Typography>
           </View>
         ) : evidence.search.status === 'error' ? (
           <View style={{ gap: 9 }}>
             <InlineError
-              message={evidence.search.error ?? 'Echo search failed.'}
-              title="Could not search Echo entries"
+              message={evidence.search.error ?? 'Entry search failed.'}
+              title="Could not search entries"
             />
             {evidence.search.retryable ? (
               <Button
@@ -289,8 +289,8 @@ function AddEvidenceForm({
             >
               <Typography variant="description">
                 {query.trim()
-                  ? 'No owned Echo entries match this search.'
-                  : 'You do not have any Echo entries to reference yet.'}
+                  ? 'No entries match this search.'
+                  : 'You do not have any entries to reference yet.'}
               </Typography>
             </View>
           ) : (
@@ -327,7 +327,7 @@ function AddEvidenceForm({
               maxLength={NOTE_MAX_LENGTH}
               multiline
               onChangeText={setNote}
-              placeholder="Why this Echo matters for this goal"
+              placeholder="Why this entry matters for this goal"
               value={note}
             />
             <Typography variant="caption" style={{ textAlign: 'right' }}>
@@ -404,7 +404,7 @@ function EvidenceItemCard({
 
   return (
     <View
-      accessibilityLabel={`Echo evidence ${echoTitle(item.echo)}`}
+      accessibilityLabel={`Entry evidence ${echoTitle(item.echo)}`}
       style={{
         backgroundColor: colors.background.input,
         borderColor: colors.border.input,
@@ -421,7 +421,7 @@ function EvidenceItemCard({
         </Typography>
       </View>
       <Typography numberOfLines={editing ? undefined : 3} variant="caption">
-        {item.echo.excerpt || 'This Echo has no preview text.'}
+        {item.echo.excerpt || 'This entry has no preview text.'}
       </Typography>
       {!editing && item.note ? (
         <View
@@ -449,7 +449,7 @@ function EvidenceItemCard({
             maxLength={NOTE_MAX_LENGTH}
             multiline
             onChangeText={setNote}
-            placeholder="Why this Echo matters for this goal"
+            placeholder="Why this entry matters for this goal"
             value={note}
           />
           {evidence.mutation.error
@@ -581,7 +581,7 @@ export function ConstellationGoalEvidencePanel({
           </Typography>
           <Typography numberOfLines={5} variant="description">
             {clusterCategory
-              ? `A live, virtual group of Echo references for ${goalTitle}.`
+              ? `A live, virtual group of entry references for ${goalTitle}.`
               : evidence.dto?.goal.description
                 ?? goalDescription
                 ?? 'An active goal in your current Constellation.'}
@@ -652,7 +652,7 @@ export function ConstellationGoalEvidencePanel({
                 }}
                 style={{ flex: 1 }}
               >
-                Add Echo reference
+                Add entry reference
               </Button>
               {!clusterCategory
                 && evidence.dto?.goal.vaultId
@@ -670,12 +670,12 @@ export function ConstellationGoalEvidencePanel({
             <View style={{ gap: 5 }}>
               <Typography variant="section-eyebrow">
                 {clusterCategory
-                  ? `${brtDisplayLabel(clusterCategory)} Echoes`
+                  ? `${brtDisplayLabel(clusterCategory)} entries`
                   : 'Manual evidence'}
               </Typography>
               <Typography variant="description">
-                Echo references are goal-specific. They never move, delete, or
-                reclassify the original Echo.
+                Entry references are goal-specific. They never move, delete, or
+                reclassify the original entry.
               </Typography>
             </View>
 
@@ -711,9 +711,9 @@ export function ConstellationGoalEvidencePanel({
                   padding: 15,
                 }}
               >
-                <Typography variant="label">No Echo references yet</Typography>
+                <Typography variant="label">No entry references yet</Typography>
                 <Typography variant="description">
-                  Add an owned Echo and choose how it functions for this goal.
+                  Add one of your entries and choose how it functions for this goal.
                 </Typography>
               </View>
             ) : (
@@ -787,10 +787,10 @@ export function ConstellationGoalEvidencePanel({
       >
         <View style={{ gap: 10 }}>
           <Typography accessibilityRole="header" variant="heading">
-            Unlink this Echo?
+            Unlink this entry?
           </Typography>
           <Typography variant="description">
-            This removes only the evidence reference from this goal. The Echo
+            This removes only the evidence reference from this goal. The entry
             itself and its current folder or goal container stay unchanged.
           </Typography>
           {evidence.mutation.error

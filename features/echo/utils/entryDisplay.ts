@@ -5,7 +5,7 @@ export function getEntryTitle(entry: EchoEntry): string {
   if (title) return title;
 
   const firstLine = entry.content.split('\n').find((line) => line.trim().length > 0)?.trim();
-  return firstLine || 'Untitled Echo';
+  return firstLine || 'Untitled Entry';
 }
 
 export function getEntrySnippet(entry: EchoEntry): string {
@@ -21,6 +21,6 @@ export function formatEntryDate(date: Date): string {
 }
 
 export function getContainerCaption(entry: EchoEntry): string {
-  if (entry.folderName === 'General') return 'Echo';
+  if (entry.folderName === 'General') return 'Entries';
   return entry.folderName || entry.goalTitle || 'Unassigned';
 }

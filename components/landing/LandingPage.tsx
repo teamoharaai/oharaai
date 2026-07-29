@@ -268,7 +268,7 @@ function WhatIsOhara({ compact, stacked }: { compact: boolean; stacked: boolean 
       </ScrollView>
       <View style={{ flexDirection: stacked ? "column" : "row", gap: 24, marginTop: 8 }}>
         <LifecycleCard stacked={stacked} Icon={SeedIcon} panel="#EEF3EE" label="The seed" labelColor="#3D5247" dot="#3D5247" title="Set SMART goals" body="Break an ambiguous idea into a clear, trackable goal — built step by step, your way." />
-        <LifecycleCard stacked={stacked} Icon={SaplingIcon} panel="#EAF7F0" label="The sapling" labelColor="#2E6B52" dot="#6FDFB8" title="Reflect with Echo" body="Journal entries surface as buds, roses, and thorns — momentum made visible." />
+        <LifecycleCard stacked={stacked} Icon={SaplingIcon} panel="#EAF7F0" label="The sapling" labelColor="#2E6B52" dot="#6FDFB8" title="Write an entry" body="Entries surface as buds, roses, and thorns — momentum made visible." />
         <LifecycleCard stacked={stacked} Icon={TreeIcon} panel="#FBF1E1" label="The flourished tree" labelColor="#B97A1E" dot="#E09F3E" title="See yourself clearly" body="A character profile that builds over time from your goals and reflections." />
       </View>
     </View>
@@ -327,7 +327,7 @@ function Essentials({ compact, stacked }: { compact: boolean; stacked: boolean }
       <View style={{ flexDirection: stacked ? "column" : "row", gap: 24 }}>
         <NumberedCard stacked={stacked} number="One" title="Define your goal" body="Use the guided builder to shape it into something SMART." />
         <NumberedCard stacked={stacked} number="Two" title="Track milestones" body="Check off steps as you move, at your own pace." />
-        <NumberedCard stacked={stacked} number="Three" title="Reflect & grow" body="Echo entries feed a character profile that sharpens over time." />
+        <NumberedCard stacked={stacked} number="Three" title="Reflect & grow" body="Entries feed a character profile that sharpens over time." />
       </View>
     </View>
   );

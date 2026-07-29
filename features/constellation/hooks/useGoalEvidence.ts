@@ -224,7 +224,7 @@ export function useGoalEvidence({
         requestId,
         error: errorMessage(
           searchError,
-          'Echo entries could not be searched.',
+          'Entries could not be searched.',
         ),
         retryable: searchError instanceof ConstellationServiceError
           ? searchError.retryable
@@ -298,7 +298,7 @@ export function useGoalEvidence({
       setMutation({
         kind: 'create',
         targetId: option.id,
-        error: 'This Echo is already referenced under this goal.',
+        error: 'This entry is already referenced under this goal.',
         isSaving: false,
         retryable: false,
       });

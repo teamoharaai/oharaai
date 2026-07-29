@@ -950,7 +950,7 @@ async function requireOwnedEvidenceSources(
     repository.hasOwnedGoal(ownerId, goalId),
   ]);
   if (!hasEchoEntry) {
-    throw new ConstellationDataError('NOT_FOUND', 'Echo entry not found.');
+    throw new ConstellationDataError('NOT_FOUND', 'Entry not found.');
   }
   if (!hasGoal) {
     throw new ConstellationDataError('NOT_FOUND', 'Goal not found.');

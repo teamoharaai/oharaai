@@ -19,7 +19,7 @@ type EchoDetailPaneProps = {
     aiInsightRequested: boolean,
     brt: EchoBrt | null,
     emotion: EchoEmotion | null,
-    title: string | null,
+    title: string,
   ) => Promise<CreateEntryResult>;
   onCancelAdd: () => void;
   onSaved: (entry: EchoEntry | undefined) => void;
@@ -42,7 +42,7 @@ function getEntryTitle(entry: EchoEntry): string {
   if (title) return title;
 
   const firstLine = entry.content.split('\n').find((line) => line.trim().length > 0)?.trim();
-  return firstLine || 'Untitled Echo';
+  return firstLine || 'Untitled Entry';
 }
 
 function BrtDot({ entry }: { entry: EchoEntry }) {
@@ -123,7 +123,7 @@ export function EchoDetailPane({
       >
         <Typography variant="echo-empty-title">Select an entry</Typography>
         <Typography variant="echo-empty-subtitle" className="mt-2 text-center">
-          Choose an Echo from the list, or add a new reflection.
+          Choose an entry from the list, or add a new one.
         </Typography>
       </View>
     </View>

@@ -64,7 +64,7 @@ export function CreateFolderModal({
               lineHeight: 23,
             }}
           >
-            New Echo folder
+            New entry folder
           </Text>
 
           <Text
@@ -86,7 +86,7 @@ export function CreateFolderModal({
             returnKeyType="done"
             placeholder="Folder name"
             placeholderTextColor="#8A8172"
-            accessibilityLabel="Echo folder name"
+            accessibilityLabel="Entry folder name"
             className="mt-4 rounded-xl border px-3.5 py-3 font-sans"
             style={{
               borderColor: colors.border.input,

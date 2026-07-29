@@ -137,7 +137,7 @@ export function EchoContainerTree({
         keyboardShouldPersistTaps="handled"
         style={{ flex: 1, minHeight: 0 }}
       >
-        <SectionLabel>Echo</SectionLabel>
+        <SectionLabel>Entries</SectionLabel>
         {generalEntries.map((entry) => (
           <EchoEntryRow
             key={entry.id}

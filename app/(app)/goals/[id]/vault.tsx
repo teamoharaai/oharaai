@@ -390,7 +390,7 @@ export default function VaultScreen() {
             }}
           >
             <Typography variant="eyebrow">
-              Reflections
+              Entries
             </Typography>
             <Pressable
               onPress={() =>
@@ -398,7 +398,7 @@ export default function VaultScreen() {
               }
             >
               <Typography variant="label" style={{ fontSize: 13, color: colors.text.accent }}>
-                Write in Echo
+                Add entry
               </Typography>
             </Pressable>
           </View>
@@ -426,7 +426,7 @@ export default function VaultScreen() {
               }}
             >
               <Typography variant="meta" style={{ color: colors.text.muted }}>
-                Journal about this goal in Echo
+                Add an entry about this goal
               </Typography>
               <Typography variant="caption" style={{ fontSize: 14 }}>›</Typography>
             </Pressable>

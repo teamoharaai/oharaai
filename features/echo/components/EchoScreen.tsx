@@ -204,7 +204,7 @@ export function EchoScreen() {
   const displayContainerOptions = useMemo(
     () => containerOptions.map((option) => (
       option.type === 'folder' && option.isGeneral
-        ? { ...option, label: 'Echo' }
+        ? { ...option, label: 'Entries' }
         : option
     )),
     [containerOptions],
@@ -255,7 +255,7 @@ export function EchoScreen() {
                 <Pressable
                   onPress={handleOpenCreateFolder}
                   accessibilityRole="button"
-                  accessibilityLabel="Create Echo folder"
+                  accessibilityLabel="Create entry folder"
                   hitSlop={6}
                   style={{
                     alignItems: 'center',

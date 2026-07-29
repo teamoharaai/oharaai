@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Added (2026-07-29 — App-wide Entry quick create)
+- **`components/layout/GlobalCreateControl.tsx`, `app/(app)/_layout.tsx`, `features/echo/components/QuickEntryModal.tsx`, and `features/echo/hooks/useQuickEntry.ts`:** moved the floating Create control into the authenticated app shell and enabled New Entry from every app screen through a bounded modal that lazily loads only goal choices, reuses the canonical entry save path, keeps the current screen visible, preselects goal context on goal routes, blocks dismissal while saving, and updates the shared entry store after confirmed persistence.
+- **`features/echo/composer-state.ts`, `composer-state.test.ts`, and `package.json`:** added focused validation, normalization, persistence-outcome, and legacy-draft-migration coverage through `npm run test:echo-composer`.
+
+### Changed (2026-07-29 — App-wide Entry quick create)
+- **`features/echo/components/EchoComposer.tsx`, `draft-store.ts`, `hooks/useEntries.ts`, `services/echo-service.ts`, and `app/api/entries/index+api.ts`:** made title and content required across the composer/client/API contract, bounded the modal editor so long content scrolls inside the entry field instead of growing the window, preserved both fields per global/goal draft context, migrated existing body-only drafts without data loss, and kept offline or unconfirmed submissions open with their drafts intact.
+- **Authenticated Entry, goal, dashboard, Constellation, and supporting marketing surfaces:** standardized user-facing raw-record labels to Entry/Entries while retaining internal Echo routes, stores, services, APIs, database identifiers, and genuinely derived Reflection concepts. Relevant files include `components/layout/Sidebar.tsx`, `app/(app)/dashboard.tsx`, `features/echo/components/`, `features/constellation/components/`, and goal Entry summaries.
+
+### Refactored (2026-07-29 — App-wide Entry quick create)
+- **`app/(app)/dashboard.tsx`:** removed the dashboard-only floating Create implementation now that the authenticated app layout owns the shared control; section-level project creation remains locally scoped.
+
 ### Added (2026-07-28 — Constellation release certification)
 - **`tests/constellation/acceptance-api.ts` and `constellation.acceptance.spec.ts`:** added deterministic delayed-graph coverage that proves the production Constellation screen exposes its intentional initial loading state before real graph content arrives, completing explicit loading/retry/empty-state release evidence.
 - **`docs/constellation/RELEASE_CERTIFICATION_2026-07-28.md`:** recorded the controlled two-user live smoke, RLS/privacy/API results, TypeScript/test/database/export/visual gates, rollback exercise, cleanup proof, Expo compatibility review, and pass decision.

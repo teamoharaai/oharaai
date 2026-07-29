@@ -61,8 +61,8 @@ const ANALYSIS_PREVIEWS: Record<string, AnalysisPreview> = {
     value: 66,
   },
   growth: {
-    copy: 'Your reflections are beginning to form a consistent pattern of growth.',
-    metric: 'Reflection rhythm',
+    copy: 'Your entries are beginning to form a consistent pattern of growth.',
+    metric: 'Entry rhythm',
     status: 'Building',
     value: 70,
   },

@@ -7,12 +7,10 @@ import {
   Pressable,
   TouchableOpacity,
   useWindowDimensions,
-  type GestureResponderEvent,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { AnchoredPopover, type AnchorRect } from '@/components/ui/AnchoredPopover';
 import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Card } from '@/components/ui/Card';
 import type { TodayCarouselGoal } from '@/components/ui/TodayCarousel';
@@ -377,181 +375,6 @@ function MomentumCard() {
           </View>
         </View>
       </Modal>
-    </>
-  );
-}
-
-function FloatingCreateControl({
-  compact,
-  onNewProject,
-}: {
-  compact: boolean;
-  onNewProject: () => void;
-}) {
-  const colors = useThemeColors();
-  const [open, setOpen] = useState(false);
-  const [anchorRect, setAnchorRect] = useState<AnchorRect | null>(null);
-  const anchorRef = useRef<View>(null);
-
-  function rectFromValues(x: number, y: number, width: number, height: number): AnchorRect {
-    return {
-      bottom: y + height,
-      height,
-      left: x,
-      right: x + width,
-      top: y,
-      width,
-      x,
-      y,
-    };
-  }
-
-  function openMenu(event: GestureResponderEvent) {
-    const node = anchorRef.current as
-      | (View & {
-          measureInWindow?: (
-            callback: (x: number, y: number, width: number, height: number) => void,
-          ) => void;
-        })
-      | null;
-    if (node?.measureInWindow) {
-      node.measureInWindow((x, y, width, height) => {
-        setAnchorRect(rectFromValues(x, y, width, height));
-        setOpen(true);
-      });
-      return;
-    }
-
-    const currentTarget = (
-      event as GestureResponderEvent & {
-        currentTarget?: { getBoundingClientRect?: () => DOMRect };
-      }
-    ).currentTarget;
-    const rect = currentTarget?.getBoundingClientRect?.();
-    if (rect) setAnchorRect(rectFromValues(rect.left, rect.top, rect.width, rect.height));
-    setOpen(true);
-  }
-
-  function closeMenu() {
-    setOpen(false);
-  }
-
-  const menuItems = [
-    {
-      icon: 'flag-outline' as const,
-      label: 'New goal',
-      onPress: () => router.push('/goals/create'),
-    },
-    {
-      icon: 'folder-outline' as const,
-      label: 'New project',
-      onPress: onNewProject,
-    },
-  ];
-
-  return (
-    <>
-      <View
-        collapsable={false}
-        ref={anchorRef}
-        style={{ bottom: compact ? 18 : 24, position: 'absolute', right: compact ? 16 : 24 }}
-      >
-        <Pressable
-          accessibilityLabel="Create"
-          accessibilityRole="button"
-          accessibilityState={{ expanded: open }}
-          onPress={openMenu}
-          style={({ pressed }) => ({
-            alignItems: 'center',
-            backgroundColor: colors.background.sidebar,
-            borderColor: colors.border.divider,
-            borderRadius: 999,
-            borderWidth: 1,
-            flexDirection: 'row',
-            gap: 6,
-            height: 44,
-            justifyContent: 'center',
-            opacity: pressed ? 0.72 : 1,
-            paddingHorizontal: compact ? 0 : 16,
-            shadowColor: colors.effects.shadow,
-            shadowOffset: { width: 0, height: 3 },
-            shadowOpacity: 0.08,
-            shadowRadius: 10,
-            width: compact ? 44 : undefined,
-          })}
-        >
-          <Ionicons color={colors.text.accent} name="add" size={19} />
-          {!compact ? (
-            <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>
-              Create
-            </Typography>
-          ) : null}
-        </Pressable>
-      </View>
-
-      <AnchoredPopover
-        anchorRect={anchorRect}
-        contentStyle={{
-          borderRadius: 14,
-          borderWidth: 1,
-          minWidth: 210,
-          padding: 8,
-          shadowColor: colors.effects.shadow,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.1,
-          shadowRadius: 14,
-        }}
-        onDismiss={closeMenu}
-        visible={open}
-      >
-        {menuItems.map((item) => (
-          <Pressable
-            accessibilityLabel={item.label}
-            accessibilityRole="menuitem"
-            key={item.label}
-            onPress={() => {
-              closeMenu();
-              item.onPress();
-            }}
-            style={({ pressed }) => ({
-              alignItems: 'center',
-              backgroundColor: pressed ? colors.background.selectedRow : 'transparent',
-              borderRadius: 9,
-              flexDirection: 'row',
-              gap: 10,
-              paddingHorizontal: 11,
-              paddingVertical: 10,
-            })}
-          >
-            <Ionicons color={colors.text.accent} name={item.icon} size={17} />
-            <Typography variant="meta" style={{ color: colors.text.primary }}>
-              {item.label}
-            </Typography>
-          </Pressable>
-        ))}
-        <View style={{ backgroundColor: colors.border.warmSubtle, height: 1, marginVertical: 4 }} />
-        <View
-          accessibilityLabel="New reflection, coming soon"
-          accessibilityRole="menuitem"
-          accessibilityState={{ disabled: true }}
-          style={{
-            alignItems: 'center',
-            flexDirection: 'row',
-            gap: 10,
-            opacity: 0.5,
-            paddingHorizontal: 11,
-            paddingVertical: 10,
-          }}
-        >
-          <Ionicons color={colors.text.muted} name="chatbubble-ellipses-outline" size={17} />
-          <Typography variant="meta" style={{ color: colors.text.secondary, flex: 1 }}>
-            New reflection
-          </Typography>
-          <Typography variant="badge-text" style={{ color: colors.text.muted }}>
-            Coming soon
-          </Typography>
-        </View>
-      </AnchoredPopover>
     </>
   );
 }
@@ -966,7 +789,7 @@ function EchoZone({
       <View style={{ alignItems: 'center', flexDirection: 'row', gap: 18 }}>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Typography variant="eyebrow" style={{ color: colors.text.accent, marginBottom: 7 }}>
-            Recent Echo reflection
+            Recent Entry
           </Typography>
           {echoLoading ? (
             <View
@@ -984,17 +807,17 @@ function EchoZone({
                 {latestEntryContent}
               </Typography>
               <Typography variant="caption" style={{ marginTop: 4 }}>
-                Last reflected: {formatRelativeTime(latestEntryDate.toISOString())}
+                Last added: {formatRelativeTime(latestEntryDate.toISOString())}
               </Typography>
             </>
           ) : (
             <Typography variant="meta" style={{ color: colors.text.muted }}>
-              Your reflections will appear here.
+              Your entries will appear here.
             </Typography>
           )}
         </View>
         <Pressable
-          accessibilityLabel="Reflect in Echo"
+          accessibilityLabel="Open entries"
           accessibilityRole="button"
           onPress={() => router.push('/(app)/echo' as never)}
           style={({ pressed }) => ({
@@ -1009,7 +832,7 @@ function EchoZone({
           })}
         >
           <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>
-            Open Echo
+            Open Entries
           </Typography>
           <Ionicons color={colors.text.accent} name="arrow-forward" size={14} />
         </Pressable>
@@ -1062,7 +885,7 @@ function IntelligenceZone({ insight, isLoading }: IntelligenceZoneProps) {
       style={{ backgroundColor: colors.background.input }}
     >
       <Typography variant="meta" className="text-center" style={{ color: colors.text.muted }}>
-        Keep reflecting in Echo — Ohara is learning about you.
+        Keep adding entries — Ohara is learning about you.
       </Typography>
     </View>
   );
@@ -1497,10 +1320,6 @@ export default function DashboardScreen() {
       <CreateProjectModal
         visible={projectModalOpen}
         onClose={() => setProjectModalOpen(false)}
-      />
-      <FloatingCreateControl
-        compact={compact}
-        onNewProject={() => setProjectModalOpen(true)}
       />
     </SafeAreaView>
   );

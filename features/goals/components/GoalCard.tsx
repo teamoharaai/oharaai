@@ -74,7 +74,7 @@ function activityLabel(goal: GoalWithDetails): string | null {
       ? `${goal.vaultItemCount} item${goal.vaultItemCount === 1 ? '' : 's'}`
       : null,
     goal.echoLinkCount > 0
-      ? `${goal.echoLinkCount} reflection${goal.echoLinkCount === 1 ? '' : 's'}`
+      ? `${goal.echoLinkCount} ${goal.echoLinkCount === 1 ? 'entry' : 'entries'}`
       : null,
   ].filter(Boolean);
 

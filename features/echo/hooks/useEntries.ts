@@ -75,7 +75,7 @@ export function useEntries() {
     aiInsightRequested: boolean,
     brt: EchoBrt | null,
     emotion: EchoEmotion | null,
-    title: string | null,
+    title: string,
   ): Promise<CreateEntryResult> => {
     let user;
     try {

@@ -290,7 +290,7 @@ export async function createEntry(params: {
   aiInsightRequested: boolean;
   brt: EchoEntry['brt'] | null;
   emotion: EchoEntry['emotion'] | null;
-  title: string | null;
+  title: string;
 }): Promise<CreateEntryResult> {
   let response: Response;
   try {

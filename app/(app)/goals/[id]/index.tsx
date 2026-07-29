@@ -403,10 +403,10 @@ export default function GoalDetailScreen() {
               <Typography variant="meta" style={{ fontSize: 20, color: colors.text.accent }}>✦</Typography>
               <View>
                 <Typography variant="emphasis-sm" style={{ color: colors.text.primary }}>
-                  Reflections
+                  Entries
                 </Typography>
                 <Typography variant="caption">
-                  Tap to journal about this goal
+                  Add an entry about this goal
                 </Typography>
               </View>
             </View>
@@ -473,9 +473,9 @@ export default function GoalDetailScreen() {
               <Typography variant="meta" style={{ fontSize: 17, color: colors.text.accent }}>✦</Typography>
               <View>
                 <Typography variant="emphasis-sm" style={{ color: colors.text.primary }}>
-                  Reflections
+                  Entries
                 </Typography>
-                <Typography variant="caption">Journal</Typography>
+                <Typography variant="caption">Add entry</Typography>
               </View>
             </Pressable>
           </View>

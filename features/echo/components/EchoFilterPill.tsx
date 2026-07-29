@@ -114,7 +114,7 @@ export function EchoFilterPill({
         ref={triggerRef}
         onPress={toggleMenu}
         accessibilityRole="button"
-        accessibilityLabel={`Filter Echo entries. Current filter: ${selectedScope.label}`}
+        accessibilityLabel={`Filter entries. Current filter: ${selectedScope.label}`}
         className="flex-row items-center rounded-full px-3.5 py-1.5"
         style={{ backgroundColor: colors.background.sidebar, flexShrink: 1 }}
       >

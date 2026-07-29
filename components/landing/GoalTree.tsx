@@ -106,7 +106,7 @@ function TreeLabel({
 export function GoalTree({ width }: GoalTreeProps) {
   return (
     <Svg
-      accessibilityLabel="A goal tree showing habits branching into self-discipline, self-awareness, and follow-through, while Echo redirects a thorn into growth."
+      accessibilityLabel="A goal tree showing habits branching into self-discipline, self-awareness, and follow-through, while an entry redirects a thorn into growth."
       width={width}
       height={340}
       viewBox="0 0 1620 340"
@@ -155,7 +155,7 @@ export function GoalTree({ width }: GoalTreeProps) {
         <TreeLabel x={1245} y={96} size={14} fill="#8A8172" italic>→ Follow-Through</TreeLabel>
         <TreeLabel x={1290} y={176} size={12} fill="#EEC488" italic>→ Confidence grows</TreeLabel>
         <TreeLabel x={960} y={252} size={14} fill="#7A4E42" weight="600">2 hrs/day doomscrolling</TreeLabel>
-        <TreeLabel x={960} y={270} size={12} fill="#9C6B5C" italic>↳ thorn Echo flags for you</TreeLabel>
+        <TreeLabel x={960} y={270} size={12} fill="#9C6B5C" italic>↳ thorn entry flags for you</TreeLabel>
         <TreeLabel x={1030} y={306} size={13} fill="#2E6B52" weight="600">Redirected into running, cooking, grooming</TreeLabel>
         <TreeLabel x={1030} y={324} size={12} fill="#8A8172" italic>→ compounds into growth by year&apos;s end</TreeLabel>
       </G>

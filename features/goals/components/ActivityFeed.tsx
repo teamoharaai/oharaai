@@ -144,7 +144,7 @@ function ActivityRow({ item, isLast }: { item: ActivityItem; isLast: boolean }) 
         return (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Text style={{ fontFamily: 'Inter-Regular', fontSize: 11, color: '#A79E8E' }}>✦</Text>
-            <Typography variant="meta" className="text-[#A79E8E]" style={{ flex: 1 }}>Linked a reflection</Typography>
+            <Typography variant="meta" className="text-[#A79E8E]" style={{ flex: 1 }}>Linked an entry</Typography>
             <Typography variant="caption">{formatDate(item.timestamp)}</Typography>
           </View>
         );
