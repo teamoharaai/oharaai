@@ -67,14 +67,14 @@ const earnedNodes: readonly ConstellationEarnedNodeDTO[] = [
     lastActivityAt: LAST_ACTIVITY_AT,
   },
   ...[
-    ['train', 'Train three times weekly', 'renderer-goal-train-source'],
-    ['cook', 'Cook five meals', 'renderer-goal-cook-source'],
-    ['ship', 'Ship the first release', 'renderer-goal-ship-source'],
-    ['read', 'Read twenty-four books', 'renderer-goal-read-source'],
-    ['essay', 'Publish a weekly essay', 'renderer-goal-essay-source'],
-    ['call', 'Call family every Sunday', 'renderer-goal-call-source'],
-    ['date', 'Protect a weekly date night', 'renderer-goal-date-source'],
-  ].map(([key, label, sourceId], index) => ({
+    ['train', 'Train three times weekly', 'renderer-goal-train-source', 'health'],
+    ['cook', 'Cook five meals', 'renderer-goal-cook-source', 'health'],
+    ['ship', 'Ship the first release', 'renderer-goal-ship-source', 'career'],
+    ['read', 'Read twenty-four books', 'renderer-goal-read-source', 'education'],
+    ['essay', 'Publish a weekly essay', 'renderer-goal-essay-source', 'creative'],
+    ['call', 'Call family every Sunday', 'renderer-goal-call-source', 'relationships'],
+    ['date', 'Protect a weekly date night', 'renderer-goal-date-source', 'relationships'],
+  ].map(([key, label, sourceId, category], index) => ({
     id: `renderer-goal-${key}`,
     selectionKey: `node:renderer-goal-${key}` as `node:${string}`,
     kind: 'goal' as const,
@@ -86,6 +86,7 @@ const earnedNodes: readonly ConstellationEarnedNodeDTO[] = [
       type: 'goal' as const,
       id: sourceId,
       goalStatus: 'active' as const,
+      category: category as 'health' | 'career' | 'education' | 'creative' | 'relationships',
     },
     visibilityScore: 7.6 - index * 0.2,
     firstSeenAt: FIRST_SEEN_AT,
@@ -210,15 +211,32 @@ const virtualBrtClusters: readonly ConstellationVirtualBrtClusterDTO[] = [
   goalNodeId: `renderer-goal-${goalKey}`,
   brtCategory: category,
   label,
-  evidenceLinkCount: count,
+  entryCount: count,
   latestEvidenceAt: LAST_ACTIVITY_AT,
   isVirtual: true,
   isPersisted: false,
 })) as readonly ConstellationVirtualBrtClusterDTO[];
 
+const virtualGoalCategories = ([
+  ['health', 'Health & Fitness', '◐', 2],
+  ['career', 'Career', '↗', 1],
+  ['education', 'Education', '◈', 1],
+  ['creative', 'Creative', '✦', 1],
+  ['relationships', 'Relationships', '♡', 2],
+] as const).map(([category, label, symbol, goalCount]) => ({
+  id: `goal-category:${category}` as const,
+  selectionKey: `goal-category:${category}` as const,
+  category,
+  label,
+  symbol,
+  goalCount,
+  isVirtual: true as const,
+  isPersisted: false as const,
+}));
+
 type EarnedEdgeKind = Exclude<
   GraphEdgeKind,
-  'annotation_anchor' | 'goal_evidence_cluster'
+  'annotation_anchor' | 'goal_category_membership' | 'goal_evidence_cluster'
 >;
 
 function earnedEdge(
@@ -274,6 +292,24 @@ function brtEdge(
   };
 }
 
+function categoryEdge(
+  goalKey: string,
+  category: string,
+): ConstellationGraphEdgeDTO {
+  return {
+    id: `renderer-category-${category}-${goalKey}`,
+    from: {
+      entityType: 'virtual_goal_category',
+      id: `goal-category:${category}`,
+    },
+    to: { entityType: 'earned_node', id: `renderer-goal-${goalKey}` },
+    kind: 'goal_category_membership',
+    valence: null,
+    weight: null,
+    isPersisted: false,
+  };
+}
+
 const edges: readonly ConstellationGraphEdgeDTO[] = [
   earnedEdge('edge-season-health', 'renderer-season', 'renderer-ambition-health', 'season_membership', null, null),
   earnedEdge('edge-season-craft', 'renderer-season', 'renderer-ambition-craft', 'season_membership', null, null),
@@ -304,6 +340,13 @@ const edges: readonly ConstellationGraphEdgeDTO[] = [
   earnedEdge('edge-tension-presence-rituals', 'renderer-tension-presence', 'renderer-reflection-rituals', 'tension_composition', 'contradictory', 5),
   annotationEdge('edge-projection-date', 'renderer-projection-partner', 'renderer-goal-date'),
   annotationEdge('edge-note-ship', 'renderer-note-quiet-hour', 'renderer-goal-ship'),
+  categoryEdge('train', 'health'),
+  categoryEdge('cook', 'health'),
+  categoryEdge('ship', 'career'),
+  categoryEdge('read', 'education'),
+  categoryEdge('essay', 'creative'),
+  categoryEdge('call', 'relationships'),
+  categoryEdge('date', 'relationships'),
   brtEdge('train', 'bud'),
   brtEdge('train', 'rose'),
   brtEdge('train', 'thorn'),
@@ -324,6 +367,7 @@ export const constellationRendererFixtureGraphDTO: ConstellationGraphDTO = {
   },
   earnedNodes,
   annotations,
+  virtualGoalCategories,
   virtualBrtClusters,
   edges,
   counts: {
@@ -340,6 +384,7 @@ export const constellationRendererFixtureGraphDTO: ConstellationGraphDTO = {
     },
     annotations: { draft: 2, archived: 0 },
     virtualBrtClusters: { total: 5, bud: 1, rose: 2, thorn: 2 },
+    virtualGoalCategories: 5,
     edges: edges.length,
     evidenceLinks: 9,
     source: {
@@ -359,7 +404,7 @@ export const constellationRendererFixtureGraphDTO: ConstellationGraphDTO = {
 
 export const constellationRendererFixtureGraph = adaptGraphDtoToViewModel(
   constellationRendererFixtureGraphDTO,
-  { renderBudget: 30 },
+  { renderBudget: 40 },
 );
 
 export const constellationRendererFixtureLayoutSpec: ConstellationLayoutSpec = {
@@ -386,6 +431,11 @@ export const constellationRendererFixtureLayoutSpec: ConstellationLayoutSpec = {
     'node:renderer-tension-presence': { x: 0.6, y: 0.23 },
     'annotation:renderer-projection-partner': { x: 0.59, y: 0.62 },
     'annotation:renderer-note-quiet-hour': { x: 0.71, y: 0.1 },
+    'goal-category:health': { x: 0.1, y: 0.12 },
+    'goal-category:career': { x: 0.91, y: 0.1 },
+    'goal-category:education': { x: 0.96, y: 0.38 },
+    'goal-category:creative': { x: 0.92, y: 0.68 },
+    'goal-category:relationships': { x: 0.55, y: 0.94 },
     'brt:renderer-goal-train-source:bud': { x: 0.08, y: 0.27 },
     'brt:renderer-goal-train-source:rose': { x: 0.2, y: 0.31 },
     'brt:renderer-goal-train-source:thorn': { x: 0.11, y: 0.39 },

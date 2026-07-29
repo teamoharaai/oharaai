@@ -28,6 +28,10 @@ Owner: CTO. Cascade Level 2 (data fetching), Level 3 for schema-shaped changes
   RPCs (`delete_folder_reassign`, `delete_folder_with_contents`, migration
   015) must be called with an authed client since they rely on `auth.uid()`.
 - `echo-entry-links.ts`: many-to-many Echo↔container links
+- `constellation.ts`: owner-scoped graph snapshots and inspectors plus layout
+  position reads/upserts/reset. Canonical goal Entry counts dedupe confirmed
+  `echo_entry_links` containers with optional Constellation evidence references;
+  never treat evidence references as Entry containers.
   (`echo_entry_links`, generalized from `echo_goal_links`). All service
   functions here filter `container_type = 'goal'`; folder-side equivalents
   are separate scope. `moveEntryContainer` only ever repoints the single

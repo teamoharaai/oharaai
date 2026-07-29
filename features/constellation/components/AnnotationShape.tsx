@@ -30,7 +30,10 @@ export function AnnotationShape({
 
   if (node.kind === 'projection') {
     return (
-      <InteractiveSvgGroup onActivate={handlePress}>
+      <InteractiveSvgGroup
+        onActivate={handlePress}
+        selectionKey={node.selectionKey}
+      >
         <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
         <Circle
           cx={x}
@@ -95,7 +98,10 @@ export function AnnotationShape({
   }
 
   return (
-    <InteractiveSvgGroup onActivate={handlePress}>
+    <InteractiveSvgGroup
+      onActivate={handlePress}
+      selectionKey={node.selectionKey}
+    >
       <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
       <Rect
         fill={tokens.annotation.fill}

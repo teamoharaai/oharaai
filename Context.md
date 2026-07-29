@@ -21,7 +21,11 @@ Theme (post-redesign warm ramp, Sessions 1–4c): warm cream #F8F4EC page, white
 `CHANGELOGCODEX.md` · `docs/context.md` (deprecated — root CONTEXT.md is canonical)
 
 ## Current State
-- Migrations: through 032 (squashed baseline 001-006, followed by 007-032). Migration 032 adds the normalized Constellation persistence and RLS boundary. `supabase/CLAUDE.md` is the canonical migration ledger. Next migration number: 033 as of 2026-07-27; re-resolve immediately before creating a migration.
+- Migrations: through 034 (squashed baseline 001-006, followed by 007-034).
+  Migration 033 unifies Entry BRT category at `echo_entries.brt_category`;
+  migration 034 adds owner-scoped Constellation layout persistence and is
+  applied to the linked OharaAI main Supabase project. `supabase/CLAUDE.md` is
+  the canonical ledger. Re-resolve the next number immediately before use.
 - `tsc --noEmit`: clean
 - RLS: verified across all tables
 - Auth: Supabase auth working; `/auth/callback` 404 parked (teammate has Auth0 solution)
@@ -61,15 +65,22 @@ Theme (post-redesign warm ramp, Sessions 1–4c): warm cream #F8F4EC page, white
 - Visibility: `private / circle / public` — non-owner access conservative until social ships
 - vault_items has no milestone_id — milestone context not in schema yet
 - spaces.owner_id is the owner column (renamed from user_id in migration 022); space_members.user_id is unchanged
-- Next migration number: 033 as of 2026-07-27
+- Next migration number: 035 as of 2026-07-29; re-resolve before use.
 
-## Constellation Contract (2026-07-27)
+## Constellation Contract (2026-07-29)
 - Canonical decisions: `docs/constellation/DECISIONS.md`
 - Earned/system nodes: `season / ambition / goal / reflection / trait / tension`
-- User-authored `note / projection` content is a separate draft Annotation domain.
-- Manual Echo-to-goal BRT organization uses separate Evidence Links; it never mutates the canonical Echo container row or `brt_user`.
-- Bud/Rose/Thorn goal clusters are virtual, production fixtures are forbidden, and `accessEligible` is distinct from `hasGraphData`.
-- Initial delivery is honest empty states plus a real-data read-only graph; annotations, Evidence Links, and inspectors are next; layout interaction, Timeline, Season Archive, arbitrary topology, and sharing are deferred.
+- User-authored `note / projection` content remains a separate draft Annotation domain.
+- Goals are direct reads; only visible-goal categories receive virtual symbol hubs.
+- Entry is the canonical UI term. Goal connected counts/recent-three reads dedupe
+  confirmed containers with optional Evidence Links.
+- Non-empty Bud/Rose/Thorn nodes are goal-specific virtual satellites derived
+  from `echo_entries.brt_category`; they are never persisted graph nodes.
+- Every visible web node is movable. Goal satellites use parent-relative
+  coordinates and follow their goal. Owner positions persist through migration
+  034 and authenticated layout APIs; layout cannot change graph semantics.
+- Production fixtures are forbidden. Timeline, Season Archive, arbitrary
+  topology, force/collision layout, and sharing remain deferred.
 
 ## Outstanding (Phase 1)
 - Dashboard redesign: Echo entry point, Ohara voice/Guide presence, badge fix
@@ -87,4 +98,7 @@ Theme (post-redesign warm ramp, Sessions 1–4c): warm cream #F8F4EC page, white
 - Codex writes to CHANGELOGCODEX.md after every session
 - Run `npx tsc --noEmit` before and after every task
 
-last migration: 032 — migrations 001-006 are the 2026-06-24 narrative baseline; 007-032 are the current post-squash sequence. See `supabase/CLAUDE.md` for the complete ledger. Next new migration is 033 as of 2026-07-27.
+last migration: 034 — migrations 001-006 are the 2026-06-24 narrative
+baseline; 007-034 are the current post-squash sequence. See
+`supabase/CLAUDE.md` for the complete ledger. Next is 035 as of 2026-07-29;
+re-resolve immediately before creating it.

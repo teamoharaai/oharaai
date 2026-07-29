@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import {
   Gesture,
@@ -20,7 +19,6 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { useUIStore } from '@/store/uiStore';
 import Svg, {
   Circle,
   Defs,
@@ -48,10 +46,10 @@ import { ConstellationEdge } from './ConstellationEdge';
 import { ConstellationHeaderMetadata } from './ConstellationHeaderMetadata';
 import { ConstellationLegend } from './ConstellationLegend';
 import { EarnedNodeShape } from './EarnedNodeShape';
+import { GoalCategoryShape } from './GoalCategoryShape';
 import { SelectionRing } from './SelectionRing';
 import { SproutedLabel } from './SproutedLabel';
 import { VirtualBrtClusterShape } from './VirtualBrtClusterShape';
-import { getConstellationResponsiveLayout } from '../responsive';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import {
   createConstellationGradientIds,
@@ -60,7 +58,9 @@ import {
 import {
   CONSTELLATION_FIT_ZOOM,
   CONSTELLATION_ZOOM_STEP,
+  clampConstellationNodePosition,
   clampConstellationTranslation,
+  constellationDragDeltaToNormalized,
   fitConstellationViewport,
   panConstellationViewport,
   zoomConstellationViewportAt,
@@ -71,10 +71,18 @@ interface ConstellationCanvasShellProps {
   fixture?: boolean;
   focusLabel?: string | null;
   graph: ConstellationGraphViewModel;
+  isLayoutBusy?: boolean;
   isRefreshing?: boolean;
   layout: ConstellationLayout;
+  layoutError?: string | null;
   onCreateAnnotation?: (kind: ConstellationAnnotationKind) => void;
+  onMoveNode?: (
+    selectionKey: string,
+    normalized: { x: number; y: number },
+  ) => void;
+  onMoveNodeEnd?: (selectionKey: string) => void;
   onRefresh?: () => void;
+  onResetLayout?: () => void;
   onSelect: (selectionKey: string | null) => void;
   refreshError?: string | null;
   seasonLabel: string;
@@ -308,6 +316,16 @@ function SvgGraph({
                   tokens={tokens}
                 />
               );
+            case 'virtual_goal_category':
+              return (
+                <GoalCategoryShape
+                  key={node.selectionKey}
+                  layout={nodeLayout}
+                  node={node.node}
+                  onSelect={onSelect}
+                  tokens={tokens}
+                />
+              );
           }
         })}
       </G>
@@ -321,7 +339,17 @@ function SvgGraph({
 
 type ConstellationViewportProps = Pick<
   ConstellationCanvasShellProps,
-  'graph' | 'layout' | 'onSelect' | 'selectedKey' | 'sproutedLabel' | 'tokens'
+  | 'graph'
+  | 'isLayoutBusy'
+  | 'layout'
+  | 'layoutError'
+  | 'onMoveNode'
+  | 'onMoveNodeEnd'
+  | 'onResetLayout'
+  | 'onSelect'
+  | 'selectedKey'
+  | 'sproutedLabel'
+  | 'tokens'
 >;
 
 interface WebKeyboardEvent {
@@ -347,6 +375,8 @@ function ConstellationViewport(props: ConstellationViewportProps) {
   const pinchStartScale = useSharedValue(CONSTELLATION_FIT_ZOOM);
   const pinchStartX = useSharedValue(0);
   const pinchStartY = useSharedValue(0);
+  const livePropsRef = useRef(props);
+  livePropsRef.current = props;
 
   const graphLayerStyle = useAnimatedStyle(() => ({
     transform: [
@@ -532,6 +562,13 @@ function ConstellationViewport(props: ConstellationViewportProps) {
     let gestureStartPoint = { x: 0, y: 0 };
     let pinchStartCenter = { x: 0, y: 0 };
     let pinchStartDistance = 1;
+    let nodeDrag: {
+      moved: boolean;
+      selectionKey: string;
+      startNormalized: { x: number; y: number };
+      startPoint: { x: number; y: number };
+    } | null = null;
+    let suppressNextClick = false;
 
     const localPoint = (event: PointerEvent) => {
       const rect = element.getBoundingClientRect();
@@ -579,8 +616,28 @@ function ConstellationViewport(props: ConstellationViewportProps) {
       const point = localPoint(event);
       activePointers.set(event.pointerId, point);
       if (activePointers.size === 1) {
-        startSinglePointer(point);
+        const target = event.target instanceof Element ? event.target : null;
+        const selectionKey = target
+          ?.closest('[data-constellation-node]')
+          ?.getAttribute('data-constellation-node');
+        const nodeLayout = selectionKey
+          ? livePropsRef.current.layout.nodes.find(
+              (node) => node.selectionKey === selectionKey,
+            )
+          : undefined;
+        if (selectionKey && nodeLayout && livePropsRef.current.onMoveNode) {
+          nodeDrag = {
+            moved: false,
+            selectionKey,
+            startNormalized: nodeLayout.normalized,
+            startPoint: point,
+          };
+        } else {
+          nodeDrag = null;
+          startSinglePointer(point);
+        }
       } else if (activePointers.size === 2) {
+        nodeDrag = null;
         for (const pointerId of activePointers.keys()) {
           element.setPointerCapture?.(pointerId);
         }
@@ -594,6 +651,37 @@ function ConstellationViewport(props: ConstellationViewportProps) {
       activePointers.set(event.pointerId, point);
 
       if (activePointers.size === 1) {
+        if (nodeDrag) {
+          const delta = {
+            x: point.x - nodeDrag.startPoint.x,
+            y: point.y - nodeDrag.startPoint.y,
+          };
+          if (!nodeDrag.moved && Math.hypot(delta.x, delta.y) < 3) return;
+          nodeDrag.moved = true;
+          suppressNextClick = true;
+          if (!element.hasPointerCapture?.(event.pointerId)) {
+            element.setPointerCapture?.(event.pointerId);
+          }
+          const normalizedDelta = constellationDragDeltaToNormalized(
+            delta,
+            scale.value,
+            {
+              height: viewportHeight.value,
+              width: viewportWidth.value,
+            },
+            livePropsRef.current.layout.viewBox,
+          );
+          livePropsRef.current.onMoveNode?.(
+            nodeDrag.selectionKey,
+            clampConstellationNodePosition({
+              x: nodeDrag.startNormalized.x + normalizedDelta.x,
+              y: nodeDrag.startNormalized.y + normalizedDelta.y,
+            }),
+          );
+          if (event.cancelable) event.preventDefault();
+          return;
+        }
+
         const delta = {
           x: point.x - gestureStartPoint.x,
           y: point.y - gestureStartPoint.y,
@@ -648,6 +736,7 @@ function ConstellationViewport(props: ConstellationViewportProps) {
     };
 
     const handlePointerEnd = (event: PointerEvent) => {
+      const completedNodeDrag = nodeDrag;
       activePointers.delete(event.pointerId);
       if (element.hasPointerCapture?.(event.pointerId)) {
         element.releasePointerCapture(event.pointerId);
@@ -655,7 +744,19 @@ function ConstellationViewport(props: ConstellationViewportProps) {
       const remaining = [...activePointers.values()][0];
       if (remaining) {
         startSinglePointer(remaining);
+      } else if (completedNodeDrag?.moved) {
+        livePropsRef.current.onMoveNodeEnd?.(
+          completedNodeDrag.selectionKey,
+        );
       }
+      nodeDrag = null;
+    };
+
+    const handleClickCapture = (event: MouseEvent) => {
+      if (!suppressNextClick) return;
+      suppressNextClick = false;
+      event.preventDefault();
+      event.stopPropagation();
     };
 
     const handleWheel = (event: WheelEvent) => {
@@ -711,15 +812,17 @@ function ConstellationViewport(props: ConstellationViewportProps) {
     element.addEventListener('pointermove', handlePointerMove);
     element.addEventListener('pointerup', handlePointerEnd);
     element.addEventListener('pointercancel', handlePointerEnd);
+    element.addEventListener('click', handleClickCapture, true);
     element.addEventListener('wheel', handleWheel, { passive: false });
     return () => {
       element.removeEventListener('pointerdown', handlePointerDown);
       element.removeEventListener('pointermove', handlePointerMove);
       element.removeEventListener('pointerup', handlePointerEnd);
       element.removeEventListener('pointercancel', handlePointerEnd);
+      element.removeEventListener('click', handleClickCapture, true);
       element.removeEventListener('wheel', handleWheel);
     };
-  });
+  }, []);
 
   const interactionSurface = (
     <View
@@ -742,7 +845,9 @@ function ConstellationViewport(props: ConstellationViewportProps) {
       <Animated.View style={[StyleSheet.absoluteFill, graphLayerStyle]}>
         <SvgGraph
           graph={props.graph}
+          isLayoutBusy={props.isLayoutBusy}
           layout={props.layout}
+          layoutError={props.layoutError}
           onSelect={props.onSelect}
           selectedKey={props.selectedKey}
           sproutedLabel={props.sproutedLabel}
@@ -776,6 +881,35 @@ function ConstellationViewport(props: ConstellationViewportProps) {
           top: 16,
         }}
       >
+        {props.onResetLayout ? (
+          <Pressable
+            accessibilityLabel="Reset saved Constellation node positions"
+            accessibilityRole="button"
+            disabled={props.isLayoutBusy}
+            onPress={props.onResetLayout}
+            style={({ pressed }) => ({
+              alignItems: 'center',
+              backgroundColor: props.tokens.panel.background,
+              borderColor: props.tokens.panel.border,
+              borderRadius: 10,
+              borderWidth: 1,
+              height: 44,
+              justifyContent: 'center',
+              opacity: props.isLayoutBusy ? 0.45 : pressed ? 0.72 : 1,
+              paddingHorizontal: 14,
+            })}
+          >
+            <Text
+              style={{
+                color: props.tokens.text.primary,
+                fontFamily: 'Inter-SemiBold',
+                fontSize: 12,
+              }}
+            >
+              Reset layout
+            </Text>
+          </Pressable>
+        ) : null}
         <Pressable
           accessibilityLabel="Zoom out of Constellation"
           accessibilityRole="button"
@@ -857,14 +991,39 @@ function ConstellationViewport(props: ConstellationViewportProps) {
           </Text>
         </Pressable>
       </View>
+      {props.layoutError ? (
+        <View
+          accessibilityLiveRegion="polite"
+          accessibilityRole="alert"
+          style={{
+            backgroundColor: props.tokens.panel.background,
+            borderColor: props.tokens.panel.border,
+            borderRadius: 10,
+            borderWidth: 1,
+            bottom: 16,
+            maxWidth: 360,
+            paddingHorizontal: 12,
+            paddingVertical: 9,
+            position: 'absolute',
+            right: 16,
+          }}
+        >
+          <Text
+            style={{
+              color: props.tokens.text.secondary,
+              fontFamily: 'Inter-Regular',
+              fontSize: 12,
+            }}
+          >
+            {props.layoutError}
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }
 
 export function ConstellationCanvasShell(props: ConstellationCanvasShellProps) {
-  const { width } = useWindowDimensions();
-  const sidebarCollapsed = useUIStore((state) => state.sidebarCollapsed);
-  const { compact } = getConstellationResponsiveLayout(width, sidebarCollapsed);
   if (Platform.OS !== 'web') {
     return (
       <ScrollView style={{ backgroundColor: props.tokens.canvas.background }}>
@@ -908,13 +1067,18 @@ export function ConstellationCanvasShell(props: ConstellationCanvasShellProps) {
       <View style={{ flex: 1, minHeight: 554, position: 'relative' }}>
         <ConstellationViewport
           graph={props.graph}
+          isLayoutBusy={props.isLayoutBusy}
           layout={props.layout}
+          layoutError={props.layoutError}
+          onMoveNode={props.onMoveNode}
+          onMoveNodeEnd={props.onMoveNodeEnd}
+          onResetLayout={props.onResetLayout}
           onSelect={props.onSelect}
           selectedKey={props.selectedKey}
           sproutedLabel={props.sproutedLabel}
           tokens={props.tokens}
         />
-        {!compact ? <ConstellationLegend tokens={props.tokens} /> : null}
+        <ConstellationLegend tokens={props.tokens} />
         <ConstellationAccessibleList
           graph={props.graph}
           hiddenVisually

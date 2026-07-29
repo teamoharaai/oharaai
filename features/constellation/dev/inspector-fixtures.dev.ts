@@ -94,6 +94,21 @@ export const constellationPreviewGoalEvidenceDto = {
     },
     vaultId: 'renderer-vault-train',
   },
+  // Two additional canonical goal-container Entries have no BRT evidence
+  // reference, proving that the authoritative total is independent of the
+  // separately editable evidence-reference list below.
+  connectedEntryCount: 5,
+  recentEntries: [...constellationPreviewGoalEvidenceItems]
+    .sort((left, right) => (
+      right.echo.createdAt.localeCompare(left.echo.createdAt)
+      || left.echo.id.localeCompare(right.echo.id)
+    ))
+    .slice(0, 3)
+    .map((item) => ({
+      ...item.echo,
+      brtCategory: item.brtCategory,
+      connectionSource: 'both' as const,
+    })),
   items: constellationPreviewGoalEvidenceItems,
 } satisfies NonNullable<GoalEvidenceController['dto']>;
 
@@ -208,6 +223,7 @@ export const constellationPreviewEmptyCounts = {
   },
   annotations: { draft: 0, archived: 0 },
   virtualBrtClusters: { total: 0, bud: 0, rose: 0, thorn: 0 },
+  virtualGoalCategories: 0,
   edges: 0,
   evidenceLinks: 0,
   source: {

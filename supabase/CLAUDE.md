@@ -4,8 +4,8 @@ Owner: CTO. Cascade Level 3.
 
 ## Migration Conventions
 - supabase/migrations/ holds 6 narrative baseline files (001-006), squashed
-  2026-06-24 from the original 26 incremental migrations. 007-033 were added
-  after the squash (see below). Next new migration: 034.
+  2026-06-24 from the original 26 incremental migrations. 007-034 were added
+  after the squash (see below). Next new migration: 035.
 - The pre-squash files (original 001-026) are archived, untouched, in
   supabase/migrations_archive_pre_squash_2026-06-24/ for historical reference.
   Do not re-run or restore them — supabase_migrations.schema_migrations tracks
@@ -143,6 +143,15 @@ Owner: CTO. Cascade Level 3.
   trigger to cover the new column. Applied via the Supabase management API query
   endpoint and behavior-verified live (same-owner insert, cross-owner rejection,
   goal-delete set-null) on 2026-07-29; types regenerated, tsc clean.
+- 034_constellation_layout_positions.sql: stores owner-scoped Constellation
+  placement preferences by selection key. Top-level nodes use bounded
+  normalized canvas coordinates; goal satellites use bounded parent-relative
+  offsets. The table has owner CRUD RLS, an owner/selection-key primary key,
+  updated-at maintenance, and account-delete cascade. Current-node and
+  coordinate-space semantics are additionally validated by the API. Verified
+  with the disposable PostgreSQL Constellation security harness, applied to the
+  linked OharaAI main project, and confirmed in the remote migration ledger on
+  2026-07-29.
 - goals.mode column was dropped in the 2026-06-24 squash (was a single-value
   CHECK column, no longer carried). lib/db/goals.ts no longer inserts it.
 

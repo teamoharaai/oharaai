@@ -1,11 +1,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   createConstellationMutationRepository,
+  deleteConstellationLayout,
   loadConstellationGoalEvidence,
+  loadConstellationLayout,
   loadConstellationBrtInspector,
   loadConstellationReflectionInspector,
   loadConstellationSnapshot,
   searchConstellationEchoOptions,
+  upsertConstellationLayoutPosition,
 } from '../../../lib/db/constellation.ts';
 import {
   archiveConstellationAnnotation,
@@ -16,6 +19,7 @@ import {
   deleteConstellationEvidenceReference,
   updateConstellationAnnotation,
   updateConstellationEvidenceReference,
+  validateConstellationLayoutPosition,
 } from './constellation-server-core.ts';
 import type {
   ConstellationAnnotationDTO,
@@ -27,9 +31,12 @@ import type {
   ConstellationEvidenceReferenceWriteResult,
   ConstellationGraphDTO,
   ConstellationGoalEvidenceDTO,
+  ConstellationLayoutDTO,
+  ConstellationLayoutPositionDTO,
   ConstellationReflectionInspectorDTO,
   CreateConstellationAnnotationInput,
   CreateConstellationEvidenceReferenceInput,
+  SaveConstellationLayoutPositionInput,
   UpdateConstellationAnnotationInput,
   UpdateConstellationEvidenceReferenceInput,
 } from '../types.ts';
@@ -45,6 +52,33 @@ export async function getConstellationGraph(
     snapshot,
     generatedAt ?? new Date().toISOString(),
   );
+}
+
+export function getConstellationLayout(
+  ownerId: string,
+  client: SupabaseClient,
+): Promise<ConstellationLayoutDTO> {
+  return loadConstellationLayout(ownerId, client);
+}
+
+export async function saveConstellationLayoutPosition(
+  ownerId: string,
+  input: SaveConstellationLayoutPositionInput,
+  client: SupabaseClient,
+): Promise<ConstellationLayoutPositionDTO> {
+  const graph = await getConstellationGraph(ownerId, client);
+  return upsertConstellationLayoutPosition(
+    ownerId,
+    validateConstellationLayoutPosition(graph, input),
+    client,
+  );
+}
+
+export function resetConstellationLayout(
+  ownerId: string,
+  client: SupabaseClient,
+): Promise<void> {
+  return deleteConstellationLayout(ownerId, client);
 }
 
 export async function getConstellationGoalEvidence(
@@ -79,12 +113,22 @@ export async function getConstellationReflectionInspector(
   return result;
 }
 
-export function getConstellationBrtInspector(
+export async function getConstellationBrtInspector(
   ownerId: string,
+  goalId: string,
   category: ConstellationBrtCategory,
   client: SupabaseClient,
 ): Promise<ConstellationBrtInspectorDTO> {
-  return loadConstellationBrtInspector(ownerId, category, client);
+  const result = await loadConstellationBrtInspector(
+    ownerId,
+    goalId,
+    category,
+    client,
+  );
+  if (!result) {
+    throw new ConstellationDataError('NOT_FOUND', 'Goal not found.');
+  }
+  return result;
 }
 
 export async function getConstellationEchoOptions(

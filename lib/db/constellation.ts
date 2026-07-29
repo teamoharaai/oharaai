@@ -7,6 +7,7 @@ import type {
   ConstellationEvidenceLinkRow,
   ConstellationEvidenceReferenceRow,
   ConstellationEvidenceReferenceRowPatch,
+  ConstellationGoalEntryLinkRow,
   ConstellationGoalSourceRow,
   ConstellationMutationRepository,
   ConstellationNodeRow,
@@ -16,16 +17,20 @@ import type {
 import type {
   ConstellationBrtCategory,
   ConstellationBrtInspectorDTO,
+  ConstellationConnectedEntrySummary,
   ConstellationEchoSearchDTO,
   ConstellationEchoSearchOption,
   ConstellationEvidenceEchoSummary,
   ConstellationGoalEvidenceDTO,
   ConstellationGoalEvidenceItem,
+  ConstellationLayoutDTO,
+  ConstellationLayoutPositionDTO,
   ConstellationReflectionInspectorDTO,
   ConstellationReflectionValence,
   ConstellationReflectionValenceEvent,
   CreateConstellationAnnotationInput,
   CreateConstellationEvidenceReferenceInput,
+  SaveConstellationLayoutPositionInput,
 } from '../../features/constellation/types.ts';
 import type { GoalDbStatus } from '../goals/schema.ts';
 import supabase from './client.ts';
@@ -110,6 +115,15 @@ const ECHO_EVIDENCE_COLUMNS = [
 ].join(', ');
 const ECHO_EXCERPT_MAX_LENGTH = 240;
 const ECHO_SEARCH_RESULT_LIMIT = 50;
+const LAYOUT_POSITION_LIMIT = 500;
+
+interface ConstellationLayoutPositionRow {
+  selection_key: string;
+  coordinate_space: 'canvas' | 'parent';
+  x: number;
+  y: number;
+  updated_at: string;
+}
 
 interface ConstellationEvidenceEchoRow {
   id: string;
@@ -135,6 +149,10 @@ interface ConstellationProjectSummaryRow {
 
 interface ConstellationVaultSummaryRow {
   id: string;
+}
+
+interface ConstellationGoalContainerLinkRow {
+  echo_entry_id: string;
 }
 
 interface PageResult {
@@ -239,10 +257,26 @@ async function fetchGoalSources(
 ): Promise<ConstellationGoalSourceRow[]> {
   return fetchPagedRows((from, to) => client
     .from('goals')
-    .select('id, title, status, updated_at')
+    .select('id, title, category, status, updated_at')
     .eq('user_id', ownerId)
     .order('id', { ascending: true })
     .range(from, to));
+}
+
+async function fetchConfirmedGoalEntryLinks(
+  ownerId: string,
+  client: DbClient,
+): Promise<ConstellationGoalEntryLinkRow[]> {
+  return fetchPagedRows((from, to) => client
+    .from('echo_entry_links')
+    .select('echo_entry_id, goal_id, created_at, echo_entries!inner(user_id)')
+    .eq('container_type', 'goal')
+    .eq('confirmed', true)
+    .not('goal_id', 'is', null)
+    .eq('echo_entries.user_id', ownerId)
+    .order('created_at', { ascending: false })
+    .order('echo_entry_id', { ascending: true })
+    .range(from, to)) as Promise<ConstellationGoalEntryLinkRow[]>;
 }
 
 async function fetchProjectSources(
@@ -297,6 +331,7 @@ export async function loadConstellationSnapshot(
     edges,
     annotations,
     evidenceLinks,
+    goalEntryLinks,
     echoBrtCategories,
     goals,
     projects,
@@ -307,6 +342,7 @@ export async function loadConstellationSnapshot(
     fetchConstellationEdges(ownerId, client),
     fetchConstellationAnnotations(ownerId, client),
     fetchConstellationEvidenceLinks(ownerId, client),
+    fetchConfirmedGoalEntryLinks(ownerId, client),
     fetchEchoBrtCategories(ownerId, client),
     fetchGoalSources(ownerId, client),
     fetchProjectSources(ownerId, client),
@@ -319,6 +355,7 @@ export async function loadConstellationSnapshot(
     edges,
     annotations,
     evidenceLinks,
+    goalEntryLinks,
     echoBrtCategories,
     goals,
     projects,
@@ -417,6 +454,22 @@ async function fetchEvidenceReferencesForGoal(
     .range(from, to));
 }
 
+async function fetchConfirmedGoalContainerLinks(
+  ownerId: string,
+  goalId: string,
+  client: DbClient,
+): Promise<ConstellationGoalContainerLinkRow[]> {
+  return fetchPagedRows((from, to) => client
+    .from('echo_entry_links')
+    .select('echo_entry_id, echo_entries!inner(user_id)')
+    .eq('goal_id', goalId)
+    .eq('container_type', 'goal')
+    .eq('confirmed', true)
+    .eq('echo_entries.user_id', ownerId)
+    .order('echo_entry_id', { ascending: true })
+    .range(from, to)) as Promise<ConstellationGoalContainerLinkRow[]>;
+}
+
 async function fetchOwnedEvidenceEchoesById(
   ownerId: string,
   echoEntryIds: readonly string[],
@@ -441,9 +494,66 @@ async function fetchOwnedEvidenceEchoesById(
   return rows;
 }
 
+async function loadConnectedGoalEntryRows(
+  ownerId: string,
+  goalId: string,
+  client: DbClient,
+): Promise<{
+  containerEntryIds: ReadonlySet<string>;
+  evidenceEntryIds: ReadonlySet<string>;
+  references: readonly ConstellationEvidenceReferenceRow[];
+  rows: readonly ConstellationEvidenceEchoRow[];
+}> {
+  const [references, containerLinks] = await Promise.all([
+    fetchEvidenceReferencesForGoal(ownerId, goalId, client),
+    fetchConfirmedGoalContainerLinks(ownerId, goalId, client),
+  ]);
+  const containerEntryIds = new Set(
+    containerLinks.map((link) => link.echo_entry_id),
+  );
+  const evidenceEntryIds = new Set(
+    references.map((reference) => reference.echo_entry_id),
+  );
+  const entryIds = [...new Set([
+    ...containerEntryIds,
+    ...evidenceEntryIds,
+  ])];
+  const rows = await fetchOwnedEvidenceEchoesById(
+    ownerId,
+    entryIds,
+    client,
+  );
+  return {
+    containerEntryIds,
+    evidenceEntryIds,
+    references,
+    rows,
+  };
+}
+
+function connectedEntrySummary(
+  row: ConstellationEvidenceEchoRow,
+  containerEntryIds: ReadonlySet<string>,
+  evidenceEntryIds: ReadonlySet<string>,
+): ConstellationConnectedEntrySummary {
+  const inContainer = containerEntryIds.has(row.id);
+  const inEvidence = evidenceEntryIds.has(row.id);
+  return {
+    ...mapEvidenceEcho(row),
+    brtCategory: row.brt_category as ConstellationBrtCategory | null,
+    connectionSource: inContainer && inEvidence
+      ? 'both'
+      : inContainer
+        ? 'container'
+        : 'evidence',
+  };
+}
+
 /**
- * Returns a selected owner's goal evidence with only bounded Echo excerpts.
- * The canonical Echo container and Echo-level BRT fields are not selected.
+ * Returns a selected owner's goal details with an authoritative connected Entry
+ * count and recent-three summary. Confirmed goal containers and explicit
+ * Constellation evidence references remain distinct domains, but are deduped by
+ * Entry ID for presentation.
  */
 export async function loadConstellationGoalEvidence(
   ownerId: string,
@@ -453,23 +563,18 @@ export async function loadConstellationGoalEvidence(
   const goal = await findOwnedGoalSummary(ownerId, goalId, client);
   if (!goal) return null;
 
-  const references = await fetchEvidenceReferencesForGoal(
+  const connected = await loadConnectedGoalEntryRows(
     ownerId,
     goalId,
     client,
   );
-  const echoRows = await fetchOwnedEvidenceEchoesById(
-    ownerId,
-    references.map((reference) => reference.echo_entry_id),
-    client,
-  );
-  const echoById = new Map(echoRows.map((row) => [row.id, row]));
+  const echoById = new Map(connected.rows.map((row) => [row.id, row]));
   const destinations = await loadGoalInspectorDestinations(
     ownerId,
     goal,
     client,
   );
-  const items: ConstellationGoalEvidenceItem[] = references.flatMap(
+  const items: ConstellationGoalEvidenceItem[] = connected.references.flatMap(
     (reference) => {
       const echo = echoById.get(reference.echo_entry_id);
       if (!echo) return [];
@@ -486,6 +591,17 @@ export async function loadConstellationGoalEvidence(
       }];
     },
   );
+  const recentEntries = [...connected.rows]
+    .sort((left, right) => (
+      right.created_at.localeCompare(left.created_at)
+      || left.id.localeCompare(right.id)
+    ))
+    .slice(0, 3)
+    .map((row) => connectedEntrySummary(
+      row,
+      connected.containerEntryIds,
+      connected.evidenceEntryIds,
+    ));
 
   return {
     goal: {
@@ -497,6 +613,8 @@ export async function loadConstellationGoalEvidence(
       project: destinations.project,
       vaultId: destinations.vaultId,
     },
+    connectedEntryCount: connected.rows.length,
+    recentEntries,
     items,
   };
 }
@@ -743,20 +861,25 @@ export async function searchConstellationEchoOptions(
 
 export async function loadConstellationBrtInspector(
   ownerId: string,
+  goalId: string,
   category: ConstellationBrtCategory,
   client: DbClient = supabase,
-): Promise<ConstellationBrtInspectorDTO> {
-  const rows = await fetchPagedRows<ConstellationEvidenceEchoRow>(
-    (from, to) => client
-      .from('echo_entries')
-      .select(ECHO_EVIDENCE_COLUMNS)
-      .eq('user_id', ownerId)
-      .eq('brt_category', category)
-      .order('created_at', { ascending: false })
-      .order('id', { ascending: true })
-      .range(from, to),
+): Promise<ConstellationBrtInspectorDTO | null> {
+  const goal = await findOwnedGoalSummary(ownerId, goalId, client);
+  if (!goal) return null;
+  const connected = await loadConnectedGoalEntryRows(
+    ownerId,
+    goalId,
+    client,
   );
+  const rows = connected.rows
+    .filter((row) => row.brt_category === category)
+    .sort((left, right) => (
+      right.created_at.localeCompare(left.created_at)
+      || left.id.localeCompare(right.id)
+    ));
   return {
+    goalId,
     category,
     entries: rows.map((row) => ({
       ...mapEvidenceEcho(row),
@@ -932,6 +1055,71 @@ export function createConstellationMutationRepository(
       return data !== null;
     },
   };
+}
+
+function layoutPositionFromRow(
+  row: ConstellationLayoutPositionRow,
+): ConstellationLayoutPositionDTO {
+  return {
+    selectionKey: row.selection_key,
+    coordinateSpace: row.coordinate_space,
+    x: row.x,
+    y: row.y,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function loadConstellationLayout(
+  ownerId: string,
+  client: DbClient = supabase,
+): Promise<ConstellationLayoutDTO> {
+  const { data, error } = await client
+    .from('constellation_layout_positions')
+    .select('selection_key, coordinate_space, x, y, updated_at')
+    .eq('owner_id', ownerId)
+    .order('updated_at', { ascending: false })
+    .limit(LAYOUT_POSITION_LIMIT);
+  if (error) throw error;
+  return {
+    version: '1.0',
+    positions: (data as unknown as ConstellationLayoutPositionRow[])
+      .map(layoutPositionFromRow),
+  };
+}
+
+export async function upsertConstellationLayoutPosition(
+  ownerId: string,
+  input: SaveConstellationLayoutPositionInput,
+  client: DbClient = supabase,
+): Promise<ConstellationLayoutPositionDTO> {
+  const { data, error } = await client
+    .from('constellation_layout_positions')
+    .upsert({
+      owner_id: ownerId,
+      selection_key: input.selectionKey,
+      coordinate_space: input.coordinateSpace,
+      x: input.x,
+      y: input.y,
+    }, {
+      onConflict: 'owner_id,selection_key',
+    })
+    .select('selection_key, coordinate_space, x, y, updated_at')
+    .single();
+  if (error) throw error;
+  return layoutPositionFromRow(
+    data as unknown as ConstellationLayoutPositionRow,
+  );
+}
+
+export async function deleteConstellationLayout(
+  ownerId: string,
+  client: DbClient = supabase,
+): Promise<void> {
+  const { error } = await client
+    .from('constellation_layout_positions')
+    .delete()
+    .eq('owner_id', ownerId);
+  if (error) throw error;
 }
 
 export type {

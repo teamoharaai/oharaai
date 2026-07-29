@@ -678,14 +678,12 @@ authoritative.
 `GET /api/constellation` returns the raw versioned
 `ConstellationGraphDTO` defined in `docs/constellation/DECISIONS.md`. It
 contains real owner data only: active earned nodes, active annotations,
-persisted system edges, derived annotation/cluster edges, virtual goal-level
-Bud/Rose/Thorn summaries, and graph/source counts. It never contains raw Echo
-content or excerpts. Archived annotations are counted but omitted from the
-default annotation list.
-
-The current server access policy requires at least three lifetime non-draft
-goals and ten Echo entries. `accessEligible` reports that policy result;
-`hasGraphData` independently reports whether a renderable entity exists.
+persisted system edges, derived annotation/category/satellite edges, virtual
+category hubs, non-empty goal-level Bud/Rose/Thorn summaries, and graph/source
+counts. It never contains raw Entry content or excerpts. Archived annotations
+are counted but omitted from the default annotation list. There is no activity
+threshold or locked response; the real render state is `season_only` or
+`graph`.
 
 Constellation write successes use:
 
@@ -748,7 +746,7 @@ archived annotation is idempotent and returns the archived DTO.
 
 ### `POST /api/constellation/evidence-references`
 
-Creates or idempotently updates one Echo/goal evidence relation:
+Creates or idempotently updates one Entry/goal evidence relation:
 
 ```typescript
 {
@@ -759,12 +757,12 @@ Creates or idempotently updates one Echo/goal evidence relation:
 ```
 
 Returns the `ConstellationEvidenceLink` with `201` when inserted and `200`
-when the existing Echo/goal pair is unchanged or its note is updated.
+when the existing Entry/goal pair is unchanged or its note is updated.
 When updating an existing pair, an omitted `note` preserves the stored note;
 an explicit `null` clears it.
-The Echo and goal must both belong to the authenticated user. This route never
-changes the Echo's canonical container, `echo_entries.goal_id`,
-`echo_entries.brt_user`, or any `echo_entry_links` row.
+The Entry and goal must both belong to the authenticated user. This route never
+changes the Entry's canonical container, `echo_entries.goal_id`,
+`echo_entries.brt_category`, or any `echo_entry_links` row.
 
 ### `GET /api/constellation/goals/:id/evidence`
 
@@ -781,6 +779,16 @@ Returns the complete current evidence-reference list for one owned goal:
     project: { id: string, title: string } | null,
     vaultId: string | null
   },
+  connectedEntryCount: number,
+  recentEntries: {                    // at most 3, newest createdAt first
+    id: string,
+    title: string | null,
+    excerpt: string,                  // normalized, at most 240 characters
+    excerptTruncated: boolean,
+    createdAt: string,
+    brtCategory: "bud" | "rose" | "thorn" | null,
+    connectionSource: "container" | "evidence" | "both"
+  }[],
   items: {
     id: string,
     ownerId: string,
@@ -801,23 +809,26 @@ Returns the complete current evidence-reference list for one owned goal:
 }
 ```
 
-This read is owner-scoped for both the goal and every returned Echo. It returns
-only the bounded display excerpt needed by the evidence inspector, not full
-Echo content.
+This read is owner-scoped for the goal and every returned Entry. The
+authoritative total and recent-three list are the deduplicated union of
+confirmed `echo_entry_links` goal containers and explicit
+`constellation_evidence_links`. `items` remains the separate mutable
+evidence-reference domain. Only bounded display excerpts are returned.
 
-### `GET /api/constellation/brt/:category`
+### `GET /api/constellation/goals/:id/brt/:category`
 
-Returns every owned entry currently classified as `bud`, `rose`, or `thorn`,
-using the same bounded excerpt shape as the other inspectors. The category is
-validated from the route, and both the query and row-level security are scoped
-to the authenticated owner.
+Returns owned Entries attached or referenced to the selected owned goal and
+currently classified as `bud`, `rose`, or `thorn`, using the same bounded
+excerpt shape as the other inspectors. Both goal and category are validated
+from the route. The query and row-level security are scoped to the
+authenticated owner, so another goal's Entries cannot appear.
 
 ### `GET /api/constellation/reflections/:id`
 
 Returns live validation and private evidence details for one active owned
 Reflection node. The route first resolves the node under the authenticated
 owner, then reads its candidate from the owner's character profile and returns
-only contributing Echoes that also resolve under that owner.
+only contributing Entries that also resolve under that owner.
 
 ```typescript
 {
@@ -848,13 +859,13 @@ only contributing Echoes that also resolve under that owner.
 ```
 
 Missing, archived, malformed, and non-owned node IDs share the same `404`
-semantics. Full Echo bodies, unavailable Echo IDs, and any local BRT override
+semantics. Full Entry bodies, unavailable Entry IDs, and any local BRT override
 are never returned.
 
 ### `GET /api/constellation/goals/:id/echo-options?query=...`
 
-Returns selectable owned Echo entries for one owned goal. An empty query
-returns recent entries; a non-empty query searches owned Echo titles and
+Returns selectable owned Entries for one owned goal. An empty query returns
+recent Entries; a non-empty query searches owned Entry titles and
 content. The normalized query is limited to 120 characters and the result set
 is bounded.
 
@@ -876,14 +887,16 @@ is bounded.
 }
 ```
 
-`existingReference` describes only the Echo/selected-goal pair. BRT category
+`existingReference` describes only the Entry/selected-goal pair. BRT category
 belongs to the entry itself, so it is consistent across every goal reference.
-These reads do not infer or mutate canonical Echo containment.
+These reads do not infer or mutate canonical Entry containment. The
+`echo-options` route segment and `echoEntryId`/`echo` response keys are retained
+as internal compatibility identifiers.
 
 ### `PATCH /api/constellation/evidence-references/:id`
 
 Updates the optional `note` on an owned evidence reference. The entry-level BRT
-category is updated through `PATCH /api/entries/:id`; owner, Echo, and goal
+category is updated through `PATCH /api/entries/:id`; owner, Entry, and goal
 endpoints are not accepted here and remain immutable.
 
 ### `DELETE /api/constellation/evidence-references/:id`
@@ -894,7 +907,57 @@ Deletes only the owned evidence-reference row and returns:
 { ok: true, data: { id: string }, error: null }
 ```
 
-The referenced Echo entry and goal are never deleted or moved.
+The referenced Entry and goal are never deleted or moved.
+
+### `GET /api/constellation/layout`
+
+Returns the authenticated owner's saved node positions:
+
+```typescript
+{
+  ok: true,
+  data: {
+    version: "1.0",
+    positions: {
+      selectionKey: string,
+      coordinateSpace: "canvas" | "parent",
+      x: number,
+      y: number,
+      updatedAt: string
+    }[]
+  },
+  error: null
+}
+```
+
+Stale saved keys may be returned but are ignored unless they match a current
+graph entity and its required coordinate space.
+
+### `PATCH /api/constellation/layout`
+
+Upserts one current owned graph node's position:
+
+```typescript
+{
+  selectionKey: string,              // trimmed, max 200 characters
+  coordinateSpace: "canvas" | "parent",
+  x: number,
+  y: number
+}
+```
+
+Canvas values are bounded to `0.02–0.98`; parent offsets are bounded to `-1–1`.
+The server reloads the owner's current graph and rejects missing/stale keys.
+Current BRT satellites require `parent`; all other current entities require
+`canvas`. The response data is the saved position.
+
+### `DELETE /api/constellation/layout`
+
+Deletes only the authenticated owner's layout rows and returns:
+
+```typescript
+{ ok: true, data: { reset: true }, error: null }
+```
 
 ---
 

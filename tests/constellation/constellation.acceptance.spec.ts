@@ -5,7 +5,7 @@ import {
 } from '@playwright/test';
 import {
   acceptanceEchoOption,
-  createLockedConstellationGraph,
+  createSeasonOnlyConstellationGraph,
   installConstellationAcceptanceApi,
 } from './acceptance-api.ts';
 
@@ -167,6 +167,13 @@ test.describe('final architecture interaction contract', () => {
     await expect(
       page.getByLabel('Goal inspector for Train three times weekly'),
     ).toBeVisible();
+    await expect(
+      page.getByText('Recent entries · 5', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByLabel('Goal inspector for Train three times weekly')
+        .getByRole('button', { name: 'Read entry' }),
+    ).toHaveCount(3);
     await expect(page.getByText(
       'Focus · Train three times weekly',
       { exact: false },
@@ -178,6 +185,108 @@ test.describe('final architecture interaction contract', () => {
     await expect(
       page.getByRole('heading', { name: 'Constellation', exact: true }),
     ).toBeVisible();
+  });
+
+  test('collapses the legend, persists the preference, and expands it again', async ({
+    page,
+  }) => {
+    await installConstellationAcceptanceApi(page);
+    await openLiveConstellation(page);
+
+    const collapse = page.getByRole('button', {
+      name: 'Collapse Constellation legend',
+    });
+    await expect(collapse).toHaveAttribute('aria-expanded', 'true');
+    await collapse.click();
+    await expect(
+      page.getByText('Goal planet', { exact: true }),
+    ).toHaveCount(0);
+
+    await page.reload();
+    await expect(page.getByLabel('Constellation graph canvas')).toBeVisible();
+    const expand = page.getByRole('button', {
+      name: 'Expand Constellation legend',
+    });
+    await expect(expand).toHaveAttribute('aria-expanded', 'false');
+    await expand.click();
+    await expect(
+      page.getByText('Goal planet', { exact: true }),
+    ).toBeVisible();
+  });
+
+  test('dragging a goal carries its BRT moon, persists, and can be reset', async ({
+    page,
+  }) => {
+    await installConstellationAcceptanceApi(page);
+    await openLiveConstellation(page);
+
+    const goal = page.locator(
+      '[data-constellation-node="node:renderer-goal-train"]',
+    );
+    const bud = page.locator(
+      '[data-constellation-node="brt:renderer-goal-train-source:bud"]',
+    );
+    const initialGoal = await goal.boundingBox();
+    const initialBud = await bud.boundingBox();
+    expect(initialGoal).not.toBeNull();
+    expect(initialBud).not.toBeNull();
+    if (!initialGoal || !initialBud) return;
+
+    const saved = page.waitForResponse((response) => (
+      new URL(response.url()).pathname === '/api/constellation/layout'
+      && response.request().method() === 'PATCH'
+    ));
+    await page.mouse.move(
+      initialGoal.x + initialGoal.width / 2,
+      initialGoal.y + initialGoal.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      initialGoal.x + initialGoal.width / 2 + 72,
+      initialGoal.y + initialGoal.height / 2 + 36,
+      { steps: 6 },
+    );
+    await page.mouse.up();
+    await saved;
+
+    const movedGoal = await goal.boundingBox();
+    const movedBud = await bud.boundingBox();
+    expect(movedGoal).not.toBeNull();
+    expect(movedBud).not.toBeNull();
+    if (!movedGoal || !movedBud) return;
+    expect(movedGoal.x - initialGoal.x).toBeGreaterThan(50);
+    expect(Math.abs(
+      (movedBud.x - initialBud.x) - (movedGoal.x - initialGoal.x),
+    )).toBeLessThan(5);
+    expect(Math.abs(
+      (movedBud.y - initialBud.y) - (movedGoal.y - initialGoal.y),
+    )).toBeLessThan(5);
+    await expect(
+      page.getByLabel('Goal inspector for Train three times weekly'),
+    ).toHaveCount(0);
+
+    await page.reload();
+    await expect(page.getByLabel('Constellation graph canvas')).toBeVisible();
+    await expect.poll(async () => (await goal.boundingBox())?.x ?? 0).toBeCloseTo(
+      movedGoal.x,
+      0,
+    );
+
+    page.once('dialog', (dialog) => {
+      void dialog.accept();
+    });
+    const reset = page.waitForResponse((response) => (
+      new URL(response.url()).pathname === '/api/constellation/layout'
+      && response.request().method() === 'DELETE'
+    ));
+    await page.getByRole('button', {
+      name: 'Reset saved Constellation node positions',
+    }).click();
+    await reset;
+    await expect.poll(async () => (await goal.boundingBox())?.x ?? 0).toBeCloseTo(
+      initialGoal.x,
+      0,
+    );
   });
 
   test('direct URL selection opens the matching Reflection and Escape removes selection', async ({
@@ -212,7 +321,7 @@ test.describe('final architecture interaction contract', () => {
     await selectNode(page, 'goal', 'Train three times weekly');
 
     const budNode = page.getByRole('button', {
-      name: 'Bud goal evidence summary, 1 reference',
+      name: 'Bud goal Entry summary, 1 Entry',
       exact: true,
     });
     await expect(budNode).toBeVisible();
@@ -220,7 +329,7 @@ test.describe('final architecture interaction contract', () => {
 
     await expect(page).toHaveURL(/\/constellation$/);
     await expect(
-      page.getByLabel('Reflection inspector for Bud'),
+      page.getByLabel('Bud goal Entry inspector'),
     ).toBeVisible();
     await expect(page.getByText('The shape of consistency')).toBeVisible();
   });
@@ -372,7 +481,7 @@ test.describe('final architecture interaction contract', () => {
     page,
   }) => {
     await installConstellationAcceptanceApi(page, {
-      graph: createLockedConstellationGraph(),
+      graph: createSeasonOnlyConstellationGraph(),
     });
     await page.goto('/constellation');
 

@@ -22,7 +22,9 @@ function nodeDescription(node: ConstellationGraphViewNode): string {
     case 'annotation':
       return `User-authored ${node.node.kind === 'projection' ? 'Projection' : 'Note'} draft: ${node.node.label}`;
     case 'virtual_brt_cluster':
-      return `${node.node.label} goal evidence summary, ${node.node.evidenceLinkCount} ${node.node.evidenceLinkCount === 1 ? 'reference' : 'references'}`;
+      return `${node.node.label} goal Entry summary, ${node.node.entryCount} ${node.node.entryCount === 1 ? 'Entry' : 'Entries'}`;
+    case 'virtual_goal_category':
+      return `${node.node.label} goal category, ${node.node.goalCount} ${node.node.goalCount === 1 ? 'goal' : 'goals'}`;
   }
 }
 
@@ -71,7 +73,7 @@ export function ConstellationAccessibleList({
             Constellation list
           </Text>
           <Text style={{ color: tokens.text.secondary, fontFamily: 'Inter-Regular', fontSize: 13 }}>
-            Native and screen-reader representation of the static graph.
+            Native and screen-reader representation of the Constellation graph.
           </Text>
         </View>
       ) : null}

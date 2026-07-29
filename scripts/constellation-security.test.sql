@@ -347,9 +347,105 @@ values (
   null
 );
 
+insert into public.constellation_layout_positions (
+  owner_id,
+  selection_key,
+  coordinate_space,
+  x,
+  y
+)
+values (
+  '00000000-0000-4000-8000-00000000000b',
+  'node:20000000-0000-4000-8000-00000000001b',
+  'canvas',
+  0.4,
+  0.6
+);
+
 \echo 'Checking owner A writes, archival, and RLS isolation...'
 
 set request.jwt.claim.sub = '00000000-0000-4000-8000-00000000000a';
+
+insert into public.constellation_layout_positions (
+  owner_id,
+  selection_key,
+  coordinate_space,
+  x,
+  y
+)
+values (
+  '00000000-0000-4000-8000-00000000000a',
+  'node:20000000-0000-4000-8000-00000000001a',
+  'canvas',
+  0.3,
+  0.7
+);
+
+do $$
+declare
+  rejected boolean := false;
+begin
+  if exists (
+    select 1
+    from public.constellation_layout_positions
+    where owner_id = '00000000-0000-4000-8000-00000000000b'
+  ) then
+    raise exception 'cross-user layout read leaked through RLS';
+  end if;
+
+  begin
+    insert into public.constellation_layout_positions (
+      owner_id,
+      selection_key,
+      coordinate_space,
+      x,
+      y
+    )
+    values (
+      '00000000-0000-4000-8000-00000000000b',
+      'node:forged-by-a',
+      'canvas',
+      0.5,
+      0.5
+    );
+  exception
+    when insufficient_privilege then rejected := true;
+  end;
+
+  if not rejected then
+    raise exception 'authenticated user forged another owner layout row';
+  end if;
+end;
+$$;
+
+do $$
+declare
+  rejected boolean := false;
+begin
+  begin
+    insert into public.constellation_layout_positions (
+      owner_id,
+      selection_key,
+      coordinate_space,
+      x,
+      y
+    )
+    values (
+      '00000000-0000-4000-8000-00000000000a',
+      'node:outside-canvas',
+      'canvas',
+      1.5,
+      0.5
+    );
+  exception
+    when check_violation then rejected := true;
+  end;
+
+  if not rejected then
+    raise exception 'layout coordinate constraint accepted an invalid canvas point';
+  end if;
+end;
+$$;
 
 do $$
 declare

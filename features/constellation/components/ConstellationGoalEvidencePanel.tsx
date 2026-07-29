@@ -16,6 +16,7 @@ import type { useGoalEvidence } from '../hooks/useGoalEvidence';
 import { brtDisplayLabel } from '../tokens';
 import type {
   ConstellationBrtCategory,
+  ConstellationConnectedEntrySummary,
   ConstellationEchoSearchOption,
   ConstellationGoalEvidenceItem,
 } from '../types';
@@ -41,6 +42,7 @@ interface ConstellationGoalEvidencePanelProps {
   goalTitle: string;
   onClose: () => void;
   onOpenVault?: () => void;
+  onReadEntry: (entryId: string) => void;
   selectionKey: string;
 }
 
@@ -522,6 +524,74 @@ function EvidenceItemCard({
   );
 }
 
+function RecentEntryCard({
+  entry,
+  onReadEntry,
+}: {
+  entry: ConstellationConnectedEntrySummary;
+  onReadEntry: (entryId: string) => void;
+}) {
+  const colors = useThemeColors();
+  const sourceLabel = entry.connectionSource === 'both'
+    ? 'Goal entry · Evidence'
+    : entry.connectionSource === 'container'
+      ? 'Goal entry'
+      : 'Evidence reference';
+
+  return (
+    <View
+      style={{
+        backgroundColor: colors.background.input,
+        borderColor: colors.border.input,
+        borderRadius: 10,
+        borderWidth: 1,
+        gap: 8,
+        padding: 12,
+      }}
+    >
+      <View
+        style={{
+          alignItems: 'baseline',
+          flexDirection: 'row',
+          gap: 8,
+          justifyContent: 'space-between',
+        }}
+      >
+        <Typography numberOfLines={2} variant="label" style={{ flex: 1 }}>
+          {entry.title?.trim() || 'Untitled Entry'}
+        </Typography>
+        <Typography variant="caption">
+          {formattedDate(entry.createdAt)}
+        </Typography>
+      </View>
+      <Typography numberOfLines={3} variant="caption">
+        {entry.excerpt || 'This entry has no preview text.'}
+      </Typography>
+      <View
+        style={{
+          alignItems: 'center',
+          flexDirection: 'row',
+          gap: 8,
+          justifyContent: 'space-between',
+        }}
+      >
+        <Typography variant="caption">
+          {entry.brtCategory
+            ? `${sourceLabel} · ${brtDisplayLabel(entry.brtCategory)}`
+            : sourceLabel}
+        </Typography>
+        <Button
+          onPress={() => onReadEntry(entry.id)}
+          size="compact"
+          variant="secondary"
+        >
+          Read entry
+        </Button>
+      </View>
+    </View>
+  );
+}
+
 export function ConstellationGoalEvidencePanel({
   clusterCategory,
   connectedCount,
@@ -530,6 +600,7 @@ export function ConstellationGoalEvidencePanel({
   goalTitle,
   onClose,
   onOpenVault,
+  onReadEntry,
   selectionKey,
 }: ConstellationGoalEvidencePanelProps) {
   const colors = useThemeColors();
@@ -640,6 +711,38 @@ export function ConstellationGoalEvidencePanel({
           </View>
         ) : null}
 
+        {!clusterCategory && evidence.dto ? (
+          <View style={{ gap: 10 }}>
+            <View style={{ gap: 4 }}>
+              <Typography variant="section-eyebrow">
+                {`Recent entries · ${evidence.dto.connectedEntryCount}`}
+              </Typography>
+              <Typography variant="description">
+                The three most recent Entries attached to or referenced by this goal.
+              </Typography>
+            </View>
+            {evidence.dto.recentEntries.length === 0 ? (
+              <View
+                style={{
+                  backgroundColor: colors.background.subtle,
+                  borderRadius: 10,
+                  padding: 14,
+                }}
+              >
+                <Typography variant="description">
+                  No Entries are connected to this goal yet.
+                </Typography>
+              </View>
+            ) : evidence.dto.recentEntries.map((entry) => (
+              <RecentEntryCard
+                entry={entry}
+                key={entry.id}
+                onReadEntry={onReadEntry}
+              />
+            ))}
+          </View>
+        ) : null}
+
         {adding ? (
           <AddEvidenceForm
             evidence={evidence}
@@ -682,11 +785,11 @@ export function ConstellationGoalEvidencePanel({
               <Typography variant="section-eyebrow">
                 {clusterCategory
                   ? `${brtDisplayLabel(clusterCategory)} entries`
-                  : `Connected entries · ${evidence.dto?.items.length ?? 0}`}
+                  : `Evidence references · ${evidence.dto?.items.length ?? 0}`}
               </Typography>
               <Typography variant="description">
-                Classify each connected entry as Bud, Rose, Thorn, or leave it
-                unlinked until its role becomes clear.
+                Add supplemental goal evidence, then classify it as Bud, Rose,
+                Thorn, or leave it unlinked until its role becomes clear.
               </Typography>
             </View>
 
@@ -722,7 +825,7 @@ export function ConstellationGoalEvidencePanel({
                   padding: 15,
                 }}
               >
-                <Typography variant="label">No entry references yet</Typography>
+                <Typography variant="label">No evidence references yet</Typography>
                 <Typography variant="description">
                   Add one of your entries and choose how it functions for this goal.
                 </Typography>

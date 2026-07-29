@@ -5,6 +5,7 @@ import {
 import type {
   CreateConstellationAnnotationInput,
   CreateConstellationEvidenceReferenceInput,
+  SaveConstellationLayoutPositionInput,
   UpdateConstellationAnnotationInput,
   UpdateConstellationEvidenceReferenceInput,
 } from '../../features/constellation/types.ts';
@@ -15,6 +16,7 @@ const ANNOTATION_LABEL_MAX_LENGTH = 120;
 const ANNOTATION_BODY_MAX_LENGTH = 5_000;
 const EVIDENCE_NOTE_MAX_LENGTH = 280;
 const ECHO_SEARCH_QUERY_MAX_LENGTH = 120;
+const LAYOUT_SELECTION_KEY_MAX_LENGTH = 200;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -153,6 +155,13 @@ function parseNullableTrimmedString(
 function parseNullableUuid(value: unknown, fieldName: string): string | null {
   if (value === null || value === undefined) return null;
   return parseUuid(value, fieldName);
+}
+
+function parseFiniteNumber(value: unknown, fieldName: string): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return invalidInput(`${fieldName} must be a finite number.`);
+  }
+  return value;
 }
 
 export function parseConstellationResourceId(
@@ -324,4 +333,40 @@ export async function parseUpdateEvidenceReferenceRequest(
     );
   }
   return input;
+}
+
+export async function parseSaveConstellationLayoutPositionRequest(
+  request: Request,
+): Promise<SaveConstellationLayoutPositionInput> {
+  const body = await readBody(request);
+  rejectUnknownKeys(body, [
+    'selectionKey',
+    'coordinateSpace',
+    'x',
+    'y',
+  ]);
+  const selectionKey = parseRequiredTrimmedString(
+    body.selectionKey,
+    'selectionKey',
+    LAYOUT_SELECTION_KEY_MAX_LENGTH,
+  );
+  const coordinateSpace = body.coordinateSpace;
+  if (coordinateSpace !== 'canvas' && coordinateSpace !== 'parent') {
+    return invalidInput(
+      'coordinateSpace must be canvas or parent.',
+    );
+  }
+  const x = parseFiniteNumber(body.x, 'x');
+  const y = parseFiniteNumber(body.y, 'y');
+  const insideBounds = coordinateSpace === 'canvas'
+    ? x >= 0.02 && x <= 0.98 && y >= 0.02 && y <= 0.98
+    : x >= -1 && x <= 1 && y >= -1 && y <= 1;
+  if (!insideBounds) {
+    return invalidInput(
+      coordinateSpace === 'canvas'
+        ? 'Canvas coordinates must be between 0.02 and 0.98.'
+        : 'Parent offsets must be between -1 and 1.',
+    );
+  }
+  return { selectionKey, coordinateSpace, x, y };
 }

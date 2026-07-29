@@ -86,20 +86,20 @@ test('category changes recompute virtual cluster nodes and counts from current l
   assert.deepEqual(
     changed.virtualBrtClusters.map((cluster) => [
       cluster.brtCategory,
-      cluster.evidenceLinkCount,
+      cluster.entryCount,
     ]),
-    [['bud', 1], ['rose', 0], ['thorn', 1]],
+    [['bud', 1], ['thorn', 1]],
   );
   assert.deepEqual(
     changed.counts.virtualBrtClusters,
-    { total: 3, bud: 1, rose: 1, thorn: 1 },
+    { total: 2, bud: 1, rose: 0, thorn: 1 },
   );
   assert.equal(changed.counts.evidenceLinks, 2);
   assert.equal(
     changed.edges.filter(
       (edge) => edge.kind === 'goal_evidence_cluster',
     ).length,
-    3,
+    2,
   );
 });
 
@@ -125,7 +125,7 @@ test('unlink optimistic rollback restores exact evidence and cluster counts', ()
   assert.equal(optimistic.counts.evidenceLinks, 1);
   assert.deepEqual(
     optimistic.virtualBrtClusters.map((cluster) => cluster.brtCategory),
-    ['bud', 'rose', 'thorn'],
+    ['rose'],
   );
   assert.equal(JSON.stringify(before), beforeSerialized);
 

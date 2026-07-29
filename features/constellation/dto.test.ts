@@ -5,6 +5,7 @@ import {
   parseConstellationEchoSearchDTO,
   parseConstellationGoalEvidenceDTO,
   parseConstellationGraphDTO,
+  parseConstellationLayoutDTO,
   parseConstellationReflectionInspectorDTO,
 } from './dto.ts';
 import { constellationFixtureGraph } from './fixtures.ts';
@@ -18,6 +19,37 @@ test('live Constellation DTO validation accepts the real versioned contract', ()
     parseConstellationGraphDTO(cloneFixture()),
     constellationFixtureGraph,
   );
+});
+
+test('layout DTO validation enforces unique bounded canvas and parent coordinates', () => {
+  const layout = {
+    version: '1.0',
+    positions: [
+      {
+        selectionKey: 'node:goal-id',
+        coordinateSpace: 'canvas',
+        x: 0.4,
+        y: 0.6,
+        updatedAt: '2026-07-29T12:00:00.000Z',
+      },
+      {
+        selectionKey: 'brt:goal-id:bud',
+        coordinateSpace: 'parent',
+        x: -0.05,
+        y: 0.1,
+        updatedAt: '2026-07-29T12:00:00.000Z',
+      },
+    ],
+  };
+  assert.deepEqual(parseConstellationLayoutDTO(layout), layout);
+  assert.equal(parseConstellationLayoutDTO({
+    ...layout,
+    positions: [layout.positions[0], layout.positions[0]],
+  }), null);
+  assert.equal(parseConstellationLayoutDTO({
+    ...layout,
+    positions: [{ ...layout.positions[0], x: 1.2 }],
+  }), null);
 });
 
 test('Constellation DTO validation rejects fixture origins and malformed selection keys', () => {
@@ -86,16 +118,27 @@ test('goal evidence and Echo search DTOs reject mismatched goal or Echo identiti
       createdAt: '2026-07-28T11:00:00.000Z',
     },
   };
+  const connectedFields = {
+    connectedEntryCount: 1,
+    recentEntries: [{
+      ...item.echo,
+      brtCategory: 'bud',
+      connectionSource: 'both',
+    }],
+  };
   assert.ok(parseConstellationGoalEvidenceDTO({
     goal,
+    ...connectedFields,
     items: [item],
   }));
   assert.ok(parseConstellationGoalEvidenceDTO({
     goal,
+    ...connectedFields,
     items: [{ ...item, brtCategory: null }],
   }));
   assert.equal(parseConstellationGoalEvidenceDTO({
     goal: { ...goal, id: 'another-goal' },
+    ...connectedFields,
     items: [item],
   }), null);
 
@@ -134,7 +177,17 @@ test('goal evidence and Echo search DTOs reject mismatched goal or Echo identiti
   }));
   assert.equal(parseConstellationGoalEvidenceDTO({
     goal,
+    ...connectedFields,
     items: [{ ...item, note: 'n'.repeat(281) }],
+  }), null);
+  assert.equal(parseConstellationGoalEvidenceDTO({
+    goal,
+    connectedEntryCount: 4,
+    recentEntries: Array.from(
+      { length: 4 },
+      () => connectedFields.recentEntries[0],
+    ),
+    items: [item],
   }), null);
   assert.equal(parseConstellationEchoSearchDTO({
     goalId: 'goal-id',
@@ -162,10 +215,12 @@ test('BRT inspector DTO validates category-scoped bounded entries', () => {
     brtCategory: 'bud',
   };
   assert.ok(parseConstellationBrtInspectorDTO({
+    goalId: 'goal-id',
     category: 'bud',
     entries: [entry],
   }));
   assert.equal(parseConstellationBrtInspectorDTO({
+    goalId: 'goal-id',
     category: 'rose',
     entries: [entry],
   }), null);

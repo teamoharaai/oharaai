@@ -23,15 +23,6 @@ function hexagonPoints(cx: number, cy: number, radius: number): string {
   }).join(' ');
 }
 
-function goalPoints(cx: number, cy: number, radius: number): string {
-  return [
-    `${cx},${cy - radius}`,
-    `${cx + radius},${cy}`,
-    `${cx},${cy + radius}`,
-    `${cx - radius},${cy}`,
-  ].join(' ');
-}
-
 function NodeLabel({
   fill,
   layout,
@@ -70,7 +61,7 @@ export function EarnedNodeShape({
   switch (node.kind) {
     case 'season':
       return (
-        <InteractiveSvgGroup onActivate={handlePress}>
+        <InteractiveSvgGroup onActivate={handlePress} selectionKey={node.selectionKey}>
           <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
           <Circle
             cx={x}
@@ -106,7 +97,7 @@ export function EarnedNodeShape({
       );
     case 'ambition':
       return (
-        <InteractiveSvgGroup onActivate={handlePress}>
+        <InteractiveSvgGroup onActivate={handlePress} selectionKey={node.selectionKey}>
           <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
           <Rect
             fill={tokens.node.ambitionFill}
@@ -132,20 +123,29 @@ export function EarnedNodeShape({
       );
     case 'goal':
       return (
-        <InteractiveSvgGroup onActivate={handlePress}>
+        <InteractiveSvgGroup onActivate={handlePress} selectionKey={node.selectionKey}>
           <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
-          <Polygon
+          <Circle
+            cx={x}
+            cy={y}
             fill={tokens.node.goalFill}
-            points={goalPoints(x, y, layout.width / 2)}
+            r={layout.width / 2}
             stroke={tokens.node.goalStroke}
             strokeWidth={2}
+          />
+          <Circle
+            cx={x - layout.width * 0.12}
+            cy={y - layout.height * 0.1}
+            fill={tokens.node.goalStroke}
+            opacity={0.16}
+            r={layout.width * 0.2}
           />
           <NodeLabel fill={tokens.text.secondary} label={node.label} layout={layout} />
         </InteractiveSvgGroup>
       );
     case 'reflection':
       return (
-        <InteractiveSvgGroup onActivate={handlePress}>
+        <InteractiveSvgGroup onActivate={handlePress} selectionKey={node.selectionKey}>
           <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
           <Circle
             cx={x}
@@ -167,7 +167,7 @@ export function EarnedNodeShape({
       );
     case 'trait':
       return (
-        <InteractiveSvgGroup onActivate={handlePress}>
+        <InteractiveSvgGroup onActivate={handlePress} selectionKey={node.selectionKey}>
           <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
           <Polygon
             fill={tokens.node.traitFill}
@@ -180,7 +180,7 @@ export function EarnedNodeShape({
       );
     case 'tension':
       return (
-        <InteractiveSvgGroup onActivate={handlePress}>
+        <InteractiveSvgGroup onActivate={handlePress} selectionKey={node.selectionKey}>
           <Circle cx={x} cy={y} fill="transparent" r={Math.max(28, layout.boundaryRadius)} />
           <Circle
             cx={x - 12}

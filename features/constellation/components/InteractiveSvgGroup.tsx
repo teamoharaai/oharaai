@@ -7,6 +7,7 @@ export function InteractiveSvgGroup({
 }: {
   children: ReactNode;
   onActivate: () => void;
+  selectionKey: string;
 }) {
   return <G onPress={onActivate}>{children}</G>;
 }

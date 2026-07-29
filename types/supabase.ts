@@ -269,6 +269,36 @@ export type Database = {
           },
         ]
       }
+      constellation_layout_positions: {
+        Row: {
+          coordinate_space: string
+          created_at: string
+          owner_id: string
+          selection_key: string
+          updated_at: string
+          x: number
+          y: number
+        }
+        Insert: {
+          coordinate_space: string
+          created_at?: string
+          owner_id: string
+          selection_key: string
+          updated_at?: string
+          x: number
+          y: number
+        }
+        Update: {
+          coordinate_space?: string
+          created_at?: string
+          owner_id?: string
+          selection_key?: string
+          updated_at?: string
+          x?: number
+          y?: number
+        }
+        Relationships: []
+      }
       constellation_nodes: {
         Row: {
           archived_at: string | null

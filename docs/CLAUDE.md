@@ -17,7 +17,10 @@ Theme (post-redesign warm ramp, Sessions 1–4c): warm cream (#F8F4EC) page base
 - **Echo**: standalone journaling (BRT: Bud/Rose/Thorn). Separate Haiku-backed path in lib/ai/echo-client.ts.
 - **Echo-Goal Links**: many-to-many bridge (echo_goal_links table). Supports manual, ai_suggested, ai_auto linking. Replaces single goal_id FK for linking.
 - **Intelligence**: summarization over storage. Never persists raw conversations. Updates character_profile JSONB. Gated on isProfileSufficient().
-- **Constellation**: visual graph of goals, echo patterns, traits, vault insights. Schema (constellation_edges) exists, UI ships Phase 2.
+- **Constellation**: shipped owner-private visual graph. Goals and category
+  hubs form the primary structure; categorized Entries appear as sparse
+  goal-specific BRT moons. Web nodes are movable, goal moons follow their
+  parent, and owner layouts persist through migration 034.
 
 ## Core Architecture Rules
 
@@ -57,6 +60,8 @@ Modules imported at _layout.tsx top level must NEVER throw at module load time.
 
 ### Naming (Current, Do Not Reference Old Names)
 - Echo (not Starlog)
+- Entry/Entries is the canonical user-facing record term; existing Echo route,
+  feature, database, and service identifiers remain for compatibility.
 - Ohara AI (not Polaris, not Thuban, not Guides, not Clo/Lach/Atri)
 - Milestones (one-time critical goal events)
 - Trackers (counter, habit, or checklist measures; canonical schema name since
@@ -74,7 +79,8 @@ Modules imported at _layout.tsx top level must NEVER throw at module load time.
 - No Obsidian-style free-form node linking (Ohara uses AI-assisted extraction)
 - No free-floating notes (everything tied to a goal or Echo stream)
 - No document upload UI yet (Phase 1.5)
-- No constellation interactive graph yet (Phase 2, needs data density)
+- No arbitrary Constellation edge authoring or drag-to-connect; movement is
+  layout preference only and cannot change graph semantics.
 - No institutional or community Space UI (Phase 3)
 - Olive gradient: discarded. Do not reference.
 - Multi-Guide personalities (Clo, Lach, Atri): dropped. Single Ohara voice.

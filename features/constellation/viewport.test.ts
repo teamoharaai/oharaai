@@ -4,8 +4,10 @@ import {
   CONSTELLATION_FIT_ZOOM,
   CONSTELLATION_MAX_ZOOM,
   CONSTELLATION_MIN_ZOOM,
+  clampConstellationNodePosition,
   clampConstellationTranslation,
   clampConstellationZoom,
+  constellationDragDeltaToNormalized,
   fitConstellationViewport,
   panConstellationViewport,
   zoomConstellationViewportAt,
@@ -54,5 +56,21 @@ test('pan and zoom translations remain bounded at render-budget scale', () => {
       viewport,
     ),
     { x: 120, y: -72 },
+  );
+});
+
+test('node drag deltas account for viewBox meet scaling and viewport zoom', () => {
+  assert.deepEqual(
+    constellationDragDeltaToNormalized(
+      { x: 120, y: 76 },
+      2,
+      { width: 1200, height: 760 },
+      { width: 1200, height: 760 },
+    ),
+    { x: 0.05, y: 0.05 },
+  );
+  assert.deepEqual(
+    clampConstellationNodePosition({ x: -2, y: 4 }),
+    { x: 0.02, y: 0.98 },
   );
 });

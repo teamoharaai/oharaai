@@ -14,13 +14,25 @@ export interface NormalizedPoint {
   readonly y: number;
 }
 
+export type ConstellationCoordinateSpace = 'canvas' | 'parent';
+
+export interface ConstellationNodePosition {
+  readonly x: number;
+  readonly y: number;
+  /**
+   * Omitted positions are treated as canvas coordinates for compatibility
+   * with the committed deterministic renderer fixture.
+   */
+  readonly coordinateSpace?: ConstellationCoordinateSpace;
+}
+
 export interface CanvasPoint {
   readonly x: number;
   readonly y: number;
 }
 
 export interface ConstellationLayoutSpec {
-  readonly nodePositions: Readonly<Record<string, NormalizedPoint>>;
+  readonly nodePositions: Readonly<Record<string, ConstellationNodePosition>>;
   readonly edgeBends?: Readonly<Record<string, number>>;
 }
 
@@ -29,6 +41,8 @@ export interface ConstellationNodeLayout {
   readonly selectionKey: string;
   readonly entityType: ConstellationGraphViewNode['entityType'];
   readonly normalized: NormalizedPoint;
+  readonly coordinateSpace: ConstellationCoordinateSpace;
+  readonly parentSelectionKey: string | null;
   readonly center: CanvasPoint;
   readonly width: number;
   readonly height: number;
@@ -87,17 +101,23 @@ const LIVE_LAYOUT_RINGS = {
     radiusY: 0.16,
     startAngle: -Math.PI / 2,
   },
+  category: {
+    center: { x: 0.5, y: 0.5 },
+    radiusX: 0.25,
+    radiusY: 0.22,
+    startAngle: -Math.PI / 2 + 0.16,
+  },
   goal: {
     center: { x: 0.5, y: 0.5 },
-    radiusX: 0.3,
-    radiusY: 0.27,
-    startAngle: -Math.PI / 2 + 0.16,
+    radiusX: 0.35,
+    radiusY: 0.31,
+    startAngle: -Math.PI / 2 - 0.08,
   },
   outer: {
     center: { x: 0.5, y: 0.5 },
-    radiusX: 0.41,
-    radiusY: 0.38,
-    startAngle: -Math.PI / 2 - 0.08,
+    radiusX: 0.43,
+    radiusY: 0.4,
+    startAngle: -Math.PI / 2 + 0.08,
   },
 } as const satisfies Record<string, EllipseRing>;
 
@@ -123,10 +143,54 @@ function positionsOnRing(
   );
 }
 
+function satelliteParentSelectionKey(
+  node: ConstellationGraphViewNode,
+): string | null {
+  switch (node.entityType) {
+    case 'virtual_brt_cluster':
+      return `node:${node.node.goalNodeId}`;
+    case 'annotation':
+    case 'earned_node':
+    case 'virtual_goal_category':
+      return null;
+  }
+}
+
+function defaultSatellitePositions(
+  nodes: readonly ConstellationGraphViewNode[],
+): Readonly<Record<string, ConstellationNodePosition>> {
+  const byParent = new Map<string, ConstellationGraphViewNode[]>();
+
+  for (const node of nodes) {
+    const parentSelectionKey = satelliteParentSelectionKey(node);
+    if (!parentSelectionKey) continue;
+    const children = byParent.get(parentSelectionKey) ?? [];
+    children.push(node);
+    byParent.set(parentSelectionKey, children);
+  }
+
+  const positions: Record<string, ConstellationNodePosition> = {};
+  for (const children of byParent.values()) {
+    const sorted = [...children].sort((left, right) => (
+      left.selectionKey.localeCompare(right.selectionKey)
+    ));
+    sorted.forEach((child, index) => {
+      const angle = -Math.PI / 2 + (index / sorted.length) * Math.PI * 2;
+      positions[child.selectionKey] = {
+        coordinateSpace: 'parent',
+        x: Math.cos(angle) * 0.072,
+        y: Math.sin(angle) * 0.108,
+      };
+    });
+  }
+
+  return positions;
+}
+
 /**
- * Produces a deterministic static layout for real DTO-backed entities. This is
- * intentionally not a force simulation: it keeps the initial read-only phase
- * stable while ensuring every adapted node receives non-fixture geometry.
+ * Produces deterministic geometry for real DTO-backed entities. Top-level
+ * nodes receive stable canvas coordinates; goal satellites receive relative
+ * offsets so parent movement can be resolved without rewriting every child.
  */
 export function createConstellationLayoutSpec(
   graph: ConstellationGraphViewModel,
@@ -140,18 +204,28 @@ export function createConstellationLayoutSpec(
   const goalNodes = graph.nodes.filter(
     (node) => node.entityType === 'earned_node' && node.node.kind === 'goal',
   );
+  const categoryNodes = graph.nodes.filter(
+    (node) => node.entityType === 'virtual_goal_category',
+  );
+  const satelliteNodes = graph.nodes.filter(
+    (node) => satelliteParentSelectionKey(node) !== null,
+  );
   const reserved = new Set([
     ...seasonNodes,
     ...ambitionNodes,
     ...goalNodes,
+    ...categoryNodes,
+    ...satelliteNodes,
   ].map((node) => node.selectionKey));
   const outerNodes = graph.nodes.filter(
     (node) => !reserved.has(node.selectionKey),
   );
-  const nodePositions: Record<string, NormalizedPoint> = {
+  const nodePositions: Record<string, ConstellationNodePosition> = {
     ...positionsOnRing(ambitionNodes, LIVE_LAYOUT_RINGS.ambition),
+    ...positionsOnRing(categoryNodes, LIVE_LAYOUT_RINGS.category),
     ...positionsOnRing(goalNodes, LIVE_LAYOUT_RINGS.goal),
     ...positionsOnRing(outerNodes, LIVE_LAYOUT_RINGS.outer),
+    ...defaultSatellitePositions(satelliteNodes),
   };
 
   for (const season of seasonNodes) {
@@ -170,6 +244,91 @@ export function createConstellationLayoutSpec(
   return { nodePositions, edgeBends };
 }
 
+export function moveConstellationNode(
+  graph: ConstellationGraphViewModel,
+  spec: ConstellationLayoutSpec,
+  selectionKey: string,
+  nextNormalized: NormalizedPoint,
+): ConstellationLayoutSpec {
+  assertNormalizedPoint(selectionKey, nextNormalized);
+  const node = graph.nodes.find(
+    (candidate) => candidate.selectionKey === selectionKey,
+  );
+  if (!node) return spec;
+
+  const parentSelectionKey = satelliteParentSelectionKey(node);
+  let nextPosition: ConstellationNodePosition = {
+    coordinateSpace: 'canvas',
+    ...nextNormalized,
+  };
+
+  if (parentSelectionKey) {
+    const currentLayout = calculateConstellationLayout(graph, spec);
+    const parent = currentLayout.nodes.find(
+      (candidate) => candidate.selectionKey === parentSelectionKey,
+    );
+    if (!parent) return spec;
+    nextPosition = {
+      coordinateSpace: 'parent',
+      x: nextNormalized.x - parent.normalized.x,
+      y: nextNormalized.y - parent.normalized.y,
+    };
+    assertParentOffset(selectionKey, nextPosition);
+  }
+
+  return {
+    ...spec,
+    nodePositions: {
+      ...spec.nodePositions,
+      [selectionKey]: nextPosition,
+    },
+  };
+}
+
+export function sanitizeConstellationPositionOverrides(
+  graph: ConstellationGraphViewModel,
+  positions: Readonly<Record<string, ConstellationNodePosition>>,
+): Readonly<Record<string, ConstellationNodePosition>> {
+  const valid: Record<string, ConstellationNodePosition> = {};
+  for (const node of graph.nodes) {
+    const position = positions[node.selectionKey];
+    if (!position) continue;
+    const expectedSpace = satelliteParentSelectionKey(node)
+      ? 'parent'
+      : 'canvas';
+    const coordinateSpace = position.coordinateSpace ?? 'canvas';
+    const coordinatesAreFinite = (
+      Number.isFinite(position.x)
+      && Number.isFinite(position.y)
+    );
+    const coordinatesAreBounded = coordinateSpace === 'canvas'
+      ? (
+          position.x >= 0.02
+          && position.x <= 0.98
+          && position.y >= 0.02
+          && position.y <= 0.98
+        )
+      : (
+          position.x >= -1
+          && position.x <= 1
+          && position.y >= -1
+          && position.y <= 1
+        );
+    if (
+      coordinateSpace === expectedSpace
+      && coordinatesAreFinite
+      && coordinatesAreBounded
+    ) {
+      valid[node.selectionKey] = {
+        coordinateSpace,
+        x: position.x,
+        y: position.y,
+      };
+    }
+  }
+  return valid;
+}
+
 function dimensionsForNode(node: ConstellationGraphViewNode): NodeDimensions {
   switch (node.entityType) {
     case 'annotation':
@@ -177,7 +336,9 @@ function dimensionsForNode(node: ConstellationGraphViewNode): NodeDimensions {
         ? { width: 92, height: 92, boundaryRadius: 46 }
         : { width: 156, height: 62, boundaryRadius: 82 };
     case 'virtual_brt_cluster':
-      return { width: 138, height: 42, boundaryRadius: 73 };
+      return { width: 34, height: 34, boundaryRadius: 17 };
+    case 'virtual_goal_category':
+      return { width: 54, height: 54, boundaryRadius: 27 };
     case 'earned_node':
       switch (node.node.kind) {
         case 'season':
@@ -185,7 +346,7 @@ function dimensionsForNode(node: ConstellationGraphViewNode): NodeDimensions {
         case 'ambition':
           return { width: 178, height: 48, boundaryRadius: 91 };
         case 'goal':
-          return { width: 72, height: 72, boundaryRadius: 51 };
+          return { width: 58, height: 58, boundaryRadius: 29 };
         case 'reflection':
           return { width: 38, height: 38, boundaryRadius: 19 };
         case 'trait':
@@ -206,6 +367,24 @@ function assertNormalizedPoint(selectionKey: string, point: NormalizedPoint): vo
     || point.y > 1
   ) {
     throw new RangeError(`Constellation position for ${selectionKey} must be normalized to 0–1.`);
+  }
+}
+
+function assertParentOffset(
+  selectionKey: string,
+  point: ConstellationNodePosition,
+): void {
+  if (
+    !Number.isFinite(point.x)
+    || !Number.isFinite(point.y)
+    || point.x < -1
+    || point.x > 1
+    || point.y < -1
+    || point.y > 1
+  ) {
+    throw new RangeError(
+      `Constellation parent offset for ${selectionKey} must be bounded to −1–1.`,
+    );
   }
 }
 
@@ -264,20 +443,85 @@ export function calculateConstellationLayout(
   spec: ConstellationLayoutSpec,
 ): ConstellationLayout {
   const missingNodeSelectionKeys: string[] = [];
+  const graphNodesBySelectionKey = new Map(
+    graph.nodes.map((node) => [node.selectionKey, node]),
+  );
+  const resolvedPositions = new Map<string, {
+    coordinateSpace: ConstellationCoordinateSpace;
+    normalized: NormalizedPoint;
+    parentSelectionKey: string | null;
+  }>();
+
+  const resolvePosition = (
+    node: ConstellationGraphViewNode,
+    ancestry = new Set<string>(),
+  ): {
+    coordinateSpace: ConstellationCoordinateSpace;
+    normalized: NormalizedPoint;
+    parentSelectionKey: string | null;
+  } | null => {
+    const existing = resolvedPositions.get(node.selectionKey);
+    if (existing) return existing;
+    const position = spec.nodePositions[node.selectionKey];
+    if (!position) return null;
+    if (ancestry.has(node.selectionKey)) {
+      throw new RangeError(
+        `Constellation layout contains a parent cycle at ${node.selectionKey}.`,
+      );
+    }
+
+    const coordinateSpace = position.coordinateSpace ?? 'canvas';
+    const parentSelectionKey = coordinateSpace === 'parent'
+      ? satelliteParentSelectionKey(node)
+      : null;
+    let normalized: NormalizedPoint;
+
+    if (coordinateSpace === 'parent') {
+      assertParentOffset(node.selectionKey, position);
+      if (!parentSelectionKey) {
+        throw new RangeError(
+          `Constellation node ${node.selectionKey} does not support parent coordinates.`,
+        );
+      }
+      const parent = graphNodesBySelectionKey.get(parentSelectionKey);
+      if (!parent) return null;
+      const nextAncestry = new Set(ancestry);
+      nextAncestry.add(node.selectionKey);
+      const parentPosition = resolvePosition(parent, nextAncestry);
+      if (!parentPosition) return null;
+      normalized = {
+        x: parentPosition.normalized.x + position.x,
+        y: parentPosition.normalized.y + position.y,
+      };
+      normalized = {
+        x: Math.min(0.98, Math.max(0.02, normalized.x)),
+        y: Math.min(0.98, Math.max(0.02, normalized.y)),
+      };
+    } else {
+      normalized = { x: position.x, y: position.y };
+      assertNormalizedPoint(node.selectionKey, normalized);
+    }
+
+    const resolved = { coordinateSpace, normalized, parentSelectionKey };
+    resolvedPositions.set(node.selectionKey, resolved);
+    return resolved;
+  };
+
   const nodes = graph.nodes.flatMap<ConstellationNodeLayout>((node) => {
-    const normalized = spec.nodePositions[node.selectionKey];
-    if (!normalized) {
+    const resolved = resolvePosition(node);
+    if (!resolved) {
       missingNodeSelectionKeys.push(node.selectionKey);
       return [];
     }
 
-    assertNormalizedPoint(node.selectionKey, normalized);
     return [{
       id: node.id,
       selectionKey: node.selectionKey,
       entityType: node.entityType,
-      normalized,
-      center: toCanvasPoint(normalized),
+      normalized: resolved.normalized,
+      coordinateSpace: resolved.coordinateSpace,
+      parentSelectionKey: resolved.parentSelectionKey,
+      center: toCanvasPoint(resolved.normalized),
       ...dimensionsForNode(node),
     }];
   });

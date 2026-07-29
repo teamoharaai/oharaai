@@ -9,6 +9,7 @@ import {
   parseConstellationEvidenceLinkDTO,
   parseConstellationGoalEvidenceDTO,
   parseConstellationGraphDTO,
+  parseConstellationLayoutDTO,
   parseConstellationReflectionInspectorDTO,
 } from '../dto';
 import type {
@@ -20,9 +21,12 @@ import type {
   ConstellationEvidenceLink,
   ConstellationGraphDTO,
   ConstellationGoalEvidenceDTO,
+  ConstellationLayoutDTO,
+  ConstellationLayoutPositionDTO,
   ConstellationReflectionInspectorDTO,
   CreateConstellationAnnotationInput,
   CreateConstellationEvidenceReferenceInput,
+  SaveConstellationLayoutPositionInput,
   UpdateConstellationAnnotationInput,
   UpdateConstellationEvidenceReferenceInput,
 } from '../types';
@@ -237,16 +241,17 @@ export async function fetchConstellationReflectionInspector(
 }
 
 export async function fetchConstellationBrtInspector(
+  goalId: string,
   category: ConstellationBrtCategory,
   signal?: AbortSignal,
 ): Promise<ConstellationBrtInspectorDTO> {
   const data = await evidenceRequest(
-    `/api/constellation/brt/${category}`,
+    `/api/constellation/goals/${encodeURIComponent(goalId)}/brt/${category}`,
     { method: 'GET', signal },
     `${category} entries could not be loaded.`,
   );
   const dto = parseConstellationBrtInspectorDTO(data);
-  if (!dto || dto.category !== category) {
+  if (!dto || dto.goalId !== goalId || dto.category !== category) {
     throw new ConstellationServiceError(
       'BRT entries returned an invalid response.',
     );
@@ -384,4 +389,63 @@ export async function fetchConstellationGraph(
   }
 
   return graph;
+}
+
+export async function fetchConstellationLayout(
+  signal?: AbortSignal,
+): Promise<ConstellationLayoutDTO> {
+  const data = await evidenceRequest(
+    '/api/constellation/layout',
+    { method: 'GET', signal },
+    'The Constellation layout could not be loaded.',
+  );
+  const dto = parseConstellationLayoutDTO(data);
+  if (!dto) {
+    throw new ConstellationServiceError(
+      'The Constellation layout returned an invalid response.',
+    );
+  }
+  return dto;
+}
+
+export async function saveConstellationLayoutPosition(
+  input: SaveConstellationLayoutPositionInput,
+  signal?: AbortSignal,
+): Promise<ConstellationLayoutPositionDTO> {
+  const data = await evidenceRequest(
+    '/api/constellation/layout',
+    {
+      body: JSON.stringify(input),
+      headers: { 'content-type': 'application/json' },
+      method: 'PATCH',
+      signal,
+    },
+    'The Constellation layout could not be saved.',
+  );
+  const dto = parseConstellationLayoutDTO({
+    version: '1.0',
+    positions: [data],
+  });
+  const position = dto?.positions[0];
+  if (!position || position.selectionKey !== input.selectionKey) {
+    throw new ConstellationServiceError(
+      'The Constellation layout returned an invalid save response.',
+    );
+  }
+  return position;
+}
+
+export async function resetConstellationLayout(
+  signal?: AbortSignal,
+): Promise<void> {
+  const data = await evidenceRequest(
+    '/api/constellation/layout',
+    { method: 'DELETE', signal },
+    'The Constellation layout could not be reset.',
+  );
+  if (!isRecord(data) || data.reset !== true) {
+    throw new ConstellationServiceError(
+      'The Constellation layout returned an invalid reset response.',
+    );
+  }
 }

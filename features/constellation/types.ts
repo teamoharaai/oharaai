@@ -1,4 +1,7 @@
-import type { GoalDbStatus } from '@/lib/goals/schema';
+import type {
+  GoalCategory,
+  GoalDbStatus,
+} from '@/lib/goals/schema';
 import type { BrtCategory } from '@/lib/utils/resolveBrt';
 
 export type ConstellationEarnedNodeKind =
@@ -23,6 +26,7 @@ export type GraphEdgeKind =
   | 'trait_derivation'
   | 'tension_composition'
   | 'annotation_anchor'
+  | 'goal_category_membership'
   | 'goal_evidence_cluster';
 
 export type GraphEdgeValence =
@@ -53,6 +57,7 @@ export interface GoalNodeSource {
   type: 'goal';
   id: string;
   goalStatus: GoalDbStatus;
+  category: GoalCategory;
 }
 
 export interface CandidateNodeSource {
@@ -128,7 +133,7 @@ interface VirtualBrtClusterBase<TCategory extends ConstellationBrtCategory, TLab
   goalNodeId: string;
   brtCategory: TCategory;
   label: TLabel;
-  evidenceLinkCount: number;
+  entryCount: number;
   latestEvidenceAt: string | null;
   isVirtual: true;
   isPersisted: false;
@@ -141,6 +146,17 @@ export type ConstellationVirtualBrtClusterDTO =
   | ConstellationBudClusterDTO
   | ConstellationRoseClusterDTO
   | ConstellationThornClusterDTO;
+
+export interface ConstellationGoalCategoryNodeDTO {
+  id: `goal-category:${GoalCategory}`;
+  selectionKey: `goal-category:${GoalCategory}`;
+  category: GoalCategory;
+  label: string;
+  symbol: string;
+  goalCount: number;
+  isVirtual: true;
+  isPersisted: false;
+}
 
 export interface EarnedGraphEntityRef {
   entityType: 'earned_node';
@@ -157,12 +173,21 @@ export interface VirtualBrtClusterGraphEntityRef {
   id: string;
 }
 
+export interface GoalCategoryGraphEntityRef {
+  entityType: 'virtual_goal_category';
+  id: string;
+}
+
 export type GraphEntityRef =
   | EarnedGraphEntityRef
   | AnnotationGraphEntityRef
-  | VirtualBrtClusterGraphEntityRef;
+  | VirtualBrtClusterGraphEntityRef
+  | GoalCategoryGraphEntityRef;
 
-interface EarnedRelationshipEdgeBase<TKind extends Exclude<GraphEdgeKind, 'annotation_anchor' | 'goal_evidence_cluster'>> {
+interface EarnedRelationshipEdgeBase<TKind extends Exclude<
+  GraphEdgeKind,
+  'annotation_anchor' | 'goal_category_membership' | 'goal_evidence_cluster'
+>> {
   id: string;
   from: EarnedGraphEntityRef;
   to: EarnedGraphEntityRef;
@@ -199,6 +224,16 @@ export interface GoalEvidenceClusterGraphEdge {
   isPersisted: false;
 }
 
+export interface GoalCategoryMembershipGraphEdge {
+  id: string;
+  from: GoalCategoryGraphEntityRef;
+  to: EarnedGraphEntityRef;
+  kind: 'goal_category_membership';
+  valence: null;
+  weight: null;
+  isPersisted: false;
+}
+
 export type ConstellationGraphEdgeDTO =
   | SeasonMembershipGraphEdge
   | AmbitionGoalGraphEdge
@@ -207,6 +242,7 @@ export type ConstellationGraphEdgeDTO =
   | TraitDerivationGraphEdge
   | TensionCompositionGraphEdge
   | AnnotationAnchorGraphEdge
+  | GoalCategoryMembershipGraphEdge
   | GoalEvidenceClusterGraphEdge;
 
 // A pure (echo_entry, goal, note) relation — BRT category is no longer stored
@@ -239,6 +275,17 @@ export interface ConstellationGoalEvidenceItem
   echo: ConstellationEvidenceEchoSummary;
 }
 
+export type ConstellationEntryConnectionSource =
+  | 'container'
+  | 'evidence'
+  | 'both';
+
+export interface ConstellationConnectedEntrySummary
+  extends ConstellationEvidenceEchoSummary {
+  brtCategory: ConstellationBrtCategory | null;
+  connectionSource: ConstellationEntryConnectionSource;
+}
+
 export interface ConstellationGoalEvidenceDTO {
   goal: {
     id: string;
@@ -252,6 +299,8 @@ export interface ConstellationGoalEvidenceDTO {
     } | null;
     vaultId: string | null;
   };
+  connectedEntryCount: number;
+  recentEntries: readonly ConstellationConnectedEntrySummary[];
   items: readonly ConstellationGoalEvidenceItem[];
 }
 
@@ -278,6 +327,7 @@ export interface ConstellationBrtInspectorEntry
 }
 
 export interface ConstellationBrtInspectorDTO {
+  goalId: string;
   category: ConstellationBrtCategory;
   entries: readonly ConstellationBrtInspectorEntry[];
 }
@@ -372,6 +422,7 @@ export interface ConstellationGraphCountsDTO {
     rose: number;
     thorn: number;
   };
+  virtualGoalCategories: number;
   edges: number;
   evidenceLinks: number;
   source: {
@@ -403,6 +454,7 @@ export interface ConstellationGraphDTO {
   state: ConstellationGraphStateDTO;
   earnedNodes: readonly ConstellationEarnedNodeDTO[];
   annotations: readonly ConstellationAnnotationDTO[];
+  virtualGoalCategories: readonly ConstellationGoalCategoryNodeDTO[];
   virtualBrtClusters: readonly ConstellationVirtualBrtClusterDTO[];
   edges: readonly ConstellationGraphEdgeDTO[];
   counts: ConstellationGraphCountsDTO;
@@ -429,10 +481,18 @@ export interface VirtualBrtClusterGraphViewNode {
   node: ConstellationVirtualBrtClusterDTO;
 }
 
+export interface GoalCategoryGraphViewNode {
+  entityType: 'virtual_goal_category';
+  id: string;
+  selectionKey: string;
+  node: ConstellationGoalCategoryNodeDTO;
+}
+
 export type ConstellationGraphViewNode =
   | EarnedGraphViewNode
   | AnnotationGraphViewNode
-  | VirtualBrtClusterGraphViewNode;
+  | VirtualBrtClusterGraphViewNode
+  | GoalCategoryGraphViewNode;
 
 export interface ConstellationGraphViewModel {
   state: ConstellationGraphStateDTO;
@@ -446,4 +506,26 @@ export interface ConstellationGraphFilters {
   annotationKinds?: readonly ConstellationAnnotationKind[];
   brtCategories?: readonly ConstellationBrtCategory[];
   includeArchivedAnnotations?: boolean;
+}
+
+export type ConstellationLayoutCoordinateSpace = 'canvas' | 'parent';
+
+export interface ConstellationLayoutPositionDTO {
+  selectionKey: string;
+  coordinateSpace: ConstellationLayoutCoordinateSpace;
+  x: number;
+  y: number;
+  updatedAt: string;
+}
+
+export interface ConstellationLayoutDTO {
+  version: '1.0';
+  positions: readonly ConstellationLayoutPositionDTO[];
+}
+
+export interface SaveConstellationLayoutPositionInput {
+  selectionKey: string;
+  coordinateSpace: ConstellationLayoutCoordinateSpace;
+  x: number;
+  y: number;
 }

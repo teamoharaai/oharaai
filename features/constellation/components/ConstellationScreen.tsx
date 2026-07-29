@@ -23,6 +23,7 @@ import {
   selectConnectedNeighborhood,
 } from '../graph';
 import { useConstellation } from '../hooks/useConstellation';
+import { useConstellationLayout } from '../hooks/useConstellationLayout';
 import { useBrtInspector } from '../hooks/useBrtInspector';
 import { useGoalEvidence } from '../hooks/useGoalEvidence';
 import { useReflectionInspector } from '../hooks/useReflectionInspector';
@@ -30,6 +31,9 @@ import {
   calculateConstellationLayout,
   calculateSproutedLabelLayout,
   createConstellationLayoutSpec,
+  moveConstellationNode,
+  sanitizeConstellationPositionOverrides,
+  type ConstellationNodePosition,
 } from '../layout';
 import { isPersistedAnnotationAnchorTarget } from '../annotation-state';
 import type { ConstellationAnnotationKind } from '../types';
@@ -41,6 +45,7 @@ import { ConstellationCanvasShell } from './ConstellationCanvasShell';
 import { ConstellationEmptyState } from './ConstellationEmptyState';
 import { ConstellationGoalEvidencePanel } from './ConstellationGoalEvidencePanel';
 import { ConstellationGenericInspector } from './ConstellationGenericInspector';
+import { ConstellationGoalCategoryInspector } from './ConstellationGoalCategoryInspector';
 import { CONSTELLATION_GRAPH_FOCUS_ID } from './ConstellationInspectorSurface';
 import { ConstellationReflectionInspector } from './ConstellationReflectionInspector';
 import { ConstellationLoadingMark } from './ConstellationLoadingMark';
@@ -145,6 +150,7 @@ export function ConstellationScreen() {
     selected?: string | string[];
   }>();
   const constellation = useConstellation();
+  const layoutStorage = useConstellationLayout();
   const requestedSelection = normalizeSelectionParam(params.selected);
   const hasSelectionParam = params.selected !== undefined;
   const [selection, setSelection] = useState<string | null>(
@@ -185,14 +191,39 @@ export function ConstellationScreen() {
     () => graph ? focusGraphViewModel(graph, selectedKey) : null,
     [graph, selectedKey],
   );
+  const defaultLayoutSpec = useMemo(
+    () => graph ? createConstellationLayoutSpec(graph) : null,
+    [graph],
+  );
+  const layoutPositionOverrides = useMemo(
+    () => graph
+      ? sanitizeConstellationPositionOverrides(
+          graph,
+          layoutStorage.positions,
+        )
+      : {},
+    [graph, layoutStorage.positions],
+  );
+  const layoutSpec = useMemo(
+    () => defaultLayoutSpec
+      ? {
+          ...defaultLayoutSpec,
+          nodePositions: {
+            ...defaultLayoutSpec.nodePositions,
+            ...layoutPositionOverrides,
+          },
+        }
+      : null,
+    [defaultLayoutSpec, layoutPositionOverrides],
+  );
   const layout = useMemo(
-    () => focusedGraph
+    () => focusedGraph && layoutSpec
       ? calculateConstellationLayout(
           focusedGraph,
-          createConstellationLayoutSpec(focusedGraph),
+          layoutSpec,
         )
       : null,
-    [focusedGraph],
+    [focusedGraph, layoutSpec],
   );
   const tokens = useMemo(
     () => createConstellationVisualTokens(colors, themeMode),
@@ -200,6 +231,9 @@ export function ConstellationScreen() {
   );
 
   const seasonLabel = 'Current Season';
+  const latestMovedPositionRef = useRef(
+    new Map<string, ConstellationNodePosition>(),
+  );
   const selectedNode = graph?.nodes.find(
     (node) => node.selectionKey === selectedKey,
   );
@@ -239,9 +273,13 @@ export function ConstellationScreen() {
     selectedReflection?.id ?? null,
   );
   const brtInspector = useBrtInspector(
+    selectedCluster?.goalId ?? null,
     selectedCluster?.brtCategory ?? null,
   );
   const selectedAnnotation = selectedNode?.entityType === 'annotation'
+    ? selectedNode.node
+    : undefined;
+  const selectedGoalCategory = selectedNode?.entityType === 'virtual_goal_category'
     ? selectedNode.node
     : undefined;
   const visibleEarnedNodes = useMemo(
@@ -318,6 +356,56 @@ export function ConstellationScreen() {
     navigateSelection(nextSelection === selectedKey ? null : nextSelection);
   }
 
+  function moveNode(
+    selectionKey: string,
+    normalized: { x: number; y: number },
+  ) {
+    if (!graph || !defaultLayoutSpec) return;
+    layoutStorage.setPositions((current) => {
+      const currentSpec = {
+        ...defaultLayoutSpec,
+        nodePositions: {
+          ...defaultLayoutSpec.nodePositions,
+          ...current,
+        },
+      };
+      const moved = moveConstellationNode(
+        graph,
+        currentSpec,
+        selectionKey,
+        normalized,
+      );
+      const nextPosition = moved.nodePositions[selectionKey];
+      if (nextPosition) {
+        latestMovedPositionRef.current.set(selectionKey, nextPosition);
+      }
+      return nextPosition
+        ? { ...current, [selectionKey]: nextPosition }
+        : current;
+    });
+  }
+
+  function finishMovingNode(selectionKey: string) {
+    const position = latestMovedPositionRef.current.get(selectionKey);
+    if (!position) return;
+    latestMovedPositionRef.current.delete(selectionKey);
+    void layoutStorage.persistPosition(selectionKey, position);
+  }
+
+  async function requestLayoutReset() {
+    if (
+      Platform.OS === 'web'
+      && typeof window !== 'undefined'
+      && !window.confirm(
+        'Reset every Constellation node to its default position?',
+      )
+    ) {
+      return;
+    }
+    latestMovedPositionRef.current.clear();
+    await layoutStorage.reset();
+  }
+
   function openCreatePanel(kind: ConstellationAnnotationKind) {
     if (goalEvidence.mutation.isSaving) return;
     constellation.clearMutationError();
@@ -380,14 +468,25 @@ export function ConstellationScreen() {
             graph={focusedGraph}
             isRefreshing={constellation.isRefreshing}
             layout={layout}
+            layoutError={layoutStorage.error}
             onCreateAnnotation={openCreatePanel}
+            onMoveNode={moveNode}
+            onMoveNodeEnd={finishMovingNode}
             onRefresh={constellation.refresh}
+            onResetLayout={() => {
+              void requestLayoutReset();
+            }}
             onSelect={updateSelection}
             refreshError={constellation.refreshError}
             seasonLabel={seasonLabel}
             selectedKey={selectedKey}
             sproutedLabel={sproutedLabel}
             tokens={tokens}
+            isLayoutBusy={
+              layoutStorage.isLoading
+              || layoutStorage.isResetting
+              || layoutStorage.isSaving
+            }
           />
         )
       : (
@@ -468,6 +567,10 @@ export function ConstellationScreen() {
                     )
                   : undefined
               }
+              onReadEntry={(entryId) => router.push({
+                pathname: '/echo',
+                params: { entryId },
+              } as Href)}
               selectionKey={selectedKey ?? selectedGoal.selectionKey}
             />
           ) : selectedReflection ? (
@@ -479,6 +582,13 @@ export function ConstellationScreen() {
                 pathname: '/echo',
                 params: { entryId: echoEntryId },
               } as Href)}
+            />
+          ) : selectedGoalCategory ? (
+            <ConstellationGoalCategoryInspector
+              neighbors={connectedNodes}
+              node={selectedGoalCategory}
+              onClose={closeInspector}
+              onSelect={updateSelection}
             />
           ) : selectedNode?.entityType === 'earned_node' ? (
             <ConstellationGenericInspector

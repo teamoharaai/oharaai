@@ -12,6 +12,8 @@ import type {
   ConstellationGraphEdgeDTO,
   ConstellationGoalEvidenceDTO,
   ConstellationGoalEvidenceItem,
+  ConstellationLayoutDTO,
+  ConstellationLayoutPositionDTO,
   ConstellationReflectionInspectorDTO,
   ConstellationReflectionValence,
   ConstellationRenderState,
@@ -20,6 +22,7 @@ import type {
   GraphEdgeValence,
   GraphEntityRef,
 } from './types.ts';
+import { isGoalCategory } from './goal-categories.ts';
 
 const EVIDENCE_NOTE_MAX_LENGTH = 280;
 const ECHO_EXCERPT_MAX_LENGTH = 240;
@@ -46,6 +49,7 @@ const EDGE_KINDS = [
   'trait_derivation',
   'tension_composition',
   'annotation_anchor',
+  'goal_category_membership',
   'goal_evidence_cluster',
 ] as const satisfies readonly GraphEdgeKind[];
 const EDGE_VALENCES = [
@@ -131,6 +135,7 @@ function isEarnedSource(
         value.type === 'goal'
         && isNonEmptyString(value.id)
         && includes(GOAL_STATUSES, value.goalStatus)
+        && isGoalCategory(value.category)
       );
     case 'reflection':
     case 'tension':
@@ -253,6 +258,22 @@ export function parseConstellationGoalEvidenceDTO(
       )
     )
     || !isNullableString(goal.vaultId)
+    || !isCount(value.connectedEntryCount)
+    || !Array.isArray(value.recentEntries)
+    || value.recentEntries.length > 3
+    || !value.recentEntries.every((entry) => (
+      isEvidenceEchoSummary(entry)
+      && isRecord(entry)
+      && (
+        entry.brtCategory === null
+        || includes(BRT_CATEGORIES, entry.brtCategory)
+      )
+      && (
+        entry.connectionSource === 'container'
+        || entry.connectionSource === 'evidence'
+        || entry.connectionSource === 'both'
+      )
+    ))
     || !Array.isArray(value.items)
     || !value.items.every(isGoalEvidenceItem)
     || value.items.some((item) => item.goalId !== goal.id)
@@ -316,6 +337,7 @@ export function parseConstellationBrtInspectorDTO(
 ): ConstellationBrtInspectorDTO | null {
   if (
     !isRecord(value)
+    || !isNonEmptyString(value.goalId)
     || !includes(BRT_CATEGORIES, value.category)
     || !Array.isArray(value.entries)
     || !value.entries.every((entry) => (
@@ -384,11 +406,28 @@ function isVirtualBrtCluster(
     value.id === id
     && value.selectionKey === id
     && value.label === label
-    && isCount(value.evidenceLinkCount)
+    && isCount(value.entryCount)
     && isNullableString(value.latestEvidenceAt)
     && value.isVirtual === true
     && value.isPersisted === false
   );
+}
+
+function isVirtualGoalCategory(value: unknown): boolean {
+  if (
+    !isRecord(value)
+    || !isGoalCategory(value.category)
+    || !isNonEmptyString(value.label)
+    || !isNonEmptyString(value.symbol)
+    || !isCount(value.goalCount)
+    || value.goalCount === 0
+    || value.isVirtual !== true
+    || value.isPersisted !== false
+  ) {
+    return false;
+  }
+  const id = `goal-category:${value.category}`;
+  return value.id === id && value.selectionKey === id;
 }
 
 function isEntityRef(value: unknown): value is GraphEntityRef {
@@ -398,6 +437,7 @@ function isEntityRef(value: unknown): value is GraphEntityRef {
       value.entityType === 'earned_node'
       || value.entityType === 'annotation'
       || value.entityType === 'virtual_brt_cluster'
+      || value.entityType === 'virtual_goal_category'
     )
     && isNonEmptyString(value.id)
   );
@@ -437,6 +477,16 @@ function isEdge(value: unknown): value is ConstellationGraphEdgeDTO {
     );
   }
 
+  if (value.kind === 'goal_category_membership') {
+    return (
+      value.from.entityType === 'virtual_goal_category'
+      && value.to.entityType === 'earned_node'
+      && value.valence === null
+      && value.weight === null
+      && value.isPersisted === false
+    );
+  }
+
   return (
     value.from.entityType === 'earned_node'
     && value.to.entityType === 'earned_node'
@@ -456,6 +506,7 @@ function isCounts(value: unknown): value is ConstellationGraphCountsDTO {
     && hasCounts(earnedNodes.byKind, EARNED_NODE_KINDS)
     && hasCounts(annotations, ['draft', 'archived'])
     && hasCounts(virtualBrtClusters, ['total', ...BRT_CATEGORIES])
+    && isCount(value.virtualGoalCategories)
     && isCount(value.edges)
     && isCount(value.evidenceLinks)
     && isRecord(source)
@@ -496,6 +547,8 @@ export function parseConstellationGraphDTO(
     || !value.earnedNodes.every(isEarnedNode)
     || !Array.isArray(value.annotations)
     || !value.annotations.every(isAnnotation)
+    || !Array.isArray(value.virtualGoalCategories)
+    || !value.virtualGoalCategories.every(isVirtualGoalCategory)
     || !Array.isArray(value.virtualBrtClusters)
     || !value.virtualBrtClusters.every(isVirtualBrtCluster)
     || !Array.isArray(value.edges)
@@ -518,4 +571,42 @@ export function parseConstellationGraphDTO(
   }
 
   return value as unknown as ConstellationGraphDTO;
+}
+
+function isLayoutPosition(
+  value: unknown,
+): value is ConstellationLayoutPositionDTO {
+  if (
+    !isRecord(value)
+    || !isNonEmptyString(value.selectionKey)
+    || value.selectionKey.length > 200
+    || !isNonEmptyString(value.updatedAt)
+    || (value.coordinateSpace !== 'canvas' && value.coordinateSpace !== 'parent')
+    || typeof value.x !== 'number'
+    || !Number.isFinite(value.x)
+    || typeof value.y !== 'number'
+    || !Number.isFinite(value.y)
+  ) {
+    return false;
+  }
+
+  return value.coordinateSpace === 'canvas'
+    ? value.x >= 0.02 && value.x <= 0.98 && value.y >= 0.02 && value.y <= 0.98
+    : value.x >= -1 && value.x <= 1 && value.y >= -1 && value.y <= 1;
+}
+
+export function parseConstellationLayoutDTO(
+  value: unknown,
+): ConstellationLayoutDTO | null {
+  if (
+    !isRecord(value)
+    || value.version !== '1.0'
+    || !Array.isArray(value.positions)
+    || !value.positions.every(isLayoutPosition)
+    || new Set(value.positions.map((position) => position.selectionKey)).size
+      !== value.positions.length
+  ) {
+    return null;
+  }
+  return value as unknown as ConstellationLayoutDTO;
 }

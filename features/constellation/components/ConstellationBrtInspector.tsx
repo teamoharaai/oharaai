@@ -36,7 +36,7 @@ export function ConstellationBrtInspector({
 
   return (
     <ConstellationInspectorSurface
-      accessibilityLabel={`Reflection inspector for ${label}`}
+      accessibilityLabel={`${label} goal Entry inspector`}
       closeDisabled={inspector.savingEntryId !== null}
       onClose={onClose}
       selectionKey={node.selectionKey}
@@ -46,7 +46,7 @@ export function ConstellationBrtInspector({
           variant="section-eyebrow"
           style={{ color: colors.text.accent }}
         >
-          {`REFLECTIONS · ${label.toUpperCase()}`}
+          {`GOAL ENTRIES · ${label.toUpperCase()}`}
         </Typography>
         <Typography accessibilityRole="header" variant="heading">
           {label}

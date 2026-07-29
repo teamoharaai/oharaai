@@ -2,6 +2,42 @@
 
 ## [Unreleased]
 
+### Added (2026-07-29 — Constellation category hierarchy)
+- **`features/constellation/goal-categories.ts` and graph types:** added one canonical presentation registry covering current and legacy goal categories, plus typed virtual goal-category nodes and membership edges so categories can be rendered without becoming persisted or earned domain records.
+- **`GoalCategoryShape.tsx` and `ConstellationGoalCategoryInspector.tsx`:** added symbol-led category hubs and an inspectable list of the active goals represented by each visible category.
+- **`supabase/migrations/034_constellation_layout_positions.sql`:** added bounded owner-scoped layout coordinates with RLS, timestamp maintenance, canvas/parent coordinate-space checks, and cascade cleanup when an owner is removed.
+- **`types/supabase.ts`:** synchronized the generated database contract shape with migration 034's layout-position table for future typed Supabase consumers.
+- **Constellation database security harness:** extended the disposable PostgreSQL run to apply migration 034 and assert own-layout writes, cross-user read/write isolation, and coordinate constraints.
+- **Linked main database:** applied migration 034 to the OharaAI Supabase project and verified that local and remote migration histories match through 034.
+
+### Changed (2026-07-29 — Constellation category hierarchy)
+- **Virtual BRT graph contracts and presentation:** renamed stale `evidenceLinkCount` display metadata to `entryCount`, reflecting that goal satellites summarize canonical attached Entries as well as supplemental evidence references.
+- **`groupGoalEvidenceByBrt`:** stopped generating zero-count Bud/Rose/Thorn nodes; a goal now receives only the category satellites supported by at least one connected, categorized Entry.
+- **Constellation graph assembly:** derive category hubs from visible goals, connect each goal to its category, and derive BRT satellites from the deduplicated union of confirmed goal-container Entries and explicit evidence references.
+- **`lib/db/constellation.ts`:** added owner-scoped, paginated reads for goal categories and confirmed goal-container Entry links so graph derivation uses canonical source tables without per-goal queries.
+- **Graph adapter and runtime DTO validation:** recognize category nodes/membership edges, validate every goal category against the canonical taxonomy, and include category hubs in filtering, selection, and render prioritization without adding them to earned-node counts.
+- **Deterministic Constellation fixtures:** added category metadata, representative current/legacy-compatible category hubs, and category membership edges so unit and browser previews exercise the new hierarchy.
+- **Accessible descriptions and layout typing:** added category-aware labels, dimensions, and exhaustive neighbor descriptions so the new graph entity remains safe across visual and semantic render paths.
+- **Constellation graph/evidence/layout tests:** updated expected neighborhoods and optimistic cluster recomputation for category membership plus the new non-empty-only satellite invariant.
+- **Render-edge budgeting:** reserve the shared 90-edge ceiling for all relationships while excluding derived category-membership and goal-satellite edges from the six-semantic-relationships-per-node allowance, preventing hierarchy nodes from becoming visually orphaned in dense graphs.
+- **Render-node budgeting:** prune a category hub when none of its related goals survives the current canvas budget, enforcing the visible parent/child invariant even in dense owner graphs.
+- **`layout.ts`, goal rendering, and BRT rendering:** introduced explicit canvas/parent coordinate spaces, deterministic parent-relative satellite offsets, a smaller circular moon treatment for BRT summaries, and a balanced circular planet treatment for goals. Moving a goal in the pure layout model now preserves every satellite offset automatically.
+- **Constellation canvas pointer interaction:** added direct mouse, stylus, and touch dragging for every rendered web node, zoom-aware viewBox coordinate conversion, movement bounds, drag-versus-click suppression, and live connector recomputation while preserving existing background pan and pinch behavior.
+- **`ConstellationLegend.tsx` and `store/uiStore.ts`:** made the legend user-collapsible with persisted state, an explicit web-expanded accessibility state, a compact collapsed chip, updated category/planet/moon swatches, and a version-3 migration that preserves existing dashboard-view preferences instead of overwriting them.
+- **BRT inspector terminology:** replaced stale Reflection inspector semantics with goal-scoped Entry language while retaining internal database/service identifiers for compatibility.
+- **Acceptance empty-state naming:** renamed the obsolete “locked” fixture helper to the real `season_only` state now exercised by the CTA journey.
+- **Constellation browser acceptance:** added real journeys proving the authoritative connected-Entry total can exceed the bounded three-card preview, the legend preference persists through collapse/reload/expand, and goal dragging moves its BRT moon by the same delta, suppresses inspector opening, survives reload through the layout API, and returns to deterministic defaults after confirmed reset. All 25 journeys pass, and ten reviewed desktop/tablet/narrow baselines were refreshed for the intentional visual changes.
+- **Repository knowledge files:** rewrote the canonical Constellation decision contract and synchronized API, context, immutable-reference, migration-ledger, component/database guidance, feature changelog, and outstanding-work documents with category hubs, canonical Entry reads and terminology, sparse BRT satellites, movable hierarchy, and migration 034.
+
+### Changed (2026-07-29 — Constellation canonical connected Entries)
+- **`lib/db/constellation.ts`, goal/BRT inspector DTOs, services, hooks, and API routes:** derive each goal's connected Entry total and three most recent Entries from the deduplicated union of confirmed canonical `echo_entry_links` goal containers and explicit `constellation_evidence_links`, while retaining the existing evidence-management list as a separate domain. BRT inspector reads are now scoped by both goal and category so one goal's Bud/Rose/Thorn node cannot expose another goal's Entries.
+- **`ConstellationGoalEvidencePanel.tsx` and `ConstellationScreen.tsx`:** show the authoritative total plus up to three most recent connected Entries with bounded excerpts, source/category context, and functional Entry deep links; relabeled the separate mutable list as Evidence references so canonical containment and supplemental evidence are no longer conflated.
+- **Constellation preview, DTO tests, and acceptance API fixtures:** extended deterministic goal-inspector data with connected totals/recent Entries and changed the mocked BRT route to the goal-scoped contract.
+
+### Fixed (2026-07-29 — Constellation canonical connected Entries)
+- **`ConstellationGoalEvidencePanel` data contract:** replaced the evidence-reference-array assumption behind the goal inspector's false zero counts with authoritative `connectedEntryCount` and bounded `recentEntries` fields, preparing the UI to show real attached Entries even when no separate Constellation evidence reference exists.
+- **`ConstellationCanvasShell.tsx`:** forwarded layout busy/error state into the interactive viewport so reset cannot race an active load/save and persistence failures remain visible to the user.
+
 ### Added (2026-07-29 — Constellation production inspector refinement)
 - **`app/api/constellation/brt/[category]+api.ts`, `lib/db/constellation.ts`, `features/constellation/hooks/useBrtInspector.ts`, `ConstellationBrtInspector.tsx`, and supporting DTO/service contracts:** added an owner-scoped Bud/Rose/Thorn inspector that lists every entry carrying the selected category with bounded excerpts and supports in-place reclassification.
 - **Constellation graph/evidence tests and browser acceptance fixtures/config:** added coverage for always-available goal BRT nodes, nullable/unlinked evidence, the BRT inspector response, goal anchors, and in-place selection without same-page route pushes; updated the Expo preview port argument to the SDK-supported separated form so the acceptance web server starts non-interactively.

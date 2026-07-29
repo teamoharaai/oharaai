@@ -9,6 +9,35 @@ rollout review" and older) describe the flag as disabled — that was accurate
 at the time each entry was written, before the deploy blocker was resolved,
 and should be read as history rather than current state.
 
+## 2026-07-29 — Movable hierarchy, category hubs, and canonical Entries
+
+1. Added virtual goal-category hubs from visible active/complete-grace goals,
+   using the canonical category symbol registry. Categories with no visible
+   goals do not exist in the graph.
+2. Rebuilt Bud/Rose/Thorn nodes as sparse, goal-specific satellites derived
+   from distinct categorized Entries across confirmed containers and explicit
+   evidence references. Empty categories produce no node.
+3. Corrected Goal inspectors to report the authoritative distinct connected
+   Entry total and the three most recent Entries. BRT inspection is now scoped
+   by both goal and category.
+4. Added canvas/parent coordinate spaces, balanced planet/moon sizing, direct
+   web node dragging, automatic satellite movement with a dragged goal,
+   zoom-aware movement, and live connector recomputation.
+5. Added migration 034 and authenticated layout read/save/reset endpoints.
+   Saved coordinates are bounded, owner-RLS-protected, current-node validated,
+   optimistic in the client, and covered by the disposable PostgreSQL security
+   harness.
+6. Made the legend collapsible with a persisted preference and synchronized
+   its swatches and terminology with category hubs, goal planets, and BRT
+   moons.
+7. Verification for this slice passes strict TypeScript, 71 focused
+   Constellation tests, all 25 browser acceptance journeys, and the
+   migration-032/034 disposable PostgreSQL RLS harness. Ten reviewed visual
+   baselines now capture the intentional category/planet/moon and Goal
+   inspector changes across desktop, tablet, and narrow layouts.
+8. Applied migration 034 to the linked OharaAI main Supabase project and
+   rechecked that local and remote migration histories match through 034.
+
 ## 2026-07-28 — Automated acceptance contract
 
 1. Added 15 Playwright screenshot comparisons for concepts 1a–1e at their

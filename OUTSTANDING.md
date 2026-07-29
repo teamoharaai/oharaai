@@ -310,35 +310,20 @@ in-browser (login generic error, signup 10-char guard, global logout redirect). 
       lookup exists only inside the send-friend-request flow via `search_profiles_by_username`
       (3-char min, prefix match, cap 20). Do not add a general directory or broaden that RPC.
 
-## Constellation core rewrite (Prompt 2, 2026-07-29)
+## Constellation (2026-07-29)
 
-Prompt 2 delivered gate removal, direct-read goal nodes, annotation goal-anchor eligibility,
-and virtual-BRT-cluster derivation from `echo_entries.brt_category`. These items were
-consciously left for the Prompt 3 (shared BRT picker) session or flagged as doc drift:
-
-- [ ] **Evidence write/inspector path still targets the dropped `constellation_evidence_links.brt_category`
-      column.** Migration 033 dropped that column, but the per-link category CRUD/inspector code
-      was left intact because it is the Prompt 3 BRT-picker surface, not the graph read path.
-      Affected (all will 500 at runtime until repointed): `lib/db/constellation.ts`
-      (`EVIDENCE_REFERENCE_COLUMNS`, `fetchEvidenceReferencesForGoal`, `findEvidenceReferenceByPair`,
-      `findEvidenceReference`, `insertEvidenceReference`, `updateEvidenceReference`,
-      `loadConstellationGoalEvidence`, `searchConstellationEchoOptions`);
-      `constellation-server-core.ts` (`ConstellationEvidenceReferenceRow`,
-      `mapConstellationEvidenceReference`, `evidencePatchForCreate`,
-      `createOrUpdateConstellationEvidenceReference`, `updateConstellationEvidenceReference`,
-      `requireBrtCategory`); `app/api/constellation/evidence-references/*+api.ts` and
-      `goals/[id]/{evidence,echo-options}+api.ts`; `features/constellation/components/ConstellationGoalEvidencePanel.tsx`.
-      Prompt 3 must move the picker to write `echo_entries.brt_category` and make the evidence link
-      a pure `(echo_entry, goal, note)` relation whose category is derived from the echo entry
-      everywhere it is read (the graph-assembly read path already does this).
-- [ ] **Doc/spec drift: `echo_entries.brt_user` vs `echo_entries.brt_category`.** DECISIONS.md
-      §567 #4 (and the Prompt 2 brief) name `echo_entries.brt_user` as the BRT single-source-of-truth,
-      but migration 033 and the regenerated `types/supabase.ts` prove the real column is
-      `echo_entries.brt_category` (text `bud|rose|thorn`); `brt_user` remains the dormant, zero-row
-      jsonb column from migration 007. Prompt 2 implemented against `brt_category`. Update
-      DECISIONS.md §567 #4 / §578 / §582 to say `brt_category` so the drift doesn't mislead Prompt 3.
-- [ ] **Playwright acceptance spec still has a "locked" scenario.** `tests/constellation/constellation.acceptance.spec.ts:358`
-      renders `createLockedConstellationGraph()`, but the access gate (and `locked` render state)
-      no longer exists. The helper was minimally repointed to a `season_only` empty graph to keep
-      `tsc` green; the spec assertions still describe locked-gate behavior and need reworking
-      (or removal) in the acceptance-suite pass.
+- [x] Repoint the evidence write/inspector path from the removed per-link BRT
+      column to `echo_entries.brt_category`. Evidence references are now pure
+      `(entry, goal, note)` rows, and every read derives the Entry category.
+- [x] Reconcile the `brt_user`/`brt_category` documentation drift. The current
+      canonical decision document names `echo_entries.brt_category`; the
+      migration-007 JSONB fields remain dormant and separate.
+- [x] Remove stale locked-gate acceptance naming. The helper and journey now
+      explicitly exercise the real `season_only` empty state.
+- [x] Apply migration `034_constellation_layout_positions.sql` to the linked
+      OharaAI main Supabase project. The migration passed the disposable
+      PostgreSQL RLS harness, was applied live on 2026-07-29, and the remote
+      migration ledger was rechecked through 034.
+- [ ] Add collision resolution if real owner graphs demonstrate overlapping
+      labels after manual placement. The current deterministic and user-saved
+      layout intentionally avoids a force simulation.

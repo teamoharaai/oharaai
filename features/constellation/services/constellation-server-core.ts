@@ -1,4 +1,12 @@
-import { GOAL_DB_STATUSES, type GoalDbStatus } from '../../../lib/goals/schema.ts';
+import {
+  GOAL_DB_STATUSES,
+  type GoalCategory,
+  type GoalDbStatus,
+} from '../../../lib/goals/schema.ts';
+import {
+  goalCategoryPresentation,
+  isGoalCategory,
+} from '../goal-categories.ts';
 import {
   groupGoalEvidenceByBrt,
   stableVirtualBrtClusterId,
@@ -16,6 +24,10 @@ import type {
   ConstellationGraphDTO,
   ConstellationGraphEdgeDTO,
   ConstellationGraphCountsDTO,
+  ConstellationGoalCategoryNodeDTO,
+  ConstellationGoalNodeDTO,
+  ConstellationLayoutCoordinateSpace,
+  SaveConstellationLayoutPositionInput,
   ConstellationVirtualBrtClusterDTO,
   CreateConstellationAnnotationInput,
   CreateConstellationEvidenceReferenceInput,
@@ -112,6 +124,12 @@ export interface ConstellationEvidenceLinkRow {
   updated_at: string;
 }
 
+export interface ConstellationGoalEntryLinkRow {
+  echo_entry_id: string;
+  goal_id: string;
+  created_at: string;
+}
+
 // (id, brt_category) for owner echo entries that carry a BRT category. Feeds the
 // virtual-cluster derivation join.
 export interface ConstellationEchoBrtRow {
@@ -135,6 +153,7 @@ export interface ConstellationEvidenceReferenceRow {
 export interface ConstellationGoalSourceRow {
   id: string;
   title: string;
+  category: string;
   status: string;
   updated_at: string;
 }
@@ -150,6 +169,7 @@ export interface ConstellationSnapshot {
   edges: ConstellationEdgeRow[];
   annotations: ConstellationAnnotationRow[];
   evidenceLinks: ConstellationEvidenceLinkRow[];
+  goalEntryLinks: ConstellationGoalEntryLinkRow[];
   echoBrtCategories: ConstellationEchoBrtRow[];
   goals: ConstellationGoalSourceRow[];
   projects: ConstellationProjectSourceRow[];
@@ -289,6 +309,13 @@ function includes<const T extends readonly string[]>(
 function requireGoalStatus(value: string): GoalDbStatus {
   if (!includes(GOAL_DB_STATUSES, value)) {
     throw new Error('Constellation source goal has an invalid status.');
+  }
+  return value;
+}
+
+function requireGoalCategory(value: string): GoalCategory {
+  if (!isGoalCategory(value)) {
+    throw new Error('Constellation source goal has an invalid category.');
   }
   return value;
 }
@@ -499,7 +526,7 @@ function mapEarnedNode(
 // constellation_nodes row and no writer for kind='goal'.
 function mapGoalNode(
   goal: ConstellationGoalSourceRow,
-): ConstellationEarnedNodeDTO {
+): ConstellationGoalNodeDTO {
   return {
     id: goal.id,
     selectionKey: `node:${goal.id}`,
@@ -512,6 +539,7 @@ function mapGoalNode(
       type: 'goal',
       id: goal.id,
       goalStatus: requireGoalStatus(goal.status),
+      category: requireGoalCategory(goal.category),
     },
     visibilityScore: null,
     firstSeenAt: null,
@@ -674,6 +702,31 @@ export function assembleConstellationGraphDTO(
   const goalNodes = snapshot.goals
     .filter((goal) => isGoalNodeVisible(goal, generatedAt))
     .map(mapGoalNode);
+  const goalCountByCategory = new Map<GoalCategory, number>();
+  for (const goal of goalNodes) {
+    const category = goal.source.category;
+    goalCountByCategory.set(
+      category,
+      (goalCountByCategory.get(category) ?? 0) + 1,
+    );
+  }
+  const virtualGoalCategories: ConstellationGoalCategoryNodeDTO[] = [
+    ...goalCountByCategory,
+  ]
+    .map(([category, goalCount]) => {
+      const presentation = goalCategoryPresentation(category);
+      return {
+        id: `goal-category:${category}` as const,
+        selectionKey: `goal-category:${category}` as const,
+        category,
+        label: presentation.label,
+        symbol: presentation.symbol,
+        goalCount,
+        isVirtual: true as const,
+        isPersisted: false as const,
+      };
+    })
+    .sort((left, right) => left.id.localeCompare(right.id));
 
   const seasonNodes = persistedNodes.filter((node) => node.kind === 'season');
   if (seasonNodes.length > 1) {
@@ -712,17 +765,44 @@ export function assembleConstellationGraphDTO(
   const evidenceLinks = snapshot.evidenceLinks.filter(
     (row) => row.owner_id === ownerId,
   );
-  const categorizedEvidenceLinks = evidenceLinks.flatMap((row) => {
-    const brtCategory = brtCategoryByEchoId.get(row.echo_entry_id);
+  const connectedEntryByGoalAndEntry = new Map<
+    string,
+    { goalId: string; echoEntryId: string; updatedAt: string }
+  >();
+  for (const row of evidenceLinks) {
+    connectedEntryByGoalAndEntry.set(
+      `${row.goal_id}:${row.echo_entry_id}`,
+      {
+        goalId: row.goal_id,
+        echoEntryId: row.echo_entry_id,
+        updatedAt: row.updated_at,
+      },
+    );
+  }
+  for (const row of snapshot.goalEntryLinks) {
+    const key = `${row.goal_id}:${row.echo_entry_id}`;
+    const existing = connectedEntryByGoalAndEntry.get(key);
+    if (!existing || row.created_at > existing.updatedAt) {
+      connectedEntryByGoalAndEntry.set(key, {
+        goalId: row.goal_id,
+        echoEntryId: row.echo_entry_id,
+        updatedAt: row.created_at,
+      });
+    }
+  }
+  const categorizedConnectedEntries = [
+    ...connectedEntryByGoalAndEntry.values(),
+  ].flatMap((row) => {
+    const brtCategory = brtCategoryByEchoId.get(row.echoEntryId);
     return brtCategory
-      ? [{ goalId: row.goal_id, brtCategory, updatedAt: row.updated_at }]
+      ? [{ goalId: row.goalId, brtCategory, updatedAt: row.updatedAt }]
       : [];
   });
   const goalNodeIds = new Map(
     goalNodes.map((node) => [node.id, node.id] as const),
   );
   const virtualBrtClusters = groupGoalEvidenceByBrt(
-    categorizedEvidenceLinks,
+    categorizedConnectedEntries,
     goalNodeIds,
   );
 
@@ -771,9 +851,22 @@ export function assembleConstellationGraphDTO(
       isPersisted: false,
     }),
   );
+  const categoryEdges: ConstellationGraphEdgeDTO[] = goalNodes.map((goal) => ({
+    id: `goal-category-membership:${goal.source.category}:${goal.id}`,
+    from: {
+      entityType: 'virtual_goal_category' as const,
+      id: `goal-category:${goal.source.category}`,
+    },
+    to: { entityType: 'earned_node' as const, id: goal.id },
+    kind: 'goal_category_membership' as const,
+    valence: null,
+    weight: null,
+    isPersisted: false,
+  }));
   const edges = [
     ...persistedEdges,
     ...annotationEdges,
+    ...categoryEdges,
     ...clusterEdges,
   ].sort((left, right) => left.id.localeCompare(right.id));
 
@@ -796,6 +889,7 @@ export function assembleConstellationGraphDTO(
     earnedNodes: countEarnedNodes(earnedNodes),
     annotations: annotationCounts,
     virtualBrtClusters: countVirtualClusters(virtualBrtClusters),
+    virtualGoalCategories: virtualGoalCategories.length,
     edges: edges.length,
     evidenceLinks: evidenceLinks.length,
     source: sourceCounts,
@@ -816,10 +910,68 @@ export function assembleConstellationGraphDTO(
     },
     earnedNodes,
     annotations,
+    virtualGoalCategories,
     virtualBrtClusters,
     edges,
     counts,
   };
+}
+
+export function validateConstellationLayoutPosition(
+  graph: ConstellationGraphDTO,
+  input: SaveConstellationLayoutPositionInput,
+): SaveConstellationLayoutPositionInput {
+  const expectedSpaces = new Map<string, ConstellationLayoutCoordinateSpace>([
+    ...graph.earnedNodes.map(
+      (node) => [node.selectionKey, 'canvas'] as const,
+    ),
+    ...graph.annotations.map(
+      (node) => [node.selectionKey, 'canvas'] as const,
+    ),
+    ...graph.virtualGoalCategories.map(
+      (node) => [node.selectionKey, 'canvas'] as const,
+    ),
+    ...graph.virtualBrtClusters.map(
+      (node) => [node.selectionKey, 'parent'] as const,
+    ),
+  ]);
+  const expectedSpace = expectedSpaces.get(input.selectionKey);
+  if (!expectedSpace) {
+    throw new ConstellationDataError(
+      'NOT_FOUND',
+      'Constellation node is no longer available.',
+    );
+  }
+  if (input.coordinateSpace !== expectedSpace) {
+    throw new ConstellationDataError(
+      'INVALID_INPUT',
+      `This Constellation node requires ${expectedSpace} coordinates.`,
+    );
+  }
+  const inBounds = expectedSpace === 'canvas'
+    ? (
+        input.x >= 0.02
+        && input.x <= 0.98
+        && input.y >= 0.02
+        && input.y <= 0.98
+      )
+    : (
+        input.x >= -1
+        && input.x <= 1
+        && input.y >= -1
+        && input.y <= 1
+      );
+  if (
+    !Number.isFinite(input.x)
+    || !Number.isFinite(input.y)
+    || !inBounds
+  ) {
+    throw new ConstellationDataError(
+      'INVALID_INPUT',
+      'Constellation layout coordinates are outside their supported bounds.',
+    );
+  }
+  return input;
 }
 
 // An annotation may anchor to an earned node (constellation_nodes: season and

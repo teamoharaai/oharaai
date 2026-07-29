@@ -21,6 +21,11 @@ export interface ConstellationViewportTransform {
   readonly y: number;
 }
 
+export interface ConstellationViewBoxDimensions {
+  readonly height: number;
+  readonly width: number;
+}
+
 export function clampConstellationZoom(scale: number): number {
   'worklet';
   return Math.min(
@@ -101,4 +106,40 @@ export function zoomConstellationViewportAt(
 export function fitConstellationViewport(): ConstellationViewportTransform {
   'worklet';
   return { scale: CONSTELLATION_FIT_ZOOM, x: 0, y: 0 };
+}
+
+export function constellationDragDeltaToNormalized(
+  delta: ConstellationViewportPoint,
+  zoom: number,
+  viewport: ConstellationViewportDimensions,
+  viewBox: ConstellationViewBoxDimensions,
+): ConstellationViewportPoint {
+  'worklet';
+  const meetScale = Math.min(
+    viewport.width / viewBox.width,
+    viewport.height / viewBox.height,
+  );
+  if (
+    !Number.isFinite(meetScale)
+    || meetScale <= 0
+    || !Number.isFinite(zoom)
+    || zoom <= 0
+  ) {
+    return { x: 0, y: 0 };
+  }
+
+  return {
+    x: delta.x / (zoom * meetScale * viewBox.width),
+    y: delta.y / (zoom * meetScale * viewBox.height),
+  };
+}
+
+export function clampConstellationNodePosition(
+  point: ConstellationViewportPoint,
+): ConstellationViewportPoint {
+  'worklet';
+  return {
+    x: Math.min(0.98, Math.max(0.02, point.x)),
+    y: Math.min(0.98, Math.max(0.02, point.y)),
+  };
 }

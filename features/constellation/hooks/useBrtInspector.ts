@@ -11,7 +11,10 @@ import type {
 
 type BrtInspectorStatus = 'idle' | 'loading' | 'ready' | 'error';
 
-export function useBrtInspector(category: ConstellationBrtCategory | null) {
+export function useBrtInspector(
+  goalId: string | null,
+  category: ConstellationBrtCategory | null,
+) {
   const [status, setStatus] = useState<BrtInspectorStatus>('idle');
   const [dto, setDto] = useState<ConstellationBrtInspectorDTO | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +24,7 @@ export function useBrtInspector(category: ConstellationBrtCategory | null) {
   const controllerRef = useRef<AbortController | null>(null);
 
   const load = useCallback(async () => {
-    if (!category) {
+    if (!goalId || !category) {
       setStatus('idle');
       setDto(null);
       setError(null);
@@ -35,6 +38,7 @@ export function useBrtInspector(category: ConstellationBrtCategory | null) {
     setError(null);
     try {
       const result = await fetchConstellationBrtInspector(
+        goalId,
         category,
         controller.signal,
       );
@@ -63,7 +67,7 @@ export function useBrtInspector(category: ConstellationBrtCategory | null) {
           : true,
       );
     }
-  }, [category]);
+  }, [category, goalId]);
 
   useEffect(() => {
     void load();

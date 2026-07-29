@@ -13,6 +13,7 @@ import type {
   ConstellationEvidenceLink,
   ConstellationGoalEvidenceDTO,
   ConstellationGraphDTO,
+  ConstellationLayoutPositionDTO,
 } from '../../features/constellation/types.ts';
 
 export type AcceptanceFailureTarget =
@@ -57,10 +58,9 @@ function retryFailure(route: Route) {
   });
 }
 
-// Access gate removed: there is no longer a "locked" render state. This helper
-// now produces the season_only empty graph (the nearest post-gate scenario).
-// See OUTSTANDING.md — the acceptance spec's locked scenario needs rework.
-export function createLockedConstellationGraph(): ConstellationGraphDTO {
+// Access gate removed: this helper produces the canonical season_only graph
+// used by the empty-state CTA journey.
+export function createSeasonOnlyConstellationGraph(): ConstellationGraphDTO {
   const season = clone(constellationRendererFixtureGraphDTO).earnedNodes.find(
     (node) => node.kind === 'season',
   );
@@ -74,6 +74,7 @@ export function createLockedConstellationGraph(): ConstellationGraphDTO {
     },
     earnedNodes: season ? [season] : [],
     annotations: [],
+    virtualGoalCategories: [],
     virtualBrtClusters: [],
     edges: [],
     counts: clone(constellationPreviewEmptyCounts),
@@ -94,6 +95,7 @@ export async function installConstellationAcceptanceApi(
   );
   let evidenceSequence = 0;
   let annotationSequence = 0;
+  const layoutPositions = new Map<string, ConstellationLayoutPositionDTO>();
 
   async function failOnce(target: AcceptanceFailureTarget, route: Route) {
     if (!failures.delete(target)) return false;
@@ -132,6 +134,32 @@ export async function installConstellationAcceptanceApi(
     const method = request.method();
     const url = new URL(request.url());
     const path = url.pathname;
+
+    if (path === '/api/constellation/layout' && method === 'GET') {
+      await json(route, {
+        ok: true,
+        data: {
+          version: '1.0',
+          positions: [...layoutPositions.values()],
+        },
+      });
+      return;
+    }
+    if (path === '/api/constellation/layout' && method === 'PATCH') {
+      const input = request.postDataJSON() as Omit<
+        ConstellationLayoutPositionDTO,
+        'updatedAt'
+      >;
+      const position = { ...input, updatedAt: FIXED_TIME };
+      layoutPositions.set(position.selectionKey, position);
+      await json(route, { ok: true, data: position });
+      return;
+    }
+    if (path === '/api/constellation/layout' && method === 'DELETE') {
+      layoutPositions.clear();
+      await json(route, { ok: true, data: { reset: true } });
+      return;
+    }
 
     if (path === '/api/constellation' && method === 'GET') {
       if (await failOnce('graph', route)) return;
@@ -212,13 +240,15 @@ export async function installConstellationAcceptanceApi(
     }
 
     const brtMatch = path.match(
-      /^\/api\/constellation\/brt\/(bud|rose|thorn)$/,
+      /^\/api\/constellation\/goals\/([^/]+)\/brt\/(bud|rose|thorn)$/,
     );
     if (brtMatch && method === 'GET') {
-      const category = brtMatch[1] as 'bud' | 'rose' | 'thorn';
+      const goalId = decodeURIComponent(brtMatch[1]);
+      const category = brtMatch[2] as 'bud' | 'rose' | 'thorn';
       await json(route, {
         ok: true,
         data: {
+          goalId,
           category,
           entries: goalEvidence.items
             .filter((item) => item.brtCategory === category)

@@ -217,6 +217,7 @@ export function ConstellationFixturePreview({
             goalDescription={selectedGoal.description}
             goalTitle={selectedGoal.label}
             onClose={() => setInspectorOpen(false)}
+            onReadEntry={() => undefined}
             selectionKey={selectedGoal.selectionKey}
           />
         ) : inspectorOpen && selectedReflection ? (

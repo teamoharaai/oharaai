@@ -198,7 +198,7 @@ function toVirtualCluster(
   const common = {
     goalId,
     goalNodeId,
-    evidenceLinkCount: evidenceLinks.length,
+    entryCount: evidenceLinks.length,
     latestEvidenceAt,
     isVirtual: true as const,
     isPersisted: false as const,
@@ -233,10 +233,8 @@ function toVirtualCluster(
 }
 
 /**
- * Produces the three visible BRT choices for every visible goal. Empty clusters
- * remain selectable so focusing a goal always exposes Bud, Rose, and Thorn;
- * uncategorized entries stay out of those counts and appear in the inspector's
- * Unlinked entries group.
+ * Produces only non-empty goal-specific BRT satellites. Uncategorized Entries
+ * remain available in the goal inspector but do not create a graph node.
  */
 export function groupGoalEvidenceByBrt(
   evidenceLinks: readonly GoalEvidenceClusterInput[],
@@ -258,11 +256,13 @@ export function groupGoalEvidenceByBrt(
   const clusters: ConstellationVirtualBrtClusterDTO[] = [];
   for (const [goalId, goalNodeId] of goalNodeIds) {
     for (const category of ['bud', 'rose', 'thorn'] as const) {
+      const entries = groups.get(`${goalId}:${category}`);
+      if (!entries?.length) continue;
       clusters.push(toVirtualCluster(
         goalId,
         goalNodeId,
         category,
-        groups.get(`${goalId}:${category}`) ?? [],
+        entries,
       ));
     }
   }
@@ -293,12 +293,16 @@ export function filterGraphNodes(
         );
       case 'virtual_brt_cluster':
         return includes(filters.brtCategories, node.node.brtCategory);
+      case 'virtual_goal_category':
+        return true;
     }
   });
 }
 
 function renderPriority(node: ConstellationGraphViewNode): number {
   switch (node.entityType) {
+    case 'virtual_goal_category':
+      return 2;
     case 'earned_node':
       switch (node.node.kind) {
         case 'season':
@@ -306,18 +310,18 @@ function renderPriority(node: ConstellationGraphViewNode): number {
         case 'ambition':
           return 1;
         case 'goal':
-          return 2;
-        case 'trait':
           return 3;
-        case 'reflection':
+        case 'trait':
           return 4;
-        case 'tension':
+        case 'reflection':
           return 5;
+        case 'tension':
+          return 6;
       }
     case 'virtual_brt_cluster':
-      return 6;
-    case 'annotation':
       return 7;
+    case 'annotation':
+      return 8;
   }
 }
 
@@ -333,6 +337,8 @@ function activityTimestamp(node: ConstellationGraphViewNode): string {
       return node.node.updatedAt;
     case 'virtual_brt_cluster':
       return node.node.latestEvidenceAt ?? '';
+    case 'virtual_goal_category':
+      return '';
   }
 }
 
@@ -390,9 +396,11 @@ export function selectRenderBudget(
 
 /**
  * Makes dense live graphs predictable to render. The persisted graph contract
- * already limits every node to six relationships; this client guard enforces
- * the same ceiling and a 90-edge upper bound even when a malformed or stale
- * response exceeds the server budget.
+ * already limits every earned node to six semantic relationships; this client
+ * guard enforces the same ceiling and a 90-edge upper bound even when a
+ * malformed or stale response exceeds the server budget. Derived hierarchy
+ * edges do not consume that semantic relationship allowance because dropping
+ * one would orphan a category hub or goal satellite from its visual parent.
  */
 export function selectRenderEdges(
   nodes: readonly ConstellationGraphViewNode[],
@@ -407,6 +415,18 @@ export function selectRenderEdges(
     .filter((edge) => validateEdgeEndpoints(nodes, edge).isValid)
     .slice()
     .sort((left, right) => {
+      const leftIsHierarchy = (
+        left.kind === 'goal_category_membership'
+        || left.kind === 'goal_evidence_cluster'
+      );
+      const rightIsHierarchy = (
+        right.kind === 'goal_category_membership'
+        || right.kind === 'goal_evidence_cluster'
+      );
+      if (leftIsHierarchy !== rightIsHierarchy) {
+        return leftIsHierarchy ? -1 : 1;
+      }
+
       const weight = (right.weight ?? 0) - (left.weight ?? 0);
       return weight !== 0 ? weight : left.id.localeCompare(right.id);
     });
@@ -414,6 +434,15 @@ export function selectRenderEdges(
 
   for (const edge of candidates) {
     if (selected.length >= edgeBudget) break;
+    const isHierarchyEdge = (
+      edge.kind === 'goal_category_membership'
+      || edge.kind === 'goal_evidence_cluster'
+    );
+    if (isHierarchyEdge) {
+      selected.push(edge);
+      continue;
+    }
+
     const fromDegree = degree.get(edge.from.id) ?? 0;
     const toDegree = degree.get(edge.to.id) ?? 0;
     if (fromDegree >= perNodeBudget || toDegree >= perNodeBudget) continue;
@@ -464,6 +493,12 @@ function toViewNodes(dto: ConstellationGraphDTO): readonly ConstellationGraphVie
       selectionKey: node.selectionKey,
       node,
     })),
+    ...dto.virtualGoalCategories.map((node) => ({
+      entityType: 'virtual_goal_category' as const,
+      id: node.id,
+      selectionKey: node.selectionKey,
+      node,
+    })),
     ...dto.virtualBrtClusters.map((node) => ({
       entityType: 'virtual_brt_cluster' as const,
       id: node.id,
@@ -502,11 +537,20 @@ export function adaptGraphDtoToViewModel(
         selected.id,
       )?.nodes ?? filteredNodes
     : filteredNodes;
-  const nodes = selectRenderBudget(
+  const budgetedNodes = selectRenderBudget(
     focusedNodes,
     options.renderBudget,
     options.selectedKey,
   );
+  const budgetedNodeIds = new Set(budgetedNodes.map((node) => node.id));
+  const nodes = budgetedNodes.filter((node) => (
+    node.entityType !== 'virtual_goal_category'
+    || dto.edges.some((edge) => (
+      edge.kind === 'goal_category_membership'
+      && edge.from.id === node.id
+      && budgetedNodeIds.has(edge.to.id)
+    ))
+  ));
   const edges = selectRenderEdges(nodes, dto.edges);
 
   return {

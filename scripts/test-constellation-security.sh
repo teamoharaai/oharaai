@@ -10,7 +10,8 @@
 set -euo pipefail
 
 REPOSITORY_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MIGRATION_PATH="$REPOSITORY_ROOT/supabase/migrations/032_constellation_persistence.sql"
+PERSISTENCE_MIGRATION_PATH="$REPOSITORY_ROOT/supabase/migrations/032_constellation_persistence.sql"
+LAYOUT_MIGRATION_PATH="$REPOSITORY_ROOT/supabase/migrations/034_constellation_layout_positions.sql"
 BOOTSTRAP_PATH="$REPOSITORY_ROOT/scripts/constellation-security-bootstrap.sql"
 TEST_PATH="$REPOSITORY_ROOT/scripts/constellation-security.test.sql"
 
@@ -30,7 +31,11 @@ for executable in initdb pg_ctl psql; do
   fi
 done
 
-for required_file in "$MIGRATION_PATH" "$BOOTSTRAP_PATH" "$TEST_PATH"; do
+for required_file in \
+  "$PERSISTENCE_MIGRATION_PATH" \
+  "$LAYOUT_MIGRATION_PATH" \
+  "$BOOTSTRAP_PATH" \
+  "$TEST_PATH"; do
   if [[ ! -f "$required_file" ]]; then
     echo "Missing security-harness file: $required_file" >&2
     exit 1
@@ -89,7 +94,10 @@ echo "Applying isolated source-schema bootstrap..."
 "${PSQL[@]}" -f "$BOOTSTRAP_PATH" >/dev/null
 
 echo "Applying migration 032 to the disposable database..."
-"${PSQL[@]}" -f "$MIGRATION_PATH" >/dev/null
+"${PSQL[@]}" -f "$PERSISTENCE_MIGRATION_PATH" >/dev/null
+
+echo "Applying migration 034 to the disposable database..."
+"${PSQL[@]}" -f "$LAYOUT_MIGRATION_PATH" >/dev/null
 
 echo "Running Constellation constraint and RLS assertions..."
 "${PSQL[@]}" -f "$TEST_PATH"

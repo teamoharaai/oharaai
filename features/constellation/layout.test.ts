@@ -5,6 +5,7 @@ import {
   calculateConstellationLayout,
   calculateSproutedLabelLayout,
   createConstellationLayoutSpec,
+  moveConstellationNode,
 } from './layout.ts';
 import {
   CONSTELLATION_RENDERER_INITIAL_SELECTION,
@@ -58,6 +59,60 @@ test('real graph view models receive complete deterministic non-fixture geometry
   assert.deepEqual(layout.missingEdgeIds, []);
 });
 
+test('goal satellites use parent-relative coordinates and follow goal movement', () => {
+  const initialSpec = createConstellationLayoutSpec(
+    constellationRendererFixtureGraph,
+  );
+  const initialLayout = calculateConstellationLayout(
+    constellationRendererFixtureGraph,
+    initialSpec,
+  );
+  const cluster = initialLayout.nodes.find(
+    (node) => node.entityType === 'virtual_brt_cluster',
+  );
+  assert.ok(cluster);
+  assert.equal(cluster.coordinateSpace, 'parent');
+  assert.ok(cluster.parentSelectionKey);
+  const parent = initialLayout.nodes.find(
+    (node) => node.selectionKey === cluster.parentSelectionKey,
+  );
+  assert.ok(parent);
+  const offset = {
+    x: cluster.normalized.x - parent.normalized.x,
+    y: cluster.normalized.y - parent.normalized.y,
+  };
+
+  const movedSpec = moveConstellationNode(
+    constellationRendererFixtureGraph,
+    initialSpec,
+    parent.selectionKey,
+    {
+      x: parent.normalized.x + 0.04,
+      y: parent.normalized.y + 0.03,
+    },
+  );
+  const movedLayout = calculateConstellationLayout(
+    constellationRendererFixtureGraph,
+    movedSpec,
+  );
+  const movedParent = movedLayout.nodes.find(
+    (node) => node.selectionKey === parent.selectionKey,
+  );
+  const movedCluster = movedLayout.nodes.find(
+    (node) => node.selectionKey === cluster.selectionKey,
+  );
+  assert.ok(movedParent);
+  assert.ok(movedCluster);
+  assert.equal(
+    Number((movedCluster.normalized.x - movedParent.normalized.x).toFixed(6)),
+    Number(offset.x.toFixed(6)),
+  );
+  assert.equal(
+    Number((movedCluster.normalized.y - movedParent.normalized.y).toFixed(6)),
+    Number(offset.y.toFixed(6)),
+  );
+});
+
 test('sprouted labels are calculated outside rendering and remain inside the viewBox', () => {
   const layout = calculateConstellationLayout(
     constellationRendererFixtureGraph,
@@ -100,7 +155,7 @@ test('virtual BRT summaries stay attached to a visible goal and preserve categor
   assert.equal(clusters.length, 5);
   for (const cluster of clusters) {
     assert.equal(cluster.entityType, 'virtual_brt_cluster');
-    assert.ok(cluster.node.evidenceLinkCount > 0);
+    assert.ok(cluster.node.entryCount > 0);
     assert.ok(constellationRendererFixtureGraph.nodes.some(
       (node) => (
         node.entityType === 'earned_node'

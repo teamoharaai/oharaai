@@ -12,12 +12,15 @@ interface UIStore {
   rightPaneWidth: number;
   echoMiddleMode: 'list' | 'tree';
   dashboardGoalsView: DashboardGoalsView;
+  constellationLegendCollapsed: boolean;
   themeMode: ThemeMode;
   setSidebarCollapsed: (collapsed: boolean) => void;
   toggleSidebarCollapsed: () => void;
   setRightPaneWidth: (width: number) => void;
   setEchoMiddleMode: (mode: 'list' | 'tree') => void;
   setDashboardGoalsView: (view: DashboardGoalsView) => void;
+  setConstellationLegendCollapsed: (collapsed: boolean) => void;
+  toggleConstellationLegendCollapsed: () => void;
   toggleTheme: () => void;
 }
 
@@ -48,6 +51,7 @@ export const useUIStore = create<UIStore>()(
       rightPaneWidth: 420,
       echoMiddleMode: 'list',
       dashboardGoalsView: 'list',
+      constellationLegendCollapsed: false,
       themeMode: 'light',
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
       toggleSidebarCollapsed: () =>
@@ -55,6 +59,12 @@ export const useUIStore = create<UIStore>()(
       setRightPaneWidth: (width) => set({ rightPaneWidth: width }),
       setEchoMiddleMode: (mode) => set({ echoMiddleMode: mode }),
       setDashboardGoalsView: (view) => set({ dashboardGoalsView: view }),
+      setConstellationLegendCollapsed: (collapsed) =>
+        set({ constellationLegendCollapsed: collapsed }),
+      toggleConstellationLegendCollapsed: () =>
+        set((state) => ({
+          constellationLegendCollapsed: !state.constellationLegendCollapsed,
+        })),
       toggleTheme: () =>
         set((state) => {
           const themeMode = state.themeMode === 'light' ? 'dark' : 'light';
@@ -64,17 +74,26 @@ export const useUIStore = create<UIStore>()(
     }),
     {
       name: 'ohara-ui-state',
-      version: 2,
-      migrate: (persistedState) => ({
-        ...(persistedState as UIStore),
-        dashboardGoalsView: 'list',
-      }),
+      version: 3,
+      migrate: (persistedState, version) => {
+        const state = persistedState as Partial<UIStore>;
+        return {
+          ...state,
+          dashboardGoalsView: version < 2
+            ? 'list'
+            : state.dashboardGoalsView ?? 'list',
+          constellationLegendCollapsed: version < 3
+            ? false
+            : state.constellationLegendCollapsed ?? false,
+        } as UIStore;
+      },
       storage: createJSONStorage(() => webStorage),
       partialize: (state) => ({
         sidebarCollapsed: state.sidebarCollapsed,
         rightPaneWidth: state.rightPaneWidth,
         echoMiddleMode: state.echoMiddleMode,
         dashboardGoalsView: state.dashboardGoalsView,
+        constellationLegendCollapsed: state.constellationLegendCollapsed,
         themeMode: state.themeMode,
       }),
       onRehydrateStorage: () => (state) => {

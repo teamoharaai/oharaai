@@ -68,9 +68,9 @@ test('connected-neighborhood selection contains only the selected node and its d
   assert.ok(neighborhood);
   assert.deepEqual(
     neighborhood.nodes.map((node) => node.id).sort(),
-    ['brt:fixture-goal-source:bud', 'fixture-goal', 'fixture-season'],
+    ['brt:fixture-goal-source:bud', 'fixture-goal', 'fixture-season', 'goal-category:growth'],
   );
-  assert.equal(neighborhood.edges.length, 2);
+  assert.equal(neighborhood.edges.length, 3);
 });
 
 test('Focus mode renders only the selected one-hop neighborhood and preserves global counts', () => {
@@ -79,9 +79,9 @@ test('Focus mode renders only the selected one-hop neighborhood and preserves gl
 
   assert.deepEqual(
     focused.nodes.map((node) => node.id).sort(),
-    ['brt:fixture-goal-source:bud', 'fixture-goal', 'fixture-season'],
+    ['brt:fixture-goal-source:bud', 'fixture-goal', 'fixture-season', 'goal-category:growth'],
   );
-  assert.equal(focused.edges.length, 2);
+  assert.equal(focused.edges.length, 3);
   assert.equal(focused.counts, viewModel.counts);
   assert.equal(focusGraphViewModel(viewModel, null), viewModel);
 });
@@ -93,11 +93,10 @@ test('goal evidence groups by semantic lowercase BRT values and returns virtual 
   );
 
   assert.deepEqual(
-    clusters.map((cluster) => [cluster.brtCategory, cluster.label, cluster.evidenceLinkCount]),
+    clusters.map((cluster) => [cluster.brtCategory, cluster.label, cluster.entryCount]),
     [
       ['bud', 'Bud', 1],
       ['rose', 'Rose', 1],
-      ['thorn', 'Thorn', 0],
     ],
   );
 });
@@ -239,4 +238,69 @@ test('30-node graph rendering stays within the six-edge-per-node and 90-edge bud
   assert.ok(selected.length <= 90);
   assert.ok([...degree.values()].every((count) => count <= 6));
   assert.deepEqual(selected, selectRenderEdges(nodes, edges));
+});
+
+test('derived hierarchy edges remain visible without consuming semantic edge degree', () => {
+  const nodes = fixtureNodes();
+  const goal = nodes.find(
+    (node) => node.entityType === 'earned_node' && node.node.kind === 'goal',
+  );
+  const category = nodes.find(
+    (node) => node.entityType === 'virtual_goal_category',
+  );
+  assert.ok(goal);
+  assert.ok(category);
+
+  const semanticEdges = Array.from({ length: 8 }, (_, index) => ({
+    id: `semantic-${index}`,
+    from: { entityType: 'earned_node' as const, id: goal.id },
+    to: {
+      entityType: 'earned_node' as const,
+      id: constellationFixtureGraph.earnedNodes[0].id,
+    },
+    isPersisted: true,
+    kind: 'goal_pattern' as const,
+    valence: 'positive' as const,
+    weight: 100 - index,
+  }));
+  const categoryEdge = constellationFixtureGraph.edges.find(
+    (edge) => edge.kind === 'goal_category_membership',
+  );
+  assert.ok(categoryEdge);
+
+  const selected = selectRenderEdges(
+    nodes,
+    [...semanticEdges, categoryEdge],
+  );
+
+  assert.ok(selected.some((edge) => edge.id === categoryEdge.id));
+  assert.equal(
+    selected.filter((edge) => edge.kind === 'goal_pattern').length,
+    6,
+  );
+});
+
+test('render budgeting never leaves a category hub without a visible related goal', () => {
+  const dto: ConstellationGraphDTO = {
+    ...constellationFixtureGraph,
+    earnedNodes: [
+      ...constellationFixtureGraph.earnedNodes,
+      ...Array.from({ length: 30 }, (_, index) => ({
+        ...constellationFixtureGraph.earnedNodes[1],
+        id: `crowding-goal-${index}`,
+        selectionKey: `node:crowding-goal-${index}` as `node:${string}`,
+        label: `Crowding goal ${index}`,
+        visibilityScore: 100 - index,
+      })),
+    ],
+  };
+  const graph = adaptGraphDtoToViewModel(dto, { renderBudget: 30 });
+
+  assert.ok(graph.nodes.some(
+    (node) => node.entityType === 'earned_node' && node.node.kind === 'goal',
+  ));
+  assert.equal(
+    graph.nodes.filter((node) => node.entityType === 'virtual_goal_category').length,
+    0,
+  );
 });

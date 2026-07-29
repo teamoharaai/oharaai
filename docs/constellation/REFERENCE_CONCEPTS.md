@@ -43,13 +43,18 @@ intentionally differs in these ways:
   `Projection · Draft` annotations. Notes are also explicit user-authored draft
   annotations. Neither kind is earned, system-validated, visibility-scored, or
   eligible for automatic promotion.
-- Bud, Rose, and Thorn are goal-specific virtual clusters derived from owned
-  Echo-to-goal Evidence Links. They are not earned Reflection nodes, global Echo
-  classifications, or persisted graph nodes. The same Echo may carry a different
-  category for a different goal, and each cluster remains weightless.
+- Bud, Rose, and Thorn are goal-specific virtual clusters derived from the
+  deduplicated union of confirmed goal-container Entries and owned evidence
+  references. They are not earned Reflection nodes or persisted graph nodes.
+  Classification belongs to the Entry's `echo_entries.brt_category`, so one
+  Entry keeps the same category across its goal relationships. Empty categories
+  produce no node, and every cluster remains weightless.
+- Goal categories are live virtual symbol hubs. A hub appears only when the
+  current graph contains a visible goal in that category.
 - The Goal inspector reports live goal status, connected graph entities, and
-  grouped goal-specific Echo evidence. It does not reproduce prototype-only
-  streak or synthetic Vault statistics.
+  the authoritative distinct Entry count plus its three most recent attached
+  or referenced Entries. The separate evidence-reference controls remain
+  explicit. It does not invent streak or synthetic Vault statistics.
 - The Reflection inspector is read-only and shows owner-verified occurrence,
   score, valence-history, and bounded contributing-Echo data. The prototype's
   local-only BRT picker is absent because Reflection classification cannot mutate
@@ -59,6 +64,11 @@ intentionally differs in these ways:
 - Timeline, Season Archive, Filter, Draft Link, and concept-only inactive chrome
   remain absent. Pan and zoom are functional in the current renderer, but no
   arbitrary node-to-node authoring was introduced.
+- Every visible web node can be repositioned. Goal nodes act as planets and BRT
+  summaries as parent-relative moons, so moving a goal carries its satellites.
+  Owner-scoped positions persist through migration 034 and can be reset; layout
+  never changes graph semantics.
+- The legend is functional, collapsible, and persisted as a UI preference.
 - Desktop inspectors use the production 360px side surface. Tablet and narrow
   viewports replace the graph with a full-width inspector instead of preserving
   the prototype's fixed 320px drawer. The preview therefore uses a wider canonical

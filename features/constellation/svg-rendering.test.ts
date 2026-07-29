@@ -10,6 +10,7 @@ const svgNodeShapeFiles = [
   'EarnedNodeShape.tsx',
   'AnnotationShape.tsx',
   'VirtualBrtClusterShape.tsx',
+  'GoalCategoryShape.tsx',
 ];
 
 test('interactive SVG groups use a web-safe pointer wrapper without accessibility props', () => {
@@ -27,7 +28,7 @@ test('interactive SVG groups use a web-safe pointer wrapper without accessibilit
   );
   assert.match(
     webInteractionSource,
-    /<g onClick=/,
+    /data-constellation-node=\{selectionKey\}[\s\S]*onClick=\{onActivate\}/,
   );
 
   for (const file of svgNodeShapeFiles) {
@@ -35,7 +36,7 @@ test('interactive SVG groups use a web-safe pointer wrapper without accessibilit
 
     assert.match(
       source,
-      /<InteractiveSvgGroup onActivate=/,
+      /<InteractiveSvgGroup[\s\S]{0,160}onActivate=/,
       `${file} must preserve web and native pointer selection`,
     );
     assert.doesNotMatch(

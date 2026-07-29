@@ -8,6 +8,7 @@ import {
   constellationErrorResponse,
   parseCreateAnnotationRequest,
   parseCreateEvidenceReferenceRequest,
+  parseSaveConstellationLayoutPositionRequest,
   parseUpdateAnnotationRequest,
 } from '../../lib/api/constellation.ts';
 import {
@@ -21,6 +22,7 @@ import {
   derivedSeasonNodeId,
   updateConstellationAnnotation,
   updateConstellationEvidenceReference,
+  validateConstellationLayoutPosition,
   type ConstellationAnnotationRow,
   type ConstellationAnnotationRowPatch,
   type ConstellationEvidenceReferenceRow,
@@ -49,6 +51,7 @@ function emptySnapshot(): ConstellationSnapshot {
     edges: [],
     annotations: [],
     evidenceLinks: [],
+    goalEntryLinks: [],
     echoBrtCategories: [],
     goals: [],
     projects: [],
@@ -321,6 +324,7 @@ test('goal nodes are direct-read from the goals table, never from constellation_
   snapshot.goals = [{
     id: GOAL_A_ID,
     title: 'A real goal',
+    category: 'growth',
     status: 'active',
     updated_at: GENERATED_AT,
   }];
@@ -363,17 +367,19 @@ test('graph assembly includes owner data, virtual evidence summaries, and no Ech
   const snapshot = emptySnapshot();
   snapshot.echoEntryCount = 10;
   snapshot.goals = [
-    { id: GOAL_A_ID, title: 'Owned goal', status: 'active', updated_at: GENERATED_AT },
-    { id: GOAL_B_ID, title: 'Draft goal', status: 'draft', updated_at: GENERATED_AT },
+    { id: GOAL_A_ID, title: 'Owned goal', category: 'health', status: 'active', updated_at: GENERATED_AT },
+    { id: GOAL_B_ID, title: 'Draft goal', category: 'finance', status: 'draft', updated_at: GENERATED_AT },
     {
       id: '00000000-0000-4000-8000-000000000009',
       title: 'Archived goal',
+      category: 'career',
       status: 'archived',
       updated_at: GENERATED_AT,
     },
     {
       id: '00000000-0000-4000-8000-000000000014',
       title: 'Second active goal',
+      category: 'health',
       status: 'active',
       updated_at: GENERATED_AT,
     },
@@ -420,17 +426,23 @@ test('graph assembly includes owner data, virtual evidence summaries, and no Ech
   assert.equal(graph.state.hasGraphData, true);
   assert.equal(graph.annotations.length, 1);
   assert.equal(graph.counts.annotations.archived, 1);
-  assert.equal(graph.virtualBrtClusters.length, 6);
+  assert.equal(graph.virtualBrtClusters.length, 1);
   assert.equal(
     graph.virtualBrtClusters.find(
       (cluster) => (
         cluster.goalId === GOAL_A_ID
         && cluster.brtCategory === 'bud'
       ),
-    )?.evidenceLinkCount,
-    2,
+    )?.entryCount,
+    1,
   );
   assert.equal(graph.counts.evidenceLinks, 2);
+  assert.equal(graph.virtualGoalCategories.length, 1);
+  assert.equal(graph.virtualGoalCategories[0]?.goalCount, 2);
+  assert.equal(
+    graph.edges.filter((edge) => edge.kind === 'goal_category_membership').length,
+    2,
+  );
   assert.ok(
     graph.edges.some((edge) => edge.kind === 'annotation_anchor'),
   );
@@ -706,6 +718,121 @@ test('API validation bounds private evidence notes and rejects identity fields',
     (error) =>
       error instanceof ConstellationDataError
       && error.code === 'INVALID_INPUT',
+  );
+});
+
+test('layout writes require a currently visible owned node and its coordinate space', async () => {
+  const snapshot = emptySnapshot();
+  snapshot.goals = [{
+    id: GOAL_A_ID,
+    title: 'Owned goal',
+    category: 'health',
+    status: 'active',
+    updated_at: GENERATED_AT,
+  }];
+  snapshot.goalEntryLinks = [{
+    goal_id: GOAL_A_ID,
+    echo_entry_id: ECHO_ID,
+    created_at: GENERATED_AT,
+  }];
+  snapshot.echoBrtCategories = [{
+    id: ECHO_ID,
+    brt_category: 'bud',
+  }];
+  const graph = assembleConstellationGraphDTO(
+    OWNER_ID,
+    snapshot,
+    GENERATED_AT,
+  );
+  const goal = graph.earnedNodes.find((node) => node.kind === 'goal');
+  const cluster = graph.virtualBrtClusters[0];
+  assert.ok(goal);
+  assert.ok(cluster);
+
+  assert.deepEqual(
+    validateConstellationLayoutPosition(graph, {
+      selectionKey: goal.selectionKey,
+      coordinateSpace: 'canvas',
+      x: 0.4,
+      y: 0.6,
+    }),
+    {
+      selectionKey: goal.selectionKey,
+      coordinateSpace: 'canvas',
+      x: 0.4,
+      y: 0.6,
+    },
+  );
+  assert.doesNotThrow(() => validateConstellationLayoutPosition(graph, {
+    selectionKey: cluster.selectionKey,
+    coordinateSpace: 'parent',
+    x: -0.04,
+    y: 0.08,
+  }));
+  assert.throws(
+    () => validateConstellationLayoutPosition(graph, {
+      selectionKey: cluster.selectionKey,
+      coordinateSpace: 'canvas',
+      x: 0.4,
+      y: 0.6,
+    }),
+    (error) => (
+      error instanceof ConstellationDataError
+      && error.code === 'INVALID_INPUT'
+    ),
+  );
+  assert.throws(
+    () => validateConstellationLayoutPosition(graph, {
+      selectionKey: 'node:not-owned',
+      coordinateSpace: 'canvas',
+      x: 0.4,
+      y: 0.6,
+    }),
+    (error) => (
+      error instanceof ConstellationDataError
+      && error.code === 'NOT_FOUND'
+    ),
+  );
+});
+
+test('layout API parsing rejects out-of-bounds and unknown fields', async () => {
+  const valid = new Request('http://localhost/api/constellation/layout', {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      selectionKey: `node:${GOAL_A_ID}`,
+      coordinateSpace: 'canvas',
+      x: 0.25,
+      y: 0.75,
+    }),
+  });
+  assert.deepEqual(
+    await parseSaveConstellationLayoutPositionRequest(valid),
+    {
+      selectionKey: `node:${GOAL_A_ID}`,
+      coordinateSpace: 'canvas',
+      x: 0.25,
+      y: 0.75,
+    },
+  );
+
+  const invalid = new Request('http://localhost/api/constellation/layout', {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      selectionKey: `node:${GOAL_A_ID}`,
+      coordinateSpace: 'canvas',
+      x: 2,
+      y: 0.75,
+      ownerId: OWNER_ID,
+    }),
+  });
+  await assert.rejects(
+    parseSaveConstellationLayoutPositionRequest(invalid),
+    (error) => (
+      error instanceof ConstellationDataError
+      && error.code === 'INVALID_INPUT'
+    ),
   );
 });
 

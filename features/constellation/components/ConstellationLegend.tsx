@@ -1,4 +1,5 @@
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import { useUIStore } from '@/store/uiStore';
 import type { ConstellationVisualTokens } from '../visual-tokens.ts';
 
 interface ConstellationLegendProps {
@@ -6,7 +7,16 @@ interface ConstellationLegendProps {
 }
 
 interface ShapeSwatchProps {
-  kind: 'season' | 'ambition' | 'goal' | 'reflection' | 'trait' | 'tension' | 'annotation' | 'evidence';
+  kind:
+    | 'season'
+    | 'ambition'
+    | 'goal'
+    | 'category'
+    | 'reflection'
+    | 'trait'
+    | 'tension'
+    | 'annotation'
+    | 'evidence';
   tokens: ConstellationVisualTokens;
 }
 
@@ -25,10 +35,26 @@ function ShapeSwatch({ kind, tokens }: ShapeSwatchProps) {
             ...common,
             backgroundColor: tokens.node.goalFill,
             borderColor: tokens.node.goalStroke,
+            borderRadius: 9,
             borderWidth: 1.5,
-            transform: [{ rotate: '45deg' }],
           }}
         />
+      );
+    case 'category':
+      return (
+        <View
+          style={{
+            alignItems: 'center',
+            borderColor: tokens.node.goalStroke,
+            borderRadius: 9,
+            borderWidth: 1,
+            height: 18,
+            justifyContent: 'center',
+            width: 18,
+          }}
+        >
+          <Text style={{ color: tokens.node.goalStroke, fontSize: 10 }}>✦</Text>
+        </View>
       );
     case 'reflection':
       return (
@@ -99,14 +125,13 @@ function ShapeSwatch({ kind, tokens }: ShapeSwatchProps) {
             alignItems: 'center',
             borderColor: tokens.brt.bud,
             borderRadius: 9,
-            borderStyle: 'dashed',
             borderWidth: 1,
             height: 18,
             justifyContent: 'center',
-            width: 28,
+            width: 18,
           }}
         >
-          <View style={{ backgroundColor: tokens.brt.bud, borderRadius: 3, height: 6, width: 6 }} />
+          <Text style={{ color: tokens.brt.bud, fontSize: 9 }}>B</Text>
         </View>
       );
   }
@@ -158,6 +183,13 @@ function EdgeSample({
 }
 
 export function ConstellationLegend({ tokens }: ConstellationLegendProps) {
+  const collapsed = useUIStore(
+    (state) => state.constellationLegendCollapsed,
+  );
+  const toggleCollapsed = useUIStore(
+    (state) => state.toggleConstellationLegendCollapsed,
+  );
+
   return (
     <View
       accessibilityLabel="Constellation legend"
@@ -167,38 +199,62 @@ export function ConstellationLegend({ tokens }: ConstellationLegendProps) {
         borderRadius: 14,
         borderWidth: 1,
         bottom: 18,
-        gap: 8,
+        gap: collapsed ? 0 : 8,
         left: 18,
-        paddingHorizontal: 16,
-        paddingVertical: 14,
+        paddingHorizontal: collapsed ? 10 : 16,
+        paddingVertical: collapsed ? 6 : 10,
         position: 'absolute',
-        width: 226,
+        width: collapsed ? 118 : 226,
       }}
     >
-      <Text
-        style={{
-          color: tokens.text.primary,
-          fontFamily: 'Inter-SemiBold',
-          fontSize: 11,
-          letterSpacing: 1.4,
-          marginBottom: 2,
-          textTransform: 'uppercase',
-        }}
+      <Pressable
+        accessibilityLabel={collapsed
+          ? 'Expand Constellation legend'
+          : 'Collapse Constellation legend'}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: !collapsed }}
+        aria-expanded={!collapsed}
+        onPress={toggleCollapsed}
+        style={({ pressed }) => ({
+          alignItems: 'center',
+          flexDirection: 'row',
+          height: 32,
+          justifyContent: 'space-between',
+          opacity: pressed ? 0.7 : 1,
+        })}
       >
-        Legend
-      </Text>
-      <LegendRow kind="season" label="Season" tokens={tokens} />
-      <LegendRow kind="ambition" label="Ambition" tokens={tokens} />
-      <LegendRow kind="goal" label="Earned goal" tokens={tokens} />
-      <LegendRow kind="reflection" label="Reflection" tokens={tokens} />
-      <LegendRow kind="trait" label="Trait" tokens={tokens} />
-      <LegendRow kind="tension" label="Tension" tokens={tokens} />
-      <LegendRow kind="annotation" label="User-authored draft" tokens={tokens} />
-      <LegendRow kind="evidence" label="Goal BRT summary" tokens={tokens} />
-      <View style={{ backgroundColor: tokens.panel.border, height: 1, marginVertical: 2 }} />
-      <EdgeSample color={tokens.edge.positive.color} label="Positive" tokens={tokens} />
-      <EdgeSample color={tokens.edge.contradictory.color} dashed label="Contradictory" tokens={tokens} />
-      <EdgeSample color={tokens.edge.annotation.color} dashed label="Draft / evidence" tokens={tokens} />
+        <Text
+          style={{
+            color: tokens.text.primary,
+            fontFamily: 'Inter-SemiBold',
+            fontSize: 11,
+            letterSpacing: 1.4,
+            textTransform: 'uppercase',
+          }}
+        >
+          Legend
+        </Text>
+        <Text style={{ color: tokens.text.muted, fontSize: 15 }}>
+          {collapsed ? '▸' : '▾'}
+        </Text>
+      </Pressable>
+      {!collapsed ? (
+        <>
+          <LegendRow kind="season" label="Season" tokens={tokens} />
+          <LegendRow kind="ambition" label="Ambition" tokens={tokens} />
+          <LegendRow kind="category" label="Goal category" tokens={tokens} />
+          <LegendRow kind="goal" label="Goal planet" tokens={tokens} />
+          <LegendRow kind="reflection" label="Reflection" tokens={tokens} />
+          <LegendRow kind="trait" label="Trait" tokens={tokens} />
+          <LegendRow kind="tension" label="Tension" tokens={tokens} />
+          <LegendRow kind="annotation" label="User-authored draft" tokens={tokens} />
+          <LegendRow kind="evidence" label="Goal BRT moon" tokens={tokens} />
+          <View style={{ backgroundColor: tokens.panel.border, height: 1, marginVertical: 2 }} />
+          <EdgeSample color={tokens.edge.positive.color} label="Positive" tokens={tokens} />
+          <EdgeSample color={tokens.edge.contradictory.color} dashed label="Contradictory" tokens={tokens} />
+          <EdgeSample color={tokens.edge.annotation.color} dashed label="Draft / goal Entry" tokens={tokens} />
+        </>
+      ) : null}
     </View>
   );
 }

@@ -34,6 +34,8 @@ function neighborDescription(node: ConstellationGraphViewNode): string {
       return `User ${node.node.kind} · Draft`;
     case 'virtual_brt_cluster':
       return `Virtual ${node.node.label} cluster`;
+    case 'virtual_goal_category':
+      return `Goal category · ${node.node.label}`;
   }
 }
 
