@@ -58,17 +58,22 @@ function retryFailure(route: Route) {
   });
 }
 
+// Access gate removed: there is no longer a "locked" render state. This helper
+// now produces the season_only empty graph (the nearest post-gate scenario).
+// See OUTSTANDING.md — the acceptance spec's locked scenario needs rework.
 export function createLockedConstellationGraph(): ConstellationGraphDTO {
+  const season = clone(constellationRendererFixtureGraphDTO).earnedNodes.find(
+    (node) => node.kind === 'season',
+  );
   return {
     ...clone(constellationRendererFixtureGraphDTO),
     state: {
       ...clone(constellationRendererFixtureGraphDTO.state),
-      accessEligible: false,
       hasGraphData: false,
-      renderState: 'locked',
-      seasonNodeId: null,
+      renderState: 'season_only',
+      seasonNodeId: season?.id ?? null,
     },
-    earnedNodes: [],
+    earnedNodes: season ? [season] : [],
     annotations: [],
     virtualBrtClusters: [],
     edges: [],
@@ -181,6 +186,7 @@ export async function installConstellationAcceptanceApi(
     if (path === '/api/constellation/annotations' && method === 'POST') {
       const input = request.postDataJSON() as {
         anchorEarnedNodeId: string | null;
+        anchorGoalId?: string | null;
         body: string | null;
         kind: 'note' | 'projection';
         label: string;
@@ -197,6 +203,7 @@ export async function installConstellationAcceptanceApi(
         label: input.label,
         body: input.body,
         anchorEarnedNodeId: input.anchorEarnedNodeId,
+        anchorGoalId: input.anchorGoalId ?? null,
         createdAt: FIXED_TIME,
         updatedAt: FIXED_TIME,
         archivedAt: null,

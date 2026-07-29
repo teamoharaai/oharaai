@@ -175,11 +175,20 @@ export function stableVirtualBrtClusterId<
   return `brt:${goalId}:${category}`;
 }
 
+// Minimal shape the cluster derivation needs. `ConstellationEvidenceLink` (and
+// items) satisfy it structurally; the server also passes lightweight objects
+// whose category is joined from echo_entries.brt_category at read time.
+export interface GoalEvidenceClusterInput {
+  goalId: string;
+  brtCategory: ConstellationBrtCategory;
+  updatedAt: string;
+}
+
 function toVirtualCluster(
   goalId: string,
   goalNodeId: string,
   category: ConstellationBrtCategory,
-  evidenceLinks: readonly ConstellationEvidenceLink[],
+  evidenceLinks: readonly GoalEvidenceClusterInput[],
 ): ConstellationVirtualBrtClusterDTO {
   const latestEvidenceAt = evidenceLinks.reduce<string | null>(
     (latest, link) => latest === null || link.updatedAt > latest ? link.updatedAt : latest,
@@ -227,10 +236,10 @@ function toVirtualCluster(
  * no virtual cluster, so derived display entities cannot outlive their goal.
  */
 export function groupGoalEvidenceByBrt(
-  evidenceLinks: readonly ConstellationEvidenceLink[],
+  evidenceLinks: readonly GoalEvidenceClusterInput[],
   goalNodeIds: ReadonlyMap<string, string>,
 ): readonly ConstellationVirtualBrtClusterDTO[] {
-  const groups = new Map<string, ConstellationEvidenceLink[]>();
+  const groups = new Map<string, GoalEvidenceClusterInput[]>();
 
   for (const link of evidenceLinks) {
     const key = link.goalId + ':' + link.brtCategory;

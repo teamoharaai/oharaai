@@ -187,16 +187,6 @@ function virtualCounts(
   return result;
 }
 
-function hasSourceActivity(dto: ConstellationGraphDTO): boolean {
-  return (
-    dto.counts.source.echoEntries > 0
-    || dto.counts.source.qualifiedCandidates > 0
-    || Object.values(dto.counts.source.goalsByStatus).some(
-      (count) => count > 0,
-    )
-  );
-}
-
 function evidenceRenderState(
   dto: ConstellationGraphDTO,
   clusters: ConstellationGraphDTO['virtualBrtClusters'],
@@ -205,9 +195,6 @@ function evidenceRenderState(
   hasGraphData: boolean;
   renderState: ConstellationRenderState;
 } {
-  if (!dto.state.accessEligible) {
-    return { hasGraphData: false, renderState: 'locked' };
-  }
   const hasGraphData = (
     dto.earnedNodes.some((node) => node.kind !== 'season')
     || dto.annotations.length > 0
@@ -216,11 +203,7 @@ function evidenceRenderState(
   );
   return {
     hasGraphData,
-    renderState: hasGraphData
-      ? 'graph'
-      : hasSourceActivity(dto)
-        ? 'patterns_forming'
-        : 'season_only',
+    renderState: hasGraphData ? 'graph' : 'season_only',
   };
 }
 

@@ -29,10 +29,11 @@ export type GraphEdgeValence =
   | 'mixed'
   | 'contradictory';
 
+// Access gate removed (DECISIONS.md §567 #1): Constellation has no minimum
+// threshold. `season_only` is the zero-graph-data empty state; `graph` is shown
+// once any graph entity (goal node, annotation, cluster, edge) exists.
 export type ConstellationRenderState =
-  | 'locked'
   | 'season_only'
-  | 'patterns_forming'
   | 'graph';
 
 export interface SeasonNodeSource {
@@ -102,7 +103,10 @@ interface AnnotationNodeBase<TKind extends ConstellationAnnotationKind> {
   isDraft: true;
   label: string;
   body: string | null;
+  // An annotation anchors to at most one of an earned node (season/trait/…) or a
+  // direct-read goal node (goals.id). Enforced by the DB single-anchor CHECK.
   anchorEarnedNodeId: string | null;
+  anchorGoalId: string | null;
   createdAt: string;
   updatedAt: string;
   archivedAt: string | null;
@@ -293,6 +297,7 @@ export interface CreateConstellationAnnotationInput {
   label: string;
   body: string | null;
   anchorEarnedNodeId: string | null;
+  anchorGoalId?: string | null;
 }
 
 export interface UpdateConstellationAnnotationInput {
@@ -300,6 +305,7 @@ export interface UpdateConstellationAnnotationInput {
   label?: string;
   body?: string | null;
   anchorEarnedNodeId?: string | null;
+  anchorGoalId?: string | null;
 }
 
 export interface CreateConstellationEvidenceReferenceInput {
@@ -364,7 +370,6 @@ export interface ConstellationGraphCountsDTO {
 }
 
 export interface ConstellationGraphStateDTO {
-  accessEligible: boolean;
   hasGraphData: boolean;
   renderState: ConstellationRenderState;
   phase: 'initial_read_only';

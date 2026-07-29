@@ -190,6 +190,7 @@ export function useConstellation() {
       label: input.label,
       body: input.body,
       anchorEarnedNodeId: input.anchorEarnedNodeId,
+      anchorGoalId: input.anchorGoalId ?? null,
       createdAt: now,
       updatedAt: now,
       archivedAt: null,

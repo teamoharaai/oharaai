@@ -36,7 +36,6 @@ export const constellationFixtureEvidenceLinks: readonly ConstellationEvidenceLi
 export const constellationFixtureGraph: ConstellationGraphDTO = {
   version: '1.0',
   state: {
-    accessEligible: true,
     hasGraphData: true,
     renderState: 'graph',
     phase: 'initial_read_only',
@@ -87,7 +86,8 @@ export const constellationFixtureGraph: ConstellationGraphDTO = {
       isDraft: true,
       label: 'Fixture note',
       body: null,
-      anchorEarnedNodeId: 'fixture-goal',
+      anchorEarnedNodeId: null,
+      anchorGoalId: 'fixture-goal',
       createdAt: '2026-07-04T12:00:00.000Z',
       updatedAt: '2026-07-04T12:00:00.000Z',
       archivedAt: null,

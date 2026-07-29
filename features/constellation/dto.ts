@@ -55,9 +55,7 @@ const EDGE_VALENCES = [
   'contradictory',
 ] as const satisfies readonly GraphEdgeValence[];
 const RENDER_STATES = [
-  'locked',
   'season_only',
-  'patterns_forming',
   'graph',
 ] as const satisfies readonly ConstellationRenderState[];
 const GOAL_STATUSES = [
@@ -175,6 +173,7 @@ function isAnnotation(
     && isNonEmptyString(value.label)
     && isNullableString(value.body)
     && isNullableString(value.anchorEarnedNodeId)
+    && isNullableString(value.anchorGoalId)
     && isNonEmptyString(value.createdAt)
     && isNonEmptyString(value.updatedAt)
     && isNullableString(value.archivedAt)
@@ -452,7 +451,6 @@ function isGraphState(
 ): value is ConstellationGraphDTO['state'] {
   return (
     isRecord(value)
-    && typeof value.accessEligible === 'boolean'
     && typeof value.hasGraphData === 'boolean'
     && includes(RENDER_STATES, value.renderState)
     && value.phase === 'initial_read_only'
@@ -488,24 +486,14 @@ export function parseConstellationGraphDTO(
     return null;
   }
 
+  // With the access gate removed, every valid graph carries exactly one Season
+  // anchor and names it in state.seasonNodeId.
   const seasonNodes = value.earnedNodes.filter(
     (node) => node.kind === 'season',
   );
   if (
-    value.state.accessEligible
-      ? (
-          seasonNodes.length !== 1
-          || value.state.seasonNodeId !== seasonNodes[0].id
-          || value.state.renderState === 'locked'
-        )
-      : (
-          value.state.renderState !== 'locked'
-          || value.state.seasonNodeId !== null
-          || value.earnedNodes.length !== 0
-          || value.annotations.length !== 0
-          || value.virtualBrtClusters.length !== 0
-          || value.edges.length !== 0
-        )
+    seasonNodes.length !== 1
+    || value.state.seasonNodeId !== seasonNodes[0].id
   ) {
     return null;
   }

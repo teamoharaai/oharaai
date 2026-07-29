@@ -14,7 +14,6 @@ import {
   archiveConstellationAnnotation,
   assembleConstellationGraphDTO,
   classifyConstellationPersistenceError,
-  computeConstellationAccessEligibility,
   ConstellationDataError,
   createConstellationAnnotation,
   createOrUpdateConstellationEvidenceReference,
@@ -49,7 +48,8 @@ function emptySnapshot(): ConstellationSnapshot {
     nodes: [],
     edges: [],
     annotations: [],
-    evidenceReferences: [],
+    evidenceLinks: [],
+    echoBrtCategories: [],
     goals: [],
     projects: [],
     echoEntryCount: 0,
@@ -70,6 +70,7 @@ function annotationRow(
     label: 'A note',
     body: null,
     anchor_earned_node_id: null,
+    anchor_goal_id: null,
     created_at: GENERATED_AT,
     updated_at: GENERATED_AT,
     archived_at: null,
@@ -303,7 +304,6 @@ test('eligible empty graphs return one deterministic real Season and no fixtures
     OWNER_ID,
     emptySnapshot(),
     GENERATED_AT,
-    { accessEligible: true },
   );
 
   assert.equal(graph.state.renderState, 'season_only');
@@ -318,19 +318,21 @@ test('eligible empty graphs return one deterministic real Season and no fixtures
   assert.deepEqual(graph.virtualBrtClusters, []);
 });
 
-test('locked graphs with persisted entities report honest hasGraphData without returning entities', () => {
+test('goal nodes are direct-read from the goals table, never from constellation_nodes', () => {
   const snapshot = emptySnapshot();
   snapshot.goals = [{
     id: GOAL_A_ID,
+    title: 'A real goal',
     status: 'active',
     updated_at: GENERATED_AT,
   }];
+  // A stray constellation_nodes row of kind='goal' must be ignored entirely.
   snapshot.nodes = [{
     id: NODE_ID,
     owner_id: OWNER_ID,
     kind: 'goal',
     status: 'active',
-    label: 'A real but locked goal',
+    label: 'Ignored persisted goal node',
     description: null,
     authorship: 'system',
     is_earned: true,
@@ -345,79 +347,42 @@ test('locked graphs with persisted entities report honest hasGraphData without r
     updated_at: GENERATED_AT,
   }];
 
-  const graph = assembleConstellationGraphDTO(
-    OWNER_ID,
-    snapshot,
-    GENERATED_AT,
-  );
+  const graph = assembleConstellationGraphDTO(OWNER_ID, snapshot, GENERATED_AT);
 
-  assert.equal(graph.state.accessEligible, false);
+  // No access gate: any goal makes the graph render, with the Season anchor set.
   assert.equal(graph.state.hasGraphData, true);
-  assert.equal(graph.state.renderState, 'locked');
-  assert.equal(graph.state.seasonNodeId, null);
-  assert.equal(graph.counts.earnedNodes.total, 2);
-  assert.deepEqual(graph.earnedNodes, []);
-});
-
-test('server access eligibility excludes draft goals from the lifetime threshold', () => {
-  const snapshot = emptySnapshot();
-  snapshot.echoEntryCount = 10;
-  snapshot.goals = [
-    { id: GOAL_A_ID, status: 'active', updated_at: GENERATED_AT },
-    { id: GOAL_B_ID, status: 'active', updated_at: GENERATED_AT },
-    {
-      id: '00000000-0000-4000-8000-000000000009',
-      status: 'draft',
-      updated_at: GENERATED_AT,
-    },
-  ];
-  assert.equal(computeConstellationAccessEligibility(snapshot), false);
-
-  snapshot.goals[2] = {
-    ...snapshot.goals[2],
-    status: 'archived',
-  };
-  assert.equal(computeConstellationAccessEligibility(snapshot), true);
+  assert.equal(graph.state.renderState, 'graph');
+  assert.equal(graph.state.seasonNodeId, derivedSeasonNodeId(OWNER_ID));
+  const goalNodes = graph.earnedNodes.filter((node) => node.kind === 'goal');
+  assert.equal(goalNodes.length, 1);
+  // Node identity is goals.id, never the constellation_nodes UUID.
+  assert.equal(goalNodes[0].id, GOAL_A_ID);
+  assert.notEqual(goalNodes[0].id, NODE_ID);
+  assert.equal(goalNodes[0].label, 'A real goal');
 });
 
 test('graph assembly includes owner data, virtual evidence summaries, and no Echo excerpts', () => {
   const snapshot = emptySnapshot();
   snapshot.echoEntryCount = 10;
   snapshot.goals = [
-    { id: GOAL_A_ID, status: 'active', updated_at: GENERATED_AT },
-    { id: GOAL_B_ID, status: 'draft', updated_at: GENERATED_AT },
+    { id: GOAL_A_ID, title: 'Owned goal', status: 'active', updated_at: GENERATED_AT },
+    { id: GOAL_B_ID, title: 'Draft goal', status: 'draft', updated_at: GENERATED_AT },
     {
       id: '00000000-0000-4000-8000-000000000009',
+      title: 'Archived goal',
       status: 'archived',
       updated_at: GENERATED_AT,
     },
     {
       id: '00000000-0000-4000-8000-000000000014',
+      title: 'Second active goal',
       status: 'active',
       updated_at: GENERATED_AT,
     },
   ];
-  snapshot.nodes = [{
-    id: NODE_ID,
-    owner_id: OWNER_ID,
-    kind: 'goal',
-    status: 'active',
-    label: 'Owned goal',
-    description: null,
-    authorship: 'system',
-    is_earned: true,
-    source_type: 'goal',
-    source_project_id: null,
-    source_goal_id: GOAL_A_ID,
-    source_profile_id: null,
-    source_key: null,
-    visibility_score: 4,
-    first_seen_at: GENERATED_AT,
-    last_activity_at: GENERATED_AT,
-    updated_at: GENERATED_AT,
-  }];
   snapshot.annotations = [
-    annotationRow({ anchor_earned_node_id: NODE_ID }),
+    // Anchored to a direct-read goal node via anchor_goal_id.
+    annotationRow({ anchor_goal_id: GOAL_A_ID }),
     annotationRow({
       id: '00000000-0000-4000-8000-000000000010',
       status: 'archived',
@@ -428,16 +393,24 @@ test('graph assembly includes owner data, virtual evidence summaries, and no Ech
       owner_id: OTHER_OWNER_ID,
     }),
   ];
-  snapshot.evidenceReferences = [
-    evidenceRow(),
-    evidenceRow({
+  // BRT category now lives on the echo entry; both owner links inherit 'bud'.
+  snapshot.echoBrtCategories = [{ id: ECHO_ID, brt_category: 'bud' }];
+  snapshot.evidenceLinks = [
+    { id: EVIDENCE_ID, owner_id: OWNER_ID, echo_entry_id: ECHO_ID, goal_id: GOAL_A_ID, updated_at: GENERATED_AT },
+    {
       id: '00000000-0000-4000-8000-000000000012',
-      brt_category: 'bud',
-    }),
-    evidenceRow({
+      owner_id: OWNER_ID,
+      echo_entry_id: ECHO_ID,
+      goal_id: GOAL_A_ID,
+      updated_at: GENERATED_AT,
+    },
+    {
       id: '00000000-0000-4000-8000-000000000013',
       owner_id: OTHER_OWNER_ID,
-    }),
+      echo_entry_id: ECHO_ID,
+      goal_id: GOAL_A_ID,
+      updated_at: GENERATED_AT,
+    },
   ];
 
   const graph = assembleConstellationGraphDTO(
@@ -446,7 +419,6 @@ test('graph assembly includes owner data, virtual evidence summaries, and no Ech
     GENERATED_AT,
   );
 
-  assert.equal(graph.state.accessEligible, true);
   assert.equal(graph.state.hasGraphData, true);
   assert.equal(graph.annotations.length, 1);
   assert.equal(graph.counts.annotations.archived, 1);

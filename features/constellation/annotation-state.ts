@@ -19,22 +19,23 @@ function annotationEdge(
   dto: ConstellationGraphDTO,
   annotation: ConstellationAnnotationDTO,
 ): ConstellationGraphEdgeDTO | null {
+  // Anchor may be an earned node or a direct-read goal node; both resolve to an
+  // earned_node graph entity.
+  const anchorId = annotation.anchorEarnedNodeId ?? annotation.anchorGoalId;
   if (
     annotation.status !== 'draft'
-    || !annotation.anchorEarnedNodeId
-    || !dto.earnedNodes.some(
-      (node) => node.id === annotation.anchorEarnedNodeId,
-    )
+    || !anchorId
+    || !dto.earnedNodes.some((node) => node.id === anchorId)
   ) {
     return null;
   }
 
   return {
-    id: `annotation-anchor:${annotation.id}:${annotation.anchorEarnedNodeId}`,
+    id: `annotation-anchor:${annotation.id}:${anchorId}`,
     from: { entityType: 'annotation', id: annotation.id },
     to: {
       entityType: 'earned_node',
-      id: annotation.anchorEarnedNodeId,
+      id: anchorId,
     },
     kind: 'annotation_anchor',
     valence: null,
@@ -55,15 +56,6 @@ function withoutAnnotationEdges(
   );
 }
 
-function hasSourceActivity(dto: ConstellationGraphDTO): boolean {
-  const goals = dto.counts.source.goalsByStatus;
-  return (
-    dto.counts.source.echoEntries > 0
-    || dto.counts.source.qualifiedCandidates > 0
-    || Object.values(goals).some((count) => count > 0)
-  );
-}
-
 function renderStateFor(
   dto: ConstellationGraphDTO,
   annotations: readonly ConstellationAnnotationDTO[],
@@ -72,10 +64,6 @@ function renderStateFor(
   hasGraphData: boolean;
   renderState: ConstellationRenderState;
 } {
-  if (!dto.state.accessEligible) {
-    return { hasGraphData: false, renderState: 'locked' };
-  }
-
   const hasGraphData = (
     dto.earnedNodes.some((node) => node.kind !== 'season')
     || annotations.length > 0
@@ -85,11 +73,7 @@ function renderStateFor(
 
   return {
     hasGraphData,
-    renderState: hasGraphData
-      ? 'graph'
-      : hasSourceActivity(dto)
-        ? 'patterns_forming'
-        : 'season_only',
+    renderState: hasGraphData ? 'graph' : 'season_only',
   };
 }
 

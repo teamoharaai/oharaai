@@ -174,7 +174,8 @@ const annotations: readonly ConstellationAnnotationDTO[] = [
     isDraft: true,
     label: 'A present partner',
     body: 'Synthetic draft projection for renderer QA.',
-    anchorEarnedNodeId: 'renderer-goal-date',
+    anchorEarnedNodeId: null,
+    anchorGoalId: 'renderer-goal-date',
     createdAt: LAST_ACTIVITY_AT,
     updatedAt: LAST_ACTIVITY_AT,
     archivedAt: null,
@@ -188,7 +189,8 @@ const annotations: readonly ConstellationAnnotationDTO[] = [
     isDraft: true,
     label: 'Protect the quiet hour',
     body: 'Synthetic draft note for renderer QA.',
-    anchorEarnedNodeId: 'renderer-goal-ship',
+    anchorEarnedNodeId: null,
+    anchorGoalId: 'renderer-goal-ship',
     createdAt: LAST_ACTIVITY_AT,
     updatedAt: LAST_ACTIVITY_AT,
     archivedAt: null,
@@ -312,7 +314,6 @@ const edges: readonly ConstellationGraphEdgeDTO[] = [
 export const constellationRendererFixtureGraphDTO: ConstellationGraphDTO = {
   version: '1.0',
   state: {
-    accessEligible: true,
     hasGraphData: true,
     renderState: 'graph',
     phase: 'initial_read_only',

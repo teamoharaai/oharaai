@@ -55,8 +55,10 @@ export function ConstellationAnnotationPanel({
   );
   const [label, setLabel] = useState(annotation?.label ?? '');
   const [body, setBody] = useState(annotation?.body ?? '');
+  // A single anchor selection covers both anchor paths; goal nodes route to
+  // anchorGoalId and earned nodes to anchorEarnedNodeId at save time.
   const [anchorId, setAnchorId] = useState<string | null>(
-    annotation?.anchorEarnedNodeId ?? null,
+    annotation?.anchorEarnedNodeId ?? annotation?.anchorGoalId ?? null,
   );
   const [labelError, setLabelError] = useState<string | null>(null);
   const [archiveConfirmation, setArchiveConfirmation] = useState(false);
@@ -72,10 +74,11 @@ export function ConstellationAnnotationPanel({
     setKind(annotation?.kind ?? initialKind);
     setLabel(annotation?.label ?? '');
     setBody(annotation?.body ?? '');
+    const existingAnchorId =
+      annotation?.anchorEarnedNodeId ?? annotation?.anchorGoalId ?? null;
     setAnchorId(
-      annotation?.anchorEarnedNodeId
-      && visibleAnchorIds.has(annotation.anchorEarnedNodeId)
-        ? annotation.anchorEarnedNodeId
+      existingAnchorId && visibleAnchorIds.has(existingAnchorId)
+        ? existingAnchorId
         : null,
     );
     setLabelError(null);
@@ -104,11 +107,16 @@ export function ConstellationAnnotationPanel({
 
     setLabelError(null);
     setLastAction('save');
+    const selectedAnchor = anchorId
+      ? visibleEarnedNodes.find((node) => node.id === anchorId)
+      : undefined;
+    const anchorIsGoal = selectedAnchor?.kind === 'goal';
     await onSave({
       kind,
       label: trimmedLabel,
       body: normalizedBody(body),
-      anchorEarnedNodeId: anchorId,
+      anchorEarnedNodeId: anchorIsGoal ? null : anchorId,
+      anchorGoalId: anchorIsGoal ? anchorId : null,
     });
   }
 
@@ -129,10 +137,10 @@ export function ConstellationAnnotationPanel({
     : annotation
       ? 'Save changes'
       : `Create ${kindLabel(kind)}`;
-  const anchorNode = annotation?.anchorEarnedNodeId
-    ? visibleEarnedNodes.find(
-        (node) => node.id === annotation.anchorEarnedNodeId,
-      )
+  const existingAnchorId =
+    annotation?.anchorEarnedNodeId ?? annotation?.anchorGoalId ?? null;
+  const anchorNode = existingAnchorId
+    ? visibleEarnedNodes.find((node) => node.id === existingAnchorId)
     : undefined;
 
   if (annotation && !editing) {

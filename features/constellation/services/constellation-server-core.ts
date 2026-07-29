@@ -1,9 +1,5 @@
 import { GOAL_DB_STATUSES, type GoalDbStatus } from '../../../lib/goals/schema.ts';
 import {
-  CONSTELLATION_ECHO_ACCESS_GATE,
-  CONSTELLATION_GOAL_ACCESS_GATE,
-} from '../gate.ts';
-import {
   groupGoalEvidenceByBrt,
   stableVirtualBrtClusterId,
 } from '../graph.ts';
@@ -99,11 +95,33 @@ export interface ConstellationAnnotationRow {
   label: string;
   body: string | null;
   anchor_earned_node_id: string | null;
+  anchor_goal_id: string | null;
   created_at: string;
   updated_at: string;
   archived_at: string | null;
 }
 
+// Snapshot-only evidence-link shape. BRT category is no longer stored per link
+// (migration 033 dropped constellation_evidence_links.brt_category); the graph
+// read path joins to echo_entries.brt_category via ConstellationEchoBrtRow.
+export interface ConstellationEvidenceLinkRow {
+  id: string;
+  owner_id: string;
+  echo_entry_id: string;
+  goal_id: string;
+  updated_at: string;
+}
+
+// (id, brt_category) for owner echo entries that carry a BRT category. Feeds the
+// virtual-cluster derivation join.
+export interface ConstellationEchoBrtRow {
+  id: string;
+  brt_category: string | null;
+}
+
+// Persisted per-link category shape retained for the evidence write/inspector
+// path (Prompt 3 picker surface). NOTE: brt_category is a dropped column — this
+// read/write path is a known follow-up, see OUTSTANDING.md.
 export interface ConstellationEvidenceReferenceRow {
   id: string;
   owner_id: string;
@@ -117,6 +135,7 @@ export interface ConstellationEvidenceReferenceRow {
 
 export interface ConstellationGoalSourceRow {
   id: string;
+  title: string;
   status: string;
   updated_at: string;
 }
@@ -131,7 +150,8 @@ export interface ConstellationSnapshot {
   nodes: ConstellationNodeRow[];
   edges: ConstellationEdgeRow[];
   annotations: ConstellationAnnotationRow[];
-  evidenceReferences: ConstellationEvidenceReferenceRow[];
+  evidenceLinks: ConstellationEvidenceLinkRow[];
+  echoBrtCategories: ConstellationEchoBrtRow[];
   goals: ConstellationGoalSourceRow[];
   projects: ConstellationProjectSourceRow[];
   echoEntryCount: number;
@@ -158,6 +178,7 @@ export interface ConstellationAnnotationRowPatch {
   label?: string;
   body?: string | null;
   anchor_earned_node_id?: string | null;
+  anchor_goal_id?: string | null;
   status?: 'archived';
 }
 
@@ -354,18 +375,6 @@ function countGoalsByStatus(
   return counts;
 }
 
-export function computeConstellationAccessEligibility(
-  snapshot: Pick<ConstellationSnapshot, 'goals' | 'echoEntryCount'>,
-): boolean {
-  const nonDraftGoalCount = snapshot.goals.filter(
-    (goal) => requireGoalStatus(goal.status) !== 'draft',
-  ).length;
-  return (
-    nonDraftGoalCount >= CONSTELLATION_GOAL_ACCESS_GATE
-    && snapshot.echoEntryCount >= CONSTELLATION_ECHO_ACCESS_GATE
-  );
-}
-
 function stableHashPart(value: string, seed: number): string {
   let hash = seed;
   for (let index = 0; index < value.length; index += 1) {
@@ -429,7 +438,6 @@ function isGoalNodeVisible(
 
 function mapEarnedNode(
   row: ConstellationNodeRow,
-  goalById: ReadonlyMap<string, ConstellationGoalSourceRow>,
 ): ConstellationEarnedNodeDTO {
   const kind = requireNodeKind(row.kind);
   const common = {
@@ -460,24 +468,12 @@ function mapEarnedNode(
         kind,
         source: { type: 'project', id: row.source_project_id },
       };
-    case 'goal': {
-      if (!row.source_goal_id) {
-        throw new Error('Constellation goal node is missing its goal source.');
-      }
-      const goal = goalById.get(row.source_goal_id);
-      if (!goal) {
-        throw new Error('Constellation goal source was not loaded.');
-      }
-      return {
-        ...common,
-        kind,
-        source: {
-          type: 'goal',
-          id: row.source_goal_id,
-          goalStatus: requireGoalStatus(goal.status),
-        },
-      };
-    }
+    case 'goal':
+      // Goal nodes are derived directly from the goals table (mapGoalNode) and
+      // must never be sourced from a constellation_nodes row.
+      throw new Error(
+        'Constellation goal nodes are direct-read, not mapped from constellation_nodes.',
+      );
     case 'reflection':
     case 'tension':
       if (!row.source_key) {
@@ -500,6 +496,31 @@ function mapEarnedNode(
   }
 }
 
+// Goal nodes are computed directly from the goals table at read time (DECISIONS
+// §567 #2). The node identifier is goals.id itself — there is no
+// constellation_nodes row and no writer for kind='goal'.
+function mapGoalNode(
+  goal: ConstellationGoalSourceRow,
+): ConstellationEarnedNodeDTO {
+  return {
+    id: goal.id,
+    selectionKey: `node:${goal.id}`,
+    kind: 'goal',
+    label: goal.title,
+    description: null,
+    authorship: 'system',
+    isEarned: true,
+    source: {
+      type: 'goal',
+      id: goal.id,
+      goalStatus: requireGoalStatus(goal.status),
+    },
+    visibilityScore: null,
+    firstSeenAt: null,
+    lastActivityAt: goal.updated_at,
+  };
+}
+
 export function mapConstellationAnnotation(
   row: ConstellationAnnotationRow,
 ): ConstellationAnnotationDTO {
@@ -513,6 +534,7 @@ export function mapConstellationAnnotation(
     label: row.label,
     body: row.body,
     anchorEarnedNodeId: row.anchor_earned_node_id,
+    anchorGoalId: row.anchor_goal_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     archivedAt: row.archived_at,
@@ -616,15 +638,10 @@ function compareEarnedNodes(
   ) || left.id.localeCompare(right.id);
 }
 
-export interface AssembleConstellationOptions {
-  accessEligible?: boolean;
-}
-
 export function assembleConstellationGraphDTO(
   ownerId: string,
   snapshot: ConstellationSnapshot,
   generatedAt: string,
-  options: AssembleConstellationOptions = {},
 ): ConstellationGraphDTO {
   const goalsByStatus = countGoalsByStatus(snapshot.goals);
   const qualifiedCandidates = countQualifiedCandidates(
@@ -635,22 +652,16 @@ export function assembleConstellationGraphDTO(
     qualifiedCandidates,
     goalsByStatus,
   };
-  const accessEligible = options.accessEligible
-    ?? computeConstellationAccessEligibility(snapshot);
 
-  const goalById = new Map(snapshot.goals.map((goal) => [goal.id, goal]));
   const projectById = new Map(
     snapshot.projects.map((project) => [project.id, project]),
   );
+  // constellation_nodes is read for kind='season' (and dormant future kinds)
+  // only. Goal nodes are excluded here and derived directly from goals below.
   const persistedNodes = snapshot.nodes
     .filter((row) => row.owner_id === ownerId && row.status === 'active')
+    .filter((row) => row.kind !== 'goal')
     .filter((row) => {
-      if (row.kind === 'goal') {
-        const goal = row.source_goal_id
-          ? goalById.get(row.source_goal_id)
-          : undefined;
-        return goal ? isGoalNodeVisible(goal, generatedAt) : false;
-      }
       if (row.kind === 'ambition') {
         const project = row.source_project_id
           ? projectById.get(row.source_project_id)
@@ -659,7 +670,13 @@ export function assembleConstellationGraphDTO(
       }
       return true;
     })
-    .map((row) => mapEarnedNode(row, goalById));
+    .map((row) => mapEarnedNode(row));
+
+  // Direct-read goal nodes (keyed by goals.id), gated by the same active/complete
+  // -within-grace visibility filter that previously lived on the persisted node.
+  const goalNodes = snapshot.goals
+    .filter((goal) => isGoalNodeVisible(goal, generatedAt))
+    .map(mapGoalNode);
 
   const seasonNodes = persistedNodes.filter((node) => node.kind === 'season');
   if (seasonNodes.length > 1) {
@@ -669,6 +686,7 @@ export function assembleConstellationGraphDTO(
   const earnedNodes = [
     seasonNode,
     ...persistedNodes.filter((node) => node.kind !== 'season'),
+    ...goalNodes,
   ].sort(compareEarnedNodes);
   const earnedNodeIds = new Set(earnedNodes.map((node) => node.id));
 
@@ -684,18 +702,30 @@ export function assembleConstellationGraphDTO(
       || left.id.localeCompare(right.id)
     ));
 
-  const evidenceReferences = snapshot.evidenceReferences
-    .filter((row) => row.owner_id === ownerId)
-    .map(mapConstellationEvidenceReference);
+  // Virtual BRT clusters derive their category by joining each evidence link to
+  // its echo entry's brt_category (migration 033 moved BRT category onto
+  // echo_entries; the per-link column is gone). Links whose echo entry has no
+  // category form no cluster.
+  const brtCategoryByEchoId = new Map<string, ConstellationBrtCategory>();
+  for (const row of snapshot.echoBrtCategories) {
+    if (row.brt_category !== null) {
+      brtCategoryByEchoId.set(row.id, requireBrtCategory(row.brt_category));
+    }
+  }
+  const evidenceLinks = snapshot.evidenceLinks.filter(
+    (row) => row.owner_id === ownerId,
+  );
+  const categorizedEvidenceLinks = evidenceLinks.flatMap((row) => {
+    const brtCategory = brtCategoryByEchoId.get(row.echo_entry_id);
+    return brtCategory
+      ? [{ goalId: row.goal_id, brtCategory, updatedAt: row.updated_at }]
+      : [];
+  });
   const goalNodeIds = new Map(
-    earnedNodes.flatMap((node) => (
-      node.kind === 'goal'
-        ? [[node.source.id, node.id] as const]
-        : []
-    )),
+    goalNodes.map((node) => [node.id, node.id] as const),
   );
   const virtualBrtClusters = groupGoalEvidenceByBrt(
-    evidenceReferences,
+    categorizedEvidenceLinks,
     goalNodeIds,
   );
 
@@ -710,23 +740,25 @@ export function assembleConstellationGraphDTO(
     .map(mapPersistedEdge);
 
   const annotationEdges: ConstellationGraphEdgeDTO[] = annotations.flatMap(
-    (annotation) => (
-      annotation.anchorEarnedNodeId
-      && earnedNodeIds.has(annotation.anchorEarnedNodeId)
+    (annotation) => {
+      // An annotation anchors to an earned node OR a direct-read goal node; both
+      // resolve to an earned_node graph entity keyed by its node id.
+      const anchorId = annotation.anchorEarnedNodeId ?? annotation.anchorGoalId;
+      return anchorId && earnedNodeIds.has(anchorId)
         ? [{
-            id: `annotation-anchor:${annotation.id}:${annotation.anchorEarnedNodeId}`,
-            from: { entityType: 'annotation', id: annotation.id },
+            id: `annotation-anchor:${annotation.id}:${anchorId}`,
+            from: { entityType: 'annotation' as const, id: annotation.id },
             to: {
-              entityType: 'earned_node',
-              id: annotation.anchorEarnedNodeId,
+              entityType: 'earned_node' as const,
+              id: anchorId,
             },
-            kind: 'annotation_anchor',
+            kind: 'annotation_anchor' as const,
             valence: null,
             weight: null,
             isPersisted: false,
           }]
-        : []
-    ),
+        : [];
+    },
   );
   const clusterEdges: ConstellationGraphEdgeDTO[] = virtualBrtClusters.map(
     (cluster) => ({
@@ -763,51 +795,22 @@ export function assembleConstellationGraphDTO(
     || virtualBrtClusters.length > 0
     || edges.length > 0
   );
-  const hasSourceActivity = (
-    snapshot.echoEntryCount > 0
-    || snapshot.goals.length > 0
-    || qualifiedCandidates > 0
-  );
   const counts: ConstellationGraphCountsDTO = {
     earnedNodes: countEarnedNodes(earnedNodes),
     annotations: annotationCounts,
     virtualBrtClusters: countVirtualClusters(virtualBrtClusters),
     edges: edges.length,
-    evidenceLinks: evidenceReferences.length,
+    evidenceLinks: evidenceLinks.length,
     source: sourceCounts,
   };
 
-  if (!accessEligible) {
-    return {
-      version: '1.0',
-      state: {
-        accessEligible: false,
-        hasGraphData,
-        renderState: 'locked',
-        phase: 'initial_read_only',
-        dataOrigin: 'real',
-        generatedAt,
-        dataAsOf: generatedAt,
-        seasonNodeId: null,
-      },
-      earnedNodes: [],
-      annotations: [],
-      virtualBrtClusters: [],
-      edges: [],
-      counts,
-    };
-  }
-
+  // No access gate: the graph always renders. `season_only` is the empty state
+  // (only the Season anchor, no graph data yet); `graph` once any entity exists.
   return {
     version: '1.0',
     state: {
-      accessEligible: true,
       hasGraphData,
-      renderState: hasGraphData
-        ? 'graph'
-        : hasSourceActivity
-          ? 'patterns_forming'
-          : 'season_only',
+      renderState: hasGraphData ? 'graph' : 'season_only',
       phase: 'initial_read_only',
       dataOrigin: 'real',
       generatedAt,
@@ -822,19 +825,28 @@ export function assembleConstellationGraphDTO(
   };
 }
 
-async function requireOwnedAnchor(
+// An annotation may anchor to an earned node (constellation_nodes: season and
+// dormant future kinds) OR a direct-read goal node (goals.id). The two paths
+// validate against different owner-scoped sources; the DB single-anchor CHECK
+// guarantees at most one is set.
+async function requireOwnedAnchors(
   ownerId: string,
   anchorEarnedNodeId: string | null | undefined,
+  anchorGoalId: string | null | undefined,
   repository: ConstellationMutationRepository,
 ): Promise<void> {
   if (
     anchorEarnedNodeId
-    && !(
-      await repository.hasOwnedVisibleEarnedNode(
-        ownerId,
-        anchorEarnedNodeId,
-      )
-    )
+    && !(await repository.hasOwnedVisibleEarnedNode(ownerId, anchorEarnedNodeId))
+  ) {
+    throw new ConstellationDataError(
+      'NOT_FOUND',
+      'Annotation anchor not found.',
+    );
+  }
+  if (
+    anchorGoalId
+    && !(await repository.hasOwnedGoal(ownerId, anchorGoalId))
   ) {
     throw new ConstellationDataError(
       'NOT_FOUND',
@@ -848,7 +860,12 @@ export async function createConstellationAnnotation(
   input: CreateConstellationAnnotationInput,
   repository: ConstellationMutationRepository,
 ): Promise<ConstellationAnnotationDTO> {
-  await requireOwnedAnchor(ownerId, input.anchorEarnedNodeId, repository);
+  await requireOwnedAnchors(
+    ownerId,
+    input.anchorEarnedNodeId,
+    input.anchorGoalId,
+    repository,
+  );
   try {
     return mapConstellationAnnotation(
       await repository.insertAnnotation(ownerId, input),
@@ -875,9 +892,10 @@ export async function updateConstellationAnnotation(
     );
   }
 
-  await requireOwnedAnchor(
+  await requireOwnedAnchors(
     ownerId,
     input.anchorEarnedNodeId,
+    input.anchorGoalId,
     repository,
   );
   const patch: ConstellationAnnotationRowPatch = {};
@@ -886,6 +904,13 @@ export async function updateConstellationAnnotation(
   if (input.body !== undefined) patch.body = input.body;
   if (input.anchorEarnedNodeId !== undefined) {
     patch.anchor_earned_node_id = input.anchorEarnedNodeId;
+    // Anchors are mutually exclusive; setting an earned-node anchor clears any
+    // goal anchor so the single-anchor CHECK is never tripped.
+    if (input.anchorEarnedNodeId !== null) patch.anchor_goal_id = null;
+  }
+  if (input.anchorGoalId !== undefined) {
+    patch.anchor_goal_id = input.anchorGoalId;
+    if (input.anchorGoalId !== null) patch.anchor_earned_node_id = null;
   }
 
   try {

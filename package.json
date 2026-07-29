@@ -7,7 +7,7 @@
     "web": "expo start --web",
     "preview:constellation": "OHARA_PREVIEW_ROUTER_ROOT=previews/constellation/app expo start --web",
     "eval:goal-creation": "node evals/goal-creation/run.mjs",
-    "test:constellation": "node --experimental-strip-types --test features/constellation/annotation-state.test.ts features/constellation/dto.test.ts features/constellation/evidence-state.test.ts features/constellation/graph.test.ts features/constellation/gate.test.ts features/constellation/layout.test.ts features/constellation/responsive.test.ts features/constellation/state.test.ts features/constellation/fixture-boundary.test.ts features/constellation/server.test.ts features/constellation/svg-ids.test.ts features/constellation/svg-rendering.test.ts features/constellation/viewport.test.ts",
+    "test:constellation": "node --experimental-strip-types --test features/constellation/annotation-state.test.ts features/constellation/dto.test.ts features/constellation/evidence-state.test.ts features/constellation/graph.test.ts features/constellation/layout.test.ts features/constellation/responsive.test.ts features/constellation/state.test.ts features/constellation/fixture-boundary.test.ts features/constellation/server.test.ts features/constellation/svg-ids.test.ts features/constellation/svg-rendering.test.ts features/constellation/viewport.test.ts",
     "test:constellation:acceptance": "playwright test --config tests/constellation/playwright.config.ts",
     "test:constellation:acceptance:update": "playwright test --config tests/constellation/playwright.config.ts --update-snapshots=all",
     "test:friends": "node --experimental-strip-types --test scripts/test-friends-api.mjs scripts/test-friends-client-state.mjs",

@@ -2,7 +2,9 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
   ConstellationAnnotationRow,
   ConstellationAnnotationRowPatch,
+  ConstellationEchoBrtRow,
   ConstellationEdgeRow,
+  ConstellationEvidenceLinkRow,
   ConstellationEvidenceReferenceRow,
   ConstellationEvidenceReferenceRowPatch,
   ConstellationGoalSourceRow,
@@ -70,10 +72,23 @@ const ANNOTATION_COLUMNS = [
   'label',
   'body',
   'anchor_earned_node_id',
+  'anchor_goal_id',
   'created_at',
   'updated_at',
   'archived_at',
 ].join(', ');
+// Snapshot evidence-link columns: BRT category is no longer stored here
+// (migration 033 dropped constellation_evidence_links.brt_category); the graph
+// read path joins to echo_entries.brt_category instead.
+const EVIDENCE_LINK_COLUMNS = [
+  'id',
+  'owner_id',
+  'echo_entry_id',
+  'goal_id',
+  'updated_at',
+].join(', ');
+// Write/inspector path (Prompt 3 BRT-picker surface) still references the
+// dropped brt_category column — see OUTSTANDING.md.
 const EVIDENCE_REFERENCE_COLUMNS = [
   'id',
   'owner_id',
@@ -186,15 +201,30 @@ async function fetchConstellationAnnotations(
     .range(from, to));
 }
 
-async function fetchConstellationEvidenceReferences(
+async function fetchConstellationEvidenceLinks(
   ownerId: string,
   client: DbClient,
-): Promise<ConstellationEvidenceReferenceRow[]> {
+): Promise<ConstellationEvidenceLinkRow[]> {
   return fetchPagedRows((from, to) => client
     .from('constellation_evidence_links')
-    .select(EVIDENCE_REFERENCE_COLUMNS)
+    .select(EVIDENCE_LINK_COLUMNS)
     .eq('owner_id', ownerId)
     .order('updated_at', { ascending: false })
+    .order('id', { ascending: true })
+    .range(from, to));
+}
+
+// Owner echo entries that carry a BRT category, joined to evidence links at
+// assembly time to derive virtual BRT clusters.
+async function fetchEchoBrtCategories(
+  ownerId: string,
+  client: DbClient,
+): Promise<ConstellationEchoBrtRow[]> {
+  return fetchPagedRows((from, to) => client
+    .from('echo_entries')
+    .select('id, brt_category')
+    .eq('user_id', ownerId)
+    .not('brt_category', 'is', null)
     .order('id', { ascending: true })
     .range(from, to));
 }
@@ -205,7 +235,7 @@ async function fetchGoalSources(
 ): Promise<ConstellationGoalSourceRow[]> {
   return fetchPagedRows((from, to) => client
     .from('goals')
-    .select('id, status, updated_at')
+    .select('id, title, status, updated_at')
     .eq('user_id', ownerId)
     .order('id', { ascending: true })
     .range(from, to));
@@ -262,7 +292,8 @@ export async function loadConstellationSnapshot(
     nodes,
     edges,
     annotations,
-    evidenceReferences,
+    evidenceLinks,
+    echoBrtCategories,
     goals,
     projects,
     echoEntryCount,
@@ -271,7 +302,8 @@ export async function loadConstellationSnapshot(
     fetchConstellationNodes(ownerId, client),
     fetchConstellationEdges(ownerId, client),
     fetchConstellationAnnotations(ownerId, client),
-    fetchConstellationEvidenceReferences(ownerId, client),
+    fetchConstellationEvidenceLinks(ownerId, client),
+    fetchEchoBrtCategories(ownerId, client),
     fetchGoalSources(ownerId, client),
     fetchProjectSources(ownerId, client),
     fetchEchoEntryCount(ownerId, client),
@@ -282,7 +314,8 @@ export async function loadConstellationSnapshot(
     nodes,
     edges,
     annotations,
-    evidenceReferences,
+    evidenceLinks,
+    echoBrtCategories,
     goals,
     projects,
     echoEntryCount,
@@ -756,6 +789,7 @@ export function createConstellationMutationRepository(
           label: input.label,
           body: input.body,
           anchor_earned_node_id: input.anchorEarnedNodeId,
+          anchor_goal_id: input.anchorGoalId ?? null,
         })
         .select(ANNOTATION_COLUMNS)
         .single();

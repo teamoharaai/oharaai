@@ -174,7 +174,7 @@ export function ConstellationFixturePreview({
         <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
           <ConstellationEmptyState
             counts={constellationPreviewEmptyCounts}
-            renderState="locked"
+            renderState="season_only"
             seasonLabel="Season 03"
           />
         </ScrollView>

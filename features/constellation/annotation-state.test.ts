@@ -29,7 +29,8 @@ function projection(id: string): ConstellationAnnotationDTO {
     isDraft: true,
     label: 'A possible direction',
     body: 'Private draft context.',
-    anchorEarnedNodeId: 'fixture-goal',
+    anchorEarnedNodeId: null,
+    anchorGoalId: 'fixture-goal',
     createdAt: '2026-07-28T12:00:00.000Z',
     updatedAt: '2026-07-28T12:00:00.000Z',
     archivedAt: null,
@@ -87,6 +88,7 @@ test('authoritative create and edit replace exactly one optimistic draft', () =>
     label: 'Reframed note',
     body: null,
     anchorEarnedNodeId: null,
+    anchorGoalId: null,
   };
   const updated = replaceActiveAnnotation(
     reconciled,

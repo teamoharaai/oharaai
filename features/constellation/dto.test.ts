@@ -33,23 +33,29 @@ test('Constellation DTO validation rejects fixture origins and malformed selecti
   assert.equal(parseConstellationGraphDTO(malformedSelection), null);
 });
 
-test('locked DTOs expose counts but no owner graph entities', () => {
-  const locked = cloneFixture();
-  locked.state = {
-    ...(locked.state as Record<string, unknown>),
-    accessEligible: false,
-    renderState: 'locked',
-    seasonNodeId: null,
+test('season_only DTOs are valid but require the Season anchor', () => {
+  // Access gate removed: the empty state is season_only, and it must still carry
+  // exactly one Season node named in seasonNodeId.
+  const seasonOnly = cloneFixture();
+  const earnedNodes = seasonOnly.earnedNodes as Record<string, unknown>[];
+  const season = earnedNodes.find((node) => node.kind === 'season');
+  assert.ok(season);
+  seasonOnly.state = {
+    ...(seasonOnly.state as Record<string, unknown>),
+    hasGraphData: false,
+    renderState: 'season_only',
+    seasonNodeId: season.id,
   };
-  locked.earnedNodes = [];
-  locked.annotations = [];
-  locked.virtualBrtClusters = [];
-  locked.edges = [];
+  seasonOnly.earnedNodes = [season];
+  seasonOnly.annotations = [];
+  seasonOnly.virtualBrtClusters = [];
+  seasonOnly.edges = [];
 
-  assert.ok(parseConstellationGraphDTO(locked));
+  assert.ok(parseConstellationGraphDTO(seasonOnly));
 
-  locked.annotations = constellationFixtureGraph.annotations;
-  assert.equal(parseConstellationGraphDTO(locked), null);
+  // A graph with no Season anchor is rejected.
+  seasonOnly.earnedNodes = [];
+  assert.equal(parseConstellationGraphDTO(seasonOnly), null);
 });
 
 test('goal evidence and Echo search DTOs reject mismatched goal or Echo identities', () => {

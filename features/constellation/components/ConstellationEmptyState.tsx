@@ -7,10 +7,6 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Typography } from '@/components/ui/Typography';
 import { useThemeColors } from '@/store/uiStore';
-import {
-  CONSTELLATION_ECHO_ACCESS_GATE,
-  CONSTELLATION_GOAL_ACCESS_GATE,
-} from '../gate';
 import { CONSTELLATION_COPY } from '../copy';
 import type {
   ConstellationAnnotationKind,
@@ -20,10 +16,9 @@ import type {
 import { ConstellationSeedPreview } from './ConstellationSeedPreview';
 import { ConstellationLoadingMark } from './ConstellationLoadingMark';
 
-type EmptyRenderState = Extract<
-  ConstellationRenderState,
-  'locked' | 'season_only' | 'patterns_forming'
->;
+// The access gate is gone; `season_only` is the sole empty state (only the
+// Season anchor exists — no goal, annotation, or cluster yet).
+type EmptyRenderState = Extract<ConstellationRenderState, 'season_only'>;
 
 interface ConstellationEmptyStateProps {
   counts: ConstellationGraphCountsDTO;
@@ -33,50 +28,6 @@ interface ConstellationEmptyStateProps {
   refreshError?: string | null;
   renderState: EmptyRenderState;
   seasonLabel: string;
-}
-
-interface GateProgressProps {
-  current: number;
-  label: string;
-  maximum: number;
-}
-
-function GateProgress({ current, label, maximum }: GateProgressProps) {
-  const colors = useThemeColors();
-  const progress = Math.min((current / maximum) * 100, 100);
-
-  return (
-    <View
-      accessibilityLabel={`${label}: ${current} of ${maximum}`}
-      accessibilityRole="progressbar"
-      accessibilityValue={{ max: maximum, min: 0, now: current }}
-    >
-      <View style={{ alignItems: 'baseline', flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Typography variant="label" style={{ color: colors.text.primary }}>
-          {label}
-        </Typography>
-        <Typography variant="caption">{current} of {maximum}</Typography>
-      </View>
-      <View
-        style={{
-          backgroundColor: colors.border.divider,
-          borderRadius: 999,
-          height: 5,
-          marginTop: 7,
-          overflow: 'hidden',
-        }}
-      >
-        <View
-          style={{
-            backgroundColor: colors.accent.primary,
-            borderRadius: 999,
-            height: '100%',
-            width: `${progress}%`,
-          }}
-        />
-      </View>
-    </View>
-  );
 }
 
 function nonDraftGoalCount(
@@ -92,46 +43,12 @@ function nonDraftGoalCount(
   );
 }
 
-function AccessProgress({
-  counts,
-}: Pick<ConstellationEmptyStateProps, 'counts'>) {
-  return (
-    <View style={{ gap: 16 }}>
-      <GateProgress
-        current={nonDraftGoalCount(counts)}
-        label={CONSTELLATION_COPY.emptyGateGoals}
-        maximum={CONSTELLATION_GOAL_ACCESS_GATE}
-      />
-      <GateProgress
-        current={counts.source.echoEntries}
-        label={CONSTELLATION_COPY.emptyGateEchoes}
-        maximum={CONSTELLATION_ECHO_ACCESS_GATE}
-      />
-    </View>
-  );
-}
-
-function stateCopy(renderState: EmptyRenderState) {
-  switch (renderState) {
-    case 'locked':
-      return {
-        headline: CONSTELLATION_COPY.emptyHeadline,
-        body: CONSTELLATION_COPY.lockedBody,
-        status: 'Access gate not met',
-      };
-    case 'season_only':
-      return {
-        headline: CONSTELLATION_COPY.seasonOnlyHeadline,
-        body: CONSTELLATION_COPY.seasonOnlyBody,
-        status: 'Season only',
-      };
-    case 'patterns_forming':
-      return {
-        headline: CONSTELLATION_COPY.patternsFormingHeadline,
-        body: CONSTELLATION_COPY.patternsFormingBody,
-        status: 'Patterns forming',
-      };
-  }
+function stateCopy(_renderState: EmptyRenderState) {
+  return {
+    headline: CONSTELLATION_COPY.seasonOnlyHeadline,
+    body: CONSTELLATION_COPY.seasonOnlyBody,
+    status: 'Season only',
+  };
 }
 
 function IntroductionCard({
@@ -163,29 +80,25 @@ function IntroductionCard({
           <Typography variant="description">{copy.body}</Typography>
         </View>
 
-        {renderState === 'locked' ? (
-          <AccessProgress counts={counts} />
-        ) : (
-          <View
-            accessibilityRole="summary"
-            style={{
-              backgroundColor: colors.background.subtle,
-              borderRadius: 10,
-              gap: 4,
-              padding: 12,
-            }}
+        <View
+          accessibilityRole="summary"
+          style={{
+            backgroundColor: colors.background.subtle,
+            borderRadius: 10,
+            gap: 4,
+            padding: 12,
+          }}
+        >
+          <Typography
+            variant="section-eyebrow"
+            style={{ color: colors.text.accent }}
           >
-            <Typography
-              variant="section-eyebrow"
-              style={{ color: colors.text.accent }}
-            >
-              {copy.status}
-            </Typography>
-            <Typography variant="caption">
-              {`${counts.source.echoEntries} entries · ${nonDraftGoalCount(counts)} goals · ${counts.source.qualifiedCandidates} qualified patterns`}
-            </Typography>
-          </View>
-        )}
+            {copy.status}
+          </Typography>
+          <Typography variant="caption">
+            {`${counts.source.echoEntries} entries · ${nonDraftGoalCount(counts)} goals · ${counts.source.qualifiedCandidates} qualified patterns`}
+          </Typography>
+        </View>
 
         <View
           style={{
@@ -257,7 +170,7 @@ export function ConstellationEmptyState({
             </Typography>
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {renderState !== 'locked' && onCreateAnnotation ? (
+            {onCreateAnnotation ? (
               <>
                 <Button
                   accessibilityLabel="Create note annotation"
@@ -340,9 +253,7 @@ export function ConstellationEmptyState({
           textAlign: 'center',
         }}
       >
-        {renderState === 'locked'
-          ? CONSTELLATION_COPY.emptyFooter
-          : 'Nothing is filled in with sample data. New nodes will appear only when the evidence supports them.'}
+        Nothing is filled in with sample data. New nodes will appear only when the evidence supports them.
       </Typography>
     </View>
   );
