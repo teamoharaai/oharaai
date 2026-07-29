@@ -149,7 +149,7 @@ test.describe('final architecture interaction contract', () => {
     await expect(page.getByLabel('Constellation graph canvas')).toBeVisible();
   });
 
-  test('node selection enters Focus mode, writes URL selection, and closes cleanly', async ({
+  test('node selection enters in-place Focus mode without route navigation', async ({
     page,
   }) => {
     await installConstellationAcceptanceApi(page);
@@ -160,9 +160,7 @@ test.describe('final architecture interaction contract', () => {
       .getByText('Train three times weekly', { exact: true })
       .click();
 
-    await expect(page).toHaveURL(
-      /\/constellation\?selected=node%3Arenderer-goal-train$/,
-    );
+    await expect(page).toHaveURL(/\/constellation$/);
     await expect(
       page.getByRole('heading', { name: 'Constellation · Focus' }),
     ).toBeVisible();
@@ -206,6 +204,27 @@ test.describe('final architecture interaction contract', () => {
     ).toHaveCount(0);
   });
 
+  test('goal focus exposes BRT nodes and opens an in-place category inspector', async ({
+    page,
+  }) => {
+    await installConstellationAcceptanceApi(page);
+    await openLiveConstellation(page);
+    await selectNode(page, 'goal', 'Train three times weekly');
+
+    const budNode = page.getByRole('button', {
+      name: 'Bud goal evidence summary, 1 reference',
+      exact: true,
+    });
+    await expect(budNode).toBeVisible();
+    await budNode.press('Enter');
+
+    await expect(page).toHaveURL(/\/constellation$/);
+    await expect(
+      page.getByLabel('Reflection inspector for Bud'),
+    ).toBeVisible();
+    await expect(page.getByText('The shape of consistency')).toBeVisible();
+  });
+
   test('creates, edits, and archives a user-authored draft annotation', async ({
     page,
   }) => {
@@ -222,9 +241,7 @@ test.describe('final architecture interaction contract', () => {
       exact: true,
     }).click();
 
-    await expect(page).toHaveURL(
-      /selected=annotation%3Aacceptance-annotation-1$/,
-    );
+    await expect(page).toHaveURL(/\/constellation$/);
     await expect(
       page.getByLabel('Note inspector for Protect recovery'),
     ).toBeVisible();
@@ -267,25 +284,25 @@ test.describe('final architecture interaction contract', () => {
       name: `Select entry ${acceptanceEchoOption.title}`,
     }).click();
     await page.getByRole('button', {
-      name: 'Bud evidence category',
+      name: 'Bud category',
     }).click();
     await page.getByRole('button', { name: 'Add reference' }).click();
 
     const evidenceCard = page.getByLabel(
-      `Echo evidence ${acceptanceEchoOption.title}`,
+      `Entry evidence ${acceptanceEchoOption.title}`,
     );
     await expect(evidenceCard).toBeVisible();
 
     await evidenceCard.getByRole('button', { name: 'Edit' }).click();
     await evidenceCard.getByRole('button', {
-      name: 'Rose evidence category',
+      name: 'Rose category',
     }).click();
     await evidenceCard.getByRole('button', { name: 'Save' }).click();
     await expect(evidenceCard).toBeVisible();
 
     await evidenceCard.getByRole('button', { name: 'Edit' }).click();
     await evidenceCard.getByRole('button', {
-      name: 'Thorn evidence category',
+      name: 'Thorn category',
     }).click();
     await evidenceCard.getByRole('button', { name: 'Save' }).click();
 
@@ -361,7 +378,7 @@ test.describe('final architecture interaction contract', () => {
 
     await expect(
       page.getByRole('heading', {
-        name: "A quiet map of who you're becoming.",
+        name: 'Your Constellation begins with this season.',
       }),
     ).toBeVisible();
     await page.getByRole('button', { name: 'Set a goal' }).click();

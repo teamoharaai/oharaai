@@ -175,7 +175,7 @@ export function ConstellationFixturePreview({
           <ConstellationEmptyState
             counts={constellationPreviewEmptyCounts}
             renderState="season_only"
-            seasonLabel="Season 03"
+            seasonLabel="Current Season"
           />
         </ScrollView>
       </SafeAreaView>
@@ -203,7 +203,7 @@ export function ConstellationFixturePreview({
                   current === selectionKey ? null : selectionKey
                 ));
               }}
-              seasonLabel="Season 03"
+              seasonLabel="Current Season"
               selectedKey={selectedKey}
               sproutedLabel={sproutedLabel}
               tokens={tokens}

@@ -4,6 +4,7 @@ import {
 } from '@/lib/api/client';
 import {
   parseConstellationAnnotationDTO,
+  parseConstellationBrtInspectorDTO,
   parseConstellationEchoSearchDTO,
   parseConstellationEvidenceLinkDTO,
   parseConstellationGoalEvidenceDTO,
@@ -12,6 +13,8 @@ import {
 } from '../dto';
 import type {
   ConstellationAnnotationDTO,
+  ConstellationBrtCategory,
+  ConstellationBrtInspectorDTO,
   ConstellationDeleteResult,
   ConstellationEchoSearchDTO,
   ConstellationEvidenceLink,
@@ -228,6 +231,24 @@ export async function fetchConstellationReflectionInspector(
   if (!dto || dto.nodeId !== nodeId) {
     throw new ConstellationServiceError(
       'Reflection details returned an invalid response.',
+    );
+  }
+  return dto;
+}
+
+export async function fetchConstellationBrtInspector(
+  category: ConstellationBrtCategory,
+  signal?: AbortSignal,
+): Promise<ConstellationBrtInspectorDTO> {
+  const data = await evidenceRequest(
+    `/api/constellation/brt/${category}`,
+    { method: 'GET', signal },
+    `${category} entries could not be loaded.`,
+  );
+  const dto = parseConstellationBrtInspectorDTO(data);
+  if (!dto || dto.category !== category) {
+    throw new ConstellationServiceError(
+      'BRT entries returned an invalid response.',
     );
   }
   return dto;

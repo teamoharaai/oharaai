@@ -730,7 +730,7 @@ export type UpdateEntryResult =
 
 export async function updateEntry(
   entryId: string,
-  changes: { content?: string; title?: string | null; brtCategory?: BrtCategory },
+  changes: { content?: string; title?: string | null; brtCategory?: BrtCategory | null },
 ): Promise<UpdateEntryResult> {
   let response: Response;
   try {

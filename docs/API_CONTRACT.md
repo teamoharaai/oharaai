@@ -726,18 +726,20 @@ Creates a user-authored draft note or projection. Returns the
   kind: "note" | "projection",
   label: string,                    // trimmed, 1–120 characters
   body?: string | null,             // trimmed, max 5,000 characters
-  anchorEarnedNodeId?: string | null
+  anchorEarnedNodeId?: string | null,
+  anchorGoalId?: string | null
 }
 ```
 
-The optional anchor must be an active earned node owned by the authenticated
-user. The authoring UI offers only earned nodes visible in the current
-render-safe graph.
+At most one anchor may be supplied. A goal anchor resolves through
+`anchorGoalId`; another active earned node resolves through
+`anchorEarnedNodeId`. Both must belong to the authenticated user.
 
 ### `PATCH /api/constellation/annotations/:id`
 
-Edits one or more of `kind`, `label`, `body`, or `anchorEarnedNodeId` on an
-owned draft annotation. Archived annotations return `409 CONFLICT`.
+Edits one or more of `kind`, `label`, `body`, `anchorEarnedNodeId`, or
+`anchorGoalId` on an owned draft annotation. Archived annotations return
+`409 CONFLICT`.
 
 ### `POST /api/constellation/annotations/:id/archive`
 
@@ -752,13 +754,12 @@ Creates or idempotently updates one Echo/goal evidence relation:
 {
   echoEntryId: string,
   goalId: string,
-  brtCategory: "bud" | "rose" | "thorn",
   note?: string | null               // trimmed, max 280 characters
 }
 ```
 
 Returns the `ConstellationEvidenceLink` with `201` when inserted and `200`
-when the existing Echo/goal pair is unchanged or its category/note is updated.
+when the existing Echo/goal pair is unchanged or its note is updated.
 When updating an existing pair, an omitted `note` preserves the stored note;
 an explicit `null` clears it.
 The Echo and goal must both belong to the authenticated user. This route never
@@ -785,7 +786,7 @@ Returns the complete current evidence-reference list for one owned goal:
     ownerId: string,
     echoEntryId: string,
     goalId: string,
-    brtCategory: "bud" | "rose" | "thorn",
+    brtCategory: "bud" | "rose" | "thorn" | null,
     note: string | null,
     createdAt: string,
     updatedAt: string,
@@ -803,6 +804,13 @@ Returns the complete current evidence-reference list for one owned goal:
 This read is owner-scoped for both the goal and every returned Echo. It returns
 only the bounded display excerpt needed by the evidence inspector, not full
 Echo content.
+
+### `GET /api/constellation/brt/:category`
+
+Returns every owned entry currently classified as `bud`, `rose`, or `thorn`,
+using the same bounded excerpt shape as the other inspectors. The category is
+validated from the route, and both the query and row-level security are scoped
+to the authenticated owner.
 
 ### `GET /api/constellation/reflections/:id`
 
@@ -862,21 +870,21 @@ is bounded.
     createdAt: string,
     existingReference: {
       id: string,
-      brtCategory: "bud" | "rose" | "thorn"
+      brtCategory: "bud" | "rose" | "thorn" | null
     } | null
   }[]
 }
 ```
 
-`existingReference` describes only the Echo/selected-goal pair, so the same
-Echo may remain selectable for another owned goal with a different category.
+`existingReference` describes only the Echo/selected-goal pair. BRT category
+belongs to the entry itself, so it is consistent across every goal reference.
 These reads do not infer or mutate canonical Echo containment.
 
 ### `PATCH /api/constellation/evidence-references/:id`
 
-Updates one or both mutable fields, `brtCategory` and `note`, on an owned
-evidence reference. The owner, Echo, and goal endpoints are not accepted in
-the request body and remain immutable.
+Updates the optional `note` on an owned evidence reference. The entry-level BRT
+category is updated through `PATCH /api/entries/:id`; owner, Echo, and goal
+endpoints are not accepted here and remain immutable.
 
 ### `DELETE /api/constellation/evidence-references/:id`
 

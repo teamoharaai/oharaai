@@ -15,6 +15,7 @@ import type {
 } from '../../features/constellation/services/constellation-server-core.ts';
 import type {
   ConstellationBrtCategory,
+  ConstellationBrtInspectorDTO,
   ConstellationEchoSearchDTO,
   ConstellationEchoSearchOption,
   ConstellationEvidenceEchoSummary,
@@ -471,10 +472,7 @@ export async function loadConstellationGoalEvidence(
   const items: ConstellationGoalEvidenceItem[] = references.flatMap(
     (reference) => {
       const echo = echoById.get(reference.echo_entry_id);
-      // No echo row, or the echo has never been assigned a BRT category
-      // (shouldn't happen — creating a reference always sets one — but degrade
-      // by dropping the item rather than throwing on legacy/orphaned data).
-      if (!echo || echo.brt_category === null) return [];
+      if (!echo) return [];
       return [{
         id: reference.id,
         ownerId: reference.owner_id,
@@ -731,16 +729,40 @@ export async function searchConstellationEchoOptions(
       ...mapEvidenceEcho(row),
       // BRT category is the echo entry's own (existing links no longer carry
       // one), so it's read straight off the search row, not the reference.
-      existingReference: existing && row.brt_category
+      existingReference: existing
         ? {
             id: existing.id,
-            brtCategory: row.brt_category as ConstellationBrtCategory,
+            brtCategory: row.brt_category as ConstellationBrtCategory | null,
           }
         : null,
     };
   });
 
   return { goalId: goal.id, query, options };
+}
+
+export async function loadConstellationBrtInspector(
+  ownerId: string,
+  category: ConstellationBrtCategory,
+  client: DbClient = supabase,
+): Promise<ConstellationBrtInspectorDTO> {
+  const rows = await fetchPagedRows<ConstellationEvidenceEchoRow>(
+    (from, to) => client
+      .from('echo_entries')
+      .select(ECHO_EVIDENCE_COLUMNS)
+      .eq('user_id', ownerId)
+      .eq('brt_category', category)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: true })
+      .range(from, to),
+  );
+  return {
+    category,
+    entries: rows.map((row) => ({
+      ...mapEvidenceEcho(row),
+      brtCategory: category,
+    })),
+  };
 }
 
 async function rowExists(

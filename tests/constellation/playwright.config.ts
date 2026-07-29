@@ -34,7 +34,7 @@ export default defineConfig({
       'CI=1',
       'EXPO_PUBLIC_SUPABASE_URL=https://constellation-acceptance.invalid',
       'EXPO_PUBLIC_SUPABASE_ANON_KEY=constellation-acceptance-key',
-      `npm run preview:constellation -- --port=${PORT}`,
+      `npm run preview:constellation -- --port ${PORT}`,
     ].join(' '),
     port: PORT,
     reuseExistingServer: !process.env.CI,

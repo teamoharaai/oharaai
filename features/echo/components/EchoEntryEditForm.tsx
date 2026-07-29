@@ -8,7 +8,7 @@ interface EchoEntryEditFormProps {
   entry: EchoEntry;
   isSaving: boolean;
   error: string | null;
-  onSave: (changes: { content: string; title: string | null; brtCategory: BrtCategory }) => void;
+  onSave: (changes: { content: string; title: string | null; brtCategory: BrtCategory | null }) => void;
   onCancel: () => void;
 }
 
@@ -24,13 +24,15 @@ export function EchoEntryEditForm({
 }: EchoEntryEditFormProps) {
   const [content, setContent] = useState(entry.content);
   const [title, setTitle] = useState(entry.title ?? '');
-  const [brtCategory, setBrtCategory] = useState<BrtCategory>(entry.brtCategory ?? 'bud');
+  const [brtCategory, setBrtCategory] = useState<BrtCategory | null>(
+    entry.brtCategory ?? null,
+  );
 
   // Re-seed the inputs whenever a different entry enters edit mode.
   useEffect(() => {
     setContent(entry.content);
     setTitle(entry.title ?? '');
-    setBrtCategory(entry.brtCategory ?? 'bud');
+    setBrtCategory(entry.brtCategory ?? null);
   }, [entry]);
 
   const trimmedContent = content.trim();
@@ -75,7 +77,12 @@ export function EchoEntryEditForm({
 
       <View className="mt-3 gap-2" style={{ maxWidth: 640 }}>
         <Typography variant="label">Category</Typography>
-        <BrtPicker disabled={isSaving} onChange={setBrtCategory} value={brtCategory} />
+        <BrtPicker
+          disabled={isSaving}
+          includeUnlinked
+          onChange={setBrtCategory}
+          value={brtCategory}
+        />
       </View>
 
       {error ? <Text className="mt-2 font-sans text-sm text-red-700">{error}</Text> : null}

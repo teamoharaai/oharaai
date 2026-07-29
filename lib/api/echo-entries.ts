@@ -9,7 +9,7 @@ import type { BrtCategory } from '@/lib/utils/resolveBrt';
 // hit the same PATCH /api/entries/:id route and column.
 export async function updateEchoEntryBrtCategory(
   entryId: string,
-  brtCategory: BrtCategory,
+  brtCategory: BrtCategory | null,
 ): Promise<boolean> {
   try {
     const response = await authedFetch(`/api/entries/${entryId}`, {

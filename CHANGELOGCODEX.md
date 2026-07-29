@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Added (2026-07-29 — Constellation production inspector refinement)
+- **`app/api/constellation/brt/[category]+api.ts`, `lib/db/constellation.ts`, `features/constellation/hooks/useBrtInspector.ts`, `ConstellationBrtInspector.tsx`, and supporting DTO/service contracts:** added an owner-scoped Bud/Rose/Thorn inspector that lists every entry carrying the selected category with bounded excerpts and supports in-place reclassification.
+- **Constellation graph/evidence tests and browser acceptance fixtures/config:** added coverage for always-available goal BRT nodes, nullable/unlinked evidence, the BRT inspector response, goal anchors, and in-place selection without same-page route pushes; updated the Expo preview port argument to the SDK-supported separated form so the acceptance web server starts non-interactively.
+
+### Changed (2026-07-29 — Constellation production inspector refinement)
+- **`ConstellationScreen.tsx`, `graph.ts`, `EarnedNodeShape.tsx`, `ConstellationGenericInspector.tsx`, and `ConstellationInspectorSurface.tsx`:** moved node selection into local Constellation state so Season, goal, Reflection, and BRT clicks focus and open their panel without forwarding; kept direct selection URLs as an initial compatibility path; rendered “Current Season” on two contained lines; widened the inspector; and ensured goal focus includes Bud, Rose, and Thorn even when a category has zero entries.
+- **`ConstellationGoalEvidencePanel.tsx`, `BrtPicker.tsx`, Echo entry editing, goal-evidence state, and `PATCH /api/entries/:id`:** made BRT explicitly nullable, exposed “Unlinked entries” for goal references, defaulted new evidence to unlinked, allowed later classification, and added the requested Streak/Vault/Edges placeholder cards without changing entry containment.
+- **`ConstellationReflectionInspector.tsx` and `docs/API_CONTRACT.md`:** aligned Reflection summary metadata more closely with the supplied inspector concept and documented the current goal-anchor, nullable BRT, entry-category, and BRT-inspector contracts.
+
+### Fixed (2026-07-29 — Constellation production inspector refinement)
+- **`lib/api/constellation.ts`:** accepted and validated `anchorGoalId` for annotation create/update requests, fixing the `400 INVALID_INPUT: Unexpected request field: anchorGoalId` failure when a Note/Projection is anchored to a visible goal node.
+- **`ConstellationAnnotationPanel.tsx`:** return a successfully edited Note/Projection to its read inspector instead of leaving the editor open after save.
+- **`useConstellation.ts` and `evidence-state.ts`:** tracked per-goal evidence-count deltas independently from categorized cluster counts so unlinked entries do not inflate graph metadata during optimistic add/edit/unlink flows.
+
 ### Fixed (2026-07-29 — User interface scrolling)
 - **`app/(app)/_layout.tsx`:** constrained authenticated route content through the nested navigator so page-owned scroll views receive a bounded viewport instead of being clipped by an auto-sized flex ancestor.
 - **`components/layout/AccountModal.tsx` and `SettingsModal.tsx`:** made long account and settings forms scroll inside viewport-bounded modals while keeping their actions accessible.

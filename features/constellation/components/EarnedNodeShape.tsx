@@ -83,23 +83,24 @@ export function EarnedNodeShape({
           <SvgText
             fill={tokens.text.inverse}
             fontFamily="Inter-SemiBold"
-            fontSize={14}
-            letterSpacing={1.7}
+            fontSize={12}
+            letterSpacing={1.4}
             textAnchor="middle"
             x={x}
-            y={y - 3}
+            y={y - 6}
           >
-            {node.label.toUpperCase()}
+            CURRENT
           </SvgText>
           <SvgText
-            fill={tokens.text.muted}
-            fontFamily="Inter-Regular"
+            fill={tokens.text.inverse}
+            fontFamily="Inter-SemiBold"
             fontSize={12}
+            letterSpacing={1.4}
             textAnchor="middle"
             x={x}
-            y={y + 20}
+            y={y + 12}
           >
-            {node.description ?? 'CURRENT'}
+            SEASON
           </SvgText>
         </InteractiveSvgGroup>
       );

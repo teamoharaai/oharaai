@@ -420,8 +420,16 @@ test('graph assembly includes owner data, virtual evidence summaries, and no Ech
   assert.equal(graph.state.hasGraphData, true);
   assert.equal(graph.annotations.length, 1);
   assert.equal(graph.counts.annotations.archived, 1);
-  assert.equal(graph.virtualBrtClusters.length, 1);
-  assert.equal(graph.virtualBrtClusters[0].evidenceLinkCount, 2);
+  assert.equal(graph.virtualBrtClusters.length, 6);
+  assert.equal(
+    graph.virtualBrtClusters.find(
+      (cluster) => (
+        cluster.goalId === GOAL_A_ID
+        && cluster.brtCategory === 'bud'
+      ),
+    )?.evidenceLinkCount,
+    2,
+  );
   assert.equal(graph.counts.evidenceLinks, 2);
   assert.ok(
     graph.edges.some((edge) => edge.kind === 'annotation_anchor'),
@@ -720,7 +728,25 @@ test('annotation API validation bounds content and limits editable fields', asyn
     label: 'Possible direction',
     body: 'Private context.',
     anchorEarnedNodeId: NODE_ID,
+    anchorGoalId: null,
   });
+
+  const goalAnchored = await parseCreateAnnotationRequest(new Request(
+    'http://localhost/api/constellation/annotations',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        kind: 'note',
+        label: 'Anchored to goal',
+        body: null,
+        anchorEarnedNodeId: null,
+        anchorGoalId: GOAL_A_ID,
+      }),
+    },
+  ));
+  assert.equal(goalAnchored.anchorGoalId, GOAL_A_ID);
+  assert.equal(goalAnchored.anchorEarnedNodeId, null);
 
   for (const body of [
     {

@@ -288,7 +288,7 @@ export function useGoalEvidence({
 
   const addReference = useCallback(async (
     option: ConstellationEchoSearchOption,
-    brtCategory: ConstellationBrtCategory,
+    brtCategory: ConstellationBrtCategory | null,
     input: { note?: string | null },
   ): Promise<boolean> => {
     const current = dtoRef.current;
@@ -380,7 +380,7 @@ export function useGoalEvidence({
 
   const editReference = useCallback(async (
     evidenceReferenceId: string,
-    brtCategory: ConstellationBrtCategory,
+    brtCategory: ConstellationBrtCategory | null,
     input: { note?: string | null },
   ): Promise<boolean> => {
     const current = dtoRef.current;

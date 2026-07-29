@@ -198,8 +198,8 @@ const annotations: readonly ConstellationAnnotationDTO[] = [
 ];
 
 const virtualBrtClusters: readonly ConstellationVirtualBrtClusterDTO[] = [
-  ['train', 'bud', 'Bud', 4],
-  ['train', 'rose', 'Rose', 2],
+  ['train', 'bud', 'Bud', 1],
+  ['train', 'rose', 'Rose', 1],
   ['train', 'thorn', 'Thorn', 1],
   ['ship', 'rose', 'Rose', 3],
   ['essay', 'thorn', 'Thorn', 3],
@@ -341,7 +341,7 @@ export const constellationRendererFixtureGraphDTO: ConstellationGraphDTO = {
     annotations: { draft: 2, archived: 0 },
     virtualBrtClusters: { total: 5, bud: 1, rose: 2, thorn: 2 },
     edges: edges.length,
-    evidenceLinks: 13,
+    evidenceLinks: 9,
     source: {
       echoEntries: 18,
       qualifiedCandidates: 9,

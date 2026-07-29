@@ -37,7 +37,7 @@ function sanitizeTitle(input: unknown): string | null {
 }
 
 // ─── PATCH /api/entries/:id ───────────────────────────────────────────────────
-// Body: { content?: string, title?: string | null, brtCategory?: 'bud'|'rose'|'thorn' }
+// Body: { content?: string, title?: string | null, brtCategory?: 'bud'|'rose'|'thorn'|null }
 // — at least one field.
 //
 // Server-side edit + re-embed. The re-embed happens here, inline, using the same
@@ -62,9 +62,10 @@ interface UpdateEntryBody {
   brtCategory?: unknown;
 }
 
-function sanitizeBrtCategory(input: unknown): BrtCategoryValue {
+function sanitizeBrtCategory(input: unknown): BrtCategoryValue | null {
+  if (input === null) return null;
   if (typeof input !== 'string' || !BRT_CATEGORIES.includes(input as BrtCategoryValue)) {
-    throw new Error('brtCategory must be bud, rose, or thorn');
+    throw new Error('brtCategory must be bud, rose, thorn, or null');
   }
   return input as BrtCategoryValue;
 }
@@ -111,7 +112,7 @@ async function handlePatch(
 
   let newContent: string | undefined;
   let newTitle: string | null | undefined;
-  let newBrtCategory: BrtCategoryValue | undefined;
+  let newBrtCategory: BrtCategoryValue | null | undefined;
   try {
     if (hasContent) newContent = sanitizeString(body.content, MAX_CONTENT_LENGTH);
     if (hasTitle) newTitle = sanitizeTitle(body.title);

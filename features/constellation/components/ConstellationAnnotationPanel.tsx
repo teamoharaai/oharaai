@@ -111,13 +111,16 @@ export function ConstellationAnnotationPanel({
       ? visibleEarnedNodes.find((node) => node.id === anchorId)
       : undefined;
     const anchorIsGoal = selectedAnchor?.kind === 'goal';
-    await onSave({
+    const saved = await onSave({
       kind,
       label: trimmedLabel,
       body: normalizedBody(body),
       anchorEarnedNodeId: anchorIsGoal ? null : anchorId,
       anchorGoalId: anchorIsGoal ? anchorId : null,
     });
+    if (saved && annotation) {
+      setEditing(false);
+    }
   }
 
   async function archive() {

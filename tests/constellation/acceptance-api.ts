@@ -89,6 +89,9 @@ export async function installConstellationAcceptanceApi(
   let graph = clone(options.graph ?? constellationRendererFixtureGraphDTO);
   let goalEvidence: ConstellationGoalEvidenceDTO =
     clone(constellationPreviewGoalEvidenceDto);
+  const entryCategories = new Map(
+    goalEvidence.items.map((item) => [item.echoEntryId, item.brtCategory]),
+  );
   let evidenceSequence = 0;
   let annotationSequence = 0;
 
@@ -97,6 +100,32 @@ export async function installConstellationAcceptanceApi(
     await retryFailure(route);
     return true;
   }
+
+  await page.route('**/api/entries/**', async (route) => {
+    const request = route.request();
+    if (request.method() !== 'PATCH') {
+      await route.continue();
+      return;
+    }
+    const entryId = decodeURIComponent(
+      new URL(request.url()).pathname.split('/').pop() ?? '',
+    );
+    const input = request.postDataJSON() as {
+      brtCategory?: 'bud' | 'rose' | 'thorn' | null;
+    };
+    if (input.brtCategory !== undefined) {
+      entryCategories.set(entryId, input.brtCategory);
+      goalEvidence = {
+        ...goalEvidence,
+        items: goalEvidence.items.map((item) => (
+          item.echoEntryId === entryId
+            ? { ...item, brtCategory: input.brtCategory ?? null }
+            : item
+        )),
+      };
+    }
+    await json(route, { success: true });
+  });
 
   await page.route('**/api/constellation**', async (route) => {
     const request = route.request();
@@ -177,6 +206,26 @@ export async function installConstellationAcceptanceApi(
         data: {
           ...clone(constellationPreviewReflectionInspectorDto),
           nodeId: decodeURIComponent(reflectionMatch[1]),
+        },
+      });
+      return;
+    }
+
+    const brtMatch = path.match(
+      /^\/api\/constellation\/brt\/(bud|rose|thorn)$/,
+    );
+    if (brtMatch && method === 'GET') {
+      const category = brtMatch[1] as 'bud' | 'rose' | 'thorn';
+      await json(route, {
+        ok: true,
+        data: {
+          category,
+          entries: goalEvidence.items
+            .filter((item) => item.brtCategory === category)
+            .map((item) => ({
+              ...item.echo,
+              brtCategory: category,
+            })),
         },
       });
       return;
@@ -313,7 +362,7 @@ export async function installConstellationAcceptanceApi(
               // The real flow now writes brtCategory via a separate PATCH
               // /api/entries/:id call this mock router doesn't simulate (out
               // of scope here — see features/constellation/server.test.ts).
-              brtCategory: 'bud',
+              brtCategory: entryCategories.get(option.id) ?? null,
               echo: {
                 id: option.id,
                 title: option.title,

@@ -166,13 +166,14 @@ export function removeGoalEvidenceItem(
 export function groupGoalEvidenceItems(
   items: readonly ConstellationGoalEvidenceItem[],
 ): Record<
-  ConstellationBrtCategory,
+  ConstellationBrtCategory | 'unlinked',
   readonly ConstellationGoalEvidenceItem[]
 > {
   return {
     bud: items.filter((item) => item.brtCategory === 'bud'),
     rose: items.filter((item) => item.brtCategory === 'rose'),
     thorn: items.filter((item) => item.brtCategory === 'thorn'),
+    unlinked: items.filter((item) => item.brtCategory === null),
   };
 }
 
@@ -220,6 +221,7 @@ export function replaceGoalEvidenceInGraph(
   dto: ConstellationGraphDTO,
   goalId: string,
   items: readonly ConstellationGoalEvidenceItem[],
+  evidenceLinkDelta = 0,
 ): ConstellationGraphDTO {
   const goalNode = dto.earnedNodes.find(
     (node) => node.kind === 'goal' && node.source.id === goalId,
@@ -260,11 +262,6 @@ export function replaceGoalEvidenceInGraph(
   );
   const edges = [...retainedEdges, ...nextEdges]
     .sort((left, right) => left.id.localeCompare(right.id));
-  const previousEvidenceCount = previousClusters.reduce(
-    (total, cluster) => total + cluster.evidenceLinkCount,
-    0,
-  );
-
   return {
     ...dto,
     state: {
@@ -279,7 +276,7 @@ export function replaceGoalEvidenceInGraph(
       edges: edges.length,
       evidenceLinks: Math.max(
         0,
-        dto.counts.evidenceLinks - previousEvidenceCount + items.length,
+        dto.counts.evidenceLinks + evidenceLinkDelta,
       ),
     },
   };

@@ -23,6 +23,7 @@ import {
   selectConnectedNeighborhood,
 } from '../graph';
 import { useConstellation } from '../hooks/useConstellation';
+import { useBrtInspector } from '../hooks/useBrtInspector';
 import { useGoalEvidence } from '../hooks/useGoalEvidence';
 import { useReflectionInspector } from '../hooks/useReflectionInspector';
 import {
@@ -31,11 +32,11 @@ import {
   createConstellationLayoutSpec,
 } from '../layout';
 import { isPersistedAnnotationAnchorTarget } from '../annotation-state';
-import { shouldClearConstellationSelection } from '../state';
 import type { ConstellationAnnotationKind } from '../types';
 import { createConstellationVisualTokens } from '../visual-tokens';
 import { getConstellationResponsiveLayout } from '../responsive';
 import { ConstellationAnnotationPanel } from './ConstellationAnnotationPanel';
+import { ConstellationBrtInspector } from './ConstellationBrtInspector';
 import { ConstellationCanvasShell } from './ConstellationCanvasShell';
 import { ConstellationEmptyState } from './ConstellationEmptyState';
 import { ConstellationGoalEvidencePanel } from './ConstellationGoalEvidencePanel';
@@ -146,11 +147,14 @@ export function ConstellationScreen() {
   const constellation = useConstellation();
   const requestedSelection = normalizeSelectionParam(params.selected);
   const hasSelectionParam = params.selected !== undefined;
+  const [selection, setSelection] = useState<string | null>(
+    requestedSelection,
+  );
   const selectedKey = useMemo(
     () => constellation.dto
-      ? resolveGraphSelection(constellation.dto, requestedSelection)
+      ? resolveGraphSelection(constellation.dto, selection)
       : null,
-    [constellation.dto, requestedSelection],
+    [constellation.dto, selection],
   );
   const previousSelectedKeyRef = useRef<string | null>(null);
 
@@ -195,9 +199,7 @@ export function ConstellationScreen() {
     [colors, themeMode],
   );
 
-  const seasonLabel = graph?.nodes.find(
-    (node) => node.entityType === 'earned_node' && node.node.kind === 'season',
-  )?.node.label ?? 'Current Season';
+  const seasonLabel = 'Current Season';
   const selectedNode = graph?.nodes.find(
     (node) => node.selectionKey === selectedKey,
   );
@@ -236,6 +238,9 @@ export function ConstellationScreen() {
   const reflectionInspector = useReflectionInspector(
     selectedReflection?.id ?? null,
   );
+  const brtInspector = useBrtInspector(
+    selectedCluster?.brtCategory ?? null,
+  );
   const selectedAnnotation = selectedNode?.entityType === 'annotation'
     ? selectedNode.node
     : undefined;
@@ -249,7 +254,10 @@ export function ConstellationScreen() {
     [graph],
   );
   const annotationPanelOpen = createKind !== null || selectedAnnotation !== undefined;
-  const goalEvidencePanelOpen = selectedGoal !== undefined;
+  const goalEvidencePanelOpen = (
+    selectedGoal !== undefined
+    && selectedCluster === undefined
+  );
   const sidePanelOpen = annotationPanelOpen || selectedNode !== undefined;
   const neighborhood = useMemo(
     () => graph && selectedNode
@@ -269,14 +277,17 @@ export function ConstellationScreen() {
     : null;
 
   useEffect(() => {
-    if (shouldClearConstellationSelection({
-      hasDto: constellation.dto !== null,
-      hasSelectionParam,
-      isMutationSaving:
-        constellation.mutation.isSaving || goalEvidence.mutation.isSaving,
-      selectedKey,
-    })) {
-      router.replace('/constellation');
+    if (
+      constellation.dto
+      && selection
+      && !selectedKey
+      && !constellation.mutation.isSaving
+      && !goalEvidence.mutation.isSaving
+    ) {
+      setSelection(null);
+      if (hasSelectionParam) {
+        router.setParams({ selected: undefined });
+      }
     }
   }, [
     constellation.dto,
@@ -284,17 +295,14 @@ export function ConstellationScreen() {
     goalEvidence.mutation.isSaving,
     hasSelectionParam,
     selectedKey,
+    selection,
   ]);
 
   function navigateSelection(nextSelection: string | null) {
-    if (!nextSelection) {
+    setSelection(nextSelection);
+    if (hasSelectionParam) {
       router.setParams({ selected: undefined });
-      return;
     }
-    router.push({
-      pathname: '/constellation',
-      params: { selected: nextSelection },
-    } as Href);
   }
 
   function updateSelection(nextSelection: string | null) {
@@ -363,7 +371,12 @@ export function ConstellationScreen() {
     ? constellation.dto.state.renderState === 'graph'
       ? (
           <ConstellationCanvasShell
-            focusLabel={selectedNode?.node.label ?? null}
+            focusLabel={
+              selectedNode?.entityType === 'earned_node'
+              && selectedNode.node.kind === 'season'
+                ? 'Current Season'
+                : selectedNode?.node.label ?? null
+            }
             graph={focusedGraph}
             isRefreshing={constellation.isRefreshing}
             layout={layout}
@@ -430,9 +443,19 @@ export function ConstellationScreen() {
               onSave={saveAnnotation}
               visibleEarnedNodes={visibleEarnedNodes}
             />
+          ) : selectedCluster ? (
+            <ConstellationBrtInspector
+              inspector={brtInspector}
+              node={selectedCluster}
+              onClose={closeInspector}
+              onEntriesChanged={constellation.refresh}
+              onReadEntry={(entryId) => router.push({
+                pathname: '/echo',
+                params: { entryId },
+              } as Href)}
+            />
           ) : goalEvidencePanelOpen && selectedGoal ? (
             <ConstellationGoalEvidencePanel
-              clusterCategory={selectedCluster?.brtCategory}
               connectedCount={connectedNodes.length}
               evidence={goalEvidence}
               goalDescription={selectedGoal.description}

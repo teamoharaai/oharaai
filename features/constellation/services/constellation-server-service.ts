@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   createConstellationMutationRepository,
   loadConstellationGoalEvidence,
+  loadConstellationBrtInspector,
   loadConstellationReflectionInspector,
   loadConstellationSnapshot,
   searchConstellationEchoOptions,
@@ -18,6 +19,8 @@ import {
 } from './constellation-server-core.ts';
 import type {
   ConstellationAnnotationDTO,
+  ConstellationBrtCategory,
+  ConstellationBrtInspectorDTO,
   ConstellationDeleteResult,
   ConstellationEchoSearchDTO,
   ConstellationEvidenceLink,
@@ -74,6 +77,14 @@ export async function getConstellationReflectionInspector(
     throw new ConstellationDataError('NOT_FOUND', 'Reflection not found.');
   }
   return result;
+}
+
+export function getConstellationBrtInspector(
+  ownerId: string,
+  category: ConstellationBrtCategory,
+  client: SupabaseClient,
+): Promise<ConstellationBrtInspectorDTO> {
+  return loadConstellationBrtInspector(ownerId, category, client);
 }
 
 export async function getConstellationEchoOptions(

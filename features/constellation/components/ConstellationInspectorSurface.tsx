@@ -11,7 +11,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { getConstellationResponsiveLayout } from '../responsive';
 
-const INSPECTOR_WIDTH = 360;
+const INSPECTOR_WIDTH = 420;
 const CLOSE_CONTROL_ID = 'constellation-inspector-close';
 const GRAPH_FOCUS_ID = 'constellation-graph-focus-root';
 

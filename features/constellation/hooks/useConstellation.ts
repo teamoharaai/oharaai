@@ -66,6 +66,7 @@ export function useConstellation() {
   const requestIdRef = useRef(0);
   const optimisticIdRef = useRef(0);
   const dtoRef = useRef<ConstellationGraphDTO | null>(null);
+  const goalEvidenceCountRef = useRef(new Map<string, number>());
   const [mutation, setMutation] = useState(INITIAL_MUTATION_STATE);
 
   const replaceDto = useCallback((dto: ConstellationGraphDTO) => {
@@ -89,6 +90,7 @@ export function useConstellation() {
         return;
       }
       dtoRef.current = dto;
+      goalEvidenceCountRef.current.clear();
       dispatch({ type: 'request_succeeded', dto });
     } catch (error) {
       if (
@@ -266,7 +268,14 @@ export function useConstellation() {
   ) => {
     const dto = dtoRef.current;
     if (!dto) return;
-    replaceDto(replaceGoalEvidenceInGraph(dto, goalId, items));
+    const previousCount = goalEvidenceCountRef.current.get(goalId);
+    goalEvidenceCountRef.current.set(goalId, items.length);
+    replaceDto(replaceGoalEvidenceInGraph(
+      dto,
+      goalId,
+      items,
+      previousCount === undefined ? 0 : items.length - previousCount,
+    ));
   }, [replaceDto]);
 
   return {

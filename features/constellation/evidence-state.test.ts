@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  groupGoalEvidenceItems,
   hasEvidenceForEcho,
   INITIAL_ECHO_SEARCH_STATE,
   reduceConstellationEchoSearch,
@@ -38,14 +39,9 @@ function item(
 }
 
 function cloneGraph(): ConstellationGraphDTO {
-  const graph = JSON.parse(
+  return JSON.parse(
     JSON.stringify(constellationFixtureGraph),
   ) as ConstellationGraphDTO;
-  graph.counts.evidenceLinks = graph.virtualBrtClusters.reduce(
-    (total, cluster) => total + cluster.evidenceLinkCount,
-    0,
-  );
-  return graph;
 }
 
 test('duplicate Echo submission is recognized and upsert preserves one goal pair', () => {
@@ -63,6 +59,13 @@ test('duplicate Echo submission is recognized and upsert preserves one goal pair
   assert.equal(reconciled[0].brtCategory, 'thorn');
 });
 
+test('uncategorized goal evidence remains visible as an unlinked entry', () => {
+  const unlinked = item(0, { brtCategory: null });
+  const grouped = groupGoalEvidenceItems([unlinked, item(1)]);
+  assert.deepEqual(grouped.unlinked, [unlinked]);
+  assert.equal(grouped.rose.length, 1);
+});
+
 test('category changes recompute virtual cluster nodes and counts from current links', () => {
   const graph = replaceGoalEvidenceInGraph(
     cloneGraph(),
@@ -77,6 +80,7 @@ test('category changes recompute virtual cluster nodes and counts from current l
     graph,
     GOAL_ID,
     changedItems,
+    0,
   );
 
   assert.deepEqual(
@@ -84,24 +88,28 @@ test('category changes recompute virtual cluster nodes and counts from current l
       cluster.brtCategory,
       cluster.evidenceLinkCount,
     ]),
-    [['bud', 1], ['thorn', 1]],
+    [['bud', 1], ['rose', 0], ['thorn', 1]],
   );
   assert.deepEqual(
     changed.counts.virtualBrtClusters,
-    { total: 2, bud: 1, rose: 0, thorn: 1 },
+    { total: 3, bud: 1, rose: 1, thorn: 1 },
   );
   assert.equal(changed.counts.evidenceLinks, 2);
   assert.equal(
     changed.edges.filter(
       (edge) => edge.kind === 'goal_evidence_cluster',
     ).length,
-    2,
+    3,
   );
 });
 
 test('unlink optimistic rollback restores exact evidence and cluster counts', () => {
   const items = [item(0), item(1)];
-  const before = replaceGoalEvidenceInGraph(cloneGraph(), GOAL_ID, items);
+  const before = replaceGoalEvidenceInGraph(
+    cloneGraph(),
+    GOAL_ID,
+    items,
+  );
   const beforeSerialized = JSON.stringify(before);
   const optimisticItems = removeGoalEvidenceItem(
     items,
@@ -111,12 +119,13 @@ test('unlink optimistic rollback restores exact evidence and cluster counts', ()
     before,
     GOAL_ID,
     optimisticItems,
+    -1,
   );
 
   assert.equal(optimistic.counts.evidenceLinks, 1);
   assert.deepEqual(
     optimistic.virtualBrtClusters.map((cluster) => cluster.brtCategory),
-    ['rose'],
+    ['bud', 'rose', 'thorn'],
   );
   assert.equal(JSON.stringify(before), beforeSerialized);
 
@@ -124,6 +133,7 @@ test('unlink optimistic rollback restores exact evidence and cluster counts', ()
     optimistic,
     GOAL_ID,
     items,
+    1,
   );
   assert.equal(JSON.stringify(rolledBack), beforeSerialized);
 });

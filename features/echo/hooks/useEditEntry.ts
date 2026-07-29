@@ -34,7 +34,7 @@ export function useEditEntry({ onEntryGone }: UseEditEntryOptions = {}) {
   }, []);
 
   const save = useCallback(
-    async (changes: { content: string; title: string | null; brtCategory: BrtCategory }) => {
+    async (changes: { content: string; title: string | null; brtCategory: BrtCategory | null }) => {
       if (!activeEntry) return;
       const entryId = activeEntry.id;
 

@@ -1,6 +1,7 @@
 import type {
   ConstellationAnnotationDTO,
   ConstellationBrtCategory,
+  ConstellationBrtInspectorDTO,
   ConstellationEchoSearchDTO,
   ConstellationEarnedNodeDTO,
   ConstellationEarnedNodeKind,
@@ -226,7 +227,7 @@ function isGoalEvidenceItem(
   if (!isEvidenceLink(value) || !isRecord(value)) return false;
   const record = value as unknown as Record<string, unknown>;
   return (
-    includes(BRT_CATEGORIES, record.brtCategory)
+    (record.brtCategory === null || includes(BRT_CATEGORIES, record.brtCategory))
     && isEvidenceEchoSummary(record.echo)
     && record.echo.id === value.echoEntryId
   );
@@ -310,6 +311,24 @@ export function parseConstellationReflectionInspectorDTO(
   return value as unknown as ConstellationReflectionInspectorDTO;
 }
 
+export function parseConstellationBrtInspectorDTO(
+  value: unknown,
+): ConstellationBrtInspectorDTO | null {
+  if (
+    !isRecord(value)
+    || !includes(BRT_CATEGORIES, value.category)
+    || !Array.isArray(value.entries)
+    || !value.entries.every((entry) => (
+      isEvidenceEchoSummary(entry)
+      && isRecord(entry)
+      && entry.brtCategory === value.category
+    ))
+  ) {
+    return null;
+  }
+  return value as unknown as ConstellationBrtInspectorDTO;
+}
+
 function isEchoSearchOption(value: unknown): boolean {
   if (!isEvidenceEchoSummary(value) || !isRecord(value)) return false;
   return (
@@ -317,9 +336,9 @@ function isEchoSearchOption(value: unknown): boolean {
     || (
       isRecord(value.existingReference)
       && isNonEmptyString(value.existingReference.id)
-      && includes(
-        BRT_CATEGORIES,
-        value.existingReference.brtCategory,
+      && (
+        value.existingReference.brtCategory === null
+        || includes(BRT_CATEGORIES, value.existingReference.brtCategory)
       )
     )
   );

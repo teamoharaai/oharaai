@@ -20,7 +20,7 @@ interface EchoStore {
   setEntryContainer: (entryId: string, container: EntryContainerUpdate) => void;
   updateEntryFields: (
     entryId: string,
-    fields: { content?: string; title?: string | null; brtCategory?: BrtCategory },
+    fields: { content?: string; title?: string | null; brtCategory?: BrtCategory | null },
   ) => void;
   removeEntry: (entryId: string) => void;
   deleteEntry: (entryId: string) => Promise<void>;
@@ -72,7 +72,9 @@ export const useEchoStore = create<EchoStore>((set) => ({
               ...entry,
               ...(fields.content !== undefined ? { content: fields.content } : {}),
               ...(fields.title !== undefined ? { title: fields.title ?? undefined } : {}),
-              ...(fields.brtCategory !== undefined ? { brtCategory: fields.brtCategory } : {}),
+              ...(fields.brtCategory !== undefined
+                ? { brtCategory: fields.brtCategory ?? undefined }
+                : {}),
             },
       ),
     })),

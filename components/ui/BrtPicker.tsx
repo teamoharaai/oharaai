@@ -5,29 +5,39 @@ import { useThemeColors } from '@/store/uiStore';
 
 interface BrtPickerProps {
   disabled?: boolean;
-  onChange: (category: BrtCategory) => void;
-  value: BrtCategory;
+  includeUnlinked?: boolean;
+  onChange: (category: BrtCategory | null) => void;
+  value: BrtCategory | null;
 }
 
 // Single write target: this is the only BRT category selector in the app.
 // Used by the Echo entry-settings edit form and the Constellation evidence
 // panel, both of which PATCH echo_entries.brt_category through the same
 // route (see lib/api/echo-entries.ts).
-export function BrtPicker({ disabled = false, onChange, value }: BrtPickerProps) {
+export function BrtPicker({
+  disabled = false,
+  includeUnlinked = false,
+  onChange,
+  value,
+}: BrtPickerProps) {
   const colors = useThemeColors();
+  const categories: readonly (BrtCategory | null)[] = includeUnlinked
+    ? [null, ...BRT_CATEGORIES]
+    : BRT_CATEGORIES;
 
   return (
-    <View style={{ flexDirection: 'row', gap: 8 }}>
-      {BRT_CATEGORIES.map((category) => {
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      {categories.map((category) => {
         const selected = value === category;
-        const color = colors.brt[category];
+        const color = category ? colors.brt[category] : colors.text.muted;
+        const label = category ? brtCategoryLabel(category) : 'Unlinked';
         return (
           <Pressable
-            accessibilityLabel={`${brtCategoryLabel(category)} category`}
+            accessibilityLabel={`${label} category`}
             accessibilityRole="button"
             accessibilityState={{ disabled, selected }}
             disabled={disabled}
-            key={category}
+            key={category ?? 'unlinked'}
             onPress={() => onChange(category)}
             style={({ pressed }) => ({
               alignItems: 'center',
@@ -37,7 +47,8 @@ export function BrtPicker({ disabled = false, onChange, value }: BrtPickerProps)
               borderColor: selected ? color : colors.border.input,
               borderRadius: 10,
               borderWidth: selected ? 2 : 1,
-              flex: 1,
+              flexGrow: 1,
+              flexBasis: includeUnlinked ? '45%' : 0,
               justifyContent: 'center',
               minHeight: 44,
               opacity: disabled ? 0.5 : pressed ? 0.72 : 1,
@@ -63,7 +74,7 @@ export function BrtPicker({ disabled = false, onChange, value }: BrtPickerProps)
                 variant="label"
                 style={{ color: selected ? color : colors.text.primary }}
               >
-                {brtCategoryLabel(category)}
+                {label}
               </Typography>
             </View>
           </Pressable>

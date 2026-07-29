@@ -121,14 +121,8 @@ export function ConstellationReflectionInspector({
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {[
               ['Occurrences', String(inspector.dto.occurrences)],
-              [
-                'Score',
-                inspector.dto.aggregatedScore?.toFixed(1) ?? '—',
-              ],
-              [
-                'Valence',
-                valenceLabel(inspector.dto.dominantValence),
-              ],
+              ['First seen', formattedDate(inspector.dto.firstSeenAt)],
+              ['Last seen', formattedDate(inspector.dto.lastSeenAt)],
             ].map(([label, value]) => (
               <View
                 key={label}
@@ -141,7 +135,9 @@ export function ConstellationReflectionInspector({
                 }}
               >
                 <Typography variant="caption">{label}</Typography>
-                <Typography variant="label">{value}</Typography>
+                <Typography numberOfLines={2} variant="label">
+                  {value}
+                </Typography>
               </View>
             ))}
           </View>

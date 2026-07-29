@@ -97,6 +97,7 @@ test('goal evidence groups by semantic lowercase BRT values and returns virtual 
     [
       ['bud', 'Bud', 1],
       ['rose', 'Rose', 1],
+      ['thorn', 'Thorn', 0],
     ],
   );
 });

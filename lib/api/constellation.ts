@@ -162,6 +162,15 @@ export function parseConstellationResourceId(
   return parseUuid(params.id, fieldName);
 }
 
+export function parseConstellationBrtCategory(
+  value: string | undefined,
+): 'bud' | 'rose' | 'thorn' {
+  if (value !== 'bud' && value !== 'rose' && value !== 'thorn') {
+    return invalidInput('BRT category must be bud, rose, or thorn.');
+  }
+  return value;
+}
+
 export function parseConstellationEchoSearchQuery(
   request: Request,
 ): string {
@@ -184,7 +193,22 @@ export async function parseCreateAnnotationRequest(
     'label',
     'body',
     'anchorEarnedNodeId',
+    'anchorGoalId',
   ]);
+
+  const anchorEarnedNodeId = parseNullableUuid(
+    body.anchorEarnedNodeId,
+    'anchorEarnedNodeId',
+  );
+  const anchorGoalId = parseNullableUuid(
+    body.anchorGoalId,
+    'anchorGoalId',
+  );
+  if (anchorEarnedNodeId && anchorGoalId) {
+    return invalidInput(
+      'Choose either anchorEarnedNodeId or anchorGoalId, not both.',
+    );
+  }
 
   return {
     kind: parseAnnotationKind(body.kind),
@@ -198,10 +222,8 @@ export async function parseCreateAnnotationRequest(
       'body',
       ANNOTATION_BODY_MAX_LENGTH,
     ),
-    anchorEarnedNodeId: parseNullableUuid(
-      body.anchorEarnedNodeId,
-      'anchorEarnedNodeId',
-    ),
+    anchorEarnedNodeId,
+    anchorGoalId,
   };
 }
 
@@ -214,6 +236,7 @@ export async function parseUpdateAnnotationRequest(
     'label',
     'body',
     'anchorEarnedNodeId',
+    'anchorGoalId',
   ]);
   if (Object.keys(body).length === 0) {
     return invalidInput('At least one annotation field is required.');
@@ -239,6 +262,17 @@ export async function parseUpdateAnnotationRequest(
     input.anchorEarnedNodeId = parseNullableUuid(
       body.anchorEarnedNodeId,
       'anchorEarnedNodeId',
+    );
+  }
+  if (hasOwn(body, 'anchorGoalId')) {
+    input.anchorGoalId = parseNullableUuid(
+      body.anchorGoalId,
+      'anchorGoalId',
+    );
+  }
+  if (input.anchorEarnedNodeId && input.anchorGoalId) {
+    return invalidInput(
+      'Choose either anchorEarnedNodeId or anchorGoalId, not both.',
     );
   }
   return input;

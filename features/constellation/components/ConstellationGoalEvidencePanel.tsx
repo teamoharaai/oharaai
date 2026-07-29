@@ -28,7 +28,8 @@ const CATEGORIES = [
   'bud',
   'rose',
   'thorn',
-] as const satisfies readonly ConstellationBrtCategory[];
+  'unlinked',
+] as const;
 
 type GoalEvidenceController = ReturnType<typeof useGoalEvidence>;
 
@@ -47,6 +48,12 @@ function echoTitle(
   echo: Pick<ConstellationGoalEvidenceItem['echo'], 'title'>,
 ): string {
   return echo.title?.trim() || 'Untitled Entry';
+}
+
+function evidenceCategoryLabel(
+  category: ConstellationBrtCategory | null,
+): string {
+  return category ? brtDisplayLabel(category) : 'Unlinked';
 }
 
 function formattedDate(value: string): string {
@@ -119,7 +126,7 @@ function EchoOptionRow({
     <Pressable
       accessibilityLabel={
         existing
-          ? `${echoTitle(option)} is already referenced as ${brtDisplayLabel(existing.brtCategory)}`
+          ? `${echoTitle(option)} is already referenced as ${evidenceCategoryLabel(existing.brtCategory)}`
           : `Select entry ${echoTitle(option)}`
       }
       accessibilityRole="button"
@@ -157,7 +164,7 @@ function EchoOptionRow({
         </Typography>
         <Typography variant="caption">
           {existing
-            ? `Referenced · ${brtDisplayLabel(existing.brtCategory)}`
+            ? `Referenced · ${evidenceCategoryLabel(existing.brtCategory)}`
             : formattedDate(option.createdAt)}
         </Typography>
       </View>
@@ -170,18 +177,18 @@ function EchoOptionRow({
 
 function AddEvidenceForm({
   evidence,
-  initialCategory = 'bud',
+  initialCategory = null,
   onDone,
 }: {
   evidence: GoalEvidenceController;
-  initialCategory?: ConstellationBrtCategory;
+  initialCategory?: ConstellationBrtCategory | null;
   onDone: () => void;
 }) {
   const colors = useThemeColors();
   const [query, setQuery] = useState('');
   const [selectedEchoId, setSelectedEchoId] = useState<string | null>(null);
   const [category, setCategory] =
-    useState<ConstellationBrtCategory>(initialCategory);
+    useState<ConstellationBrtCategory | null>(initialCategory);
   const [note, setNote] = useState('');
   const selectedOption = evidence.search.options.find(
     (option) => option.id === selectedEchoId,
@@ -314,6 +321,7 @@ function AddEvidenceForm({
             <Typography variant="field-label">Goal evidence category</Typography>
             <BrtPicker
               disabled={saving}
+              includeUnlinked
               onChange={setCategory}
               value={category}
             />
@@ -424,7 +432,9 @@ function EvidenceItemCard({
       {!editing && item.note ? (
         <View
           style={{
-            borderLeftColor: colors.brt[item.brtCategory],
+            borderLeftColor: item.brtCategory
+              ? colors.brt[item.brtCategory]
+              : colors.text.muted,
             borderLeftWidth: 3,
             paddingLeft: 9,
           }}
@@ -437,6 +447,7 @@ function EvidenceItemCard({
         <View style={{ gap: 12 }}>
           <BrtPicker
             disabled={saving}
+            includeUnlinked
             onChange={setCategory}
             value={category}
           />
@@ -529,7 +540,9 @@ export function ConstellationGoalEvidencePanel({
     () => groupGoalEvidenceItems(evidence.dto?.items ?? []),
     [evidence.dto?.items],
   );
-  const displayCategories = clusterCategory
+  const displayCategories: readonly (
+    ConstellationBrtCategory | 'unlinked'
+  )[] = clusterCategory
     ? [clusterCategory]
     : CATEGORIES;
 
@@ -595,9 +608,9 @@ export function ConstellationGoalEvidencePanel({
               }}
             >
               {[
-                ['Status', evidence.dto?.goal.status ?? 'active'],
-                ['Connected', String(connectedCount)],
-                ['Evidence', String(evidence.dto?.items.length ?? 0)],
+                ['Streak', '—'],
+                ['Vault', '—'],
+                ['Edges', '—'],
               ].map(([label, value]) => (
                 <View
                   key={label}
@@ -612,7 +625,7 @@ export function ConstellationGoalEvidencePanel({
                   <Typography variant="caption">{label}</Typography>
                   <Typography
                     variant="label"
-                    style={{ textTransform: label === 'Status' ? 'capitalize' : undefined }}
+                    style={{ fontSize: 20 }}
                   >
                     {value}
                   </Typography>
@@ -621,7 +634,7 @@ export function ConstellationGoalEvidencePanel({
             </View>
             {evidence.dto?.goal.deadline ? (
               <Typography variant="caption">
-                {`Target date · ${formattedDate(evidence.dto.goal.deadline)}`}
+                {`Target date · ${formattedDate(evidence.dto.goal.deadline)} · ${connectedCount} connected nodes`}
               </Typography>
             ) : null}
           </View>
@@ -669,11 +682,11 @@ export function ConstellationGoalEvidencePanel({
               <Typography variant="section-eyebrow">
                 {clusterCategory
                   ? `${brtDisplayLabel(clusterCategory)} entries`
-                  : 'Manual evidence'}
+                  : `Connected entries · ${evidence.dto?.items.length ?? 0}`}
               </Typography>
               <Typography variant="description">
-                Entry references are goal-specific. They never move, delete, or
-                reclassify the original entry.
+                Classify each connected entry as Bud, Rose, Thorn, or leave it
+                unlinked until its role becomes clear.
               </Typography>
             </View>
 
@@ -717,7 +730,13 @@ export function ConstellationGoalEvidencePanel({
             ) : (
               displayCategories.map((category) => {
                 const items = grouped[category];
-                const color = colors.brt[category];
+                const isUnlinked = category === 'unlinked';
+                const color = isUnlinked
+                  ? colors.text.muted
+                  : colors.brt[category];
+                const categoryLabel = isUnlinked
+                  ? 'Unlinked entries'
+                  : brtDisplayLabel(category);
                 return (
                   <View key={category} style={{ gap: 9 }}>
                     <View
@@ -736,7 +755,7 @@ export function ConstellationGoalEvidencePanel({
                         }}
                       />
                       <Typography variant="title">
-                        {brtDisplayLabel(category)}
+                        {categoryLabel}
                       </Typography>
                       <Typography variant="caption">
                         {items.length}
@@ -744,7 +763,7 @@ export function ConstellationGoalEvidencePanel({
                     </View>
                     {items.length === 0 ? (
                       <Typography variant="caption">
-                        No {brtDisplayLabel(category).toLowerCase()} evidence.
+                        No {categoryLabel.toLowerCase()}.
                       </Typography>
                     ) : items.map((item) => (
                       <EvidenceItemCard

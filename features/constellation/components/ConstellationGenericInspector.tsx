@@ -44,10 +44,11 @@ export function ConstellationGenericInspector({
   onSelect,
 }: ConstellationGenericInspectorProps) {
   const colors = useThemeColors();
+  const displayLabel = node.kind === 'season' ? 'Current Season' : node.label;
 
   return (
     <ConstellationInspectorSurface
-      accessibilityLabel={`${node.kind} inspector for ${node.label}`}
+      accessibilityLabel={`${node.kind} inspector for ${displayLabel}`}
       onClose={onClose}
       selectionKey={node.selectionKey}
     >
@@ -59,7 +60,7 @@ export function ConstellationGenericInspector({
           {`EARNED ${node.kind.toUpperCase()} · READ ONLY`}
         </Typography>
         <Typography accessibilityRole="header" numberOfLines={3} variant="heading">
-          {node.label}
+          {displayLabel}
         </Typography>
         <Typography numberOfLines={5} variant="description">
           {node.description ?? `This ${node.kind} is part of your live Constellation.`}

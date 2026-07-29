@@ -235,7 +235,7 @@ export interface ConstellationGoalEvidenceItem
   extends ConstellationEvidenceLink {
   // Derived at read time by joining the linked echo entry's brt_category —
   // the single write target is PATCH /api/entries/:id (components/ui/BrtPicker.tsx).
-  brtCategory: ConstellationBrtCategory;
+  brtCategory: ConstellationBrtCategory | null;
   echo: ConstellationEvidenceEchoSummary;
 }
 
@@ -272,6 +272,16 @@ export interface ConstellationReflectionEvidenceItem
   valence: ConstellationReflectionValence | null;
 }
 
+export interface ConstellationBrtInspectorEntry
+  extends ConstellationEvidenceEchoSummary {
+  brtCategory: ConstellationBrtCategory;
+}
+
+export interface ConstellationBrtInspectorDTO {
+  category: ConstellationBrtCategory;
+  entries: readonly ConstellationBrtInspectorEntry[];
+}
+
 export interface ConstellationReflectionInspectorDTO {
   nodeId: string;
   label: string;
@@ -291,7 +301,7 @@ export interface ConstellationEchoSearchOption
   extends ConstellationEvidenceEchoSummary {
   existingReference: {
     id: string;
-    brtCategory: ConstellationBrtCategory;
+    brtCategory: ConstellationBrtCategory | null;
   } | null;
 }
 

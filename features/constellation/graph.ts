@@ -181,7 +181,7 @@ export function stableVirtualBrtClusterId<
 // links themselves no longer carry a category — see ConstellationEvidenceLink).
 export interface GoalEvidenceClusterInput {
   goalId: string;
-  brtCategory: ConstellationBrtCategory;
+  brtCategory: ConstellationBrtCategory | null;
   updatedAt: string;
 }
 
@@ -233,8 +233,10 @@ function toVirtualCluster(
 }
 
 /**
- * Produces only visible goal/BRT groups. Missing goal nodes intentionally produce
- * no virtual cluster, so derived display entities cannot outlive their goal.
+ * Produces the three visible BRT choices for every visible goal. Empty clusters
+ * remain selectable so focusing a goal always exposes Bud, Rose, and Thorn;
+ * uncategorized entries stay out of those counts and appear in the inspector's
+ * Unlinked entries group.
  */
 export function groupGoalEvidenceByBrt(
   evidenceLinks: readonly GoalEvidenceClusterInput[],
@@ -243,6 +245,7 @@ export function groupGoalEvidenceByBrt(
   const groups = new Map<string, GoalEvidenceClusterInput[]>();
 
   for (const link of evidenceLinks) {
+    if (link.brtCategory === null) continue;
     const key = link.goalId + ':' + link.brtCategory;
     const existing = groups.get(key);
     if (existing) {
@@ -253,11 +256,14 @@ export function groupGoalEvidenceByBrt(
   }
 
   const clusters: ConstellationVirtualBrtClusterDTO[] = [];
-  for (const links of groups.values()) {
-    const [first] = links;
-    const goalNodeId = goalNodeIds.get(first.goalId);
-    if (goalNodeId) {
-      clusters.push(toVirtualCluster(first.goalId, goalNodeId, first.brtCategory, links));
+  for (const [goalId, goalNodeId] of goalNodeIds) {
+    for (const category of ['bud', 'rose', 'thorn'] as const) {
+      clusters.push(toVirtualCluster(
+        goalId,
+        goalNodeId,
+        category,
+        groups.get(`${goalId}:${category}`) ?? [],
+      ));
     }
   }
 
@@ -486,8 +492,18 @@ export function adaptGraphDtoToViewModel(
   options: ConstellationViewModelOptions = {},
 ): ConstellationGraphViewModel {
   const filteredNodes = filterGraphNodes(toViewNodes(dto), options.filters);
+  const selected = options.selectedKey
+    ? filteredNodes.find((node) => node.selectionKey === options.selectedKey)
+    : undefined;
+  const focusedNodes = selected
+    ? selectConnectedNeighborhood(
+        filteredNodes,
+        dto.edges,
+        selected.id,
+      )?.nodes ?? filteredNodes
+    : filteredNodes;
   const nodes = selectRenderBudget(
-    filteredNodes,
+    focusedNodes,
     options.renderBudget,
     options.selectedKey,
   );

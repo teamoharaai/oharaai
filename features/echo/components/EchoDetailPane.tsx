@@ -25,7 +25,11 @@ type EchoDetailPaneProps = {
   onSaved: (entry: EchoEntry | undefined) => void;
   editIsSaving: boolean;
   editError: string | null;
-  onSaveEdit: (changes: { content: string; title: string | null; brtCategory: BrtCategory }) => void;
+  onSaveEdit: (changes: {
+    content: string;
+    title: string | null;
+    brtCategory: BrtCategory | null;
+  }) => void;
   onCancelEdit: () => void;
 };
 

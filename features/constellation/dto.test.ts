@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  parseConstellationBrtInspectorDTO,
   parseConstellationEchoSearchDTO,
   parseConstellationGoalEvidenceDTO,
   parseConstellationGraphDTO,
@@ -89,6 +90,10 @@ test('goal evidence and Echo search DTOs reject mismatched goal or Echo identiti
     goal,
     items: [item],
   }));
+  assert.ok(parseConstellationGoalEvidenceDTO({
+    goal,
+    items: [{ ...item, brtCategory: null }],
+  }));
   assert.equal(parseConstellationGoalEvidenceDTO({
     goal: { ...goal, id: 'another-goal' },
     items: [item],
@@ -116,6 +121,17 @@ test('goal evidence and Echo search DTOs reject mismatched goal or Echo identiti
       },
     }],
   }), null);
+  assert.ok(parseConstellationEchoSearchDTO({
+    goalId: 'goal-id',
+    query: 'bounded',
+    options: [{
+      ...item.echo,
+      existingReference: {
+        id: item.id,
+        brtCategory: null,
+      },
+    }],
+  }));
   assert.equal(parseConstellationGoalEvidenceDTO({
     goal,
     items: [{ ...item, note: 'n'.repeat(281) }],
@@ -133,6 +149,25 @@ test('goal evidence and Echo search DTOs reject mismatched goal or Echo identiti
       excerpt: 'e'.repeat(241),
       existingReference: null,
     }],
+  }), null);
+});
+
+test('BRT inspector DTO validates category-scoped bounded entries', () => {
+  const entry = {
+    id: 'entry-id',
+    title: 'A beginning',
+    excerpt: 'A bounded excerpt.',
+    excerptTruncated: false,
+    createdAt: '2026-07-28T12:00:00.000Z',
+    brtCategory: 'bud',
+  };
+  assert.ok(parseConstellationBrtInspectorDTO({
+    category: 'bud',
+    entries: [entry],
+  }));
+  assert.equal(parseConstellationBrtInspectorDTO({
+    category: 'rose',
+    entries: [entry],
   }), null);
 });
 
