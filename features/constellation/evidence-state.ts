@@ -146,8 +146,12 @@ export function replaceGoalEvidenceLink(
   item: ConstellationGoalEvidenceItem,
   link: ConstellationEvidenceLink,
 ): ConstellationGoalEvidenceItem {
+  // The link itself no longer carries a BRT category (it's a pure relation);
+  // `item.brtCategory` already holds the value the caller just wrote to the
+  // echo entry, so it's carried forward rather than read off `link`.
   return {
     ...link,
+    brtCategory: item.brtCategory,
     echo: item.echo,
   };
 }

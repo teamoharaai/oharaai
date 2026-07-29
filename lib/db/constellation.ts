@@ -87,22 +87,24 @@ const EVIDENCE_LINK_COLUMNS = [
   'goal_id',
   'updated_at',
 ].join(', ');
-// Write/inspector path (Prompt 3 BRT-picker surface) still references the
-// dropped brt_category column — see OUTSTANDING.md.
+// Write/inspector path (Prompt 3 BRT-picker surface): a pure relation now that
+// migration 033 dropped brt_category from this table.
 const EVIDENCE_REFERENCE_COLUMNS = [
   'id',
   'owner_id',
   'echo_entry_id',
   'goal_id',
-  'brt_category',
   'note',
   'created_at',
   'updated_at',
 ].join(', ');
+// brt_category is selected so goal-evidence/search reads can join each echo's
+// own category in without a second round trip.
 const ECHO_EVIDENCE_COLUMNS = [
   'id',
   'title',
   'content',
+  'brt_category',
   'created_at',
 ].join(', ');
 const ECHO_EXCERPT_MAX_LENGTH = 240;
@@ -112,6 +114,7 @@ interface ConstellationEvidenceEchoRow {
   id: string;
   title: string | null;
   content: string;
+  brt_category: string | null;
   created_at: string;
 }
 
@@ -468,13 +471,16 @@ export async function loadConstellationGoalEvidence(
   const items: ConstellationGoalEvidenceItem[] = references.flatMap(
     (reference) => {
       const echo = echoById.get(reference.echo_entry_id);
-      if (!echo) return [];
+      // No echo row, or the echo has never been assigned a BRT category
+      // (shouldn't happen — creating a reference always sets one — but degrade
+      // by dropping the item rather than throwing on legacy/orphaned data).
+      if (!echo || echo.brt_category === null) return [];
       return [{
         id: reference.id,
         ownerId: reference.owner_id,
         echoEntryId: reference.echo_entry_id,
         goalId: reference.goal_id,
-        brtCategory: reference.brt_category as ConstellationGoalEvidenceItem['brtCategory'],
+        brtCategory: echo.brt_category as ConstellationGoalEvidenceItem['brtCategory'],
         note: reference.note,
         createdAt: reference.created_at,
         updatedAt: reference.updated_at,
@@ -723,10 +729,12 @@ export async function searchConstellationEchoOptions(
     const existing = referenceByEchoId.get(row.id);
     return {
       ...mapEvidenceEcho(row),
-      existingReference: existing
+      // BRT category is the echo entry's own (existing links no longer carry
+      // one), so it's read straight off the search row, not the reference.
+      existingReference: existing && row.brt_category
         ? {
             id: existing.id,
-            brtCategory: existing.brt_category as ConstellationBrtCategory,
+            brtCategory: row.brt_category as ConstellationBrtCategory,
           }
         : null,
     };
@@ -866,7 +874,6 @@ export function createConstellationMutationRepository(
           owner_id: ownerId,
           echo_entry_id: input.echoEntryId,
           goal_id: input.goalId,
-          brt_category: input.brtCategory,
           note: input.note ?? null,
         })
         .select(EVIDENCE_REFERENCE_COLUMNS)

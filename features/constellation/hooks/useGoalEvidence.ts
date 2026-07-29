@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { updateEchoEntryBrtCategory } from '@/lib/api/echo-entries';
 import {
   hasEvidenceForEcho,
   INITIAL_ECHO_SEARCH_STATE,
@@ -23,11 +24,10 @@ import {
   updateConstellationEvidenceReference,
 } from '../services/constellation-service';
 import type {
+  ConstellationBrtCategory,
   ConstellationEchoSearchOption,
   ConstellationGoalEvidenceDTO,
   ConstellationGoalEvidenceItem,
-  CreateConstellationEvidenceReferenceInput,
-  UpdateConstellationEvidenceReferenceInput,
 } from '../types';
 
 export type GoalEvidenceStatus = 'idle' | 'loading' | 'ready' | 'error';
@@ -288,7 +288,8 @@ export function useGoalEvidence({
 
   const addReference = useCallback(async (
     option: ConstellationEchoSearchOption,
-    input: Omit<CreateConstellationEvidenceReferenceInput, 'echoEntryId' | 'goalId'>,
+    brtCategory: ConstellationBrtCategory,
+    input: { note?: string | null },
   ): Promise<boolean> => {
     const current = dtoRef.current;
     const selectedGoalId = activeGoalIdRef.current;
@@ -314,7 +315,7 @@ export function useGoalEvidence({
       ownerId: 'optimistic',
       echoEntryId: option.id,
       goalId: selectedGoalId,
-      brtCategory: input.brtCategory,
+      brtCategory,
       note: input.note ?? null,
       createdAt: now,
       updatedAt: now,
@@ -337,6 +338,14 @@ export function useGoalEvidence({
     commitItems(selectedGoalId, optimisticItems);
 
     try {
+      // Single write target: the category always goes onto the echo entry
+      // itself via the same PATCH /api/entries/:id route entry settings uses —
+      // the evidence link below is a pure (echo, goal, note) relation.
+      const categoryOk = await updateEchoEntryBrtCategory(option.id, brtCategory);
+      if (controller.signal.aborted) return false;
+      if (!categoryOk) {
+        throw new Error('The entry category could not be saved.');
+      }
       const link = await createConstellationEvidenceReference({
         echoEntryId: option.id,
         goalId: selectedGoalId,
@@ -371,7 +380,8 @@ export function useGoalEvidence({
 
   const editReference = useCallback(async (
     evidenceReferenceId: string,
-    input: UpdateConstellationEvidenceReferenceInput,
+    brtCategory: ConstellationBrtCategory,
+    input: { note?: string | null },
   ): Promise<boolean> => {
     const current = dtoRef.current;
     const selectedGoalId = activeGoalIdRef.current;
@@ -383,9 +393,10 @@ export function useGoalEvidence({
     const controller = beginMutation('edit', evidenceReferenceId);
     if (!controller) return false;
     const previousItems = current.items;
-    const optimistic = {
+    const optimistic: ConstellationGoalEvidenceItem = {
       ...existing,
-      ...input,
+      brtCategory,
+      note: input.note ?? null,
       updatedAt: new Date().toISOString(),
     };
     const optimisticItems = upsertGoalEvidenceItem(
@@ -399,6 +410,16 @@ export function useGoalEvidence({
     commitItems(selectedGoalId, optimisticItems);
 
     try {
+      // Single write target: same PATCH /api/entries/:id route entry settings
+      // uses. The evidence link's own update below only ever carries the note.
+      const categoryOk = await updateEchoEntryBrtCategory(
+        existing.echoEntryId,
+        brtCategory,
+      );
+      if (controller.signal.aborted) return false;
+      if (!categoryOk) {
+        throw new Error('The entry category could not be saved.');
+      }
       const link = await updateConstellationEvidenceReference(
         evidenceReferenceId,
         input,

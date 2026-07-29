@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useEchoStore } from '../store';
 import { updateEntry } from '../services/echo-service';
-import type { EchoEntry } from '../types';
+import type { BrtCategory, EchoEntry } from '../types';
 
 interface UseEditEntryOptions {
   // Called when a save fails because the entry no longer exists server-side
@@ -34,7 +34,7 @@ export function useEditEntry({ onEntryGone }: UseEditEntryOptions = {}) {
   }, []);
 
   const save = useCallback(
-    async (changes: { content: string; title: string | null }) => {
+    async (changes: { content: string; title: string | null; brtCategory: BrtCategory }) => {
       if (!activeEntry) return;
       const entryId = activeEntry.id;
 

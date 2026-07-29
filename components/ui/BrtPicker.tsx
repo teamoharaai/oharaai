@@ -1,36 +1,29 @@
 import { Pressable, View } from 'react-native';
 import { Typography } from '@/components/ui/Typography';
+import { BRT_CATEGORIES, brtCategoryLabel, type BrtCategory } from '@/lib/utils/resolveBrt';
 import { useThemeColors } from '@/store/uiStore';
-import { brtDisplayLabel } from '../tokens';
-import type { ConstellationBrtCategory } from '../types';
 
-interface ConstellationBrtPickerProps {
+interface BrtPickerProps {
   disabled?: boolean;
-  onChange: (category: ConstellationBrtCategory) => void;
-  value: ConstellationBrtCategory;
+  onChange: (category: BrtCategory) => void;
+  value: BrtCategory;
 }
 
-const CATEGORIES = [
-  'bud',
-  'rose',
-  'thorn',
-] as const satisfies readonly ConstellationBrtCategory[];
-
-export function ConstellationBrtPicker({
-  disabled = false,
-  onChange,
-  value,
-}: ConstellationBrtPickerProps) {
+// Single write target: this is the only BRT category selector in the app.
+// Used by the Echo entry-settings edit form and the Constellation evidence
+// panel, both of which PATCH echo_entries.brt_category through the same
+// route (see lib/api/echo-entries.ts).
+export function BrtPicker({ disabled = false, onChange, value }: BrtPickerProps) {
   const colors = useThemeColors();
 
   return (
     <View style={{ flexDirection: 'row', gap: 8 }}>
-      {CATEGORIES.map((category) => {
+      {BRT_CATEGORIES.map((category) => {
         const selected = value === category;
         const color = colors.brt[category];
         return (
           <Pressable
-            accessibilityLabel={`${brtDisplayLabel(category)} evidence category`}
+            accessibilityLabel={`${brtCategoryLabel(category)} category`}
             accessibilityRole="button"
             accessibilityState={{ disabled, selected }}
             disabled={disabled}
@@ -70,7 +63,7 @@ export function ConstellationBrtPicker({
                 variant="label"
                 style={{ color: selected ? color : colors.text.primary }}
               >
-                {brtDisplayLabel(category)}
+                {brtCategoryLabel(category)}
               </Typography>
             </View>
           </Pressable>

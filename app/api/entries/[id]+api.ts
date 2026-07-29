@@ -37,7 +37,8 @@ function sanitizeTitle(input: unknown): string | null {
 }
 
 // ─── PATCH /api/entries/:id ───────────────────────────────────────────────────
-// Body: { content?: string, title?: string | null } — at least one field.
+// Body: { content?: string, title?: string | null, brtCategory?: 'bud'|'rose'|'thorn' }
+// — at least one field.
 //
 // Server-side edit + re-embed. The re-embed happens here, inline, using the same
 // buildEchoEmbeddingText → generateEmbedding pipeline as POST /api/entries.
@@ -46,10 +47,26 @@ function sanitizeTitle(input: unknown): string | null {
 // changed on an entry that requested an AI insight, the stale reflection is
 // cleared and ai_status is flipped to 'pending' so the existing echo/reconcile
 // job re-summarizes the new text (reconcile itself is untouched).
+//
+// brtCategory is the single write target for echo_entries.brt_category (see
+// components/ui/BrtPicker.tsx) — it's applied as an independent field update,
+// never inside the contentChanged branch, so a category-only edit never
+// triggers a re-embed or reflection reset.
+
+const BRT_CATEGORIES = ['bud', 'rose', 'thorn'] as const;
+type BrtCategoryValue = (typeof BRT_CATEGORIES)[number];
 
 interface UpdateEntryBody {
   content?: unknown;
   title?: unknown;
+  brtCategory?: unknown;
+}
+
+function sanitizeBrtCategory(input: unknown): BrtCategoryValue {
+  if (typeof input !== 'string' || !BRT_CATEGORIES.includes(input as BrtCategoryValue)) {
+    throw new Error('brtCategory must be bud, rose, or thorn');
+  }
+  return input as BrtCategoryValue;
 }
 
 export async function PATCH(
@@ -84,18 +101,21 @@ async function handlePatch(
 
   const hasContent = body.content !== undefined;
   const hasTitle = body.title !== undefined;
-  if (!hasContent && !hasTitle) {
+  const hasBrtCategory = body.brtCategory !== undefined;
+  if (!hasContent && !hasTitle && !hasBrtCategory) {
     return Response.json(
-      { error: 'Provide at least one of: content, title' },
+      { error: 'Provide at least one of: content, title, brtCategory' },
       { status: 400 },
     );
   }
 
   let newContent: string | undefined;
   let newTitle: string | null | undefined;
+  let newBrtCategory: BrtCategoryValue | undefined;
   try {
     if (hasContent) newContent = sanitizeString(body.content, MAX_CONTENT_LENGTH);
     if (hasTitle) newTitle = sanitizeTitle(body.title);
+    if (hasBrtCategory) newBrtCategory = sanitizeBrtCategory(body.brtCategory);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Invalid request';
     return Response.json({ error: message }, { status: 400 });
@@ -136,6 +156,7 @@ async function handlePatch(
     const update: Record<string, unknown> = {};
     if (hasContent) update.content = newContent;
     if (hasTitle) update.title = newTitle;
+    if (hasBrtCategory) update.brt_category = newBrtCategory;
 
     let embeddingText: string | null = null;
     if (contentChanged) {

@@ -3,6 +3,7 @@ import {
   View,
 } from 'react-native';
 import { useEffect, useMemo, useState } from 'react';
+import { BrtPicker } from '@/components/ui/BrtPicker';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
@@ -18,7 +19,6 @@ import type {
   ConstellationEchoSearchOption,
   ConstellationGoalEvidenceItem,
 } from '../types';
-import { ConstellationBrtPicker } from './ConstellationBrtPicker';
 import { ConstellationInspectorSurface } from './ConstellationInspectorSurface';
 import { ConstellationLoadingMark } from './ConstellationLoadingMark';
 
@@ -213,8 +213,7 @@ function AddEvidenceForm({
 
   async function add() {
     if (!selectedOption || note.trim().length > NOTE_MAX_LENGTH) return;
-    const saved = await evidence.addReference(selectedOption, {
-      brtCategory: category,
+    const saved = await evidence.addReference(selectedOption, category, {
       note: normalizedNote(note),
     });
     if (saved) onDone();
@@ -313,7 +312,7 @@ function AddEvidenceForm({
         <>
           <View style={{ gap: 8 }}>
             <Typography variant="field-label">Goal evidence category</Typography>
-            <ConstellationBrtPicker
+            <BrtPicker
               disabled={saving}
               onChange={setCategory}
               value={category}
@@ -395,8 +394,7 @@ function EvidenceItemCard({
   }, [editing, item.brtCategory, item.note]);
 
   async function save() {
-    const saved = await evidence.editReference(item.id, {
-      brtCategory: category,
+    const saved = await evidence.editReference(item.id, category, {
       note: normalizedNote(note),
     });
     if (saved) setEditing(false);
@@ -437,7 +435,7 @@ function EvidenceItemCard({
 
       {editing ? (
         <View style={{ gap: 12 }}>
-          <ConstellationBrtPicker
+          <BrtPicker
             disabled={saving}
             onChange={setCategory}
             value={category}

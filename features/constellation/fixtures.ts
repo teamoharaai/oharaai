@@ -1,4 +1,5 @@
 import type {
+  ConstellationBrtCategory,
   ConstellationEvidenceLink,
   ConstellationGraphDTO,
 } from './types.ts';
@@ -10,7 +11,14 @@ import type {
  */
 export const CONSTELLATION_FIXTURE_OWNER_ID = 'fixture-owner';
 
-export const constellationFixtureEvidenceLinks: readonly ConstellationEvidenceLink[] = [
+// Links carry brtCategory here even though ConstellationEvidenceLink no
+// longer does — these fixtures feed evidence-state.test.ts's item() helper,
+// which composes them into full ConstellationGoalEvidenceItem values.
+type FixtureEvidenceLink = ConstellationEvidenceLink & {
+  brtCategory: ConstellationBrtCategory;
+};
+
+export const constellationFixtureEvidenceLinks: readonly FixtureEvidenceLink[] = [
   {
     id: 'fixture-evidence-bud',
     ownerId: CONSTELLATION_FIXTURE_OWNER_ID,

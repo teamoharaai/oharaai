@@ -1,6 +1,8 @@
 import type { EchoBrt } from '@/types/brt';
+import type { BrtCategory } from '@/lib/utils/resolveBrt';
 
 export type { EchoBrt };
+export type { BrtCategory };
 
 export type EchoEmotion = {
   valence: number;
@@ -21,6 +23,7 @@ export interface EchoEntry {
   mediaUrl?: string;
   aiInsightRequested: boolean;
   brt?: EchoBrt;
+  brtCategory?: BrtCategory;
   emotion?: EchoEmotion;
   modelVersion?: string;
   visibility: 'private' | 'shared';

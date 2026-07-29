@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import type { EchoEntry } from '../types';
+import { BrtPicker } from '@/components/ui/BrtPicker';
+import { Typography } from '@/components/ui/Typography';
+import type { BrtCategory, EchoEntry } from '../types';
 
 interface EchoEntryEditFormProps {
   entry: EchoEntry;
   isSaving: boolean;
   error: string | null;
-  onSave: (changes: { content: string; title: string | null }) => void;
+  onSave: (changes: { content: string; title: string | null; brtCategory: BrtCategory }) => void;
   onCancel: () => void;
 }
 
@@ -22,11 +24,13 @@ export function EchoEntryEditForm({
 }: EchoEntryEditFormProps) {
   const [content, setContent] = useState(entry.content);
   const [title, setTitle] = useState(entry.title ?? '');
+  const [brtCategory, setBrtCategory] = useState<BrtCategory>(entry.brtCategory ?? 'bud');
 
   // Re-seed the inputs whenever a different entry enters edit mode.
   useEffect(() => {
     setContent(entry.content);
     setTitle(entry.title ?? '');
+    setBrtCategory(entry.brtCategory ?? 'bud');
   }, [entry]);
 
   const trimmedContent = content.trim();
@@ -38,7 +42,7 @@ export function EchoEntryEditForm({
 
   const handleSave = () => {
     if (!canSave) return;
-    onSave({ content: trimmedContent, title: title.trim() || null });
+    onSave({ content: trimmedContent, title: title.trim() || null, brtCategory });
   };
 
   return (
@@ -68,6 +72,11 @@ export function EchoEntryEditForm({
         textAlignVertical="top"
         style={{ maxWidth: 640 }}
       />
+
+      <View className="mt-3 gap-2" style={{ maxWidth: 640 }}>
+        <Typography variant="label">Category</Typography>
+        <BrtPicker disabled={isSaving} onChange={setBrtCategory} value={brtCategory} />
+      </View>
 
       {error ? <Text className="mt-2 font-sans text-sm text-red-700">{error}</Text> : null}
 

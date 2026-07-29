@@ -3,7 +3,6 @@ import {
   ConstellationDataError,
 } from '../../features/constellation/services/constellation-server-core.ts';
 import type {
-  ConstellationBrtCategory,
   CreateConstellationAnnotationInput,
   CreateConstellationEvidenceReferenceInput,
   UpdateConstellationAnnotationInput,
@@ -114,13 +113,6 @@ function parseUuid(value: unknown, fieldName: string): string {
 function parseAnnotationKind(value: unknown): 'note' | 'projection' {
   if (value !== 'note' && value !== 'projection') {
     return invalidInput('kind must be note or projection.');
-  }
-  return value;
-}
-
-function parseBrtCategory(value: unknown): ConstellationBrtCategory {
-  if (value !== 'bud' && value !== 'rose' && value !== 'thorn') {
-    return invalidInput('brtCategory must be bud, rose, or thorn.');
   }
   return value;
 }
@@ -252,6 +244,8 @@ export async function parseUpdateAnnotationRequest(
   return input;
 }
 
+// echoEntryId's BRT category is written separately via PATCH /api/entries/:id
+// — this endpoint only creates/updates the (echo, goal, note) relation.
 export async function parseCreateEvidenceReferenceRequest(
   request: Request,
 ): Promise<CreateConstellationEvidenceReferenceInput> {
@@ -259,14 +253,12 @@ export async function parseCreateEvidenceReferenceRequest(
   rejectUnknownKeys(body, [
     'echoEntryId',
     'goalId',
-    'brtCategory',
     'note',
   ]);
 
   const input: CreateConstellationEvidenceReferenceInput = {
     echoEntryId: parseUuid(body.echoEntryId, 'echoEntryId'),
     goalId: parseUuid(body.goalId, 'goalId'),
-    brtCategory: parseBrtCategory(body.brtCategory),
   };
   if (hasOwn(body, 'note')) {
     input.note = parseNullableTrimmedString(
@@ -282,7 +274,7 @@ export async function parseUpdateEvidenceReferenceRequest(
   request: Request,
 ): Promise<UpdateConstellationEvidenceReferenceInput> {
   const body = await readBody(request);
-  rejectUnknownKeys(body, ['brtCategory', 'note']);
+  rejectUnknownKeys(body, ['note']);
   if (Object.keys(body).length === 0) {
     return invalidInput(
       'At least one evidence-reference field is required.',
@@ -290,9 +282,6 @@ export async function parseUpdateEvidenceReferenceRequest(
   }
 
   const input: UpdateConstellationEvidenceReferenceInput = {};
-  if (hasOwn(body, 'brtCategory')) {
-    input.brtCategory = parseBrtCategory(body.brtCategory);
-  }
   if (hasOwn(body, 'note')) {
     input.note = parseNullableTrimmedString(
       body.note,

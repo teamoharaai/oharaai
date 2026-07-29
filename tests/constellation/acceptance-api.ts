@@ -9,7 +9,6 @@ import {
 } from '../../features/constellation/dev/renderer-fixture.dev.ts';
 import type {
   ConstellationAnnotationDTO,
-  ConstellationBrtCategory,
   ConstellationEchoSearchOption,
   ConstellationEvidenceLink,
   ConstellationGoalEvidenceDTO,
@@ -287,7 +286,6 @@ export async function installConstellationAcceptanceApi(
       && method === 'POST'
     ) {
       const input = request.postDataJSON() as {
-        brtCategory: ConstellationBrtCategory;
         echoEntryId: string;
         goalId: string;
         note?: string | null;
@@ -298,7 +296,6 @@ export async function installConstellationAcceptanceApi(
         ownerId: 'acceptance-owner',
         echoEntryId: input.echoEntryId,
         goalId: input.goalId,
-        brtCategory: input.brtCategory,
         note: input.note ?? null,
         createdAt: FIXED_TIME,
         updatedAt: FIXED_TIME,
@@ -313,6 +310,10 @@ export async function installConstellationAcceptanceApi(
             ...goalEvidence.items,
             {
               ...link,
+              // The real flow now writes brtCategory via a separate PATCH
+              // /api/entries/:id call this mock router doesn't simulate (out
+              // of scope here — see features/constellation/server.test.ts).
+              brtCategory: 'bud',
               echo: {
                 id: option.id,
                 title: option.title,
@@ -334,7 +335,6 @@ export async function installConstellationAcceptanceApi(
     if (evidenceMatch && method === 'PATCH') {
       const id = decodeURIComponent(evidenceMatch[1]);
       const input = request.postDataJSON() as {
-        brtCategory?: ConstellationBrtCategory;
         note?: string | null;
       };
       const current = goalEvidence.items.find((item) => item.id === id);

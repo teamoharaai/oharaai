@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { deleteEntry as deleteEntryRecord } from './services/echo-service';
-import type { EchoEntry } from './types';
+import type { BrtCategory, EchoEntry } from './types';
 
 export type EntryContainerUpdate =
   | { type: 'goal'; goalId: string; goalTitle: string }
@@ -18,7 +18,10 @@ interface EchoStore {
   openSession: () => void;
   closeSession: () => void;
   setEntryContainer: (entryId: string, container: EntryContainerUpdate) => void;
-  updateEntryFields: (entryId: string, fields: { content?: string; title?: string | null }) => void;
+  updateEntryFields: (
+    entryId: string,
+    fields: { content?: string; title?: string | null; brtCategory?: BrtCategory },
+  ) => void;
   removeEntry: (entryId: string) => void;
   deleteEntry: (entryId: string) => Promise<void>;
 }
@@ -69,6 +72,7 @@ export const useEchoStore = create<EchoStore>((set) => ({
               ...entry,
               ...(fields.content !== undefined ? { content: fields.content } : {}),
               ...(fields.title !== undefined ? { title: fields.title ?? undefined } : {}),
+              ...(fields.brtCategory !== undefined ? { brtCategory: fields.brtCategory } : {}),
             },
       ),
     })),

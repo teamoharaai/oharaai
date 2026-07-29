@@ -6,7 +6,7 @@ import { getContainerCaption } from '../utils/entryDisplay';
 import { EchoComposer } from './EchoComposer';
 import { EchoEntryEditForm } from './EchoEntryEditForm';
 import type { CreateEntryResult } from '../services/echo-service';
-import type { EchoBrt, EchoEmotion, EchoEntry, EchoGoalOption } from '../types';
+import type { BrtCategory, EchoBrt, EchoEmotion, EchoEntry, EchoGoalOption } from '../types';
 
 type EchoDetailPaneProps = {
   mode: 'empty' | 'view' | 'add' | 'edit';
@@ -25,7 +25,7 @@ type EchoDetailPaneProps = {
   onSaved: (entry: EchoEntry | undefined) => void;
   editIsSaving: boolean;
   editError: string | null;
-  onSaveEdit: (changes: { content: string; title: string | null }) => void;
+  onSaveEdit: (changes: { content: string; title: string | null; brtCategory: BrtCategory }) => void;
   onCancelEdit: () => void;
 };
 
@@ -47,7 +47,7 @@ function getEntryTitle(entry: EchoEntry): string {
 
 function BrtDot({ entry }: { entry: EchoEntry }) {
   const colors = useThemeColors();
-  const category = resolveBrt(entry.brt);
+  const category = entry.brtCategory ?? resolveBrt(entry.brt);
   const dotColor = category ? colors.brt[category] : colors.text.muted;
   return <View className="h-2 w-2 rounded-full" style={{ backgroundColor: dotColor }} />;
 }

@@ -1,4 +1,5 @@
 import type { GoalDbStatus } from '@/lib/goals/schema';
+import type { BrtCategory } from '@/lib/utils/resolveBrt';
 
 export type ConstellationEarnedNodeKind =
   | 'season'
@@ -10,7 +11,9 @@ export type ConstellationEarnedNodeKind =
 
 export type ConstellationAnnotationKind = 'note' | 'projection';
 export type ConstellationAnnotationStatus = 'draft' | 'archived';
-export type ConstellationBrtCategory = 'bud' | 'rose' | 'thorn';
+// Alias for the canonical BrtCategory union (lib/utils/resolveBrt.ts). Kept
+// under this name since it's used pervasively throughout this feature.
+export type ConstellationBrtCategory = BrtCategory;
 
 export type GraphEdgeKind =
   | 'season_membership'
@@ -206,12 +209,15 @@ export type ConstellationGraphEdgeDTO =
   | AnnotationAnchorGraphEdge
   | GoalEvidenceClusterGraphEdge;
 
+// A pure (echo_entry, goal, note) relation — BRT category is no longer stored
+// per link (migration 033 dropped constellation_evidence_links.brt_category).
+// It's derived from echo_entries.brt_category and only appears on the
+// composed ConstellationGoalEvidenceItem below.
 export interface ConstellationEvidenceLink {
   id: string;
   ownerId: string;
   echoEntryId: string;
   goalId: string;
-  brtCategory: ConstellationBrtCategory;
   note: string | null;
   createdAt: string;
   updatedAt: string;
@@ -227,6 +233,9 @@ export interface ConstellationEvidenceEchoSummary {
 
 export interface ConstellationGoalEvidenceItem
   extends ConstellationEvidenceLink {
+  // Derived at read time by joining the linked echo entry's brt_category —
+  // the single write target is PATCH /api/entries/:id (components/ui/BrtPicker.tsx).
+  brtCategory: ConstellationBrtCategory;
   echo: ConstellationEvidenceEchoSummary;
 }
 
@@ -308,15 +317,15 @@ export interface UpdateConstellationAnnotationInput {
   anchorGoalId?: string | null;
 }
 
+// echoEntryId's BRT category is written separately, via PATCH /api/entries/:id
+// (see lib/api/echo-entries.ts) — this input only creates/updates the relation.
 export interface CreateConstellationEvidenceReferenceInput {
   echoEntryId: string;
   goalId: string;
-  brtCategory: ConstellationBrtCategory;
   note?: string | null;
 }
 
 export interface UpdateConstellationEvidenceReferenceInput {
-  brtCategory?: ConstellationBrtCategory;
   note?: string | null;
 }
 

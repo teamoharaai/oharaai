@@ -2,6 +2,7 @@ import supabase from '@/lib/db/client';
 import { authedFetch, UnauthorizedError } from '@/lib/api/client';
 import { AI_CONFIG } from '@/lib/ai/config';
 import type { AiResponse } from '@/lib/ai/contracts';
+import type { BrtCategory } from '@/lib/utils/resolveBrt';
 import type { EchoFolder } from '@/types/echo-folder';
 import type { EchoContainerOption, EchoEntry, EchoGoalOption } from '../types';
 
@@ -20,6 +21,7 @@ type DbEchoEntry = {
   brt: DbBrt;
   brt_ai: DbBrt;
   brt_user: DbBrt;
+  brt_category: BrtCategory | null;
   emotion: DbEmotion;
   model_version: string | null;
   visibility: EchoEntry['visibility'];
@@ -42,6 +44,7 @@ function mapEntry(row: DbEchoEntry): EchoEntry {
     mediaUrl: row.media_url ?? undefined,
     aiInsightRequested: row.ai_insight_requested,
     brt: row.brt_user ?? row.brt_ai ?? row.brt ?? undefined,
+    brtCategory: row.brt_category ?? undefined,
     emotion: row.emotion ?? undefined,
     modelVersion: row.model_version ?? undefined,
     visibility: row.visibility,
@@ -727,7 +730,7 @@ export type UpdateEntryResult =
 
 export async function updateEntry(
   entryId: string,
-  changes: { content?: string; title?: string | null },
+  changes: { content?: string; title?: string | null; brtCategory?: BrtCategory },
 ): Promise<UpdateEntryResult> {
   let response: Response;
   try {

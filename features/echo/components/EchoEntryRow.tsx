@@ -34,7 +34,7 @@ export function EchoEntryRow({
   onDelete,
 }: EchoEntryRowProps) {
   const colors = useThemeColors();
-  const brtCategory = resolveBrt(entry.brt);
+  const brtCategory = entry.brtCategory ?? resolveBrt(entry.brt);
   const dotColor = brtCategory ? colors.brt[brtCategory] : colors.text.muted;
   const isTreeVariant = variant === 'tree';
   const containerStyle: ViewStyle | undefined = isTreeVariant

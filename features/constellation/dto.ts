@@ -193,7 +193,6 @@ function isEvidenceLink(value: unknown): value is ConstellationEvidenceLink {
     && isNonEmptyString(value.ownerId)
     && isNonEmptyString(value.echoEntryId)
     && isNonEmptyString(value.goalId)
-    && includes(BRT_CATEGORIES, value.brtCategory)
     && isNullableString(value.note)
     && (value.note === null || value.note.length <= EVIDENCE_NOTE_MAX_LENGTH)
     && isNonEmptyString(value.createdAt)
@@ -227,7 +226,8 @@ function isGoalEvidenceItem(
   if (!isEvidenceLink(value) || !isRecord(value)) return false;
   const record = value as unknown as Record<string, unknown>;
   return (
-    isEvidenceEchoSummary(record.echo)
+    includes(BRT_CATEGORIES, record.brtCategory)
+    && isEvidenceEchoSummary(record.echo)
     && record.echo.id === value.echoEntryId
   );
 }

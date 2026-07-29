@@ -86,7 +86,6 @@ function evidenceRow(
     owner_id: OWNER_ID,
     echo_entry_id: ECHO_ID,
     goal_id: GOAL_A_ID,
-    brt_category: 'bud',
     note: null,
     created_at: GENERATED_AT,
     updated_at: GENERATED_AT,
@@ -234,7 +233,6 @@ implements ConstellationMutationRepository {
       owner_id: ownerId,
       echo_entry_id: input.echoEntryId,
       goal_id: input.goalId,
-      brt_category: input.brtCategory,
       note: input.note ?? null,
     });
     this.evidenceReferences.set(row.id, row);
@@ -435,14 +433,13 @@ test('graph assembly includes owner data, virtual evidence summaries, and no Ech
   assert.equal(JSON.stringify(graph).includes('content'), false);
 });
 
-test('evidence creation supports one Echo across goals and idempotent category updates', async () => {
+test('evidence creation supports one Echo across goals and idempotent note updates', async () => {
   const repository = new MemoryConstellationRepository();
   const first = await createOrUpdateConstellationEvidenceReference(
     OWNER_ID,
     {
       echoEntryId: ECHO_ID,
       goalId: GOAL_A_ID,
-      brtCategory: 'bud',
       note: 'Keep this note.',
     },
     repository,
@@ -452,17 +449,16 @@ test('evidence creation supports one Echo across goals and idempotent category u
     {
       echoEntryId: ECHO_ID,
       goalId: GOAL_B_ID,
-      brtCategory: 'rose',
       note: 'Relevant to both goals.',
     },
     repository,
   );
-  const categoryUpdate = await createOrUpdateConstellationEvidenceReference(
+  const noteUpdate = await createOrUpdateConstellationEvidenceReference(
     OWNER_ID,
     {
       echoEntryId: ECHO_ID,
       goalId: GOAL_A_ID,
-      brtCategory: 'thorn',
+      note: 'Updated note.',
     },
     repository,
   );
@@ -471,17 +467,16 @@ test('evidence creation supports one Echo across goals and idempotent category u
     {
       echoEntryId: ECHO_ID,
       goalId: GOAL_A_ID,
-      brtCategory: 'thorn',
+      note: 'Updated note.',
     },
     repository,
   );
 
   assert.equal(first.created, true);
   assert.equal(secondGoal.created, true);
-  assert.equal(categoryUpdate.created, false);
-  assert.equal(categoryUpdate.evidenceReference.id, first.evidenceReference.id);
-  assert.equal(categoryUpdate.evidenceReference.brtCategory, 'thorn');
-  assert.equal(categoryUpdate.evidenceReference.note, 'Keep this note.');
+  assert.equal(noteUpdate.created, false);
+  assert.equal(noteUpdate.evidenceReference.id, first.evidenceReference.id);
+  assert.equal(noteUpdate.evidenceReference.note, 'Updated note.');
   assert.equal(repeated.evidenceReference.id, first.evidenceReference.id);
   assert.equal(repository.evidenceReferences.size, 2);
   assert.equal(repository.evidenceUpdateCount, 1);
@@ -489,14 +484,13 @@ test('evidence creation supports one Echo across goals and idempotent category u
 
 test('concurrent duplicate evidence inserts recover by updating the existing pair', async () => {
   const repository = new MemoryConstellationRepository();
-  repository.concurrentDuplicate = evidenceRow({ brt_category: 'bud' });
+  repository.concurrentDuplicate = evidenceRow();
 
   const result = await createOrUpdateConstellationEvidenceReference(
     OWNER_ID,
     {
       echoEntryId: ECHO_ID,
       goalId: GOAL_A_ID,
-      brtCategory: 'rose',
       note: 'Updated after the race.',
     },
     repository,
@@ -504,7 +498,6 @@ test('concurrent duplicate evidence inserts recover by updating the existing pai
 
   assert.equal(result.created, false);
   assert.equal(result.evidenceReference.id, EVIDENCE_ID);
-  assert.equal(result.evidenceReference.brtCategory, 'rose');
   assert.equal(result.evidenceReference.note, 'Updated after the race.');
   assert.equal(repository.evidenceReferences.size, 1);
 });
@@ -518,7 +511,6 @@ test('evidence writes verify ownership before any insert or update', async () =>
       {
         echoEntryId: ECHO_ID,
         goalId: GOAL_A_ID,
-        brtCategory: 'bud',
         note: null,
       },
       repository,
@@ -540,7 +532,6 @@ test('owned goals cannot reference a cross-user Echo and owned Echoes cannot ref
       {
         echoEntryId: ECHO_ID,
         goalId: GOAL_A_ID,
-        brtCategory: 'bud',
         note: null,
       },
       foreignEchoRepository,
@@ -559,7 +550,6 @@ test('owned goals cannot reference a cross-user Echo and owned Echoes cannot ref
       {
         echoEntryId: ECHO_ID,
         goalId: GOAL_A_ID,
-        brtCategory: 'rose',
         note: null,
       },
       foreignGoalRepository,
@@ -647,7 +637,7 @@ test('evidence update and delete return 404 semantics for non-owned IDs', async 
   const updated = await updateConstellationEvidenceReference(
     OWNER_ID,
     EVIDENCE_ID,
-    { brtCategory: 'thorn' },
+    { note: 'Updated note.' },
     repository,
   );
   const deleted = await deleteConstellationEvidenceReference(
@@ -656,13 +646,13 @@ test('evidence update and delete return 404 semantics for non-owned IDs', async 
     repository,
   );
 
-  assert.equal(updated.brtCategory, 'thorn');
+  assert.equal(updated.note, 'Updated note.');
   assert.deepEqual(deleted, { id: EVIDENCE_ID });
   await assert.rejects(
     updateConstellationEvidenceReference(
       OTHER_OWNER_ID,
       EVIDENCE_ID,
-      { brtCategory: 'rose' },
+      { note: 'Another note.' },
       repository,
     ),
     (error) =>
@@ -680,7 +670,6 @@ test('API validation bounds private evidence notes and rejects identity fields',
       body: JSON.stringify({
         echoEntryId: ECHO_ID,
         goalId: GOAL_A_ID,
-        brtCategory: 'bud',
         note: 'x'.repeat(281),
       }),
     },
@@ -701,7 +690,6 @@ test('API validation bounds private evidence notes and rejects identity fields',
         ownerId: OTHER_OWNER_ID,
         echoEntryId: ECHO_ID,
         goalId: GOAL_A_ID,
-        brtCategory: 'bud',
       }),
     },
   );

@@ -119,15 +119,14 @@ export interface ConstellationEchoBrtRow {
   brt_category: string | null;
 }
 
-// Persisted per-link category shape retained for the evidence write/inspector
-// path (Prompt 3 picker surface). NOTE: brt_category is a dropped column — this
-// read/write path is a known follow-up, see OUTSTANDING.md.
+// Pure (echo_entry, goal, note) relation row — brt_category was dropped from
+// this table by migration 033; BRT category now lives only on echo_entries
+// and is joined in at read time (see ConstellationEchoBrtRow / lib/db/constellation.ts).
 export interface ConstellationEvidenceReferenceRow {
   id: string;
   owner_id: string;
   echo_entry_id: string;
   goal_id: string;
-  brt_category: string;
   note: string | null;
   created_at: string;
   updated_at: string;
@@ -183,7 +182,6 @@ export interface ConstellationAnnotationRowPatch {
 }
 
 export interface ConstellationEvidenceReferenceRowPatch {
-  brt_category?: ConstellationBrtCategory;
   note?: string | null;
 }
 
@@ -553,7 +551,6 @@ export function mapConstellationEvidenceReference(
     ownerId: row.owner_id,
     echoEntryId: row.echo_entry_id,
     goalId: row.goal_id,
-    brtCategory: requireBrtCategory(row.brt_category),
     note: row.note,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -987,9 +984,6 @@ function evidencePatchForCreate(
   input: CreateConstellationEvidenceReferenceInput,
 ): ConstellationEvidenceReferenceRowPatch | null {
   const patch: ConstellationEvidenceReferenceRowPatch = {};
-  if (row.brt_category !== input.brtCategory) {
-    patch.brt_category = input.brtCategory;
-  }
   if (input.note !== undefined && row.note !== input.note) {
     patch.note = input.note;
   }
@@ -1100,12 +1094,6 @@ export async function updateConstellationEvidenceReference(
   }
 
   const patch: ConstellationEvidenceReferenceRowPatch = {};
-  if (
-    input.brtCategory !== undefined
-    && input.brtCategory !== existing.brt_category
-  ) {
-    patch.brt_category = input.brtCategory;
-  }
   if (input.note !== undefined && input.note !== existing.note) {
     patch.note = input.note;
   }

@@ -175,9 +175,10 @@ export function stableVirtualBrtClusterId<
   return `brt:${goalId}:${category}`;
 }
 
-// Minimal shape the cluster derivation needs. `ConstellationEvidenceLink` (and
-// items) satisfy it structurally; the server also passes lightweight objects
-// whose category is joined from echo_entries.brt_category at read time.
+// Minimal shape the cluster derivation needs. `ConstellationGoalEvidenceItem`
+// satisfies it structurally; the server also passes lightweight objects whose
+// category is joined from echo_entries.brt_category at read time (evidence
+// links themselves no longer carry a category — see ConstellationEvidenceLink).
 export interface GoalEvidenceClusterInput {
   goalId: string;
   brtCategory: ConstellationBrtCategory;
