@@ -104,6 +104,7 @@ export type Database = {
       constellation_annotations: {
         Row: {
           anchor_earned_node_id: string | null
+          anchor_goal_id: string | null
           archived_at: string | null
           authorship: string
           body: string | null
@@ -118,6 +119,7 @@ export type Database = {
         }
         Insert: {
           anchor_earned_node_id?: string | null
+          anchor_goal_id?: string | null
           archived_at?: string | null
           authorship?: string
           body?: string | null
@@ -132,6 +134,7 @@ export type Database = {
         }
         Update: {
           anchor_earned_node_id?: string | null
+          anchor_goal_id?: string | null
           archived_at?: string | null
           authorship?: string
           body?: string | null
@@ -151,6 +154,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "constellation_nodes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "constellation_annotations_anchor_goal_fkey"
+            columns: ["anchor_goal_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id", "user_id"]
           },
         ]
       }
@@ -216,7 +226,6 @@ export type Database = {
       }
       constellation_evidence_links: {
         Row: {
-          brt_category: string
           created_at: string
           echo_entry_id: string
           goal_id: string
@@ -226,7 +235,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          brt_category: string
           created_at?: string
           echo_entry_id: string
           goal_id: string
@@ -236,7 +244,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          brt_category?: string
           created_at?: string
           echo_entry_id?: string
           goal_id?: string
@@ -378,6 +385,7 @@ export type Database = {
           ai_status: string
           brt: Json | null
           brt_ai: Json | null
+          brt_category: string | null
           brt_user: Json | null
           confidence: number | null
           content: string
@@ -406,6 +414,7 @@ export type Database = {
           ai_status?: string
           brt?: Json | null
           brt_ai?: Json | null
+          brt_category?: string | null
           brt_user?: Json | null
           confidence?: number | null
           content: string
@@ -434,6 +443,7 @@ export type Database = {
           ai_status?: string
           brt?: Json | null
           brt_ai?: Json | null
+          brt_category?: string | null
           brt_user?: Json | null
           confidence?: number | null
           content?: string
@@ -1473,10 +1483,7 @@ export type Database = {
           username: string
         }[]
       }
-      send_friend_request: {
-        Args: { p_addressee_id: string }
-        Returns: string
-      }
+      send_friend_request: { Args: { p_addressee_id: string }; Returns: string }
       start_agent_session: {
         Args: {
           p_end_date: string

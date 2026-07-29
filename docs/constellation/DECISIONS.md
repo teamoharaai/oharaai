@@ -563,3 +563,39 @@ Bud/Rose/Thorn clusters are goal-specific virtual Evidence Link summaries rather
 than Reflection classifications or persisted graph nodes. The deterministic
 preview is the implementation comparison surface; the historical PNGs do not
 override the domain, ownership, privacy, or responsive decisions in this document.
+
+## Constellation — Vision Alignment (locked this session)
+
+1. Access gate: REMOVED. Drop `patterns_forming`/`locked` render states and both 
+   CONSTELLATION_GOAL_ACCESS_GATE / CONSTELLATION_ECHO_ACCESS_GATE constants. 
+   No minimum threshold to use Constellation.
+
+2. Goal nodes: DIRECT READ from `goals` table at DTO-assembly time. No writer, 
+   no constellation_nodes row for kind='goal'. Source of truth = goals table only.
+
+3. Season node: DIRECT READ / synthetic fallback (existing pattern), no change.
+
+4. BRT: `echo_entries.brt_user` becomes single source of truth. 
+   - `constellation_evidence_links.brt_category` column DROPPED.
+   - Shared BRT picker component used in both entry settings and Constellation 
+     evidence panel, writing to the same field.
+   - Virtual BRT clusters read via join (evidence_links → echo_entries.brt_user) 
+     instead of stored category.
+   - Multi-goal linking (schema already supports via unique(echo_entry_id, goal_id)) 
+     deferred to a later session — no schema work needed when that ships.
+
+5. ai_suggested / system-guess-vs-user-correction training signal: DEFERRED, 
+   undecided (unchanged from existing DECISIONS.md entry). Not addressed this session.
+
+6. Trait/Tension/Ambition node kinds: OUT OF SCOPE this session, schema and CHECK 
+   constraints RETAIN as-is (future pattern-detection pipeline: repeated thorns → 
+   goal suggestion, repeated bud/rose → trait inference). Reflection node kind: 
+   dormant, undecided, no vision tie identified yet.
+
+7. Cleanup (bundle, low-risk):
+   - Delete orphaned components/constellation/ConstellationSample.tsx + .web.tsx
+   - Remove stale ConstellationPreview.tsx reference from components/CLAUDE.md
+   - Sync docs/constellation/CHANGELOG.md to reflect CONSTELLATION_ENABLED: true 
+     as intentional, not drift
+   - gate.ts: remove now-dead access-gate constants + dashboard-summary residue 
+     (tied to decision #1)

@@ -4,8 +4,8 @@ Owner: CTO. Cascade Level 3.
 
 ## Migration Conventions
 - supabase/migrations/ holds 6 narrative baseline files (001-006), squashed
-  2026-06-24 from the original 26 incremental migrations. 007-032 were added
-  after the squash (see below). Next new migration: 033.
+  2026-06-24 from the original 26 incremental migrations. 007-033 were added
+  after the squash (see below). Next new migration: 034.
 - The pre-squash files (original 001-026) are archived, untouched, in
   supabase/migrations_archive_pre_squash_2026-06-24/ for historical reference.
   Do not re-run or restore them — supabase_migrations.schema_migrations tracks
@@ -127,6 +127,22 @@ Owner: CTO. Cascade Level 3.
   Composite FKs enforce same-owner sources and explicit cascades, annotation
   anchors become null when a node disappears, every new table has RLS, and
   virtual BRT clusters remain unpersisted.
+- 033_brt_category_unification_and_goal_anchor.sql: makes BRT category a
+  per-entry field and adds a goal anchor path for annotations. Adds nullable
+  echo_entries.brt_category (text, CHECK bud|rose|thorn) as the single-category
+  source of truth; this is a NEW column, deliberately NOT echo_entries.brt_user
+  (brt/brt_ai/brt_user remain the dormant, zero-data jsonb columns from 007's
+  deferred AI-vs-user BRT-structure split, untouched here). Drops
+  constellation_evidence_links.brt_category (0 rows, no backfill) and recreates
+  its goal_lookup index on (owner_id, goal_id) so the dropped column doesn't
+  silently delete the goal-scoped lookup path. Adds
+  constellation_annotations.anchor_goal_id (composite FK to goals(id,user_id),
+  ON DELETE SET NULL on the anchor column only via PG15+ column-list syntax so
+  owner_id NOT NULL survives goal deletion), a num_nonnulls(...)<=1 single-anchor
+  CHECK, a partial anchor-lookup index, and extends the same-owner anchor
+  trigger to cover the new column. Applied via the Supabase management API query
+  endpoint and behavior-verified live (same-owner insert, cross-owner rejection,
+  goal-delete set-null) on 2026-07-29; types regenerated, tsc clean.
 - goals.mode column was dropped in the 2026-06-24 squash (was a single-value
   CHECK column, no longer carried). lib/db/goals.ts no longer inserts it.
 
