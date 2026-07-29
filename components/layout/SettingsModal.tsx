@@ -268,11 +268,11 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const colors = useThemeColors();
 
   return (
-    <Modal visible={visible} onClose={onClose}>
+    <Modal contentStyle={{ maxHeight: '90%' }} visible={visible} onClose={onClose}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 4 }}
         showsVerticalScrollIndicator={false}
-        style={{ maxHeight: 620 }}
+        style={{ flexShrink: 1, minHeight: 0 }}
       >
         <Text
           className="mb-5 text-xl"

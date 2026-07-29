@@ -61,7 +61,11 @@ export default function AppLayout() {
       >
         <Stack
           screenOptions={{
-            contentStyle: { backgroundColor: colors.background.page },
+            contentStyle: {
+              backgroundColor: colors.background.page,
+              flex: 1,
+              minHeight: 0,
+            },
             headerShown: false,
           }}
         >

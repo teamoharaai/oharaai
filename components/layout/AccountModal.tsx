@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import supabase from '@/lib/db/client';
 import { authedFetch } from '@/lib/api/client';
@@ -266,113 +266,121 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
       onConfirm={handleSave}
       confirmDisabled={isSaving || isLoading || !!loadError}
       showCloseButton={false}
+      contentStyle={{ maxHeight: '90%' }}
     >
-      <Text className="text-xl text-near-black mb-5" style={{ fontFamily: 'Inter-SemiBold' }}>
-        Account
-      </Text>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 4 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator
+        style={{ flexShrink: 1, minHeight: 0 }}
+      >
+        <Text className="text-xl text-near-black mb-5" style={{ fontFamily: 'Inter-SemiBold' }}>
+          Account
+        </Text>
 
-      {isLoading ? (
-        <ActivityIndicator size="small" color="#A79E8E" />
-      ) : loadError ? (
-        <Typography variant="subtitle">
-          Couldn't load your profile. Please try again.
-        </Typography>
-      ) : (
-        <View>
-          <View className="items-center mb-5">
-            <View>
-              <Avatar avatarUrl={avatarUrl} displayName={displayName} size={72} />
-              <Pressable
-                onPress={handlePickAvatar}
-                disabled={isUploadingAvatar}
-                style={{
-                  position: 'absolute',
-                  bottom: -2,
-                  right: -2,
-                  width: 26,
-                  height: 26,
-                  borderRadius: 13,
-                  backgroundColor: '#1E3226',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderWidth: 2,
-                  borderColor: '#FAF9F6',
-                }}
-              >
-                {isUploadingAvatar ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={{ fontSize: 12 }}>📷</Text>
-                )}
-              </Pressable>
+        {isLoading ? (
+          <ActivityIndicator size="small" color="#A79E8E" />
+        ) : loadError ? (
+          <Typography variant="subtitle">
+            Couldn't load your profile. Please try again.
+          </Typography>
+        ) : (
+          <View>
+            <View className="items-center mb-5">
+              <View>
+                <Avatar avatarUrl={avatarUrl} displayName={displayName} size={72} />
+                <Pressable
+                  onPress={handlePickAvatar}
+                  disabled={isUploadingAvatar}
+                  style={{
+                    position: 'absolute',
+                    bottom: -2,
+                    right: -2,
+                    width: 26,
+                    height: 26,
+                    borderRadius: 13,
+                    backgroundColor: '#1E3226',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 2,
+                    borderColor: '#FAF9F6',
+                  }}
+                >
+                  {isUploadingAvatar ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={{ fontSize: 12 }}>📷</Text>
+                  )}
+                </Pressable>
+              </View>
             </View>
-          </View>
 
-          <View className="mb-4">
-            <Input
-              label="Username"
-              value={username}
-              onChangeText={handleUsernameChange}
-              placeholder="your_username"
-              autoCapitalize="none"
-              autoComplete="username"
-              autoCorrect={false}
-              maxLength={20}
-              error={
-                username.length > 0 && !usernameValid
-                  ? 'Use 3–20 lowercase letters, numbers, or underscores.'
-                  : usernameStatus === 'taken'
-                    ? 'That username is already taken.'
-                    : null
-              }
-            />
-            <Typography variant="hint" className="mt-1.5">
-              {usernameChanged && usernameStatus === 'checking'
-                ? 'Checking availability…'
-                : usernameChanged && usernameStatus === 'available'
-                  ? 'Username available. '
-                  : ''}
-              {usernameChangesRemaining > 0
-                ? `${usernameChangesRemaining} of 3 changes remaining in the current 7-day period.`
-                : usernameChangeNextAvailableAt
-                  ? `Next change available ${new Date(
-                      usernameChangeNextAvailableAt,
-                    ).toLocaleString()}.`
-                  : 'All 3 changes have been used in the current 7-day period.'}
-            </Typography>
-          </View>
+            <View className="mb-4">
+              <Input
+                label="Username"
+                value={username}
+                onChangeText={handleUsernameChange}
+                placeholder="your_username"
+                autoCapitalize="none"
+                autoComplete="username"
+                autoCorrect={false}
+                maxLength={20}
+                error={
+                  username.length > 0 && !usernameValid
+                    ? 'Use 3–20 lowercase letters, numbers, or underscores.'
+                    : usernameStatus === 'taken'
+                      ? 'That username is already taken.'
+                      : null
+                }
+              />
+              <Typography variant="hint" className="mt-1.5">
+                {usernameChanged && usernameStatus === 'checking'
+                  ? 'Checking availability…'
+                  : usernameChanged && usernameStatus === 'available'
+                    ? 'Username available. '
+                    : ''}
+                {usernameChangesRemaining > 0
+                  ? `${usernameChangesRemaining} of 3 changes remaining in the current 7-day period.`
+                  : usernameChangeNextAvailableAt
+                    ? `Next change available ${new Date(
+                        usernameChangeNextAvailableAt,
+                      ).toLocaleString()}.`
+                    : 'All 3 changes have been used in the current 7-day period.'}
+              </Typography>
+            </View>
 
-          <View className="mb-4">
-            <Input label="Bio" value={bio} onChangeText={setBio} placeholder="A short bio" multiline />
-          </View>
+            <View className="mb-4">
+              <Input label="Bio" value={bio} onChangeText={setBio} placeholder="A short bio" multiline />
+            </View>
 
-          <View className="mb-4">
-            <Input
-              label="Timezone"
-              value={timezone}
-              onChangeText={setTimezone}
-              placeholder="e.g. America/New_York"
-              autoCapitalize="none"
-            />
-          </View>
+            <View className="mb-4">
+              <Input
+                label="Timezone"
+                value={timezone}
+                onChangeText={setTimezone}
+                placeholder="e.g. America/New_York"
+                autoCapitalize="none"
+              />
+            </View>
 
-          <View className="mb-2">
-            <Input
-              label="Interests"
-              value={interestsText}
-              onChangeText={setInterestsText}
-              placeholder="e.g. hiking, painting, jazz"
-              autoCapitalize="none"
-            />
-          </View>
+            <View className="mb-2">
+              <Input
+                label="Interests"
+                value={interestsText}
+                onChangeText={setInterestsText}
+                placeholder="e.g. hiking, painting, jazz"
+                autoCapitalize="none"
+              />
+            </View>
 
-          {error ? (
-            <Text className="text-sm text-[#EF4444] mt-2" style={{ fontFamily: 'Inter-Regular' }}>
-              {error}
-            </Text>
-          ) : null}
-        </View>
-      )}
+            {error ? (
+              <Text className="text-sm text-[#EF4444] mt-2" style={{ fontFamily: 'Inter-Regular' }}>
+                {error}
+              </Text>
+            ) : null}
+          </View>
+        )}
+      </ScrollView>
     </Modal>
   );
 }

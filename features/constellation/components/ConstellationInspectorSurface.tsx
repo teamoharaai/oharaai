@@ -226,7 +226,7 @@ export function ConstellationInspectorSurface({
         keyboardShouldPersistTaps={
           scrollProps?.keyboardShouldPersistTaps ?? 'handled'
         }
-        style={[{ minHeight: 0, overflow: 'hidden' }, scrollProps?.style]}
+        style={[{ flex: 1, minHeight: 0 }, scrollProps?.style]}
       >
         {children}
       </ScrollView>

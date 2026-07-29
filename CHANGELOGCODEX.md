@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed (2026-07-29 — User interface scrolling)
+- **`app/(app)/_layout.tsx`:** constrained authenticated route content through the nested navigator so page-owned scroll views receive a bounded viewport instead of being clipped by an auto-sized flex ancestor.
+- **`components/layout/AccountModal.tsx` and `SettingsModal.tsx`:** made long account and settings forms scroll inside viewport-bounded modals while keeping their actions accessible.
+- **`features/constellation/components/ConstellationInspectorSurface.tsx`:** removed the overflow override that disabled the inspector's own vertical `ScrollView` on web.
+
 ### Added (2026-07-29 — App-wide Entry quick create)
 - **`components/layout/GlobalCreateControl.tsx`, `app/(app)/_layout.tsx`, `features/echo/components/QuickEntryModal.tsx`, and `features/echo/hooks/useQuickEntry.ts`:** moved the floating Create control into the authenticated app shell and enabled New Entry from every app screen through a bounded modal that lazily loads only goal choices, reuses the canonical entry save path, keeps the current screen visible, preselects goal context on goal routes, blocks dismissal while saving, and updates the shared entry store after confirmed persistence.
 - **`features/echo/composer-state.ts`, `composer-state.test.ts`, and `package.json`:** added focused validation, normalization, persistence-outcome, and legacy-draft-migration coverage through `npm run test:echo-composer`.
