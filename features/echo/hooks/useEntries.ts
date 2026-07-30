@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useEchoStore } from '../store';
 import {
   fetchEntries,
@@ -11,6 +11,7 @@ import {
 import supabase from '@/lib/db/client';
 import type { EchoFolder } from '@/types/echo-folder';
 import type { EchoBrt, EchoContainerOption, EchoEmotion, EchoGoalOption } from '../types';
+import { startPerformanceTimer, type LoadPhase } from '@/lib/diagnostics/performance';
 
 type ContainerPickerState = {
   goals: EchoGoalOption[];
@@ -23,6 +24,8 @@ export function useEntries() {
   const [pickerGoals, setPickerGoals] = useState<EchoGoalOption[]>([]);
   const [pickerFolders, setPickerFolders] = useState<EchoFolder[]>([]);
   const [containerOptions, setContainerOptions] = useState<EchoContainerOption[]>([]);
+  const hasLoadedRef = useRef(false);
+  const [initialLoadStatus, setInitialLoadStatus] = useState<'pending' | 'success' | 'failure'>('pending');
 
   const applyContainerPickerState = useCallback((containers: ContainerPickerState) => {
     setPickerGoals(containers.goals);
@@ -41,17 +44,37 @@ export function useEntries() {
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const phase: LoadPhase = hasLoadedRef.current ? 'refresh' : 'initial-load';
+      hasLoadedRef.current = true;
+      const timing = startPerformanceTimer('entries.load', { phase });
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          timing.end({ success: true, resultCount: 0, requestCount: 1 });
+          setInitialLoadStatus('success');
+          return;
+        }
 
-      setIsLoading(true);
-      const [fetchedEntries, containers] = await Promise.all([
-        fetchEntries(user.id),
-        fetchContainerOptions(user.id),
-      ]);
-      setEntries(fetchedEntries);
-      applyContainerPickerState(containers);
-      setIsLoading(false);
+        setIsLoading(true);
+        const [fetchedEntries, containers] = await Promise.all([
+          fetchEntries(user.id),
+          fetchContainerOptions(user.id),
+        ]);
+        setEntries(fetchedEntries);
+        applyContainerPickerState(containers);
+        timing.end({
+          success: true,
+          resultCount: fetchedEntries.length,
+          containerCount: containers.options.length,
+          requestCount: 3,
+        });
+        setInitialLoadStatus('success');
+        setIsLoading(false);
+      } catch (error) {
+        timing.end({ success: false, requestCount: 3 });
+        setInitialLoadStatus('failure');
+        throw error;
+      }
     }
     load();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -110,6 +133,7 @@ export function useEntries() {
     pickerGoals,
     pickerFolders,
     containerOptions,
+    initialLoadStatus,
     saveEntry,
     createFolder,
     reloadPickerGoals,

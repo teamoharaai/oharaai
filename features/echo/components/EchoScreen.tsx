@@ -17,6 +17,7 @@ import { EchoFilterPill, type EchoFilterScope } from './EchoFilterPill';
 import { EchoPaneResizer } from './EchoPaneResizer';
 import { MoveEntryModal } from './MoveEntryModal';
 import type { EchoEntry } from '../types';
+import { startPerformanceTimer } from '@/lib/diagnostics/performance';
 
 const ALL_SCOPE: EchoFilterScope = { type: 'all', id: 'all', label: 'All' };
 const RIGHT_PANE_MIN_WIDTH = 280;
@@ -24,6 +25,12 @@ const MIDDLE_COLUMN_MIN_WIDTH = 220;
 
 export function EchoScreen() {
   const colors = useThemeColors();
+  const entriesScreenTimingRef = useRef<ReturnType<typeof startPerformanceTimer> | null>(null);
+  if (!entriesScreenTimingRef.current) {
+    entriesScreenTimingRef.current = startPerformanceTimer('entries.screen-ready', {
+      phase: 'initial-load',
+    });
+  }
   const {
     entryId: routeEntryIdParam,
     goalId: routeGoalIdParam,
@@ -39,6 +46,7 @@ export function EchoScreen() {
     pickerGoals,
     pickerFolders,
     containerOptions,
+    initialLoadStatus,
     saveEntry,
     createFolder,
     reloadPickerGoals,
@@ -75,6 +83,14 @@ export function EchoScreen() {
     }
     return entries.filter((entry) => entry.folderId === selectedScope.id);
   }, [entries, selectedScope]);
+
+  useEffect(() => {
+    if (initialLoadStatus === 'pending') return;
+    entriesScreenTimingRef.current?.end({
+      success: initialLoadStatus === 'success',
+      resultCount: entries.length,
+    });
+  }, [entries.length, initialLoadStatus]);
 
   useEffect(() => {
     if (

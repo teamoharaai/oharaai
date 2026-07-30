@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+- **`lib/diagnostics/performance.ts`, `app/_layout.tsx`, `app/(app)/dashboard.tsx`, `features/goals/hooks/useGoals.ts`, `features/goals/services/goal-service.ts`, `features/projects/store.ts`, `features/echo/hooks/useEntries.ts`, and `features/echo/components/EchoScreen.tsx`:** added development-only or explicitly enabled aggregate performance timing for the Phase 1 dashboard and Entries bootstrap paths, including safe result/request counts and initial-load versus refresh metadata. The diagnostics deliberately exclude record content, identifiers, credentials, and error payloads.
+- **`docs/PERFORMANCE_BASELINE.md`:** documented enabling and reading the scoped diagnostics and recorded the production web-export size baseline for later optimization comparisons.
+
 ### Added (2026-07-30 — User-authored Constellation goal links)
 - **`supabase/migrations/035_constellation_goal_links.sql` and Constellation graph contracts:** added private, owner-authored, undirected goal links with a required bounded note, same-owner goal constraints, duplicate/self-link prevention, a six-link-per-goal limit, CRUD RLS, and a typed `user_goal_link` graph edge that remains separate from system-managed Constellation edges.
 - **Goal-link APIs, services, and optimistic state:** added authenticated create, note-update, and remove routes plus owner-visible graph assembly, runtime DTO parsing, exact optimistic reconciliation/rollback, and linked-goal summaries in Goal inspectors.

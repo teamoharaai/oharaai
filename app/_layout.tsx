@@ -24,12 +24,13 @@ import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { clearAllStores } from '@/store/clearAllStores';
 import { colorScheme } from 'nativewind';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { startPerformanceTimer } from '@/lib/diagnostics/performance';
 import '../global.css';
 
 export default function RootLayout() {
   const themeMode = useUIStore((state) => state.themeMode);
   const colors = useThemeColors();
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
     'Inter-Medium': Inter_500Medium,
     'Inter-SemiBold': Inter_600SemiBold,
@@ -47,6 +48,10 @@ export default function RootLayout() {
 
   const { session, loading, setSession, setLoading } = useAuthStore();
   const activeUserIdRef = useRef<string | null>(null);
+  const fontTimingRef = useRef<ReturnType<typeof startPerformanceTimer> | null>(null);
+  if (!fontTimingRef.current) {
+    fontTimingRef.current = startPerformanceTimer('root.font-bootstrap', { fontCount: 12 });
+  }
   const segments = useSegments();
   const router = useRouter();
 
@@ -67,10 +72,17 @@ export default function RootLayout() {
       setSession(nextSession);
     };
 
-    supabase.auth.getSession().then(({ data: { session: nextSession } }) => {
-      applySession(nextSession);
-      setLoading(false);
-    });
+    const sessionTiming = startPerformanceTimer('root.session-bootstrap', { requestCount: 1 });
+
+    supabase.auth.getSession()
+      .then(({ data: { session: nextSession } }) => {
+        applySession(nextSession);
+        setLoading(false);
+        sessionTiming.end({ success: true });
+      })
+      .catch(() => {
+        sessionTiming.end({ success: false });
+      });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       applySession(nextSession);
@@ -78,6 +90,14 @@ export default function RootLayout() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      fontTimingRef.current?.end({ success: true });
+    } else if (fontError) {
+      fontTimingRef.current?.end({ success: false });
+    }
+  }, [fontError, fontsLoaded]);
 
   useEffect(() => {
     if (loading) return;

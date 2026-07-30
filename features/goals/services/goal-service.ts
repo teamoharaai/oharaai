@@ -3,6 +3,7 @@ import { fetchLatestReflectionTimestamps } from '@/lib/db/echo-entry-links';
 import { getSuccessorGoalId, getSuccessorGoalIds } from '@/lib/db/goals';
 import { buildTrackerInsert } from '@/lib/db/tracker-inserts';
 import { resolveBrt } from '@/lib/utils/resolveBrt';
+import { startPerformanceTimer } from '@/lib/diagnostics/performance';
 import type { EchoBrt } from '@/types/brt';
 import type {
   Goal,
@@ -263,13 +264,16 @@ async function fetchGoalSignals(
   vaultItemCountMap: Map<string, number>;
   echoLinkCountMap: Map<string, number>;
   latestBrtTagsMap: Map<string, string[]>;
+  requestCount: number;
 }> {
   const vaultItemCountMap = new Map<string, number>();
   const echoLinkCountMap = new Map<string, number>();
   const latestBrtTagsMap = new Map<string, string[]>();
+  let requestCount = 0;
 
   try {
     // 1. Vaults → vault IDs keyed by goal_id
+    requestCount += 1;
     const { data: vaultRows } = await supabase
       .from('vaults')
       .select('id, goal_id')
@@ -285,6 +289,7 @@ async function fetchGoalSignals(
 
     // 2. Vault items count per vault
     if (vaultIds.length > 0) {
+      requestCount += 1;
       const { data: itemRows } = await supabase
         .from('vault_items')
         .select('vault_id')
@@ -299,6 +304,7 @@ async function fetchGoalSignals(
     }
 
     // 3. Echo-goal links — count + collect entry IDs
+    requestCount += 1;
     const { data: linkRows } = await supabase
       .from('echo_entry_links')
       .select('goal_id, echo_entry_id')
@@ -318,6 +324,7 @@ async function fetchGoalSignals(
 
     // 4. Echo entries — fetch brt + created_at for BRT dot derivation
     if (allEntryIds.length > 0) {
+      requestCount += 1;
       const { data: entryRows } = await supabase
         .from('echo_entries')
         .select('id, brt, brt_ai, brt_user, created_at')
@@ -349,7 +356,7 @@ async function fetchGoalSignals(
     // Signal fetch failure must not block goal list — fallback to empty maps
   }
 
-  return { vaultItemCountMap, echoLinkCountMap, latestBrtTagsMap };
+  return { vaultItemCountMap, echoLinkCountMap, latestBrtTagsMap, requestCount };
 }
 
 export const GOAL_SELECT = `
@@ -370,24 +377,35 @@ export async function enrichGoalsWithSignals(
   goals: GoalWithDetails[],
   userId: string,
 ): Promise<GoalWithDetails[]> {
-  if (goals.length === 0) return goals;
+  const timing = startPerformanceTimer('goals.enrichment');
+  if (goals.length === 0) {
+    timing.end({ success: true, resultCount: 0, requestCount: 0 });
+    return goals;
+  }
 
   const goalIds = goals.map((g) => g.id);
-  const [
-    { vaultItemCountMap, echoLinkCountMap, latestBrtTagsMap },
-    successorGoalIds,
-  ] = await Promise.all([
-    fetchGoalSignals(goalIds, userId),
-    getSuccessorGoalIds(goalIds).catch(() => new Set<string>()),
-  ]);
+  try {
+    const [
+      { vaultItemCountMap, echoLinkCountMap, latestBrtTagsMap, requestCount },
+      successorGoalIds,
+    ] = await Promise.all([
+      fetchGoalSignals(goalIds, userId),
+      getSuccessorGoalIds(goalIds).catch(() => new Set<string>()),
+    ]);
 
-  return goals.map((goal) => ({
-    ...goal,
-    has_successor: successorGoalIds.has(goal.id),
-    vaultItemCount: vaultItemCountMap.get(goal.id) ?? 0,
-    echoLinkCount: echoLinkCountMap.get(goal.id) ?? 0,
-    latestBrtTags: latestBrtTagsMap.get(goal.id) ?? null,
-  }));
+    const enrichedGoals = goals.map((goal) => ({
+      ...goal,
+      has_successor: successorGoalIds.has(goal.id),
+      vaultItemCount: vaultItemCountMap.get(goal.id) ?? 0,
+      echoLinkCount: echoLinkCountMap.get(goal.id) ?? 0,
+      latestBrtTags: latestBrtTagsMap.get(goal.id) ?? null,
+    }));
+    timing.end({ success: true, resultCount: enrichedGoals.length, requestCount: requestCount + 1 });
+    return enrichedGoals;
+  } catch (error) {
+    timing.end({ success: false, resultCount: goals.length });
+    throw error;
+  }
 }
 
 export async function fetchGoals(

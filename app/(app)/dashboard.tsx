@@ -44,6 +44,7 @@ import { formatRelativeTime } from '@/lib/utils/relativeTime';
 import type { AiResponse } from '@/lib/ai/contracts';
 import type { GoalWithDetails } from '@/features/goals/types';
 import type { ActionLog } from '@/features/actions/types';
+import { startPerformanceTimer } from '@/lib/diagnostics/performance';
 
 // --- Helpers ---
 
@@ -948,6 +949,12 @@ export default function DashboardScreen() {
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [activeGoalsFeed, setActiveGoalsFeed] = useState<TodayCarouselGoal[]>([]);
   const [activeGoalsLoading, setActiveGoalsLoading] = useState(true);
+  const dashboardTimingRef = useRef<ReturnType<typeof startPerformanceTimer> | null>(null);
+  if (!dashboardTimingRef.current) {
+    dashboardTimingRef.current = startPerformanceTimer('dashboard.primary-content-ready', {
+      phase: 'initial-load',
+    });
+  }
   const [showAllStandaloneGoals, setShowAllStandaloneGoals] = useState(false);
   const [expandedStandaloneGoalIds, setExpandedStandaloneGoalIds] = useState<Set<string>>(
     () => new Set(),
@@ -968,15 +975,25 @@ export default function DashboardScreen() {
     let isActive = true;
 
     async function loadActiveGoalsFeed() {
+      const timing = startPerformanceTimer('dashboard.active-goals-feed', { phase: 'initial-load' });
       setActiveGoalsLoading(true);
       try {
         const { data: { user: authUser } } = await supabase.auth.getUser();
-        if (!authUser || !isActive) return;
+        if (!authUser || !isActive) {
+          timing.end({ success: true, resultCount: 0, requestCount: 1 });
+          return;
+        }
 
         const feed = await fetchActiveGoalsFeed(authUser.id);
-        if (isActive) setActiveGoalsFeed(feed);
+        if (isActive) {
+          setActiveGoalsFeed(feed);
+          timing.end({ success: true, resultCount: feed.length, requestCount: 2 });
+        }
       } catch {
-        if (isActive) setActiveGoalsFeed([]);
+        if (isActive) {
+          setActiveGoalsFeed([]);
+          timing.end({ success: false, requestCount: 2 });
+        }
       } finally {
         if (isActive) setActiveGoalsLoading(false);
       }
@@ -987,6 +1004,14 @@ export default function DashboardScreen() {
       isActive = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (goalsLoading || projectsLoading || activeGoalsLoading) return;
+    dashboardTimingRef.current?.end({
+      success: true,
+      resultCount: goals.length + projects.length + activeGoalsFeed.length,
+    });
+  }, [activeGoalsFeed.length, activeGoalsLoading, goals.length, goalsLoading, projects.length, projectsLoading]);
 
   useEffect(() => {
     loadProjects();

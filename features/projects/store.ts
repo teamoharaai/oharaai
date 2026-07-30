@@ -6,6 +6,7 @@ import {
   updateProject as updateProjectService,
 } from './services/project-service';
 import supabase from '@/lib/db/client';
+import { startPerformanceTimer, type LoadPhase } from '@/lib/diagnostics/performance';
 
 interface ProjectStore {
   projects: Project[];
@@ -23,17 +24,22 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
 
   loadProjects: async () => {
     if (get().isLoading) return;
+    const phase: LoadPhase = get().projects.length === 0 ? 'initial-load' : 'refresh';
+    const timing = startPerformanceTimer('projects.load', { phase });
     set({ isLoading: true, error: null });
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         set({ isLoading: false });
+        timing.end({ success: true, resultCount: 0, requestCount: 1 });
         return;
       }
       const projects = await fetchProjects(user.id);
       set({ projects, isLoading: false });
+      timing.end({ success: true, resultCount: projects.length, requestCount: 2 });
     } catch (err) {
       set({ error: err instanceof Error ? err.message : 'Failed to load projects', isLoading: false });
+      timing.end({ success: false, requestCount: 2 });
     }
   },
 
