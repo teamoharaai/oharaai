@@ -6,7 +6,7 @@ import {
   type GestureResponderEvent,
 } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { AnchoredPopover, type AnchorRect } from '@/components/ui/AnchoredPopover';
 import { Typography } from '@/components/ui/Typography';
 import { useThemeColors } from '@/store/uiStore';

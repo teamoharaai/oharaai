@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, View, Text, useWindowDimensions } from 'react-native';
 import { router, usePathname } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { BrandIcon, type BrandIconName } from '@/components/ui/BrandIcon';
 import { FEATURES } from '@/constants/features';
 import { useThemeColors, useUIStore } from '@/store/uiStore';

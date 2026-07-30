@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+- **`app/_layout.tsx`, `app/(app)/dashboard.tsx`, `app/(app)/momentum.tsx`, `components/layout/GlobalCreateControl.tsx`, `components/layout/Sidebar.tsx`, `components/ui/TodayGoalCard.tsx`, `features/constellation/components/ConstellationActionMenu.tsx`, `features/echo/components/EchoContainerTree.tsx`, `features/echo/components/EchoScreen.tsx`, `features/friends/components/AddPeoplePane.tsx`, `features/friends/components/FriendsPopover.tsx`, `features/goals/components/EchoTrail.tsx`, `features/goals/components/GoalCard.tsx`, `features/goals/components/GoalEchoAnalysisCard.tsx`, `features/goals/components/ProjectGoalRow.tsx`, and `features/goals/components/VaultItemCard.tsx`:** replaced Google-font and Ionicons package-barrel imports with direct variant/family modules so production web exports omit unused font weights and icon families without changing the registered font-family mapping or icon behavior.
+
 ### Added
 - **`lib/diagnostics/performance.ts`, `app/_layout.tsx`, `app/(app)/dashboard.tsx`, `features/goals/hooks/useGoals.ts`, `features/goals/services/goal-service.ts`, `features/projects/store.ts`, `features/echo/hooks/useEntries.ts`, and `features/echo/components/EchoScreen.tsx`:** added development-only or explicitly enabled aggregate performance timing for the Phase 1 dashboard and Entries bootstrap paths, including safe result/request counts and initial-load versus refresh metadata. The diagnostics deliberately exclude record content, identifiers, credentials, and error payloads.
 - **`docs/PERFORMANCE_BASELINE.md`:** documented enabling and reading the scoped diagnostics and recorded the production web-export size baseline for later optimization comparisons.

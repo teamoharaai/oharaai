@@ -1,5 +1,5 @@
 import { Pressable, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Typography } from '@/components/ui/Typography';

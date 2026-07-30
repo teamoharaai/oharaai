@@ -2,22 +2,18 @@ import { useEffect, useRef } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useFonts } from 'expo-font';
-import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-  Inter_800ExtraBold,
-  Inter_400Regular_Italic,
-} from '@expo-google-fonts/inter';
-import {
-  Lora_400Regular,
-  Lora_400Regular_Italic,
-  Lora_500Medium,
-  Lora_500Medium_Italic,
-  Lora_600SemiBold,
-  Lora_600SemiBold_Italic,
-} from '@expo-google-fonts/lora';
+import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
+import { Inter_400Regular_Italic } from '@expo-google-fonts/inter/400Regular_Italic';
+import { Inter_500Medium } from '@expo-google-fonts/inter/500Medium';
+import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
+import { Inter_700Bold } from '@expo-google-fonts/inter/700Bold';
+import { Inter_800ExtraBold } from '@expo-google-fonts/inter/800ExtraBold';
+import { Lora_400Regular } from '@expo-google-fonts/lora/400Regular';
+import { Lora_400Regular_Italic } from '@expo-google-fonts/lora/400Regular_Italic';
+import { Lora_500Medium } from '@expo-google-fonts/lora/500Medium';
+import { Lora_500Medium_Italic } from '@expo-google-fonts/lora/500Medium_Italic';
+import { Lora_600SemiBold } from '@expo-google-fonts/lora/600SemiBold';
+import { Lora_600SemiBold_Italic } from '@expo-google-fonts/lora/600SemiBold_Italic';
 import supabase from '@/lib/db/client';
 import { useAuthStore } from '@/features/auth/store';
 import { useThemeColors, useUIStore } from '@/store/uiStore';

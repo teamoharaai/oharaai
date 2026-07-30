@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Dimensions, Pressable, SafeAreaView, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Typography } from '@/components/ui/Typography';
 import { useThemeColors, useUIStore } from '@/store/uiStore';

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, Text, View, Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useThemeColors } from '@/store/uiStore';
 import type { EchoFolder } from '@/types/echo-folder';
 import type { EchoEntry, EchoGoalOption } from '../types';
