@@ -79,6 +79,27 @@
 ### Refactored (2026-07-29 — App-wide Entry quick create)
 - **`app/(app)/dashboard.tsx`:** removed the dashboard-only floating Create implementation now that the authenticated app layout owns the shared control; section-level project creation remains locally scoped.
 
+### Added (2026-07-30 — Entries foundation)
+- Added the additive, owner-scoped Entries schema in `supabase/migrations/036_entries_notes_reflections.sql`, including Notes and Reflections, structured/plain-text content, multi-goal links, category-only links, milestone links, timestamps/versioning, RLS policies, and a non-destructive one-time import of existing Echo history as completed Reflections.
+- Added `features/entries/types.ts`, `features/entries/utils.ts`, and focused Node tests for recency ordering, unlinked-note classification, multi-category shelving without duplicated records, and retrieval-document normalization.
+- Added the complete Entries workspace with category-organized Notes, a focused code-native rich-text editor, debounced autosave and local recovery, persistent relationship controls, working text/PDF/copy exports, and a session-aware Ohara Intelligence panel.
+- Added transparent guided Reflections, recent history, completed-reflection editing/export, and goal/milestone context without making unsupported AI requests.
+- Added owner-authenticated Entries API routes, transactional save operations, context-query boundaries, and user-scoped relationship-policy tests.
+
+### Changed (2026-07-30 — Entries foundation)
+- Renamed the primary Echo navigation destination to Entries, registered canonical Notes/Reflections routes, and retained legacy Echo deep links through compatibility redirects.
+- Generalized the goal-creation mode selector into a shared segmented control and reused its presentation for Notes/Reflections navigation.
+- Extended session UI state, authenticated-store cleanup, and theme-aware editor styles for the Entries workspace.
+- Integrated upstream’s global Create control with the canonical New Note flow so it no longer creates records outside the Notes/Reflections Entries domain.
+- Renumbered the additive Entries migration to `036` after synchronizing upstream migrations `033`–`035`.
+
+### Fixed (2026-07-30 — Entries foundation)
+- Kept failed note saves in local recovery storage and ensured edits made during an in-flight autosave are queued for the next save.
+- Validated Constellation identifiers before interpolating them into the user-scoped Entries context query.
+- Preserved supported rich-text alignment markup, returned stable API errors for database failures, and retained both legacy direct and confirmed-container Echo goal relationships during compatibility import.
+- Kept the Unlinked Notes shelf’s New Note card first in both grid and list presentations.
+- Kept the web rich-text alignment sanitizer type-safe across DOM element variants.
+
 ### Added (2026-07-28 — Constellation release certification)
 - **`tests/constellation/acceptance-api.ts` and `constellation.acceptance.spec.ts`:** added deterministic delayed-graph coverage that proves the production Constellation screen exposes its intentional initial loading state before real graph content arrives, completing explicit loading/retry/empty-state release evidence.
 - **`docs/constellation/RELEASE_CERTIFICATION_2026-07-28.md`:** recorded the controlled two-user live smoke, RLS/privacy/API results, TypeScript/test/database/export/visual gates, rollback exercise, cleanup proof, Expo compatibility review, and pass decision.

@@ -12,6 +12,7 @@
     "test:constellation:acceptance:update": "playwright test --config tests/constellation/playwright.config.ts --update-snapshots=all",
     "test:friends": "node --experimental-strip-types --test scripts/test-friends-api.mjs scripts/test-friends-client-state.mjs",
     "test:echo-composer": "node --experimental-strip-types --test features/echo/composer-state.test.ts",
+    "test:entries": "node --experimental-strip-types --test features/entries/utils.test.ts features/entries/security.test.ts",
     "postinstall": "patch-package"
   },
   "dependencies": {
