@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { invalidateDashboardLatestEntry } from '@/lib/events/entries';
 import type { EntryRecord } from './types';
 import {
   createEntry as createEntryRequest,
@@ -56,6 +57,7 @@ export const useEntriesStore = create<EntriesStore>((set) => ({
   createEntry: async (draft) => {
     const entry = await createEntryRequest(draft);
     set((state) => ({ entries: [entry, ...state.entries] }));
+    invalidateDashboardLatestEntry();
     return entry;
   },
   updateEntry: async (entryId, draft) => {
@@ -63,11 +65,13 @@ export const useEntriesStore = create<EntriesStore>((set) => ({
     set((state) => ({
       entries: state.entries.map((current) => current.id === entryId ? entry : current),
     }));
+    invalidateDashboardLatestEntry();
     return entry;
   },
   deleteEntry: async (entryId) => {
     await deleteEntryRequest(entryId);
     set((state) => ({ entries: state.entries.filter((entry) => entry.id !== entryId) }));
+    invalidateDashboardLatestEntry();
   },
   upsertEntry: (entry) => set((state) => {
     const exists = state.entries.some((current) => current.id === entry.id);

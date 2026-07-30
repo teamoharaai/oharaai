@@ -18,8 +18,9 @@ import { Toast } from '@/components/ui/Toast';
 import { Typography } from '@/components/ui/Typography';
 import { useGoals } from '@/features/goals/hooks/useGoals';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useSession } from '@/features/auth/hooks/useSession';
 import { useLatestAction } from '@/features/actions/hooks/useLatestAction';
-import { useEntries } from '@/features/echo/hooks/useEntries';
+import { useDashboardLatestEntry } from '@/features/echo/hooks/useDashboardLatestEntry';
 import { useProfileStore } from '@/features/profile/store';
 import { useProjectStore } from '@/features/projects/store';
 import { GoalRingGrid } from '@/features/goals/components/GoalRingGrid';
@@ -28,7 +29,15 @@ import { GoalEchoAnalysisCard } from '@/features/goals/components/GoalEchoAnalys
 import { MomentumTrendChart } from '@/features/momentum/components/MomentumTrendChart';
 import { ProjectGoalRow } from '@/features/goals/components/ProjectGoalRow';
 import { GoalTitleRow } from '@/features/goals/components/GoalTitleRow';
-import { fetchActiveGoalsFeed } from '@/features/goals/services/goal-service';
+import {
+  orderActiveGoals,
+  resolveActiveGoalProjectTitles,
+  selectActiveGoals,
+  type ReflectionTimestampsByGoalId,
+} from '@/features/goals/active-goal-selectors';
+import {
+  fetchActiveGoalReflectionTimestamps,
+} from '@/features/goals/services/active-goal-reflection-service';
 import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal';
 import { ProjectCard } from '@/features/projects/components/ProjectCard';
 import { FEATURES } from '@/constants/features';
@@ -39,7 +48,6 @@ import {
 } from '@/lib/navigation/dashboard';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { authedFetch } from '@/lib/api/client';
-import supabase from '@/lib/db/client';
 import { formatRelativeTime } from '@/lib/utils/relativeTime';
 import type { AiResponse } from '@/lib/ai/contracts';
 import type { GoalWithDetails } from '@/features/goals/types';
@@ -767,13 +775,13 @@ function NoActiveGoalCard() {
 interface EchoZoneProps {
   latestEntryContent: string | null;
   latestEntryDate: Date | null;
-  echoLoading: boolean;
+  latestEntryLoading: boolean;
 }
 
 function EchoZone({
   latestEntryContent,
   latestEntryDate,
-  echoLoading,
+  latestEntryLoading,
 }: EchoZoneProps) {
   const colors = useThemeColors();
 
@@ -792,7 +800,7 @@ function EchoZone({
           <Typography variant="eyebrow" style={{ color: colors.text.accent, marginBottom: 7 }}>
             Recent Entry
           </Typography>
-          {echoLoading ? (
+          {latestEntryLoading ? (
             <View
               className="h-3 w-1/2 rounded-full"
               style={{ backgroundColor: colors.background.subtle }}
@@ -942,13 +950,16 @@ export default function DashboardScreen() {
   }>();
   const { goals, isLoading: goalsLoading } = useGoals();
   const { user } = useAuth();
+  const { session } = useSession();
   const { projects, isLoading: projectsLoading, loadProjects } = useProjectStore();
-  const { entries, isLoading: echoLoading } = useEntries();
+  const { latestEntry, isLoading: latestEntryLoading } = useDashboardLatestEntry(
+    FEATURES.ECHO_ENABLED ? session?.user.id ?? null : null,
+  );
   const standaloneGoalsView = useUIStore((state) => state.dashboardGoalsView);
   const setStandaloneGoalsView = useUIStore((state) => state.setDashboardGoalsView);
   const [projectModalOpen, setProjectModalOpen] = useState(false);
-  const [activeGoalsFeed, setActiveGoalsFeed] = useState<TodayCarouselGoal[]>([]);
-  const [activeGoalsLoading, setActiveGoalsLoading] = useState(true);
+  const [reflectionTimestamps, setReflectionTimestamps] =
+    useState<ReflectionTimestampsByGoalId>({});
   const dashboardTimingRef = useRef<ReturnType<typeof startPerformanceTimer> | null>(null);
   if (!dashboardTimingRef.current) {
     dashboardTimingRef.current = startPerformanceTimer('dashboard.primary-content-ready', {
@@ -972,46 +983,12 @@ export default function DashboardScreen() {
   }, [draftSaved]);
 
   useEffect(() => {
-    let isActive = true;
-
-    async function loadActiveGoalsFeed() {
-      const timing = startPerformanceTimer('dashboard.active-goals-feed', { phase: 'initial-load' });
-      setActiveGoalsLoading(true);
-      try {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        if (!authUser || !isActive) {
-          timing.end({ success: true, resultCount: 0, requestCount: 1 });
-          return;
-        }
-
-        const feed = await fetchActiveGoalsFeed(authUser.id);
-        if (isActive) {
-          setActiveGoalsFeed(feed);
-          timing.end({ success: true, resultCount: feed.length, requestCount: 2 });
-        }
-      } catch {
-        if (isActive) {
-          setActiveGoalsFeed([]);
-          timing.end({ success: false, requestCount: 2 });
-        }
-      } finally {
-        if (isActive) setActiveGoalsLoading(false);
-      }
-    }
-
-    void loadActiveGoalsFeed();
-    return () => {
-      isActive = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (goalsLoading || projectsLoading || activeGoalsLoading) return;
+    if (goalsLoading || projectsLoading) return;
     dashboardTimingRef.current?.end({
       success: true,
-      resultCount: goals.length + projects.length + activeGoalsFeed.length,
+      resultCount: goals.length + projects.length,
     });
-  }, [activeGoalsFeed.length, activeGoalsLoading, goals.length, goalsLoading, projects.length, projectsLoading]);
+  }, [goals.length, goalsLoading, projects.length, projectsLoading]);
 
   useEffect(() => {
     loadProjects();
@@ -1109,17 +1086,60 @@ export default function DashboardScreen() {
 
   const hasProjects = projects.length > 0;
 
-  const todayGoals = useMemo(
-    () => activeGoalsFeed.map((goal) => ({
-      ...goal,
-      projectTitle: goal.projectId
-        ? projects.find((project) => project.id === goal.projectId)?.title
-        : undefined,
-    })),
-    [activeGoalsFeed, projects],
+  const activeGoals = useMemo(
+    () => selectActiveGoals(goals),
+    [goals],
   );
+  const activeGoalIds = useMemo(
+    () => activeGoals.map((goal) => goal.id),
+    [activeGoals],
+  );
+  const activeGoalIdsKey = activeGoalIds.join(',');
 
-  const latestEntry = entries[0] ?? null;
+  useEffect(() => {
+    if (activeGoalIds.length === 0) {
+      setReflectionTimestamps({});
+      return;
+    }
+
+    let isActive = true;
+    const timing = startPerformanceTimer('dashboard.active-goal-reflections', {
+      phase: 'initial-load',
+    });
+
+    async function loadReflectionTimestamps() {
+      try {
+        const timestamps = await fetchActiveGoalReflectionTimestamps(activeGoalIds);
+        if (!isActive) return;
+        setReflectionTimestamps(timestamps);
+        timing.end({
+          success: true,
+          resultCount: Object.values(timestamps).filter(Boolean).length,
+          requestCount: 1,
+        });
+      } catch {
+        if (!isActive) return;
+        setReflectionTimestamps({});
+        timing.end({ success: false, requestCount: 1 });
+      }
+    }
+
+    void loadReflectionTimestamps();
+    return () => {
+      isActive = false;
+    };
+  // activeGoalIdsKey intentionally represents the active goal-ID list for this read.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeGoalIdsKey]);
+
+  const orderedActiveGoals = useMemo(
+    () => orderActiveGoals(activeGoals, reflectionTimestamps),
+    [activeGoals, reflectionTimestamps],
+  );
+  const todayGoals = useMemo(
+    () => resolveActiveGoalProjectTitles(orderedActiveGoals, projects),
+    [orderedActiveGoals, projects],
+  );
 
   const displayName = displayNameFromEmail(user?.email);
   const greeting = displayName
@@ -1149,7 +1169,7 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {goalsLoading || projectsLoading || activeGoalsLoading ? (
+        {goalsLoading || projectsLoading ? (
           <DashboardSkeleton />
         ) : (
           <View style={{ gap: 24 }}>
@@ -1329,9 +1349,9 @@ export default function DashboardScreen() {
             {/* Zone 4: Echo */}
             {FEATURES.ECHO_ENABLED ? (
               <EchoZone
-                latestEntryContent={latestEntry?.content ?? null}
+                latestEntryContent={latestEntry?.preview ?? null}
                 latestEntryDate={latestEntry?.createdAt ?? null}
-                echoLoading={echoLoading}
+                latestEntryLoading={latestEntryLoading}
               />
             ) : null}
           </View>

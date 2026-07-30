@@ -56,7 +56,7 @@ export default function AppLayout() {
         onNewEntry={() => router.push({
           pathname: '/entries',
           params: { tab: 'notes', create: 'note' },
-        } as never)}
+        })}
         onNewProject={() => setProjectModalOpen(true)}
       />
       <CreateProjectModal

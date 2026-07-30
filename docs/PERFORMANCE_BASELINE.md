@@ -10,7 +10,7 @@ Key operation names:
 
 - `root.session-bootstrap` and `root.font-bootstrap`
 - `goals.load` and `goals.enrichment`
-- `dashboard.active-goals-feed` and `dashboard.primary-content-ready`
+- `dashboard.active-goal-reflections` and `dashboard.primary-content-ready`
 - `projects.load`
 - `entries.load` and `entries.screen-ready`
 
@@ -23,3 +23,13 @@ Measured with `npx expo export --platform web --output-dir <temporary-directory>
 - Google-font assets: 7,313,988 bytes (6.98 MiB), including exported Inter and Lora font files.
 - Vector-icon assets: 4,076,840 bytes (3.89 MiB), including exported `@expo/vector-icons` font files.
 - Metro client module count: 1,604 (`Web Bundled`); server rendering reported 1,603 modules separately.
+
+## 2026-07-30 P0 dashboard goal-load optimization
+
+- Full enriched goal pipelines initiated by a dashboard mount: reduced from 2 to 1.
+- Supplemental Today's Focus reads: reduced from an auth read plus a second enriched goal
+  load and reflection read to 1 reflection-timestamp read scoped to active goal IDs.
+- `dashboard.primary-content-ready` no longer waits for the optional reflection-timestamp
+  read; `dashboard.active-goal-reflections` reports that read separately with
+  `requestCount: 1`.
+- No authenticated runtime timing sample was recorded in this local validation session.

@@ -2,8 +2,17 @@
 
 ## [Unreleased]
 
+### Added
+- **`features/echo/dashboard-latest-entry.ts`, `features/echo/services/echo-service.ts`, `features/echo/hooks/useDashboardLatestEntry.ts`, `lib/events/entries.ts`, and `lib/diagnostics/performance.ts`:** added a dashboard-only latest-entry summary read that uses the restored session user ID, explicitly selects only canonical Entries `id`, `plain_text`, and `updated_at`, orders newest-first, limits the result to one row, maps no rows to the existing empty state, bounds the client DTO preview, refreshes after confirmed Notes/Reflections mutations without loading the full Entries store, and reports only aggregate one-request timing metadata.
+- **`features/echo/dashboard-latest-entry.test.ts`:** added focused coverage for dashboard DTO mapping, bounded previews, no-row handling, and query-error handling.
+- **`features/goals/active-goal-selectors.test.ts`:** added focused coverage for active-only filtering, latest-reflection ordering, deterministic null-timestamp fallback, input immutability, and project-title resolution.
+
+### Changed
+- **`app/(app)/dashboard.tsx`, `features/echo/hooks/useQuickEntry.ts`, and `features/entries/store.ts`:** removed the dashboard's legacy `useEntries()` dependency so mounting the dashboard no longer fetches all Echo entries, container links, picker goals, or Echo folders; the Recent Entry card now reads the redesigned Entries workspace independently and refreshes after canonical Note/Reflection create, update, or delete operations.
+- **`app/(app)/dashboard.tsx`, `features/goals/active-goal-selectors.ts`, `features/goals/services/active-goal-reflection-service.ts`, `features/goals/store.ts`, and `lib/diagnostics/performance.ts`:** made the existing goal-store result the dashboard's canonical goal dataset, derive and deterministically order active goals without mutating the shared array, and replace the duplicate legacy Echo-enriched goal pipeline with one optional client-safe reflection-timestamp read from canonical `entries`/`entry_goal_links`, scoped to active goal IDs. Reflection ordering can update Today's Focus after primary content renders, while the goal store now begins its first session load in a loading state to prevent an empty-dashboard flash.
+
 ### Fixed
-- **`app/(app)/_layout.tsx`:** changed the redesign's global New Entry navigation to Expo Router's typed pathname-and-params form, resolving the merged app's route type-check failure while preserving the canonical Notes creation flow.
+- **`.expo/types/router.d.ts` and `app/(app)/_layout.tsx`:** regenerated the checked-in Expo Router declarations for the redesign's Entries routes and changed global New Entry navigation to the typed pathname-and-params form, resolving the merged app's route type-check failure while preserving the canonical Notes creation flow.
 
 ### Changed
 - **`app/_layout.tsx`, `app/(app)/dashboard.tsx`, `app/(app)/momentum.tsx`, `components/layout/GlobalCreateControl.tsx`, `components/layout/Sidebar.tsx`, `components/ui/TodayGoalCard.tsx`, `features/constellation/components/ConstellationActionMenu.tsx`, `features/echo/components/EchoContainerTree.tsx`, `features/echo/components/EchoScreen.tsx`, `features/friends/components/AddPeoplePane.tsx`, `features/friends/components/FriendsPopover.tsx`, `features/goals/components/EchoTrail.tsx`, `features/goals/components/GoalCard.tsx`, `features/goals/components/GoalEchoAnalysisCard.tsx`, `features/goals/components/ProjectGoalRow.tsx`, and `features/goals/components/VaultItemCard.tsx`:** replaced Google-font and Ionicons package-barrel imports with direct variant/family modules so production web exports omit unused font weights and icon families without changing the registered font-family mapping or icon behavior.

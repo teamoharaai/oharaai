@@ -21,7 +21,7 @@ interface GoalStore {
 export const useGoalStore = create<GoalStore>((set) => ({
   goals: [],
   selectedGoalId: null,
-  isLoading: false,
+  isLoading: true,
   setGoals: (goals) => set({ goals }),
   upsertGoal: (goal) =>
     set((state) => {
