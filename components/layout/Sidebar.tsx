@@ -18,7 +18,7 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { label: 'Journey',       href: '/(app)/dashboard',     match: '/dashboard',     enabled: true, icon: 'goals' },
   { label: 'Momentum',      href: '/(app)/momentum',      match: '/momentum',      enabled: true },
-  { label: 'Entries',       href: '/(app)/echo',          match: '/echo',          enabled: FEATURES.ECHO_ENABLED, icon: 'echo' },
+  { label: 'Entries',       href: '/(app)/entries',       match: '/entries',       enabled: FEATURES.ECHO_ENABLED, icon: 'echo' },
   { label: 'Constellation', href: '/(app)/constellation', match: '/constellation', enabled: FEATURES.CONSTELLATION_ENABLED },
   { label: 'Explore',       href: '/(app)/explore',       match: '/explore',       enabled: FEATURES.DISCOVERY_ENABLED },
 ];

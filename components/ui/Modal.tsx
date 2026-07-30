@@ -1,3 +1,4 @@
+// Supports optional confirm/cancel actions and destructive variant — use for all confirmation dialogs.
 import {
   Animated,
   Modal as RNModal,

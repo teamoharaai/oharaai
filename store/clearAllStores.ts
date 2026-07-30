@@ -4,6 +4,7 @@ import { useEchoStore } from '@/features/echo/store';
 import { useEchoDraftStore } from '@/features/echo/draft-store';
 import { useFriendsStore } from '@/features/friends/store';
 import { useProjectStore } from '@/features/projects/store';
+import { useEntriesStore } from '@/features/entries/store';
 import { useUIStore } from '@/store/uiStore';
 
 /**
@@ -35,6 +36,7 @@ export function clearAllStores(): void {
   });
 
   useProjectStore.setState({ projects: [], isLoading: false, error: null });
+  useEntriesStore.setState({ entries: [], goals: [], isLoading: false, error: null });
 
   // In-memory reset then remove the persisted localStorage key
   // so the next user never hydrates stale drafts.
@@ -46,6 +48,8 @@ export function clearAllStores(): void {
   useUIStore.setState({
     sidebarCollapsed: false,
     rightPaneWidth: 420,
+    entriesTab: 'notes',
+    entriesIntelligenceOpen: false,
   });
   useUIStore.persist.clearStorage();
 }
