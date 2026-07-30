@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- **`app/(app)/_layout.tsx`:** changed the redesign's global New Entry navigation to Expo Router's typed pathname-and-params form, resolving the merged app's route type-check failure while preserving the canonical Notes creation flow.
+
 ### Changed
 - **`app/_layout.tsx`, `app/(app)/dashboard.tsx`, `app/(app)/momentum.tsx`, `components/layout/GlobalCreateControl.tsx`, `components/layout/Sidebar.tsx`, `components/ui/TodayGoalCard.tsx`, `features/constellation/components/ConstellationActionMenu.tsx`, `features/echo/components/EchoContainerTree.tsx`, `features/echo/components/EchoScreen.tsx`, `features/friends/components/AddPeoplePane.tsx`, `features/friends/components/FriendsPopover.tsx`, `features/goals/components/EchoTrail.tsx`, `features/goals/components/GoalCard.tsx`, `features/goals/components/GoalEchoAnalysisCard.tsx`, `features/goals/components/ProjectGoalRow.tsx`, and `features/goals/components/VaultItemCard.tsx`:** replaced Google-font and Ionicons package-barrel imports with direct variant/family modules so production web exports omit unused font weights and icon families without changing the registered font-family mapping or icon behavior.
 
