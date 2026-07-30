@@ -6,6 +6,7 @@ import { DARK_THEME, LIGHT_THEME } from '@/constants/colors';
 
 export type ThemeMode = 'light' | 'dark';
 export type DashboardGoalsView = 'grid' | 'list';
+export type EntriesTab = 'notes' | 'reflections';
 
 interface UIStore {
   sidebarCollapsed: boolean;
@@ -13,6 +14,8 @@ interface UIStore {
   echoMiddleMode: 'list' | 'tree';
   dashboardGoalsView: DashboardGoalsView;
   constellationLegendCollapsed: boolean;
+  entriesTab: EntriesTab;
+  entriesIntelligenceOpen: boolean;
   themeMode: ThemeMode;
   setSidebarCollapsed: (collapsed: boolean) => void;
   toggleSidebarCollapsed: () => void;
@@ -21,6 +24,8 @@ interface UIStore {
   setDashboardGoalsView: (view: DashboardGoalsView) => void;
   setConstellationLegendCollapsed: (collapsed: boolean) => void;
   toggleConstellationLegendCollapsed: () => void;
+  setEntriesTab: (tab: EntriesTab) => void;
+  setEntriesIntelligenceOpen: (open: boolean) => void;
   toggleTheme: () => void;
 }
 
@@ -52,6 +57,8 @@ export const useUIStore = create<UIStore>()(
       echoMiddleMode: 'list',
       dashboardGoalsView: 'list',
       constellationLegendCollapsed: false,
+      entriesTab: 'notes',
+      entriesIntelligenceOpen: false,
       themeMode: 'light',
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
       toggleSidebarCollapsed: () =>
@@ -65,6 +72,8 @@ export const useUIStore = create<UIStore>()(
         set((state) => ({
           constellationLegendCollapsed: !state.constellationLegendCollapsed,
         })),
+      setEntriesTab: (tab) => set({ entriesTab: tab }),
+      setEntriesIntelligenceOpen: (open) => set({ entriesIntelligenceOpen: open }),
       toggleTheme: () =>
         set((state) => {
           const themeMode = state.themeMode === 'light' ? 'dark' : 'light';
