@@ -8,8 +8,10 @@ import {
   constellationErrorResponse,
   parseCreateAnnotationRequest,
   parseCreateEvidenceReferenceRequest,
+  parseCreateGoalLinkRequest,
   parseSaveConstellationLayoutPositionRequest,
   parseUpdateAnnotationRequest,
+  parseUpdateGoalLinkRequest,
 } from '../../lib/api/constellation.ts';
 import {
   archiveConstellationAnnotation,
@@ -17,32 +19,40 @@ import {
   classifyConstellationPersistenceError,
   ConstellationDataError,
   createConstellationAnnotation,
+  createConstellationGoalLink,
   createOrUpdateConstellationEvidenceReference,
   deleteConstellationEvidenceReference,
+  deleteConstellationGoalLink,
   derivedSeasonNodeId,
   updateConstellationAnnotation,
+  updateConstellationGoalLink,
   updateConstellationEvidenceReference,
   validateConstellationLayoutPosition,
   type ConstellationAnnotationRow,
   type ConstellationAnnotationRowPatch,
   type ConstellationEvidenceReferenceRow,
   type ConstellationEvidenceReferenceRowPatch,
+  type ConstellationGoalLinkRepository,
+  type ConstellationGoalLinkRow,
   type ConstellationMutationRepository,
   type ConstellationSnapshot,
 } from './services/constellation-server-core.ts';
 import type {
   CreateConstellationAnnotationInput,
   CreateConstellationEvidenceReferenceInput,
+  CreateConstellationGoalLinkInput,
 } from './types.ts';
 
 const OWNER_ID = '00000000-0000-4000-8000-000000000001';
 const OTHER_OWNER_ID = '00000000-0000-4000-8000-000000000002';
 const GOAL_A_ID = '00000000-0000-4000-8000-000000000003';
 const GOAL_B_ID = '00000000-0000-4000-8000-000000000004';
+const GOAL_C_ID = '00000000-0000-4000-8000-000000000014';
 const ECHO_ID = '00000000-0000-4000-8000-000000000005';
 const NODE_ID = '00000000-0000-4000-8000-000000000006';
 const ANNOTATION_ID = '00000000-0000-4000-8000-000000000007';
 const EVIDENCE_ID = '00000000-0000-4000-8000-000000000008';
+const GOAL_LINK_ID = '00000000-0000-4000-8000-000000000015';
 const GENERATED_AT = '2026-07-27T16:00:00.000Z';
 
 function emptySnapshot(): ConstellationSnapshot {
@@ -51,6 +61,7 @@ function emptySnapshot(): ConstellationSnapshot {
     edges: [],
     annotations: [],
     evidenceLinks: [],
+    goalLinks: [],
     goalEntryLinks: [],
     echoBrtCategories: [],
     goals: [],
@@ -275,6 +286,90 @@ implements ConstellationMutationRepository {
   }
 }
 
+class MemoryGoalLinkRepository implements ConstellationGoalLinkRepository {
+  readonly visibleGoals = new Set([GOAL_A_ID, GOAL_B_ID]);
+  readonly links = new Map<string, ConstellationGoalLinkRow>();
+  linkCounts = new Map<string, number>();
+
+  hasOwnedVisibleGoal(ownerId: string, goalId: string): Promise<boolean> {
+    return Promise.resolve(
+      ownerId === OWNER_ID && this.visibleGoals.has(goalId),
+    );
+  }
+
+  countGoalLinksForGoal(ownerId: string, goalId: string): Promise<number> {
+    return Promise.resolve(
+      ownerId === OWNER_ID ? this.linkCounts.get(goalId) ?? 0 : 0,
+    );
+  }
+
+  findGoalLink(
+    ownerId: string,
+    goalLinkId: string,
+  ): Promise<ConstellationGoalLinkRow | null> {
+    const row = this.links.get(goalLinkId);
+    return Promise.resolve(row?.owner_id === ownerId ? { ...row } : null);
+  }
+
+  findGoalLinkByPair(
+    ownerId: string,
+    sourceGoalId: string,
+    targetGoalId: string,
+  ): Promise<ConstellationGoalLinkRow | null> {
+    const row = [...this.links.values()].find(
+      (candidate) =>
+        candidate.owner_id === ownerId
+        && candidate.source_goal_id === sourceGoalId
+        && candidate.target_goal_id === targetGoalId,
+    );
+    return Promise.resolve(row ? { ...row } : null);
+  }
+
+  insertGoalLink(
+    ownerId: string,
+    input: CreateConstellationGoalLinkInput,
+  ): Promise<ConstellationGoalLinkRow> {
+    const row: ConstellationGoalLinkRow = {
+      id: GOAL_LINK_ID,
+      owner_id: ownerId,
+      source_goal_id: input.sourceGoalId,
+      target_goal_id: input.targetGoalId,
+      note: input.note,
+      created_at: GENERATED_AT,
+      updated_at: GENERATED_AT,
+    };
+    this.links.set(row.id, row);
+    this.linkCounts.set(
+      row.source_goal_id,
+      (this.linkCounts.get(row.source_goal_id) ?? 0) + 1,
+    );
+    this.linkCounts.set(
+      row.target_goal_id,
+      (this.linkCounts.get(row.target_goal_id) ?? 0) + 1,
+    );
+    return Promise.resolve({ ...row });
+  }
+
+  updateGoalLink(
+    ownerId: string,
+    goalLinkId: string,
+    patch: { note: string },
+  ): Promise<ConstellationGoalLinkRow | null> {
+    const row = this.links.get(goalLinkId);
+    if (!row || row.owner_id !== ownerId) return Promise.resolve(null);
+    const updated = { ...row, ...patch, updated_at: GENERATED_AT };
+    this.links.set(goalLinkId, updated);
+    return Promise.resolve({ ...updated });
+  }
+
+  deleteGoalLink(ownerId: string, goalLinkId: string): Promise<boolean> {
+    const row = this.links.get(goalLinkId);
+    if (!row || row.owner_id !== ownerId) return Promise.resolve(false);
+    this.links.delete(goalLinkId);
+    return Promise.resolve(true);
+  }
+}
+
 test('GET /api/constellation rejects unauthenticated requests with the stable envelope', async () => {
   const response = await getConstellationRoute(
     new Request('http://localhost/api/constellation'),
@@ -377,7 +472,7 @@ test('graph assembly includes owner data, virtual evidence summaries, and no Ech
       updated_at: GENERATED_AT,
     },
     {
-      id: '00000000-0000-4000-8000-000000000014',
+      id: GOAL_C_ID,
       title: 'Second active goal',
       category: 'health',
       status: 'active',
@@ -416,6 +511,15 @@ test('graph assembly includes owner data, virtual evidence summaries, and no Ech
       updated_at: GENERATED_AT,
     },
   ];
+  snapshot.goalLinks = [{
+    id: GOAL_LINK_ID,
+    owner_id: OWNER_ID,
+    source_goal_id: GOAL_A_ID,
+    target_goal_id: GOAL_C_ID,
+    note: 'Health supports the work.',
+    created_at: GENERATED_AT,
+    updated_at: GENERATED_AT,
+  }];
 
   const graph = assembleConstellationGraphDTO(
     OWNER_ID,
@@ -437,6 +541,7 @@ test('graph assembly includes owner data, virtual evidence summaries, and no Ech
     1,
   );
   assert.equal(graph.counts.evidenceLinks, 2);
+  assert.equal(graph.counts.goalLinks, 1);
   assert.equal(graph.virtualGoalCategories.length, 1);
   assert.equal(graph.virtualGoalCategories[0]?.goalCount, 2);
   assert.equal(
@@ -448,6 +553,14 @@ test('graph assembly includes owner data, virtual evidence summaries, and no Ech
   );
   assert.ok(
     graph.edges.some((edge) => edge.kind === 'goal_evidence_cluster'),
+  );
+  const goalLink = graph.edges.find(
+    (edge) => edge.kind === 'user_goal_link',
+  );
+  assert.equal(goalLink?.kind, 'user_goal_link');
+  assert.equal(
+    goalLink?.kind === 'user_goal_link' ? goalLink.note : null,
+    'Health supports the work.',
   );
   assert.equal(JSON.stringify(graph).includes('echoExcerpt'), false);
   assert.equal(JSON.stringify(graph).includes('content'), false);
@@ -500,6 +613,138 @@ test('evidence creation supports one Echo across goals and idempotent note updat
   assert.equal(repeated.evidenceReference.id, first.evidenceReference.id);
   assert.equal(repository.evidenceReferences.size, 2);
   assert.equal(repository.evidenceUpdateCount, 1);
+});
+
+test('goal links are undirected, note-bearing, editable, removable, and capped at six per goal', async () => {
+  const repository = new MemoryGoalLinkRepository();
+  const created = await createConstellationGoalLink(
+    OWNER_ID,
+    {
+      sourceGoalId: GOAL_B_ID,
+      targetGoalId: GOAL_A_ID,
+      note: 'One goal creates capacity for the other.',
+    },
+    repository,
+  );
+  assert.equal(created.sourceGoalId, GOAL_A_ID);
+  assert.equal(created.targetGoalId, GOAL_B_ID);
+  assert.equal(created.note, 'One goal creates capacity for the other.');
+
+  await assert.rejects(
+    createConstellationGoalLink(
+      OWNER_ID,
+      {
+        sourceGoalId: GOAL_A_ID,
+        targetGoalId: GOAL_B_ID,
+        note: 'Duplicate.',
+      },
+      repository,
+    ),
+    (error) =>
+      error instanceof ConstellationDataError
+      && error.code === 'CONFLICT',
+  );
+
+  const edited = await updateConstellationGoalLink(
+    OWNER_ID,
+    created.id,
+    { note: 'Updated relationship note.' },
+    repository,
+  );
+  assert.equal(edited.note, 'Updated relationship note.');
+  assert.deepEqual(
+    await deleteConstellationGoalLink(
+      OWNER_ID,
+      created.id,
+      repository,
+    ),
+    { id: created.id },
+  );
+
+  repository.linkCounts.set(GOAL_A_ID, 6);
+  await assert.rejects(
+    createConstellationGoalLink(
+      OWNER_ID,
+      {
+        sourceGoalId: GOAL_A_ID,
+        targetGoalId: GOAL_B_ID,
+        note: 'Over the limit.',
+      },
+      repository,
+    ),
+    (error) =>
+      error instanceof ConstellationDataError
+      && error.code === 'CONFLICT',
+  );
+});
+
+test('goal-link API validation requires two distinct UUID goals and a bounded note', async () => {
+  const valid = await parseCreateGoalLinkRequest(new Request(
+    'http://localhost/api/constellation/goal-links',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        sourceGoalId: GOAL_A_ID,
+        targetGoalId: GOAL_B_ID,
+        note: '  The first goal supports the second.  ',
+      }),
+    },
+  ));
+  assert.deepEqual(valid, {
+    sourceGoalId: GOAL_A_ID,
+    targetGoalId: GOAL_B_ID,
+    note: 'The first goal supports the second.',
+  });
+  assert.deepEqual(
+    await parseUpdateGoalLinkRequest(new Request(
+      `http://localhost/api/constellation/goal-links/${GOAL_LINK_ID}`,
+      {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ note: '  Revised note.  ' }),
+      },
+    )),
+    { note: 'Revised note.' },
+  );
+
+  for (const body of [
+    {
+      sourceGoalId: GOAL_A_ID,
+      targetGoalId: GOAL_A_ID,
+      note: 'Self-link.',
+    },
+    {
+      sourceGoalId: GOAL_A_ID,
+      targetGoalId: GOAL_B_ID,
+      note: '   ',
+    },
+    {
+      sourceGoalId: GOAL_A_ID,
+      targetGoalId: GOAL_B_ID,
+      note: 'x'.repeat(281),
+    },
+    {
+      ownerId: OWNER_ID,
+      sourceGoalId: GOAL_A_ID,
+      targetGoalId: GOAL_B_ID,
+      note: 'Forged owner.',
+    },
+  ]) {
+    await assert.rejects(
+      parseCreateGoalLinkRequest(new Request(
+        'http://localhost/api/constellation/goal-links',
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        },
+      )),
+      (error) =>
+        error instanceof ConstellationDataError
+        && error.code === 'INVALID_INPUT',
+    );
+  }
 });
 
 test('concurrent duplicate evidence inserts recover by updating the existing pair', async () => {

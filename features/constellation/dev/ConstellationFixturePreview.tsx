@@ -214,9 +214,11 @@ export function ConstellationFixturePreview({
           <ConstellationGoalEvidencePanel
             connectedCount={connectedNodes.length}
             evidence={constellationPreviewGoalEvidence}
+            goalLinks={[]}
             goalDescription={selectedGoal.description}
             goalTitle={selectedGoal.label}
             onClose={() => setInspectorOpen(false)}
+            onManageGoalLink={() => undefined}
             onReadEntry={() => undefined}
             selectionKey={selectedGoal.selectionKey}
           />

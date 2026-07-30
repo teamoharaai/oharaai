@@ -8,11 +8,16 @@ import type {
   ConstellationEvidenceReferenceRow,
   ConstellationEvidenceReferenceRowPatch,
   ConstellationGoalEntryLinkRow,
+  ConstellationGoalLinkRepository,
+  ConstellationGoalLinkRow,
   ConstellationGoalSourceRow,
   ConstellationMutationRepository,
   ConstellationNodeRow,
   ConstellationProjectSourceRow,
   ConstellationSnapshot,
+} from '../../features/constellation/services/constellation-server-core.ts';
+import {
+  isGoalNodeVisible,
 } from '../../features/constellation/services/constellation-server-core.ts';
 import type {
   ConstellationBrtCategory,
@@ -30,6 +35,7 @@ import type {
   ConstellationReflectionValenceEvent,
   CreateConstellationAnnotationInput,
   CreateConstellationEvidenceReferenceInput,
+  CreateConstellationGoalLinkInput,
   SaveConstellationLayoutPositionInput,
 } from '../../features/constellation/types.ts';
 import type { GoalDbStatus } from '../goals/schema.ts';
@@ -100,6 +106,15 @@ const EVIDENCE_REFERENCE_COLUMNS = [
   'owner_id',
   'echo_entry_id',
   'goal_id',
+  'note',
+  'created_at',
+  'updated_at',
+].join(', ');
+const GOAL_LINK_COLUMNS = [
+  'id',
+  'owner_id',
+  'source_goal_id',
+  'target_goal_id',
   'note',
   'created_at',
   'updated_at',
@@ -236,6 +251,19 @@ async function fetchConstellationEvidenceLinks(
     .range(from, to));
 }
 
+async function fetchConstellationGoalLinks(
+  ownerId: string,
+  client: DbClient,
+): Promise<ConstellationGoalLinkRow[]> {
+  return fetchPagedRows((from, to) => client
+    .from('constellation_goal_links')
+    .select(GOAL_LINK_COLUMNS)
+    .eq('owner_id', ownerId)
+    .order('updated_at', { ascending: false })
+    .order('id', { ascending: true })
+    .range(from, to));
+}
+
 // Owner echo entries that carry a BRT category, joined to evidence links at
 // assembly time to derive virtual BRT clusters.
 async function fetchEchoBrtCategories(
@@ -331,6 +359,7 @@ export async function loadConstellationSnapshot(
     edges,
     annotations,
     evidenceLinks,
+    goalLinks,
     goalEntryLinks,
     echoBrtCategories,
     goals,
@@ -342,6 +371,7 @@ export async function loadConstellationSnapshot(
     fetchConstellationEdges(ownerId, client),
     fetchConstellationAnnotations(ownerId, client),
     fetchConstellationEvidenceLinks(ownerId, client),
+    fetchConstellationGoalLinks(ownerId, client),
     fetchConfirmedGoalEntryLinks(ownerId, client),
     fetchEchoBrtCategories(ownerId, client),
     fetchGoalSources(ownerId, client),
@@ -355,6 +385,7 @@ export async function loadConstellationSnapshot(
     edges,
     annotations,
     evidenceLinks,
+    goalLinks,
     goalEntryLinks,
     echoBrtCategories,
     goals,
@@ -1057,6 +1088,100 @@ export function createConstellationMutationRepository(
   };
 }
 
+export function createConstellationGoalLinkRepository(
+  client: DbClient = supabase,
+): ConstellationGoalLinkRepository {
+  return {
+    async hasOwnedVisibleGoal(ownerId, goalId) {
+      const { data, error } = await client
+        .from('goals')
+        .select('id, title, category, status, updated_at')
+        .eq('id', goalId)
+        .eq('user_id', ownerId)
+        .maybeSingle();
+      if (error) throw error;
+      return data
+        ? isGoalNodeVisible(
+            data as unknown as ConstellationGoalSourceRow,
+            new Date().toISOString(),
+          )
+        : false;
+    },
+
+    async countGoalLinksForGoal(ownerId, goalId) {
+      const { count, error } = await client
+        .from('constellation_goal_links')
+        .select('id', { count: 'exact', head: true })
+        .eq('owner_id', ownerId)
+        .or(`source_goal_id.eq.${goalId},target_goal_id.eq.${goalId}`);
+      if (error) throw error;
+      return count ?? 0;
+    },
+
+    async findGoalLink(ownerId, goalLinkId) {
+      const { data, error } = await client
+        .from('constellation_goal_links')
+        .select(GOAL_LINK_COLUMNS)
+        .eq('owner_id', ownerId)
+        .eq('id', goalLinkId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as unknown as ConstellationGoalLinkRow | null;
+    },
+
+    async findGoalLinkByPair(ownerId, sourceGoalId, targetGoalId) {
+      const { data, error } = await client
+        .from('constellation_goal_links')
+        .select(GOAL_LINK_COLUMNS)
+        .eq('owner_id', ownerId)
+        .eq('source_goal_id', sourceGoalId)
+        .eq('target_goal_id', targetGoalId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as unknown as ConstellationGoalLinkRow | null;
+    },
+
+    async insertGoalLink(ownerId, input) {
+      const { data, error } = await client
+        .from('constellation_goal_links')
+        .insert({
+          owner_id: ownerId,
+          source_goal_id: input.sourceGoalId,
+          target_goal_id: input.targetGoalId,
+          note: input.note,
+        })
+        .select(GOAL_LINK_COLUMNS)
+        .single();
+      if (error) throw error;
+      return data as unknown as ConstellationGoalLinkRow;
+    },
+
+    async updateGoalLink(ownerId, goalLinkId, patch) {
+      const { data, error } = await client
+        .from('constellation_goal_links')
+        .update(patch)
+        .eq('owner_id', ownerId)
+        .eq('id', goalLinkId)
+        .select(GOAL_LINK_COLUMNS)
+        .maybeSingle();
+      if (error) throw error;
+      return data as unknown as ConstellationGoalLinkRow | null;
+    },
+
+    async deleteGoalLink(ownerId, goalLinkId) {
+      const { data, error } = await client
+        .from('constellation_goal_links')
+        .delete()
+        .eq('owner_id', ownerId)
+        .eq('id', goalLinkId)
+        .select('id')
+        .maybeSingle();
+      if (error) throw error;
+      return data !== null;
+    },
+  };
+}
+
 function layoutPositionFromRow(
   row: ConstellationLayoutPositionRow,
 ): ConstellationLayoutPositionDTO {
@@ -1125,6 +1250,8 @@ export async function deleteConstellationLayout(
 export type {
   ConstellationAnnotationRowPatch,
   ConstellationEvidenceReferenceRowPatch,
+  ConstellationGoalLinkRow,
   CreateConstellationAnnotationInput,
   CreateConstellationEvidenceReferenceInput,
+  CreateConstellationGoalLinkInput,
 };

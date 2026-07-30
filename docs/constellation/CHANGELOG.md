@@ -1,5 +1,27 @@
 # Constellation Implementation Changelog
 
+## 2026-07-30 — Modular actions and user-authored goal links
+
+1. Replaced the separate Note and Projection buttons with an Add popover for
+   New note, New projection, and Link goals; removed the manual Refresh action.
+2. Moved Reset layout, zoom out, Fit, and zoom in from the canvas overlay into
+   the Constellation header beside Add, with compact 44-pixel controls.
+3. Added migration 035 and typed owner-only CRUD for private, undirected
+   goal-to-goal links. Each pair has a required 1–280-character note, immutable
+   endpoints, duplicate/self-link protection, goal-delete cascade, and a
+   database-enforced maximum of six user links per goal.
+4. Added optimistic link creation, note editing, removal, a dedicated Link
+   goals inspector, linked-goal summaries in Goal inspectors, teal dashed graph
+   styling, accessible link summaries, and direct edge selection that displays
+   the saved note.
+5. Extended runtime DTO checks, server/core coverage, acceptance fixtures, and
+   the disposable PostgreSQL harness. Strict TypeScript, all 74 focused tests,
+   all 26 browser journeys, and the migration-032/034/035 security assertions
+   pass. Ten responsive baselines were reviewed and refreshed for the
+   intentional toolbar relocation.
+6. Migration 035 remains local and has not been applied to the linked Supabase
+   project.
+
 ## 2026-07-29 — Current state note
 
 `FEATURES.CONSTELLATION_ENABLED` is `true` in `constants/features.ts`. This is

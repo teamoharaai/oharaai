@@ -11,6 +11,8 @@ interface ConstellationAccessibleListProps {
   graph: ConstellationGraphViewModel;
   hiddenVisually?: boolean;
   onSelect: (selectionKey: string) => void;
+  onSelectGoalLink?: (goalLinkId: string) => void;
+  selectedGoalLinkId?: string | null;
   selectedKey: string | null;
   tokens: ConstellationVisualTokens;
 }
@@ -45,6 +47,8 @@ export function ConstellationAccessibleList({
   graph,
   hiddenVisually = false,
   onSelect,
+  onSelectGoalLink,
+  selectedGoalLinkId,
   selectedKey,
   tokens,
 }: ConstellationAccessibleListProps) {
@@ -117,14 +121,47 @@ export function ConstellationAccessibleList({
         >
           Connections
         </Text>
-        {graph.edges.map((edge) => (
-          <Text
-            key={edge.id}
-            style={{ color: tokens.text.secondary, fontFamily: 'Inter-Regular', fontSize: hiddenVisually ? 1 : 13 }}
-          >
-            {edgeDescription(edge, graph.nodes)}
-          </Text>
-        ))}
+        {graph.edges.map((edge) => {
+          const description = edge.kind === 'user_goal_link'
+            ? `${edgeDescription(edge, graph.nodes)} Note: ${edge.note}`
+            : edgeDescription(edge, graph.nodes);
+          return edge.kind === 'user_goal_link' && onSelectGoalLink ? (
+            <Pressable
+              accessibilityLabel={description}
+              accessibilityRole="button"
+              accessibilityState={{
+                selected: edge.linkId === selectedGoalLinkId,
+              }}
+              key={edge.id}
+              onPress={() => onSelectGoalLink(edge.linkId)}
+              style={{
+                borderColor: edge.linkId === selectedGoalLinkId
+                  ? tokens.node.selection
+                  : tokens.panel.border,
+                borderRadius: 8,
+                borderWidth: 1,
+                padding: hiddenVisually ? 0 : 8,
+              }}
+            >
+              <Text
+                style={{
+                  color: tokens.text.secondary,
+                  fontFamily: 'Inter-Regular',
+                  fontSize: hiddenVisually ? 1 : 13,
+                }}
+              >
+                {description}
+              </Text>
+            </Pressable>
+          ) : (
+            <Text
+              key={edge.id}
+              style={{ color: tokens.text.secondary, fontFamily: 'Inter-Regular', fontSize: hiddenVisually ? 1 : 13 }}
+            >
+              {description}
+            </Text>
+          );
+        })}
       </View>
     </View>
   );

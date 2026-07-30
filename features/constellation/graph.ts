@@ -426,6 +426,11 @@ export function selectRenderEdges(
       if (leftIsHierarchy !== rightIsHierarchy) {
         return leftIsHierarchy ? -1 : 1;
       }
+      const leftIsUserLink = left.kind === 'user_goal_link';
+      const rightIsUserLink = right.kind === 'user_goal_link';
+      if (leftIsUserLink !== rightIsUserLink) {
+        return leftIsUserLink ? -1 : 1;
+      }
 
       const weight = (right.weight ?? 0) - (left.weight ?? 0);
       return weight !== 0 ? weight : left.id.localeCompare(right.id);

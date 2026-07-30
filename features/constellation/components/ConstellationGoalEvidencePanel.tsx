@@ -38,9 +38,15 @@ interface ConstellationGoalEvidencePanelProps {
   clusterCategory?: ConstellationBrtCategory;
   connectedCount: number;
   evidence: GoalEvidenceController;
+  goalLinks: readonly {
+    linkId: string;
+    note: string;
+    otherGoalTitle: string;
+  }[];
   goalDescription: string | null;
   goalTitle: string;
   onClose: () => void;
+  onManageGoalLink: (goalLinkId?: string | null) => void;
   onOpenVault?: () => void;
   onReadEntry: (entryId: string) => void;
   selectionKey: string;
@@ -596,9 +602,11 @@ export function ConstellationGoalEvidencePanel({
   clusterCategory,
   connectedCount,
   evidence,
+  goalLinks,
   goalDescription,
   goalTitle,
   onClose,
+  onManageGoalLink,
   onOpenVault,
   onReadEntry,
   selectionKey,
@@ -681,7 +689,7 @@ export function ConstellationGoalEvidencePanel({
               {[
                 ['Streak', '—'],
                 ['Vault', '—'],
-                ['Edges', '—'],
+                ['Links', String(goalLinks.length)],
               ].map(([label, value]) => (
                 <View
                   key={label}
@@ -708,6 +716,61 @@ export function ConstellationGoalEvidencePanel({
                 {`Target date · ${formattedDate(evidence.dto.goal.deadline)} · ${connectedCount} connected nodes`}
               </Typography>
             ) : null}
+          </View>
+        ) : null}
+
+        {!clusterCategory ? (
+          <View style={{ gap: 9 }}>
+            <View
+              style={{
+                alignItems: 'center',
+                flexDirection: 'row',
+                gap: 8,
+                justifyContent: 'space-between',
+              }}
+            >
+              <Typography variant="section-eyebrow">
+                {`Linked goals · ${goalLinks.length}`}
+              </Typography>
+              <Button
+                onPress={() => onManageGoalLink(null)}
+                size="compact"
+                variant="secondary"
+              >
+                Manage links
+              </Button>
+            </View>
+            {goalLinks.length === 0 ? (
+              <Typography variant="description">
+                No user-authored goal links yet.
+              </Typography>
+            ) : (
+              goalLinks.map((link) => (
+                <View
+                  key={link.linkId}
+                  style={{
+                    backgroundColor: colors.background.subtle,
+                    borderRadius: 10,
+                    gap: 7,
+                    padding: 12,
+                  }}
+                >
+                  <Typography variant="label">
+                    {link.otherGoalTitle}
+                  </Typography>
+                  <Typography numberOfLines={3} variant="caption">
+                    {link.note}
+                  </Typography>
+                  <Button
+                    onPress={() => onManageGoalLink(link.linkId)}
+                    size="compact"
+                    variant="secondary"
+                  >
+                    View link
+                  </Button>
+                </View>
+              ))
+            )}
           </View>
         ) : null}
 

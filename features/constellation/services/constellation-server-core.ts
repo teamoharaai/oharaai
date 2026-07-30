@@ -25,16 +25,19 @@ import type {
   ConstellationGraphEdgeDTO,
   ConstellationGraphCountsDTO,
   ConstellationGoalCategoryNodeDTO,
+  ConstellationGoalLink,
   ConstellationGoalNodeDTO,
   ConstellationLayoutCoordinateSpace,
   SaveConstellationLayoutPositionInput,
   ConstellationVirtualBrtClusterDTO,
   CreateConstellationAnnotationInput,
   CreateConstellationEvidenceReferenceInput,
+  CreateConstellationGoalLinkInput,
   GraphEdgeKind,
   GraphEdgeValence,
   UpdateConstellationAnnotationInput,
   UpdateConstellationEvidenceReferenceInput,
+  UpdateConstellationGoalLinkInput,
 } from '../types.ts';
 
 const COMPLETE_GOAL_GRACE_MILLISECONDS = 14 * 24 * 60 * 60 * 1000;
@@ -158,6 +161,16 @@ export interface ConstellationGoalSourceRow {
   updated_at: string;
 }
 
+export interface ConstellationGoalLinkRow {
+  id: string;
+  owner_id: string;
+  source_goal_id: string;
+  target_goal_id: string;
+  note: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ConstellationProjectSourceRow {
   id: string;
   status: string;
@@ -171,10 +184,39 @@ export interface ConstellationSnapshot {
   evidenceLinks: ConstellationEvidenceLinkRow[];
   goalEntryLinks: ConstellationGoalEntryLinkRow[];
   echoBrtCategories: ConstellationEchoBrtRow[];
+  goalLinks: ConstellationGoalLinkRow[];
   goals: ConstellationGoalSourceRow[];
   projects: ConstellationProjectSourceRow[];
   echoEntryCount: number;
   characterProfile: unknown;
+}
+
+export interface ConstellationGoalLinkRowPatch {
+  note: string;
+}
+
+export interface ConstellationGoalLinkRepository {
+  hasOwnedVisibleGoal(ownerId: string, goalId: string): Promise<boolean>;
+  countGoalLinksForGoal(ownerId: string, goalId: string): Promise<number>;
+  findGoalLink(
+    ownerId: string,
+    goalLinkId: string,
+  ): Promise<ConstellationGoalLinkRow | null>;
+  findGoalLinkByPair(
+    ownerId: string,
+    sourceGoalId: string,
+    targetGoalId: string,
+  ): Promise<ConstellationGoalLinkRow | null>;
+  insertGoalLink(
+    ownerId: string,
+    input: CreateConstellationGoalLinkInput,
+  ): Promise<ConstellationGoalLinkRow>;
+  updateGoalLink(
+    ownerId: string,
+    goalLinkId: string,
+    patch: ConstellationGoalLinkRowPatch,
+  ): Promise<ConstellationGoalLinkRow | null>;
+  deleteGoalLink(ownerId: string, goalLinkId: string): Promise<boolean>;
 }
 
 export type ConstellationDataErrorCode =
@@ -450,7 +492,7 @@ function isCompleteGoalWithinGrace(
   );
 }
 
-function isGoalNodeVisible(
+export function isGoalNodeVisible(
   goal: ConstellationGoalSourceRow,
   generatedAt: string,
 ): boolean {
@@ -579,6 +621,20 @@ export function mapConstellationEvidenceReference(
     ownerId: row.owner_id,
     echoEntryId: row.echo_entry_id,
     goalId: row.goal_id,
+    note: row.note,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function mapConstellationGoalLink(
+  row: ConstellationGoalLinkRow,
+): ConstellationGoalLink {
+  return {
+    id: row.id,
+    ownerId: row.owner_id,
+    sourceGoalId: row.source_goal_id,
+    targetGoalId: row.target_goal_id,
     note: row.note,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -863,11 +919,39 @@ export function assembleConstellationGraphDTO(
     weight: null,
     isPersisted: false,
   }));
+  const userGoalLinkEdges: ConstellationGraphEdgeDTO[] = snapshot.goalLinks
+    .filter(
+      (link) =>
+        link.owner_id === ownerId
+        && goalNodeIds.has(link.source_goal_id)
+        && goalNodeIds.has(link.target_goal_id),
+    )
+    .map((link) => ({
+      id: `goal-link:${link.id}` as const,
+      linkId: link.id,
+      from: {
+        entityType: 'earned_node' as const,
+        id: link.source_goal_id,
+      },
+      to: {
+        entityType: 'earned_node' as const,
+        id: link.target_goal_id,
+      },
+      kind: 'user_goal_link' as const,
+      valence: null,
+      weight: null,
+      isPersisted: true as const,
+      authorship: 'user' as const,
+      note: link.note,
+      createdAt: link.created_at,
+      updatedAt: link.updated_at,
+    }));
   const edges = [
     ...persistedEdges,
     ...annotationEdges,
     ...categoryEdges,
     ...clusterEdges,
+    ...userGoalLinkEdges,
   ].sort((left, right) => left.id.localeCompare(right.id));
 
   const annotationCounts = snapshot.annotations.reduce(
@@ -892,6 +976,7 @@ export function assembleConstellationGraphDTO(
     virtualGoalCategories: virtualGoalCategories.length,
     edges: edges.length,
     evidenceLinks: evidenceLinks.length,
+    goalLinks: userGoalLinkEdges.length,
     source: sourceCounts,
   };
 
@@ -915,6 +1000,124 @@ export function assembleConstellationGraphDTO(
     edges,
     counts,
   };
+}
+
+function canonicalGoalPair(
+  sourceGoalId: string,
+  targetGoalId: string,
+): { sourceGoalId: string; targetGoalId: string } {
+  return sourceGoalId.localeCompare(targetGoalId) < 0
+    ? { sourceGoalId, targetGoalId }
+    : { sourceGoalId: targetGoalId, targetGoalId: sourceGoalId };
+}
+
+export async function createConstellationGoalLink(
+  ownerId: string,
+  input: CreateConstellationGoalLinkInput,
+  repository: ConstellationGoalLinkRepository,
+): Promise<ConstellationGoalLink> {
+  if (input.sourceGoalId === input.targetGoalId) {
+    throw new ConstellationDataError(
+      'INVALID_INPUT',
+      'Choose two different goals to link.',
+    );
+  }
+  const pair = canonicalGoalPair(input.sourceGoalId, input.targetGoalId);
+  const [hasSource, hasTarget] = await Promise.all([
+    repository.hasOwnedVisibleGoal(ownerId, pair.sourceGoalId),
+    repository.hasOwnedVisibleGoal(ownerId, pair.targetGoalId),
+  ]);
+  if (!hasSource || !hasTarget) {
+    throw new ConstellationDataError(
+      'NOT_FOUND',
+      'One or both goals are not available in this Constellation.',
+    );
+  }
+  const existing = await repository.findGoalLinkByPair(
+    ownerId,
+    pair.sourceGoalId,
+    pair.targetGoalId,
+  );
+  if (existing) {
+    throw new ConstellationDataError(
+      'CONFLICT',
+      'These goals are already linked.',
+    );
+  }
+  const [sourceCount, targetCount] = await Promise.all([
+    repository.countGoalLinksForGoal(ownerId, pair.sourceGoalId),
+    repository.countGoalLinksForGoal(ownerId, pair.targetGoalId),
+  ]);
+  if (sourceCount >= 6 || targetCount >= 6) {
+    throw new ConstellationDataError(
+      'CONFLICT',
+      'Each goal can have at most six user-authored links.',
+    );
+  }
+
+  try {
+    return mapConstellationGoalLink(
+      await repository.insertGoalLink(ownerId, {
+        ...pair,
+        note: input.note,
+      }),
+    );
+  } catch (error) {
+    return throwTranslatedPersistenceError(error);
+  }
+}
+
+export async function updateConstellationGoalLink(
+  ownerId: string,
+  goalLinkId: string,
+  input: UpdateConstellationGoalLinkInput,
+  repository: ConstellationGoalLinkRepository,
+): Promise<ConstellationGoalLink> {
+  const existing = await repository.findGoalLink(ownerId, goalLinkId);
+  if (!existing) {
+    throw new ConstellationDataError('NOT_FOUND', 'Goal link not found.');
+  }
+  try {
+    const updated = await repository.updateGoalLink(
+      ownerId,
+      goalLinkId,
+      { note: input.note },
+    );
+    if (!updated) {
+      throw new ConstellationDataError(
+        'CONFLICT',
+        'The goal link changed before it could be updated.',
+      );
+    }
+    return mapConstellationGoalLink(updated);
+  } catch (error) {
+    if (error instanceof ConstellationDataError) throw error;
+    return throwTranslatedPersistenceError(error);
+  }
+}
+
+export async function deleteConstellationGoalLink(
+  ownerId: string,
+  goalLinkId: string,
+  repository: ConstellationGoalLinkRepository,
+): Promise<ConstellationDeleteResult> {
+  const existing = await repository.findGoalLink(ownerId, goalLinkId);
+  if (!existing) {
+    throw new ConstellationDataError('NOT_FOUND', 'Goal link not found.');
+  }
+  try {
+    const deleted = await repository.deleteGoalLink(ownerId, goalLinkId);
+    if (!deleted) {
+      throw new ConstellationDataError(
+        'CONFLICT',
+        'The goal link changed before it could be removed.',
+      );
+    }
+    return { id: goalLinkId };
+  } catch (error) {
+    if (error instanceof ConstellationDataError) throw error;
+    return throwTranslatedPersistenceError(error);
+  }
 }
 
 export function validateConstellationLayoutPosition(

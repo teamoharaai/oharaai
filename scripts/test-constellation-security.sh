@@ -12,6 +12,7 @@ set -euo pipefail
 REPOSITORY_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PERSISTENCE_MIGRATION_PATH="$REPOSITORY_ROOT/supabase/migrations/032_constellation_persistence.sql"
 LAYOUT_MIGRATION_PATH="$REPOSITORY_ROOT/supabase/migrations/034_constellation_layout_positions.sql"
+GOAL_LINKS_MIGRATION_PATH="$REPOSITORY_ROOT/supabase/migrations/035_constellation_goal_links.sql"
 BOOTSTRAP_PATH="$REPOSITORY_ROOT/scripts/constellation-security-bootstrap.sql"
 TEST_PATH="$REPOSITORY_ROOT/scripts/constellation-security.test.sql"
 
@@ -34,6 +35,7 @@ done
 for required_file in \
   "$PERSISTENCE_MIGRATION_PATH" \
   "$LAYOUT_MIGRATION_PATH" \
+  "$GOAL_LINKS_MIGRATION_PATH" \
   "$BOOTSTRAP_PATH" \
   "$TEST_PATH"; do
   if [[ ! -f "$required_file" ]]; then
@@ -98,6 +100,9 @@ echo "Applying migration 032 to the disposable database..."
 
 echo "Applying migration 034 to the disposable database..."
 "${PSQL[@]}" -f "$LAYOUT_MIGRATION_PATH" >/dev/null
+
+echo "Applying migration 035 to the disposable database..."
+"${PSQL[@]}" -f "$GOAL_LINKS_MIGRATION_PATH" >/dev/null
 
 echo "Running Constellation constraint and RLS assertions..."
 "${PSQL[@]}" -f "$TEST_PATH"

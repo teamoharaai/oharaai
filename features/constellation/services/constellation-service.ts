@@ -8,6 +8,7 @@ import {
   parseConstellationEchoSearchDTO,
   parseConstellationEvidenceLinkDTO,
   parseConstellationGoalEvidenceDTO,
+  parseConstellationGoalLinkDTO,
   parseConstellationGraphDTO,
   parseConstellationLayoutDTO,
   parseConstellationReflectionInspectorDTO,
@@ -21,14 +22,17 @@ import type {
   ConstellationEvidenceLink,
   ConstellationGraphDTO,
   ConstellationGoalEvidenceDTO,
+  ConstellationGoalLink,
   ConstellationLayoutDTO,
   ConstellationLayoutPositionDTO,
   ConstellationReflectionInspectorDTO,
   CreateConstellationAnnotationInput,
   CreateConstellationEvidenceReferenceInput,
+  CreateConstellationGoalLinkInput,
   SaveConstellationLayoutPositionInput,
   UpdateConstellationAnnotationInput,
   UpdateConstellationEvidenceReferenceInput,
+  UpdateConstellationGoalLinkInput,
 } from '../types';
 
 export class ConstellationServiceError extends Error {
@@ -341,6 +345,74 @@ export async function deleteConstellationEvidenceReference(
   ) {
     throw new ConstellationServiceError(
       'The unlink response was invalid.',
+    );
+  }
+  return { id: data.id };
+}
+
+export async function createConstellationGoalLink(
+  input: CreateConstellationGoalLinkInput,
+  signal?: AbortSignal,
+): Promise<ConstellationGoalLink> {
+  const data = await evidenceRequest(
+    '/api/constellation/goal-links',
+    {
+      body: JSON.stringify(input),
+      headers: { 'content-type': 'application/json' },
+      method: 'POST',
+      signal,
+    },
+    'The goal link could not be created.',
+  );
+  const link = parseConstellationGoalLinkDTO(data);
+  if (!link) {
+    throw new ConstellationServiceError(
+      'The goal link returned an invalid response.',
+    );
+  }
+  return link;
+}
+
+export async function updateConstellationGoalLink(
+  goalLinkId: string,
+  input: UpdateConstellationGoalLinkInput,
+  signal?: AbortSignal,
+): Promise<ConstellationGoalLink> {
+  const data = await evidenceRequest(
+    `/api/constellation/goal-links/${encodeURIComponent(goalLinkId)}`,
+    {
+      body: JSON.stringify(input),
+      headers: { 'content-type': 'application/json' },
+      method: 'PATCH',
+      signal,
+    },
+    'The goal link note could not be updated.',
+  );
+  const link = parseConstellationGoalLinkDTO(data);
+  if (!link || link.id !== goalLinkId) {
+    throw new ConstellationServiceError(
+      'The goal link returned an invalid response.',
+    );
+  }
+  return link;
+}
+
+export async function deleteConstellationGoalLink(
+  goalLinkId: string,
+  signal?: AbortSignal,
+): Promise<ConstellationDeleteResult> {
+  const data = await evidenceRequest(
+    `/api/constellation/goal-links/${encodeURIComponent(goalLinkId)}`,
+    { method: 'DELETE', signal },
+    'The goal link could not be removed.',
+  );
+  if (
+    !isRecord(data)
+    || typeof data.id !== 'string'
+    || data.id !== goalLinkId
+  ) {
+    throw new ConstellationServiceError(
+      'The goal-link delete response was invalid.',
     );
   }
   return { id: data.id };

@@ -253,6 +253,7 @@ export function ConstellationLegend({ tokens }: ConstellationLegendProps) {
           <EdgeSample color={tokens.edge.positive.color} label="Positive" tokens={tokens} />
           <EdgeSample color={tokens.edge.contradictory.color} dashed label="Contradictory" tokens={tokens} />
           <EdgeSample color={tokens.edge.annotation.color} dashed label="Draft / goal Entry" tokens={tokens} />
+          <EdgeSample color={tokens.edge.userLink.color} dashed label="User goal link" tokens={tokens} />
         </>
       ) : null}
     </View>

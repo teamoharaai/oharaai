@@ -174,6 +174,9 @@ test.describe('final architecture interaction contract', () => {
       page.getByLabel('Goal inspector for Train three times weekly')
         .getByRole('button', { name: 'Read entry' }),
     ).toHaveCount(3);
+    await expect(
+      page.getByRole('button', { name: 'Manage links' }),
+    ).toBeVisible();
     await expect(page.getByText(
       'Focus · Train three times weekly',
       { exact: false },
@@ -340,7 +343,8 @@ test.describe('final architecture interaction contract', () => {
     await installConstellationAcceptanceApi(page);
     await openLiveConstellation(page);
 
-    await page.getByRole('button', { name: 'Create note' }).click();
+    await page.getByRole('button', { name: 'Add to Constellation' }).click();
+    await page.getByRole('menuitem', { name: 'New note' }).click();
     await page.getByLabel('Label').fill('Protect recovery');
     await page.getByLabel('Body (optional)').fill(
       'Keep the rest day visible while the habit grows.',
@@ -375,6 +379,80 @@ test.describe('final architecture interaction contract', () => {
         name: 'User-authored Note draft: Protect recovery and sleep',
       }),
     ).toHaveCount(0);
+  });
+
+  test('creates a noted goal link, opens it from the edge, edits it, and removes it', async ({
+    page,
+  }) => {
+    await installConstellationAcceptanceApi(page);
+    await openLiveConstellation(page);
+
+    await page.getByRole('button', { name: 'Add to Constellation' }).click();
+    await page.getByRole('menuitem', { name: 'Link goals' }).click();
+    await page.getByRole('radio', {
+      name: 'First goal: Train three times weekly',
+    }).click();
+    await page.getByRole('radio', {
+      name: 'Second goal: Cook five meals',
+    }).click();
+    await page.getByLabel('Link note').fill(
+      'Both goals reinforce a sustainable health routine.',
+    );
+    await page.getByRole('button', { name: 'Link goals' }).click();
+
+    await expect(page.getByText(
+      'Both goals reinforce a sustainable health routine.',
+      { exact: true },
+    )).toBeVisible();
+    await page.getByRole('button', { name: 'Close inspector' }).click();
+
+    const edge = page.locator(
+      '[data-constellation-goal-link="acceptance-goal-link-1"]',
+    );
+    await expect(edge).toHaveCount(1);
+    const clickablePoint = await edge.evaluate((group) => {
+      const path = group.querySelector('path');
+      if (!path) return null;
+      const length = path.getTotalLength();
+      const matrix = path.getScreenCTM();
+      if (!matrix) return null;
+      for (let index = 1; index < 20; index += 1) {
+        const point = path.getPointAtLength((length * index) / 20);
+        const screenPoint = new DOMPoint(point.x, point.y).matrixTransform(
+          matrix,
+        );
+        if (document.elementFromPoint(
+          screenPoint.x,
+          screenPoint.y,
+        )?.closest('[data-constellation-goal-link]') === group) {
+          return { x: screenPoint.x, y: screenPoint.y };
+        }
+      }
+      return null;
+    });
+    expect(clickablePoint).not.toBeNull();
+    if (!clickablePoint) return;
+    await page.mouse.click(clickablePoint.x, clickablePoint.y);
+    await expect(page.getByLabel(
+      'Link note: Both goals reinforce a sustainable health routine.',
+    )).toBeVisible();
+
+    await page.getByRole('button', { name: 'Edit note' }).click();
+    await page.getByLabel('Link note').fill(
+      'Training and cooking make the weekly health plan resilient.',
+    );
+    await page.getByRole('button', { name: 'Save note' }).click();
+    await expect(page.getByText(
+      'Training and cooking make the weekly health plan resilient.',
+      { exact: true },
+    )).toBeVisible();
+
+    await page.getByRole('button', { name: 'Remove link' }).click();
+    await expect(edge).toHaveCount(0);
+    await expect(page.getByText(
+      'No user-authored goal links yet.',
+      { exact: true },
+    )).toBeVisible();
   });
 
   test('searches Echo, links with Bud, edits through Rose and Thorn, then unlinks', async ({

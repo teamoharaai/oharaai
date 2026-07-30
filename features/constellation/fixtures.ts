@@ -177,6 +177,7 @@ export const constellationFixtureGraph: ConstellationGraphDTO = {
     virtualGoalCategories: 1,
     edges: 3,
     evidenceLinks: 2,
+    goalLinks: 0,
     source: {
       echoEntries: 2,
       qualifiedCandidates: 0,

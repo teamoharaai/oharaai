@@ -14,7 +14,7 @@ import type {
   ConstellationRenderState,
 } from '../types';
 import { ConstellationSeedPreview } from './ConstellationSeedPreview';
-import { ConstellationLoadingMark } from './ConstellationLoadingMark';
+import { ConstellationActionMenu } from './ConstellationActionMenu';
 
 // The access gate is gone; `season_only` is the sole empty state (only the
 // Season anchor exists — no goal, annotation, or cluster yet).
@@ -22,9 +22,8 @@ type EmptyRenderState = Extract<ConstellationRenderState, 'season_only'>;
 
 interface ConstellationEmptyStateProps {
   counts: ConstellationGraphCountsDTO;
-  isRefreshing?: boolean;
   onCreateAnnotation?: (kind: ConstellationAnnotationKind) => void;
-  onRefresh?: () => void;
+  onOpenGoalLinks?: () => void;
   refreshError?: string | null;
   renderState: EmptyRenderState;
   seasonLabel: string;
@@ -140,9 +139,8 @@ function IntroductionCard({
 
 export function ConstellationEmptyState({
   counts,
-  isRefreshing = false,
   onCreateAnnotation,
-  onRefresh,
+  onOpenGoalLinks,
   refreshError,
   renderState,
   seasonLabel,
@@ -170,41 +168,12 @@ export function ConstellationEmptyState({
             </Typography>
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {onCreateAnnotation ? (
-              <>
-                <Button
-                  accessibilityLabel="Create note annotation"
-                  onPress={() => onCreateAnnotation('note')}
-                  size="compact"
-                  variant="secondary"
-                >
-                  + Note
-                </Button>
-                <Button
-                  accessibilityLabel="Create projection annotation"
-                  onPress={() => onCreateAnnotation('projection')}
-                  size="compact"
-                  variant="secondary"
-                >
-                  + Projection
-                </Button>
-              </>
-            ) : null}
-            {onRefresh ? (
-              <Button
-                accessibilityLabel={isRefreshing ? 'Refreshing Constellation' : 'Refresh Constellation'}
-                disabled={isRefreshing}
-                onPress={onRefresh}
-                size="compact"
-                variant="secondary"
-              >
-                {isRefreshing ? (
-                  <View style={{ alignItems: 'center', flexDirection: 'row', gap: 7 }}>
-                    <ConstellationLoadingMark color={colors.accent.primary} />
-                    <Typography variant="label">Refreshing…</Typography>
-                  </View>
-                ) : 'Refresh'}
-              </Button>
+            {onCreateAnnotation && onOpenGoalLinks ? (
+              <ConstellationActionMenu
+                canLinkGoals={false}
+                onCreateAnnotation={onCreateAnnotation}
+                onOpenGoalLinks={onOpenGoalLinks}
+              />
             ) : null}
           </View>
         </View>

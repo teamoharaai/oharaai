@@ -18,7 +18,14 @@ insert into public.goals (id, user_id, title)
 values
   ('20000000-0000-4000-8000-00000000001a', '00000000-0000-4000-8000-00000000000a', 'A primary goal'),
   ('20000000-0000-4000-8000-00000000002a', '00000000-0000-4000-8000-00000000000a', 'A deletion goal'),
-  ('20000000-0000-4000-8000-00000000001b', '00000000-0000-4000-8000-00000000000b', 'B goal');
+  ('20000000-0000-4000-8000-00000000003a', '00000000-0000-4000-8000-00000000000a', 'A linked goal 3'),
+  ('20000000-0000-4000-8000-00000000004a', '00000000-0000-4000-8000-00000000000a', 'A linked goal 4'),
+  ('20000000-0000-4000-8000-00000000005a', '00000000-0000-4000-8000-00000000000a', 'A linked goal 5'),
+  ('20000000-0000-4000-8000-00000000006a', '00000000-0000-4000-8000-00000000000a', 'A linked goal 6'),
+  ('20000000-0000-4000-8000-00000000007a', '00000000-0000-4000-8000-00000000000a', 'A linked goal 7'),
+  ('20000000-0000-4000-8000-00000000008a', '00000000-0000-4000-8000-00000000000a', 'A limit goal'),
+  ('20000000-0000-4000-8000-00000000001b', '00000000-0000-4000-8000-00000000000b', 'B goal'),
+  ('20000000-0000-4000-8000-00000000002b', '00000000-0000-4000-8000-00000000000b', 'B second goal');
 
 insert into public.echo_entries (id, user_id, content)
 values
@@ -362,6 +369,21 @@ values (
   0.6
 );
 
+insert into public.constellation_goal_links (
+  id,
+  owner_id,
+  source_goal_id,
+  target_goal_id,
+  note
+)
+values (
+  '90000000-0000-4000-8000-00000000001b',
+  '00000000-0000-4000-8000-00000000000b',
+  '20000000-0000-4000-8000-00000000001b',
+  '20000000-0000-4000-8000-00000000002b',
+  'B private relationship'
+);
+
 \echo 'Checking owner A writes, archival, and RLS isolation...'
 
 set request.jwt.claim.sub = '00000000-0000-4000-8000-00000000000a';
@@ -531,6 +553,235 @@ begin
     where owner_id = '00000000-0000-4000-8000-00000000000b'
   ) then
     raise exception 'cross-user evidence read leaked through RLS';
+  end if;
+
+  if exists (
+    select 1 from public.constellation_goal_links
+    where owner_id = '00000000-0000-4000-8000-00000000000b'
+  ) then
+    raise exception 'cross-user goal-link read leaked through RLS';
+  end if;
+end;
+$$;
+
+\echo 'Checking user-authored goal-link constraints, notes, limits, and isolation...'
+
+insert into public.constellation_goal_links (
+  id,
+  owner_id,
+  source_goal_id,
+  target_goal_id,
+  note
+)
+values (
+  '90000000-0000-4000-8000-00000000001a',
+  '00000000-0000-4000-8000-00000000000a',
+  '20000000-0000-4000-8000-00000000001a',
+  '20000000-0000-4000-8000-00000000002a',
+  'A private relationship'
+);
+
+update public.constellation_goal_links
+set note = 'A revised private relationship'
+where id = '90000000-0000-4000-8000-00000000001a';
+
+do $$
+declare
+  rejected boolean := false;
+begin
+  if not exists (
+    select 1
+    from public.constellation_goal_links
+    where id = '90000000-0000-4000-8000-00000000001a'
+      and note = 'A revised private relationship'
+  ) then
+    raise exception 'owned goal-link note update was not persisted';
+  end if;
+
+  begin
+    update public.constellation_goal_links
+    set target_goal_id = '20000000-0000-4000-8000-00000000003a'
+    where id = '90000000-0000-4000-8000-00000000001a';
+  exception
+    when check_violation then rejected := true;
+  end;
+
+  if not rejected then
+    raise exception 'goal-link identity update was accepted';
+  end if;
+end;
+$$;
+
+do $$
+declare
+  rejected boolean := false;
+begin
+  begin
+    insert into public.constellation_goal_links (
+      owner_id,
+      source_goal_id,
+      target_goal_id,
+      note
+    )
+    values (
+      '00000000-0000-4000-8000-00000000000a',
+      '20000000-0000-4000-8000-00000000001a',
+      '20000000-0000-4000-8000-00000000001a',
+      'Self link'
+    );
+  exception
+    when check_violation then rejected := true;
+  end;
+
+  if not rejected then
+    raise exception 'goal self-link was accepted';
+  end if;
+end;
+$$;
+
+do $$
+declare
+  rejected boolean := false;
+begin
+  begin
+    insert into public.constellation_goal_links (
+      owner_id,
+      source_goal_id,
+      target_goal_id,
+      note
+    )
+    values (
+      '00000000-0000-4000-8000-00000000000a',
+      '20000000-0000-4000-8000-00000000001a',
+      '20000000-0000-4000-8000-00000000002a',
+      'Duplicate pair'
+    );
+  exception
+    when unique_violation then rejected := true;
+  end;
+
+  if not rejected then
+    raise exception 'duplicate undirected goal pair was accepted';
+  end if;
+end;
+$$;
+
+do $$
+declare
+  rejected boolean := false;
+begin
+  begin
+    insert into public.constellation_goal_links (
+      owner_id,
+      source_goal_id,
+      target_goal_id,
+      note
+    )
+    values (
+      '00000000-0000-4000-8000-00000000000a',
+      '20000000-0000-4000-8000-00000000001a',
+      '20000000-0000-4000-8000-00000000001b',
+      'Cross-owner target'
+    );
+  exception
+    when insufficient_privilege then rejected := true;
+    when foreign_key_violation then rejected := true;
+  end;
+
+  if not rejected then
+    raise exception 'cross-owner goal endpoint was accepted';
+  end if;
+end;
+$$;
+
+do $$
+declare
+  rejected boolean := false;
+begin
+  begin
+    insert into public.constellation_goal_links (
+      owner_id,
+      source_goal_id,
+      target_goal_id,
+      note
+    )
+    values (
+      '00000000-0000-4000-8000-00000000000b',
+      '20000000-0000-4000-8000-00000000001b',
+      '20000000-0000-4000-8000-00000000002b',
+      'Forged owner'
+    );
+  exception
+    when insufficient_privilege then rejected := true;
+  end;
+
+  if not rejected then
+    raise exception 'forged goal-link ownership was accepted';
+  end if;
+end;
+$$;
+
+insert into public.constellation_goal_links (
+  owner_id,
+  source_goal_id,
+  target_goal_id,
+  note
+)
+values
+  (
+    '00000000-0000-4000-8000-00000000000a',
+    '20000000-0000-4000-8000-00000000001a',
+    '20000000-0000-4000-8000-00000000003a',
+    'Relationship 2'
+  ),
+  (
+    '00000000-0000-4000-8000-00000000000a',
+    '20000000-0000-4000-8000-00000000001a',
+    '20000000-0000-4000-8000-00000000004a',
+    'Relationship 3'
+  ),
+  (
+    '00000000-0000-4000-8000-00000000000a',
+    '20000000-0000-4000-8000-00000000001a',
+    '20000000-0000-4000-8000-00000000005a',
+    'Relationship 4'
+  ),
+  (
+    '00000000-0000-4000-8000-00000000000a',
+    '20000000-0000-4000-8000-00000000001a',
+    '20000000-0000-4000-8000-00000000006a',
+    'Relationship 5'
+  ),
+  (
+    '00000000-0000-4000-8000-00000000000a',
+    '20000000-0000-4000-8000-00000000001a',
+    '20000000-0000-4000-8000-00000000007a',
+    'Relationship 6'
+  );
+
+do $$
+declare
+  rejected boolean := false;
+begin
+  begin
+    insert into public.constellation_goal_links (
+      owner_id,
+      source_goal_id,
+      target_goal_id,
+      note
+    )
+    values (
+      '00000000-0000-4000-8000-00000000000a',
+      '20000000-0000-4000-8000-00000000001a',
+      '20000000-0000-4000-8000-00000000008a',
+      'Relationship 7'
+    );
+  exception
+    when check_violation then rejected := true;
+  end;
+
+  if not rejected then
+    raise exception 'seventh goal relationship was accepted';
   end if;
 end;
 $$;
@@ -1092,6 +1343,14 @@ begin
     where id = '60000000-0000-4000-8000-00000000002a'
   ) then
     raise exception 'earned-node deletion did not cascade to graph edges';
+  end if;
+
+  if exists (
+    select 1
+    from public.constellation_goal_links
+    where id = '90000000-0000-4000-8000-00000000001a'
+  ) then
+    raise exception 'goal deletion did not cascade to user-authored goal links';
   end if;
 
   if not exists (

@@ -4,8 +4,8 @@ Owner: CTO. Cascade Level 3.
 
 ## Migration Conventions
 - supabase/migrations/ holds 6 narrative baseline files (001-006), squashed
-  2026-06-24 from the original 26 incremental migrations. 007-034 were added
-  after the squash (see below). Next new migration: 035.
+  2026-06-24 from the original 26 incremental migrations. 007-035 were added
+  after the squash (see below). Next new migration: 036.
 - The pre-squash files (original 001-026) are archived, untouched, in
   supabase/migrations_archive_pre_squash_2026-06-24/ for historical reference.
   Do not re-run or restore them — supabase_migrations.schema_migrations tracks
@@ -152,6 +152,15 @@ Owner: CTO. Cascade Level 3.
   with the disposable PostgreSQL Constellation security harness, applied to the
   linked OharaAI main project, and confirmed in the remote migration ledger on
   2026-07-29.
+- 035_constellation_goal_links.sql: adds private owner-authored undirected
+  goal-to-goal links in a table separate from system-managed
+  constellation_edges. Canonical endpoint order and a unique unordered-pair
+  index reject duplicates; composite goal FKs require same-owner endpoints and
+  cascade on goal deletion; notes are trimmed and bounded to 1–280 characters;
+  endpoints are immutable; an advisory-lock trigger enforces at most six user
+  links per goal under concurrent inserts; and owner CRUD RLS protects every
+  operation. Verified with the disposable PostgreSQL Constellation security
+  harness on 2026-07-30. Not yet applied to the linked main project.
 - goals.mode column was dropped in the 2026-06-24 squash (was a single-value
   CHECK column, no longer carried). lib/db/goals.ts no longer inserts it.
 

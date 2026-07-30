@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
+  createConstellationGoalLinkRepository,
   createConstellationMutationRepository,
   deleteConstellationLayout,
   loadConstellationGoalEvidence,
@@ -15,9 +16,12 @@ import {
   assembleConstellationGraphDTO,
   ConstellationDataError,
   createConstellationAnnotation,
+  createConstellationGoalLink,
   createOrUpdateConstellationEvidenceReference,
+  deleteConstellationGoalLink,
   deleteConstellationEvidenceReference,
   updateConstellationAnnotation,
+  updateConstellationGoalLink,
   updateConstellationEvidenceReference,
   validateConstellationLayoutPosition,
 } from './constellation-server-core.ts';
@@ -31,14 +35,17 @@ import type {
   ConstellationEvidenceReferenceWriteResult,
   ConstellationGraphDTO,
   ConstellationGoalEvidenceDTO,
+  ConstellationGoalLink,
   ConstellationLayoutDTO,
   ConstellationLayoutPositionDTO,
   ConstellationReflectionInspectorDTO,
   CreateConstellationAnnotationInput,
   CreateConstellationEvidenceReferenceInput,
+  CreateConstellationGoalLinkInput,
   SaveConstellationLayoutPositionInput,
   UpdateConstellationAnnotationInput,
   UpdateConstellationEvidenceReferenceInput,
+  UpdateConstellationGoalLinkInput,
 } from '../types.ts';
 
 export async function getConstellationGraph(
@@ -184,6 +191,44 @@ export function archiveAnnotation(
     ownerId,
     annotationId,
     createConstellationMutationRepository(client),
+  );
+}
+
+export function addConstellationGoalLink(
+  ownerId: string,
+  input: CreateConstellationGoalLinkInput,
+  client: SupabaseClient,
+): Promise<ConstellationGoalLink> {
+  return createConstellationGoalLink(
+    ownerId,
+    input,
+    createConstellationGoalLinkRepository(client),
+  );
+}
+
+export function editConstellationGoalLink(
+  ownerId: string,
+  goalLinkId: string,
+  input: UpdateConstellationGoalLinkInput,
+  client: SupabaseClient,
+): Promise<ConstellationGoalLink> {
+  return updateConstellationGoalLink(
+    ownerId,
+    goalLinkId,
+    input,
+    createConstellationGoalLinkRepository(client),
+  );
+}
+
+export function removeConstellationGoalLink(
+  ownerId: string,
+  goalLinkId: string,
+  client: SupabaseClient,
+): Promise<ConstellationDeleteResult> {
+  return deleteConstellationGoalLink(
+    ownerId,
+    goalLinkId,
+    createConstellationGoalLinkRepository(client),
   );
 }
 

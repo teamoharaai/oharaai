@@ -27,7 +27,9 @@ export const CONSTELLATION_EDGE_KINDS = [
   'pattern_cooccurrence',
   'trait_derivation',
   'tension_composition',
+  'user_goal_link',
   'annotation_anchor',
+  'goal_category_membership',
   'goal_evidence_cluster',
 ] as const satisfies readonly GraphEdgeKind[];
 

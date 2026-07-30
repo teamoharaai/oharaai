@@ -1,8 +1,13 @@
-import { useEffect, useId, useRef } from 'react';
+import {
+  forwardRef,
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useRef,
+} from 'react';
 import {
   type LayoutChangeEvent,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -72,7 +77,6 @@ interface ConstellationCanvasShellProps {
   focusLabel?: string | null;
   graph: ConstellationGraphViewModel;
   isLayoutBusy?: boolean;
-  isRefreshing?: boolean;
   layout: ConstellationLayout;
   layoutError?: string | null;
   onCreateAnnotation?: (kind: ConstellationAnnotationKind) => void;
@@ -81,12 +85,14 @@ interface ConstellationCanvasShellProps {
     normalized: { x: number; y: number },
   ) => void;
   onMoveNodeEnd?: (selectionKey: string) => void;
-  onRefresh?: () => void;
+  onOpenGoalLinks?: () => void;
   onResetLayout?: () => void;
   onSelect: (selectionKey: string | null) => void;
+  onSelectGoalLink?: (goalLinkId: string) => void;
   refreshError?: string | null;
   seasonLabel: string;
   selectedKey: string | null;
+  selectedGoalLinkId?: string | null;
   sproutedLabel: SproutedLabelLayout | null;
   tokens: ConstellationVisualTokens;
 }
@@ -230,6 +236,8 @@ function SvgGraph({
   graph,
   layout,
   onSelect,
+  onSelectGoalLink,
+  selectedGoalLinkId,
   selectedKey,
   sproutedLabel,
   tokens,
@@ -276,6 +284,8 @@ function SvgGraph({
             gradientId={gradientIds.mixedEdge}
             key={edge.id}
             nodes={graph.nodes}
+            onSelectGoalLink={onSelectGoalLink}
+            selectedGoalLinkId={selectedGoalLinkId}
             tokens={tokens}
           />
         ))}
@@ -345,9 +355,10 @@ type ConstellationViewportProps = Pick<
   | 'layoutError'
   | 'onMoveNode'
   | 'onMoveNodeEnd'
-  | 'onResetLayout'
   | 'onSelect'
+  | 'onSelectGoalLink'
   | 'selectedKey'
+  | 'selectedGoalLinkId'
   | 'sproutedLabel'
   | 'tokens'
 >;
@@ -362,7 +373,16 @@ interface WebKeyboardEvent {
 const VIEWPORT_ANIMATION = { duration: 180 };
 const KEYBOARD_PAN_STEP = 48;
 
-function ConstellationViewport(props: ConstellationViewportProps) {
+interface ConstellationViewportHandle {
+  fit(): void;
+  zoomIn(): void;
+  zoomOut(): void;
+}
+
+const ConstellationViewport = forwardRef<
+  ConstellationViewportHandle,
+  ConstellationViewportProps
+>(function ConstellationViewport(props, ref) {
   const reducedMotion = useReducedMotion();
   const interactionRef = useRef<View>(null);
   const scale = useSharedValue(CONSTELLATION_FIT_ZOOM);
@@ -502,6 +522,18 @@ function ConstellationViewport(props: ConstellationViewportProps) {
       true,
     );
   }
+
+  useImperativeHandle(ref, () => ({
+    fit() {
+      setTransform(fitConstellationViewport(), true);
+    },
+    zoomIn() {
+      zoomBy(CONSTELLATION_ZOOM_STEP);
+    },
+    zoomOut() {
+      zoomBy(1 / CONSTELLATION_ZOOM_STEP);
+    },
+  }));
 
   function handleKeyDown(event: WebKeyboardEvent): void {
     if (event.target !== event.currentTarget) return;
@@ -849,7 +881,9 @@ function ConstellationViewport(props: ConstellationViewportProps) {
           layout={props.layout}
           layoutError={props.layoutError}
           onSelect={props.onSelect}
+          onSelectGoalLink={props.onSelectGoalLink}
           selectedKey={props.selectedKey}
+          selectedGoalLinkId={props.selectedGoalLinkId}
           sproutedLabel={props.sproutedLabel}
           tokens={props.tokens}
         />
@@ -871,126 +905,6 @@ function ConstellationViewport(props: ConstellationViewportProps) {
           {interactionSurface}
         </GestureDetector>
       )}
-      <View
-        accessibilityLabel="Constellation zoom controls"
-        style={{
-          flexDirection: 'row',
-          gap: 8,
-          position: 'absolute',
-          right: 16,
-          top: 16,
-        }}
-      >
-        {props.onResetLayout ? (
-          <Pressable
-            accessibilityLabel="Reset saved Constellation node positions"
-            accessibilityRole="button"
-            disabled={props.isLayoutBusy}
-            onPress={props.onResetLayout}
-            style={({ pressed }) => ({
-              alignItems: 'center',
-              backgroundColor: props.tokens.panel.background,
-              borderColor: props.tokens.panel.border,
-              borderRadius: 10,
-              borderWidth: 1,
-              height: 44,
-              justifyContent: 'center',
-              opacity: props.isLayoutBusy ? 0.45 : pressed ? 0.72 : 1,
-              paddingHorizontal: 14,
-            })}
-          >
-            <Text
-              style={{
-                color: props.tokens.text.primary,
-                fontFamily: 'Inter-SemiBold',
-                fontSize: 12,
-              }}
-            >
-              Reset layout
-            </Text>
-          </Pressable>
-        ) : null}
-        <Pressable
-          accessibilityLabel="Zoom out of Constellation"
-          accessibilityRole="button"
-          onPress={() => zoomBy(1 / CONSTELLATION_ZOOM_STEP)}
-          style={({ pressed }) => ({
-            alignItems: 'center',
-            backgroundColor: props.tokens.panel.background,
-            borderColor: props.tokens.panel.border,
-            borderRadius: 10,
-            borderWidth: 1,
-            height: 44,
-            justifyContent: 'center',
-            opacity: pressed ? 0.72 : 1,
-            width: 44,
-          })}
-        >
-          <Text
-            style={{
-              color: props.tokens.text.primary,
-              fontFamily: 'Inter-SemiBold',
-              fontSize: 22,
-              lineHeight: 24,
-            }}
-          >
-            −
-          </Text>
-        </Pressable>
-        <Pressable
-          accessibilityLabel="Reset Constellation to fit"
-          accessibilityRole="button"
-          onPress={() => setTransform(fitConstellationViewport(), true)}
-          style={({ pressed }) => ({
-            alignItems: 'center',
-            backgroundColor: props.tokens.panel.background,
-            borderColor: props.tokens.panel.border,
-            borderRadius: 10,
-            borderWidth: 1,
-            height: 44,
-            justifyContent: 'center',
-            opacity: pressed ? 0.72 : 1,
-            paddingHorizontal: 14,
-          })}
-        >
-          <Text
-            style={{
-              color: props.tokens.text.primary,
-              fontFamily: 'Inter-SemiBold',
-              fontSize: 12,
-            }}
-          >
-            Fit
-          </Text>
-        </Pressable>
-        <Pressable
-          accessibilityLabel="Zoom in to Constellation"
-          accessibilityRole="button"
-          onPress={() => zoomBy(CONSTELLATION_ZOOM_STEP)}
-          style={({ pressed }) => ({
-            alignItems: 'center',
-            backgroundColor: props.tokens.panel.background,
-            borderColor: props.tokens.panel.border,
-            borderRadius: 10,
-            borderWidth: 1,
-            height: 44,
-            justifyContent: 'center',
-            opacity: pressed ? 0.72 : 1,
-            width: 44,
-          })}
-        >
-          <Text
-            style={{
-              color: props.tokens.text.primary,
-              fontFamily: 'Inter-SemiBold',
-              fontSize: 22,
-              lineHeight: 24,
-            }}
-          >
-            +
-          </Text>
-        </Pressable>
-      </View>
       {props.layoutError ? (
         <View
           accessibilityLiveRegion="polite"
@@ -1021,19 +935,25 @@ function ConstellationViewport(props: ConstellationViewportProps) {
       ) : null}
     </View>
   );
-}
+});
 
 export function ConstellationCanvasShell(props: ConstellationCanvasShellProps) {
+  const viewportRef = useRef<ConstellationViewportHandle>(null);
+  const visibleGoalCount = props.graph.nodes.filter(
+    (node) =>
+      node.entityType === 'earned_node'
+      && node.node.kind === 'goal',
+  ).length;
   if (Platform.OS !== 'web') {
     return (
       <ScrollView style={{ backgroundColor: props.tokens.canvas.background }}>
         <ConstellationHeaderMetadata
           counts={props.graph.counts}
+          canLinkGoals={visibleGoalCount >= 2}
           fixture={props.fixture}
           focusLabel={props.focusLabel}
-          isRefreshing={props.isRefreshing}
           onCreateAnnotation={props.onCreateAnnotation}
-          onRefresh={props.onRefresh}
+          onOpenGoalLinks={props.onOpenGoalLinks}
           refreshError={props.refreshError}
           seasonLabel={props.seasonLabel}
           tokens={props.tokens}
@@ -1041,6 +961,8 @@ export function ConstellationCanvasShell(props: ConstellationCanvasShellProps) {
         <ConstellationAccessibleList
           graph={props.graph}
           onSelect={props.onSelect}
+          onSelectGoalLink={props.onSelectGoalLink}
+          selectedGoalLinkId={props.selectedGoalLinkId}
           selectedKey={props.selectedKey}
           tokens={props.tokens}
         />
@@ -1055,26 +977,33 @@ export function ConstellationCanvasShell(props: ConstellationCanvasShellProps) {
     >
       <ConstellationHeaderMetadata
         counts={props.graph.counts}
+        canLinkGoals={visibleGoalCount >= 2}
         fixture={props.fixture}
         focusLabel={props.focusLabel}
-        isRefreshing={props.isRefreshing}
+        isLayoutBusy={props.isLayoutBusy}
         onCreateAnnotation={props.onCreateAnnotation}
-        onRefresh={props.onRefresh}
+        onFitViewport={() => viewportRef.current?.fit()}
+        onOpenGoalLinks={props.onOpenGoalLinks}
+        onResetLayout={props.onResetLayout}
+        onZoomIn={() => viewportRef.current?.zoomIn()}
+        onZoomOut={() => viewportRef.current?.zoomOut()}
         refreshError={props.refreshError}
         seasonLabel={props.seasonLabel}
         tokens={props.tokens}
       />
       <View style={{ flex: 1, minHeight: 554, position: 'relative' }}>
         <ConstellationViewport
+          ref={viewportRef}
           graph={props.graph}
           isLayoutBusy={props.isLayoutBusy}
           layout={props.layout}
           layoutError={props.layoutError}
           onMoveNode={props.onMoveNode}
           onMoveNodeEnd={props.onMoveNodeEnd}
-          onResetLayout={props.onResetLayout}
           onSelect={props.onSelect}
+          onSelectGoalLink={props.onSelectGoalLink}
           selectedKey={props.selectedKey}
+          selectedGoalLinkId={props.selectedGoalLinkId}
           sproutedLabel={props.sproutedLabel}
           tokens={props.tokens}
         />
@@ -1083,6 +1012,8 @@ export function ConstellationCanvasShell(props: ConstellationCanvasShellProps) {
           graph={props.graph}
           hiddenVisually
           onSelect={props.onSelect}
+          onSelectGoalLink={props.onSelectGoalLink}
+          selectedGoalLinkId={props.selectedGoalLinkId}
           selectedKey={props.selectedKey}
           tokens={props.tokens}
         />

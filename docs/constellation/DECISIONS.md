@@ -2,7 +2,7 @@
 
 **Status:** Canonical
 
-**Last updated:** 2026-07-29
+**Last updated:** 2026-07-30
 
 **Scope:** Constellation domain, reads, interaction, layout persistence, privacy,
 and extension boundaries
@@ -46,6 +46,24 @@ Notes and Projections are `ConstellationAnnotation` drafts, not earned nodes.
 They may anchor to either one owned earned node or one owned direct-read goal.
 They never affect extraction, validation, visibility scoring, Trait promotion,
 or earned-node counts. Their normal removal operation is archival.
+
+### User-authored goal links
+
+Goal links are private, undirected relationships between two owned goals.
+They are stored separately from system-managed `constellation_edges` and:
+
+- always include a trimmed note of 1–280 characters;
+- use one canonical endpoint order so each unordered goal pair is unique;
+- reject self-links and endpoint changes after creation;
+- allow at most six user-authored links incident to any one goal;
+- remain stored when one endpoint is temporarily hidden from Constellation,
+  but render only when both goals are currently visible;
+- cascade when either goal or the owner is deleted.
+
+The owner can create and list links from the Link goals panel, inspect linked
+goals from either Goal inspector, and open a link note by selecting its dashed
+edge. Only the note is editable; changing the endpoints means removing the
+link and creating a new one.
 
 ### Entries, containers, and evidence references
 
@@ -91,8 +109,8 @@ version `1.0`. It includes:
 - active annotations;
 - virtual goal-category hubs;
 - non-empty goal-specific BRT satellites;
-- persisted semantic edges plus derived annotation, category-membership, and
-  goal-satellite edges;
+- persisted system and user-authored goal-link edges plus derived annotation,
+  category-membership, and goal-satellite edges;
 - earned, annotation, category, BRT, edge, and source counts.
 
 The access threshold was removed. The only render states are:
@@ -159,7 +177,13 @@ the six-semantic-relationships-per-node allowance. A dense semantic
 neighborhood therefore cannot visually orphan a category hub or goal
 satellite.
 
-No arbitrary user-authored node-to-node topology is supported.
+`user_goal_link` is an owner-authored, persisted, undirected goal-only edge.
+It has `valence: null`, `weight: null`, and carries its private note in the
+owner DTO. User links are prioritized with semantic edges inside the existing
+six-rendered-relationships-per-node and 90-edge client ceilings. The database's
+separate six-link-per-goal limit is authoritative for user-authored links.
+
+Arbitrary non-goal topology and drag-to-connect are not supported.
 
 ## 5. Layout and interaction
 
@@ -183,6 +207,12 @@ circles with count badges. Category hubs render their category symbol.
 
 The legend is collapsible, remains available at compact web widths, and stores
 its preference in the persisted UI store.
+
+The Constellation header contains one modular Add popover for New note, New
+projection, and Link goals. Link goals is disabled until at least two goals are
+visible. Reset layout, zoom out, Fit, and zoom in sit beside that Add control.
+There is no manual Refresh control; normal load, retry, and stale-data behavior
+remain service-owned.
 
 ## 6. Layout persistence
 
@@ -216,6 +246,7 @@ domain records, counts, visibility, or evidence.
 - Reads and writes use a token-scoped Supabase client, preserving RLS.
 - Non-owned IDs use the same `404 NOT_FOUND` semantics as missing IDs.
 - Deleting a goal or Entry cascades its relevant evidence references.
+- Deleting a goal cascades every user-authored link incident to that goal.
 - Deleting an anchor nulls the annotation anchor without deleting the
   annotation.
 - Account deletion cascades all Constellation records, including layout.
@@ -226,18 +257,21 @@ domain records, counts, visibility, or evidence.
 ## 8. Migrations and deployment
 
 The repository currently contains migrations through
-`034_constellation_layout_positions.sql`.
+`035_constellation_goal_links.sql`.
 
 - 032 creates normalized Constellation nodes, edges, annotations, and evidence
   references.
 - 033 moves the single BRT category to `echo_entries.brt_category` and adds
   direct goal anchors for annotations.
 - 034 adds owner-scoped layout persistence.
+- 035 adds private undirected, note-bearing, owner-authored goal links with
+  same-owner endpoints, CRUD RLS, uniqueness, and a six-link-per-goal limit.
 
-An environment running this source must apply all three migrations. The
-disposable PostgreSQL security harness applies 032 and 034 and verifies
+An environment running this source must apply all four migrations. The
+disposable PostgreSQL security harness applies 032, 034, and 035 and verifies
 constraints plus cross-user RLS. Migration 033 was previously live-verified and
-is required by all current BRT reads/writes.
+is required by all current BRT reads/writes. Migration 035 exists locally but
+has not been applied to the linked Supabase project.
 
 ## 9. Fixtures and historical references
 
@@ -250,7 +284,7 @@ data. Deterministic fixtures exist only for tests and the isolated preview.
 The following remain out of scope:
 
 - force-directed or collision-resolving automatic layout;
-- arbitrary edge authoring or drag-to-connect;
+- arbitrary non-goal edge authoring or drag-to-connect;
 - shared/public Constellations;
 - Timeline and Season Archive product surfaces;
 - annotation restoration/permanent-delete UI;

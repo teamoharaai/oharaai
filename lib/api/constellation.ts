@@ -5,9 +5,11 @@ import {
 import type {
   CreateConstellationAnnotationInput,
   CreateConstellationEvidenceReferenceInput,
+  CreateConstellationGoalLinkInput,
   SaveConstellationLayoutPositionInput,
   UpdateConstellationAnnotationInput,
   UpdateConstellationEvidenceReferenceInput,
+  UpdateConstellationGoalLinkInput,
 } from '../../features/constellation/types.ts';
 
 const UUID_PATTERN =
@@ -15,6 +17,7 @@ const UUID_PATTERN =
 const ANNOTATION_LABEL_MAX_LENGTH = 120;
 const ANNOTATION_BODY_MAX_LENGTH = 5_000;
 const EVIDENCE_NOTE_MAX_LENGTH = 280;
+const GOAL_LINK_NOTE_MAX_LENGTH = 280;
 const ECHO_SEARCH_QUERY_MAX_LENGTH = 120;
 const LAYOUT_SELECTION_KEY_MAX_LENGTH = 200;
 
@@ -333,6 +336,41 @@ export async function parseUpdateEvidenceReferenceRequest(
     );
   }
   return input;
+}
+
+export async function parseCreateGoalLinkRequest(
+  request: Request,
+): Promise<CreateConstellationGoalLinkInput> {
+  const body = await readBody(request);
+  rejectUnknownKeys(body, ['sourceGoalId', 'targetGoalId', 'note']);
+  const sourceGoalId = parseUuid(body.sourceGoalId, 'sourceGoalId');
+  const targetGoalId = parseUuid(body.targetGoalId, 'targetGoalId');
+  if (sourceGoalId === targetGoalId) {
+    return invalidInput('Choose two different goals to link.');
+  }
+  return {
+    sourceGoalId,
+    targetGoalId,
+    note: parseRequiredTrimmedString(
+      body.note,
+      'note',
+      GOAL_LINK_NOTE_MAX_LENGTH,
+    ),
+  };
+}
+
+export async function parseUpdateGoalLinkRequest(
+  request: Request,
+): Promise<UpdateConstellationGoalLinkInput> {
+  const body = await readBody(request);
+  rejectUnknownKeys(body, ['note']);
+  return {
+    note: parseRequiredTrimmedString(
+      body.note,
+      'note',
+      GOAL_LINK_NOTE_MAX_LENGTH,
+    ),
+  };
 }
 
 export async function parseSaveConstellationLayoutPositionRequest(

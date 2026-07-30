@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Added (2026-07-30 — User-authored Constellation goal links)
+- **`supabase/migrations/035_constellation_goal_links.sql` and Constellation graph contracts:** added private, owner-authored, undirected goal links with a required bounded note, same-owner goal constraints, duplicate/self-link prevention, a six-link-per-goal limit, CRUD RLS, and a typed `user_goal_link` graph edge that remains separate from system-managed Constellation edges.
+- **Goal-link APIs, services, and optimistic state:** added authenticated create, note-update, and remove routes plus owner-visible graph assembly, runtime DTO parsing, exact optimistic reconciliation/rollback, and linked-goal summaries in Goal inspectors.
+- **`ConstellationGoalLinkPanel` and interactive graph edges:** added two-goal selection, required-note authoring, existing-link management, note editing/removal, teal dashed edge styling, direct edge selection, and screen-reader connection controls.
+- **Goal-link verification:** added focused core/state/API validation tests, an end-to-end browser authoring journey, and disposable PostgreSQL assertions for RLS, forged/cross-owner writes, uniqueness, endpoint immutability, the six-link limit, and goal-delete cascades.
+
+### Changed (2026-07-30 — Constellation modular controls)
+- **Constellation header actions:** replaced separate Note and Projection buttons with an Add popover for New note, New projection, and Link goals; removed the manual Refresh action.
+- **Layout and viewport controls:** moved Reset layout, zoom out, Fit, and zoom in from the canvas overlay into the header beside Add while preserving compact 44-pixel targets and the existing confirmation/persistence behavior.
+- **Acceptance and repository documentation:** updated API, component, data-layer, migration-ledger, decision-contract, feature-changelog, fixture, and responsive visual-baseline coverage for migration 035 and the new authoring model. Migration 035 remains local and has not been applied to the linked Supabase project.
+
 ### Added (2026-07-29 — Constellation category hierarchy)
 - **`features/constellation/goal-categories.ts` and graph types:** added one canonical presentation registry covering current and legacy goal categories, plus typed virtual goal-category nodes and membership edges so categories can be rendered without becoming persisted or earned domain records.
 - **`GoalCategoryShape.tsx` and `ConstellationGoalCategoryInspector.tsx`:** added symbol-led category hubs and an inspectable list of the active goals represented by each visible category.

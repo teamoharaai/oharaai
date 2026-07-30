@@ -25,6 +25,7 @@ export type GraphEdgeKind =
   | 'pattern_cooccurrence'
   | 'trait_derivation'
   | 'tension_composition'
+  | 'user_goal_link'
   | 'annotation_anchor'
   | 'goal_category_membership'
   | 'goal_evidence_cluster';
@@ -204,6 +205,21 @@ export type PatternCooccurrenceGraphEdge = EarnedRelationshipEdgeBase<'pattern_c
 export type TraitDerivationGraphEdge = EarnedRelationshipEdgeBase<'trait_derivation'>;
 export type TensionCompositionGraphEdge = EarnedRelationshipEdgeBase<'tension_composition'>;
 
+export interface UserGoalLinkGraphEdge {
+  id: `goal-link:${string}`;
+  linkId: string;
+  from: EarnedGraphEntityRef;
+  to: EarnedGraphEntityRef;
+  kind: 'user_goal_link';
+  valence: null;
+  weight: null;
+  isPersisted: true;
+  authorship: 'user';
+  note: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AnnotationAnchorGraphEdge {
   id: string;
   from: AnnotationGraphEntityRef;
@@ -241,6 +257,7 @@ export type ConstellationGraphEdgeDTO =
   | PatternCooccurrenceGraphEdge
   | TraitDerivationGraphEdge
   | TensionCompositionGraphEdge
+  | UserGoalLinkGraphEdge
   | AnnotationAnchorGraphEdge
   | GoalCategoryMembershipGraphEdge
   | GoalEvidenceClusterGraphEdge;
@@ -257,6 +274,26 @@ export interface ConstellationEvidenceLink {
   note: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ConstellationGoalLink {
+  id: string;
+  ownerId: string;
+  sourceGoalId: string;
+  targetGoalId: string;
+  note: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateConstellationGoalLinkInput {
+  sourceGoalId: string;
+  targetGoalId: string;
+  note: string;
+}
+
+export interface UpdateConstellationGoalLinkInput {
+  note: string;
 }
 
 export interface ConstellationEvidenceEchoSummary {
@@ -425,6 +462,7 @@ export interface ConstellationGraphCountsDTO {
   virtualGoalCategories: number;
   edges: number;
   evidenceLinks: number;
+  goalLinks: number;
   source: {
     echoEntries: number;
     qualifiedCandidates: number;

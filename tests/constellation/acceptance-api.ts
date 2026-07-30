@@ -12,6 +12,7 @@ import type {
   ConstellationEchoSearchOption,
   ConstellationEvidenceLink,
   ConstellationGoalEvidenceDTO,
+  ConstellationGoalLink,
   ConstellationGraphDTO,
   ConstellationLayoutPositionDTO,
 } from '../../features/constellation/types.ts';
@@ -94,7 +95,9 @@ export async function installConstellationAcceptanceApi(
     goalEvidence.items.map((item) => [item.echoEntryId, item.brtCategory]),
   );
   let evidenceSequence = 0;
+  let goalLinkSequence = 0;
   let annotationSequence = 0;
+  const goalLinks = new Map<string, ConstellationGoalLink>();
   const layoutPositions = new Map<string, ConstellationLayoutPositionDTO>();
 
   async function failOnce(target: AcceptanceFailureTarget, route: Route) {
@@ -292,6 +295,59 @@ export async function installConstellationAcceptanceApi(
         annotations: [annotation, ...graph.annotations],
       };
       await json(route, { ok: true, data: annotation }, 201);
+      return;
+    }
+
+    if (path === '/api/constellation/goal-links' && method === 'POST') {
+      const input = request.postDataJSON() as {
+        sourceGoalId: string;
+        targetGoalId: string;
+        note: string;
+      };
+      goalLinkSequence += 1;
+      const id = `acceptance-goal-link-${goalLinkSequence}`;
+      const link: ConstellationGoalLink = {
+        id,
+        ownerId: 'acceptance-owner',
+        sourceGoalId: input.sourceGoalId,
+        targetGoalId: input.targetGoalId,
+        note: input.note,
+        createdAt: FIXED_TIME,
+        updatedAt: FIXED_TIME,
+      };
+      goalLinks.set(id, link);
+      await json(route, { ok: true, data: link }, 201);
+      return;
+    }
+
+    const goalLinkMatch = path.match(
+      /^\/api\/constellation\/goal-links\/([^/]+)$/,
+    );
+    if (goalLinkMatch && method === 'PATCH') {
+      const id = decodeURIComponent(goalLinkMatch[1]);
+      const current = goalLinks.get(id);
+      if (!current) {
+        await json(route, {
+          ok: false,
+          error: { code: 'NOT_FOUND', message: 'Goal link not found.' },
+        }, 404);
+        return;
+      }
+      const input = request.postDataJSON() as { note: string };
+      const updated = {
+        ...current,
+        note: input.note,
+        updatedAt: FIXED_TIME,
+      };
+      goalLinks.set(id, updated);
+      await json(route, { ok: true, data: updated });
+      return;
+    }
+
+    if (goalLinkMatch && method === 'DELETE') {
+      const id = decodeURIComponent(goalLinkMatch[1]);
+      goalLinks.delete(id);
+      await json(route, { ok: true, data: { id } });
       return;
     }
 

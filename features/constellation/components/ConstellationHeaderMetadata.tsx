@@ -10,15 +10,20 @@ import type {
   ConstellationGraphCountsDTO,
 } from '../types.ts';
 import type { ConstellationVisualTokens } from '../visual-tokens.ts';
-import { ConstellationLoadingMark } from './ConstellationLoadingMark';
+import { ConstellationActionMenu } from './ConstellationActionMenu';
 
 interface ConstellationHeaderMetadataProps {
   counts: ConstellationGraphCountsDTO;
+  canLinkGoals?: boolean;
   fixture?: boolean;
   focusLabel?: string | null;
-  isRefreshing?: boolean;
+  isLayoutBusy?: boolean;
   onCreateAnnotation?: (kind: ConstellationAnnotationKind) => void;
-  onRefresh?: () => void;
+  onFitViewport?: () => void;
+  onOpenGoalLinks?: () => void;
+  onResetLayout?: () => void;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
   refreshError?: string | null;
   seasonLabel: string;
   tokens: ConstellationVisualTokens;
@@ -26,11 +31,16 @@ interface ConstellationHeaderMetadataProps {
 
 export function ConstellationHeaderMetadata({
   counts,
+  canLinkGoals = false,
   fixture = false,
   focusLabel,
-  isRefreshing = false,
+  isLayoutBusy = false,
   onCreateAnnotation,
-  onRefresh,
+  onFitViewport,
+  onOpenGoalLinks,
+  onResetLayout,
+  onZoomIn,
+  onZoomOut,
   refreshError,
   seasonLabel,
   tokens,
@@ -85,108 +95,156 @@ export function ConstellationHeaderMetadata({
             {metadata}
           </Text>
         </View>
-        {fixture ? (
-          <View
-            style={{
-              backgroundColor: tokens.annotation.badgeFill,
-              borderColor: tokens.annotation.stroke,
-              borderRadius: 999,
-              borderWidth: 1,
-              paddingHorizontal: 12,
-              paddingVertical: 7,
-            }}
-          >
-            <Text
+        <View
+          style={{
+            alignItems: 'center',
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: 8,
+          }}
+        >
+          {fixture ? (
+            <View
               style={{
-                color: tokens.annotation.badgeText,
-                fontFamily: 'Inter-SemiBold',
-                fontSize: 10,
-                letterSpacing: 1.1,
-                textTransform: 'uppercase',
+                backgroundColor: tokens.annotation.badgeFill,
+                borderColor: tokens.annotation.stroke,
+                borderRadius: 999,
+                borderWidth: 1,
+                paddingHorizontal: 12,
+                paddingVertical: 7,
               }}
             >
-              Development fixture
-            </Text>
-          </View>
-        ) : (
-          <View
-            style={{
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              gap: 8,
-            }}
-          >
-            {onCreateAnnotation ? (
-              <>
-                {(['note', 'projection'] as const).map((kind) => (
-                  <Pressable
-                    accessibilityLabel={`Create ${kind}`}
-                    accessibilityRole="button"
-                    key={kind}
-                    onPress={() => onCreateAnnotation(kind)}
-                    style={({ pressed }) => ({
-                      alignItems: 'center',
-                      backgroundColor: kind === 'projection'
-                        ? tokens.annotation.badgeFill
-                        : tokens.panel.background,
-                      borderColor: tokens.annotation.stroke,
-                      borderRadius: 999,
-                      borderWidth: 1,
-                      justifyContent: 'center',
-                      minHeight: 44,
-                      opacity: pressed ? 0.68 : 1,
-                      paddingHorizontal: 13,
-                    })}
-                  >
-                    <Text
-                      style={{
-                        color: tokens.annotation.badgeText,
-                        fontFamily: 'Inter-SemiBold',
-                        fontSize: 12,
-                        textTransform: 'capitalize',
-                      }}
-                    >
-                      {`+ ${kind}`}
-                    </Text>
-                  </Pressable>
-                ))}
-              </>
-            ) : null}
-            {onRefresh ? (
+              <Text
+                style={{
+                  color: tokens.annotation.badgeText,
+                  fontFamily: 'Inter-SemiBold',
+                  fontSize: 10,
+                  letterSpacing: 1.1,
+                  textTransform: 'uppercase',
+                }}
+              >
+                Development fixture
+              </Text>
+            </View>
+          ) : null}
+          {!fixture && onCreateAnnotation && onOpenGoalLinks ? (
+              <ConstellationActionMenu
+                canLinkGoals={canLinkGoals}
+                onCreateAnnotation={onCreateAnnotation}
+                onOpenGoalLinks={onOpenGoalLinks}
+              />
+          ) : null}
+          {onResetLayout ? (
               <Pressable
-                accessibilityLabel={isRefreshing ? 'Refreshing Constellation' : 'Refresh Constellation'}
+                accessibilityLabel="Reset saved Constellation node positions"
                 accessibilityRole="button"
-                accessibilityState={{ busy: isRefreshing, disabled: isRefreshing }}
-                disabled={isRefreshing}
-                onPress={onRefresh}
+                accessibilityState={{ disabled: isLayoutBusy }}
+                disabled={isLayoutBusy}
+                onPress={onResetLayout}
                 style={({ pressed }) => ({
                   alignItems: 'center',
+                  backgroundColor: tokens.panel.background,
                   borderColor: tokens.panel.border,
-                  borderRadius: 999,
+                  borderRadius: 10,
                   borderWidth: 1,
-                  flexDirection: 'row',
-                  gap: 7,
-                  minHeight: 44,
-                  opacity: pressed || isRefreshing ? 0.68 : 1,
-                  paddingHorizontal: 13,
+                  height: 44,
+                  justifyContent: 'center',
+                  opacity: isLayoutBusy ? 0.45 : pressed ? 0.68 : 1,
+                  paddingHorizontal: compact ? 0 : 13,
+                  width: compact ? 44 : undefined,
                 })}
               >
-                {isRefreshing ? (
-                  <ConstellationLoadingMark color={tokens.text.accent} />
-                ) : null}
                 <Text
                   style={{
-                    color: tokens.text.accent,
+                    color: tokens.text.primary,
                     fontFamily: 'Inter-SemiBold',
-                    fontSize: 12,
+                    fontSize: compact ? 18 : 12,
                   }}
                 >
-                  {isRefreshing ? 'Refreshing…' : 'Refresh'}
+                  {compact ? '↺' : 'Reset layout'}
                 </Text>
               </Pressable>
-            ) : null}
-          </View>
-        )}
+          ) : null}
+          {onZoomOut ? (
+              <Pressable
+                accessibilityLabel="Zoom out of Constellation"
+                accessibilityRole="button"
+                onPress={onZoomOut}
+                style={({ pressed }) => ({
+                  alignItems: 'center',
+                  backgroundColor: tokens.panel.background,
+                  borderColor: tokens.panel.border,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  height: 44,
+                  justifyContent: 'center',
+                  opacity: pressed ? 0.68 : 1,
+                  width: 44,
+                })}
+              >
+                <Text style={{
+                  color: tokens.text.primary,
+                  fontFamily: 'Inter-SemiBold',
+                  fontSize: 22,
+                }}>
+                  −
+                </Text>
+              </Pressable>
+          ) : null}
+          {onFitViewport ? (
+              <Pressable
+                accessibilityLabel="Reset Constellation to fit"
+                accessibilityRole="button"
+                onPress={onFitViewport}
+                style={({ pressed }) => ({
+                  alignItems: 'center',
+                  backgroundColor: tokens.panel.background,
+                  borderColor: tokens.panel.border,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  height: 44,
+                  justifyContent: 'center',
+                  opacity: pressed ? 0.68 : 1,
+                  paddingHorizontal: compact ? 0 : 13,
+                  width: compact ? 44 : undefined,
+                })}
+              >
+                <Text style={{
+                  color: tokens.text.primary,
+                  fontFamily: 'Inter-SemiBold',
+                  fontSize: 12,
+                }}>
+                  Fit
+                </Text>
+              </Pressable>
+          ) : null}
+          {onZoomIn ? (
+              <Pressable
+                accessibilityLabel="Zoom in to Constellation"
+                accessibilityRole="button"
+                onPress={onZoomIn}
+                style={({ pressed }) => ({
+                  alignItems: 'center',
+                  backgroundColor: tokens.panel.background,
+                  borderColor: tokens.panel.border,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  height: 44,
+                  justifyContent: 'center',
+                  opacity: pressed ? 0.68 : 1,
+                  width: 44,
+                })}
+              >
+                <Text style={{
+                  color: tokens.text.primary,
+                  fontFamily: 'Inter-SemiBold',
+                  fontSize: 22,
+                }}>
+                  +
+                </Text>
+              </Pressable>
+          ) : null}
+        </View>
       </View>
       {refreshError ? (
         <Text

@@ -32,6 +32,11 @@ Use the `Typography` component with a `variant` — do not hardcode font/size/co
   goals are planet circles, and non-empty goal BRT summaries are smaller moons.
   Interactive web SVG groups must keep their `data-constellation-node`
   selection key so viewport dragging and click suppression remain centralized.
+  Private user goal links use dashed teal `user_goal_link` edges and preserve
+  `data-constellation-goal-link` on the web hit target so selecting the edge can
+  open its required note. Constellation authoring belongs in the header Add
+  popover; Reset layout and viewport controls sit beside it, not over the
+  canvas.
 - Typography.tsx: shared typography component (components/ui/Typography.tsx)
 
 ## Rules

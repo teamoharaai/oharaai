@@ -226,6 +226,7 @@ export const constellationPreviewEmptyCounts = {
   virtualGoalCategories: 0,
   edges: 0,
   evidenceLinks: 0,
+  goalLinks: 0,
   source: {
     echoEntries: 2,
     qualifiedCandidates: 0,

@@ -44,6 +44,7 @@ import { ConstellationBrtInspector } from './ConstellationBrtInspector';
 import { ConstellationCanvasShell } from './ConstellationCanvasShell';
 import { ConstellationEmptyState } from './ConstellationEmptyState';
 import { ConstellationGoalEvidencePanel } from './ConstellationGoalEvidencePanel';
+import { ConstellationGoalLinkPanel } from './ConstellationGoalLinkPanel';
 import { ConstellationGenericInspector } from './ConstellationGenericInspector';
 import { ConstellationGoalCategoryInspector } from './ConstellationGoalCategoryInspector';
 import { CONSTELLATION_GRAPH_FOCUS_ID } from './ConstellationInspectorSurface';
@@ -146,6 +147,11 @@ export function ConstellationScreen() {
   const { narrow } = getConstellationResponsiveLayout(width, sidebarCollapsed);
   const [createKind, setCreateKind] =
     useState<ConstellationAnnotationKind | null>(null);
+  const [goalLinkPanelOpen, setGoalLinkPanelOpen] = useState(false);
+  const [selectedGoalLinkId, setSelectedGoalLinkId] =
+    useState<string | null>(null);
+  const [goalLinkInitialGoalId, setGoalLinkInitialGoalId] =
+    useState<string | null>(null);
   const params = useLocalSearchParams<{
     selected?: string | string[];
   }>();
@@ -291,12 +297,28 @@ export function ConstellationScreen() {
     )) ?? [],
     [graph],
   );
+  const visibleGoalNodes = useMemo(
+    () => constellation.dto?.earnedNodes.filter(
+      (node) => node.kind === 'goal',
+    ) ?? [],
+    [constellation.dto],
+  );
+  const userGoalLinks = useMemo(
+    () => constellation.dto?.edges.filter(
+      (edge) => edge.kind === 'user_goal_link',
+    ) ?? [],
+    [constellation.dto],
+  );
   const annotationPanelOpen = createKind !== null || selectedAnnotation !== undefined;
   const goalEvidencePanelOpen = (
     selectedGoal !== undefined
     && selectedCluster === undefined
   );
-  const sidePanelOpen = annotationPanelOpen || selectedNode !== undefined;
+  const sidePanelOpen = (
+    goalLinkPanelOpen
+    || annotationPanelOpen
+    || selectedNode !== undefined
+  );
   const neighborhood = useMemo(
     () => graph && selectedNode
       ? selectConnectedNeighborhood(graph.nodes, graph.edges, selectedNode.id)
@@ -351,7 +373,11 @@ export function ConstellationScreen() {
       return;
     }
     setCreateKind(null);
+    setGoalLinkPanelOpen(false);
+    setSelectedGoalLinkId(null);
+    setGoalLinkInitialGoalId(null);
     constellation.clearMutationError();
+    constellation.clearGoalLinkMutationError();
     goalEvidence.clearMutationError();
     navigateSelection(nextSelection === selectedKey ? null : nextSelection);
   }
@@ -409,8 +435,39 @@ export function ConstellationScreen() {
   function openCreatePanel(kind: ConstellationAnnotationKind) {
     if (goalEvidence.mutation.isSaving) return;
     constellation.clearMutationError();
+    constellation.clearGoalLinkMutationError();
+    setGoalLinkPanelOpen(false);
+    setSelectedGoalLinkId(null);
+    setGoalLinkInitialGoalId(null);
     setCreateKind(kind);
     if (selectedKey) navigateSelection(null);
+  }
+
+  function openGoalLinks(
+    goalLinkId: string | null = null,
+    initialGoalId: string | null = selectedGoal?.source.id ?? null,
+  ) {
+    if (
+      constellation.mutation.isSaving
+      || goalEvidence.mutation.isSaving
+    ) {
+      return;
+    }
+    constellation.clearMutationError();
+    constellation.clearGoalLinkMutationError();
+    setCreateKind(null);
+    setGoalLinkInitialGoalId(initialGoalId);
+    setSelectedGoalLinkId(goalLinkId);
+    setGoalLinkPanelOpen(true);
+    if (selectedKey) navigateSelection(null);
+  }
+
+  function closeGoalLinks() {
+    if (constellation.goalLinkMutation.isSaving) return;
+    constellation.clearGoalLinkMutationError();
+    setGoalLinkPanelOpen(false);
+    setSelectedGoalLinkId(null);
+    setGoalLinkInitialGoalId(null);
   }
 
   function closeAnnotationPanel() {
@@ -466,19 +523,20 @@ export function ConstellationScreen() {
                 : selectedNode?.node.label ?? null
             }
             graph={focusedGraph}
-            isRefreshing={constellation.isRefreshing}
             layout={layout}
             layoutError={layoutStorage.error}
             onCreateAnnotation={openCreatePanel}
             onMoveNode={moveNode}
             onMoveNodeEnd={finishMovingNode}
-            onRefresh={constellation.refresh}
+            onOpenGoalLinks={() => openGoalLinks()}
             onResetLayout={() => {
               void requestLayoutReset();
             }}
             onSelect={updateSelection}
+            onSelectGoalLink={(goalLinkId) => openGoalLinks(goalLinkId, null)}
             refreshError={constellation.refreshError}
             seasonLabel={seasonLabel}
+            selectedGoalLinkId={selectedGoalLinkId}
             selectedKey={selectedKey}
             sproutedLabel={sproutedLabel}
             tokens={tokens}
@@ -493,9 +551,8 @@ export function ConstellationScreen() {
           <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
             <ConstellationEmptyState
               counts={graph.counts}
-              isRefreshing={constellation.isRefreshing}
               onCreateAnnotation={openCreatePanel}
-              onRefresh={constellation.refresh}
+              onOpenGoalLinks={() => openGoalLinks()}
               refreshError={constellation.refreshError}
               renderState={constellation.dto.state.renderState}
               seasonLabel={seasonLabel}
@@ -532,7 +589,19 @@ export function ConstellationScreen() {
               {readyContent}
             </View>
           )}
-          {annotationPanelOpen ? (
+          {goalLinkPanelOpen ? (
+            <ConstellationGoalLinkPanel
+              goals={visibleGoalNodes}
+              initialGoalId={goalLinkInitialGoalId}
+              initialLinkId={selectedGoalLinkId}
+              links={userGoalLinks}
+              mutation={constellation.goalLinkMutation}
+              onClose={closeGoalLinks}
+              onCreate={constellation.createGoalLink}
+              onEdit={constellation.editGoalLink}
+              onRemove={constellation.removeGoalLink}
+            />
+          ) : annotationPanelOpen ? (
             <ConstellationAnnotationPanel
               annotation={selectedAnnotation}
               initialKind={createKind ?? selectedAnnotation?.kind}
@@ -557,6 +626,25 @@ export function ConstellationScreen() {
             <ConstellationGoalEvidencePanel
               connectedCount={connectedNodes.length}
               evidence={goalEvidence}
+              goalLinks={userGoalLinks.flatMap((link) => {
+                if (
+                  link.from.id !== selectedGoal.source.id
+                  && link.to.id !== selectedGoal.source.id
+                ) {
+                  return [];
+                }
+                const otherGoalId = link.from.id === selectedGoal.source.id
+                  ? link.to.id
+                  : link.from.id;
+                const otherGoal = visibleGoalNodes.find(
+                  (goal) => goal.id === otherGoalId,
+                );
+                return [{
+                  linkId: link.linkId,
+                  note: link.note,
+                  otherGoalTitle: otherGoal?.label ?? 'Unavailable goal',
+                }];
+              })}
               goalDescription={selectedGoal.description}
               goalTitle={selectedGoal.label}
               onClose={closeGoalEvidencePanel}
@@ -571,6 +659,9 @@ export function ConstellationScreen() {
                 pathname: '/echo',
                 params: { entryId },
               } as Href)}
+              onManageGoalLink={(goalLinkId) => {
+                openGoalLinks(goalLinkId, selectedGoal.source.id);
+              }}
               selectionKey={selectedKey ?? selectedGoal.selectionKey}
             />
           ) : selectedReflection ? (

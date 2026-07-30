@@ -269,6 +269,51 @@ export type Database = {
           },
         ]
       }
+      constellation_goal_links: {
+        Row: {
+          created_at: string
+          id: string
+          note: string
+          owner_id: string
+          source_goal_id: string
+          target_goal_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note: string
+          owner_id: string
+          source_goal_id: string
+          target_goal_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string
+          owner_id?: string
+          source_goal_id?: string
+          target_goal_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "constellation_goal_links_source_owner_fkey"
+            columns: ["source_goal_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "constellation_goal_links_target_owner_fkey"
+            columns: ["target_goal_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
       constellation_layout_positions: {
         Row: {
           coordinate_space: string

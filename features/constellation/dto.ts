@@ -12,6 +12,7 @@ import type {
   ConstellationGraphEdgeDTO,
   ConstellationGoalEvidenceDTO,
   ConstellationGoalEvidenceItem,
+  ConstellationGoalLink,
   ConstellationLayoutDTO,
   ConstellationLayoutPositionDTO,
   ConstellationReflectionInspectorDTO,
@@ -25,6 +26,7 @@ import type {
 import { isGoalCategory } from './goal-categories.ts';
 
 const EVIDENCE_NOTE_MAX_LENGTH = 280;
+const GOAL_LINK_NOTE_MAX_LENGTH = 280;
 const ECHO_EXCERPT_MAX_LENGTH = 240;
 const ECHO_SEARCH_QUERY_MAX_LENGTH = 120;
 
@@ -48,6 +50,7 @@ const EDGE_KINDS = [
   'pattern_cooccurrence',
   'trait_derivation',
   'tension_composition',
+  'user_goal_link',
   'annotation_anchor',
   'goal_category_membership',
   'goal_evidence_cluster',
@@ -210,6 +213,25 @@ export function parseConstellationEvidenceLinkDTO(
   value: unknown,
 ): ConstellationEvidenceLink | null {
   return isEvidenceLink(value) ? value : null;
+}
+
+export function parseConstellationGoalLinkDTO(
+  value: unknown,
+): ConstellationGoalLink | null {
+  return (
+    isRecord(value)
+    && isNonEmptyString(value.id)
+    && isNonEmptyString(value.ownerId)
+    && isNonEmptyString(value.sourceGoalId)
+    && isNonEmptyString(value.targetGoalId)
+    && value.sourceGoalId !== value.targetGoalId
+    && isNonEmptyString(value.note)
+    && value.note.length <= GOAL_LINK_NOTE_MAX_LENGTH
+    && isNonEmptyString(value.createdAt)
+    && isNonEmptyString(value.updatedAt)
+  )
+    ? value as unknown as ConstellationGoalLink
+    : null;
 }
 
 function isEvidenceEchoSummary(
@@ -487,6 +509,23 @@ function isEdge(value: unknown): value is ConstellationGraphEdgeDTO {
     );
   }
 
+  if (value.kind === 'user_goal_link') {
+    return (
+      value.from.entityType === 'earned_node'
+      && value.to.entityType === 'earned_node'
+      && isNonEmptyString(value.linkId)
+      && value.id === `goal-link:${value.linkId}`
+      && value.valence === null
+      && value.weight === null
+      && value.isPersisted === true
+      && value.authorship === 'user'
+      && isNonEmptyString(value.note)
+      && value.note.length <= GOAL_LINK_NOTE_MAX_LENGTH
+      && isNonEmptyString(value.createdAt)
+      && isNonEmptyString(value.updatedAt)
+    );
+  }
+
   return (
     value.from.entityType === 'earned_node'
     && value.to.entityType === 'earned_node'
@@ -509,6 +548,7 @@ function isCounts(value: unknown): value is ConstellationGraphCountsDTO {
     && isCount(value.virtualGoalCategories)
     && isCount(value.edges)
     && isCount(value.evidenceLinks)
+    && isCount(value.goalLinks)
     && isRecord(source)
     && isCount(source.echoEntries)
     && isCount(source.qualifiedCandidates)

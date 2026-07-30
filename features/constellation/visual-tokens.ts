@@ -49,7 +49,14 @@ export interface ConstellationVisualTokens {
     readonly badgeText: string;
   };
   readonly brt: Record<ConstellationBrtCategory, string>;
-  readonly edge: Record<GraphEdgeValence | 'structural' | 'annotation' | 'evidence', EdgeVisualToken>;
+  readonly edge: Record<
+    GraphEdgeValence
+    | 'structural'
+    | 'annotation'
+    | 'evidence'
+    | 'userLink',
+    EdgeVisualToken
+  >;
   readonly panel: {
     readonly background: string;
     readonly border: string;
@@ -117,6 +124,7 @@ export function createConstellationVisualTokens(
       structural: { color: colors.text.muted, dash: undefined, opacity: dark ? 0.3 : 0.24 },
       annotation: { color: colors.accent.tealMid, dash: '4 6', opacity: 0.74 },
       evidence: { color: colors.text.muted, dash: '3 5', opacity: 0.5 },
+      userLink: { color: colors.accent.tealMid, dash: '9 5', opacity: 0.9 },
     },
     panel: {
       background: colors.background.card,

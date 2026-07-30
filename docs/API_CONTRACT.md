@@ -679,11 +679,12 @@ authoritative.
 `ConstellationGraphDTO` defined in `docs/constellation/DECISIONS.md`. It
 contains real owner data only: active earned nodes, active annotations,
 persisted system edges, derived annotation/category/satellite edges, virtual
-category hubs, non-empty goal-level Bud/Rose/Thorn summaries, and graph/source
-counts. It never contains raw Entry content or excerpts. Archived annotations
-are counted but omitted from the default annotation list. There is no activity
-threshold or locked response; the real render state is `season_only` or
-`graph`.
+category hubs, visible owner-authored `user_goal_link` edges, non-empty
+goal-level Bud/Rose/Thorn summaries, and graph/source counts. A user goal-link
+edge carries its private 1–280-character note and stable link ID. It never
+contains raw Entry content or excerpts. Archived annotations are counted but
+omitted from the default annotation list. There is no activity threshold or
+locked response; the real render state is `season_only` or `graph`.
 
 Constellation write successes use:
 
@@ -743,6 +744,39 @@ Edits one or more of `kind`, `label`, `body`, `anchorEarnedNodeId`, or
 
 Archives an owned draft annotation. Repeating the request for an already
 archived annotation is idempotent and returns the archived DTO.
+
+### `POST /api/constellation/goal-links`
+
+Creates one private, undirected relationship between two currently visible
+owned goals and returns `ConstellationGoalLink` with status `201`.
+
+```typescript
+{
+  sourceGoalId: string,
+  targetGoalId: string,
+  note: string                       // trimmed, 1–280 characters
+}
+```
+
+The server canonicalizes endpoint order. Self-links, duplicate unordered
+pairs, non-owned or non-visible goals, and a seventh incident user link on
+either goal are rejected. Link identity is never accepted from the client.
+
+### `PATCH /api/constellation/goal-links/:id`
+
+Updates only the required note on an owned goal link:
+
+```typescript
+{ note: string }                     // trimmed, 1–280 characters
+```
+
+Endpoints and owner identity are immutable. Missing and non-owned IDs share
+`404 NOT_FOUND` semantics.
+
+### `DELETE /api/constellation/goal-links/:id`
+
+Deletes one owned goal link and returns `{ id }`. Removing a link does not
+change either goal or any system-managed `constellation_edges` row.
 
 ### `POST /api/constellation/evidence-references`
 
