@@ -7,6 +7,10 @@ const migration = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/036_entries_notes_reflections.sql'),
   'utf8',
 );
+const relationshipFix = readFileSync(
+  resolve(process.cwd(), 'supabase/migrations/037_fix_entry_category_link_source.sql'),
+  'utf8',
+);
 
 test('enables RLS for entries and every relationship table', () => {
   for (const table of [
@@ -32,4 +36,11 @@ test('relationship replacement is transactional and deduplicated', () => {
   assert.match(migration, /on conflict \(entry_id, goal_id\) do nothing;/);
   assert.match(migration, /on conflict \(entry_id, category_id\) do nothing;/);
   assert.match(migration, /on conflict \(entry_id, milestone_id\) do nothing;/);
+});
+
+test('category-only relationships persist their required link source', () => {
+  assert.match(
+    relationshipFix,
+    /select p_entry_id, linked_category_id, 'category_only'/,
+  );
 });

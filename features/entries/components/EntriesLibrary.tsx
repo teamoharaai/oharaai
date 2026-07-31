@@ -74,83 +74,96 @@ function EntryCard({
     ?? GOAL_CATEGORY_CATALOG.find((category) => entry.categoryIds.includes(category.id))?.label
     ?? 'Unlinked';
   return (
-    <Pressable
-      accessibilityLabel={`Open ${entryLabel.toLowerCase()} ${entry.title || fallbackTitle}`}
-      accessibilityRole="button"
-      onPress={() => router.push(`/(app)/entries/${entry.id}` as never)}
-      style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
+    <Card
+      padding="default"
+      style={{
+        borderTopColor: accent,
+        borderTopWidth: 3,
+        gap: 9,
+        minHeight: list ? 126 : 190,
+        width: list ? '100%' : 260,
+      }}
     >
-      <Card
-        padding="default"
-        style={{
-          borderTopColor: accent,
-          borderTopWidth: 3,
-          gap: 9,
-          minHeight: list ? 126 : 190,
-          width: list ? '100%' : 260,
-        }}
-      >
-        <View style={{ alignItems: 'flex-start', flexDirection: 'row', gap: 8 }}>
-          <Ionicons
-            accessibilityLabel={entryLabel}
-            name={isReflection ? 'sparkles-outline' : 'document-text-outline'}
-            color={accent}
-            size={17}
-          />
-          <Typography variant="title" numberOfLines={2} style={{ flex: 1, fontSize: 16 }}>
-            {entry.title || fallbackTitle}
-          </Typography>
-          {entry.pinned ? <Ionicons name="pin" color={accent} size={15} /> : null}
-          <Pressable
-            accessibilityLabel={`${entryLabel} actions`}
-            accessibilityRole="button"
-            onPress={(event) => {
-              event.stopPropagation();
-              setMenuOpen((open) => !open);
-            }}
-            hitSlop={8}
-          >
-            <Ionicons name="ellipsis-horizontal" color={colors.text.muted} size={18} />
-          </Pressable>
-        </View>
-        {menuOpen ? (
+      <View style={{ flex: 1, position: 'relative' }}>
+        <Pressable
+          accessibilityLabel={`Open ${entryLabel.toLowerCase()} ${entry.title || fallbackTitle}`}
+          accessibilityRole="button"
+          onPress={() => router.push(`/(app)/entries/${entry.id}` as never)}
+          style={({ pressed }) => ({ flex: 1, gap: 9, opacity: pressed ? 0.78 : 1 })}
+        >
           <View
             style={{
-              backgroundColor: colors.background.input,
-              borderRadius: 9,
+              alignItems: 'flex-start',
               flexDirection: 'row',
-              gap: 12,
-              padding: 8,
+              gap: 8,
+              paddingRight: 26,
             }}
           >
-            {!isReflection ? (
-              <Pressable onPress={(event) => { event.stopPropagation(); onPin(); setMenuOpen(false); }}>
-                <Typography variant="caption">{entry.pinned ? 'Unpin' : 'Pin'}</Typography>
-              </Pressable>
-            ) : null}
-            <Pressable onPress={(event) => { event.stopPropagation(); onDelete(); setMenuOpen(false); }}>
-              <Typography variant="caption" style={{ color: colors.feedback.danger.text }}>
-                Delete
-              </Typography>
-            </Pressable>
+            <Ionicons
+              accessibilityLabel={entryLabel}
+              name={isReflection ? 'sparkles-outline' : 'document-text-outline'}
+              color={accent}
+              size={17}
+            />
+            <Typography variant="title" numberOfLines={2} style={{ flex: 1, fontSize: 16 }}>
+              {entry.title || fallbackTitle}
+            </Typography>
+            {entry.pinned ? <Ionicons name="pin" color={accent} size={15} /> : null}
           </View>
-        ) : null}
-        <Typography
-          variant="body"
-          numberOfLines={list ? 2 : 3}
-          style={{ color: colors.text.secondary, flex: 1, fontSize: 13.5 }}
-        >
-          {entry.takeaway || entry.plainText || (isReflection ? 'Open reflection…' : 'Start writing…')}
-        </Typography>
-        <View style={{ alignItems: 'center', flexDirection: 'row', gap: 6 }}>
-          <View style={{ backgroundColor: accent, borderRadius: 3, height: 6, width: 6 }} />
-          <Typography variant="caption" numberOfLines={1} style={{ flex: 1 }}>
-            {context}
+          <Typography
+            variant="body"
+            numberOfLines={list ? 2 : 3}
+            style={{ color: colors.text.secondary, flex: 1, fontSize: 13.5 }}
+          >
+            {entry.takeaway || entry.plainText || (isReflection ? 'Open reflection…' : 'Start writing…')}
           </Typography>
-          <Typography variant="caption">{formatEdited(entry.updatedAt)}</Typography>
+          <View style={{ alignItems: 'center', flexDirection: 'row', gap: 6 }}>
+            <View style={{ backgroundColor: accent, borderRadius: 3, height: 6, width: 6 }} />
+            <Typography variant="caption" numberOfLines={1} style={{ flex: 1 }}>
+              {context}
+            </Typography>
+            <Typography variant="caption">{formatEdited(entry.updatedAt)}</Typography>
+          </View>
+        </Pressable>
+        <Pressable
+          accessibilityLabel={`${entryLabel} actions`}
+          accessibilityRole="button"
+          onPress={() => setMenuOpen((open) => !open)}
+          hitSlop={8}
+          style={{ position: 'absolute', right: 0, top: 0 }}
+        >
+          <Ionicons name="ellipsis-horizontal" color={colors.text.muted} size={18} />
+        </Pressable>
+      </View>
+      {menuOpen ? (
+        <View
+          style={{
+            backgroundColor: colors.background.input,
+            borderRadius: 9,
+            flexDirection: 'row',
+            gap: 12,
+            padding: 8,
+          }}
+        >
+          {!isReflection ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => { onPin(); setMenuOpen(false); }}
+            >
+              <Typography variant="caption">{entry.pinned ? 'Unpin' : 'Pin'}</Typography>
+            </Pressable>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => { onDelete(); setMenuOpen(false); }}
+          >
+            <Typography variant="caption" style={{ color: colors.feedback.danger.text }}>
+              Delete
+            </Typography>
+          </Pressable>
         </View>
-      </Card>
-    </Pressable>
+      ) : null}
+    </Card>
   );
 }
 
