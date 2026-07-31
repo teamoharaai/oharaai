@@ -22,10 +22,8 @@ export function sortEntriesByRecency<T extends { updatedAt: Date }>(entries: T[]
   return [...entries].sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime());
 }
 
-export function isUnlinkedNote(entry: EntryRecord): boolean {
-  return entry.entryType === 'note'
-    && entry.goals.length === 0
-    && entry.categoryIds.length === 0;
+export function isUnlinkedEntry(entry: EntryRecord): boolean {
+  return entry.goals.length === 0 && entry.categoryIds.length === 0;
 }
 
 export function uniqueEntries(entries: EntryRecord[]): EntryRecord[] {

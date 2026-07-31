@@ -195,14 +195,14 @@ export function NoteEditor({ entryId }: { entryId: string }) {
 
   function handleBack() {
     if (dirtyVersion > lastSavedVersion.current) void persist(dirtyVersion);
-    router.replace('/(app)/entries?tab=notes' as never);
+    router.replace('/(app)/entries' as never);
   }
 
   async function handleDelete() {
     if (!entry) return;
     try {
       await deleteEntry(entry.id);
-      router.replace('/(app)/entries?tab=notes' as never);
+      router.replace('/(app)/entries' as never);
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : 'Could not delete note');
     }
@@ -210,7 +210,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
 
   async function handleNewNote() {
     if (dirtyVersion > lastSavedVersion.current) await persist(dirtyVersion);
-    router.replace('/(app)/entries?tab=notes&create=note' as never);
+    router.replace('/(app)/entries?create=note' as never);
   }
 
   async function exportAction(action: 'pdf' | 'text' | 'copy') {

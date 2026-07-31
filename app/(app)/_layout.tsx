@@ -55,7 +55,7 @@ export default function AppLayout() {
       <GlobalCreateControl
         onNewEntry={() => router.push({
           pathname: '/entries',
-          params: { tab: 'notes', create: 'note' },
+          params: { create: 'note' },
         })}
         onNewProject={() => setProjectModalOpen(true)}
       />
