@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### Added
+- Added `docs/LOCAL_MANUAL_REVIEW_001_039.md` and local browser screenshots documenting the authenticated post-migration manual review, runtime/API evidence, database/security checks, classified findings, and readiness recommendation.
+- Added `supabase/migrations/039_restore_explicit_table_privileges.sql` with an explicit final-state PostgREST privilege matrix, no anon table CRUD, preserved friendship/Momentum mutation revokes, and enumerated service-role access for clean local installs.
+- Added `docs/SUPABASE_MIGRATION_CHAIN_REPAIR.md` with root cause, deployment evidence, baseline-versus-forward repair rationale, catalog checks, local validation, risks, and a staged rollout procedure.
+- Added a loopback-only Supabase configuration/target guard, ignored local CLI state, disposable PostgreSQL migration-security harness, local Auth/PostgREST integration fixtures, actual Momentum API smoke test, and local-development guide.
+
+### Changed
+- Completed the isolated local product review after migrations 001–039 and recorded **Ready with documented non-blocking issues**: the migration repair, 35/35 RLS state, embedding indexes, PostgREST data grants, authoritative Home Momentum values, and immutable snapshot chain passed; no source code, migration, remote database, or git history was changed.
+- Restored the original documented `vector(1024)` embedding contract in squashed baseline migrations 001, 002, and 004 so the existing HNSW indexes can be created from an empty database.
+- Updated the guarded Momentum local fixture to use the profile created by the canonical Auth trigger and to supply the required real goal category when validating the complete repository schema.
+- Updated Supabase and Momentum local documentation for the repaired chain and next migration number; Migration 038 calculation and security logic remains unchanged.
+- Validated three empty local migration replays through 039 and seed loading, identical final catalog fingerprints across the last two replays, 35/35 public tables with RLS, Momentum's 29 source tests/10 scenarios/5 adversarial assertions, Momentum and Constellation database harnesses, live friendship security, authenticated API/Home data, TypeScript, feature tests, and a 50-route web export.
+
+### Fixed
+- Moved Migration 003's `Users can read own and member spaces` policy below creation of `public.space_members`, repairing the clean-install forward reference without changing the final policy expression, schema, or deployed data.
+
 ### Added (2026-07-30 — User-authored Constellation goal links)
 - **`supabase/migrations/035_constellation_goal_links.sql` and Constellation graph contracts:** added private, owner-authored, undirected goal links with a required bounded note, same-owner goal constraints, duplicate/self-link prevention, a six-link-per-goal limit, CRUD RLS, and a typed `user_goal_link` graph edge that remains separate from system-managed Constellation edges.
 - **Goal-link APIs, services, and optimistic state:** added authenticated create, note-update, and remove routes plus owner-visible graph assembly, runtime DTO parsing, exact optimistic reconciliation/rollback, and linked-goal summaries in Goal inspectors.

@@ -55,7 +55,7 @@ create table public.vault_items (
   sort_order      integer not null default 0,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now(),
-  embedding       vector,
+  embedding       vector(1024),
   embedding_text  text,
   embedding_model text
 );

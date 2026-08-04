@@ -1,5 +1,31 @@
 # Arthur Implementation Changelog
 
+## 2026-08-04 — Local Manual Review of Migrations 001–039
+
+### Review result
+- Completed an authenticated manual browser, runtime, local API, and read-only database/security review against the isolated `127.0.0.1` Supabase stack after migrations 001–039; no remote project was contacted and no application or migration source was changed.
+- Confirmed the authoritative Home Momentum fixture (`4.5192`, Weekly Streak `3`, Tasks Completed `1`), stable `3|3|3` snapshot state, 39 migration rows, 35/35 public tables with RLS, valid `vector(1024)` HNSW indexes, zero anonymous table CRUD, and preserved Momentum/friendship mutation boundaries.
+- Recorded the result as **Ready with documented non-blocking issues** in `docs/LOCAL_MANUAL_REVIEW_001_039.md`, with route-by-route evidence and local screenshots. The findings are application-level or pre-existing; none appears introduced by the migration-chain repair.
+
+## 2026-08-03 — Clean Supabase Migration Chain Repair
+
+### Root-cause corrections
+- Repaired the squashed Migration 003 ordering defect by installing the final `spaces` owner/member read policy only after `space_members` exists; preserved all eight final space/member RLS policies and their ownership predicates.
+- Restored the original `vector(1024)` declarations in baseline migrations 001, 002, and 004 so the existing pgvector HNSW indexes apply on an empty database.
+- Added forward Migration 039 with explicit per-table PostgREST privileges instead of broad grants; anonymous table CRUD remains absent, direct friendship and Momentum client writes remain revoked, and RLS remains enabled everywhere.
+
+### Compatibility and documentation
+- Kept Migration 038 and all Momentum calculation, service, API, UI, and persistence behavior unchanged.
+- Updated the local Momentum fixture only for the canonical full-chain Auth/profile and required goal-category schema.
+- Added `docs/SUPABASE_MIGRATION_CHAIN_REPAIR.md` and synchronized local Momentum/Supabase migration guidance, including the repository evidence that the squashed baseline may already be tracked in shared environments and the fact that no remote state was queried.
+
+### Local validation
+- Completed three empty isolated Supabase replays through Migration 039 and seed loading; the final two deterministic catalog fingerprints matched exactly (`1629|fd93710c7f712ce8e1f66433198b9ff0`).
+- Confirmed 39 migration ledger rows, 35/35 public tables with RLS, eight space/member policies, `vector(1024)` embedding columns, no anon table CRUD, and preserved friendship/Momentum mutation boundaries.
+- Passed Momentum's 29 source tests, disposable database harness, 10 real local scenarios, 5 adversarial assertions, authenticated API smoke test, and rendered Home verification with real values and no browser errors.
+- Passed the Constellation database security harness, live three-user friendship/RLS harness, 13 Friends tests, 8 Entries tests, known-valid TypeScript check, 50-route web export, and `git diff --check`.
+- No remote Supabase project was contacted or modified; no commit, push, merge, or migration deployment was performed.
+
 ## 2026-07-30 — Entries: Notes and Reflections
 
 ### Added

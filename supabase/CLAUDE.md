@@ -4,8 +4,8 @@ Owner: CTO. Cascade Level 3.
 
 ## Migration Conventions
 - supabase/migrations/ holds 6 narrative baseline files (001-006), squashed
-  2026-06-24 from the original 26 incremental migrations. 007-035 were added
-  after the squash (see below). Next new migration: 036.
+  2026-06-24 from the original 26 incremental migrations. 007-039 were added
+  after the squash (see below). Next new migration: 040.
 - The pre-squash files (original 001-026) are archived, untouched, in
   supabase/migrations_archive_pre_squash_2026-06-24/ for historical reference.
   Do not re-run or restore them — supabase_migrations.schema_migrations tracks
@@ -161,6 +161,17 @@ Owner: CTO. Cascade Level 3.
   links per goal under concurrent inserts; and owner CRUD RLS protects every
   operation. Verified with the disposable PostgreSQL Constellation security
   harness on 2026-07-30. Not yet applied to the linked main project.
+- 036_entries_notes_reflections.sql: adds canonical owner-scoped Entries and
+  their goal/category/milestone relationships, RLS, indexes, and transactional
+  save/relationship functions.
+- 037_fix_entry_category_link_source.sql: preserves the required category-link
+  source during transactional relationship replacement.
+- 038_momentum_foundation.sql: adds the private, immutable, versioned Momentum
+  profile/event/snapshot foundation and service-role-only publication boundary.
+- 039_restore_explicit_table_privileges.sql: restores an explicit per-table
+  PostgREST privilege matrix for clean CLI resets without broad anon grants;
+  retains capability-only friendship mutation and server-authoritative Momentum
+  writes. Local-only as of 2026-08-03; not applied to a remote project.
 - goals.mode column was dropped in the 2026-06-24 squash (was a single-value
   CHECK column, no longer carried). lib/db/goals.ts no longer inserts it.
 

@@ -35,14 +35,6 @@ create policy "Owners can delete their spaces" on public.spaces
   for delete using (owner_id = auth.uid());
 create policy "Owners can update their spaces" on public.spaces
   for update using (owner_id = auth.uid());
-create policy "Users can read own and member spaces" on public.spaces
-  for select using (
-    owner_id = auth.uid()
-    or exists (select 1 from public.space_members sm where sm.space_id = spaces.id and sm.user_id = auth.uid())
-  );
--- NOTE: this SELECT policy references space_members, created below in this
--- same file — fine within one transaction/file, just flagging the
--- forward-reference for reviewers reading top-to-bottom.
 
 create trigger spaces_updated_at
   before update on public.spaces
@@ -80,6 +72,15 @@ create policy "Space owners can update members" on public.space_members
 create policy "Space owners can remove members" on public.space_members
   for delete using (
     exists (select 1 from public.spaces s where s.id = space_members.space_id and s.owner_id = auth.uid())
+  );
+
+-- Install the spaces read policy only after space_members exists. PostgreSQL
+-- resolves relation references when CREATE POLICY executes, so this ordering
+-- is required for a clean database even when both statements share a file.
+create policy "Users can read own and member spaces" on public.spaces
+  for select using (
+    owner_id = auth.uid()
+    or exists (select 1 from public.space_members sm where sm.space_id = spaces.id and sm.user_id = auth.uid())
   );
 
 -- on_profile_created_create_space -----------------------------------------
