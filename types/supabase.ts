@@ -1025,6 +1025,147 @@ export type Database = {
           },
         ]
       }
+      momentum_events: {
+        Row: {
+          created_at: string
+          deduplication_key: string
+          eligibility_status: string
+          event_type: string
+          exclusion_reason: string | null
+          id: string
+          occurred_at: string
+          payload: Json
+          source_entity_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deduplication_key: string
+          eligibility_status: string
+          event_type: string
+          exclusion_reason?: string | null
+          id?: string
+          occurred_at: string
+          payload?: Json
+          source_entity_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deduplication_key?: string
+          eligibility_status?: string
+          event_type?: string
+          exclusion_reason?: string | null
+          id?: string
+          occurred_at?: string
+          payload?: Json
+          source_entity_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      momentum_profiles: {
+        Row: {
+          created_at: string
+          current_value: number
+          current_version: string
+          last_calculated_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_value?: number
+          current_version?: string
+          last_calculated_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_value?: number
+          current_version?: string
+          last_calculated_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      momentum_weekly_snapshots: {
+        Row: {
+          algorithm_version: string
+          calculation_hash: string
+          created_at: string
+          difficulty_multiplier: number
+          effective_weights: Json
+          growth_quality_score: number
+          id: string
+          input_actions: Json
+          input_events: Json
+          next_value: number
+          pillar_scores: Json
+          previous_value: number
+          raw_aggregates: Json
+          reason_codes: Json
+          revision: number
+          supersedes_snapshot_id: string | null
+          timezone: string
+          user_id: string
+          week_end: string
+          week_start: string
+          weekly_drag: number
+          weekly_gain: number
+        }
+        Insert: {
+          algorithm_version: string
+          calculation_hash: string
+          created_at?: string
+          difficulty_multiplier: number
+          effective_weights: Json
+          growth_quality_score: number
+          id?: string
+          input_actions: Json
+          input_events: Json
+          next_value: number
+          pillar_scores: Json
+          previous_value: number
+          raw_aggregates: Json
+          reason_codes: Json
+          revision?: number
+          supersedes_snapshot_id?: string | null
+          timezone: string
+          user_id: string
+          week_end: string
+          week_start: string
+          weekly_drag: number
+          weekly_gain: number
+        }
+        Update: {
+          algorithm_version?: string
+          calculation_hash?: string
+          created_at?: string
+          difficulty_multiplier?: number
+          effective_weights?: Json
+          growth_quality_score?: number
+          id?: string
+          input_actions?: Json
+          input_events?: Json
+          next_value?: number
+          pillar_scores?: Json
+          previous_value?: number
+          raw_aggregates?: Json
+          reason_codes?: Json
+          revision?: number
+          supersedes_snapshot_id?: string | null
+          timezone?: string
+          user_id?: string
+          week_end?: string
+          week_start?: string
+          weekly_drag?: number
+          weekly_gain?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1421,6 +1562,30 @@ export type Database = {
           allowed: boolean
           count: number
         }[]
+      }
+      publish_momentum_snapshot: {
+        Args: {
+          p_algorithm_version: string
+          p_calculation_hash: string
+          p_difficulty_multiplier: number
+          p_effective_weights: Json
+          p_events: Json
+          p_growth_quality_score: number
+          p_input_actions: Json
+          p_input_events: Json
+          p_next_value: number
+          p_pillar_scores: Json
+          p_previous_value: number
+          p_raw_aggregates: Json
+          p_reason_codes: Json
+          p_timezone: string
+          p_user_id: string
+          p_week_end: string
+          p_week_start: string
+          p_weekly_drag: number
+          p_weekly_gain: number
+        }
+        Returns: Database["public"]["Tables"]["momentum_weekly_snapshots"]["Row"]
       }
       create_echo_entry_with_container: {
         Args: {

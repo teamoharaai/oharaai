@@ -91,7 +91,7 @@ export function MomentumTrendChart({
   return (
     <View style={{ pointerEvents: 'none', width: '100%' }}>
       <Svg
-        accessibilityLabel="Sample Momentum trend preview on a zero to one hundred scale"
+        accessibilityLabel="Momentum trend"
         height={height ?? (showAxes ? 280 : 112)}
         preserveAspectRatio="xMidYMid meet"
         viewBox={`0 0 ${viewWidth} ${viewHeight}`}

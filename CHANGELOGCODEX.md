@@ -6,6 +6,8 @@
 - Added `docs/LOCAL_MANUAL_REVIEW_001_039.md` and local browser screenshots documenting the authenticated post-migration manual review, runtime/API evidence, database/security checks, classified findings, and readiness recommendation.
 - Added `supabase/migrations/039_restore_explicit_table_privileges.sql` with an explicit final-state PostgREST privilege matrix, no anon table CRUD, preserved friendship/Momentum mutation revokes, and enumerated service-role access for clean local installs.
 - Added `docs/SUPABASE_MIGRATION_CHAIN_REPAIR.md` with root cause, deployment evidence, baseline-versus-forward repair rationale, catalog checks, local validation, risks, and a staged rollout procedure.
+- Added the versioned `momentum-v1.0` calculation foundation, local-timezone weekly boundaries, normalized/deduplicated task events, explainable diagnostics, focused tests, open-decisions document, and private snapshot/event schema in migration 038.
+- Added the authenticated `/api/momentum` service boundary and Home summary hook for real Momentum value/change, Weekly Streak, and Tasks Completed This Week metrics.
 - Added a loopback-only Supabase configuration/target guard, ignored local CLI state, disposable PostgreSQL migration-security harness, local Auth/PostgREST integration fixtures, actual Momentum API smoke test, and local-development guide.
 
 ### Changed
@@ -14,6 +16,11 @@
 - Updated the guarded Momentum local fixture to use the profile created by the canonical Auth trigger and to supply the required real goal category when validating the complete repository schema.
 - Updated Supabase and Momentum local documentation for the repaired chain and next migration number; Migration 038 calculation and security logic remains unchanged.
 - Validated three empty local migration replays through 039 and seed loading, identical final catalog fingerprints across the last two replays, 35/35 public tables with RLS, Momentum's 29 source tests/10 scenarios/5 adversarial assertions, Momentum and Constellation database harnesses, live friendship security, authenticated API/Home data, TypeScript, feature tests, and a 50-route web export.
+- Remediated Momentum Phase 1's release blockers: the API now separates authenticated canonical reads from service-role-only publication, Migration 038 revokes client publication/DML and enforces immutable snapshots, and planned-action completion intersects completion IDs with the exact normalized denominator set.
+- Updated Momentum diagnostics, Supabase types, migration contracts, local setup, tests, and reports to cover per-action eligibility, trusted hashes/reasons, changed-input revisions, adversarial writes, and real local Home values.
+- Validated the remediation with 29 source tests, PostgreSQL 15/16 database harnesses, the actual authenticated API, rendered Home metrics, the known-valid source type-check, and a 50-route web export.
+- Connected the active Home Momentum preview to backend-authoritative values and explicit loading/unavailable states, removing its static sample values without changing the full Momentum route or Home layout.
+- Made completed-week snapshot publication deterministic and idempotent through stable SHA-256 calculation hashes, immutable superseding revisions, row locking, event deduplication, and stale-baseline rejection.
 
 ### Fixed
 - Moved Migration 003's `Users can read own and member spaces` policy below creation of `public.space_members`, repairing the clean-install forward reference without changing the final policy expression, schema, or deployed data.

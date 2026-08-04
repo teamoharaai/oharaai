@@ -26,6 +26,60 @@
 - Passed the Constellation database security harness, live three-user friendship/RLS harness, 13 Friends tests, 8 Entries tests, known-valid TypeScript check, 50-route web export, and `git diff --check`.
 - No remote Supabase project was contacted or modified; no commit, push, merge, or migration deployment was performed.
 
+## 2026-08-03 — Momentum Phase 1 Integrity Remediation
+
+### Trusted calculation boundary
+- Changed `/api/momentum` to verify the authenticated owner, read canonical records with that user's RLS client, calculate every derived value/hash/reason on the server, and persist only through a server-only service-role client.
+- Restricted `publish_momentum_snapshot` to `service_role`, revoked anonymous/authenticated execution and table DML, fixed its search path, added strict payload/week/timezone/hash bounds, and made snapshots database-immutable through superseding revisions.
+
+### Eligibility correction
+- Added normalized per-action planning and completion eligibility with owner, goal status, due-date, local-week, timestamp, duplicate, and exclusion checks.
+- Defined planned-action numerator as the intersection of completion-eligible IDs with the planned-eligible denominator IDs and added the direct `0 <= numerator <= denominator` invariant.
+
+### Isolated local validation
+- Added loopback-only local Supabase guards/configuration, disposable PostgreSQL 16 migration/RLS tests, and real Supabase/PostgreSQL 15 Auth/PostgREST/API fixtures without changing or using the remote `.env`.
+- Passed 29 source tests, the PostgreSQL security harness, 10 local data scenarios, 5 adversarial security assertions, actual API smoke testing, known-valid source type-check, a 50-route web export, `git diff --check`, and rendered Home verification with real values (`Weekly Streak 3`, `Tasks Completed 1`).
+- Documented the unrelated pre-existing Migration 003 ordering defect that blocks a clean full-repository reset; it was not modified in this task.
+
+## 2026-08-03 — Momentum Migration 038 Safety Review
+
+### Pre-application decision
+- Reviewed the complete canonical Momentum specification, Phase 1 report/open decisions, migration 038, calculation service/engine, API route, and Home integration.
+- Confirmed migration 038 is structurally additive, but stopped before application because the authenticated publication RPC accepts caller-supplied authoritative values and the planned-action numerator does not share the denominator's due-date eligibility.
+- Confirmed the repository has no local Supabase configuration/runtime or documented local migration command and that the active environment targets a non-local Supabase host; no database or browser/API mutation was attempted.
+
+### Validation and readiness
+- `npm run test:momentum` — 19 passed; `npx tsc --noEmit --types node,react` — passed; web export — passed with 50 API routes; `git diff --check` — passed after documentation updates.
+- A read-only engine probe reproduced the numerator mismatch: three completions against one planned action yielded a raw completion rate of 3 and a clamped Progress score of 100.
+- Marked Phase 1 not ready for development/staging database deployment until trusted-only publication, aligned planned-action eligibility, a local-only Supabase workflow, and all requested live scenarios are verified.
+
+## 2026-08-03 — Momentum Foundation Phase 1
+
+### Backend-authoritative calculation
+- Added the frozen `momentum-v1.0` calculation contract with canonical pillar weights, difficulty, gain, drag, clamping, unavailable-pillar reweighting, and stable no-activity behavior.
+- Added deterministic local-timezone Monday-through-Sunday boundaries, canonical `action.completed` normalization, explicit inclusion/exclusion diagnostics, event deduplication, and stable SHA-256 calculation hashes.
+- Used due-dated action records as the planned-action denominator without reinterpreting undated completions; undated completions remain valid task and active-day evidence.
+
+### Persistence and diagnostics
+- Added private `momentum_profiles`, `momentum_events`, and immutable versioned `momentum_weekly_snapshots` in migration 038.
+- Added authenticated, transaction-safe snapshot publication with profile locking, identical-hash idempotency, superseding revisions, stale-baseline rejection, and normalized-event deduplication.
+- Added an authenticated Momentum API with optional owner-safe diagnostics, stage-specific logging, and no stored or logged note, reflection, goal, or action text.
+
+### Home integration
+- Replaced the active Home Momentum card's sample values with the published real value/change, strict real Weekly Streak, and authoritative Tasks Completed This Week count.
+- Added explicit loading, zero, and unavailable states while preserving the current card layout, expansion behavior, and full Momentum route.
+
+### Product decisions and review
+- Added `docs/MOMENTUM_OPEN_DECISIONS.md` without inventing policy for inactivity, reflection limits, AI bounds, decreases, pillar visibility, opt-out, privacy, or later-pillar normalization.
+- Added `docs/MOMENTUM_PHASE1_IMPLEMENTATION_REPORT.md` with architecture, sources, version/revision strategy, calculation flow, diagnostics, reason codes, validation, open decisions, and remaining phases.
+- Migration 038 remains local and must be reviewed/applied before the linked browser can return authoritative Momentum results.
+
+### Validation
+- `npm run test:momentum` — 19 passed, covering formula, boundaries, timezones/DST, duplicates, exclusions, empty data, streaks, hash reproducibility, RLS, idempotency, revisions, and stale baselines.
+- `npm run test:entries` — 8 passed; `npm run test:echo-composer` — 5 passed.
+- `npx tsc --noEmit --types node,react` — passed. The bare command remains blocked by pre-existing malformed duplicate ambient folders such as `@types/react 3` and `@types/node 3`.
+- Web export passed with all 50 API routes, including `/api/momentum/index`.
+
 ## 2026-07-30 — Entries: Notes and Reflections
 
 ### Added

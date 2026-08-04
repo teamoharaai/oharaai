@@ -26,6 +26,8 @@ import { GoalRingGrid } from '@/features/goals/components/GoalRingGrid';
 import { GoalCard } from '@/features/goals/components/GoalCard';
 import { GoalEchoAnalysisCard } from '@/features/goals/components/GoalEchoAnalysisCard';
 import { MomentumTrendChart } from '@/features/momentum/components/MomentumTrendChart';
+import { useMomentumHomeSummary } from '@/features/momentum/hooks/useMomentumHomeSummary';
+import type { MomentumHomeSummary } from '@/features/momentum/types';
 import { ProjectGoalRow } from '@/features/goals/components/ProjectGoalRow';
 import { GoalTitleRow } from '@/features/goals/components/GoalTitleRow';
 import { fetchActiveGoalsFeed } from '@/features/goals/services/goal-service';
@@ -228,9 +230,23 @@ function TodayFocusSummary({ goals }: { goals: TodayCarouselGoal[] }) {
   );
 }
 
+function momentumChangeLabel(summary: MomentumHomeSummary | null): string {
+  if (!summary || summary.weeklyChange === null) return 'Unavailable';
+  const rounded = Math.round(summary.weeklyChange * 100) / 100;
+  if (Math.abs(rounded) < 0.01) return 'No change this week';
+  return `${rounded > 0 ? '+' : ''}${rounded} this week`;
+}
+
+function momentumValueAndChangeLabel(summary: MomentumHomeSummary | null): string {
+  if (!summary || summary.displayedValue === null) return 'Unavailable';
+  return `${summary.displayedValue} · ${momentumChangeLabel(summary)}`;
+}
+
 function MomentumCard() {
   const colors = useThemeColors();
   const [expanded, setExpanded] = useState(false);
+  const { error, isLoading, summary } = useMomentumHomeSummary();
+  const hasTrend = Boolean(summary && summary.trendPoints.length >= 2);
 
   return (
     <>
@@ -257,15 +273,15 @@ function MomentumCard() {
               </View>
               <View style={{ alignItems: 'baseline', flexDirection: 'row', gap: 8, marginTop: 8 }}>
                 <Typography variant="title" style={{ fontFamily: 'Inter-SemiBold', fontSize: 18 }}>
-                  Building
+                  {isLoading ? 'Calculating…' : summary?.status ?? 'Unavailable'}
                 </Typography>
                 <Typography variant="caption" style={{ color: colors.text.accent }}>
-                  +8% this week
+                  {momentumValueAndChangeLabel(summary)}
                 </Typography>
               </View>
             </View>
             <Pressable
-              accessibilityLabel="Expand sample Ohara Momentum chart"
+              accessibilityLabel="Expand Ohara Momentum chart"
               accessibilityRole="button"
               hitSlop={10}
               onPress={() => setExpanded(true)}
@@ -283,7 +299,45 @@ function MomentumCard() {
             </Pressable>
           </View>
           <View style={{ marginTop: 12 }}>
-            <MomentumTrendChart />
+            {hasTrend && summary ? (
+              <MomentumTrendChart points={summary.trendPoints} xLabels={summary.trendLabels} />
+            ) : (
+              <View style={{ alignItems: 'center', height: 112, justifyContent: 'center' }}>
+                <Typography variant="caption" style={{ color: colors.text.muted }}>
+                  {isLoading
+                    ? 'Preparing this week’s Momentum…'
+                    : error ?? 'Momentum will appear after an authoritative calculation.'}
+                </Typography>
+              </View>
+            )}
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+            <View
+              style={{
+                backgroundColor: colors.background.input,
+                borderRadius: 10,
+                flex: 1,
+                paddingHorizontal: 10,
+                paddingVertical: 8,
+              }}
+            >
+              <Typography variant="emphasis-sm">{summary?.weeklyStreak ?? (isLoading ? '…' : '—')}</Typography>
+              <Typography variant="caption" style={{ color: colors.text.muted }}>Weekly Streak</Typography>
+            </View>
+            <View
+              style={{
+                backgroundColor: colors.background.input,
+                borderRadius: 10,
+                flex: 1,
+                paddingHorizontal: 10,
+                paddingVertical: 8,
+              }}
+            >
+              <Typography variant="emphasis-sm">
+                {summary?.tasksCompletedThisWeek ?? (isLoading ? '…' : '—')}
+              </Typography>
+              <Typography variant="caption" style={{ color: colors.text.muted }}>Tasks Completed This Week</Typography>
+            </View>
           </View>
           <View
             style={{
@@ -351,7 +405,9 @@ function MomentumCard() {
             <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}>
               <View>
                 <Typography variant="eyebrow" style={{ color: colors.text.accent }}>Ohara Momentum</Typography>
-                <Typography variant="title" style={{ marginTop: 6 }}>Building · +8% this week</Typography>
+                <Typography variant="title" style={{ marginTop: 6 }}>
+                  {summary?.status ?? 'Unavailable'} · {momentumValueAndChangeLabel(summary)}
+                </Typography>
               </View>
               <Pressable
                 accessibilityLabel="Close"
@@ -363,15 +419,14 @@ function MomentumCard() {
               </Pressable>
             </View>
             <View style={{ marginVertical: 20, pointerEvents: 'none' }}>
-              <MomentumTrendChart
-                height={260}
-                showAxes
-                xLabels={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
-              />
+              {hasTrend && summary ? (
+                <MomentumTrendChart height={260} points={summary.trendPoints} showAxes xLabels={summary.trendLabels} />
+              ) : (
+                <Typography variant="caption" style={{ color: colors.text.muted }}>
+                  {error ?? 'Momentum is not available yet.'}
+                </Typography>
+              )}
             </View>
-            <Typography variant="caption" style={{ color: colors.text.muted }}>
-              Sample Ohara Momentum data for layout preview only.
-            </Typography>
           </View>
         </View>
       </Modal>
