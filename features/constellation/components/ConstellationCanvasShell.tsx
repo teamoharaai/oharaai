@@ -148,7 +148,6 @@ function CanvasBackdrop({
 }: Pick<ConstellationCanvasShellProps, 'layout' | 'tokens'>) {
   const reactId = useId();
   const gradientIds = createConstellationGradientIds(reactId);
-
   return (
     <Svg
       height="100%"
@@ -158,11 +157,6 @@ function CanvasBackdrop({
       width="100%"
     >
       <Defs>
-        <RadialGradient id={gradientIds.ambient}>
-          <Stop offset="0%" stopColor={tokens.node.seasonStroke} stopOpacity={0.16} />
-          <Stop offset="48%" stopColor={tokens.canvas.backgroundDeep} stopOpacity={0.9} />
-          <Stop offset="100%" stopColor={tokens.canvas.background} stopOpacity={1} />
-        </RadialGradient>
         <Pattern
           height={12}
           id={gradientIds.grain}
@@ -173,9 +167,7 @@ function CanvasBackdrop({
         </Pattern>
       </Defs>
       <Rect
-        fill={tokens.appearance === 'dark'
-          ? `url(#${gradientIds.ambient})`
-          : tokens.canvas.background}
+        fill={tokens.canvas.background}
         height={layout.viewBox.height}
         width={layout.viewBox.width}
       />
@@ -251,6 +243,17 @@ function SvgGraph({
   const highlightedLayout = layout.nodes.find(
     (node) => node.selectionKey === selectedKey,
   );
+  const seasonNode = graph.nodes.find(
+    (node) => node.entityType === 'earned_node' && node.node.kind === 'season',
+  );
+  const seasonLayout = seasonNode
+    ? layout.nodes.find((node) => node.selectionKey === seasonNode.selectionKey)
+    : undefined;
+  const gradientCenter = seasonLayout?.center ?? {
+    x: layout.viewBox.width / 2,
+    y: layout.viewBox.height / 2,
+  };
+  const gradientRadius = layout.orbits[2]?.radius ?? 342;
 
   return (
     <Svg
@@ -261,17 +264,38 @@ function SvgGraph({
       width="100%"
     >
       <GraphDefinitions gradientIds={gradientIds} tokens={tokens} />
+      <Defs>
+        <RadialGradient
+          cx={gradientCenter.x}
+          cy={gradientCenter.y}
+          gradientUnits="userSpaceOnUse"
+          id={gradientIds.ambient}
+          r={gradientRadius}
+        >
+          <Stop offset="0%" stopColor={tokens.canvas.ambient} stopOpacity={1} />
+          <Stop offset="100%" stopColor={tokens.canvas.ambient} stopOpacity={0} />
+        </RadialGradient>
+      </Defs>
+      <Circle
+        cx={gradientCenter.x}
+        cy={gradientCenter.y}
+        fill={`url(#${gradientIds.ambient})`}
+        opacity={tokens.appearance === 'dark' ? 0.72 : 0.82}
+        r={gradientRadius}
+      />
       <G>
-        {layout.orbits.map((orbit) => (
+        {layout.orbits.map((orbit, index) => (
           <Circle
             cx={orbit.center.x}
             cy={orbit.center.y}
             fill="none"
             key={`orbit:${orbit.radius}`}
-            opacity={tokens.appearance === 'dark' ? 0.24 : 0.28}
+            opacity={(tokens.appearance === 'dark'
+              ? [0.28, 0.2, 0.14]
+              : [0.24, 0.18, 0.12])[index] ?? 0.14}
             r={orbit.radius}
-            stroke={tokens.canvas.orbit}
-            strokeDasharray={tokens.appearance === 'dark' ? undefined : '2 8'}
+            stroke={tokens.text.accent}
+            strokeDasharray="3 8"
             strokeWidth={1}
           />
         ))}
