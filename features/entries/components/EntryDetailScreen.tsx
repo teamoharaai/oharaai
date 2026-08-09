@@ -21,6 +21,8 @@ export function EntryDetailScreen({ entryId }: { entryId: string }) {
   useEffect(() => {
     if (cached) {
       setEntry(cached);
+      setError(null);
+      setLoading(false);
       return;
     }
     let active = true;

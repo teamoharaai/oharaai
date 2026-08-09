@@ -8,19 +8,20 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
 import { GOAL_CATEGORY_CATALOG } from '@/lib/goals/catalog';
+import { RADIUS, SPACE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
 import { useEntriesStore } from '../store';
 import type { EntryDraft, EntryRecord } from '../types';
 import {
   createEmptyDocument,
   entriesForCategory,
-  isUnlinkedNote,
+  isUnlinkedEntry,
   sortEntriesByRecency,
 } from '../utils';
 
@@ -52,7 +53,7 @@ function emptyNoteDraft(categoryId?: EntryRecord['categoryIds'][number]): EntryD
   };
 }
 
-function NoteCard({
+function EntryCard({
   entry,
   accent,
   list,
@@ -67,83 +68,126 @@ function NoteCard({
 }) {
   const colors = useThemeColors();
   const [menuOpen, setMenuOpen] = useState(false);
+  const isReflection = entry.entryType === 'reflection';
+  const fallbackTitle = isReflection ? 'Reflection' : 'Untitled note';
+  const entryLabel = isReflection ? 'Reflection' : 'Note';
   const context = entry.goals[0]?.title
     ?? GOAL_CATEGORY_CATALOG.find((category) => entry.categoryIds.includes(category.id))?.label
     ?? 'Unlinked';
   return (
-    <Pressable
-      accessibilityLabel={`Open note ${entry.title || 'Untitled note'}`}
-      accessibilityRole="button"
-      onPress={() => router.push(`/(app)/entries/${entry.id}` as never)}
-      style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
+    <Card
+      elevation="sm"
+      padding="spacious"
+      style={{
+        gap: SPACE.md,
+        minHeight: list ? 132 : 204,
+        width: list ? '100%' : 276,
+      }}
     >
-      <Card
-        padding="default"
-        style={{
-          borderTopColor: accent,
-          borderTopWidth: 3,
-          gap: 9,
-          minHeight: list ? 126 : 190,
-          width: list ? '100%' : 260,
-        }}
-      >
-        <View style={{ alignItems: 'flex-start', flexDirection: 'row', gap: 8 }}>
-          <Typography variant="title" numberOfLines={2} style={{ flex: 1, fontSize: 16 }}>
-            {entry.title || 'Untitled note'}
-          </Typography>
-          {entry.pinned ? <Ionicons name="pin" color={accent} size={15} /> : null}
-          <Pressable
-            accessibilityLabel="Note actions"
-            accessibilityRole="button"
-            onPress={(event) => {
-              event.stopPropagation();
-              setMenuOpen((open) => !open);
-            }}
-            hitSlop={8}
-          >
-            <Ionicons name="ellipsis-horizontal" color={colors.text.muted} size={18} />
-          </Pressable>
-        </View>
-        {menuOpen ? (
+      <View style={{ flex: 1, position: 'relative' }}>
+        <Pressable
+          accessibilityLabel={`Open ${entryLabel.toLowerCase()} ${entry.title || fallbackTitle}`}
+          accessibilityRole="button"
+          onPress={() => router.push(`/(app)/entries/${entry.id}` as never)}
+          style={({ pressed }) => ({ flex: 1, gap: SPACE.md, opacity: pressed ? 0.72 : 1 })}
+        >
           <View
             style={{
-              backgroundColor: colors.background.input,
-              borderRadius: 9,
+              alignItems: 'flex-start',
               flexDirection: 'row',
-              gap: 12,
-              padding: 8,
+              gap: 8,
+              paddingRight: 26,
             }}
           >
-            <Pressable onPress={(event) => { event.stopPropagation(); onPin(); setMenuOpen(false); }}>
+            <View style={{
+              alignItems: 'center',
+              backgroundColor: colors.background.selectedRow,
+              borderRadius: RADIUS.sm,
+              height: 36,
+              justifyContent: 'center',
+              width: 36,
+            }}>
+              <Ionicons
+                accessibilityLabel={entryLabel}
+                name={isReflection ? 'sparkles-outline' : 'document-text-outline'}
+                color={accent}
+                size={18}
+              />
+            </View>
+            <Typography variant="title" numberOfLines={2} style={{ flex: 1, fontSize: 16 }}>
+              {entry.title || fallbackTitle}
+            </Typography>
+            {entry.pinned ? <Ionicons name="pin" color={accent} size={15} /> : null}
+          </View>
+          <Typography
+            variant="body"
+            numberOfLines={list ? 2 : 3}
+            style={{ color: colors.text.secondary, flex: 1 }}
+          >
+            {entry.takeaway || entry.plainText || (isReflection ? 'Open reflection…' : 'Start writing…')}
+          </Typography>
+          <View style={{ alignItems: 'center', flexDirection: 'row', gap: 6 }}>
+            <View style={{ backgroundColor: accent, borderRadius: 3, height: 6, width: 6 }} />
+            <Typography variant="caption" numberOfLines={1} style={{ flex: 1 }}>
+              {context}
+            </Typography>
+            <Typography variant="caption">{formatEdited(entry.updatedAt)}</Typography>
+          </View>
+        </Pressable>
+        <Pressable
+          accessibilityLabel={`${entryLabel} actions`}
+          accessibilityRole="button"
+          onPress={() => setMenuOpen((open) => !open)}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            alignItems: 'center',
+            borderRadius: RADIUS.round,
+            height: 44,
+            justifyContent: 'center',
+            opacity: pressed ? 0.56 : 1,
+            position: 'absolute',
+            right: -10,
+            top: -10,
+            width: 44,
+          })}
+        >
+          <Ionicons name="ellipsis-horizontal" color={colors.text.muted} size={18} />
+        </Pressable>
+      </View>
+      {menuOpen ? (
+        <View
+          style={{
+            backgroundColor: colors.background.input,
+            borderRadius: RADIUS.md,
+            flexDirection: 'row',
+            gap: 12,
+            minHeight: 44,
+            padding: SPACE.md,
+          }}
+        >
+          {!isReflection ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => { onPin(); setMenuOpen(false); }}
+            >
               <Typography variant="caption">{entry.pinned ? 'Unpin' : 'Pin'}</Typography>
             </Pressable>
-            <Pressable onPress={(event) => { event.stopPropagation(); onDelete(); setMenuOpen(false); }}>
-              <Typography variant="caption" style={{ color: colors.feedback.danger.text }}>
-                Delete
-              </Typography>
-            </Pressable>
-          </View>
-        ) : null}
-        <Typography
-          variant="body"
-          numberOfLines={list ? 2 : 3}
-          style={{ color: colors.text.secondary, flex: 1, fontSize: 13.5 }}
-        >
-          {entry.plainText || 'Start writing…'}
-        </Typography>
-        <View style={{ alignItems: 'center', flexDirection: 'row', gap: 6 }}>
-          <View style={{ backgroundColor: accent, borderRadius: 3, height: 6, width: 6 }} />
-          <Typography variant="caption" numberOfLines={1} style={{ flex: 1 }}>
-            {context}
-          </Typography>
-          <Typography variant="caption">{formatEdited(entry.updatedAt)}</Typography>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => { onDelete(); setMenuOpen(false); }}
+          >
+            <Typography variant="caption" style={{ color: colors.feedback.danger.text }}>
+              Delete
+            </Typography>
+          </Pressable>
         </View>
-      </Card>
-    </Pressable>
+      ) : null}
+    </Card>
   );
 }
 
-export function NotesLibrary() {
+export function EntriesLibrary() {
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
   const compact = width < 720;
@@ -169,20 +213,21 @@ export function NotesLibrary() {
   const [pendingDelete, setPendingDelete] = useState<EntryRecord | null>(null);
 
   useEffect(() => {
-    void loadEntries('note');
+    void loadEntries();
     void loadContext();
   }, [loadContext, loadEntries]);
 
-  const notes = useMemo(() => {
+  const libraryEntries = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    let result = entries.filter((entry) => entry.entryType === 'note' && !entry.archived);
+    let result = entries.filter((entry) => !entry.archived);
     if (normalizedQuery) {
       result = result.filter((entry) => (
         entry.title.toLowerCase().includes(normalizedQuery)
         || entry.plainText.toLowerCase().includes(normalizedQuery)
+        || entry.takeaway?.toLowerCase().includes(normalizedQuery)
       ));
     }
-    if (filter.kind === 'unlinked') result = result.filter(isUnlinkedNote);
+    if (filter.kind === 'unlinked') result = result.filter(isUnlinkedEntry);
     if (filter.kind === 'category') {
       result = result.filter((entry) => entriesForCategory([entry], filter.id).length > 0);
     }
@@ -233,7 +278,7 @@ export function NotesLibrary() {
       await deleteEntry(entry.id);
       setPendingDelete(null);
     } catch (deleteError) {
-      setActionError(deleteError instanceof Error ? deleteError.message : 'Could not delete note');
+      setActionError(deleteError instanceof Error ? deleteError.message : 'Could not delete entry');
     }
   }
 
@@ -246,12 +291,65 @@ export function NotesLibrary() {
     unlinked = false,
   ) {
     const expanded = expandedShelves.includes(id);
-    const visible = expanded ? shelfEntries : shelfEntries.slice(0, compact ? 2 : 4);
+    if (shelfEntries.length === 0) return null;
+
+    function toggleShelf() {
+      setExpandedShelves((current) => (
+        current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+      ));
+    }
+
     return (
       <View key={id} style={{ gap: 12 }}>
-        <View style={{ alignItems: 'center', flexDirection: 'row', gap: 9 }}>
-          <Typography style={{ color: accent, fontSize: 18 }}>{icon}</Typography>
-          <Typography variant="title" style={{ flex: 1, fontSize: 18 }}>{title}</Typography>
+        <Card
+          elevation="sm"
+          padding="none"
+          style={{
+            alignItems: 'center',
+            borderColor: expanded ? colors.border.accent : colors.border.divider,
+            borderRadius: RADIUS.lg,
+            flexDirection: 'row',
+            gap: SPACE.sm,
+            minHeight: 64,
+            paddingHorizontal: SPACE.lg,
+          }}
+        >
+          <Pressable
+            accessibilityLabel={`${expanded ? 'Collapse' : 'Expand'} ${title}`}
+            accessibilityRole="button"
+            accessibilityState={{ expanded }}
+            onPress={toggleShelf}
+            style={({ pressed }) => ({
+              alignItems: 'center',
+              flex: 1,
+              flexDirection: 'row',
+              gap: SPACE.md,
+              minHeight: 64,
+              opacity: pressed ? 0.7 : 1,
+              paddingVertical: SPACE.md,
+            })}
+          >
+            <Typography style={{ color: accent, fontSize: 18 }}>{icon}</Typography>
+            <Typography variant="title" style={{ flex: 1, fontSize: 18 }}>{title}</Typography>
+            <View
+              style={{
+                alignItems: 'center',
+                backgroundColor: colors.background.input,
+                borderRadius: 999,
+                justifyContent: 'center',
+                minWidth: 28,
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+              }}
+            >
+              <Typography variant="caption">{shelfEntries.length}</Typography>
+            </View>
+            <Ionicons
+              name={expanded ? 'chevron-up' : 'chevron-down'}
+              color={colors.text.muted}
+              size={18}
+            />
+          </Pressable>
           {!unlinked ? (
             <Pressable
               accessibilityLabel={`New note in ${title}`}
@@ -260,44 +358,19 @@ export function NotesLibrary() {
               style={({ pressed }) => ({
                 alignItems: 'center',
                 borderColor: colors.border.input,
-                borderRadius: 18,
+                borderRadius: RADIUS.round,
                 borderWidth: 1,
-                height: 34,
+                height: 44,
                 justifyContent: 'center',
                 opacity: pressed ? 0.65 : 1,
-                width: 34,
+                width: 44,
               })}
             >
               <Ionicons name="add" color={colors.text.secondary} size={18} />
             </Pressable>
           ) : null}
-          {shelfEntries.length > (compact ? 2 : 4) ? (
-            <Pressable
-              onPress={() => setExpandedShelves((current) => (
-                current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
-              ))}
-            >
-              <Typography variant="caption" style={{ color: colors.text.accent }}>
-                {expanded ? 'Show less' : 'View all'}
-              </Typography>
-            </Pressable>
-          ) : null}
-        </View>
-        {shelfEntries.length === 0 && !unlinked ? (
-          <View
-            style={{
-              borderColor: colors.border.subtle,
-              borderRadius: 14,
-              borderStyle: 'dashed',
-              borderWidth: 1,
-              padding: 16,
-            }}
-          >
-            <Typography variant="caption">
-              Notes linked to {title} will appear here.
-            </Typography>
-          </View>
-        ) : view === 'list' ? (
+        </Card>
+        {expanded && view === 'list' ? (
           <View style={{ gap: 10 }}>
             {unlinked ? (
               <Pressable
@@ -321,8 +394,8 @@ export function NotesLibrary() {
                 <Typography variant="emphasis-sm">New Note</Typography>
               </Pressable>
             ) : null}
-            {visible.map((entry) => (
-              <NoteCard
+            {shelfEntries.map((entry) => (
+              <EntryCard
                 accent={accent}
                 entry={entry}
                 key={entry.id}
@@ -332,7 +405,7 @@ export function NotesLibrary() {
               />
             ))}
           </View>
-        ) : (
+        ) : expanded ? (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -363,8 +436,8 @@ export function NotesLibrary() {
                 </View>
               </Pressable>
             ) : null}
-            {visible.map((entry) => (
-              <NoteCard
+            {shelfEntries.map((entry) => (
+              <EntryCard
                 accent={accent}
                 entry={entry}
                 key={entry.id}
@@ -374,12 +447,18 @@ export function NotesLibrary() {
               />
             ))}
           </ScrollView>
-        )}
+        ) : null}
       </View>
     );
   }
 
-  const unlinkedNotes = notes.filter(isUnlinkedNote);
+  const unlinkedEntries = libraryEntries.filter(isUnlinkedEntry);
+  const populatedCategoryShelves = GOAL_CATEGORY_CATALOG
+    .map((category) => ({
+      category,
+      entries: entriesForCategory(libraryEntries, category.id),
+    }))
+    .filter((shelf) => shelf.entries.length > 0);
 
   return (
     <View style={{ gap: compact ? 22 : 28 }}>
@@ -395,19 +474,19 @@ export function NotesLibrary() {
             alignItems: 'center',
             backgroundColor: colors.background.card,
             borderColor: colors.border.input,
-            borderRadius: 12,
+            borderRadius: RADIUS.md,
             borderWidth: 1,
             flex: 1,
             flexDirection: 'row',
             maxWidth: compact ? undefined : 480,
-            paddingHorizontal: 12,
+            paddingHorizontal: SPACE.lg,
           }}
         >
           <Ionicons name="search-outline" color={colors.text.muted} size={18} />
           <TextInput
-            accessibilityLabel="Search notes"
+            accessibilityLabel="Search entries"
             onChangeText={setQuery}
-            placeholder="Search notes"
+            placeholder="Search notes and reflections"
             placeholderTextColor={colors.text.muted}
             style={{
               color: colors.text.primary,
@@ -427,7 +506,7 @@ export function NotesLibrary() {
             {filter.kind === 'all'
               ? 'Filter'
               : filter.kind === 'unlinked'
-                ? 'Unlinked Notes'
+                ? 'Unlinked Entries'
                 : filter.label}
           </Button>
           <Button
@@ -467,20 +546,48 @@ export function NotesLibrary() {
         </View>
       ) : null}
 
-      {isLoading && entries.filter((entry) => entry.entryType === 'note').length === 0 ? (
+      {isLoading && entries.length === 0 ? (
         <View style={{ alignItems: 'center', paddingVertical: 60 }}>
           <ActivityIndicator color={colors.accent.primary} />
-          <Typography variant="caption" style={{ marginTop: 10 }}>Loading notes…</Typography>
+          <Typography variant="caption" style={{ marginTop: 10 }}>Loading entries…</Typography>
+        </View>
+      ) : libraryEntries.length === 0 ? (
+        <View
+          style={{
+            alignItems: 'center',
+            borderColor: colors.border.subtle,
+            borderRadius: 16,
+            borderStyle: 'dashed',
+            borderWidth: 1,
+            gap: 8,
+            padding: 28,
+          }}
+        >
+          <Ionicons name="documents-outline" color={colors.text.accent} size={28} />
+          <Typography variant="title">No entries to show</Typography>
+          <Typography variant="caption" style={{ textAlign: 'center' }}>
+            Create a note or start a reflection to begin your record.
+          </Typography>
+          <Button disabled={creating} loading={creating} onPress={() => handleCreate()} size="compact">
+            New Note
+          </Button>
         </View>
       ) : (
         <>
-          {renderShelf('unlinked', 'Unlinked Notes', '○', colors.text.muted, unlinkedNotes, true)}
-          {GOAL_CATEGORY_CATALOG.map((category) => renderShelf(
+          {renderShelf(
+            'unlinked',
+            'Unlinked Entries',
+            '○',
+            colors.text.muted,
+            unlinkedEntries,
+            true,
+          )}
+          {populatedCategoryShelves.map(({ category, entries: shelfEntries }) => renderShelf(
             category.id,
             category.label,
             category.icon,
             category.accent.color,
-            entriesForCategory(notes, category.id),
+            shelfEntries,
           ))}
         </>
       )}
@@ -492,11 +599,11 @@ export function NotesLibrary() {
         showCloseButton={false}
         contentStyle={{ maxHeight: '80%', maxWidth: 480 }}
       >
-        <Typography variant="title">Filter notes</Typography>
+        <Typography variant="title">Filter entries</Typography>
         <ScrollView style={{ marginTop: 14, maxHeight: 420 }}>
           {([
-            { kind: 'all', label: 'All notes' },
-            { kind: 'unlinked', label: 'Unlinked Notes' },
+            { kind: 'all', label: 'All entries' },
+            { kind: 'unlinked', label: 'Unlinked Entries' },
           ] as const).map((option) => (
             <Pressable
               key={option.kind}
@@ -506,21 +613,25 @@ export function NotesLibrary() {
               <Typography variant="emphasis-sm">{option.label}</Typography>
             </Pressable>
           ))}
-          <Typography variant="eyebrow" style={{ marginBottom: 6, marginTop: 12 }}>
-            CATEGORIES
-          </Typography>
-          {GOAL_CATEGORY_CATALOG.map((category) => (
-            <Pressable
-              key={category.id}
-              onPress={() => {
-                setFilter({ kind: 'category', id: category.id, label: category.label });
-                setFilterOpen(false);
-              }}
-              style={{ paddingVertical: 9 }}
-            >
-              <Typography variant="emphasis-sm">{category.icon} {category.label}</Typography>
-            </Pressable>
-          ))}
+          {populatedCategoryShelves.length > 0 ? (
+            <>
+              <Typography variant="eyebrow" style={{ marginBottom: 6, marginTop: 12 }}>
+                CATEGORIES
+              </Typography>
+              {populatedCategoryShelves.map(({ category }) => (
+                <Pressable
+                  key={category.id}
+                  onPress={() => {
+                    setFilter({ kind: 'category', id: category.id, label: category.label });
+                    setFilterOpen(false);
+                  }}
+                  style={{ paddingVertical: 9 }}
+                >
+                  <Typography variant="emphasis-sm">{category.icon} {category.label}</Typography>
+                </Pressable>
+              ))}
+            </>
+          ) : null}
           <Typography variant="eyebrow" style={{ marginBottom: 6, marginTop: 12 }}>
             GOALS
           </Typography>
@@ -545,13 +656,15 @@ export function NotesLibrary() {
         closeOnBackdropPress
         showCloseButton={false}
         cancelText="Cancel"
-        confirmText="Delete note"
+        confirmText="Delete entry"
         confirmVariant="destructive"
         onConfirm={() => pendingDelete && void handleDelete(pendingDelete)}
       >
-        <Typography variant="title">Delete this note?</Typography>
+        <Typography variant="title">Delete this entry?</Typography>
         <Typography variant="body" style={{ marginTop: 8 }}>
-          “{pendingDelete?.title || 'Untitled note'}” will be permanently removed.
+          “{pendingDelete?.title
+            || (pendingDelete?.entryType === 'reflection' ? 'Reflection' : 'Untitled note')}”
+          {' '}will be permanently removed.
         </Typography>
       </Modal>
     </View>

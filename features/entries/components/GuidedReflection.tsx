@@ -175,8 +175,8 @@ export function GuidedReflection({
         }}
       >
         <Pressable
-          accessibilityLabel="Back to Reflections"
-          onPress={() => router.replace('/(app)/entries?tab=reflections' as never)}
+          accessibilityLabel="Back to Entries"
+          onPress={() => router.replace('/(app)/entries' as never)}
         >
           <Ionicons name="arrow-back" color={colors.text.primary} size={22} />
         </Pressable>

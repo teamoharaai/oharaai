@@ -57,7 +57,7 @@ export function CompletedReflection({ entry }: { entry: EntryRecord }) {
   async function remove() {
     try {
       await deleteEntry(entry.id);
-      router.replace('/(app)/entries?tab=reflections' as never);
+      router.replace('/(app)/entries' as never);
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : 'Could not delete reflection');
     }
@@ -90,8 +90,8 @@ export function CompletedReflection({ entry }: { entry: EntryRecord }) {
         }}
       >
         <Pressable
-          accessibilityLabel="Back to Reflections"
-          onPress={() => router.replace('/(app)/entries?tab=reflections' as never)}
+          accessibilityLabel="Back to Entries"
+          onPress={() => router.replace('/(app)/entries' as never)}
         >
           <Ionicons name="arrow-back" color={colors.text.primary} size={22} />
         </Pressable>

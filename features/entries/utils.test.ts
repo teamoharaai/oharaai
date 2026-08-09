@@ -3,7 +3,7 @@ import test from 'node:test';
 import {
   buildRetrievalDocument,
   entriesForCategory,
-  isUnlinkedNote,
+  isUnlinkedEntry,
   sortEntriesByRecency,
 } from './utils.ts';
 import type { EntryRecord } from './types.ts';
@@ -38,10 +38,11 @@ test('sorts entries by updatedAt descending', () => {
   assert.deepEqual(sortEntriesByRecency([older, newer]).map((item) => item.id), ['newer', 'older']);
 });
 
-test('classifies only notes without goal or category links as unlinked', () => {
-  assert.equal(isUnlinkedNote(entry()), true);
-  assert.equal(isUnlinkedNote(entry({ categoryIds: ['health'] })), false);
-  assert.equal(isUnlinkedNote(entry({
+test('classifies notes and reflections without goal or category links as unlinked', () => {
+  assert.equal(isUnlinkedEntry(entry()), true);
+  assert.equal(isUnlinkedEntry(entry({ entryType: 'reflection' })), true);
+  assert.equal(isUnlinkedEntry(entry({ categoryIds: ['health'] })), false);
+  assert.equal(isUnlinkedEntry(entry({
     goals: [{
       id: 'goal-1',
       title: 'Run',
@@ -50,10 +51,9 @@ test('classifies only notes without goal or category links as unlinked', () => {
       projectId: null,
     }],
   })), false);
-  assert.equal(isUnlinkedNote(entry({ entryType: 'reflection' })), false);
 });
 
-test('shows one multi-goal note in each relevant category without duplicating records', () => {
+test('shows mixed entry types in each relevant category without duplicating records', () => {
   const shared = entry({
     id: 'shared',
     goals: [
@@ -63,6 +63,11 @@ test('shows one multi-goal note in each relevant category without duplicating re
   });
   assert.deepEqual(entriesForCategory([shared, shared], 'health').map((item) => item.id), ['shared']);
   assert.deepEqual(entriesForCategory([shared], 'education').map((item) => item.id), ['shared']);
+  const reflection = entry({ id: 'reflection', entryType: 'reflection', categoryIds: ['health'] });
+  assert.deepEqual(
+    entriesForCategory([shared, reflection], 'health').map((item) => item.id),
+    ['shared', 'reflection'],
+  );
 });
 
 test('normalizes a retrieval document with canonical relationship IDs', () => {
