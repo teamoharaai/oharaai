@@ -10,6 +10,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { AnchoredPopover, type AnchorRect } from '@/components/ui/AnchoredPopover';
 import { Typography } from '@/components/ui/Typography';
 import { useThemeColors } from '@/store/uiStore';
+import { elevationStyle, RADIUS, SPACE } from '@/constants/design';
+import { useUIStore } from '@/store/uiStore';
 
 type GlobalCreateControlProps = {
   onNewEntry: () => void;
@@ -34,6 +36,7 @@ export function GlobalCreateControl({
   onNewProject,
 }: GlobalCreateControlProps) {
   const colors = useThemeColors();
+  const darkMode = useUIStore((state) => state.themeMode) === 'dark';
   const { width } = useWindowDimensions();
   const compact = width < 720;
   const [open, setOpen] = useState(false);
@@ -97,21 +100,18 @@ export function GlobalCreateControl({
           accessibilityState={{ expanded: open }}
           onPress={openMenu}
           style={({ pressed }) => ({
+            ...elevationStyle('md', colors, darkMode),
             alignItems: 'center',
             backgroundColor: colors.background.sidebar,
             borderColor: colors.border.divider,
-            borderRadius: 999,
+            borderRadius: RADIUS.round,
             borderWidth: 1,
             flexDirection: 'row',
-            gap: 6,
+            gap: SPACE.sm,
             height: 44,
             justifyContent: 'center',
             opacity: pressed ? 0.72 : 1,
             paddingHorizontal: compact ? 0 : 16,
-            shadowColor: colors.effects.shadow,
-            shadowOffset: { width: 0, height: 3 },
-            shadowOpacity: 0.08,
-            shadowRadius: 10,
             width: compact ? 44 : undefined,
           })}
         >
@@ -127,14 +127,11 @@ export function GlobalCreateControl({
       <AnchoredPopover
         anchorRect={anchorRect}
         contentStyle={{
-          borderRadius: 14,
+          borderRadius: RADIUS.lg,
           borderWidth: 1,
           minWidth: 210,
-          padding: 8,
-          shadowColor: colors.effects.shadow,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.1,
-          shadowRadius: 14,
+          padding: SPACE.md,
+          ...elevationStyle('md', colors, darkMode),
         }}
         onDismiss={() => setOpen(false)}
         visible={open}
@@ -151,7 +148,7 @@ export function GlobalCreateControl({
             style={({ pressed }) => ({
               alignItems: 'center',
               backgroundColor: pressed ? colors.background.selectedRow : 'transparent',
-              borderRadius: 9,
+              borderRadius: RADIUS.sm,
               flexDirection: 'row',
               gap: 10,
               paddingHorizontal: 11,

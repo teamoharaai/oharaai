@@ -7,6 +7,7 @@ export interface ThemeColors {
     readonly subtle: string;
     readonly goalCard: string;
     readonly selectedRow: string;
+    readonly hoverAccent: string;
   };
   readonly text: {
     readonly primary: string;
@@ -60,40 +61,41 @@ export type ThemeTextColor = keyof ThemeColors['text'];
 
 export const LIGHT_THEME = {
   background: {
-    page: '#F7F4EE',
+    page: '#F8F8F6',
     card: '#FFFFFF',
-    sidebar: '#EEE9DF',
-    input: '#F0EDE6',
-    subtle: '#EAE7E0',
-    goalCard: '#FCFAF4', // new: goal ring card surface
-    selectedRow: '#EEF2EF',
+    sidebar: '#F1F3EF',
+    input: '#F3F4F1',
+    subtle: '#F5F6F3',
+    goalCard: '#FFFFFF',
+    selectedRow: 'rgba(42,127,80,0.12)',
+    hoverAccent: 'rgba(42,127,80,0.18)',
   },
   text: {
-    primary: '#24231F',
-    secondary: '#5F5B52',
+    primary: '#1C1C1E',
+    secondary: '#6E6E73',
     inverse: '#EDE7DA', // reconciled: was #E8EDE9 (on-dark / wordmark)
     onAccent: '#EDE7DA', // high-contrast text on accent.primary
-    accent: '#4A7C5F',
-    muted: '#7C766B',
+    accent: '#2A7F50',
+    muted: '#8E8E93',
     mutedOnDark: '#9C9483', // new: muted text on dark surfaces (checked hero)
   },
   border: {
     default: 'rgba(0,0,0,0.06)',
     subtle: 'rgba(0,0,0,0.04)',
-    accent: '#4A7C5F',
-    warm: '#EDE6D8', // new: warm border (cards / dividers)
-    warmSubtle: '#EFE9DC', // new: warm border (goal ring card)
-    input: '#D8D2C8',
-    divider: '#D8D1C5',
+    accent: '#2A7F50',
+    warm: '#E5E5EA',
+    warmSubtle: 'rgba(15,23,42,0.06)',
+    input: '#E5E5EA',
+    divider: '#E5E5EA',
     toggleGlyph: '#A8C4AE', // new: sidebar collapse/expand toggle chevron glyph
   },
   brt: {
-    bud: '#4A7C5F',
+    bud: '#5B8C6F',
     rose: '#F59E0B',
     thorn: '#EF4444',
   },
   accent: {
-    primary: '#4A7C5F',
+    primary: '#2A7F50',
     teal: '#6FDFB8',
     tealSubtle: '#E8F5EF',
     tealMid: '#2F8F6D', // new: mid teal (today-ring, project dot, streak number)
@@ -118,50 +120,51 @@ export const LIGHT_THEME = {
   },
   effects: {
     overlay: 'rgba(36,35,31,0.24)',
-    shadow: '#1E3226',
+    shadow: '#163A34',
   },
 } as const satisfies ThemeColors;
 
 export const DARK_THEME = {
   background: {
-    page: '#141414',
-    card: '#202020',
-    sidebar: '#1A1A1A',
-    input: '#101010', // derived, no Figma dark token
-    subtle: '#0D0D0D', // derived, no Figma dark token
-    goalCard: '#121212', // derived, no Figma dark token
-    selectedRow: '#222A23', // low-emphasis green tint for active navigation
+    page: '#111111',
+    card: '#1C1C1E',
+    sidebar: '#161719',
+    input: '#242426',
+    subtle: '#18191B',
+    goalCard: '#1C1C1E',
+    selectedRow: 'rgba(88,199,123,0.14)',
+    hoverAccent: 'rgba(88,199,123,0.18)',
   },
   text: {
-    primary: '#FFFFFF',
-    secondary: '#B8B8B8',
+    primary: '#F5F5F7',
+    secondary: '#A1A1A6',
     inverse: '#F1F0ED', // derived, no Figma dark token
     onAccent: '#111111', // high-contrast text on accent.primary
-    accent: '#8FAE8A', // derived, no Figma dark token
-    muted: '#A3A3A3', // derived, no Figma dark token
-    mutedOnDark: '#8F8F8F', // derived, no Figma dark token
+    accent: '#58C77B',
+    muted: '#8E8E93',
+    mutedOnDark: '#737378',
   },
   border: {
     default: 'rgba(255,255,255,0.06)', // derived, no Figma dark token
     subtle: 'rgba(255,255,255,0.04)', // derived, no Figma dark token
-    accent: '#8FAE8A', // derived, no Figma dark token
-    warm: '#292929', // derived, no Figma dark token
-    warmSubtle: '#313131', // derived, no Figma dark token
-    input: '#202020', // derived, no Figma dark token
-    divider: '#2D2D2D',
-    toggleGlyph: '#272D29', // derived, no Figma dark token
+    accent: '#58C77B',
+    warm: '#2C2C2E',
+    warmSubtle: 'rgba(255,255,255,0.06)',
+    input: '#38383A',
+    divider: '#2C2C2E',
+    toggleGlyph: '#33463C',
   },
   brt: {
-    bud: '#8FAE8A',
+    bud: '#7FAF8C',
     rose: '#F8B950', // derived, no Figma dark token
     thorn: '#F48181', // derived, no Figma dark token
   },
   accent: {
-    primary: '#8FAE8A',
-    teal: '#88E5C4', // derived, no Figma dark token
+    primary: '#58C77B',
+    teal: '#7BE0B4',
     tealSubtle: '#FAFDFB', // derived, no Figma dark token
-    tealMid: '#38AA81', // derived, no Figma dark token
-    tealSoft: '#B5E2D1', // derived, no Figma dark token
+    tealMid: '#55C983',
+    tealSoft: '#A6DFB5',
   },
   feedback: {
     danger: {

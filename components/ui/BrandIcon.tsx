@@ -17,7 +17,7 @@ export type BrandIconName =
 
 const BRAND_ICON_SOURCES: Record<BrandIconName, ImageSourcePropType> = {
   ohara: require('../../assets/brand/ohara-logo.png') as ImageSourcePropType,
-  goals: require('../../assets/brand/goals-logo.png') as ImageSourcePropType,
+  goals: require('../../assets/brand/today-logo.png') as ImageSourcePropType,
   echo: require('../../assets/brand/echo-logo.png') as ImageSourcePropType,
   'goal-mark': require('../../assets/brand/goal-mark.png') as ImageSourcePropType,
   today: require('../../assets/brand/today-logo.png') as ImageSourcePropType,
@@ -39,7 +39,8 @@ export function BrandIcon({ name, size = 20, style, tintColor }: BrandIconProps)
       source={BRAND_ICON_SOURCES[name]}
       resizeMode="contain"
       accessible={false}
-      style={[{ height: size, tintColor, width: size }, style]}
+      tintColor={tintColor}
+      style={[{ height: size, width: size }, style]}
     />
   );
 }

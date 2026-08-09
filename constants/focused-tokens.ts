@@ -6,24 +6,24 @@
  */
 export const FocusedField = {
   surface: {
-    card: '#1A1A1A',
-    cardAlt: '#161616',
-    input: '#1D1D1D',
-    selectedTint: '#222A23',
+    card: '#111A1F',
+    cardAlt: '#0E171C',
+    input: '#152126',
+    selectedTint: '#182820',
   },
   border: {
-    subtle: '#262626',
-    input: '#2D2D2D',
+    subtle: '#263238',
+    input: '#2A383D',
   },
   text: {
     inverse: '#EDE7DA',
-    secondary: '#B8B8B8',
-    muted: '#8F8F8F',
-    faint: '#6B6B6B',
+    secondary: '#C2C9C5',
+    muted: '#8F9A95',
+    faint: '#687570',
   },
   accent: {
-    primary: '#34B87A',
-    onPrimary: '#0B0B0B',
+    primary: '#69D56F',
+    onPrimary: '#07100B',
   },
   radius: {
     card: 16,

@@ -5,6 +5,11 @@ import type { AiResponse } from '@/lib/ai/contracts';
 import type { BrtCategory } from '@/lib/utils/resolveBrt';
 import type { EchoFolder } from '@/types/echo-folder';
 import type { EchoContainerOption, EchoEntry, EchoGoalOption } from '../types';
+import {
+  resolveDashboardLatestEntryResult,
+  type DashboardLatestEntryRow,
+  type DashboardLatestEntrySummary,
+} from '../dashboard-latest-entry';
 
 type DbGoalRef = { id: string; title: string } | null;
 type DbBrt = EchoEntry['brt'] | null;
@@ -260,6 +265,24 @@ export async function fetchEntries(userId: string): Promise<EchoEntry[]> {
   const entries = (data as unknown as DbEchoEntry[]).map(mapEntry);
   const containers = await fetchConfirmedContainers(entries.map((e) => e.id));
   return entries.map((e) => applyContainer(e, containers.get(e.id)));
+}
+
+export async function fetchDashboardLatestEntry(
+  userId: string,
+): Promise<DashboardLatestEntrySummary | null> {
+  const { data, error } = await supabase
+    .from('entries')
+    .select('id, plain_text, updated_at')
+    .eq('user_id', userId)
+    .eq('archived', false)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return resolveDashboardLatestEntryResult({
+    data: data as DashboardLatestEntryRow | null,
+    error,
+  });
 }
 
 // Deletes an echo entry through the server route DELETE /api/entries/:id
