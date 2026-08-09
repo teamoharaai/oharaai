@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 import { useThemeColors } from '@/store/uiStore';
 import { Typography } from './Typography';
+import { RADIUS, SPACE } from '@/constants/design';
 
 type BadgeVariant = 'new' | 'active' | 'ended' | 'complete' | 'ai' | 'category' | 'momentum' | 'paused' | 'archived' | 'draft';
 
@@ -30,9 +31,9 @@ export function Badge({ label, variant = 'active' }: BadgeProps) {
     <View
       style={{
         backgroundColor: badgeStyle.bg,
-        borderRadius: 8,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
+        borderRadius: RADIUS.round,
+        paddingHorizontal: SPACE.md,
+        paddingVertical: SPACE.xs,
         alignSelf: 'flex-start',
       }}
     >

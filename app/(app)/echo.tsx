@@ -16,7 +16,7 @@ export default function EchoRoute() {
               pathname: '/(app)/entries/reflection',
               params: { type: 'goal', goalId },
             } as never)
-        : ('/(app)/entries?tab=reflections' as never)}
+        : ('/(app)/entries' as never)}
     />
   );
 }

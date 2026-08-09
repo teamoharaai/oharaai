@@ -33,9 +33,9 @@ module.exports = {
         "border-warm-subtle": "#EFE9DC",
         "toggle-glyph": "#A8C4AE",
         // Manual dark theme (app screens)
-        "dark-bg": "#111111",
-        "dark-card": "#1A1A1A",
-        "dark-border": "#2D2D2D",
+        "dark-bg": "#0B1216",
+        "dark-card": "#111A1F",
+        "dark-border": "#263238",
         // Landing-page-only dark palette
         "landing-dark-bg": "#0A0A0F",
         "landing-dark-card": "#14141F",
@@ -60,7 +60,7 @@ module.exports = {
         "lp-panel-amber": "#FBF1E1",
       },
       fontFamily: {
-        sans: ['Inter-Regular', 'System', 'sans-serif'],
+        sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'Inter', 'Helvetica Neue', 'Arial', 'sans-serif'],
         'inter-medium': ['Inter-Medium', 'System', 'sans-serif'],
         'inter-semibold': ['Inter-SemiBold', 'System', 'sans-serif'],
         'inter-bold': ['Inter-Bold', 'System', 'sans-serif'],

@@ -19,6 +19,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Home',          href: '/(app)/dashboard',     match: '/dashboard',     enabled: true, ionicon: 'home' },
+  { label: 'Goals',         href: '/(app)/goals',         match: '/goals',         enabled: true, icon: 'goals' },
   { label: 'Echo',          href: '/(app)/echo',          match: '/entries',       enabled: FEATURES.ECHO_ENABLED, icon: 'echo' },
   { label: 'Momentum',      href: '/(app)/momentum',      match: '/momentum',      enabled: true, ionicon: 'trending-up-outline' },
   { label: 'Constellation', href: '/(app)/constellation', match: '/constellation', enabled: FEATURES.CONSTELLATION_ENABLED, ionicon: 'git-network-outline' },
@@ -141,8 +142,7 @@ export function Sidebar() {
         {NAV_ITEMS.map((item) => {
           const isActive =
             pathname === item.match ||
-            pathname.startsWith(item.match + '/') ||
-            (item.href === '/(app)/dashboard' && pathname.startsWith('/goals/'));
+            pathname.startsWith(item.match + '/');
           return (
             <Pressable
               key={item.label}

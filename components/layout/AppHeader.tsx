@@ -2,6 +2,7 @@ import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { ReactNode } from 'react';
 import { useThemeColors } from '@/store/uiStore';
 import { Typography } from '@/components/ui/Typography';
+import { LAYOUT, SPACE } from '@/constants/design';
 
 interface AppHeaderProps {
   actions?: ReactNode;
@@ -19,13 +20,13 @@ export function AppHeader({ actions, backLabel, onBack, style, title }: AppHeade
       style={[
         {
           alignItems: 'center',
-          backgroundColor: colors.background.page,
-          borderBottomColor: colors.border.divider,
+          backgroundColor: colors.background.card,
+          borderBottomColor: colors.border.subtle,
           borderBottomWidth: 1,
           flexDirection: 'row',
-          minHeight: 60,
-          paddingHorizontal: 20,
-          paddingVertical: 8,
+          minHeight: 64,
+          paddingHorizontal: LAYOUT.standardGutter,
+          paddingVertical: SPACE.md,
         },
         style,
       ]}
@@ -49,7 +50,7 @@ export function AppHeader({ actions, backLabel, onBack, style, title }: AppHeade
         style={{
           backgroundColor: colors.border.divider,
           height: 18,
-          marginHorizontal: 12,
+          marginHorizontal: SPACE.lg,
           width: 1,
         }}
       />
@@ -64,7 +65,7 @@ export function AppHeader({ actions, backLabel, onBack, style, title }: AppHeade
         )}
       </View>
 
-      {actions ? <View style={{ marginLeft: 16 }}>{actions}</View> : null}
+      {actions ? <View style={{ marginLeft: SPACE.xl }}>{actions}</View> : null}
     </View>
   );
 }
