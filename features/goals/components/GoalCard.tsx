@@ -10,13 +10,14 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { Badge } from '@/components/ui/Badge';
 import { BrandIcon } from '@/components/ui/BrandIcon';
+import { ProgressRing } from '@/components/ui/ProgressRing';
 import { Typography } from '@/components/ui/Typography';
 import { getCategoryAccentTheme } from '@/constants/themes';
+import { elevationStyle, RADIUS } from '@/constants/design';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { useGoalStore } from '../store';
-import type { GoalStatus, GoalWithDetails } from '../types';
+import type { GoalWithDetails } from '../types';
 
 interface GoalCardProps {
   goal: GoalWithDetails;
@@ -58,14 +59,6 @@ function formatCommitment(goal: GoalWithDetails): string {
   }
 
   return `${frequency.times} time${frequency.times === 1 ? '' : 's'} / ${frequency.period}`;
-}
-
-function statusVariant(status: GoalStatus): 'active' | 'complete' | 'paused' | 'archived' | 'draft' {
-  if (status === 'active') return 'active';
-  if (status === 'draft') return 'draft';
-  if (status === 'complete') return 'complete';
-  if (status === 'stagnant') return 'paused';
-  return 'archived';
 }
 
 function activityLabel(goal: GoalWithDetails): string | null {
@@ -166,17 +159,14 @@ export function GoalCard({
           router.push({ pathname: '/(app)/goals/[id]' as never, params: { id: goal.id } })
         }
         style={({ pressed }) => ({
+          ...elevationStyle('sm', colors, themeMode === 'dark'),
           backgroundColor: colors.background.card,
-          borderColor: colors.border.warm,
-          borderRadius: 18,
+          borderColor: colors.border.warmSubtle,
+          borderRadius: RADIUS.lg,
           borderWidth: 1,
           minHeight: 176,
           opacity: pressed ? 0.82 : 1,
           overflow: 'hidden',
-          shadowColor: colors.text.primary,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: themeMode === 'dark' ? 0 : 0.06,
-          shadowRadius: 18,
           transform: [{ scale: pressed ? 0.99 : 1 }],
         })}
       >
@@ -206,31 +196,12 @@ export function GoalCard({
                   {eyebrow}
                 </Typography>
               ) : null}
-              <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                <View
-                  style={{
-                    alignItems: 'center',
-                    alignSelf: 'flex-start',
-                    backgroundColor: themeMode === 'dark' ? colors.background.input : accent.tint,
-                    borderRadius: 999,
-                    flexDirection: 'row',
-                    gap: 6,
-                    paddingHorizontal: 10,
-                    paddingVertical: 4,
-                  }}
-                >
-                  <View style={{ backgroundColor: accent.color, borderRadius: 3, height: 6, width: 6 }} />
-                  <Typography
-                    variant="badge-text"
-                    style={{ color: themeMode === 'dark' ? colors.text.primary : accent.mid }}
-                  >
-                    {formatLabel(goal.category)}
-                  </Typography>
-                </View>
-                <Badge label={formatLabel(goal.status)} variant={statusVariant(goal.status)} />
-                {isNewest ? <Badge label="New" variant="new" /> : null}
-                {goal.visibility === 'private' ? <Badge label="Private" variant="complete" /> : null}
-              </View>
+              <Typography variant="caption" style={{ color: accent.mid }}>
+                {formatLabel(goal.category)}
+                {goal.status !== 'active' ? ` · ${formatLabel(goal.status)}` : ''}
+                {isNewest ? ' · New' : ''}
+                {goal.visibility === 'private' ? ' · Private' : ''}
+              </Typography>
             </View>
 
             {showMenu ? (
@@ -248,19 +219,19 @@ export function GoalCard({
             ) : null}
           </View>
 
-          <View style={{ alignItems: 'flex-start', flexDirection: 'row', gap: 10 }}>
+          <View style={{ alignItems: 'center', flexDirection: 'row', gap: 14 }}>
             <View
               style={{
                 alignItems: 'center',
                 backgroundColor: themeMode === 'dark' ? colors.background.input : accent.tint,
-                borderRadius: 10,
-                height: 38,
+                borderRadius: RADIUS.md,
+                height: 48,
                 justifyContent: 'center',
                 marginTop: 1,
-                width: 38,
+                width: 48,
               }}
             >
-              <BrandIcon name="goal-mark" size={19} tintColor={accent.color} />
+              <BrandIcon name="goal-mark" size={22} tintColor={accent.color} />
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
               {projectTitle ? (
@@ -273,7 +244,7 @@ export function GoalCard({
                 numberOfLines={2}
                 variant="title"
                 style={{
-                  fontFamily: 'Inter-SemiBold',
+                  fontFamily: 'Inter-Medium',
                   fontSize: 20,
                   letterSpacing: -0.2,
                   lineHeight: 25,
@@ -283,17 +254,16 @@ export function GoalCard({
                 {goal.title}
               </Typography>
             </View>
+            <ProgressRing progress={goal.progress} size={56} strokeWidth={4} color={accent.color} variant="warm" />
           </View>
 
           <View
             style={{
-              borderTopColor: colors.border.warmSubtle,
-              borderTopWidth: 1,
               flexDirection: 'row',
               flexWrap: 'wrap',
               gap: 16,
               marginTop: 15,
-              paddingTop: 14,
+              paddingTop: 4,
             }}
           >
             <MetaItem detail={remaining} label="Target" value={formatDate(goal.deadline)} />
@@ -306,33 +276,41 @@ export function GoalCard({
               numberOfLines={2}
               variant="body"
               style={{
-                borderTopColor: colors.border.warmSubtle,
-                borderTopWidth: 1,
                 color: colors.text.secondary,
                 fontFamily: 'Inter-Regular',
-                fontSize: 13.5,
-                fontStyle: 'italic',
-                lineHeight: 21,
+                fontSize: 15,
+                lineHeight: 22,
                 marginTop: 14,
-                paddingTop: 13,
               }}
             >
-              “{goal.description}”
+              {goal.description}
             </Typography>
           ) : null}
 
           <View
             style={{
-              alignItems: 'center',
-              flexDirection: 'row',
+              alignItems: 'flex-start',
+              backgroundColor: colors.background.subtle,
+              borderRadius: RADIUS.md,
+              flexDirection: 'column',
               justifyContent: 'space-between',
               marginTop: goal.description ? 12 : 14,
+              padding: 12,
+              gap: 4,
             }}
           >
-            <Typography ellipsizeMode="tail" numberOfLines={1} variant="caption" style={{ flex: 1 }}>
-              {supportingLabel ?? activity ?? 'Open goal details'}
-            </Typography>
-            <Ionicons color={accent.color} name="arrow-forward" size={18} />
+            <Typography variant="eyebrow" style={{ color: colors.text.accent }}>Next step</Typography>
+            <View style={{ alignItems: 'center', flexDirection: 'row', width: '100%' }}>
+              <Typography ellipsizeMode="tail" numberOfLines={1} variant="label" style={{ flex: 1 }}>
+                {supportingLabel
+                  ?? goal.milestones.find((milestone) => !milestone.completedAt)?.title
+                  ?? goal.trackers[0]?.title
+                  ?? activity
+                  ?? 'Open goal details'}
+              </Typography>
+              <Typography variant="caption" style={{ marginLeft: 12 }}>{formatDate(goal.deadline)}</Typography>
+              <Ionicons color={accent.color} name="arrow-forward" size={18} style={{ marginLeft: 8 }} />
+            </View>
           </View>
         </View>
       </Pressable>
@@ -342,16 +320,12 @@ export function GoalCard({
           style={{
             backgroundColor: colors.background.card,
             borderColor: colors.border.warm,
-            borderRadius: 10,
+            borderRadius: RADIUS.md,
             borderWidth: 1,
-            elevation: 5,
+            ...elevationStyle('md', colors, themeMode === 'dark'),
             minWidth: 144,
             position: 'absolute',
             right: 14,
-            shadowColor: colors.text.primary,
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: themeMode === 'dark' ? 0 : 0.1,
-            shadowRadius: 12,
             top: 46,
             zIndex: 10,
           }}

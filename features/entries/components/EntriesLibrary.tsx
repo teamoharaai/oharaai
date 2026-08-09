@@ -14,6 +14,7 @@ import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
 import { GOAL_CATEGORY_CATALOG } from '@/lib/goals/catalog';
+import { RADIUS, SPACE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
 import { useEntriesStore } from '../store';
 import type { EntryDraft, EntryRecord } from '../types';
@@ -75,13 +76,12 @@ function EntryCard({
     ?? 'Unlinked';
   return (
     <Card
-      padding="default"
+      elevation="sm"
+      padding="spacious"
       style={{
-        borderTopColor: accent,
-        borderTopWidth: 3,
-        gap: 9,
-        minHeight: list ? 126 : 190,
-        width: list ? '100%' : 260,
+        gap: SPACE.md,
+        minHeight: list ? 132 : 204,
+        width: list ? '100%' : 276,
       }}
     >
       <View style={{ flex: 1, position: 'relative' }}>
@@ -89,7 +89,7 @@ function EntryCard({
           accessibilityLabel={`Open ${entryLabel.toLowerCase()} ${entry.title || fallbackTitle}`}
           accessibilityRole="button"
           onPress={() => router.push(`/(app)/entries/${entry.id}` as never)}
-          style={({ pressed }) => ({ flex: 1, gap: 9, opacity: pressed ? 0.78 : 1 })}
+          style={({ pressed }) => ({ flex: 1, gap: SPACE.md, opacity: pressed ? 0.72 : 1 })}
         >
           <View
             style={{
@@ -99,12 +99,21 @@ function EntryCard({
               paddingRight: 26,
             }}
           >
-            <Ionicons
-              accessibilityLabel={entryLabel}
-              name={isReflection ? 'sparkles-outline' : 'document-text-outline'}
-              color={accent}
-              size={17}
-            />
+            <View style={{
+              alignItems: 'center',
+              backgroundColor: colors.background.selectedRow,
+              borderRadius: RADIUS.sm,
+              height: 36,
+              justifyContent: 'center',
+              width: 36,
+            }}>
+              <Ionicons
+                accessibilityLabel={entryLabel}
+                name={isReflection ? 'sparkles-outline' : 'document-text-outline'}
+                color={accent}
+                size={18}
+              />
+            </View>
             <Typography variant="title" numberOfLines={2} style={{ flex: 1, fontSize: 16 }}>
               {entry.title || fallbackTitle}
             </Typography>
@@ -113,7 +122,7 @@ function EntryCard({
           <Typography
             variant="body"
             numberOfLines={list ? 2 : 3}
-            style={{ color: colors.text.secondary, flex: 1, fontSize: 13.5 }}
+            style={{ color: colors.text.secondary, flex: 1 }}
           >
             {entry.takeaway || entry.plainText || (isReflection ? 'Open reflection…' : 'Start writing…')}
           </Typography>
@@ -130,7 +139,17 @@ function EntryCard({
           accessibilityRole="button"
           onPress={() => setMenuOpen((open) => !open)}
           hitSlop={8}
-          style={{ position: 'absolute', right: 0, top: 0 }}
+          style={({ pressed }) => ({
+            alignItems: 'center',
+            borderRadius: RADIUS.round,
+            height: 44,
+            justifyContent: 'center',
+            opacity: pressed ? 0.56 : 1,
+            position: 'absolute',
+            right: -10,
+            top: -10,
+            width: 44,
+          })}
         >
           <Ionicons name="ellipsis-horizontal" color={colors.text.muted} size={18} />
         </Pressable>
@@ -139,10 +158,11 @@ function EntryCard({
         <View
           style={{
             backgroundColor: colors.background.input,
-            borderRadius: 9,
+            borderRadius: RADIUS.md,
             flexDirection: 'row',
             gap: 12,
-            padding: 8,
+            minHeight: 44,
+            padding: SPACE.md,
           }}
         >
           {!isReflection ? (
@@ -281,17 +301,17 @@ export function EntriesLibrary() {
 
     return (
       <View key={id} style={{ gap: 12 }}>
-        <View
+        <Card
+          elevation="sm"
+          padding="none"
           style={{
             alignItems: 'center',
-            backgroundColor: colors.background.card,
             borderColor: expanded ? colors.border.accent : colors.border.divider,
-            borderRadius: 14,
-            borderWidth: 1,
+            borderRadius: RADIUS.lg,
             flexDirection: 'row',
-            gap: 8,
-            minHeight: 54,
-            paddingHorizontal: 14,
+            gap: SPACE.sm,
+            minHeight: 64,
+            paddingHorizontal: SPACE.lg,
           }}
         >
           <Pressable
@@ -303,9 +323,10 @@ export function EntriesLibrary() {
               alignItems: 'center',
               flex: 1,
               flexDirection: 'row',
-              gap: 9,
+              gap: SPACE.md,
+              minHeight: 64,
               opacity: pressed ? 0.7 : 1,
-              paddingVertical: 12,
+              paddingVertical: SPACE.md,
             })}
           >
             <Typography style={{ color: accent, fontSize: 18 }}>{icon}</Typography>
@@ -337,18 +358,18 @@ export function EntriesLibrary() {
               style={({ pressed }) => ({
                 alignItems: 'center',
                 borderColor: colors.border.input,
-                borderRadius: 18,
+                borderRadius: RADIUS.round,
                 borderWidth: 1,
-                height: 34,
+                height: 44,
                 justifyContent: 'center',
                 opacity: pressed ? 0.65 : 1,
-                width: 34,
+                width: 44,
               })}
             >
               <Ionicons name="add" color={colors.text.secondary} size={18} />
             </Pressable>
           ) : null}
-        </View>
+        </Card>
         {expanded && view === 'list' ? (
           <View style={{ gap: 10 }}>
             {unlinked ? (
@@ -453,12 +474,12 @@ export function EntriesLibrary() {
             alignItems: 'center',
             backgroundColor: colors.background.card,
             borderColor: colors.border.input,
-            borderRadius: 12,
+            borderRadius: RADIUS.md,
             borderWidth: 1,
             flex: 1,
             flexDirection: 'row',
             maxWidth: compact ? undefined : 480,
-            paddingHorizontal: 12,
+            paddingHorizontal: SPACE.lg,
           }}
         >
           <Ionicons name="search-outline" color={colors.text.muted} size={18} />

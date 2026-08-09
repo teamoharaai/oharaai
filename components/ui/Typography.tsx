@@ -1,4 +1,4 @@
-import { Text, type TextProps, type StyleProp, type TextStyle } from 'react-native';
+import { Platform, Text, type TextProps, type StyleProp, type TextStyle } from 'react-native';
 import type { ThemeTextColor } from '@/constants/colors';
 import { useThemeColors } from '@/store/uiStore';
 
@@ -44,9 +44,9 @@ const VARIANT_COLOR_KEY: Partial<Record<Variant, ThemeTextColor>> = {
 };
 
 const VARIANT_CLASSES: Record<Variant, string> = {
-  heading:         'font-inter-semibold text-2xl',
-  title:           'font-inter-medium text-lg',
-  body:            'font-sans text-base',
+  heading:         'font-inter-semibold text-2xl leading-8',
+  title:           'font-inter-medium text-lg leading-[26px]',
+  body:            'font-sans text-base leading-6',
   label:           'font-inter-medium text-sm',
   'field-label':   'font-sans text-sm font-inter-medium',
   caption:         'font-sans text-xs',
@@ -54,12 +54,12 @@ const VARIANT_CLASSES: Record<Variant, string> = {
   'ai-italic':     'font-sans italic text-base leading-relaxed',
   eyebrow:         'font-sans text-[11px] font-inter-medium uppercase tracking-[1.5px]',
   'section-eyebrow':'font-inter-semibold text-[11px] uppercase tracking-[2px]',
-  greeting:        'font-inter-semibold italic text-[27px] tracking-[-0.2px]',
-  'emphasis-sm':   'text-sm font-inter-semibold',
+  greeting:        'font-inter-semibold text-[32px] leading-10 tracking-[-0.45px]',
+  'emphasis-sm':   'text-sm font-inter-medium',
   meta:            'font-sans text-[13px] leading-5',
   content:         'font-sans text-[14px] leading-[21px]',
   'nav-back':      'text-[15px]',
-  'section-header':'text-lg font-inter-semibold',
+  'section-header':'text-xl font-inter-medium',
   'nav-title':     'text-[15px] font-inter-medium',
   subtitle:        'font-sans text-sm',
   hint:            'font-sans text-xs',
@@ -68,16 +68,16 @@ const VARIANT_CLASSES: Record<Variant, string> = {
   'micro-label':   'font-sans text-[13px]',
   'card-title':      'font-inter-medium text-[15.5px]', // ProjectCard title (exact spec)
   'card-description':'font-sans text-[12px] leading-[18px]', // ProjectCard description (exact spec)
-  'goal-title':      'font-inter-semibold text-[14.5px] leading-[19px]', // GoalRingCard title (exact spec)
-  'active-goal-title': 'font-inter-semibold text-[17px] leading-6', // dashboard ActiveGoalCard title (exact spec)
-  'echo-entry-title':   'font-inter-bold text-echo-sm', // EchoEntryRow title
+  'goal-title':      'font-inter-medium text-[16px] leading-6',
+  'active-goal-title': 'font-inter-medium text-[18px] leading-[26px]',
+  'echo-entry-title':   'font-inter-medium text-echo-sm',
   'echo-entry-preview': 'font-sans text-echo-xs', // EchoEntryRow snippet
   'echo-entry-meta':    'font-inter-medium text-echo-2xs', // EchoEntryRow timestamp caption
-  'echo-add-button':    'font-inter-semibold text-echo-sm', // EchoScreen "+ Add an entry"
-  'echo-detail-meta':   'font-inter-semibold text-echo-xs', // EchoDetailPane container/date header
-  'echo-detail-title':  'font-inter-extrabold text-echo-lg', // EchoDetailPane entry title
+  'echo-add-button':    'font-inter-medium text-echo-sm',
+  'echo-detail-meta':   'font-inter-medium text-echo-xs',
+  'echo-detail-title':  'font-inter-semibold text-echo-lg',
   'echo-detail-body':   'font-sans text-echo-base', // EchoDetailPane entry content
-  'echo-empty-title':   'font-inter-bold text-echo-md', // EchoDetailPane "Select an entry"
+  'echo-empty-title':   'font-inter-medium text-echo-md',
   'echo-empty-subtitle':'font-sans text-echo-sm-loose', // EchoDetailPane empty-state subtext
 };
 
@@ -101,9 +101,12 @@ export function Typography({
 
   const colorKey = VARIANT_COLOR_KEY[variant];
   const variantStyle = colorKey ? { color: colors.text[colorKey] } : undefined;
+  const systemFontStyle = Platform.OS === 'web'
+    ? { fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Helvetica Neue", Arial, sans-serif' }
+    : undefined;
 
   return (
-    <Text className={combined} style={[variantStyle, style]} {...rest}>
+    <Text className={combined} style={[systemFontStyle, variantStyle, style]} {...rest}>
       {children}
     </Text>
   );

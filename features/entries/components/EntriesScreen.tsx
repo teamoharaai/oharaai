@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { ScrollView, View, useWindowDimensions } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { AuthenticatedPageShell } from '@/components/layout/AuthenticatedPageShell';
+import { FeaturePageHeader } from '@/components/layout/FeaturePageHeader';
+import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Typography } from '@/components/ui/Typography';
+import { SPACE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
 import { createEmptyDocument } from '../utils';
 import { useEntriesStore } from '../store';
@@ -36,41 +40,14 @@ export function EntriesScreen() {
   }, [createEntry, params.create]);
 
   return (
-    <View style={{ backgroundColor: colors.background.page, flex: 1, minHeight: 0 }}>
-      <ScrollView
-        contentContainerStyle={{
-          alignSelf: 'center',
-          maxWidth: 1540,
-          paddingBottom: 64,
-          paddingHorizontal: compact ? 16 : width < 1100 ? 32 : 52,
-          paddingTop: compact ? 24 : 36,
-          width: '100%',
-        }}
-      >
-        <View
-          style={{
-            alignItems: compact ? 'flex-start' : 'center',
-            flexDirection: compact ? 'column' : 'row',
-            gap: 18,
-            marginBottom: compact ? 26 : 34,
-          }}
-        >
-          <View style={{ flex: 1 }}>
-            <Typography
-              variant="heading"
-              style={{
-                fontFamily: 'Inter-SemiBold',
-                fontSize: compact ? 32 : 42,
-                letterSpacing: -1,
-                lineHeight: compact ? 39 : 50,
-              }}
-            >
-              Entries
-            </Typography>
-            <Typography variant="body" style={{ marginTop: 5 }}>
-              Notes and reflections, together in one continuous record.
-            </Typography>
-          </View>
+    <AuthenticatedPageShell>
+      <View style={{ minWidth: 0 }}>
+        <View style={{ marginBottom: compact ? SPACE['4xl'] : SPACE['5xl'] }}>
+          <FeaturePageHeader
+            description="Notes and reflections, together in one continuous record."
+            icon={<BrandIcon name="echo" size={22} tintColor={colors.accent.primary} />}
+            title="Entries"
+          />
         </View>
 
         {createError ? (
@@ -83,11 +60,11 @@ export function EntriesScreen() {
           </Typography>
         ) : null}
 
-        <View style={{ gap: compact ? 24 : 32 }}>
+        <View style={{ gap: compact ? SPACE['3xl'] : SPACE['4xl'] }}>
           <ReflectionLauncher />
           <EntriesLibrary />
         </View>
-      </ScrollView>
-    </View>
+      </View>
+    </AuthenticatedPageShell>
   );
 }

@@ -7,10 +7,11 @@ import {
   type ViewStyle,
 } from 'react-native';
 import type { ReactNode } from 'react';
+import { CONTROL, RADIUS, SPACE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
 import { Typography } from './Typography';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
 export type ButtonSize = 'compact' | 'default';
 
 export interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> {
@@ -43,9 +44,14 @@ export function Button({
       textColor: colors.text.onAccent,
     },
     secondary: {
-      backgroundColor: colors.background.input,
-      borderColor: colors.border.divider,
-      textColor: colors.text.primary,
+      backgroundColor: colors.background.selectedRow,
+      borderColor: colors.border.subtle,
+      textColor: colors.text.accent,
+    },
+    outline: {
+      backgroundColor: 'transparent',
+      borderColor: colors.border.input,
+      textColor: colors.text.accent,
     },
     ghost: {
       backgroundColor: 'transparent',
@@ -69,13 +75,13 @@ export function Button({
           alignItems: 'center',
           backgroundColor: appearance.backgroundColor,
           borderColor: appearance.borderColor,
-          borderRadius: compact ? 999 : 12,
+          borderRadius: compact ? RADIUS.round : RADIUS.md,
           borderWidth: variant === 'ghost' ? 0 : 1,
           justifyContent: 'center',
-          minHeight: 44,
-          opacity: unavailable ? 0.45 : pressed ? 0.76 : 1,
-          paddingHorizontal: compact ? 16 : 20,
-          paddingVertical: compact ? 9 : 12,
+          minHeight: compact ? CONTROL.compactHeight : CONTROL.defaultHeight,
+          opacity: unavailable ? 0.45 : pressed ? 0.72 : 1,
+          paddingHorizontal: compact ? SPACE.xl : SPACE['2xl'],
+          paddingVertical: compact ? SPACE.md : SPACE.lg,
         },
         style,
       ]}

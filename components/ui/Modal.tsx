@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { useThemeColors } from '@/store/uiStore';
+import { elevationStyle, RADIUS, SPACE } from '@/constants/design';
+import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { Button } from './Button';
 import { Typography } from './Typography';
 
@@ -55,12 +56,15 @@ export function Modal({
   onConfirm,
   confirmDisabled = false,
   confirmVariant = 'default',
-  backdropColor = 'rgba(0,0,0,0.5)',
+  backdropColor,
   closeOnBackdropPress = false,
   contentStyle,
   motion,
 }: ModalProps) {
   const colors = useThemeColors();
+  const darkMode = useUIStore((state) => state.themeMode) === 'dark';
+  const resolvedBackdropColor = backdropColor ?? colors.effects.overlay;
+  const modalElevation = elevationStyle('lg', colors, darkMode);
   const hasFooterActions = !!cancelText || !!confirmText || !!onCancel || !!onConfirm;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
@@ -172,7 +176,7 @@ export function Modal({
         <View style={styles.overlay}>
           <Animated.View
             pointerEvents="none"
-            style={[StyleSheet.absoluteFill, { backgroundColor: backdropColor, opacity: backdropOpacity }]}
+            style={[StyleSheet.absoluteFill, { backgroundColor: resolvedBackdropColor, opacity: backdropOpacity }]}
           />
           {closeOnBackdropPress ? (
             <Pressable
@@ -185,6 +189,7 @@ export function Modal({
           <Animated.View
             style={[
               styles.content,
+              modalElevation,
               {
                 backgroundColor: colors.background.card,
                 borderColor: colors.border.divider,
@@ -198,7 +203,7 @@ export function Modal({
           </Animated.View>
         </View>
       ) : (
-        <View style={[styles.overlay, { backgroundColor: backdropColor }]}>
+        <View style={[styles.overlay, { backgroundColor: resolvedBackdropColor }]}>
           {closeOnBackdropPress ? (
             <Pressable
               accessibilityRole="button"
@@ -210,6 +215,7 @@ export function Modal({
           <View
             style={[
               styles.content,
+              modalElevation,
               {
                 backgroundColor: colors.background.card,
                 borderColor: colors.border.divider,
@@ -231,12 +237,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: SPACE['3xl'],
   },
   content: {
     width: '100%',
     maxWidth: 384,
-    padding: 24,
-    borderRadius: 16,
+    padding: SPACE['3xl'],
+    borderRadius: RADIUS.xl,
   },
 });

@@ -41,7 +41,12 @@ export function RichTextEditor({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ alignItems: 'center', gap: 4, paddingHorizontal: 16 }}
-        style={{ borderBottomColor: colors.border.divider, borderBottomWidth: 1, flexGrow: 0 }}
+        style={{
+          borderBottomColor: colors.border.divider,
+          borderBottomWidth: 1,
+          flexGrow: 0,
+          minHeight: 56,
+        }}
       >
         {([
           ['paragraph', 'Text'],
@@ -57,12 +62,15 @@ export function RichTextEditor({
               blocks: [{ ...block, type }],
             }, block.text)}
             style={({ pressed }) => ({
+              alignItems: 'center',
+              borderRadius: 8,
+              height: 40,
               justifyContent: 'center',
               opacity: pressed ? 0.6 : 1,
-              paddingHorizontal: 9,
+              paddingHorizontal: 10,
             })}
           >
-            <Typography variant="caption">{label}</Typography>
+            <Typography variant="emphasis-sm" style={{ fontSize: 13 }}>{label}</Typography>
           </Pressable>
         ))}
         {MARKS.map((mark) => (
@@ -73,13 +81,13 @@ export function RichTextEditor({
             onPress={() => update(`${mark.prefix}${block.text}${mark.suffix}`)}
             style={({ pressed }) => ({
               alignItems: 'center',
-              height: 44,
+              height: 40,
               justifyContent: 'center',
               opacity: pressed ? 0.6 : 1,
-              width: 42,
+              width: 40,
             })}
           >
-            <Ionicons name={mark.icon} color={colors.text.secondary} size={18} />
+            <Ionicons name={mark.icon} color={colors.text.secondary} size={19} />
           </Pressable>
         ))}
       </ScrollView>
@@ -93,11 +101,11 @@ export function RichTextEditor({
           color: colors.text.primary,
           flex: 1,
           fontFamily: 'Inter-Regular',
-          fontSize: 16,
-          lineHeight: 28,
+          fontSize: 18,
+          lineHeight: 30,
           minHeight: 420,
-          paddingHorizontal: 24,
-          paddingTop: 36,
+          paddingHorizontal: 32,
+          paddingTop: 40,
           textAlignVertical: 'top',
         }}
         value={block.text}

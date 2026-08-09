@@ -13,6 +13,15 @@
     "test:friends": "node --experimental-strip-types --test scripts/test-friends-api.mjs scripts/test-friends-client-state.mjs",
     "test:echo-composer": "node --experimental-strip-types --test features/echo/composer-state.test.ts",
     "test:entries": "node --experimental-strip-types --test features/entries/utils.test.ts features/entries/security.test.ts",
+    "test:momentum": "node --experimental-strip-types --test features/momentum/engine.test.ts features/momentum/time.test.ts features/momentum/normalization.test.ts features/momentum/service.test.ts features/momentum/security.test.ts features/momentum/trust-boundary.test.ts features/momentum/local-target.test.ts",
+    "test:momentum:db": "bash scripts/test-momentum-security.sh",
+    "test:momentum:local": "node --experimental-strip-types scripts/momentum-local.integration.mjs",
+    "test:momentum:api": "node scripts/momentum-api.smoke.mjs",
+    "supabase:local:verify": "node scripts/momentum-local-target.mjs",
+    "supabase:local:start": "node scripts/run-local-supabase.mjs start",
+    "supabase:local:status": "node scripts/run-local-supabase.mjs status",
+    "supabase:local:reset": "node scripts/run-local-supabase.mjs reset",
+    "supabase:local:stop": "node scripts/run-local-supabase.mjs stop",
     "postinstall": "patch-package"
   },
   "dependencies": {

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import type { ReactNode } from 'react';
 import { useThemeColors } from '@/store/uiStore';
+import { RADIUS } from '@/constants/design';
 
 export interface AnchorRect {
   x: number;
@@ -102,7 +103,9 @@ export function AnchoredPopover({
               top: position?.top ?? VIEWPORT_MARGIN,
               opacity: position ? 1 : 0,
               backgroundColor: colors.background.card,
-              borderColor: colors.border.divider,
+              borderColor: colors.border.subtle,
+              borderRadius: RADIUS.lg,
+              borderWidth: 1,
             },
             contentStyle,
           ]}

@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
+import { Card } from '@/components/ui/Card';
+import { BrandIcon } from '@/components/ui/BrandIcon';
 import { ProjectGoalRow } from '@/features/goals/components/ProjectGoalRow';
-import { useThemeColors, useUIStore } from '@/store/uiStore';
-import { ProjectTitleRow } from './ProjectTitleRow';
+import { useThemeColors } from '@/store/uiStore';
+import { RADIUS, SPACE } from '@/constants/design';
 import type { Project } from '@/features/projects/types';
 import type { GoalWithDetails } from '@/features/goals/types';
 
@@ -16,43 +18,60 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project, goals }: ProjectCardProps) {
   const colors = useThemeColors();
-  const themeMode = useUIStore((state) => state.themeMode);
   const [expanded, setExpanded] = useState(false);
+  const progress = goals.length
+    ? Math.round(goals.reduce((total, goal) => total + goal.progress, 0) / goals.length)
+    : 0;
 
   return (
-    <View
+    <Card
+      elevation="none"
+      padding="none"
       style={{
-        backgroundColor: colors.background.card,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: colors.border.warm,
-        marginBottom: 12,
-        paddingVertical: 18,
-        paddingHorizontal: 20,
-        shadowColor: colors.text.primary,
-        shadowOpacity: themeMode === 'dark' ? 0 : 0.04,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 2 },
-        elevation: themeMode === 'dark' ? 0 : 1,
+        borderColor: colors.border.warmSubtle,
+        marginBottom: SPACE.md,
+        paddingVertical: SPACE.xl,
+        paddingHorizontal: SPACE.xl,
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-        {/* Title + description — taps navigate to the project */}
+      <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.lg }}>
+        <View style={{
+          alignItems: 'center',
+          backgroundColor: colors.background.selectedRow,
+          borderRadius: RADIUS.md,
+          height: 48,
+          justifyContent: 'center',
+          width: 48,
+        }}>
+          <BrandIcon name="project" size={22} tintColor={colors.accent.primary} />
+        </View>
         <Pressable
           onPress={() => router.push(`/(app)/projects/${project.id}` as never)}
-          style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.6 : 1 })}
+          style={({ pressed }) => ({ flex: 1, minHeight: 44, opacity: pressed ? 0.64 : 1 })}
         >
-          <ProjectTitleRow title={project.title} numberOfLines={1} />
+          <Typography variant="card-title" numberOfLines={1}>
+            {project.title}
+          </Typography>
           {project.description !== null && (
             <Typography
               variant="card-description"
-              style={{ marginTop: 3 }}
+              style={{ fontSize: 14, lineHeight: 20, marginTop: 4 }}
               numberOfLines={2}
             >
               {project.description}
             </Typography>
           )}
+          <Typography variant="caption" style={{ color: colors.text.secondary, marginTop: SPACE.sm }}>
+            {goals.length} {goals.length === 1 ? 'goal' : 'goals'} connected
+          </Typography>
         </Pressable>
+
+        <Typography
+          variant="label"
+          style={{ color: colors.text.accent, minWidth: 40, textAlign: 'right' }}
+        >
+          {progress}%
+        </Typography>
 
         {/* Chevron — taps toggle expand/collapse (collapsed by default) */}
         <Pressable
@@ -62,7 +81,15 @@ export function ProjectCard({ project, goals }: ProjectCardProps) {
           }
           hitSlop={10}
           onPress={() => setExpanded((prev) => !prev)}
-          style={{ marginLeft: 8, marginTop: 2 }}
+          style={({ pressed }) => ({
+            alignItems: 'center',
+            borderRadius: RADIUS.round,
+            height: 44,
+            justifyContent: 'center',
+            marginLeft: SPACE.md,
+            opacity: pressed ? 0.5 : 1,
+            width: 44,
+          })}
         >
           <Text
             style={{
@@ -78,16 +105,13 @@ export function ProjectCard({ project, goals }: ProjectCardProps) {
         </Pressable>
       </View>
 
-      {/* Expanded: warm divider + linear project-goal entries */}
       {expanded && (
-        <View style={{ marginTop: 16 }}>
-          <View
-            style={{
-              height: 1,
-              backgroundColor: colors.border.warm,
-              marginBottom: 16,
-            }}
-          />
+        <View style={{
+          backgroundColor: colors.background.subtle,
+          borderRadius: RADIUS.md,
+          marginTop: SPACE.xl,
+          padding: SPACE.lg,
+        }}>
           {goals.length > 0 ? (
             <View style={{ gap: 8 }}>
               {goals.map((goal) => (
@@ -99,6 +123,6 @@ export function ProjectCard({ project, goals }: ProjectCardProps) {
           )}
         </View>
       )}
-    </View>
+    </Card>
   );
 }

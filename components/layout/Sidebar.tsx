@@ -6,6 +6,7 @@ import { BrandIcon, type BrandIconName } from '@/components/ui/BrandIcon';
 import { FEATURES } from '@/constants/features';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { AvatarMenu } from './AvatarMenu';
+import { LAYOUT, RADIUS, SPACE } from '@/constants/design';
 
 type NavItem = {
   label: string;
@@ -13,19 +14,20 @@ type NavItem = {
   match: string;
   enabled: boolean;
   icon?: BrandIconName;
+  ionicon?: 'home' | 'trending-up-outline' | 'git-network-outline';
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Journey',       href: '/(app)/dashboard',     match: '/dashboard',     enabled: true, icon: 'goals' },
-  { label: 'Momentum',      href: '/(app)/momentum',      match: '/momentum',      enabled: true },
-  { label: 'Entries',       href: '/(app)/entries',       match: '/entries',       enabled: FEATURES.ECHO_ENABLED, icon: 'echo' },
-  { label: 'Constellation', href: '/(app)/constellation', match: '/constellation', enabled: FEATURES.CONSTELLATION_ENABLED },
-  { label: 'Explore',       href: '/(app)/explore',       match: '/explore',       enabled: FEATURES.DISCOVERY_ENABLED },
+  { label: 'Home',          href: '/(app)/dashboard',     match: '/dashboard',     enabled: true, ionicon: 'home' },
+  { label: 'Goals',         href: '/(app)/goals',         match: '/goals',         enabled: true, icon: 'goals' },
+  { label: 'Echo',          href: '/(app)/echo',          match: '/entries',       enabled: FEATURES.ECHO_ENABLED, icon: 'echo' },
+  { label: 'Momentum',      href: '/(app)/momentum',      match: '/momentum',      enabled: true, ionicon: 'trending-up-outline' },
+  { label: 'Constellation', href: '/(app)/constellation', match: '/constellation', enabled: FEATURES.CONSTELLATION_ENABLED, ionicon: 'git-network-outline' },
 ];
 
 const SIDEBAR_WIDTH = {
-  collapsed: 76,
-  expanded: 220,
+  collapsed: LAYOUT.sidebarCollapsedWidth,
+  expanded: 168,
 } as const;
 
 const BRAND_SIZE = {
@@ -44,7 +46,6 @@ export function Sidebar() {
   const colors = useThemeColors();
   const pathname = usePathname();
   const { width } = useWindowDimensions();
-  const themeMode = useUIStore((state) => state.themeMode);
   const storedCollapsed = useUIStore((state) => state.sidebarCollapsed);
   const compactViewport = width < 720;
   const collapsed = compactViewport || storedCollapsed;
@@ -68,9 +69,9 @@ export function Sidebar() {
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
-          paddingTop: collapsed ? 32 : 24,
-          paddingHorizontal: collapsed ? 0 : 16,
-          paddingBottom: collapsed ? 8 : 12,
+          paddingTop: collapsed ? SPACE['4xl'] : SPACE['3xl'],
+          paddingHorizontal: collapsed ? 0 : SPACE.xl,
+          paddingBottom: collapsed ? SPACE.md : SPACE.xl,
         }}
       >
         {collapsed ? (
@@ -90,24 +91,24 @@ export function Sidebar() {
             <BrandIcon
               name="ohara"
               size={BRAND_SIZE.collapsedLogo}
-              tintColor={themeMode === 'light' ? colors.text.primary : undefined}
+              tintColor={colors.accent.primary}
             />
           </Pressable>
         ) : (
-          <View style={{ flexDirection: 'column', alignItems: 'stretch', flex: 1, minWidth: 0 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', minWidth: 0 }}>
+          <View style={{ alignItems: 'center', flex: 1, minWidth: 0 }}>
+            <View style={{ alignItems: 'center' }}>
               <BrandIcon
                 name="ohara"
-                size={BRAND_SIZE.expandedLogo}
-                style={{ marginRight: 10 }}
-                tintColor={themeMode === 'light' ? colors.text.primary : undefined}
+                size={52}
+                tintColor={colors.accent.primary}
               />
               <Text
                 style={{
                   color: colors.text.primary,
                   fontFamily: 'Inter-SemiBold',
-                  fontSize: BRAND_SIZE.expandedText,
-                  letterSpacing: 4,
+                  fontSize: 15,
+                  letterSpacing: 4.5,
+                  marginTop: SPACE.md,
                 }}
               >
                 OHARA
@@ -123,9 +124,10 @@ export function Sidebar() {
                 borderRadius: 11,
                 backgroundColor: colors.background.input,
                 alignItems: 'center',
-                alignSelf: 'flex-end',
+                position: 'absolute',
+                right: 0,
+                top: 0,
                 justifyContent: 'center',
-                marginTop: 8,
                 opacity: pressed ? 0.65 : 1,
               })}
             >
@@ -140,8 +142,7 @@ export function Sidebar() {
         {NAV_ITEMS.map((item) => {
           const isActive =
             pathname === item.match ||
-            pathname.startsWith(item.match + '/') ||
-            (item.href === '/(app)/dashboard' && pathname.startsWith('/goals/'));
+            pathname.startsWith(item.match + '/');
           return (
             <Pressable
               key={item.label}
@@ -161,13 +162,14 @@ export function Sidebar() {
                 justifyContent: collapsed ? 'center' : 'flex-start',
                 paddingHorizontal: collapsed ? 0 : 16,
                 paddingVertical: 12,
-                borderRadius: 12,
-                marginHorizontal: 12,
-                marginBottom: 4,
+                borderRadius: RADIUS.md,
+                marginHorizontal: SPACE.lg,
+                marginBottom: SPACE.sm,
+                minHeight: 48,
                 backgroundColor: isActive
                   ? colors.background.selectedRow
                   : hoveredItem === item.label || pressed
-                    ? colors.background.subtle
+                    ? colors.background.hoverAccent
                     : 'transparent',
                 opacity: item.enabled ? 1 : 0.4,
               })}
@@ -176,37 +178,32 @@ export function Sidebar() {
                 <BrandIcon
                   name={item.icon}
                   size={collapsed ? NAV_ICON_SIZE.collapsed : NAV_ICON_SIZE.expanded}
-                  tintColor={
-                    themeMode === 'light'
-                      ? isActive
-                        ? colors.text.accent
-                        : colors.text.secondary
-                      : undefined
-                  }
+                  tintColor={isActive ? colors.text.accent : colors.text.secondary}
                   style={{
                     marginRight: collapsed ? 0 : 10,
                     opacity: isActive ? 1 : item.enabled ? 0.72 : 0.4,
                   }}
                 />
               )}
-              {!item.icon && item.label === 'Momentum' ? (
+              {item.ionicon ? (
                 <Ionicons
                   accessible={false}
                   color={isActive ? colors.text.accent : colors.text.secondary}
-                  name="trending-up-outline"
+                  name={item.ionicon}
                   size={collapsed ? NAV_ICON_SIZE.collapsed : NAV_ICON_SIZE.expanded}
                   style={{ marginRight: collapsed ? 0 : 10, opacity: isActive ? 1 : 0.72 }}
                 />
               ) : null}
-              {(!collapsed || (!item.icon && item.label !== 'Momentum')) && (
+              {!collapsed && (
                 <Text
                   style={{
                     color: isActive ? colors.text.accent : colors.text.secondary,
-                    fontSize: 14,
-                    fontFamily: 'Inter-Medium',
+                  fontSize: 14,
+                  fontFamily: 'Inter-Medium',
+                  letterSpacing: -0.1,
                   }}
                 >
-                  {collapsed ? item.label.charAt(0) : item.label}
+                  {item.label}
                 </Text>
               )}
             </Pressable>

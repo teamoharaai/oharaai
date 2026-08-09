@@ -3,7 +3,9 @@ import { Pressable, View, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import { Typography } from '@/components/ui/Typography';
+import { RADIUS, SPACE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
 import type { ReflectionType } from '../types';
 
@@ -49,14 +51,11 @@ export function ReflectionLauncher() {
   const description = REFLECTION_OPTIONS.find((option) => option.type === describedType);
 
   return (
-    <View
+    <Card
+      elevation="sm"
+      padding={compact ? 'default' : 'spacious'}
       style={{
-        backgroundColor: colors.background.card,
-        borderColor: colors.border.divider,
-        borderRadius: 16,
-        borderWidth: 1,
-        gap: 12,
-        padding: compact ? 14 : 16,
+        gap: SPACE.lg,
       }}
     >
       <View
@@ -108,11 +107,11 @@ export function ReflectionLauncher() {
                   borderColor: selected || previewed
                     ? colors.border.accent
                     : colors.border.subtle,
-                  borderRadius: 999,
+                  borderRadius: RADIUS.round,
                   borderWidth: 1,
                   flexDirection: 'row',
                   gap: 6,
-                  minHeight: 40,
+                  minHeight: 44,
                   opacity: pressed ? 0.72 : 1,
                   paddingHorizontal: 11,
                 })}
@@ -145,10 +144,10 @@ export function ReflectionLauncher() {
         style={{
           alignItems: 'center',
           backgroundColor: colors.background.input,
-          borderRadius: 10,
+          borderRadius: RADIUS.md,
           flexDirection: 'row',
           gap: 8,
-          minHeight: 38,
+          minHeight: 44,
           paddingHorizontal: 12,
           paddingVertical: 8,
         }}
@@ -163,6 +162,6 @@ export function ReflectionLauncher() {
           {description?.description}
         </Typography>
       </View>
-    </View>
+    </Card>
   );
 }

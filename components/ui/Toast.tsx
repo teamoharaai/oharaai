@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import { Typography } from '@/components/ui/Typography';
 import { useThemeColors } from '@/store/uiStore';
+import { elevationStyle, RADIUS } from '@/constants/design';
+import { useUIStore } from '@/store/uiStore';
 
 export interface ToastProps {
   message: string;
@@ -11,6 +13,7 @@ export interface ToastProps {
 
 export function Toast({ message, onUndo, visible }: ToastProps) {
   const colors = useThemeColors();
+  const darkMode = useUIStore((state) => state.themeMode) === 'dark';
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -51,6 +54,7 @@ export function Toast({ message, onUndo, visible }: ToastProps) {
             backgroundColor: colors.text.primary,
             borderColor: colors.border.default,
           },
+          elevationStyle('md', colors, darkMode),
         ]}
       >
         <Typography
@@ -97,18 +101,13 @@ const styles = StyleSheet.create({
   },
   toast: {
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
-    elevation: 4,
     flexDirection: 'row',
     maxWidth: 440,
     minHeight: 48,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    shadowColor: '#000000',
-    shadowOffset: { height: 3, width: 0 },
-    shadowOpacity: 0.16,
-    shadowRadius: 8,
     width: '100%',
   },
   undo: {

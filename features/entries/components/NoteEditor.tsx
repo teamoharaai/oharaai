@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Modal as RNModal,
+  Platform,
   Pressable,
   ScrollView,
   TextInput,
   View,
+  type ViewStyle,
   useWindowDimensions,
 } from 'react-native';
 import { router } from 'expo-router';
@@ -13,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
+import { RADIUS, SPACE, elevationStyle } from '@/constants/design';
 import { GOAL_CATEGORY_CATALOG } from '@/lib/goals/catalog';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { fetchEntry, isPersistenceUnavailable } from '../services/entry-service';
@@ -30,6 +33,23 @@ import { RichTextEditor } from './RichTextEditor';
 
 const AUTOSAVE_DELAY = 900;
 
+function colorWithAlpha(color: string, alpha: number): string {
+  const hex = color.replace('#', '');
+  if (hex.length !== 6) return color;
+  const red = Number.parseInt(hex.slice(0, 2), 16);
+  const green = Number.parseInt(hex.slice(2, 4), 16);
+  const blue = Number.parseInt(hex.slice(4, 6), 16);
+  return `rgba(${red},${green},${blue},${alpha})`;
+}
+
+const chromeIconButton: ViewStyle = {
+  alignItems: 'center',
+  borderRadius: RADIUS.md,
+  height: 40,
+  justifyContent: 'center',
+  width: 40,
+};
+
 function localDraftKey(entryId: string): string {
   return `ohara-entry-draft:${entryId}`;
 }
@@ -43,6 +63,7 @@ function saveLabel(status: EntrySaveStatus): string {
 
 export function NoteEditor({ entryId }: { entryId: string }) {
   const colors = useThemeColors();
+  const darkMode = useUIStore((state) => state.themeMode === 'dark');
   const { width } = useWindowDimensions();
   const narrow = width < 840;
   const entries = useEntriesStore((state) => state.entries);
@@ -232,70 +253,135 @@ export function NoteEditor({ entryId }: { entryId: string }) {
   )).slice(0, 3);
 
   function intelligencePanel() {
+    const glassStyle = Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(22px)',
+          WebkitBackdropFilter: 'blur(22px)',
+          boxShadow: darkMode
+            ? `-10px 0 34px ${colorWithAlpha(colors.effects.shadow, 0.24)}`
+            : `-10px 0 34px ${colorWithAlpha(colors.effects.shadow, 0.08)}`,
+        } as ViewStyle)
+      : elevationStyle('md', colors, darkMode);
+
     return (
       <View
-        style={{
-          backgroundColor: colors.background.card,
-          borderLeftColor: colors.border.divider,
+        style={[{
+          backgroundColor: colorWithAlpha(colors.accent.primary, darkMode ? 0.1 : 0.055),
+          borderColor: colorWithAlpha(colors.accent.primary, darkMode ? 0.22 : 0.18),
           borderLeftWidth: narrow ? 0 : 1,
+          borderTopWidth: narrow ? 1 : 0,
           flex: 1,
-          maxWidth: narrow ? undefined : 340,
-          padding: 22,
-          width: narrow ? '100%' : 340,
-        }}
+          maxWidth: narrow ? undefined : 328,
+          overflow: 'hidden',
+          width: narrow ? '100%' : 328,
+        }, glassStyle]}
       >
-        <View style={{ alignItems: 'center', flexDirection: 'row' }}>
-          <Typography variant="title" style={{ flex: 1 }}>Ohara Intelligence</Typography>
+        <View
+          style={{
+            alignItems: 'center',
+            borderBottomColor: colorWithAlpha(colors.accent.primary, darkMode ? 0.16 : 0.12),
+            borderBottomWidth: 1,
+            flexDirection: 'row',
+            minHeight: 68,
+            paddingHorizontal: SPACE['2xl'],
+          }}
+        >
+          <View
+            style={{
+              alignItems: 'center',
+              backgroundColor: colorWithAlpha(colors.accent.primary, darkMode ? 0.16 : 0.1),
+              borderRadius: RADIUS.round,
+              height: 36,
+              justifyContent: 'center',
+              marginRight: SPACE.lg,
+              width: 36,
+            }}
+          >
+            <Ionicons name="sparkles-outline" color={colors.accent.primary} size={20} />
+          </View>
+          <Typography variant="title" style={{ flex: 1, fontSize: 17, lineHeight: 24 }}>
+            Ohara Intelligence
+          </Typography>
           <Pressable
             accessibilityLabel="Close Ohara Intelligence"
+            accessibilityRole="button"
             onPress={() => setIntelligenceOpen(false)}
+            style={({ pressed }) => [chromeIconButton, {
+              backgroundColor: pressed ? colors.background.hoverAccent : 'transparent',
+            }]}
           >
             <Ionicons name="close" color={colors.text.secondary} size={22} />
           </Pressable>
         </View>
-        <Typography variant="caption" style={{ marginTop: 6 }}>
-          Context for this note. No AI response has been generated.
-        </Typography>
-        <Typography variant="eyebrow" style={{ marginBottom: 8, marginTop: 24 }}>
-          LINKED GOALS
-        </Typography>
-        {selectedGoals.length ? selectedGoals.map((goal) => (
+        <ScrollView
+          contentContainerStyle={{ padding: SPACE['2xl'], paddingBottom: SPACE['4xl'] }}
+          showsVerticalScrollIndicator={false}
+        >
+          <Typography variant="meta" style={{ lineHeight: 20 }}>
+            Context for this note. No AI response has been generated.
+          </Typography>
+          <Typography variant="eyebrow" style={{ marginBottom: SPACE.md, marginTop: SPACE['3xl'] }}>
+            LINKED GOALS
+          </Typography>
+          {selectedGoals.length ? selectedGoals.map((goal) => (
+            <View
+              key={goal.id}
+              style={{
+                backgroundColor: colorWithAlpha(colors.background.card, darkMode ? 0.62 : 0.68),
+                borderColor: colorWithAlpha(colors.accent.primary, darkMode ? 0.16 : 0.12),
+                borderRadius: RADIUS.md,
+                borderWidth: 1,
+                marginBottom: SPACE.md,
+                paddingHorizontal: SPACE.lg,
+                paddingVertical: SPACE.lg,
+              }}
+            >
+              <Typography variant="emphasis-sm" style={{ fontSize: 15, lineHeight: 21 }}>
+                {goal.title}
+              </Typography>
+              <Typography variant="caption" style={{ marginTop: SPACE.xs, textTransform: 'capitalize' }}>
+                {goal.status}
+              </Typography>
+            </View>
+          )) : <Typography variant="meta">No goals linked yet.</Typography>}
+          <Typography variant="eyebrow" style={{ marginBottom: SPACE.md, marginTop: SPACE['3xl'] }}>
+            RELATED ENTRIES
+          </Typography>
+          {relatedEntries.length ? relatedEntries.map((related) => (
+            <View
+              key={related.id}
+              style={{
+                backgroundColor: colorWithAlpha(colors.background.card, darkMode ? 0.48 : 0.54),
+                borderRadius: RADIUS.md,
+                marginBottom: SPACE.md,
+                paddingHorizontal: SPACE.lg,
+                paddingVertical: SPACE.md,
+              }}
+            >
+              <Typography variant="meta">{related.title || 'Untitled entry'}</Typography>
+            </View>
+          )) : (
+            <Typography variant="meta">Related Notes and Reflections will appear here.</Typography>
+          )}
           <View
-            key={goal.id}
             style={{
-              backgroundColor: colors.background.input,
-              borderRadius: 10,
-              marginBottom: 8,
-              padding: 10,
+              backgroundColor: colorWithAlpha(colors.background.card, darkMode ? 0.58 : 0.64),
+              borderColor: colorWithAlpha(colors.accent.primary, darkMode ? 0.28 : 0.22),
+              borderRadius: RADIUS.lg,
+              borderWidth: 1,
+              marginTop: SPACE['3xl'],
+              padding: SPACE.xl,
             }}
           >
-            <Typography variant="emphasis-sm">{goal.title}</Typography>
-            <Typography variant="caption">{goal.status}</Typography>
+            <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
+              <Ionicons name="sparkles-outline" color={colors.accent.primary} size={18} />
+              <Typography variant="emphasis-sm" style={{ fontSize: 15 }}>Ask Ohara</Typography>
+            </View>
+            <Typography variant="meta" style={{ lineHeight: 19, marginTop: SPACE.md }}>
+              Future insights and chat will use your linked context. This preview does not make an AI request.
+            </Typography>
           </View>
-        )) : <Typography variant="caption">No goals linked yet.</Typography>}
-        <Typography variant="eyebrow" style={{ marginBottom: 8, marginTop: 22 }}>
-          RELATED ENTRIES
-        </Typography>
-        {relatedEntries.length ? relatedEntries.map((related) => (
-          <Typography key={related.id} variant="caption" style={{ marginBottom: 7 }}>
-            {related.title || 'Untitled entry'}
-          </Typography>
-        )) : <Typography variant="caption">Related Notes and Reflections will appear here.</Typography>}
-        <View
-          style={{
-            borderColor: colors.border.subtle,
-            borderRadius: 12,
-            borderStyle: 'dashed',
-            borderWidth: 1,
-            marginTop: 24,
-            padding: 14,
-          }}
-        >
-          <Typography variant="emphasis-sm">Ask Ohara</Typography>
-          <Typography variant="caption" style={{ marginTop: 4 }}>
-            Future insights and chat will use your linked context. This preview does not make an AI request.
-          </Typography>
-        </View>
+        </ScrollView>
       </View>
     );
   }
@@ -328,7 +414,15 @@ export function NoteEditor({ entryId }: { entryId: string }) {
           paddingVertical: 8,
         }}
       >
-        <Pressable accessibilityLabel="Back to Notes library" onPress={handleBack} hitSlop={8}>
+        <Pressable
+          accessibilityLabel="Back to Notes library"
+          accessibilityRole="button"
+          onPress={handleBack}
+          hitSlop={8}
+          style={({ pressed }) => [chromeIconButton, {
+            backgroundColor: pressed ? colors.background.hoverAccent : 'transparent',
+          }]}
+        >
           <Ionicons name="arrow-back" color={colors.text.primary} size={22} />
         </Pressable>
         <TextInput
@@ -358,20 +452,26 @@ export function NoteEditor({ entryId }: { entryId: string }) {
             </Typography>
           </Pressable>
         ) : null}
-        <Pressable accessibilityLabel="Link note to goals" onPress={() => setLinkPickerOpen(true)}>
+        <Pressable accessibilityLabel="Link note to goals" accessibilityRole="button" onPress={() => setLinkPickerOpen(true)} style={chromeIconButton}>
           <Ionicons name="link-outline" color={colors.text.secondary} size={21} />
         </Pressable>
-        <Pressable accessibilityLabel="Export note" onPress={() => setExportOpen(true)}>
+        <Pressable accessibilityLabel="Export note" accessibilityRole="button" onPress={() => setExportOpen(true)} style={chromeIconButton}>
           <Ionicons name="share-outline" color={colors.text.secondary} size={21} />
         </Pressable>
         {!narrow ? <Button onPress={handleNewNote} size="compact" variant="secondary">New Note</Button> : null}
         <Pressable
           accessibilityLabel={intelligenceOpen ? 'Collapse Ohara Intelligence' : 'Open Ohara Intelligence'}
+          accessibilityRole="button"
           onPress={() => setIntelligenceOpen(!intelligenceOpen)}
+          style={({ pressed }) => [chromeIconButton, {
+            backgroundColor: intelligenceOpen || pressed
+              ? colors.background.selectedRow
+              : 'transparent',
+          }]}
         >
           <Ionicons name="sparkles-outline" color={colors.text.accent} size={21} />
         </Pressable>
-        <Pressable accessibilityLabel="More note actions" onPress={() => setOverflowOpen(true)}>
+        <Pressable accessibilityLabel="More note actions" accessibilityRole="button" onPress={() => setOverflowOpen(true)} style={chromeIconButton}>
           <Ionicons name="ellipsis-horizontal" color={colors.text.secondary} size={22} />
         </Pressable>
       </View>
@@ -398,29 +498,63 @@ export function NoteEditor({ entryId }: { entryId: string }) {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ alignItems: 'center', gap: 6, paddingHorizontal: 20 }}
+          contentContainerStyle={{ alignItems: 'center', gap: SPACE.md, paddingHorizontal: SPACE['2xl'] }}
           style={{
             borderBottomColor: colors.border.divider,
             borderBottomWidth: 1,
             flexGrow: 0,
-            minHeight: 44,
+            minHeight: 56,
           }}
         >
-          <Typography variant="caption">Linked to:</Typography>
+          <Typography variant="label" style={{ fontSize: 14, marginRight: SPACE.xs }}>Linked to:</Typography>
           {selectedGoals.map((goal) => (
-            <View key={goal.id} style={{ backgroundColor: colors.background.input, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5 }}>
-              <Typography variant="caption">{goal.title}</Typography>
+            <View
+              key={goal.id}
+              style={{
+                alignItems: 'center',
+                backgroundColor: colors.background.selectedRow,
+                borderColor: colorWithAlpha(colors.accent.primary, 0.12),
+                borderRadius: RADIUS.round,
+                borderWidth: 1,
+                flexDirection: 'row',
+                minHeight: 32,
+                paddingHorizontal: SPACE.lg,
+              }}
+            >
+              <Typography variant="emphasis-sm" style={{ fontSize: 14 }}>{goal.title}</Typography>
             </View>
           ))}
           {categoryIds.map((id) => (
-            <View key={id} style={{ backgroundColor: colors.background.input, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5 }}>
-              <Typography variant="caption">
+            <View
+              key={id}
+              style={{
+                alignItems: 'center',
+                backgroundColor: colors.background.input,
+                borderRadius: RADIUS.round,
+                minHeight: 32,
+                paddingHorizontal: SPACE.lg,
+              }}
+            >
+              <Typography variant="emphasis-sm" style={{ fontSize: 14 }}>
                 {GOAL_CATEGORY_CATALOG.find((category) => category.id === id)?.label}
               </Typography>
             </View>
           ))}
-          <Pressable onPress={() => setLinkPickerOpen(true)}>
-            <Typography variant="caption" style={{ color: colors.text.accent }}>+ Add goal</Typography>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setLinkPickerOpen(true)}
+            style={({ pressed }) => ({
+              alignItems: 'center',
+              borderRadius: RADIUS.md,
+              justifyContent: 'center',
+              minHeight: 36,
+              opacity: pressed ? 0.7 : 1,
+              paddingHorizontal: SPACE.md,
+            })}
+          >
+            <Typography variant="emphasis-sm" style={{ color: colors.text.accent, fontSize: 14 }}>
+              + Add goal
+            </Typography>
           </Pressable>
         </ScrollView>
       ) : null}

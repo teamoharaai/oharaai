@@ -83,6 +83,7 @@ export function AvatarMenu() {
   const [profile, setProfile] = useState<ProfileSummary | null>(null);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [friendsTab, setFriendsTab] = useState<FriendsTab>('friends');
+  const [avatarFocused, setAvatarFocused] = useState(false);
   const [anchorRect, setAnchorRect] =
     useState<FriendsAnchorRect | null>(null);
   const triggerRef = useRef<View | null>(null);
@@ -142,6 +143,7 @@ export function AvatarMenu() {
   const displayName = profile?.display_name ?? '';
   const avatarUrl = profile?.avatar_url ?? null;
   const username = profile?.username ?? metadataUsername;
+  const avatarDisplayName = displayName || username;
   const useDesktopFriends =
     FEATURES.SOCIAL_ENABLED &&
     shouldUseDesktopFriendsPopover(viewportWidth);
@@ -230,10 +232,14 @@ export function AvatarMenu() {
         accessibilityLabel="Open account and friends"
         accessibilityRole="button"
         accessibilityState={{ expanded: menuOpen || friendsOpen }}
+        onBlur={() => setAvatarFocused(false)}
+        onFocus={() => setAvatarFocused(true)}
         onPress={openFromAvatar}
-        style={({ pressed }) => ({
+        style={({ hovered, pressed }) => ({
+          backgroundColor: hovered || avatarFocused || pressed ? colors.background.hoverAccent : 'transparent',
           flexDirection: 'row',
           alignItems: 'center',
+          minHeight: 44,
           paddingHorizontal: 16,
           paddingVertical: 8,
           borderRadius: 12,
@@ -242,7 +248,7 @@ export function AvatarMenu() {
         })}
       >
         <View collapsable={false} ref={avatarAnchorRef}>
-          <Avatar avatarUrl={avatarUrl} displayName={displayName} size={36} />
+          <Avatar avatarUrl={avatarUrl} displayName={avatarDisplayName} size={36} />
         </View>
       </Pressable>
 
@@ -283,7 +289,7 @@ export function AvatarMenu() {
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0 }}>
-                <Avatar avatarUrl={avatarUrl} displayName={displayName} size={44} />
+                <Avatar avatarUrl={avatarUrl} displayName={avatarDisplayName} size={44} />
                 <Text
                   style={{
                     marginLeft: 12,
@@ -371,7 +377,7 @@ export function AvatarMenu() {
           }}
           profile={{
             avatarUrl,
-            displayName,
+            displayName: avatarDisplayName,
             username,
           }}
           tab={friendsTab}

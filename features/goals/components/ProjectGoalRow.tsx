@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Typography } from '@/components/ui/Typography';
 import { getCategoryAccentTheme } from '@/constants/themes';
+import { elevationStyle, RADIUS, SPACE } from '@/constants/design';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import type { GoalWithDetails } from '../types';
 
@@ -47,17 +48,15 @@ export function ProjectGoalRow({
   return (
     <View
       style={{
+        ...elevationStyle('sm', colors, themeMode === 'dark'),
         alignItems: 'center',
         backgroundColor: colors.background.card,
-        borderColor: colors.border.warm,
-        borderRadius: 12,
+        borderColor: colors.border.warmSubtle,
+        borderRadius: RADIUS.lg,
         borderWidth: 1,
         flexDirection: 'row',
-        minHeight: 56,
-        shadowColor: colors.text.primary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: themeMode === 'dark' ? 0 : 0.04,
-        shadowRadius: 6,
+        minHeight: 82,
+        overflow: 'hidden',
       }}
     >
       <Pressable
@@ -72,9 +71,9 @@ export function ProjectGoalRow({
           flex: 1,
           flexDirection: 'row',
           opacity: pressed ? 0.82 : 1,
-          paddingBottom: 9,
-          paddingLeft: 12,
-          paddingTop: 9,
+          minHeight: 82,
+          paddingHorizontal: SPACE.xl,
+          paddingVertical: SPACE.lg,
           transform: [{ scale: pressed ? 0.995 : 1 }],
         })}
       >
@@ -82,25 +81,25 @@ export function ProjectGoalRow({
           style={{
             alignItems: 'center',
             backgroundColor: themeMode === 'dark' ? colors.background.input : accent.tint,
-            borderRadius: 9,
-            height: 36,
+            borderRadius: RADIUS.md,
+            height: 44,
             justifyContent: 'center',
-            width: 36,
+            width: 44,
           }}
         >
           <BrandIcon name="goal-mark" size={18} tintColor={accent.color} />
         </View>
 
-        <View style={{ flex: 1, marginLeft: 11, minWidth: 0 }}>
+        <View style={{ flex: 1, marginLeft: SPACE.lg, minWidth: 0 }}>
           <Typography
             ellipsizeMode="tail"
             numberOfLines={1}
             variant="title"
             style={{
               fontFamily: 'Inter-SemiBold',
-              fontSize: 15,
+              fontSize: 17,
               letterSpacing: -0.1,
-              lineHeight: 19,
+              lineHeight: 23,
             }}
           >
             {goal.title}
@@ -110,14 +109,30 @@ export function ProjectGoalRow({
             numberOfLines={1}
             variant="meta"
             style={{
-              fontSize: 11,
-              lineHeight: 14,
+              fontSize: 12,
+              lineHeight: 16,
             }}
           >
             {formatDate(goal.deadline)}
             {commitment ? ` · ${commitment}` : ''}
           </Typography>
+          <View style={{
+            backgroundColor: colors.background.input,
+            borderRadius: RADIUS.round,
+            height: 2,
+            marginTop: SPACE.sm,
+            overflow: 'hidden',
+          }}>
+            <View style={{
+              backgroundColor: accent.color,
+              height: '100%',
+              width: `${Math.min(100, Math.max(0, goal.progress))}%`,
+            }} />
+          </View>
         </View>
+        <Typography variant="caption" style={{ color: colors.text.accent, marginLeft: SPACE.lg }}>
+          {Math.round(goal.progress)}%
+        </Typography>
       </Pressable>
 
       {onToggleExpanded ? (
@@ -131,9 +146,12 @@ export function ProjectGoalRow({
             onToggleExpanded();
           }}
           style={({ pressed }) => ({
-            marginHorizontal: 8,
+            alignItems: 'center',
+            height: 44,
+            justifyContent: 'center',
+            marginHorizontal: SPACE.sm,
             opacity: pressed ? 0.5 : 1,
-            padding: 4,
+            width: 44,
           })}
         >
           <Ionicons

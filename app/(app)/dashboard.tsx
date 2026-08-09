@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import {
   Modal,
   View,
@@ -8,16 +8,16 @@ import {
   TouchableOpacity,
   useWindowDimensions,
 } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Card } from '@/components/ui/Card';
+import { ProgressRing } from '@/components/ui/ProgressRing';
 import type { TodayCarouselGoal } from '@/components/ui/TodayCarousel';
 import { Toast } from '@/components/ui/Toast';
 import { Typography } from '@/components/ui/Typography';
 import { useGoals } from '@/features/goals/hooks/useGoals';
-import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useSession } from '@/features/auth/hooks/useSession';
 import { useLatestAction } from '@/features/actions/hooks/useLatestAction';
 import { useDashboardLatestEntry } from '@/features/echo/hooks/useDashboardLatestEntry';
@@ -27,6 +27,8 @@ import { GoalRingGrid } from '@/features/goals/components/GoalRingGrid';
 import { GoalCard } from '@/features/goals/components/GoalCard';
 import { GoalEchoAnalysisCard } from '@/features/goals/components/GoalEchoAnalysisCard';
 import { MomentumTrendChart } from '@/features/momentum/components/MomentumTrendChart';
+import { useMomentumHomeSummary } from '@/features/momentum/hooks/useMomentumHomeSummary';
+import type { MomentumHomeSummary } from '@/features/momentum/types';
 import { ProjectGoalRow } from '@/features/goals/components/ProjectGoalRow';
 import { GoalTitleRow } from '@/features/goals/components/GoalTitleRow';
 import {
@@ -35,9 +37,7 @@ import {
   selectActiveGoals,
   type ReflectionTimestampsByGoalId,
 } from '@/features/goals/active-goal-selectors';
-import {
-  fetchActiveGoalReflectionTimestamps,
-} from '@/features/goals/services/active-goal-reflection-service';
+import { fetchActiveGoalReflectionTimestamps } from '@/features/goals/services/active-goal-reflection-service';
 import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal';
 import { ProjectCard } from '@/features/projects/components/ProjectCard';
 import { FEATURES } from '@/constants/features';
@@ -52,30 +52,80 @@ import { formatRelativeTime } from '@/lib/utils/relativeTime';
 import type { AiResponse } from '@/lib/ai/contracts';
 import type { GoalWithDetails } from '@/features/goals/types';
 import type { ActionLog } from '@/features/actions/types';
+import { RADIUS, SPACE } from '@/constants/design';
+import { getCategoryAccentTheme } from '@/constants/themes';
 import { startPerformanceTimer } from '@/lib/diagnostics/performance';
 
 // --- Helpers ---
-
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
-}
-
-function getDateLabel(): string {
-  return new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  });
-}
 
 function displayNameFromEmail(email: string | undefined): string | null {
   if (!email) return null;
   const local = email.split('@')[0];
   if (!local) return null;
   return local.charAt(0).toUpperCase() + local.slice(1);
+}
+
+function displayNameFromMetadata(metadata: Record<string, unknown> | undefined): string | null {
+  if (!metadata) return null;
+  const value = metadata.display_name ?? metadata.full_name ?? metadata.name ?? metadata.username;
+  if (typeof value !== 'string' || !value.trim()) return null;
+  return value
+    .trim()
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function formatCategoryLabel(category: string): string {
+  return category.charAt(0).toUpperCase() + category.slice(1);
+}
+
+function DashboardGreeting({
+  displayName,
+  momentumLoading,
+  weeklyStreak,
+}: {
+  displayName: string | null;
+  momentumLoading: boolean;
+  weeklyStreak: number | null;
+}) {
+  const colors = useThemeColors();
+  const name = displayName ?? 'there';
+  const greetingName = name.replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim().split(' ')[0];
+
+  return (
+    <View style={{ justifyContent: 'center', minHeight: 132, paddingHorizontal: SPACE.xl }}>
+      <Typography
+        variant="body"
+        style={{ color: colors.text.secondary, fontSize: 18, lineHeight: 26 }}
+      >
+        Welcome back,
+      </Typography>
+      <Typography
+        variant="greeting"
+        style={{ fontSize: 46, fontWeight: '600', letterSpacing: -1.5, lineHeight: 54 }}
+      >
+        {greetingName}.
+      </Typography>
+      <Typography
+        variant="body"
+        style={{ color: colors.text.secondary, fontSize: 16, lineHeight: 24, marginTop: SPACE.xs }}
+      >
+        {momentumLoading ? (
+          'Your weekly rhythm is loading…'
+        ) : weeklyStreak && weeklyStreak > 0 ? (
+          <>
+            You&apos;ve shown up for{' '}
+            <Text style={{ color: colors.text.accent, fontWeight: '500' }}>{weeklyStreak}</Text>
+            {' '}{weeklyStreak === 1 ? 'consecutive week' : 'consecutive weeks'}.
+          </>
+        ) : (
+          'This week is ready for your next meaningful step.'
+        )}
+      </Typography>
+    </View>
+  );
 }
 
 function DashboardCreateButton({
@@ -93,9 +143,16 @@ function DashboardCreateButton({
       accessibilityLabel={label}
       onPress={onPress}
       style={({ pressed }) => ({
+        alignItems: 'center',
+        backgroundColor: colors.background.selectedRow,
+        borderColor: colors.border.subtle,
+        borderRadius: RADIUS.round,
+        borderWidth: 1,
+        flexDirection: 'row',
+        minHeight: 36,
         opacity: pressed ? 0.72 : 1,
-        paddingHorizontal: 4,
-        paddingVertical: 5,
+        paddingHorizontal: SPACE.lg,
+        paddingVertical: SPACE.sm,
       })}
     >
       <Typography
@@ -110,115 +167,140 @@ function DashboardCreateButton({
 
 function TodayFocusSummary({ goals }: { goals: TodayCarouselGoal[] }) {
   const colors = useThemeColors();
+  const darkMode = useUIStore((state) => state.themeMode === 'dark');
+  const { width } = useWindowDimensions();
+  const stackedMetadata = width < 1440;
   const visibleGoals = goals.slice(0, 3);
 
   return (
-    <Card padding="none" style={{ flex: 1, minHeight: 224, overflow: 'hidden' }}>
+    <Card
+      elevation="md"
+      padding="spacious"
+      style={{ borderWidth: 0, flex: 1, minHeight: 286, overflow: 'hidden' }}
+    >
       <View
         style={{
           alignItems: 'center',
-          borderBottomColor: colors.border.divider,
-          borderBottomWidth: 1,
           flexDirection: 'row',
           justifyContent: 'space-between',
-          paddingHorizontal: 18,
-          paddingVertical: 15,
+          marginBottom: SPACE['3xl'],
         }}
       >
-        <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
-          <BrandIcon name="today" size={17} />
-          <Typography variant="eyebrow" style={{ color: colors.text.accent }}>
+        <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.lg }}>
+          <BrandIcon name="today" size={22} tintColor={colors.accent.primary} />
+          <Typography variant="eyebrow" style={{ color: colors.text.primary, fontSize: 12 }}>
             Today&apos;s Focus
           </Typography>
         </View>
-        <Typography variant="caption" style={{ color: colors.text.muted }}>
-          {visibleGoals.length} {visibleGoals.length === 1 ? 'priority' : 'priorities'}
-        </Typography>
+        <View
+          style={{
+            backgroundColor: colors.background.selectedRow,
+            borderRadius: RADIUS.round,
+            minHeight: 32,
+            justifyContent: 'center',
+            paddingHorizontal: SPACE.lg,
+          }}
+        >
+          <Typography variant="caption" style={{ color: colors.text.accent }}>
+            {visibleGoals.length} {visibleGoals.length === 1 ? 'priority' : 'priorities'}
+          </Typography>
+        </View>
       </View>
 
       {visibleGoals.length ? (
-        <View style={{ paddingHorizontal: 18 }}>
-          {visibleGoals.map((goal, index) => (
-            <View
+        <View style={{ gap: SPACE['3xl'] }}>
+          {visibleGoals.map((goal) => {
+            const categoryTheme = getCategoryAccentTheme(goal.category);
+            return (
+              <Pressable
               key={goal.id}
-              style={{
+              accessibilityHint="Opens this goal"
+              accessibilityLabel={`Open ${goal.title}`}
+              accessibilityRole="button"
+              onPress={() => router.push({
+                pathname: '/(app)/goals/[id]' as never,
+                params: { id: goal.id },
+              })}
+              style={({ pressed }) => ({
                 alignItems: 'center',
-                borderBottomColor: colors.border.warmSubtle,
-                borderBottomWidth: index < visibleGoals.length - 1 ? 1 : 0,
+                backgroundColor: pressed ? colors.background.selectedRow : 'transparent',
+                borderRadius: RADIUS.sm,
                 flexDirection: 'row',
-                gap: 12,
-                minHeight: 56,
-                paddingVertical: 10,
-              }}
+                minHeight: stackedMetadata ? 54 : 44,
+                paddingHorizontal: 0,
+              })}
             >
               <View
                 style={{
                   backgroundColor: colors.accent.primary,
-                  borderRadius: 4,
-                  height: 8,
-                  opacity: 0.72,
-                  width: 8,
+                  borderRadius: RADIUS.round,
+                  height: 10,
+                  marginRight: SPACE.xl,
+                  width: 10,
                 }}
               />
-              <View style={{ flex: 1, minWidth: 0 }}>
+              <View
+                style={{
+                  alignItems: stackedMetadata ? 'flex-start' : 'center',
+                  flex: 1,
+                  flexDirection: stackedMetadata ? 'column' : 'row',
+                  minWidth: 0,
+                }}
+              >
                 <Typography
                   ellipsizeMode="tail"
                   numberOfLines={1}
                   variant="content"
-                  style={{ fontFamily: 'Inter-Medium', fontSize: 14 }}
+                  style={{ flexShrink: 1, fontSize: 15, fontWeight: '500' }}
                 >
                   {goal.title}
                 </Typography>
-                <View style={{ alignItems: 'center', flexDirection: 'row', gap: 7, marginTop: 3 }}>
+                <View
+                  style={{
+                    backgroundColor: darkMode ? colors.background.input : categoryTheme.tint,
+                    borderRadius: RADIUS.round,
+                    marginLeft: stackedMetadata ? 0 : SPACE.lg,
+                    marginTop: stackedMetadata ? SPACE.xs : 0,
+                    maxWidth: 126,
+                    paddingHorizontal: SPACE.lg,
+                    paddingVertical: SPACE.xs,
+                  }}
+                >
                   <Typography
                     ellipsizeMode="tail"
                     numberOfLines={1}
                     variant="caption"
-                    style={{ color: colors.text.muted, flex: 1, fontSize: 10.5 }}
+                    style={{ color: darkMode ? categoryTheme.color : categoryTheme.mid, fontSize: 11 }}
                   >
-                    {goal.projectTitle ?? `${goal.category.charAt(0).toUpperCase()}${goal.category.slice(1)}`}
+                    {goal.projectTitle ?? formatCategoryLabel(goal.category)}
                   </Typography>
-                  <Typography variant="caption" style={{ color: colors.text.accent, fontSize: 10.5 }}>
-                    {Math.round(goal.progress)}% complete
-                  </Typography>
-                </View>
-                <View
-                  style={{
-                    backgroundColor: colors.background.input,
-                    borderRadius: 999,
-                    height: 3,
-                    marginTop: 5,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <View
-                    style={{
-                      backgroundColor: colors.accent.primary,
-                      borderRadius: 999,
-                      height: '100%',
-                      width: `${Math.min(100, Math.max(0, goal.progress))}%`,
-                    }}
-                  />
                 </View>
               </View>
-              <Pressable
-                accessibilityHint="Opens this goal"
-                accessibilityLabel={`Open ${goal.title}`}
-                accessibilityRole="button"
-                hitSlop={10}
-                onPress={() => router.push({
-                  pathname: '/(app)/goals/[id]' as never,
-                  params: { id: goal.id },
-                })}
-                style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: 4 })}
+              <Typography
+                variant="caption"
+                style={{ color: colors.text.accent, marginLeft: SPACE.lg, minWidth: 32, textAlign: 'right' }}
+              >
+                {Math.round(goal.progress)}%
+              </Typography>
+              <View
+                style={{
+                  alignItems: 'center',
+                  backgroundColor: colors.background.subtle,
+                  borderRadius: RADIUS.round,
+                  height: 32,
+                  justifyContent: 'center',
+                  marginLeft: SPACE.xl,
+                  width: 32,
+                }}
               >
                 <Ionicons color={colors.text.accent} name="chevron-forward" size={17} />
+              </View>
               </Pressable>
-            </View>
-          ))}
+            );
+          })}
         </View>
       ) : (
-        <View style={{ flex: 1, justifyContent: 'center', padding: 18 }}>
+        <View style={{ flex: 1, justifyContent: 'center', paddingVertical: SPACE['2xl'] }}>
           <Typography variant="meta" style={{ color: colors.text.muted }}>
             No active goals yet.
           </Typography>
@@ -237,81 +319,158 @@ function TodayFocusSummary({ goals }: { goals: TodayCarouselGoal[] }) {
   );
 }
 
-function MomentumCard() {
+function MomentumMetric({ icon, label, supporting, value }: {
+  icon: ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  supporting?: string;
+  value: number | null;
+}) {
+  const colors = useThemeColors();
+  return (
+    <View style={{
+      backgroundColor: colors.background.subtle,
+      borderRadius: RADIUS.lg,
+      flex: 1,
+      minHeight: 116,
+      padding: SPACE.xl,
+    }}>
+      <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.lg }}>
+        <Ionicons color={colors.text.accent} name={icon} size={28} />
+        <Typography variant="title" style={{ fontSize: 28, fontWeight: '500', lineHeight: 34 }}>
+          {value ?? '—'}
+        </Typography>
+      </View>
+      <Typography variant="label" style={{ color: colors.text.primary, marginLeft: 40, marginTop: SPACE.sm }}>
+        {label}
+      </Typography>
+      {supporting ? (
+        <Typography variant="caption" style={{ marginLeft: 40, marginTop: 2 }}>{supporting}</Typography>
+      ) : null}
+    </View>
+  );
+}
+
+function momentumChangeLabel(summary: MomentumHomeSummary | null): string {
+  if (!summary || summary.weeklyChange === null) return 'Unavailable';
+  const rounded = Math.round(summary.weeklyChange * 100) / 100;
+  if (Math.abs(rounded) < 0.01) return 'No change this week';
+  return `${rounded > 0 ? '+' : ''}${rounded} this week`;
+}
+
+function momentumValueLabel(summary: MomentumHomeSummary | null): string {
+  if (!summary || summary.currentValue === null) return 'Unavailable';
+  return summary.currentValue.toFixed(2);
+}
+
+function MomentumCard({
+  error,
+  isLoading,
+  summary,
+}: {
+  error: string | null;
+  isLoading: boolean;
+  summary: MomentumHomeSummary | null;
+}) {
   const colors = useThemeColors();
   const [expanded, setExpanded] = useState(false);
+  const hasTrend = Boolean(summary && summary.trendPoints.length >= 2);
 
   return (
     <>
-      <Card padding="none" style={{ flex: 1, minHeight: 224, overflow: 'hidden' }}>
-        <View style={{ padding: 18 }}>
-          <View style={{ alignItems: 'flex-start', flexDirection: 'row', justifyContent: 'space-between' }}>
-            <View>
-              <View style={{ alignItems: 'center', flexDirection: 'row', gap: 7 }}>
-                <Typography variant="eyebrow" style={{ color: colors.text.accent }}>
-                  Ohara Momentum
-                </Typography>
-                <View
-                  style={{
-                    backgroundColor: colors.background.input,
-                    borderRadius: 999,
-                    paddingHorizontal: 7,
-                    paddingVertical: 3,
-                  }}
-                >
-                  <Typography variant="badge-text" style={{ color: colors.text.accent }}>
-                    Preview
-                  </Typography>
+      <Card
+        elevation="md"
+        padding="none"
+        style={{ borderWidth: 0, flex: 1, minHeight: 604, overflow: 'hidden' }}
+      >
+        <View style={{ flex: 1, padding: SPACE['3xl'] }}>
+          <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Typography variant="eyebrow" style={{ color: colors.text.primary, fontSize: 12 }}>
+              Momentum
+            </Typography>
+            <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}>
+              <View style={{
+                alignItems: 'center', backgroundColor: colors.background.input,
+                borderRadius: RADIUS.md, height: 44, justifyContent: 'center', paddingHorizontal: SPACE.lg,
+              }}>
+                <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
+                  <Typography variant="caption" style={{ color: colors.text.primary }}>This Week</Typography>
+                  <Ionicons color={colors.text.secondary} name="chevron-down" size={13} />
                 </View>
               </View>
-              <View style={{ alignItems: 'baseline', flexDirection: 'row', gap: 8, marginTop: 8 }}>
-                <Typography variant="title" style={{ fontFamily: 'Inter-SemiBold', fontSize: 18 }}>
-                  Building
-                </Typography>
-                <Typography variant="caption" style={{ color: colors.text.accent }}>
-                  +8% this week
-                </Typography>
-              </View>
+              <Pressable
+                accessibilityLabel="Expand Ohara Momentum chart"
+                accessibilityRole="button"
+                hitSlop={10}
+                onPress={() => setExpanded(true)}
+                style={({ pressed }) => ({
+                  alignItems: 'center',
+                  backgroundColor: colors.background.input,
+                  borderRadius: RADIUS.md,
+                  height: 44,
+                  justifyContent: 'center',
+                  opacity: pressed ? 0.58 : 1,
+                  width: 44,
+                })}
+              >
+                <Ionicons color={colors.text.accent} name="expand-outline" size={17} />
+              </Pressable>
             </View>
-            <Pressable
-              accessibilityLabel="Expand sample Ohara Momentum chart"
-              accessibilityRole="button"
-              hitSlop={10}
-              onPress={() => setExpanded(true)}
-              style={({ pressed }) => ({
-                alignItems: 'center',
-                backgroundColor: colors.background.input,
-                borderRadius: 9,
-                height: 30,
-                justifyContent: 'center',
-                opacity: pressed ? 0.58 : 1,
-                width: 30,
-              })}
-            >
-              <Ionicons color={colors.text.accent} name="expand-outline" size={16} />
-            </Pressable>
           </View>
-          <View style={{ marginTop: 12 }}>
-            <MomentumTrendChart />
-          </View>
+
           <View
             style={{
-              borderTopColor: colors.border.warmSubtle,
-              borderTopWidth: 1,
-              marginTop: 8,
-              paddingTop: 10,
+              backgroundColor: colors.border.warmSubtle,
+              height: 1,
+              marginTop: SPACE.xl,
             }}
-          >
+          />
+          <View style={{ alignItems: 'baseline', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.lg, marginTop: SPACE['2xl'] }}>
+            <Typography variant="title" style={{ fontSize: 28, fontWeight: '500', lineHeight: 36 }}>
+              {isLoading ? 'Calculating…' : summary?.status ?? 'Unavailable'}
+            </Typography>
+            {!isLoading && summary?.currentValue !== null ? (
+              <Typography variant="caption" style={{ color: colors.text.accent, fontSize: 13 }}>
+                {momentumValueLabel(summary)} · {momentumChangeLabel(summary)}
+              </Typography>
+            ) : null}
+          </View>
+
+          <View style={{ marginTop: SPACE.lg }}>
+            {hasTrend && summary ? (
+              <MomentumTrendChart height={244} points={summary.trendPoints} xLabels={summary.trendLabels} />
+            ) : (
+              <View style={{ alignItems: 'center', height: 244, justifyContent: 'center' }}>
+                <Typography variant="description" style={{ color: colors.text.secondary }}>
+                  {isLoading ? 'Preparing this week’s Momentum…' : error ?? 'Momentum will appear after an authoritative calculation.'}
+                </Typography>
+              </View>
+            )}
+          </View>
+          <View style={{ flexDirection: 'row', gap: SPACE.lg, marginTop: SPACE.lg }}>
+            <MomentumMetric
+              icon="flame-outline"
+              label="Weekly Streak"
+              value={summary?.weeklyStreak ?? null}
+            />
+            <MomentumMetric
+              icon="checkmark-circle-outline"
+              label="Tasks Completed"
+              supporting="This Week"
+              value={summary?.tasksCompletedThisWeek ?? null}
+            />
+          </View>
+          <View style={{ flex: 1, justifyContent: 'flex-end', marginTop: SPACE.lg }}>
             <Pressable
               accessibilityRole="link"
               onPress={() => router.push('/(app)/momentum' as never)}
               style={({ pressed }) => ({
                 alignSelf: 'flex-start',
                 opacity: pressed ? 0.55 : 1,
-                paddingVertical: 3,
+                minHeight: 44,
+                justifyContent: 'center',
               })}
             >
-              <Typography variant="emphasis-sm" style={{ color: colors.text.accent, fontSize: 12 }}>
+              <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>
                 See full Momentum →
               </Typography>
             </Pressable>
@@ -359,8 +518,10 @@ function MomentumCard() {
           >
             <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}>
               <View>
-                <Typography variant="eyebrow" style={{ color: colors.text.accent }}>Ohara Momentum</Typography>
-                <Typography variant="title" style={{ marginTop: 6 }}>Building · +8% this week</Typography>
+                <Typography variant="eyebrow" style={{ color: colors.text.accent }}>Momentum</Typography>
+                <Typography variant="title" style={{ marginTop: 6 }}>
+                  {summary?.status ?? 'Unavailable'} · {momentumValueLabel(summary)} · {momentumChangeLabel(summary)}
+                </Typography>
               </View>
               <Pressable
                 accessibilityLabel="Close"
@@ -372,19 +533,192 @@ function MomentumCard() {
               </Pressable>
             </View>
             <View style={{ marginVertical: 20, pointerEvents: 'none' }}>
-              <MomentumTrendChart
-                height={260}
-                showAxes
-                xLabels={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
-              />
+              {hasTrend && summary ? (
+                <MomentumTrendChart height={260} points={summary.trendPoints} showAxes xLabels={summary.trendLabels} />
+              ) : (
+                <Typography variant="description" style={{ color: colors.text.secondary }}>
+                  {error ?? 'Momentum is not available yet.'}
+                </Typography>
+              )}
             </View>
-            <Typography variant="caption" style={{ color: colors.text.muted }}>
-              Sample Ohara Momentum data for layout preview only.
-            </Typography>
           </View>
         </View>
       </Modal>
     </>
+  );
+}
+
+type GoalActivityPreview = {
+  at: Date;
+  label: string;
+};
+
+function resolveGoalActivity(
+  goal: GoalWithDetails,
+  reflectionAt?: string | null,
+): GoalActivityPreview | null {
+  const candidates: GoalActivityPreview[] = [];
+  const completedMilestone = [...goal.milestones]
+    .filter((milestone) => milestone.completedAt)
+    .sort((a, b) => (b.completedAt?.getTime() ?? 0) - (a.completedAt?.getTime() ?? 0))[0];
+
+  if (completedMilestone?.completedAt) {
+    candidates.push({
+      at: completedMilestone.completedAt,
+      label: `Completed ${completedMilestone.title}`,
+    });
+  }
+  if (reflectionAt) {
+    const parsedReflectionAt = new Date(reflectionAt);
+    if (!Number.isNaN(parsedReflectionAt.getTime())) {
+      candidates.push({ at: parsedReflectionAt, label: 'Logged reflection' });
+    }
+  }
+  if (goal.updatedAt.getTime() > goal.createdAt.getTime() + 60_000) {
+    candidates.push({ at: goal.updatedAt, label: 'Goal updated' });
+  }
+
+  return candidates.sort((a, b) => b.at.getTime() - a.at.getTime())[0] ?? null;
+}
+
+function HomeGoalPreview({ goal, activityAt }: { goal: GoalWithDetails; activityAt?: string | null }) {
+  const colors = useThemeColors();
+  const darkMode = useUIStore((state) => state.themeMode === 'dark');
+  const categoryTheme = getCategoryAccentTheme(goal.category);
+  const recentActivity = resolveGoalActivity(goal, activityAt);
+  const nextMilestone = goal.milestones.find((milestone) => !milestone.completedAt);
+  const nextTracker = goal.trackers.find((tracker) => (
+    tracker.targetValue === null || tracker.currentValue < tracker.targetValue
+  ));
+  const nextLabel = nextMilestone?.title ?? nextTracker?.title ?? null;
+  const nextDate = nextMilestone?.dueDate ?? goal.deadline;
+  const hasActivityDetails = Boolean(recentActivity || nextLabel);
+
+  return (
+    <Pressable
+      accessibilityLabel={`Open ${goal.title}`}
+      accessibilityRole="button"
+      onPress={() => router.push(`/(app)/goals/${goal.id}` as never)}
+      style={({ pressed }) => ({
+        backgroundColor: pressed ? colors.background.selectedRow : colors.background.subtle,
+        borderColor: colors.border.warmSubtle,
+        borderRadius: RADIUS.lg,
+        borderWidth: 1,
+        minHeight: hasActivityDetails ? 218 : 124,
+        opacity: pressed ? 0.8 : 1,
+        padding: SPACE.xl,
+      })}
+    >
+      <View style={{ alignItems: 'flex-start', flexDirection: 'row', gap: SPACE.xl }}>
+        <View
+          style={{
+            alignItems: 'center',
+            backgroundColor: darkMode ? colors.background.input : categoryTheme.tint,
+            borderRadius: RADIUS.round,
+            height: 48,
+            justifyContent: 'center',
+            width: 48,
+          }}
+        >
+          <BrandIcon name="goal-mark" size={25} tintColor={categoryTheme.color} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Typography numberOfLines={1} variant="title" style={{ fontSize: 16, fontWeight: '500', lineHeight: 24 }}>
+            {goal.title}
+          </Typography>
+          <Typography variant="caption" style={{ color: colors.text.secondary, marginTop: SPACE.xs }}>
+            {formatCategoryLabel(goal.category)}
+          </Typography>
+          {goal.description ? (
+            <Typography ellipsizeMode="tail" numberOfLines={2} variant="description" style={{ color: colors.text.secondary, marginTop: SPACE.sm }}>
+              {goal.description}
+            </Typography>
+          ) : null}
+        </View>
+        <ProgressRing progress={goal.progress} size={58} strokeWidth={4} variant="warm" />
+      </View>
+      {hasActivityDetails ? (
+        <View
+          style={{
+            borderTopColor: colors.border.warmSubtle,
+            borderTopWidth: 1,
+            flexDirection: 'row',
+            gap: SPACE.xl,
+            marginTop: SPACE.xl,
+            paddingTop: SPACE.lg,
+          }}
+        >
+          {recentActivity ? (
+            <View style={{ flex: 1 }}>
+              <Typography variant="eyebrow" style={{ color: colors.text.accent }}>Recent activity</Typography>
+              <Typography numberOfLines={1} variant="description" style={{ color: colors.text.primary, marginTop: SPACE.xs }}>
+                {recentActivity.label}
+              </Typography>
+              <Typography variant="caption" style={{ marginTop: 2 }}>
+                {formatRelativeTime(recentActivity.at.toISOString())}
+              </Typography>
+            </View>
+          ) : null}
+          {nextLabel ? (
+            <View style={{ flex: 1 }}>
+              <Typography variant="eyebrow" style={{ color: colors.text.accent }}>Next step</Typography>
+              <Typography numberOfLines={1} variant="description" style={{ color: colors.text.primary, marginTop: SPACE.xs }}>
+                {nextLabel}
+              </Typography>
+              {nextDate ? (
+                <Typography variant="caption" style={{ marginTop: 2 }}>
+                  {formatRelativeTime(nextDate.toISOString())}
+                </Typography>
+              ) : null}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
+function HomeGoalsPreview({ goals, reflectionTimestamps }: {
+  goals: GoalWithDetails[];
+  reflectionTimestamps: ReflectionTimestampsByGoalId;
+}) {
+  const colors = useThemeColors();
+  const visibleGoals = useMemo(
+    () => [...goals]
+      .sort((a, b) => {
+        const activityA = resolveGoalActivity(a, reflectionTimestamps[a.id]);
+        const activityB = resolveGoalActivity(b, reflectionTimestamps[b.id]);
+        if (activityA && activityB) return activityB.at.getTime() - activityA.at.getTime();
+        if (activityA) return -1;
+        if (activityB) return 1;
+        return b.updatedAt.getTime() - a.updatedAt.getTime();
+      })
+      .slice(0, 2),
+    [goals, reflectionTimestamps],
+  );
+
+  return (
+    <Card elevation="md" padding="spacious" style={{ borderWidth: 0, flex: 1, minHeight: 604 }}>
+      <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACE['2xl'] }}>
+        <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}>
+          <BrandIcon name="goals" size={22} tintColor={colors.accent.primary} />
+          <Typography variant="eyebrow" style={{ color: colors.text.primary, fontSize: 12 }}>Goals</Typography>
+        </View>
+        <DashboardCreateButton label="New Goal" onPress={() => router.push('/goals/create')} />
+      </View>
+      <View style={{ gap: SPACE.xl }}>
+        {visibleGoals.map((goal) => (
+          <HomeGoalPreview key={goal.id} goal={goal} activityAt={reflectionTimestamps[goal.id]} />
+        ))}
+        {!visibleGoals.length ? <Typography variant="hint">No active goals yet.</Typography> : null}
+      </View>
+      <Pressable
+        onPress={() => router.push('/(app)/goals' as never)}
+        style={({ pressed }) => ({ justifyContent: 'center', minHeight: 44, opacity: pressed ? 0.6 : 1, marginTop: SPACE.lg })}
+      >
+        <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>View all Goals →</Typography>
+      </Pressable>
+    </Card>
   );
 }
 
@@ -786,20 +1120,23 @@ function EchoZone({
   const colors = useThemeColors();
 
   return (
-    <View
-      className="rounded-2xl border"
-      style={{
-        backgroundColor: colors.background.card,
-        borderColor: colors.border.divider,
-        paddingHorizontal: 18,
-        paddingVertical: 15,
-      }}
+    <Card
+      elevation="md"
+      padding="spacious"
+      style={{ borderWidth: 0, flex: 1, minHeight: 194 }}
     >
-      <View style={{ alignItems: 'center', flexDirection: 'row', gap: 18 }}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="eyebrow" style={{ color: colors.text.accent, marginBottom: 7 }}>
-            Recent Entry
-          </Typography>
+      <View style={{ flex: 1 }}>
+        <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.lg, marginBottom: SPACE.xl }}>
+            <BrandIcon name="echo" size={20} tintColor={colors.accent.primary} />
+            <Typography variant="eyebrow" style={{ color: colors.text.primary, fontSize: 12 }}>
+              Echo
+            </Typography>
+        </View>
+        <Typography variant="title" style={{ fontSize: 22, fontWeight: '500', lineHeight: 30, marginBottom: SPACE.sm }}>
+          Reflect on today
+        </Typography>
+        <View style={{ alignItems: 'flex-end', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.xl }}>
+          <View style={{ flex: 1, minWidth: 180 }}>
           {latestEntryLoading ? (
             <View
               className="h-3 w-1/2 rounded-full"
@@ -810,25 +1147,25 @@ function EchoZone({
               <Typography
                 ellipsizeMode="tail"
                 numberOfLines={2}
-                variant="meta"
-                style={{ color: colors.text.primary, lineHeight: 18 }}
+                variant="body"
+                style={{ color: colors.text.secondary }}
               >
                 {latestEntryContent}
               </Typography>
-              <Typography variant="caption" style={{ marginTop: 4 }}>
-                Last added: {formatRelativeTime(latestEntryDate.toISOString())}
+              <Typography variant="caption" style={{ marginTop: SPACE.sm }}>
+                Latest reflection · {formatRelativeTime(latestEntryDate.toISOString())}
               </Typography>
             </>
           ) : (
-            <Typography variant="meta" style={{ color: colors.text.muted }}>
-              Your entries will appear here.
+            <Typography variant="body" style={{ color: colors.text.secondary }}>
+              Capture what you noticed today and give it space to become understanding.
             </Typography>
           )}
-        </View>
-        <Pressable
-          accessibilityLabel="Open entries"
+          </View>
+          <Pressable
+          accessibilityLabel="Start a new reflection"
           accessibilityRole="button"
-          onPress={() => router.push('/(app)/echo' as never)}
+          onPress={() => router.push('/(app)/entries/reflection' as never)}
           style={({ pressed }) => ({
             alignItems: 'center',
             backgroundColor: colors.background.selectedRow,
@@ -836,17 +1173,19 @@ function EchoZone({
             flexDirection: 'row',
             gap: 5,
             opacity: pressed ? 0.68 : 1,
-            paddingHorizontal: 13,
-            paddingVertical: 8,
+            minHeight: 44,
+            paddingHorizontal: SPACE.xl,
+            paddingVertical: SPACE.md,
           })}
         >
           <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>
-            Open Entries
+            New Reflection
           </Typography>
-          <Ionicons color={colors.text.accent} name="arrow-forward" size={14} />
+          <Ionicons color={colors.text.accent} name="create-outline" size={15} />
         </Pressable>
+        </View>
       </View>
-    </View>
+    </Card>
   );
 }
 
@@ -942,15 +1281,16 @@ export default function DashboardScreen() {
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
   const compact = width < 720;
-  const primaryRowSideBySide = width >= 1100;
-  const dashboardHorizontalPadding = width >= 1600 ? 56 : width >= 1024 ? 36 : width >= 720 ? 28 : 20;
+  const tablet = width >= 720 && width < 1180;
+  const primaryRowSideBySide = width >= 1180;
+  const dashboardHorizontalPadding = compact ? 0 : undefined;
   const routeParams = useLocalSearchParams<{
     draftSaved?: string | string[];
     goalFilter?: string | string[];
   }>();
   const { goals, isLoading: goalsLoading } = useGoals();
-  const { user } = useAuth();
   const { session } = useSession();
+  const momentum = useMomentumHomeSummary();
   const { projects, isLoading: projectsLoading, loadProjects } = useProjectStore();
   const { latestEntry, isLoading: latestEntryLoading } = useDashboardLatestEntry(
     FEATURES.ECHO_ENABLED ? session?.user.id ?? null : null,
@@ -1090,10 +1430,7 @@ export default function DashboardScreen() {
     () => selectActiveGoals(goals),
     [goals],
   );
-  const activeGoalIds = useMemo(
-    () => activeGoals.map((goal) => goal.id),
-    [activeGoals],
-  );
+  const activeGoalIds = useMemo(() => activeGoals.map((goal) => goal.id), [activeGoals]);
   const activeGoalIdsKey = activeGoalIds.join(',');
 
   useEffect(() => {
@@ -1106,7 +1443,6 @@ export default function DashboardScreen() {
     const timing = startPerformanceTimer('dashboard.active-goal-reflections', {
       phase: 'initial-load',
     });
-
     async function loadReflectionTimestamps() {
       try {
         const timestamps = await fetchActiveGoalReflectionTimestamps(activeGoalIds);
@@ -1141,58 +1477,101 @@ export default function DashboardScreen() {
     [orderedActiveGoals, projects],
   );
 
-  const displayName = displayNameFromEmail(user?.email);
-  const greeting = displayName
-    ? `${getGreeting()}, ${displayName}.`
-    : `${getGreeting()}.`;
+  const displayName = displayNameFromMetadata(session?.user.user_metadata)
+    ?? displayNameFromEmail(session?.user.email);
+
+  const greetingCard = (
+    <DashboardGreeting
+      displayName={displayName}
+      momentumLoading={momentum.isLoading}
+      weeklyStreak={momentum.summary?.weeklyStreak ?? null}
+    />
+  );
+  const todayCard = <TodayFocusSummary goals={todayGoals} />;
+  const momentumCard = (
+    <MomentumCard
+      error={momentum.error}
+      isLoading={momentum.isLoading}
+      summary={momentum.summary}
+    />
+  );
+  const goalsCard = (
+    <HomeGoalsPreview goals={orderedActiveGoals} reflectionTimestamps={reflectionTimestamps} />
+  );
+  const echoCard = FEATURES.ECHO_ENABLED ? (
+    <EchoZone
+      latestEntryContent={latestEntry?.preview ?? null}
+      latestEntryDate={latestEntry?.createdAt ?? null}
+      latestEntryLoading={latestEntryLoading}
+    />
+  ) : null;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.page }}>
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
-          paddingHorizontal: dashboardHorizontalPadding,
-          paddingBottom: 104,
-          paddingTop: compact ? 16 : 28,
+          paddingLeft: dashboardHorizontalPadding ?? SPACE['3xl'],
+          paddingRight: dashboardHorizontalPadding ?? SPACE['3xl'],
+          paddingBottom: compact ? 104 : SPACE.lg,
+          paddingTop: compact ? 0 : SPACE.lg,
         }}
       >
-        <View style={{ alignSelf: 'center', maxWidth: 1560, width: '100%' }}>
-        {/* Header */}
-        <View style={{ marginBottom: 20 }}>
-          <View>
-            <Typography variant="greeting">
-              {greeting}
-            </Typography>
-            <Typography variant="meta">
-              {getDateLabel()}
-            </Typography>
-          </View>
-        </View>
+        <View
+          style={{
+            alignSelf: 'stretch',
+            backgroundColor: colors.background.card,
+            borderColor: colors.border.warmSubtle,
+            borderRadius: compact ? 0 : RADIUS.xl,
+            borderWidth: compact ? 0 : 1,
+            minWidth: 0,
+            padding: compact ? SPACE.xl : SPACE['2xl'],
+            width: '100%',
+          }}
+        >
 
         {goalsLoading || projectsLoading ? (
           <DashboardSkeleton />
         ) : (
-          <View style={{ gap: 24 }}>
-            {/* Zone 1: Today's Focus */}
-            <View
-              style={{
-                alignItems: 'stretch',
-                flexDirection: primaryRowSideBySide ? 'row' : 'column',
-                gap: 14,
-              }}
-            >
-              <View style={{ flex: primaryRowSideBySide ? 1.65 : undefined }}>
-                <TodayFocusSummary goals={todayGoals} />
+          <View style={{ gap: SPACE['3xl'] }}>
+            {primaryRowSideBySide ? (
+              <View style={{ alignItems: 'stretch', flexDirection: 'row', gap: SPACE['3xl'] }}>
+                <View style={{ flex: 0.3, gap: SPACE['3xl'], minWidth: 0 }}>
+                  {greetingCard}
+                  {todayCard}
+                  {echoCard}
+                </View>
+                <View style={{ flex: 0.34, minWidth: 0 }}>{momentumCard}</View>
+                <View style={{ flex: 0.36, minWidth: 0 }}>{goalsCard}</View>
               </View>
-              <View style={{ flex: primaryRowSideBySide ? 1 : undefined }}>
-                <MomentumCard />
+            ) : tablet ? (
+              <View style={{ gap: SPACE['3xl'] }}>
+                <View style={{ alignItems: 'stretch', flexDirection: 'row', gap: SPACE['3xl'] }}>
+                  <View style={{ flex: 1, gap: SPACE['3xl'], minWidth: 0 }}>
+                    {greetingCard}
+                    {todayCard}
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>{momentumCard}</View>
+                </View>
+                <View style={{ alignItems: 'stretch', flexDirection: 'row', gap: SPACE['3xl'] }}>
+                  <View style={{ flex: 1, minWidth: 0 }}>{goalsCard}</View>
+                  <View style={{ flex: 1, minWidth: 0 }}>{echoCard}</View>
+                </View>
               </View>
-            </View>
+            ) : (
+              <View style={{ gap: SPACE['3xl'] }}>
+                {greetingCard}
+                {todayCard}
+                {momentumCard}
+                {goalsCard}
+                {echoCard}
+              </View>
+            )}
 
             {/* Zone 2: Projects */}
-            <View>
-              <View className="mb-3 flex-row items-center justify-between">
-                <Typography variant="eyebrow">
+            <Card elevation="md" padding="spacious" style={{ borderWidth: 0 }}>
+              <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACE.xl }}>
+                <Typography variant="eyebrow" style={{ color: colors.text.primary, fontSize: 12 }}>
                   Projects
                 </Typography>
                 <DashboardCreateButton
@@ -1211,15 +1590,28 @@ export default function DashboardScreen() {
               ) : (
                 <Typography variant="hint">No projects yet.</Typography>
               )}
-            </View>
+            </Card>
 
             {/* Zone 3: Standalone Goals */}
-            <View>
-              <View className="mb-3 flex-row items-center justify-between">
+            {draftsRequested ? <Card elevation="sm" padding="spacious">
+              <View style={{ alignItems: 'flex-start', flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACE.xl }}>
                 <View style={{ alignItems: 'center', flexDirection: 'row', gap: 6 }}>
-                  <Typography variant="eyebrow">
-                    {draftsRequested ? 'Drafts' : 'Goals'}
-                  </Typography>
+                  <BrandIcon name="goals" size={20} tintColor={colors.accent.primary} />
+                  <View>
+                    <Typography variant="eyebrow" style={{ color: colors.text.accent }}>
+                      {draftsRequested ? 'Drafts' : 'Goals'}
+                    </Typography>
+                    <Typography variant="title" style={{ fontSize: 20, marginTop: 4 }}>
+                      {draftsRequested ? 'Ideas waiting for your return' : 'Where your attention is taking you'}
+                    </Typography>
+                  </View>
+                </View>
+                <DashboardCreateButton
+                  label="New Goal"
+                  onPress={() => router.push('/goals/create')}
+                />
+              </View>
+              <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8, marginBottom: SPACE.xl }}>
                   <Pressable
                     accessibilityLabel={draftsRequested ? 'Show all goals' : 'Show draft goals'}
                     accessibilityRole="button"
@@ -1230,12 +1622,13 @@ export default function DashboardScreen() {
                     }}
                     style={({ pressed }) => ({
                       backgroundColor: draftsRequested ? colors.background.selectedRow : 'transparent',
-                      borderColor: colors.border.warm,
+                      borderColor: draftsRequested ? colors.border.accent : colors.border.subtle,
                       borderRadius: 999,
                       borderWidth: 1,
                       opacity: pressed ? 0.55 : 1,
-                      paddingHorizontal: 8,
-                      paddingVertical: 4,
+                      minHeight: 36,
+                      justifyContent: 'center',
+                      paddingHorizontal: 14,
                     })}
                   >
                     <Typography variant="badge-text" style={{ color: colors.text.accent }}>
@@ -1259,10 +1652,10 @@ export default function DashboardScreen() {
                       borderColor: colors.border.warm,
                       borderRadius: 999,
                       borderWidth: 1,
-                      height: 26,
+                      height: 36,
                       justifyContent: 'center',
                       opacity: pressed ? 0.55 : 1,
-                      width: 34,
+                      width: 44,
                     })}
                   >
                     <Ionicons
@@ -1271,11 +1664,6 @@ export default function DashboardScreen() {
                       size={16}
                     />
                   </Pressable>
-                </View>
-                <DashboardCreateButton
-                  label="New Goal"
-                  onPress={() => router.push('/goals/create')}
-                />
               </View>
               {standaloneGoalsView === 'list' ? (
                 visibleStandaloneGoals.length > 0 ? (
@@ -1338,7 +1726,7 @@ export default function DashboardScreen() {
                   </Typography>
                 </Pressable>
               ) : null}
-            </View>
+            </Card> : null}
 
             {/* Zone 5: Intelligence */}
             <IntelligenceZone
@@ -1347,7 +1735,7 @@ export default function DashboardScreen() {
             />
 
             {/* Zone 4: Echo */}
-            {FEATURES.ECHO_ENABLED ? (
+            {false && FEATURES.ECHO_ENABLED ? (
               <EchoZone
                 latestEntryContent={latestEntry?.preview ?? null}
                 latestEntryDate={latestEntry?.createdAt ?? null}

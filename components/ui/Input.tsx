@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { View, TextInput, type TextInputProps } from 'react-native';
+import { View, TextInput, type StyleProp, type TextInputProps, type TextStyle } from 'react-native';
 import { Typography } from '@/components/ui/Typography';
+import { CONTROL, RADIUS, SPACE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
 
 interface InputProps {
@@ -15,6 +16,8 @@ interface InputProps {
   maxLength?: number;
   disabled?: boolean;
   error?: string | null;
+  helpText?: string;
+  inputStyle?: StyleProp<TextStyle>;
 }
 
 export function Input({
@@ -29,6 +32,8 @@ export function Input({
   maxLength,
   disabled = false,
   error = null,
+  helpText,
+  inputStyle,
 }: InputProps) {
   const colors = useThemeColors();
   const [focused, setFocused] = useState(false);
@@ -38,8 +43,7 @@ export function Input({
       <Typography variant="field-label" className="mb-1.5">{label}</Typography>
       <TextInput
         accessibilityLabel={label}
-        className="rounded-2xl border px-4 py-3.5 font-sans text-base"
-        style={{
+        style={[{
           backgroundColor: colors.background.input,
           borderColor: error
             ? colors.feedback.danger.border
@@ -47,8 +51,15 @@ export function Input({
               ? colors.border.accent
               : colors.border.input,
           color: colors.text.primary,
+          borderRadius: RADIUS.md,
+          borderWidth: 1,
+          fontFamily: 'Inter-Regular',
+          fontSize: 15,
+          minHeight: multiline ? 112 : CONTROL.defaultHeight,
           opacity: disabled ? 0.5 : 1,
-        }}
+          paddingHorizontal: SPACE.xl,
+          paddingVertical: SPACE.lg,
+        }, inputStyle]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -71,6 +82,10 @@ export function Input({
           style={{ color: colors.feedback.danger.text, marginTop: 6 }}
         >
           {error}
+        </Typography>
+      ) : helpText ? (
+        <Typography variant="caption" style={{ marginTop: SPACE.sm }}>
+          {helpText}
         </Typography>
       ) : null}
     </View>

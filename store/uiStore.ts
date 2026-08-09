@@ -54,7 +54,7 @@ export const useUIStore = create<UIStore>()(
       echoMiddleMode: 'list',
       dashboardGoalsView: 'list',
       constellationLegendCollapsed: false,
-      entriesIntelligenceOpen: false,
+      entriesIntelligenceOpen: true,
       themeMode: 'light',
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
       toggleSidebarCollapsed: () =>

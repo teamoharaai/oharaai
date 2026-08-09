@@ -92,7 +92,7 @@ create table public.goals (
   project_id   uuid,
   visibility   text not null default 'private' check (visibility in ('private','circle','public')),
   space_id     uuid,
-  embedding       vector,
+  embedding       vector(1024),
   embedding_text  text,
   embedding_model text
   -- NOTE: project_id/space_id FK constraints (goals_project_id_fkey,

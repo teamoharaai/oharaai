@@ -1,0 +1,3 @@
+-- Intentionally contains no application fixtures.
+-- Momentum validation data is created by the guarded local integration harness
+-- so dates can be resolved against the test user's current local week.

@@ -17,6 +17,7 @@ export interface ConstellationVisualTokens {
   readonly canvas: {
     readonly background: string;
     readonly backgroundDeep: string;
+    readonly ambient: string;
     readonly orbit: string;
     readonly grain: string;
     readonly halo: Record<ConstellationBrtCategory | 'teal', string>;
@@ -73,8 +74,9 @@ export function createConstellationVisualTokens(
     appearance,
     canvas: {
       background: colors.background.page,
-      backgroundDeep: dark ? colors.effects.shadow : colors.background.goalCard,
-      orbit: dark ? colors.border.accent : colors.border.divider,
+      backgroundDeep: dark ? colors.background.subtle : colors.background.card,
+      ambient: colors.background.selectedRow,
+      orbit: dark ? colors.border.input : colors.border.divider,
       grain: dark ? colors.text.mutedOnDark : colors.text.muted,
       halo: {
         bud: colors.brt.bud,

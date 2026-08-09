@@ -1,6 +1,7 @@
 import { Pressable, View } from 'react-native';
 import { Typography } from '@/components/ui/Typography';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
+import { RADIUS, SPACE } from '@/constants/design';
 
 export interface SegmentedControlOption<T extends string> {
   value: T;
@@ -31,11 +32,11 @@ export function SegmentedControl<T extends string>({
         alignSelf: 'center',
         backgroundColor: colors.background.input,
         borderColor: colors.border.warm,
-        borderRadius: 999,
+        borderRadius: RADIUS.round,
         borderWidth: 1,
         flexDirection: 'row',
-        gap: 4,
-        padding: 4,
+        gap: SPACE.xs,
+        padding: SPACE.xs,
       }}
     >
       {options.map((option) => {
@@ -48,10 +49,12 @@ export function SegmentedControl<T extends string>({
             onPress={() => onChange(option.value)}
             style={({ pressed }) => ({
               alignItems: 'center',
-              backgroundColor: selected ? colors.accent.primary : 'transparent',
-              borderRadius: 999,
+              backgroundColor: selected ? colors.background.card : 'transparent',
+              borderColor: selected ? colors.border.subtle : 'transparent',
+              borderRadius: RADIUS.round,
+              borderWidth: 1,
               justifyContent: 'center',
-              minHeight: 38,
+              minHeight: 36,
               opacity: pressed ? 0.76 : 1,
               paddingHorizontal: compact ? 12 : 16,
               shadowColor: colors.text.primary,
@@ -62,7 +65,7 @@ export function SegmentedControl<T extends string>({
           >
             <Typography
               variant="emphasis-sm"
-              style={{ color: selected ? colors.text.onAccent : colors.text.secondary }}
+              style={{ color: selected ? colors.text.accent : colors.text.secondary }}
             >
               {option.label}
             </Typography>

@@ -4,6 +4,9 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { FeaturePageHeader } from '@/components/layout/FeaturePageHeader';
+import { useThemeColors } from '@/store/uiStore';
 import { CONSTELLATION_COPY } from '../copy';
 import type {
   ConstellationAnnotationKind,
@@ -45,6 +48,7 @@ export function ConstellationHeaderMetadata({
   seasonLabel,
   tokens,
 }: ConstellationHeaderMetadataProps) {
+  const colors = useThemeColors();
   const { width } = useWindowDimensions();
   const compact = width < 760;
   const metadata = [
@@ -60,8 +64,9 @@ export function ConstellationHeaderMetadata({
       style={{
         backgroundColor: tokens.canvas.background,
         minHeight: 86,
-        paddingHorizontal: 30,
-        paddingVertical: 17,
+        paddingBottom: 17,
+        paddingHorizontal: 24,
+        paddingTop: 12,
       }}
     >
       <View
@@ -72,29 +77,18 @@ export function ConstellationHeaderMetadata({
           justifyContent: 'space-between',
         }}
       >
-        <View style={{ flex: 1, gap: 4, minWidth: 0 }}>
-          <Text
-            accessibilityRole="header"
-            style={{
-              color: tokens.text.primary,
-              fontFamily: 'Inter-SemiBold',
-              fontSize: 28,
-              letterSpacing: -0.4,
-            }}
-          >
-            {focusLabel ? 'Constellation · Focus' : 'Constellation'}
-          </Text>
-          <Text
-            numberOfLines={2}
-            style={{
-              color: tokens.text.secondary,
-              fontFamily: 'Inter-Regular',
-              fontSize: 13,
-            }}
-          >
-            {metadata}
-          </Text>
-        </View>
+        <FeaturePageHeader
+          description={metadata}
+          icon={
+            <Ionicons
+              color={colors.accent.primary}
+              name="git-network-outline"
+              size={22}
+            />
+          }
+          style={{ flex: 1 }}
+          title={focusLabel ? 'Constellation · Focus' : 'Constellation'}
+        />
         <View
           style={{
             alignItems: 'center',

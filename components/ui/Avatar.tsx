@@ -1,4 +1,5 @@
 import { Image, Text, View } from 'react-native';
+import { useThemeColors } from '@/store/uiStore';
 
 export function getInitials(displayName: string): string {
   const words = displayName.trim().split(/\s+/).filter(Boolean);
@@ -16,6 +17,7 @@ interface AvatarProps {
 }
 
 export function Avatar({ avatarUrl, displayName, size }: AvatarProps) {
+  const colors = useThemeColors();
   if (avatarUrl) {
     return (
       <Image
@@ -31,19 +33,22 @@ export function Avatar({ avatarUrl, displayName, size }: AvatarProps) {
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: '#1E3226',
+        backgroundColor: colors.accent.primary,
         alignItems: 'center',
         justifyContent: 'center',
       }}
     >
       <Text
         style={{
-          color: '#F8F4EC',
-          fontFamily: 'Inter-SemiBold',
-          fontSize: size * 0.4,
+          color: colors.text.inverse,
+          fontFamily: 'Inter-Medium',
+          fontSize: size * 0.38,
+          fontWeight: '600',
+          includeFontPadding: false,
+          lineHeight: Math.round(size * 0.42),
         }}
       >
-        {getInitials(displayName)}
+        {getInitials(displayName) || 'U'}
       </Text>
     </View>
   );

@@ -56,7 +56,7 @@ create table public.echo_entries (
   model_version        text,
   visibility           text not null default 'private' check (visibility in ('private','shared')),
   summarized           boolean not null default false,
-  embedding            vector,
+  embedding            vector(1024),
   embedding_text       text,
   embedding_model      text
 );

@@ -2,6 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+*:focus-visible {
+  outline: 2px solid rgba(74, 124, 95, 0.62);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(74, 124, 95, 0.2);
+}
+
+* {
+  scrollbar-color: rgba(74, 124, 95, 0.34) transparent;
+  scrollbar-width: thin;
+}
+
 @keyframes floatLogo {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-12px); }
@@ -64,33 +89,56 @@
 }
 
 .ohara-rich-editor:empty::before {
-  color: #7c766b;
+  color: var(--ohara-editor-secondary);
   content: attr(data-placeholder);
   pointer-events: none;
 }
 
+.ohara-rich-editor::selection,
+.ohara-rich-editor *::selection {
+  background: color-mix(in srgb, var(--ohara-editor-accent) 18%, transparent);
+}
+
+.ohara-rich-editor p,
+.ohara-rich-editor > div {
+  margin: 0 0 12px;
+}
+
 .ohara-rich-editor h1 {
-  font-family: 'Inter-SemiBold';
-  font-size: 30px;
-  line-height: 1.25;
-  margin: 1.4em 0 0.45em;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, "Helvetica Neue", Arial, sans-serif;
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.24;
+  margin: 1.35em 0 0.5em;
 }
 
 .ohara-rich-editor h2 {
-  font-family: 'Inter-SemiBold';
-  font-size: 22px;
-  line-height: 1.35;
-  margin: 1.25em 0 0.4em;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, "Helvetica Neue", Arial, sans-serif;
+  font-size: 27px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 1.25em 0 0.45em;
+}
+
+.ohara-rich-editor ul,
+.ohara-rich-editor ol {
+  margin: 0.8em 0 1em;
+  padding-left: 1.6em;
+}
+
+.ohara-rich-editor li {
+  margin: 0.3em 0;
 }
 
 .ohara-rich-editor blockquote {
-  border-left: 2px solid #4a7c5f;
-  color: #5f5b52;
+  border-left: 3px solid var(--ohara-editor-accent);
+  color: var(--ohara-editor-secondary);
   margin: 1.2em 0;
-  padding-left: 1em;
+  padding-left: 1.1em;
 }
 
 .ohara-rich-editor a {
-  color: #4a7c5f;
+  color: var(--ohara-editor-accent);
   text-decoration: underline;
+  text-underline-offset: 2px;
 }
