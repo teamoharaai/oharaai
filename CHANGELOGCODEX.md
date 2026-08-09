@@ -3,14 +3,38 @@
 ## [Unreleased]
 
 ### Added
+- Added a canonical `FeaturePageHeader` for Goals, Entries/Echo, Momentum, and Constellation, including the existing Echo mark and the Sidebar-established Constellation mark in semantic OHARA green.
+- Extended the authenticated Momentum response with owner-scoped weekly snapshot history, exposing only the latest immutable revision per algorithm-version/week in chronological order.
+- Added a real authenticated `/goals` index route with an intentionally restrained Coming Soon surface and the existing Create a Goal flow; goal-detail and creation routes remain unchanged.
 - Added `docs/LOCAL_MANUAL_REVIEW_001_039.md` and local browser screenshots documenting the authenticated post-migration manual review, runtime/API evidence, database/security checks, classified findings, and readiness recommendation.
 - Added `supabase/migrations/039_restore_explicit_table_privileges.sql` with an explicit final-state PostgREST privilege matrix, no anon table CRUD, preserved friendship/Momentum mutation revokes, and enumerated service-role access for clean local installs.
 - Added `docs/SUPABASE_MIGRATION_CHAIN_REPAIR.md` with root cause, deployment evidence, baseline-versus-forward repair rationale, catalog checks, local validation, risks, and a staged rollout procedure.
 - Added the versioned `momentum-v1.0` calculation foundation, local-timezone weekly boundaries, normalized/deduplicated task events, explainable diagnostics, focused tests, open-decisions document, and private snapshot/event schema in migration 038.
 - Added the authenticated `/api/momentum` service boundary and Home summary hook for real Momentum value/change, Weekly Streak, and Tasks Completed This Week metrics.
 - Added a loopback-only Supabase configuration/target guard, ignored local CLI state, disposable PostgreSQL migration-security harness, local Auth/PostgREST integration fixtures, actual Momentum API smoke test, and local-development guide.
+- Integrated the upstream unified Entries workspace, latest-entry invalidation pipeline, active-goal reflection selectors, supporting tests, and migration 037 from `upstream/main` without merging unrelated branch changes.
+- Added shared spacing, radius, control, layout, and cross-platform elevation tokens in `constants/design.ts` to establish a consistent UI foundation from the OHARA design system and reference mockups.
 
 ### Changed
+- Refined the active Echo note-detail workspace in `features/entries/components/NoteEditor.tsx` and both `RichTextEditor` platform implementations: document text now uses an 18px/1.65 long-form rhythm, the web reading measure expands from a padded 760px box to a responsive 900px measure, headings/lists/quotes have clearer hierarchy, linked-goal metadata uses 14px type and 32px chips, and formatting controls use grouped 40px targets with 19px icons.
+- Made Ohara Intelligence open by default while preserving its existing close/reopen behavior, 328px desktop width, narrow-screen modal behavior, linked context, related entries, and honest preview copy; the panel now uses the canonical semantic green through translucent, blurred glass surfaces rather than a separate color family.
+- Preserved note persistence, autosave, editor commands, routing, linking, export/share, authentication, and backend behavior while improving light/dark contrast, caret/selection styling, responsive document margins, and icon-button accessibility labels/roles.
+- Visually verified the authenticated note at the available 1483×960 capture viewport in light/dark mode with Intelligence open and collapsed; confirmed reload-default opening, 900px re-centering when hidden, and no fixture-content mutation. Entries (8) and Echo composer (5) tests, the known-valid source type-check, the 50-route web export, and `git diff --check` pass.
+- Replaced the full Momentum page's hardcoded Mon–Sun sample graph, forced SVG stretching, fake `+8%`, and 0–100 axis with a measured responsive chart of real weekly snapshots on the algorithm's open-ended non-negative domain; zero-, one-, multi-period, loading, and error states remain honest and sample-free.
+- Removed Preview semantics from the authoritative Momentum page header and overview while retaining explicit Preview labels on Momentum drivers, Goal Momentum, entry patterns, and suggested guidance that Phase 1 does not calculate.
+- Verified the unified headers and authoritative single-period chart in authenticated light/dark browser checkpoints at 1707×960; the authenticated/unauthorized local API smoke checks, 31 Momentum tests, 8 Entries tests, 74 Constellation tests, the known-valid TypeScript check, a 50-route web export, and `git diff --check` pass.
+- Added `AuthenticatedPageShell` to align Echo/Entries, full Momentum, and Goals with Home’s uncapped authenticated frame (24px desktop and 16px compact outer gutters) without changing Home’s composition.
+- Expanded Echo’s outer page frame, reflection start surface, control row, and entry-group surface to the Home workspace width; preserved existing Notes/Reflection behavior and data loading.
+- Expanded the full Momentum Preview workspace and responsive plot area to the Home frame while retaining all current preview semantics, range controls, charts, and calculation/data boundaries.
+- Added the canonical target-mark Goals navigation item between Home and Echo, with an active `/goals` route and the same selected, hover, and focus states as the established Sidebar items.
+- Corrected the Sidebar account fallback to use the user’s display name or username initial with a high-contrast canonical-green avatar in both themes, including hover and keyboard-focus treatment.
+- Consolidated active Home and Sidebar branding onto one semantic green family (`#2A7F50` light, `#58C77B` dark), including the original OHARA mark, selected navigation, Today, Echo, Goals, Momentum, project marks, focus dots, links, and actions; inactive navigation and goal-category colors remain intentionally neutral/semantic.
+- Updated `BrandIcon` to use the supported image tint prop, restored the canonical target mark for Goals, removed the duplicate legacy project glyph from the Home project row, and widened the Dashboard workspace by removing its 1760px ceiling while standardizing 24px desktop gutters, 20px frame padding, 24px grid gaps, and the existing 30/34/36 column proportions.
+- Visually verified the authenticated populated Home in light/dark mode at 1727×1000 plus 1440×900, 1280×800, 900×900 tablet, and 390×844 mobile checkpoints; authoritative Momentum remained `4.52`, Weekly Streak `3`, Tasks Completed `1`, with no horizontal overflow or database/environment changes.
+- Reconstructed the active authenticated Home composition in `app/(app)/dashboard.tsx` around the approved light/dark references: the greeting now anchors the left column above unboxed Today priorities and Echo, authoritative Momentum owns the center feature card, two real activity-ranked Goals occupy the right card, and Projects uses a full-width composed surface.
+- Updated `components/layout/Sidebar.tsx` for the Home reference rhythm and functional route order (`Home`, `Echo`, `Momentum`, `Constellation`) while intentionally withholding a Goals item because no functional Goals index route exists yet; updated `features/projects/components/ProjectCard.tsx` to surface real aggregate goal progress without changing project behavior.
+- Preserved the frozen Momentum API and Phase 1 calculation boundary while displaying its real current value, weekly change, Weekly Streak, and Tasks Completed This Week in the rebuilt Momentum hierarchy; no Supabase configuration, migration, schema, authentication, route, or calculation code was changed.
+- Validated the Home reconstruction with authenticated light/dark browser checkpoints against the restored loopback-only stack, including authoritative Momentum values (`4.52`, Weekly Streak `3`, Tasks Completed `1`), the real one-goal/no-project fixture states, the Momentum expand interaction, the known-valid TypeScript command, 29 Momentum tests, 6 active-goal selector tests, 8 Entries tests, a 50-route Expo web export, and `git diff --check`.
 - Completed the isolated local product review after migrations 001–039 and recorded **Ready with documented non-blocking issues**: the migration repair, 35/35 RLS state, embedding indexes, PostgREST data grants, authoritative Home Momentum values, and immutable snapshot chain passed; no source code, migration, remote database, or git history was changed.
 - Restored the original documented `vector(1024)` embedding contract in squashed baseline migrations 001, 002, and 004 so the existing HNSW indexes can be created from an empty database.
 - Updated the guarded Momentum local fixture to use the profile created by the canonical Auth trigger and to supply the required real goal category when validating the complete repository schema.
@@ -21,6 +45,16 @@
 - Validated the remediation with 29 source tests, PostgreSQL 15/16 database harnesses, the actual authenticated API, rendered Home metrics, the known-valid source type-check, and a 50-route web export.
 - Connected the active Home Momentum preview to backend-authoritative values and explicit loading/unavailable states, removing its static sample values without changing the full Momentum route or Home layout.
 - Made completed-week snapshot publication deterministic and idempotent through stable SHA-256 calculation hashes, immutable superseding revisions, row locking, event deduplication, and stale-baseline rejection.
+- Replaced the active Home dashboard composition in `app/(app)/dashboard.tsx`: Today’s Focus now has unboxed priority rows, Momentum uses a substantially larger chart composition, Echo sits beside the daily focus, and Goals shows the two most recently reflective active goals with real milestone/reflection context and next steps.
+- Corrected the rendered Constellation field in `features/constellation/components/ConstellationCanvasShell.tsx` by using the theme’s graph-space ambient color and visually verified green ring strokes/opacities while retaining the Current Season coordinate anchor and transformed SVG layer.
+- Replaced the remaining Home Goals and Project preview JSX compositions and moved Constellation’s radial field into the transformed graph layer, anchored to Current Season beneath three 8%/14%/20% dashed rings.
+- Applied the final system-font typography hierarchy, exact semantic light/dark surface tokens, premium Goal card composition, and fixed dual-theme Constellation depth/ring treatment from the approved visual board.
+- Re-composed Home Today’s Focus, Momentum, Echo, Goal, and Project presentation around the target card hierarchy while preserving existing data, routes, and actions.
+- Restyled the integrated Entries library and reflection launcher with canonical semantic tokens and shared Card, Button, and Modal primitives.
+- Modernized the semantic dark theme and focused reflection palette in `constants/colors.ts`, `constants/focused-tokens.ts`, and `tailwind.config.js` with layered blue-green near-black surfaces and restrained brighter green accents.
+- Updated shared UI primitives and layouts across `components/ui/` and `components/layout/` with calmer card hierarchy, semantic elevation, consistent radii, refined controls, generous spacing, glass-like overlays, focus treatment, and improved responsive page rhythm.
+- Refined dashboard, project, and goal surfaces in `app/(app)/dashboard.tsx`, `features/projects/components/ProjectCard.tsx`, and `features/goals/components/GoalCard.tsx` to use the modernized hierarchy while preserving all existing actions and workflows.
+- Improved global web typography rendering, selection, focus visibility, and scrollbar styling in `global.css`.
 
 ### Fixed
 - Moved Migration 003's `Users can read own and member spaces` policy below creation of `public.space_members`, repairing the clean-install forward reference without changing the final policy expression, schema, or deployed data.
@@ -308,6 +342,7 @@
 - Moved the hero artwork layer to the full-width row container so every textured landing section fills both axes while its readable content remains centered at the existing maximum width.
 
 ### Fixed
+- Made the previously present-but-invisible Constellation rings readable in both rendered themes and replaced the dark light-green spotlight with the semantic deep-green visualization field.
 - Made Product, Echo, Momentum, and Constellation public-header links scroll the landing page’s internal web scroll container reliably from both the landing page and other public routes.
 
 ### Added (2026-07-27 — Reusable app calendar picker)
