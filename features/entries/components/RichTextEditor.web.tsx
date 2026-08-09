@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Typography } from '@/components/ui/Typography';
@@ -53,16 +53,16 @@ function initialHtml(document: RichTextDocument): string {
 }
 
 const TOOLS = [
-  { label: 'Undo', icon: 'arrow-undo-outline', command: 'undo' },
-  { label: 'Redo', icon: 'arrow-redo-outline', command: 'redo' },
-  { label: 'Bold', icon: 'text-outline', command: 'bold' },
-  { label: 'Italic', icon: 'create-outline', command: 'italic' },
-  { label: 'Underline', icon: 'remove-outline', command: 'underline' },
-  { label: 'Strikethrough', icon: 'remove-circle-outline', command: 'strikeThrough' },
-  { label: 'Bulleted list', icon: 'list-outline', command: 'insertUnorderedList' },
-  { label: 'Numbered list', icon: 'list-circle-outline', command: 'insertOrderedList' },
-  { label: 'Checklist', icon: 'checkbox-outline', command: 'insertText', value: '☐ ' },
-  { label: 'Quote', icon: 'chatbox-outline', command: 'formatBlock', value: 'blockquote' },
+  { label: 'Undo', icon: 'arrow-undo-outline', command: 'undo', group: 'history' },
+  { label: 'Redo', icon: 'arrow-redo-outline', command: 'redo', group: 'history' },
+  { label: 'Bold', icon: 'text-outline', command: 'bold', group: 'appearance' },
+  { label: 'Italic', icon: 'create-outline', command: 'italic', group: 'appearance' },
+  { label: 'Underline', icon: 'remove-outline', command: 'underline', group: 'appearance' },
+  { label: 'Strikethrough', icon: 'remove-circle-outline', command: 'strikeThrough', group: 'appearance' },
+  { label: 'Bulleted list', icon: 'list-outline', command: 'insertUnorderedList', group: 'lists' },
+  { label: 'Numbered list', icon: 'list-circle-outline', command: 'insertOrderedList', group: 'lists' },
+  { label: 'Checklist', icon: 'checkbox-outline', command: 'insertText', value: '☐ ', group: 'tasks' },
+  { label: 'Quote', icon: 'chatbox-outline', command: 'formatBlock', value: 'blockquote', group: 'insert' },
 ] as const;
 
 export function RichTextEditor({
@@ -124,12 +124,12 @@ export function RichTextEditor({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ alignItems: 'center', gap: 4, paddingHorizontal: 16 }}
+        contentContainerStyle={{ alignItems: 'center', gap: 2, paddingHorizontal: 18 }}
         style={{
           borderBottomColor: colors.border.divider,
           borderBottomWidth: 1,
           flexGrow: 0,
-          minHeight: 52,
+          minHeight: 56,
         }}
       >
         {(['p', 'h1', 'h2'] as const).map((tag) => (
@@ -139,35 +139,54 @@ export function RichTextEditor({
             key={tag}
             onPress={() => applyBlock(tag)}
             style={({ pressed }) => ({
+              alignItems: 'center',
               borderRadius: 8,
+              justifyContent: 'center',
+              minHeight: 40,
               opacity: pressed ? 0.6 : 1,
-              paddingHorizontal: 9,
-              paddingVertical: 7,
+              paddingHorizontal: 10,
             })}
           >
-            <Typography variant="caption">
+            <Typography variant="emphasis-sm" style={{ fontSize: 13 }}>
               {tag === 'p' ? 'Text' : tag === 'h1' ? 'H1' : 'H2'}
             </Typography>
           </Pressable>
         ))}
-        {TOOLS.map((tool) => (
-          <Pressable
-            accessibilityLabel={tool.label}
-            accessibilityRole="button"
-            key={tool.label}
-            onPress={() => apply(tool.command, 'value' in tool ? tool.value : undefined)}
-            style={({ pressed }) => ({
-              alignItems: 'center',
-              borderRadius: 8,
-              height: 36,
-              justifyContent: 'center',
-              opacity: pressed ? 0.6 : 1,
-              width: 36,
-            })}
-          >
-            <Ionicons name={tool.icon} color={colors.text.secondary} size={18} />
-          </Pressable>
+        {TOOLS.map((tool, index) => (
+          <Fragment key={tool.label}>
+            {index === 0 || TOOLS[index - 1]?.group !== tool.group ? (
+              <View
+                accessibilityElementsHidden
+                style={{
+                  backgroundColor: colors.border.divider,
+                  height: 24,
+                  marginHorizontal: 6,
+                  width: 1,
+                }}
+              />
+            ) : null}
+            <Pressable
+              accessibilityLabel={tool.label}
+              accessibilityRole="button"
+              onPress={() => apply(tool.command, 'value' in tool ? tool.value : undefined)}
+              style={({ pressed }) => ({
+                alignItems: 'center',
+                backgroundColor: pressed ? colors.background.selectedRow : 'transparent',
+                borderRadius: 8,
+                height: 40,
+                justifyContent: 'center',
+                opacity: pressed ? 0.72 : 1,
+                width: 40,
+              })}
+            >
+              <Ionicons name={tool.icon} color={colors.text.secondary} size={19} />
+            </Pressable>
+          </Fragment>
         ))}
+        <View
+          accessibilityElementsHidden
+          style={{ backgroundColor: colors.border.divider, height: 24, marginHorizontal: 6, width: 1 }}
+        />
         <Pressable
           accessibilityLabel="Insert link"
           accessibilityRole="button"
@@ -175,13 +194,13 @@ export function RichTextEditor({
           style={({ pressed }) => ({
             alignItems: 'center',
             borderRadius: 8,
-            height: 36,
+            height: 40,
             justifyContent: 'center',
-            opacity: pressed ? 0.6 : 1,
-            width: 36,
+            opacity: pressed ? 0.72 : 1,
+            width: 40,
           })}
         >
-          <Ionicons name="link-outline" color={colors.text.secondary} size={18} />
+          <Ionicons name="link-outline" color={colors.text.secondary} size={19} />
         </Pressable>
         <Pressable
           accessibilityLabel="More formatting"
@@ -192,13 +211,13 @@ export function RichTextEditor({
             alignItems: 'center',
             backgroundColor: moreOpen ? colors.background.selectedRow : 'transparent',
             borderRadius: 8,
-            height: 36,
+            height: 40,
             justifyContent: 'center',
-            opacity: pressed ? 0.6 : 1,
-            width: 36,
+            opacity: pressed ? 0.72 : 1,
+            width: 40,
           })}
         >
-          <Ionicons name="ellipsis-horizontal" color={colors.text.secondary} size={18} />
+          <Ionicons name="ellipsis-horizontal" color={colors.text.secondary} size={19} />
         </Pressable>
         {moreOpen ? ([
           ['Align left', 'reorder-three-outline', 'justifyLeft'],
@@ -213,13 +232,13 @@ export function RichTextEditor({
             style={({ pressed }) => ({
               alignItems: 'center',
               borderRadius: 8,
-              height: 36,
+              height: 40,
               justifyContent: 'center',
-              opacity: pressed ? 0.6 : 1,
-              width: 36,
+              opacity: pressed ? 0.72 : 1,
+              width: 40,
             })}
           >
-            <Ionicons name={icon} color={colors.text.secondary} size={18} />
+            <Ionicons name={icon} color={colors.text.secondary} size={19} />
           </Pressable>
         )) : null}
       </ScrollView>
@@ -234,19 +253,23 @@ export function RichTextEditor({
         suppressContentEditableWarning
         className="ohara-rich-editor"
         style={{
+          '--ohara-editor-accent': colors.accent.primary,
+          '--ohara-editor-secondary': colors.text.secondary,
+          caretColor: colors.accent.primary,
           color: colors.text.primary,
           flex: 1,
-          fontFamily: 'Inter-Regular',
-          fontSize: 16,
-          lineHeight: 1.75,
+          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Helvetica Neue", Arial, sans-serif',
+          fontSize: 18,
+          fontWeight: 400,
+          lineHeight: 1.65,
           margin: '0 auto',
-          maxWidth: 760,
+          maxWidth: 900,
           minHeight: 420,
           outline: 'none',
           overflowY: 'auto',
-          padding: '44px 32px 120px',
-          width: '100%',
-        }}
+          padding: 'clamp(40px, 5vw, 64px) 0 120px',
+          width: 'calc(100% - clamp(32px, 7vw, 112px))',
+        } as CSSProperties}
       />
     </View>
   );

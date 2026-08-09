@@ -48,7 +48,6 @@ export function clearAllStores(): void {
   useUIStore.setState({
     sidebarCollapsed: false,
     rightPaneWidth: 420,
-    entriesTab: 'notes',
     entriesIntelligenceOpen: false,
   });
   useUIStore.persist.clearStorage();
