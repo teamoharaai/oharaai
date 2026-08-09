@@ -1,16 +1,17 @@
 import { useMemo, useState } from 'react';
 import {
   Pressable,
-  SafeAreaView,
-  ScrollView,
   View,
   useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
+import { AuthenticatedPageShell } from '@/components/layout/AuthenticatedPageShell';
+import { FeaturePageHeader } from '@/components/layout/FeaturePageHeader';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
+import { RADIUS, SPACE } from '@/constants/design';
 import {
   GoalEchoAnalysisCard,
   getGoalEchoAnalysisPreview,
@@ -18,27 +19,44 @@ import {
 import { useGoals } from '@/features/goals/hooks/useGoals';
 import {
   MomentumTrendChart,
-  type MomentumTrendPoint,
 } from '@/features/momentum/components/MomentumTrendChart';
+import { useMomentumHomeSummary } from '@/features/momentum/hooks/useMomentumHomeSummary';
+import type { MomentumHistoryPoint } from '@/features/momentum/types';
 import { useThemeColors } from '@/store/uiStore';
 
 type TimeRange = '7D' | '30D' | '3M' | '1Y';
 type GoalFilter = 'All goals' | 'Building' | 'Steady' | 'Needs attention';
 type ActivityFilter = 'All' | 'Progress' | 'Entries' | 'Changes';
 
-const SAMPLE_TRENDS: Record<TimeRange, readonly MomentumTrendPoint[]> = {
-  '7D': [18, 30, 25, 46, 41, 65, 75],
-  '30D': [22, 28, 37, 34, 51, 61, 68],
-  '3M': [26, 33, 41, 48, 44, 59, 72],
-  '1Y': [20, 31, 29, 43, 54, 63, 76],
+const RANGE_DAYS: Record<TimeRange, number> = {
+  '7D': 7,
+  '30D': 30,
+  '3M': 92,
+  '1Y': 366,
 };
 
-const SAMPLE_TREND_LABELS: Record<TimeRange, readonly string[]> = {
-  '7D': ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-  '30D': ['Jul 1', 'Jul 6', 'Jul 11', 'Jul 16', 'Jul 21', 'Jul 26', 'Jul 30'],
-  '3M': ['May 1', 'May 15', 'Jun 1', 'Jun 15', 'Jul 1', 'Jul 15', 'Jul 30'],
-  '1Y': ['Aug', 'Oct', 'Dec', 'Feb', 'Apr', 'Jun', 'Jul'],
-};
+function historyForRange(
+  history: readonly MomentumHistoryPoint[],
+  range: TimeRange,
+): MomentumHistoryPoint[] {
+  const cutoff = Date.now() - RANGE_DAYS[range] * 24 * 60 * 60 * 1000;
+  return history.filter((point) => Date.parse(`${point.periodEnd}T23:59:59Z`) >= cutoff);
+}
+
+function weeklyLabel(periodStart: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).format(new Date(`${periodStart}T00:00:00Z`));
+}
+
+function momentumChange(value: number | null): string | null {
+  if (value === null) return null;
+  const rounded = Math.round(value * 100) / 100;
+  if (Math.abs(rounded) < 0.01) return 'No change this week';
+  return `${rounded > 0 ? '+' : ''}${rounded.toFixed(2)} this week`;
+}
 
 const DRIVERS = [
   { icon: 'trending-up-outline' as const, label: 'Consistency', state: 'Improving' },
@@ -59,9 +77,9 @@ function PreviewBadge() {
     <View
       style={{
         backgroundColor: colors.background.input,
-        borderRadius: 999,
-        paddingHorizontal: 9,
-        paddingVertical: 4,
+        borderRadius: RADIUS.round,
+        paddingHorizontal: SPACE.lg,
+        paddingVertical: SPACE.xs,
       }}
     >
       <Typography variant="badge-text" style={{ color: colors.text.accent }}>
@@ -82,8 +100,8 @@ function SectionHeading({
 }) {
   const colors = useThemeColors();
   return (
-    <View style={{ gap: 7, marginBottom: 14 }}>
-      <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+    <View style={{ gap: SPACE.sm, marginBottom: SPACE.xl }}>
+      <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md }}>
         <Typography accessibilityRole="header" variant="heading" style={{ fontSize: 20 }}>
           {title}
         </Typography>
@@ -135,12 +153,12 @@ export default function MomentumScreen() {
   const { width } = useWindowDimensions();
   const params = useLocalSearchParams<{ goalId?: string | string[] }>();
   const requestedGoalId = Array.isArray(params.goalId) ? params.goalId[0] : params.goalId;
-  const { goals, isLoading } = useGoals();
-  const [range, setRange] = useState<TimeRange>('7D');
+  const { goals, isLoading: goalsLoading } = useGoals();
+  const momentum = useMomentumHomeSummary();
+  const [range, setRange] = useState<TimeRange>('30D');
   const [goalFilter, setGoalFilter] = useState<GoalFilter>('All goals');
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>('All');
   const [infoOpen, setInfoOpen] = useState(false);
-  const horizontalPadding = width >= 1600 ? 56 : width >= 1024 ? 36 : width >= 720 ? 28 : 20;
   const twoColumn = width >= 1000;
 
   const activeGoals = useMemo(
@@ -156,33 +174,25 @@ export default function MomentumScreen() {
     }),
     [activeGoals, goalFilter],
   );
+  const visibleHistory = useMemo(
+    () => historyForRange(momentum.summary?.history ?? [], range),
+    [momentum.summary?.history, range],
+  );
+  const historyValues = visibleHistory.map((point) => point.value);
+  const historyLabels = visibleHistory.map((point) => weeklyLabel(point.periodStart));
+  const currentChange = momentumChange(momentum.summary?.weeklyChange ?? null);
 
   return (
-    <SafeAreaView style={{ backgroundColor: colors.background.page, flex: 1 }}>
-      <ScrollView
-        contentContainerStyle={{
-          paddingBottom: 64,
-          paddingHorizontal: horizontalPadding,
-          paddingTop: width < 720 ? 20 : 32,
-        }}
-      >
-        <View style={{ alignSelf: 'center', maxWidth: 1560, width: '100%' }}>
-          <View style={{ marginBottom: 28 }}>
-            <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-              <Typography accessibilityRole="header" variant="greeting">
-                Momentum
-              </Typography>
-              <PreviewBadge />
-            </View>
-            <Typography
-              variant="body"
-              style={{ color: colors.text.secondary, lineHeight: 23, marginTop: 8, maxWidth: 720 }}
-            >
-              Understand what is moving forward, what is changing, and where your attention may help.
-            </Typography>
+    <AuthenticatedPageShell>
+      <View style={{ minWidth: 0 }}>
+          <View style={{ marginBottom: SPACE['4xl'] }}>
+            <FeaturePageHeader
+              description="Understand what is moving forward, what is changing, and where your attention may help."
+              title="Momentum"
+            />
           </View>
 
-          <View style={{ gap: 32 }}>
+          <View style={{ gap: SPACE['4xl'] }}>
             <View>
               <SectionHeading title="Ohara Momentum overview" />
               <Card padding="spacious" elevated>
@@ -199,13 +209,17 @@ export default function MomentumScreen() {
                       <Typography variant="eyebrow" style={{ color: colors.text.accent }}>
                         Ohara Momentum
                       </Typography>
-                      <PreviewBadge />
                     </View>
                     <View style={{ alignItems: 'baseline', flexDirection: 'row', gap: 10 }}>
-                      <Typography variant="heading">Building</Typography>
-                      <Typography variant="label" style={{ color: colors.text.accent }}>
-                        +8% this week
+                      <Typography variant="heading">
+                        {momentum.isLoading ? 'Calculating…' : momentum.summary?.status ?? 'Unavailable'}
                       </Typography>
+                      {!momentum.isLoading && typeof momentum.summary?.currentValue === 'number' ? (
+                        <Typography variant="label" style={{ color: colors.text.accent }}>
+                          {momentum.summary?.currentValue?.toFixed(2)}
+                          {currentChange ? ` · ${currentChange}` : ''}
+                        </Typography>
+                      ) : null}
                     </View>
                   </View>
                   <Pressable
@@ -226,16 +240,51 @@ export default function MomentumScreen() {
                   </Pressable>
                 </View>
 
-                <View style={{ marginTop: 18 }}>
-                  <MomentumTrendChart
-                    height={width < 720 ? 250 : 330}
-                    points={SAMPLE_TRENDS[range]}
-                    showAxes
-                    xLabels={SAMPLE_TREND_LABELS[range]}
-                  />
+                <View style={{ marginTop: 18, minHeight: width < 720 ? 250 : 330 }}>
+                  {momentum.isLoading ? (
+                    <View style={{ alignItems: 'center', flex: 1, justifyContent: 'center' }}>
+                      <Typography variant="description">Loading authoritative Momentum history…</Typography>
+                    </View>
+                  ) : momentum.error ? (
+                    <View style={{ alignItems: 'center', flex: 1, gap: SPACE.lg, justifyContent: 'center' }}>
+                      <Typography accessibilityRole="alert" variant="description">
+                        {momentum.error}
+                      </Typography>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => { void momentum.refresh(); }}
+                        style={({ pressed }) => ({ minHeight: 44, opacity: pressed ? 0.6 : 1, padding: SPACE.lg })}
+                      >
+                        <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>Try again</Typography>
+                      </Pressable>
+                    </View>
+                  ) : visibleHistory.length ? (
+                    <MomentumTrendChart
+                      height={width < 720 ? 250 : 330}
+                      points={historyValues}
+                      showAxes
+                      xAxisLabel="Week"
+                      xLabels={historyLabels}
+                    />
+                  ) : (
+                    <View style={{ alignItems: 'center', flex: 1, justifyContent: 'center' }}>
+                      <Typography variant="title">No Momentum history in this range</Typography>
+                      <Typography variant="description" style={{ marginTop: SPACE.md, textAlign: 'center' }}>
+                        Choose a wider range, or keep taking meaningful action to form your trend.
+                      </Typography>
+                    </View>
+                  )}
                 </View>
+                {!momentum.isLoading && !momentum.error && visibleHistory.length === 1 ? (
+                  <Typography
+                    variant="description"
+                    style={{ color: colors.text.secondary, marginTop: SPACE.md }}
+                  >
+                    One authoritative weekly period is available. More completed periods will form the trend.
+                  </Typography>
+                ) : null}
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-                  {(Object.keys(SAMPLE_TRENDS) as TimeRange[]).map((item) => (
+                  {(Object.keys(RANGE_DAYS) as TimeRange[]).map((item) => (
                     <FilterPill
                       active={range === item}
                       key={item}
@@ -253,8 +302,8 @@ export default function MomentumScreen() {
                   }}
                 >
                   <Typography variant="caption" style={{ color: colors.text.secondary, lineHeight: 19 }}>
-                    Preview explanation: future Echo signals may help explain whether consistency,
-                    milestone movement, reflection, and recent activity are shaping this trend.
+                    This weekly trend uses the latest authoritative snapshot revision for each period.
+                    Echo-derived explanations are not yet available and remain a future preview concept.
                   </Typography>
                 </View>
               </Card>
@@ -323,7 +372,7 @@ export default function MomentumScreen() {
                   />
                 ))}
               </View>
-              {isLoading ? (
+              {goalsLoading ? (
                 <Typography variant="hint">Loading active goals…</Typography>
               ) : visibleGoals.length ? (
                 <View style={{ gap: 12 }}>
@@ -430,8 +479,7 @@ export default function MomentumScreen() {
               </Pressable>
             </View>
           </View>
-        </View>
-      </ScrollView>
+      </View>
 
       <Modal
         closeOnBackdropPress
@@ -450,7 +498,7 @@ export default function MomentumScreen() {
             'Recent activity may eventually carry more weight than older activity.',
             'Pausing, rescoping, or adjusting a goal should not automatically be treated as failure.',
             'Momentum is guidance, not a judgment or grade.',
-            'This page contains preview data while the algorithm is being developed.',
+            'The weekly Momentum overview is authoritative. Goal analysis, drivers, and personalized explanations remain preview concepts.',
           ].map((item) => (
             <View key={item} style={{ alignItems: 'flex-start', flexDirection: 'row', gap: 9 }}>
               <View
@@ -469,6 +517,6 @@ export default function MomentumScreen() {
           ))}
         </View>
       </Modal>
-    </SafeAreaView>
+    </AuthenticatedPageShell>
   );
 }

@@ -17,6 +17,7 @@ import {
 import type {
   MomentumDiagnostic,
   MomentumEvent,
+  MomentumHistoryPoint,
   MomentumHomeSummary,
   MomentumWeekBoundary,
 } from '../types.ts';
@@ -26,13 +27,21 @@ type MomentumProfileRow = {
 };
 
 type MomentumSnapshotRow = {
+  algorithm_version?: string;
   calculation_hash: string;
   next_value: number | string;
   previous_value: number | string;
   revision: number;
+  week_end?: string;
+  week_start?: string;
   weekly_gain: number | string;
   weekly_drag: number | string;
 };
+
+type MomentumHistoryRow = Required<Pick<
+  MomentumSnapshotRow,
+  'algorithm_version' | 'next_value' | 'previous_value' | 'revision' | 'week_end' | 'week_start'
+>>;
 
 function stableValue(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stableValue);
@@ -142,6 +151,43 @@ export function calculateWeeklyStreak(
     weekStart = addLocalDays(weekStart, -7);
   }
   return streak;
+}
+
+export function latestMomentumHistory(
+  rows: readonly MomentumHistoryRow[],
+): MomentumHistoryPoint[] {
+  const latestByPeriod = new Map<string, MomentumHistoryRow>();
+  for (const row of rows) {
+    const key = `${row.algorithm_version}:${row.week_start}`;
+    const current = latestByPeriod.get(key);
+    if (!current || row.revision > current.revision) latestByPeriod.set(key, row);
+  }
+
+  return [...latestByPeriod.values()]
+    .sort((left, right) => left.week_start.localeCompare(right.week_start))
+    .map((row) => ({
+      algorithmVersion: row.algorithm_version,
+      periodEnd: row.week_end,
+      periodStart: row.week_start,
+      previousValue: Number(row.previous_value),
+      revision: row.revision,
+      value: Number(row.next_value),
+    }));
+}
+
+async function fetchMomentumHistory(
+  db: SupabaseClient,
+  userId: string,
+): Promise<MomentumHistoryPoint[]> {
+  const { data, error } = await db
+    .from('momentum_weekly_snapshots')
+    .select('week_start, week_end, previous_value, next_value, revision, algorithm_version')
+    .eq('user_id', userId)
+    .eq('algorithm_version', MOMENTUM_CONFIG_V1.version)
+    .order('week_start', { ascending: true })
+    .order('revision', { ascending: false });
+  if (error) throw new Error(`Momentum history read failed: ${error.message}`);
+  return latestMomentumHistory((data ?? []) as MomentumHistoryRow[]);
 }
 
 async function buildDiagnostic(
@@ -265,9 +311,10 @@ export async function getMomentumHomeSummary(
   );
   const published = await publishDiagnostic(writeDb, userId, completedBoundary, diagnostic);
 
-  const [currentRows, historicalRows] = await Promise.all([
+  const [currentRows, historicalRows, history] = await Promise.all([
     fetchCompletedActions(readDb, userId, currentBoundary),
     fetchCompletedActions(readDb, userId),
+    fetchMomentumHistory(readDb, userId),
   ]);
   const currentActions = normalizeActionRecords(currentRows, currentBoundary, userId);
   const currentEvents = actionCompletionEvents(currentActions);
@@ -281,6 +328,7 @@ export async function getMomentumHomeSummary(
       algorithmVersion: MOMENTUM_CONFIG_V1.version,
       currentValue,
       displayedValue: Math.round(currentValue),
+      history,
       status: weeklyChange > 0.005 ? 'Building' : 'Steady',
       tasksCompletedThisWeek,
       trendLabels: ['Before', 'Now'],

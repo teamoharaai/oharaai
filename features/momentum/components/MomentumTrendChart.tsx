@@ -1,5 +1,5 @@
-import { useId } from 'react';
-import { View } from 'react-native';
+import { useId, useMemo, useState } from 'react';
+import { View, type LayoutChangeEvent } from 'react-native';
 import Svg, {
   Circle,
   ClipPath,
@@ -17,9 +17,21 @@ import { useThemeColors, useUIStore } from '@/store/uiStore';
 
 export type MomentumTrendPoint = number;
 
-export const SEVEN_DAY_MOMENTUM_POINTS: readonly MomentumTrendPoint[] = [
-  18, 30, 25, 46, 41, 65, 75,
-];
+const SYSTEM_FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Helvetica Neue", Arial, sans-serif';
+
+function momentumDomainMaximum(points: readonly number[]): number {
+  const maximum = Math.max(0, ...points.filter(Number.isFinite));
+  if (maximum <= 5) return 5;
+  if (maximum <= 10) return 10;
+  if (maximum <= 25) return 25;
+  if (maximum <= 50) return 50;
+  if (maximum <= 100) return 100;
+  return Math.ceil(maximum / 50) * 50;
+}
+
+function axisLabel(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
 
 function createCurvePath(points: readonly (readonly [number, number])[]) {
   if (!points.length) return '';
@@ -43,21 +55,27 @@ function createCurvePath(points: readonly (readonly [number, number])[]) {
 
 export function MomentumTrendChart({
   height,
-  points = SEVEN_DAY_MOMENTUM_POINTS,
+  points = [],
   showAxes = false,
-  xLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  xAxisLabel = 'Time',
+  xLabels = [],
+  yDomainMax,
 }: {
   height?: number;
   points?: readonly MomentumTrendPoint[];
   showAxes?: boolean;
+  xAxisLabel?: string;
   xLabels?: readonly string[];
+  yDomainMax?: number;
 }) {
   const colors = useThemeColors();
   const themeMode = useUIStore((state) => state.themeMode);
   const instanceId = useId().replace(/:/g, '');
   const gradientId = `authenticated-momentum-gradient-${instanceId}`;
   const clipId = `authenticated-momentum-clip-${instanceId}`;
-  const viewWidth = showAxes ? 620 : 440;
+  const [measuredWidth, setMeasuredWidth] = useState(0);
+  const fallbackWidth = showAxes ? 620 : 440;
+  const viewWidth = Math.max(240, measuredWidth || fallbackWidth);
   const viewHeight = showAxes ? 300 : 180;
   const left = showAxes ? 62 : 34;
   const right = showAxes ? 20 : 12;
@@ -66,7 +84,12 @@ export function MomentumTrendChart({
   const plotWidth = viewWidth - left - right;
   const plotHeight = viewHeight - top - bottom;
   const plotBottom = top + plotHeight;
-  const yTicks = showAxes ? [0, 25, 50, 75, 100] : [0, 50, 100];
+  const domainMaximum = yDomainMax && yDomainMax > 0
+    ? yDomainMax
+    : momentumDomainMaximum(points);
+  const yTicks = showAxes
+    ? Array.from({ length: 6 }, (_, index) => (domainMaximum / 5) * index)
+    : [0, domainMaximum / 2, domainMaximum];
   const verticalIndexes = showAxes
     ? points.map((_, index) => index)
     : points.map((_, index) => index).filter((index) => index % 2 === 0 || index === points.length - 1);
@@ -75,11 +98,13 @@ export function MomentumTrendChart({
   const axisColor = colors.border.divider;
   const labelColor = colors.text.muted;
   const markerFill = colors.background.card;
-  const pointCoordinates = points.map((value, index) => {
-    const x = left + (index / Math.max(1, points.length - 1)) * plotWidth;
-    const y = top + ((100 - value) / 100) * plotHeight;
+  const pointCoordinates = useMemo(() => points.map((value, index) => {
+    const x = points.length === 1
+      ? left + plotWidth / 2
+      : left + (index / Math.max(1, points.length - 1)) * plotWidth;
+    const y = top + ((domainMaximum - value) / domainMaximum) * plotHeight;
     return [x, y] as const;
-  });
+  }), [domainMaximum, left, plotHeight, plotWidth, points, top]);
   const linePath = createCurvePath(pointCoordinates);
   const areaPath = pointCoordinates.length
     ? `${linePath} L ${pointCoordinates[pointCoordinates.length - 1][0]} ${plotBottom} L ${pointCoordinates[0][0]} ${plotBottom} Z`
@@ -88,14 +113,19 @@ export function MomentumTrendChart({
     ? xLabels
     : xLabels.map((label) => label.length <= 3 ? label.charAt(0) : label);
 
+  function measure(event: LayoutChangeEvent) {
+    const nextWidth = Math.round(event.nativeEvent.layout.width);
+    if (nextWidth > 0 && nextWidth !== measuredWidth) setMeasuredWidth(nextWidth);
+  }
+
   return (
-    <View style={{ pointerEvents: 'none', width: '100%' }}>
+    <View onLayout={measure} style={{ pointerEvents: 'none', width: '100%' }}>
       <Svg
         accessibilityLabel="Momentum trend"
         height={height ?? (showAxes ? 280 : 112)}
         preserveAspectRatio="xMidYMid meet"
         viewBox={`0 0 ${viewWidth} ${viewHeight}`}
-        width="100%"
+        width={measuredWidth || '100%'}
       >
         <Defs>
           <LinearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
@@ -118,7 +148,7 @@ export function MomentumTrendChart({
 
         <G>
           {yTicks.map((tick) => {
-            const y = top + ((100 - tick) / 100) * plotHeight;
+            const y = top + ((domainMaximum - tick) / domainMaximum) * plotHeight;
             return (
               <G key={`y-${tick}`}>
                 <Line
@@ -131,13 +161,13 @@ export function MomentumTrendChart({
                 />
                 <SvgText
                   fill={labelColor}
-                  fontFamily="Inter-Regular"
+                  fontFamily={SYSTEM_FONT}
                   fontSize={showAxes ? 10.5 : 9}
                   textAnchor="end"
                   x={left - (showAxes ? 10 : 7)}
                   y={y + 3.5}
                 >
-                  {tick}
+                  {axisLabel(tick)}
                 </SvgText>
               </G>
             );
@@ -201,7 +231,7 @@ export function MomentumTrendChart({
           {pointCoordinates.map(([x], index) => (
             <SvgText
               fill={labelColor}
-              fontFamily="Inter-Medium"
+              fontFamily={SYSTEM_FONT}
               fontSize={showAxes ? 10.5 : 9}
               key={`label-${index}`}
               textAnchor="middle"
@@ -216,17 +246,17 @@ export function MomentumTrendChart({
             <>
               <SvgText
                 fill={labelColor}
-                fontFamily="Inter-Medium"
+                fontFamily={SYSTEM_FONT}
                 fontSize={10.5}
                 textAnchor="middle"
                 x={left + plotWidth / 2}
                 y={viewHeight - 7}
               >
-                Time
+                {xAxisLabel}
               </SvgText>
               <SvgText
                 fill={labelColor}
-                fontFamily="Inter-Medium"
+                fontFamily={SYSTEM_FONT}
                 fontSize={10.5}
                 textAnchor="middle"
                 transform={`rotate(-90 14 ${top + plotHeight / 2})`}

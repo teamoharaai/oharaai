@@ -22,6 +22,9 @@ test('authenticated request supplies identity only and trusted server persists d
   assert.match(service, /p_user_id: userId/);
   assert.match(service, /p_reason_codes: diagnostic\.reasonCodes/);
   assert.match(service, /p_raw_aggregates: diagnostic\.weeklyAggregates/);
+  assert.match(service, /\.eq\('user_id', userId\)/);
+  assert.match(service, /latestMomentumHistory/);
+  assert.doesNotMatch(api, /searchParams\.get\(['"]userId/);
 });
 
 test('snapshot publisher is private to the service and cannot be imported by a client', async () => {

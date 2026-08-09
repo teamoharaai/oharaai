@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { calculateWeeklyStreak, calculationHash } from './services/momentum-service.ts';
+import {
+  calculateWeeklyStreak,
+  calculationHash,
+  latestMomentumHistory,
+} from './services/momentum-service.ts';
 import type { RawActionCompletion } from './normalization.ts';
 
 function completion(id: string, completedAt: string): RawActionCompletion {
@@ -50,4 +54,54 @@ test('changed canonical input produces a different trusted calculation hash', as
   const first = await calculationHash({ algorithmVersion: 'momentum-v1.0', actions: [{ id: 'one' }] });
   const changed = await calculationHash({ algorithmVersion: 'momentum-v1.0', actions: [{ id: 'one' }, { id: 'two' }] });
   assert.notEqual(first, changed);
+});
+
+test('history keeps only the latest revision for each weekly period and sorts chronologically', () => {
+  const history = latestMomentumHistory([
+    {
+      algorithm_version: 'momentum-v1.0',
+      next_value: 4,
+      previous_value: 1,
+      revision: 2,
+      week_end: '2026-08-02',
+      week_start: '2026-07-27',
+    },
+    {
+      algorithm_version: 'momentum-v1.0',
+      next_value: 1,
+      previous_value: 0,
+      revision: 1,
+      week_end: '2026-07-26',
+      week_start: '2026-07-20',
+    },
+    {
+      algorithm_version: 'momentum-v1.0',
+      next_value: 3,
+      previous_value: 1,
+      revision: 1,
+      week_end: '2026-08-02',
+      week_start: '2026-07-27',
+    },
+  ]);
+
+  assert.deepEqual(history.map((point) => ({
+    periodStart: point.periodStart,
+    revision: point.revision,
+    value: point.value,
+  })), [
+    { periodStart: '2026-07-20', revision: 1, value: 1 },
+    { periodStart: '2026-07-27', revision: 2, value: 4 },
+  ]);
+});
+
+test('history handles empty and one-period datasets without fabricating points', () => {
+  assert.deepEqual(latestMomentumHistory([]), []);
+  assert.deepEqual(latestMomentumHistory([{
+    algorithm_version: 'momentum-v1.0',
+    next_value: '4.5192',
+    previous_value: '0',
+    revision: 1,
+    week_end: '2026-08-02',
+    week_start: '2026-07-27',
+  }]).map((point) => point.value), [4.5192]);
 });

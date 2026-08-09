@@ -129,6 +129,7 @@ export interface MomentumHomeSummary {
   algorithmVersion: string;
   currentValue: number | null;
   displayedValue: number | null;
+  history: MomentumHistoryPoint[];
   status: 'Building' | 'Steady' | 'Unavailable';
   tasksCompletedThisWeek: number;
   trendLabels: string[];
@@ -138,4 +139,13 @@ export interface MomentumHomeSummary {
   weekStart: string;
   weeklyChange: number | null;
   weeklyStreak: number;
+}
+
+export interface MomentumHistoryPoint {
+  algorithmVersion: string;
+  periodEnd: string;
+  periodStart: string;
+  previousValue: number;
+  revision: number;
+  value: number;
 }
