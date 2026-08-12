@@ -8,6 +8,7 @@ import {
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { AnchoredPopover, type AnchorRect } from '@/components/ui/AnchoredPopover';
+import { BrandIcon, type BrandIconName } from '@/components/ui/BrandIcon';
 import { Typography } from '@/components/ui/Typography';
 import { useThemeColors } from '@/store/uiStore';
 import { elevationStyle, RADIUS, SPACE } from '@/constants/design';
@@ -71,17 +72,17 @@ export function GlobalCreateControl({
 
   const menuItems = [
     {
-      icon: 'document-text-outline' as const,
+      icon: 'echo-add-entry' as BrandIconName,
       label: 'New entry',
       onPress: onNewEntry,
     },
     {
-      icon: 'flag-outline' as const,
+      icon: 'goals' as BrandIconName,
       label: 'New goal',
       onPress: () => router.push('/goals/create'),
     },
     {
-      icon: 'folder-outline' as const,
+      icon: 'project' as BrandIconName,
       label: 'New project',
       onPress: onNewProject,
     },
@@ -155,7 +156,7 @@ export function GlobalCreateControl({
               paddingVertical: 10,
             })}
           >
-            <Ionicons color={colors.text.accent} name={item.icon} size={17} />
+            <BrandIcon color={colors.text.accent} name={item.icon} size={18} />
             <Typography variant="meta" style={{ color: colors.text.primary }}>
               {item.label}
             </Typography>

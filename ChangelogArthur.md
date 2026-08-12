@@ -1,5 +1,68 @@
 # Arthur Implementation Changelog
 
+## 2026-08-12 — Canonical Goals Workspace Consolidation
+
+### One Goal destination
+- Consolidated Goal reading and management into `/goals?goal=<id>`. Existing Home, Today, Projects, Settings, Momentum analysis, continuation, and creation links now select the requested Goal inside the three-column workspace; saved `/goals/[id]` links forward to the same destination, while create and Vault routes remain distinct.
+- Goal selection remains in the URL across refresh and is accepted only when it belongs to the authenticated user’s loaded Goal collection. The former `selected` query remains compatible for already-issued workspace links.
+
+### Mature Goal functionality inside the new shell
+- Reused the established Goal detail hook, hero, countdown, milestone panel, tracker panel, and project picker so description editing, completion, archive, deadline changes, milestone CRUD/completion, tracker CRUD/logging, and project movement remain service-backed rather than duplicated.
+- Preserved the new Goals header, search/filter controls, responsive three-column master-detail architecture, and selected-card behavior. The center now carries the old detail view’s richer hierarchy, deadline timeline, interactive milestones, trackers, and real activity.
+
+### Honest contextual rail and verification
+- Rebuilt the right rail as semantic-green Ohara Intelligence plus data-derived current progress, milestone/activity/entry counts, an explicit unavailable recommendation state, and the latest explicitly linked Note and Reflection. No sample analytics, recommendation, or AI conclusion is presented as authoritative.
+- Verified authenticated light/dark wide desktop rendering with real hosted account data, legacy deep-link forwarding, URL selection persistence, interactive controls, and zero browser error logs. Seven focused Goal/routing tests, 13 Entries tests, the known-valid TypeScript check, web export, and `git diff --check` pass.
+
+## 2026-08-11 — Full Goals Workspace Reconstruction
+
+### Real workspace and navigation
+- Replaced the authenticated `/goals` Coming Soon surface with the approved responsive Goals workspace: journey header, real search and filters, selectable Goal list, selected-Goal hero, detail tabs, overview, and contextual right rail.
+- Preserved the existing New Goal flow, full Goal-detail route, selected Goal state, canonical category colors/icons, progress, milestones, trackers, deadlines, and activity navigation without changing Goal business logic or routes.
+
+### Data integrity and honest states
+- Built every region from existing Goals, milestones, trackers, authoritative activity, and explicitly linked Notes/Reflections. Missing progress history, task records, confirmed insights, supporting habits, or notes are described honestly rather than replaced with reference-image content.
+- Added deterministic search/status/category and next-milestone selectors with focused tests. The layout responds from three columns to two columns and then a single mobile sequence while retaining accessible controls and light/dark theme tokens.
+
+### Verification
+- Verified the authenticated workspace in light and dark mode with real hosted account data, Goal selection, search, filtering, tabs, linked reflection activity, existing creation/detail navigation, and no horizontal overflow at the available wide browser viewport.
+- Passed the focused Goals workspace tests, the known-valid TypeScript check, web export, and `git diff --check`. No database, Supabase configuration, authentication, schema, API, Momentum, Home, Echo, Constellation, or Sidebar behavior changed.
+
+## 2026-08-11 — Echo Category Expansion, Priority Ordering, and Hover Stability
+
+### Shelf behavior and ordering
+- Made every populated Unlinked or category shelf open by default without adding a reset effect; a user's explicit collapse/expand choice is stored by shelf ID for the current session and remains intact when filtering or changing between Recently edited and Title A–Z.
+- Within each shelf, the newest Note appears first and the newest Reflection second using the existing `updatedAt` field (the current Entry model has no access/open/view timestamp). All remaining unique entries retain the selected sort order, with priority items removed by stable ID so they never repeat.
+
+### Header stability and verification
+- Scoped out the global web button hover scale on active shelf headers and add controls, kept title type fixed at 18/26, and added a `minWidth: 0`/ellipsis left region plus non-shrinking count, chevron, and add controls. Hover now changes only the surface tint and cannot change row geometry or push content outside the card.
+- Verified authenticated dark-mode initial expansion, visible stable hover, collapse persistence after a sort change, and responsive geometry at wide desktop, 1440-class desktop, tablet, and mobile sizes without horizontal page overflow. The live account has one entry per populated category, so mixed 2-Note/2-Reflection and 1-Note/1-Reflection ordering is proven by focused tests without creating or changing user records.
+
+## 2026-08-11 — Home Dashboard Card Reorganization
+
+### Dashboard composition
+- Moved the most recently updated real Project into the former lower-left Echo card position, preserving the existing Project detail route and New Project modal.
+- Replaced the former full-width Projects list with equal Echo Notes and Echo Reflections cards. Each content type is selected independently from canonical Entries data, exposes its existing open/create route, and shows explicit linked-Goal context only when that relationship exists.
+
+### Goal activity integrity
+- Corrected Home Goal recent activity to use only goal-owned milestones/updates plus completed actions and Notes/Reflections carrying an explicit `goal_id` relationship. Category and text similarity are never used to infer a Goal link.
+- Project, Note, and Reflection recency uses `updated_at` as the documented fallback because the current schema has no last-accessed/opened/viewed field; no migration or access-tracking field was added.
+
+### Verification
+- Verified the authenticated hosted-data Dashboard in light and dark mode at the current 2137×1195 browser viewport, including real separate Note/Reflection previews, the linked Goal reflection, recent Project, unchanged Home width, and no horizontal overflow.
+- Passed 8 Entries tests, 31 Momentum tests, 11 focused Goal/Dashboard selector tests, the known-valid TypeScript check, a 50-route web export, and `git diff --check`. No Supabase configuration, schema, authentication, route, Momentum calculation, or database data was changed.
+
+## 2026-08-11 — Supplied Home, Momentum, and Constellation Marks
+
+### Brand inventory and implementation
+- Extended the semantic `BrandIcon` inventory with the supplied Home, Momentum, and Constellation marks as transparent 24×24 `currentColor` vectors.
+- Preserved the previous visual assets for Goals, individual Goals, Today’s Focus, Echo, Echo Entry, and Projects exactly as requested, together with the existing OHARA master logo, theme-mode utility, Ohara Intelligence sparkle, and all Goal-category colors.
+
+### Site-wide application
+- Replaced only the generic Home house, Momentum feature arrow, and Constellation network identity with the three supplied marks across the active Sidebar, Home, page headers, and landing previews.
+- Reused the established Goals, Echo, Entry, Today, Goal, and Project artwork in branded create/card contexts while keeping functional utility symbols—including back, close, expand, calendar, link, share, editing controls, data-trend arrows, and Intelligence sparkles—unchanged.
+- Added a development-only `preview:brand` router root for light/dark review of the full current family at 16, 20, 24, 32, and 48px plus Sidebar, feature-header, Home-card, Global Create, and Intelligence contexts; no production route was added.
+
 ## 2026-08-09 — Echo Note Editor Document-First Refinement
 
 ### Long-form writing surface

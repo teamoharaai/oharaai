@@ -19,6 +19,7 @@ import { DASHBOARD_DRAFT_SAVED_ROUTE } from '@/lib/navigation/dashboard';
 import { fetchGoalById } from '@/features/goals/services/goal-service';
 import { useGoalStore } from '@/features/goals/store';
 import { useThemeColors } from '@/store/uiStore';
+import { goalWorkspaceHref } from '@/features/goals/navigation';
 
 const INITIAL_GREETING =
   "What's on your mind? Tell me about something you want to achieve.";
@@ -632,7 +633,7 @@ export function AIGoalCreation({ onSwitchToManual }: AIGoalCreationProps) {
           <Button
             disabled={!createdGoalId}
             onPress={() =>
-              createdGoalId && router.replace(`/(app)/goals/${createdGoalId}` as never)
+              createdGoalId && router.replace(goalWorkspaceHref(createdGoalId) as never)
             }
             style={{ width: '100%' }}
           >

@@ -45,7 +45,7 @@ export function EntriesScreen() {
         <View style={{ marginBottom: compact ? SPACE['4xl'] : SPACE['5xl'] }}>
           <FeaturePageHeader
             description="Notes and reflections, together in one continuous record."
-            icon={<BrandIcon name="echo" size={22} tintColor={colors.accent.primary} />}
+            icon={<BrandIcon name="echo" size={22} color={colors.accent.primary} />}
             title="Entries"
           />
         </View>

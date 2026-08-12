@@ -6,6 +6,7 @@ import { Typography } from '@/components/ui/Typography';
 import { getCategoryAccentTheme } from '@/constants/themes';
 import { elevationStyle, RADIUS, SPACE } from '@/constants/design';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
+import { goalWorkspaceHref } from '../navigation';
 import type { GoalWithDetails } from '../types';
 
 interface ProjectGoalRowProps {
@@ -63,9 +64,7 @@ export function ProjectGoalRow({
         accessibilityHint="Opens this goal"
         accessibilityLabel={`Open ${goal.title}`}
         accessibilityRole="button"
-        onPress={() =>
-          router.push({ pathname: '/(app)/goals/[id]' as never, params: { id: goal.id } })
-        }
+        onPress={() => router.push(goalWorkspaceHref(goal.id) as never)}
         style={({ pressed }) => ({
           alignItems: 'center',
           flex: 1,

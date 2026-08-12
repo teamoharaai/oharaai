@@ -10,6 +10,7 @@ import {
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Button } from '@/components/ui/Button';
+import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
@@ -21,8 +22,11 @@ import type { EntryDraft, EntryRecord } from '../types';
 import {
   createEmptyDocument,
   entriesForCategory,
+  isEntryShelfExpanded,
   isUnlinkedEntry,
+  prioritizeEntryTypeAnchors,
   sortEntriesByRecency,
+  toggleEntryShelfExpansion,
 } from '../utils';
 
 type LibraryFilter =
@@ -107,9 +111,8 @@ function EntryCard({
               justifyContent: 'center',
               width: 36,
             }}>
-              <Ionicons
-                accessibilityLabel={entryLabel}
-                name={isReflection ? 'sparkles-outline' : 'document-text-outline'}
+              <BrandIcon
+                name={isReflection ? 'echo' : 'echo-add-entry'}
                 color={accent}
                 size={18}
               />
@@ -209,7 +212,7 @@ export function EntriesLibrary() {
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [creating, setCreating] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [expandedShelves, setExpandedShelves] = useState<string[]>([]);
+  const [shelfExpansion, setShelfExpansion] = useState<Record<string, boolean>>({});
   const [pendingDelete, setPendingDelete] = useState<EntryRecord | null>(null);
 
   useEffect(() => {
@@ -290,13 +293,11 @@ export function EntriesLibrary() {
     shelfEntries: EntryRecord[],
     unlinked = false,
   ) {
-    const expanded = expandedShelves.includes(id);
+    const expanded = isEntryShelfExpanded(shelfExpansion, id, shelfEntries.length);
     if (shelfEntries.length === 0) return null;
 
     function toggleShelf() {
-      setExpandedShelves((current) => (
-        current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
-      ));
+      setShelfExpansion((current) => toggleEntryShelfExpansion(current, id));
     }
 
     return (
@@ -311,6 +312,7 @@ export function EntriesLibrary() {
             flexDirection: 'row',
             gap: SPACE.sm,
             minHeight: 64,
+            overflow: 'hidden',
             paddingHorizontal: SPACE.lg,
           }}
         >
@@ -319,36 +321,69 @@ export function EntriesLibrary() {
             accessibilityRole="button"
             accessibilityState={{ expanded }}
             onPress={toggleShelf}
-            style={({ pressed }) => ({
+            style={({ hovered, pressed }) => ({
               alignItems: 'center',
+              backgroundColor: hovered ? colors.background.hoverAccent : 'transparent',
+              borderRadius: RADIUS.md,
               flex: 1,
               flexDirection: 'row',
               gap: SPACE.md,
               minHeight: 64,
+              minWidth: 0,
               opacity: pressed ? 0.7 : 1,
+              overflow: 'hidden',
+              paddingHorizontal: SPACE.xs,
               paddingVertical: SPACE.md,
+              transform: [{ scale: 1 }],
             })}
           >
-            <Typography style={{ color: accent, fontSize: 18 }}>{icon}</Typography>
-            <Typography variant="title" style={{ flex: 1, fontSize: 18 }}>{title}</Typography>
             <View
               style={{
                 alignItems: 'center',
-                backgroundColor: colors.background.input,
-                borderRadius: 999,
-                justifyContent: 'center',
-                minWidth: 28,
-                paddingHorizontal: 8,
-                paddingVertical: 3,
+                flex: 1,
+                flexDirection: 'row',
+                gap: SPACE.md,
+                minWidth: 0,
+                overflow: 'hidden',
               }}
             >
-              <Typography variant="caption">{shelfEntries.length}</Typography>
+              <Typography style={{ color: accent, flexShrink: 0, fontSize: 18 }}>{icon}</Typography>
+              <Typography
+                ellipsizeMode="tail"
+                numberOfLines={1}
+                variant="title"
+                style={{ flex: 1, fontSize: 18, lineHeight: 26, minWidth: 0 }}
+              >
+                {title}
+              </Typography>
             </View>
-            <Ionicons
-              name={expanded ? 'chevron-up' : 'chevron-down'}
-              color={colors.text.muted}
-              size={18}
-            />
+            <View
+              style={{
+                alignItems: 'center',
+                flexDirection: 'row',
+                flexShrink: 0,
+                gap: SPACE.md,
+              }}
+            >
+              <View
+                style={{
+                  alignItems: 'center',
+                  backgroundColor: colors.background.input,
+                  borderRadius: 999,
+                  justifyContent: 'center',
+                  minWidth: 28,
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                }}
+              >
+                <Typography variant="caption">{shelfEntries.length}</Typography>
+              </View>
+              <Ionicons
+                name={expanded ? 'chevron-up' : 'chevron-down'}
+                color={colors.text.muted}
+                size={18}
+              />
+            </View>
           </Pressable>
           {!unlinked ? (
             <Pressable
@@ -360,9 +395,11 @@ export function EntriesLibrary() {
                 borderColor: colors.border.input,
                 borderRadius: RADIUS.round,
                 borderWidth: 1,
+                flexShrink: 0,
                 height: 44,
                 justifyContent: 'center',
                 opacity: pressed ? 0.65 : 1,
+                transform: [{ scale: 1 }],
                 width: 44,
               })}
             >
@@ -452,13 +489,19 @@ export function EntriesLibrary() {
     );
   }
 
-  const unlinkedEntries = libraryEntries.filter(isUnlinkedEntry);
-  const populatedCategoryShelves = GOAL_CATEGORY_CATALOG
-    .map((category) => ({
-      category,
-      entries: entriesForCategory(libraryEntries, category.id),
-    }))
-    .filter((shelf) => shelf.entries.length > 0);
+  const unlinkedEntries = useMemo(
+    () => prioritizeEntryTypeAnchors(libraryEntries.filter(isUnlinkedEntry)),
+    [libraryEntries],
+  );
+  const populatedCategoryShelves = useMemo(
+    () => GOAL_CATEGORY_CATALOG
+      .map((category) => ({
+        category,
+        entries: prioritizeEntryTypeAnchors(entriesForCategory(libraryEntries, category.id)),
+      }))
+      .filter((shelf) => shelf.entries.length > 0),
+    [libraryEntries],
+  );
 
   return (
     <View style={{ gap: compact ? 22 : 28 }}>

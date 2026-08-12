@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import type { PriorPhaseSummaryItem, Tracker } from '../types';
+import { goalWorkspaceHref } from '../navigation';
 
 interface WhatYouBuiltPanelProps {
   previousGoalId: string;
@@ -212,7 +213,7 @@ export function WhatYouBuiltPanel({
       </View>
 
       <Pressable
-        onPress={() => router.push(`/(app)/goals/${previousGoalId}` as never)}
+        onPress={() => router.push(goalWorkspaceHref(previousGoalId) as never)}
         style={{ alignSelf: 'flex-start', marginBottom: 12, paddingHorizontal: 2, paddingVertical: 4 }}
       >
         <Text style={{ color: '#8A8172', fontFamily: 'Inter-Regular', fontSize: 13 }}>

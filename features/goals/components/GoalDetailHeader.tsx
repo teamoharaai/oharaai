@@ -8,6 +8,7 @@ import { ExtendGoalModal } from './ExtendGoalModal';
 import { GoalTitleRow } from './GoalTitleRow';
 import { useThemeColors } from '@/store/uiStore';
 import type { GoalWithDetails } from '../types';
+import { goalWorkspaceHref } from '../navigation';
 
 interface GoalDetailHeaderProps {
   deadlineProgress: number | null;
@@ -183,7 +184,7 @@ export function GoalDetailHeader({
 
       {isSuperseded && successorGoalId ? (
         <Pressable
-          onPress={() => router.push(`/(app)/goals/${successorGoalId}` as never)}
+          onPress={() => router.push(goalWorkspaceHref(successorGoalId) as never)}
           style={{ alignSelf: 'flex-start', marginBottom: 12 }}
         >
           <Typography variant="caption">‹ Back to current phase</Typography>

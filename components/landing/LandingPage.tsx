@@ -16,12 +16,16 @@ import {
   PUBLIC_COLORS,
 } from '@/components/landing/PublicPrimitives';
 import { Typography } from '@/components/ui/Typography';
+import { BrandIcon, type BrandIconName } from '@/components/ui/BrandIcon';
 
-function PreviewLabel({ children }: { children: string }) {
+function PreviewLabel({ children, icon }: { children: string; icon?: BrandIconName }) {
   return (
-    <Typography className="font-inter-semibold" style={{ color: PUBLIC_COLORS.forest, fontSize: 9, letterSpacing: 1.3, lineHeight: 13, textTransform: 'uppercase' }}>
-      {children}
-    </Typography>
+    <View style={{ alignItems: 'center', flexDirection: 'row', gap: 6 }}>
+      {icon ? <BrandIcon color={PUBLIC_COLORS.forest} name={icon} size={14} /> : null}
+      <Typography className="font-inter-semibold" style={{ color: PUBLIC_COLORS.forest, fontSize: 9, letterSpacing: 1.3, lineHeight: 13, textTransform: 'uppercase' }}>
+        {children}
+      </Typography>
+    </View>
   );
 }
 
@@ -39,7 +43,7 @@ function MomentumPreviewHeader() {
   return (
     <View style={{ alignItems: 'center', flexDirection: 'row', gap: 10, justifyContent: 'space-between' }}>
       <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
-        <PreviewLabel>Ohara Momentum</PreviewLabel>
+        <PreviewLabel icon="momentum">Ohara Momentum</PreviewLabel>
         <PreviewBadge />
       </View>
       <Typography className="font-inter-semibold" style={{ color: PUBLIC_COLORS.forest, fontSize: 11 }}>
@@ -83,7 +87,7 @@ function EchoPreviewCard({ stageMode }: { stageMode: HeroStageMode }) {
           : { width: '100%' }),
       }}
     >
-        <PreviewLabel>Echo Entry</PreviewLabel>
+        <PreviewLabel icon="echo-add-entry">Echo Entry</PreviewLabel>
         <Typography style={{ color: PUBLIC_COLORS.ink, fontSize: 13, lineHeight: 20, marginTop: 14 }}>
           I showed up for my run even though I was tired. Small win, meaningful signal.
         </Typography>
@@ -104,7 +108,7 @@ function FocusPreviewCard({ stageMode }: { stageMode: HeroStageMode }) {
           : { width: '100%' }),
       }}
     >
-        <PreviewLabel>Today&apos;s Focus</PreviewLabel>
+        <PreviewLabel icon="today">Today&apos;s Focus</PreviewLabel>
         <View style={{ alignItems: 'center', flexDirection: 'row', gap: 12, marginTop: 15 }}>
           <View style={{ borderColor: PUBLIC_COLORS.forest, borderRadius: 8, borderWidth: 1.5, height: 16, width: 16 }} />
           <View style={{ flex: 1 }}>
@@ -129,7 +133,7 @@ function ConstellationPreviewCard({ stageMode }: { stageMode: HeroStageMode }) {
           : { width: '100%' }),
       }}
     >
-      <PreviewLabel>Constellation</PreviewLabel>
+      <PreviewLabel icon="constellation">Constellation</PreviewLabel>
       <View style={{ marginTop: 8, overflow: 'hidden', width: '100%' }}>
         <PublicConstellation variant="compact" />
       </View>
@@ -171,7 +175,7 @@ function HeroPreviews({ width }: { width: number }) {
 function EchoPreview() {
   return (
     <PreviewSurface>
-      <PreviewLabel>Echo Entry</PreviewLabel>
+      <PreviewLabel icon="echo-add-entry">Echo Entry</PreviewLabel>
       <Typography className="font-inter-medium" style={{ color: PUBLIC_COLORS.ink, fontSize: 15, lineHeight: 22, marginTop: 14 }}>
         What happened today that moved you closer to who you want to become?
       </Typography>

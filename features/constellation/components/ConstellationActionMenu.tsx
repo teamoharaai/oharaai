@@ -11,6 +11,7 @@ import {
   AnchoredPopover,
   type AnchorRect,
 } from '@/components/ui/AnchoredPopover';
+import { BrandIcon, type BrandIconName } from '@/components/ui/BrandIcon';
 import { Typography } from '@/components/ui/Typography';
 import { useThemeColors } from '@/store/uiStore';
 import type { ConstellationAnnotationKind } from '../types';
@@ -87,18 +88,21 @@ export function ConstellationActionMenu({
 
   const items = [
     {
+      brandIcon: 'echo-add-entry' as BrandIconName,
       disabled: false,
-      icon: 'document-text-outline' as const,
+      icon: undefined,
       label: 'New note',
       onPress: () => onCreateAnnotation('note'),
     },
     {
+      brandIcon: undefined,
       disabled: false,
       icon: 'telescope-outline' as const,
       label: 'New projection',
       onPress: () => onCreateAnnotation('projection'),
     },
     {
+      brandIcon: undefined,
       disabled: !canLinkGoals,
       icon: 'link-outline' as const,
       label: 'Link goals',
@@ -192,7 +196,11 @@ export function ConstellationActionMenu({
               paddingVertical: 10,
             })}
           >
-            <Ionicons color={colors.text.accent} name={item.icon} size={17} />
+            {item.brandIcon ? (
+              <BrandIcon color={colors.text.accent} name={item.brandIcon} size={17} />
+            ) : (
+              <Ionicons color={colors.text.accent} name={item.icon} size={17} />
+            )}
             <Typography variant="meta" style={{ color: colors.text.primary }}>
               {item.label}
             </Typography>

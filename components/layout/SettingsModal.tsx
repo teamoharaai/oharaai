@@ -8,6 +8,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
 import { Toggle } from '@/components/ui/Toggle';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
+import { goalWorkspaceHref } from '@/features/goals/navigation';
 
 interface SettingsProfileData {
   intelligence_enabled: boolean;
@@ -229,7 +230,7 @@ export function SettingsPane({ active, onClose }: SettingsPaneProps) {
                   key={goal.id}
                   onPress={() => {
                     onClose();
-                    router.push(`/(app)/goals/${goal.id}` as never);
+                    router.push(goalWorkspaceHref(goal.id) as never);
                   }}
                   style={({ pressed }) => ({
                     alignItems: 'center',

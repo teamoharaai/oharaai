@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Pressable, View, Text, useWindowDimensions } from 'react-native';
 import { router, usePathname } from 'expo-router';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { BrandIcon, type BrandIconName } from '@/components/ui/BrandIcon';
 import { FEATURES } from '@/constants/features';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
@@ -13,16 +12,15 @@ type NavItem = {
   href: string;
   match: string;
   enabled: boolean;
-  icon?: BrandIconName;
-  ionicon?: 'home' | 'trending-up-outline' | 'git-network-outline';
+  icon: BrandIconName;
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Home',          href: '/(app)/dashboard',     match: '/dashboard',     enabled: true, ionicon: 'home' },
+  { label: 'Home',          href: '/(app)/dashboard',     match: '/dashboard',     enabled: true, icon: 'home' },
   { label: 'Goals',         href: '/(app)/goals',         match: '/goals',         enabled: true, icon: 'goals' },
   { label: 'Echo',          href: '/(app)/echo',          match: '/entries',       enabled: FEATURES.ECHO_ENABLED, icon: 'echo' },
-  { label: 'Momentum',      href: '/(app)/momentum',      match: '/momentum',      enabled: true, ionicon: 'trending-up-outline' },
-  { label: 'Constellation', href: '/(app)/constellation', match: '/constellation', enabled: FEATURES.CONSTELLATION_ENABLED, ionicon: 'git-network-outline' },
+  { label: 'Momentum',      href: '/(app)/momentum',      match: '/momentum',      enabled: true, icon: 'momentum' },
+  { label: 'Constellation', href: '/(app)/constellation', match: '/constellation', enabled: FEATURES.CONSTELLATION_ENABLED, icon: 'constellation' },
 ];
 
 const SIDEBAR_WIDTH = {
@@ -143,6 +141,7 @@ export function Sidebar() {
           const isActive =
             pathname === item.match ||
             pathname.startsWith(item.match + '/');
+          const isHovered = hoveredItem === item.label;
           return (
             <Pressable
               key={item.label}
@@ -168,36 +167,25 @@ export function Sidebar() {
                 minHeight: 48,
                 backgroundColor: isActive
                   ? colors.background.selectedRow
-                  : hoveredItem === item.label || pressed
+                  : isHovered || pressed
                     ? colors.background.hoverAccent
                     : 'transparent',
                 opacity: item.enabled ? 1 : 0.4,
               })}
             >
-              {item.icon && (
-                <BrandIcon
-                  name={item.icon}
-                  size={collapsed ? NAV_ICON_SIZE.collapsed : NAV_ICON_SIZE.expanded}
-                  tintColor={isActive ? colors.text.accent : colors.text.secondary}
-                  style={{
-                    marginRight: collapsed ? 0 : 10,
-                    opacity: isActive ? 1 : item.enabled ? 0.72 : 0.4,
-                  }}
-                />
-              )}
-              {item.ionicon ? (
-                <Ionicons
-                  accessible={false}
-                  color={isActive ? colors.text.accent : colors.text.secondary}
-                  name={item.ionicon}
-                  size={collapsed ? NAV_ICON_SIZE.collapsed : NAV_ICON_SIZE.expanded}
-                  style={{ marginRight: collapsed ? 0 : 10, opacity: isActive ? 1 : 0.72 }}
-                />
-              ) : null}
+              <BrandIcon
+                name={item.icon}
+                size={collapsed ? NAV_ICON_SIZE.collapsed : NAV_ICON_SIZE.expanded}
+                color={isActive || isHovered ? colors.text.accent : colors.text.secondary}
+                style={{
+                  marginRight: collapsed ? 0 : 10,
+                  opacity: isActive || isHovered ? 1 : item.enabled ? 0.72 : 0.4,
+                }}
+              />
               {!collapsed && (
                 <Text
                   style={{
-                    color: isActive ? colors.text.accent : colors.text.secondary,
+                    color: isActive || isHovered ? colors.text.accent : colors.text.secondary,
                   fontSize: 14,
                   fontFamily: 'Inter-Medium',
                   letterSpacing: -0.1,

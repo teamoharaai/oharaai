@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FeaturePageHeader } from '@/components/layout/FeaturePageHeader';
+import { BrandIcon } from '@/components/ui/BrandIcon';
 import { useThemeColors } from '@/store/uiStore';
 import { CONSTELLATION_COPY } from '../copy';
 import type {
@@ -80,11 +81,7 @@ export function ConstellationHeaderMetadata({
         <FeaturePageHeader
           description={metadata}
           icon={
-            <Ionicons
-              color={colors.accent.primary}
-              name="git-network-outline"
-              size={22}
-            />
+            <BrandIcon name="constellation" size={24} color={colors.accent.primary} />
           }
           style={{ flex: 1 }}
           title={focusLabel ? 'Constellation · Focus' : 'Constellation'}

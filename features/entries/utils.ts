@@ -30,6 +30,45 @@ export function uniqueEntries(entries: EntryRecord[]): EntryRecord[] {
   return [...new Map(entries.map((entry) => [entry.id, entry])).values()];
 }
 
+export function prioritizeEntryTypeAnchors(entries: EntryRecord[]): EntryRecord[] {
+  const unique = uniqueEntries(entries);
+  const newestNote = sortEntriesByRecency(
+    unique.filter((entry) => entry.entryType === 'note'),
+  )[0];
+  const newestReflection = sortEntriesByRecency(
+    unique.filter((entry) => entry.entryType === 'reflection'),
+  )[0];
+  const priorityIds = new Set(
+    [newestNote?.id, newestReflection?.id].filter((id): id is string => Boolean(id)),
+  );
+
+  return [
+    ...(newestNote ? [newestNote] : []),
+    ...(newestReflection ? [newestReflection] : []),
+    ...unique.filter((entry) => !priorityIds.has(entry.id)),
+  ];
+}
+
+export type EntryShelfExpansionState = Readonly<Record<string, boolean>>;
+
+export function isEntryShelfExpanded(
+  state: EntryShelfExpansionState,
+  shelfId: string,
+  entryCount: number,
+): boolean {
+  return entryCount > 0 && (state[shelfId] ?? true);
+}
+
+export function toggleEntryShelfExpansion(
+  state: EntryShelfExpansionState,
+  shelfId: string,
+): EntryShelfExpansionState {
+  return {
+    ...state,
+    [shelfId]: !(state[shelfId] ?? true),
+  };
+}
+
 export function categoryIdsForEntry(entry: EntryRecord): string[] {
   return [
     ...new Set([
@@ -43,9 +82,7 @@ export function entriesForCategory(
   entries: EntryRecord[],
   categoryId: string,
 ): EntryRecord[] {
-  return sortEntriesByRecency(
-    uniqueEntries(entries.filter((entry) => categoryIdsForEntry(entry).includes(categoryId))),
-  );
+  return uniqueEntries(entries.filter((entry) => categoryIdsForEntry(entry).includes(categoryId)));
 }
 
 export function buildRetrievalDocument(

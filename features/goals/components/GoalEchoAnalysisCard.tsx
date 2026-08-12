@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
 import { getCategoryAccentTheme } from '@/constants/themes';
 import { getGoalCreationTemplate } from '@/lib/goals/templates';
+import { goalWorkspaceHref } from '../navigation';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import type { GoalCategory, GoalCreationCategory } from '@/lib/goals/schema';
 
@@ -117,10 +118,7 @@ export function GoalEchoAnalysisCard({
       accessibilityRole="link"
       onPress={() => {
         if (navigationAction === 'goal') {
-          router.push({
-            pathname: '/(app)/goals/[id]' as never,
-            params: { id: goalId },
-          });
+          router.push(goalWorkspaceHref(goalId) as never);
           return;
         }
         router.push({

@@ -12,6 +12,7 @@ import type { ApiResponse } from '@/lib/api/contracts';
 import type { CreateGoalWithMilestonesAndTrackersResult } from '@/lib/db/goals';
 import { useGoalStore } from '../store';
 import type { GoalWithDetails, Tracker } from '../types';
+import { goalWorkspaceHref } from '../navigation';
 
 type ExtendGoalStep = 1 | 2 | 3;
 type DeadlineOption = 30 | 60 | 90 | 'custom';
@@ -541,9 +542,16 @@ export function ExtendGoalModal({ visible, goal, onClose }: ExtendGoalModalProps
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submissionInFlightRef = useRef(false);
+  const previousVisibleRef = useRef(visible);
 
   useEffect(() => {
-    if (!visible) {
+    const wasVisible = previousVisibleRef.current;
+    previousVisibleRef.current = visible;
+
+    // Do not reset on every render while the modal is closed. The canonical
+    // Goals workspace keeps this modal mounted, and repeated closed-state
+    // resets can create a nested update loop in the web renderer.
+    if (visible !== wasVisible) {
       setState(createInitialState(goal.title));
       setSelectedDeadlineOption(null);
       setCustomDate('');
@@ -633,7 +641,7 @@ export function ExtendGoalModal({ visible, goal, onClose }: ExtendGoalModalProps
       setCustomDate('');
       setSubmitError(null);
       onClose();
-      router.replace(`/(app)/goals/${newGoalId}` as never);
+      router.replace(goalWorkspaceHref(newGoalId) as never);
     } catch {
       setSubmitError('Could not extend this goal. Please try again.');
     } finally {

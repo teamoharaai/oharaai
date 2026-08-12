@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import type { fetchActiveGoalsFeed } from '@/features/goals/services/goal-service';
+import { goalWorkspaceHref } from '@/features/goals/navigation';
 import { getGoalRingProgress } from '@/features/goals/utils/ringProgress';
 import { formatRelativeTime } from '@/lib/utils/relativeTime';
 import { useThemeColors } from '@/store/uiStore';
@@ -52,12 +53,7 @@ export function TodayGoalCard({ goal, projectTitle }: TodayGoalCardProps) {
           accessibilityLabel={`Open ${goal.title}`}
           accessibilityRole="button"
           hitSlop={10}
-          onPress={() =>
-            router.push({
-              pathname: '/(app)/goals/[id]' as never,
-              params: { id: goal.id },
-            })
-          }
+          onPress={() => router.push(goalWorkspaceHref(goal.id) as never)}
           style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}
         >
           <Ionicons name="chevron-forward" size={20} color={colors.text.accent} />

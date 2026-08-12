@@ -17,6 +17,7 @@ import { getCategoryAccentTheme } from '@/constants/themes';
 import { elevationStyle, RADIUS } from '@/constants/design';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { useGoalStore } from '../store';
+import { goalWorkspaceHref } from '../navigation';
 import type { GoalWithDetails } from '../types';
 
 interface GoalCardProps {
@@ -155,9 +156,7 @@ export function GoalCard({
         accessibilityHint="Opens this goal"
         accessibilityLabel={`Open ${goal.title}`}
         accessibilityRole="button"
-        onPress={() =>
-          router.push({ pathname: '/(app)/goals/[id]' as never, params: { id: goal.id } })
-        }
+        onPress={() => router.push(goalWorkspaceHref(goal.id) as never)}
         style={({ pressed }) => ({
           ...elevationStyle('sm', colors, themeMode === 'dark'),
           backgroundColor: colors.background.card,

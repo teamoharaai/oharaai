@@ -8,6 +8,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import { AuthenticatedPageShell } from '@/components/layout/AuthenticatedPageShell';
 import { FeaturePageHeader } from '@/components/layout/FeaturePageHeader';
+import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
@@ -188,6 +189,7 @@ export default function MomentumScreen() {
           <View style={{ marginBottom: SPACE['4xl'] }}>
             <FeaturePageHeader
               description="Understand what is moving forward, what is changing, and where your attention may help."
+              icon={<BrandIcon name="momentum" size={24} color={colors.accent.primary} />}
               title="Momentum"
             />
           </View>
@@ -206,6 +208,7 @@ export default function MomentumScreen() {
                 >
                   <View style={{ gap: 8 }}>
                     <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
+                      <BrandIcon name="momentum" size={18} color={colors.accent.primary} />
                       <Typography variant="eyebrow" style={{ color: colors.text.accent }}>
                         Ohara Momentum
                       </Typography>

@@ -38,6 +38,7 @@ import {
 import { AIGoalCreation } from '@/features/goals/components/AIGoalCreation';
 import { fetchGoalById } from '@/features/goals/services/goal-service';
 import { useGoalStore } from '@/features/goals/store';
+import { goalWorkspaceHref } from '@/features/goals/navigation';
 import { useProjectStore } from '@/features/projects/store';
 import { authedFetch } from '@/lib/api/client';
 import type { ApiResponse } from '@/lib/api/contracts';
@@ -1439,7 +1440,7 @@ export default function GoalCreateScreen() {
           accessibilityLabel={`View goal ${wizard.outcome}`}
           accessibilityRole="button"
           disabled={!createdGoalId}
-          onPress={() => createdGoalId && router.replace(`/(app)/goals/${createdGoalId}` as never)}
+          onPress={() => createdGoalId && router.replace(goalWorkspaceHref(createdGoalId) as never)}
           style={({ pressed }) => ({
             alignItems: 'center',
             backgroundColor: colors.background.card,
@@ -1483,7 +1484,7 @@ export default function GoalCreateScreen() {
         <AccentButton
           accent={accent}
           disabled={!createdGoalId}
-          onPress={() => createdGoalId && router.replace(`/(app)/goals/${createdGoalId}` as never)}
+          onPress={() => createdGoalId && router.replace(goalWorkspaceHref(createdGoalId) as never)}
           style={{ marginTop: 14, width: '100%' }}
         >
           View goal

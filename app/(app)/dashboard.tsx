@@ -18,9 +18,11 @@ import type { TodayCarouselGoal } from '@/components/ui/TodayCarousel';
 import { Toast } from '@/components/ui/Toast';
 import { Typography } from '@/components/ui/Typography';
 import { useGoals } from '@/features/goals/hooks/useGoals';
+import { goalWorkspaceHref } from '@/features/goals/navigation';
 import { useSession } from '@/features/auth/hooks/useSession';
 import { useLatestAction } from '@/features/actions/hooks/useLatestAction';
-import { useDashboardLatestEntry } from '@/features/echo/hooks/useDashboardLatestEntry';
+import { useDashboardEntryPreviews } from '@/features/entries/hooks/useDashboardEntryPreviews';
+import type { DashboardEntryPreview } from '@/features/entries/dashboard-entry-previews';
 import { useProfileStore } from '@/features/profile/store';
 import { useProjectStore } from '@/features/projects/store';
 import { GoalRingGrid } from '@/features/goals/components/GoalRingGrid';
@@ -38,8 +40,13 @@ import {
   type ReflectionTimestampsByGoalId,
 } from '@/features/goals/active-goal-selectors';
 import { fetchActiveGoalReflectionTimestamps } from '@/features/goals/services/active-goal-reflection-service';
+import { fetchDashboardGoalActivity } from '@/features/goals/services/dashboard-goal-activity-service';
+import type {
+  DashboardGoalActivity,
+  GoalActivityByGoalId,
+} from '@/features/goals/dashboard-goal-activity';
 import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal';
-import { ProjectCard } from '@/features/projects/components/ProjectCard';
+import type { Project } from '@/features/projects/types';
 import { FEATURES } from '@/constants/features';
 import {
   DASHBOARD_DRAFTS_ROUTE,
@@ -132,7 +139,7 @@ function DashboardCreateButton({
   label,
   onPress,
 }: {
-  label: 'New Project' | 'New Goal';
+  label: 'New Project' | 'New Goal' | 'New Note' | 'New Reflection';
   onPress: () => void;
 }) {
   const colors = useThemeColors();
@@ -217,10 +224,7 @@ function TodayFocusSummary({ goals }: { goals: TodayCarouselGoal[] }) {
               accessibilityHint="Opens this goal"
               accessibilityLabel={`Open ${goal.title}`}
               accessibilityRole="button"
-              onPress={() => router.push({
-                pathname: '/(app)/goals/[id]' as never,
-                params: { id: goal.id },
-              })}
+              onPress={() => router.push(goalWorkspaceHref(goal.id) as never)}
               style={({ pressed }) => ({
                 alignItems: 'center',
                 backgroundColor: pressed ? colors.background.selectedRow : 'transparent',
@@ -384,9 +388,12 @@ function MomentumCard({
       >
         <View style={{ flex: 1, padding: SPACE['3xl'] }}>
           <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Typography variant="eyebrow" style={{ color: colors.text.primary, fontSize: 12 }}>
-              Momentum
-            </Typography>
+            <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}>
+              <BrandIcon name="momentum" size={20} color={colors.accent.primary} />
+              <Typography variant="eyebrow" style={{ color: colors.text.primary, fontSize: 12 }}>
+                Momentum
+              </Typography>
+            </View>
             <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}>
               <View style={{
                 alignItems: 'center', backgroundColor: colors.background.input,
@@ -548,16 +555,11 @@ function MomentumCard({
   );
 }
 
-type GoalActivityPreview = {
-  at: Date;
-  label: string;
-};
-
 function resolveGoalActivity(
   goal: GoalWithDetails,
-  reflectionAt?: string | null,
-): GoalActivityPreview | null {
-  const candidates: GoalActivityPreview[] = [];
+  linkedActivity?: DashboardGoalActivity | null,
+): DashboardGoalActivity | null {
+  const candidates: DashboardGoalActivity[] = [];
   const completedMilestone = [...goal.milestones]
     .filter((milestone) => milestone.completedAt)
     .sort((a, b) => (b.completedAt?.getTime() ?? 0) - (a.completedAt?.getTime() ?? 0))[0];
@@ -568,12 +570,7 @@ function resolveGoalActivity(
       label: `Completed ${completedMilestone.title}`,
     });
   }
-  if (reflectionAt) {
-    const parsedReflectionAt = new Date(reflectionAt);
-    if (!Number.isNaN(parsedReflectionAt.getTime())) {
-      candidates.push({ at: parsedReflectionAt, label: 'Logged reflection' });
-    }
-  }
+  if (linkedActivity) candidates.push(linkedActivity);
   if (goal.updatedAt.getTime() > goal.createdAt.getTime() + 60_000) {
     candidates.push({ at: goal.updatedAt, label: 'Goal updated' });
   }
@@ -581,11 +578,17 @@ function resolveGoalActivity(
   return candidates.sort((a, b) => b.at.getTime() - a.at.getTime())[0] ?? null;
 }
 
-function HomeGoalPreview({ goal, activityAt }: { goal: GoalWithDetails; activityAt?: string | null }) {
+function HomeGoalPreview({
+  goal,
+  linkedActivity,
+}: {
+  goal: GoalWithDetails;
+  linkedActivity?: DashboardGoalActivity | null;
+}) {
   const colors = useThemeColors();
   const darkMode = useUIStore((state) => state.themeMode === 'dark');
   const categoryTheme = getCategoryAccentTheme(goal.category);
-  const recentActivity = resolveGoalActivity(goal, activityAt);
+  const recentActivity = resolveGoalActivity(goal, linkedActivity);
   const nextMilestone = goal.milestones.find((milestone) => !milestone.completedAt);
   const nextTracker = goal.trackers.find((tracker) => (
     tracker.targetValue === null || tracker.currentValue < tracker.targetValue
@@ -598,7 +601,7 @@ function HomeGoalPreview({ goal, activityAt }: { goal: GoalWithDetails; activity
     <Pressable
       accessibilityLabel={`Open ${goal.title}`}
       accessibilityRole="button"
-      onPress={() => router.push(`/(app)/goals/${goal.id}` as never)}
+      onPress={() => router.push(goalWorkspaceHref(goal.id) as never)}
       style={({ pressed }) => ({
         backgroundColor: pressed ? colors.background.selectedRow : colors.background.subtle,
         borderColor: colors.border.warmSubtle,
@@ -678,23 +681,23 @@ function HomeGoalPreview({ goal, activityAt }: { goal: GoalWithDetails; activity
   );
 }
 
-function HomeGoalsPreview({ goals, reflectionTimestamps }: {
+function HomeGoalsPreview({ goals, goalActivity }: {
   goals: GoalWithDetails[];
-  reflectionTimestamps: ReflectionTimestampsByGoalId;
+  goalActivity: GoalActivityByGoalId;
 }) {
   const colors = useThemeColors();
   const visibleGoals = useMemo(
     () => [...goals]
       .sort((a, b) => {
-        const activityA = resolveGoalActivity(a, reflectionTimestamps[a.id]);
-        const activityB = resolveGoalActivity(b, reflectionTimestamps[b.id]);
+        const activityA = resolveGoalActivity(a, goalActivity[a.id]);
+        const activityB = resolveGoalActivity(b, goalActivity[b.id]);
         if (activityA && activityB) return activityB.at.getTime() - activityA.at.getTime();
         if (activityA) return -1;
         if (activityB) return 1;
         return b.updatedAt.getTime() - a.updatedAt.getTime();
       })
       .slice(0, 2),
-    [goals, reflectionTimestamps],
+    [goalActivity, goals],
   );
 
   return (
@@ -708,7 +711,7 @@ function HomeGoalsPreview({ goals, reflectionTimestamps }: {
       </View>
       <View style={{ gap: SPACE.xl }}>
         {visibleGoals.map((goal) => (
-          <HomeGoalPreview key={goal.id} goal={goal} activityAt={reflectionTimestamps[goal.id]} />
+          <HomeGoalPreview key={goal.id} goal={goal} linkedActivity={goalActivity[goal.id]} />
         ))}
         {!visibleGoals.length ? <Typography variant="hint">No active goals yet.</Typography> : null}
       </View>
@@ -984,7 +987,7 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
       className="rounded-2xl border p-5"
       style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider }}
     >
-      <Pressable onPress={() => router.push(`/(app)/goals/${goal.id}` as never)}>
+      <Pressable onPress={() => router.push(goalWorkspaceHref(goal.id) as never)}>
         <Typography variant="eyebrow" className="mb-2">
           Active Goal
         </Typography>
@@ -1065,7 +1068,7 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
           <Pressable
             className="self-start rounded-full px-4 py-2"
             style={{ backgroundColor: colors.background.selectedRow }}
-            onPress={() => router.push(`/(app)/goals/${goal.id}` as never)}
+            onPress={() => router.push(goalWorkspaceHref(goal.id) as never)}
           >
             <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>
               Set next action
@@ -1104,20 +1107,24 @@ function NoActiveGoalCard() {
   );
 }
 
-// --- Zone 2: Echo ---
+// --- Home previews ---
 
-interface EchoZoneProps {
-  latestEntryContent: string | null;
-  latestEntryDate: Date | null;
-  latestEntryLoading: boolean;
-}
-
-function EchoZone({
-  latestEntryContent,
-  latestEntryDate,
-  latestEntryLoading,
-}: EchoZoneProps) {
+function ProjectPreview({
+  goals,
+  isLoading,
+  onNewProject,
+  project,
+}: {
+  goals: GoalWithDetails[];
+  isLoading: boolean;
+  onNewProject: () => void;
+  project: Project | null;
+}) {
   const colors = useThemeColors();
+  const projectGoals = project ? goals.filter((goal) => goal.projectId === project.id) : [];
+  const progress = projectGoals.length
+    ? Math.round(projectGoals.reduce((total, goal) => total + goal.progress, 0) / projectGoals.length)
+    : 0;
 
   return (
     <Card
@@ -1126,65 +1133,132 @@ function EchoZone({
       style={{ borderWidth: 0, flex: 1, minHeight: 194 }}
     >
       <View style={{ flex: 1 }}>
-        <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.lg, marginBottom: SPACE.xl }}>
-            <BrandIcon name="echo" size={20} tintColor={colors.accent.primary} />
+        <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACE.xl }}>
+          <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.lg }}>
+            <BrandIcon name="project" size={20} tintColor={colors.accent.primary} />
             <Typography variant="eyebrow" style={{ color: colors.text.primary, fontSize: 12 }}>
-              Echo
+              Projects
             </Typography>
+          </View>
+          <DashboardCreateButton label="New Project" onPress={onNewProject} />
         </View>
-        <Typography variant="title" style={{ fontSize: 22, fontWeight: '500', lineHeight: 30, marginBottom: SPACE.sm }}>
-          Reflect on today
-        </Typography>
-        <View style={{ alignItems: 'flex-end', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.xl }}>
-          <View style={{ flex: 1, minWidth: 180 }}>
-          {latestEntryLoading ? (
+        {isLoading ? (
+          <View style={{ gap: SPACE.sm }}>
             <View
-              className="h-3 w-1/2 rounded-full"
+              className="h-5 w-1/2 rounded-full"
               style={{ backgroundColor: colors.background.subtle }}
             />
-          ) : latestEntryContent && latestEntryDate ? (
-            <>
-              <Typography
-                ellipsizeMode="tail"
-                numberOfLines={2}
-                variant="body"
-                style={{ color: colors.text.secondary }}
-              >
-                {latestEntryContent}
-              </Typography>
-              <Typography variant="caption" style={{ marginTop: SPACE.sm }}>
-                Latest reflection · {formatRelativeTime(latestEntryDate.toISOString())}
-              </Typography>
-            </>
-          ) : (
-            <Typography variant="body" style={{ color: colors.text.secondary }}>
-              Capture what you noticed today and give it space to become understanding.
-            </Typography>
-          )}
+            <View className="h-3 w-3/4 rounded-full" style={{ backgroundColor: colors.background.subtle }} />
           </View>
+        ) : project ? (
           <Pressable
-          accessibilityLabel="Start a new reflection"
-          accessibilityRole="button"
-          onPress={() => router.push('/(app)/entries/reflection' as never)}
-          style={({ pressed }) => ({
-            alignItems: 'center',
-            backgroundColor: colors.background.selectedRow,
-            borderRadius: 999,
-            flexDirection: 'row',
-            gap: 5,
-            opacity: pressed ? 0.68 : 1,
-            minHeight: 44,
-            paddingHorizontal: SPACE.xl,
-            paddingVertical: SPACE.md,
-          })}
-        >
-          <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>
-            New Reflection
-          </Typography>
-          <Ionicons color={colors.text.accent} name="create-outline" size={15} />
-        </Pressable>
-        </View>
+            accessibilityLabel={`Open ${project.title}`}
+            accessibilityRole="button"
+            onPress={() => router.push(`/(app)/projects/${project.id}` as never)}
+            style={({ pressed }) => ({ flex: 1, justifyContent: 'center', opacity: pressed ? 0.68 : 1 })}
+          >
+            <Typography variant="title" numberOfLines={1} style={{ fontSize: 22, fontWeight: '500', lineHeight: 30 }}>
+              {project.title}
+            </Typography>
+            {project.description ? (
+              <Typography numberOfLines={2} variant="body" style={{ color: colors.text.secondary, marginTop: SPACE.sm }}>
+                {project.description}
+              </Typography>
+            ) : null}
+            <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginTop: SPACE.lg }}>
+              <Typography variant="caption">
+                {projectGoals.length} {projectGoals.length === 1 ? 'goal' : 'goals'} connected · {progress}%
+              </Typography>
+              <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>Open →</Typography>
+            </View>
+          </Pressable>
+        ) : (
+          <View style={{ flex: 1, justifyContent: 'center' }}>
+            <Typography variant="title" style={{ fontSize: 20, fontWeight: '500' }}>No projects yet.</Typography>
+            <Typography variant="body" style={{ color: colors.text.secondary, marginTop: SPACE.sm }}>
+              Create a project to connect the goals that move it forward.
+            </Typography>
+          </View>
+        )}
       </View>
+    </Card>
+  );
+}
+
+function EchoEntryPreviewCard({
+  entry,
+  entryType,
+  isLoading,
+}: {
+  entry: DashboardEntryPreview | null;
+  entryType: 'note' | 'reflection';
+  isLoading: boolean;
+}) {
+  const colors = useThemeColors();
+  const isNote = entryType === 'note';
+  const heading = isNote ? 'Echo Notes' : 'Echo Reflections';
+  const emptyTitle = isNote ? 'No notes yet.' : 'No reflections yet.';
+  const emptyCopy = isNote
+    ? 'Capture something you want to remember.'
+    : 'Take a moment to notice what changed.';
+  const createLabel = isNote ? 'New Note' : 'New Reflection';
+  const createRoute = isNote
+    ? '/(app)/entries?create=note'
+    : '/(app)/entries/reflection';
+
+  return (
+    <Card elevation="md" padding="spacious" style={{ borderWidth: 0, flex: 1, minHeight: 218 }}>
+      <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACE.xl }}>
+        <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.lg }}>
+          <BrandIcon name={isNote ? 'echo-add-entry' : 'echo'} size={20} tintColor={colors.accent.primary} />
+          <Typography variant="eyebrow" style={{ color: colors.text.primary, fontSize: 12 }}>
+            {heading}
+          </Typography>
+        </View>
+        <DashboardCreateButton
+          label={createLabel}
+          onPress={() => router.push(createRoute as never)}
+        />
+      </View>
+
+      {isLoading ? (
+        <View style={{ gap: SPACE.sm }}>
+          <View className="h-5 w-1/2 rounded-full" style={{ backgroundColor: colors.background.subtle }} />
+          <View className="h-3 w-3/4 rounded-full" style={{ backgroundColor: colors.background.subtle }} />
+        </View>
+      ) : entry ? (
+        <Pressable
+          accessibilityLabel={`Open ${entry.title}`}
+          accessibilityRole="button"
+          onPress={() => router.push(`/(app)/entries/${entry.id}` as never)}
+          style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.68 : 1 })}
+        >
+          <Typography variant="title" numberOfLines={1} style={{ fontSize: 20, fontWeight: '500', lineHeight: 28 }}>
+            {entry.title}
+          </Typography>
+          {entry.excerpt ? (
+            <Typography numberOfLines={2} variant="body" style={{ color: colors.text.secondary, marginTop: SPACE.sm }}>
+              {entry.excerpt}
+            </Typography>
+          ) : null}
+          <View style={{ alignItems: 'flex-end', flexDirection: 'row', justifyContent: 'space-between', marginTop: SPACE.lg }}>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              {entry.linkedGoalTitle ? (
+                <Typography numberOfLines={1} variant="caption">Linked to: {entry.linkedGoalTitle}</Typography>
+              ) : null}
+              <Typography variant="caption" style={{ marginTop: entry.linkedGoalTitle ? 2 : 0 }}>
+                Edited {formatRelativeTime(entry.updatedAt.toISOString())}
+              </Typography>
+            </View>
+            <Typography variant="emphasis-sm" style={{ color: colors.text.accent, marginLeft: SPACE.xl }}>Open →</Typography>
+          </View>
+        </Pressable>
+      ) : (
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <Typography variant="title" style={{ fontSize: 20, fontWeight: '500' }}>{emptyTitle}</Typography>
+          <Typography variant="body" style={{ color: colors.text.secondary, marginTop: SPACE.sm }}>{emptyCopy}</Typography>
+        </View>
+      )}
     </Card>
   );
 }
@@ -1292,7 +1366,7 @@ export default function DashboardScreen() {
   const { session } = useSession();
   const momentum = useMomentumHomeSummary();
   const { projects, isLoading: projectsLoading, loadProjects } = useProjectStore();
-  const { latestEntry, isLoading: latestEntryLoading } = useDashboardLatestEntry(
+  const entryPreviews = useDashboardEntryPreviews(
     FEATURES.ECHO_ENABLED ? session?.user.id ?? null : null,
   );
   const standaloneGoalsView = useUIStore((state) => state.dashboardGoalsView);
@@ -1300,6 +1374,7 @@ export default function DashboardScreen() {
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [reflectionTimestamps, setReflectionTimestamps] =
     useState<ReflectionTimestampsByGoalId>({});
+  const [goalActivity, setGoalActivity] = useState<GoalActivityByGoalId>({});
   const dashboardTimingRef = useRef<ReturnType<typeof startPerformanceTimer> | null>(null);
   if (!dashboardTimingRef.current) {
     dashboardTimingRef.current = startPerformanceTimer('dashboard.primary-content-ready', {
@@ -1424,8 +1499,6 @@ export default function DashboardScreen() {
     ? displayedGoals
     : displayedGoals.slice(0, 7);
 
-  const hasProjects = projects.length > 0;
-
   const activeGoals = useMemo(
     () => selectActiveGoals(goals),
     [goals],
@@ -1468,6 +1541,27 @@ export default function DashboardScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeGoalIdsKey]);
 
+  useEffect(() => {
+    const userId = session?.user.id;
+    if (!userId || activeGoalIds.length === 0) {
+      setGoalActivity({});
+      return;
+    }
+
+    let isActive = true;
+    void fetchDashboardGoalActivity(userId, activeGoalIds)
+      .then((activity) => {
+        if (isActive) setGoalActivity(activity);
+      })
+      .catch(() => {
+        if (isActive) setGoalActivity({});
+      });
+
+    return () => { isActive = false; };
+  // activeGoalIdsKey intentionally represents the active goal-ID list for this read.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeGoalIdsKey, session?.user.id]);
+
   const orderedActiveGoals = useMemo(
     () => orderActiveGoals(activeGoals, reflectionTimestamps),
     [activeGoals, reflectionTimestamps],
@@ -1475,6 +1569,12 @@ export default function DashboardScreen() {
   const todayGoals = useMemo(
     () => resolveActiveGoalProjectTitles(orderedActiveGoals, projects),
     [orderedActiveGoals, projects],
+  );
+  const recentProject = useMemo(
+    () => [...projects]
+      .filter((project) => project.status !== 'archived')
+      .sort((left, right) => Date.parse(right.updated_at) - Date.parse(left.updated_at))[0] ?? null,
+    [projects],
   );
 
   const displayName = displayNameFromMetadata(session?.user.user_metadata)
@@ -1496,14 +1596,21 @@ export default function DashboardScreen() {
     />
   );
   const goalsCard = (
-    <HomeGoalsPreview goals={orderedActiveGoals} reflectionTimestamps={reflectionTimestamps} />
+    <HomeGoalsPreview goals={orderedActiveGoals} goalActivity={goalActivity} />
   );
-  const echoCard = FEATURES.ECHO_ENABLED ? (
-    <EchoZone
-      latestEntryContent={latestEntry?.preview ?? null}
-      latestEntryDate={latestEntry?.createdAt ?? null}
-      latestEntryLoading={latestEntryLoading}
+  const projectCard = (
+    <ProjectPreview
+      goals={goals}
+      isLoading={projectsLoading}
+      onNewProject={() => setProjectModalOpen(true)}
+      project={recentProject}
     />
+  );
+  const echoNotesCard = FEATURES.ECHO_ENABLED ? (
+    <EchoEntryPreviewCard entry={entryPreviews.note} entryType="note" isLoading={entryPreviews.isLoading} />
+  ) : null;
+  const echoReflectionsCard = FEATURES.ECHO_ENABLED ? (
+    <EchoEntryPreviewCard entry={entryPreviews.reflection} entryType="reflection" isLoading={entryPreviews.isLoading} />
   ) : null;
 
   return (
@@ -1539,7 +1646,7 @@ export default function DashboardScreen() {
                 <View style={{ flex: 0.3, gap: SPACE['3xl'], minWidth: 0 }}>
                   {greetingCard}
                   {todayCard}
-                  {echoCard}
+                  {projectCard}
                 </View>
                 <View style={{ flex: 0.34, minWidth: 0 }}>{momentumCard}</View>
                 <View style={{ flex: 0.36, minWidth: 0 }}>{goalsCard}</View>
@@ -1555,7 +1662,7 @@ export default function DashboardScreen() {
                 </View>
                 <View style={{ alignItems: 'stretch', flexDirection: 'row', gap: SPACE['3xl'] }}>
                   <View style={{ flex: 1, minWidth: 0 }}>{goalsCard}</View>
-                  <View style={{ flex: 1, minWidth: 0 }}>{echoCard}</View>
+                  <View style={{ flex: 1, minWidth: 0 }}>{projectCard}</View>
                 </View>
               </View>
             ) : (
@@ -1564,33 +1671,17 @@ export default function DashboardScreen() {
                 {todayCard}
                 {momentumCard}
                 {goalsCard}
-                {echoCard}
+                {projectCard}
               </View>
             )}
 
-            {/* Zone 2: Projects */}
-            <Card elevation="md" padding="spacious" style={{ borderWidth: 0 }}>
-              <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACE.xl }}>
-                <Typography variant="eyebrow" style={{ color: colors.text.primary, fontSize: 12 }}>
-                  Projects
-                </Typography>
-                <DashboardCreateButton
-                  label="New Project"
-                  onPress={() => setProjectModalOpen(true)}
-                />
+            {/* Echo Notes and Reflections */}
+            {FEATURES.ECHO_ENABLED ? (
+              <View style={{ flexDirection: width >= 720 ? 'row' : 'column', gap: SPACE['3xl'] }}>
+                <View style={{ flex: 1, minWidth: 0 }}>{echoNotesCard}</View>
+                <View style={{ flex: 1, minWidth: 0 }}>{echoReflectionsCard}</View>
               </View>
-              {hasProjects ? (
-                projects.map((project) => (
-                  <ProjectCard
-                    key={project.id}
-                    project={project}
-                    goals={goals.filter((g) => g.projectId === project.id)}
-                  />
-                ))
-              ) : (
-                <Typography variant="hint">No projects yet.</Typography>
-              )}
-            </Card>
+            ) : null}
 
             {/* Zone 3: Standalone Goals */}
             {draftsRequested ? <Card elevation="sm" padding="spacious">
@@ -1734,14 +1825,6 @@ export default function DashboardScreen() {
               isLoading={insightLoading}
             />
 
-            {/* Zone 4: Echo */}
-            {false && FEATURES.ECHO_ENABLED ? (
-              <EchoZone
-                latestEntryContent={latestEntry?.preview ?? null}
-                latestEntryDate={latestEntry?.createdAt ?? null}
-                latestEntryLoading={latestEntryLoading}
-              />
-            ) : null}
           </View>
         )}
         </View>
