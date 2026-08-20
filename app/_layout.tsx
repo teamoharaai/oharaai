@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useFonts } from 'expo-font';
@@ -21,6 +21,12 @@ import { clearAllStores } from '@/store/clearAllStores';
 import { colorScheme } from 'nativewind';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { startPerformanceTimer } from '@/lib/diagnostics/performance';
+import { InternalReleaseNotesModal } from '@/components/layout/InternalReleaseNotesModal';
+import { INTERNAL_RELEASE_NOTES, SHOW_INTERNAL_RELEASE_NOTES } from '@/config/internal-release';
+import {
+  getInternalReleaseSessionStorage,
+  shouldShowInternalReleaseForAuthEvent,
+} from '@/features/auth/internal-release';
 import '../global.css';
 
 export default function RootLayout() {
@@ -44,12 +50,15 @@ export default function RootLayout() {
 
   const { session, loading, setSession, setLoading } = useAuthStore();
   const activeUserIdRef = useRef<string | null>(null);
+  const internalReleaseShownRef = useRef(false);
+  const [internalReleaseVisible, setInternalReleaseVisible] = useState(false);
   const fontTimingRef = useRef<ReturnType<typeof startPerformanceTimer> | null>(null);
   if (!fontTimingRef.current) {
     fontTimingRef.current = startPerformanceTimer('root.font-bootstrap', { fontCount: 12 });
   }
   const segments = useSegments();
   const router = useRouter();
+  const closeInternalRelease = useCallback(() => setInternalReleaseVisible(false), []);
 
   useEffect(() => {
     colorScheme.set(themeMode);
@@ -80,8 +89,23 @@ export default function RootLayout() {
         sessionTiming.end({ success: false });
       });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
       applySession(nextSession);
+      if (event === 'SIGNED_OUT') {
+        internalReleaseShownRef.current = false;
+        setInternalReleaseVisible(false);
+      }
+      const shouldShow = !internalReleaseShownRef.current
+        && shouldShowInternalReleaseForAuthEvent(
+          event,
+          INTERNAL_RELEASE_NOTES.id,
+          SHOW_INTERNAL_RELEASE_NOTES,
+          getInternalReleaseSessionStorage(),
+        );
+      if (shouldShow) {
+        internalReleaseShownRef.current = true;
+        setInternalReleaseVisible(true);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -136,6 +160,11 @@ export default function RootLayout() {
         <Stack.Screen name="(app)" />
         <Stack.Screen name="+not-found" />
       </Stack>
+      <InternalReleaseNotesModal
+        onClose={closeInternalRelease}
+        release={INTERNAL_RELEASE_NOTES}
+        visible={!!session && internalReleaseVisible}
+      />
     </GestureHandlerRootView>
   );
 }

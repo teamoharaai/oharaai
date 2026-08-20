@@ -22,6 +22,8 @@ import { fetchEntries } from '@/features/entries/services/entry-service';
 import type { EntryRecord } from '@/features/entries/types';
 import { useProjectStore } from '@/features/projects/store';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
+import { useGoalMomentumSummary } from '@/features/momentum/hooks/useMomentumHomeSummary';
+import { MomentumTrendChart } from '@/features/momentum/components/MomentumTrendChart';
 import type { ActivityItem } from '@/types/activity';
 import {
   filterGoalsForWorkspace,
@@ -1111,6 +1113,8 @@ function GoalTabContent({
 function GoalAnalyticsCard({ goal, items, entries }: { goal: GoalWithDetails; items: readonly ActivityItem[]; entries: readonly EntryRecord[] }) {
   const colors = useThemeColors();
   const accent = getCategoryAccentTheme(goal.category);
+  const momentum = useGoalMomentumSummary(goal.id);
+  const goalMomentum = momentum.goalSummary;
   const completedMilestones = goal.milestones.filter((milestone) => milestone.completedAt !== null).length;
   const recordedActions = items.filter((item) => item.kind !== 'goal_created').length;
   return (
@@ -1138,8 +1142,34 @@ function GoalAnalyticsCard({ goal, items, entries }: { goal: GoalWithDetails; it
         ))}
       </View>
       <Typography variant="caption" style={{ marginTop: SPACE.lg }}>
-        Historical progress snapshots are not recorded for this goal, so OHARA does not fabricate a trend chart.
+        Goal progress and Goal Momentum are distinct: progress is the goal&apos;s completion value; Momentum reflects this week&apos;s consistency, progress evidence, reflection, and initiative.
       </Typography>
+      <View style={{ backgroundColor: colors.background.card, borderRadius: RADIUS.md, marginTop: SPACE.xl, padding: SPACE.lg }}>
+        <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}>
+          <View>
+            <Typography variant="emphasis-sm">Goal Momentum</Typography>
+            <Typography variant="caption" style={{ marginTop: SPACE.xs }}>
+              {goalMomentum ? `${goalMomentum.status.charAt(0).toUpperCase()}${goalMomentum.status.slice(1)}` : momentum.isLoading ? 'Calculating…' : 'Unavailable'}
+            </Typography>
+          </View>
+          <Typography variant="heading" style={{ color: accent.color }}>
+            {goalMomentum?.displayedValue ?? '—'} / 100
+          </Typography>
+        </View>
+        {goalMomentum?.history.length ? (
+          <View style={{ marginTop: SPACE.lg }}>
+            <MomentumTrendChart
+              height={118}
+              points={goalMomentum.history.map((point) => point.value)}
+              xLabels={goalMomentum.history.map(() => '')}
+              yDomainMax={100}
+            />
+          </View>
+        ) : null}
+        <Typography variant="caption" style={{ marginTop: SPACE.md }}>
+          {goalMomentum?.reasons[0]?.message ?? momentum.error ?? 'Authoritative V1 history will appear after calculation.'}
+        </Typography>
+      </View>
     </Surface>
   );
 }

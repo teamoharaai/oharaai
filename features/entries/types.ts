@@ -21,9 +21,58 @@ export interface RichTextBlock {
   checked?: boolean;
 }
 
+export interface RichTextMark {
+  type: string;
+  attrs?: Record<string, unknown>;
+}
+
+export interface RichTextNode {
+  type: string;
+  attrs?: Record<string, unknown>;
+  content?: RichTextNode[];
+  marks?: RichTextMark[];
+  text?: string;
+}
+
 export interface RichTextDocument {
   type: 'doc';
-  blocks: RichTextBlock[];
+  /** V2 uses ProseMirror/Tiptap JSON. Legacy V1 blocks remain readable. */
+  schemaVersion?: 1 | 2;
+  content?: RichTextNode[];
+  blocks?: RichTextBlock[];
+}
+
+export type NoteReferenceSource = 'text' | 'paragraph' | 'checkbox' | 'embedded_goal_card';
+
+export interface GoalReferenceRecord {
+  id: string;
+  goalId: string;
+  blockId: string | null;
+  sourceType: NoteReferenceSource;
+  excerpt: string;
+  createdAt: string;
+  progressEvidence: boolean;
+  checkboxCompleted: boolean;
+}
+
+export type IntelligenceReferenceAction =
+  | 'ask'
+  | 'reflect'
+  | 'understand'
+  | 'connect_goal'
+  | 'pattern'
+  | 'custom';
+
+export interface IntelligenceReferenceRecord {
+  id: string;
+  blockId: string | null;
+  excerpt: string;
+  containingText: string;
+  createdAt: string;
+  action: IntelligenceReferenceAction;
+  question: string | null;
+  status: 'referenced' | 'premium_locked' | 'ready';
+  goalIds: string[];
 }
 
 export interface ReflectionTurn {
@@ -91,6 +140,7 @@ export interface EntryDraft {
   pinned?: boolean;
   archived?: boolean;
   completedAt?: string | null;
+  expectedContentVersion?: number;
   relationships: EntryRelationships;
 }
 

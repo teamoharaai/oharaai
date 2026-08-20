@@ -17,6 +17,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
 import { RADIUS, SPACE, elevationStyle } from '@/constants/design';
 import { GOAL_CATEGORY_CATALOG } from '@/lib/goals/catalog';
+import { goalWorkspaceHref } from '@/features/goals/navigation';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { fetchEntry, isPersistenceUnavailable } from '../services/entry-service';
 import { useEntriesStore } from '../store';
@@ -27,6 +28,7 @@ import type {
   RichTextDocument,
 } from '../types';
 import { createEmptyDocument } from '../utils';
+import { extractGoalReferences, extractIntelligenceReferences } from '../editor-document';
 import { copyEntryText, exportEntryPdf, exportEntryText } from '../export';
 import { EntryLinkPicker } from './EntryLinkPicker';
 import { RichTextEditor } from './RichTextEditor';
@@ -57,7 +59,7 @@ function localDraftKey(entryId: string): string {
 function saveLabel(status: EntrySaveStatus): string {
   if (status === 'saving') return 'Saving…';
   if (status === 'saved') return 'Saved';
-  if (status === 'error') return 'Not saved — retry';
+  if (status === 'error') return "Couldn't save — Retry";
   return 'Saved';
 }
 
@@ -94,6 +96,8 @@ export function NoteEditor({ entryId }: { entryId: string }) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
   const [dirtyVersion, setDirtyVersion] = useState(0);
+  const [focusedReferenceId, setFocusedReferenceId] = useState<string | null>(null);
+  const [referenceRemoval, setReferenceRemoval] = useState<{ id: string; nonce: number } | null>(null);
   const lastSavedVersion = useRef(0);
   const lastAttemptedVersion = useRef(0);
   const savingRef = useRef(false);
@@ -157,8 +161,9 @@ export function NoteEditor({ entryId }: { entryId: string }) {
     plainText,
     pinned: entry?.pinned ?? false,
     archived: false,
+    expectedContentVersion: entry?.contentVersion,
     relationships: { goalIds, categoryIds, milestoneIds: [] },
-  }), [categoryIds, content, entry?.pinned, goalIds, plainText, title]);
+  }), [categoryIds, content, entry?.contentVersion, entry?.pinned, goalIds, plainText, title]);
   latestDraftRef.current = draft;
 
   useEffect(() => {
@@ -214,8 +219,8 @@ export function NoteEditor({ entryId }: { entryId: string }) {
     setSaveStatus('idle');
   }
 
-  function handleBack() {
-    if (dirtyVersion > lastSavedVersion.current) void persist(dirtyVersion);
+  async function handleBack() {
+    if (dirtyVersion > lastSavedVersion.current) await persist(dirtyVersion);
     router.replace('/(app)/entries' as never);
   }
 
@@ -247,6 +252,11 @@ export function NoteEditor({ entryId }: { entryId: string }) {
   }
 
   const selectedGoals = goals.filter((goal) => goalIds.includes(goal.id));
+  const goalReferences = useMemo(() => extractGoalReferences(content), [content]);
+  const intelligenceReferences = useMemo(
+    () => extractIntelligenceReferences(content),
+    [content],
+  );
   const relatedEntries = entries.filter((candidate) => (
     candidate.id !== entryId
     && candidate.goals.some((goal) => goalIds.includes(goal.id))
@@ -318,8 +328,148 @@ export function NoteEditor({ entryId }: { entryId: string }) {
           showsVerticalScrollIndicator={false}
         >
           <Typography variant="meta" style={{ lineHeight: 20 }}>
-            Context for this note. No AI response has been generated.
+            Selection references stay anchored to this note. No AI response has been generated.
           </Typography>
+          <Typography variant="eyebrow" style={{ marginBottom: SPACE.md, marginTop: SPACE['3xl'] }}>
+            REFERENCES
+          </Typography>
+          {intelligenceReferences.length ? intelligenceReferences.map((reference) => (
+            <View
+              key={reference.id}
+              style={{
+                backgroundColor: focusedReferenceId === reference.id
+                  ? colors.background.selectedRow
+                  : colorWithAlpha(colors.background.card, darkMode ? 0.62 : 0.68),
+                borderColor: colorWithAlpha(colors.accent.primary, 0.2),
+                borderLeftWidth: 2,
+                borderRadius: RADIUS.md,
+                marginBottom: SPACE.md,
+                overflow: 'hidden',
+              }}
+            >
+              <Pressable
+                accessibilityLabel={`Jump to reference: ${reference.excerpt}`}
+                accessibilityRole="button"
+                onPress={() => setFocusedReferenceId(reference.id)}
+                style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1, padding: SPACE.lg })}
+              >
+                <Typography variant="emphasis-sm" numberOfLines={3} style={{ fontSize: 14, lineHeight: 20 }}>
+                  “{reference.excerpt || reference.containingText || 'Referenced passage'}”
+                </Typography>
+                <Typography variant="caption" style={{ marginTop: SPACE.sm }}>
+                  {reference.action.replace('_', ' ')} · {reference.createdAt
+                    ? new Date(reference.createdAt).toLocaleString()
+                    : 'Just now'}
+                </Typography>
+                {reference.question ? (
+                  <Typography variant="meta" style={{ marginTop: SPACE.sm }}>
+                    {reference.question}
+                  </Typography>
+                ) : null}
+                <Typography variant="caption" style={{ color: colors.text.accent, marginTop: SPACE.sm }}>
+                  AI analysis reserved for OHARA Intelligence
+                </Typography>
+              </Pressable>
+              <View style={{ borderTopColor: colors.border.divider, borderTopWidth: 1, flexDirection: 'row' }}>
+                <Pressable
+                  accessibilityLabel="Open reference in document"
+                  accessibilityRole="button"
+                  onPress={() => setFocusedReferenceId(reference.id)}
+                  style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.65 : 1, padding: SPACE.md })}
+                >
+                  <Typography variant="caption" style={{ color: colors.text.accent }}>Jump to source</Typography>
+                </Pressable>
+                <Pressable
+                  accessibilityLabel="Remove OHARA Intelligence reference"
+                  accessibilityRole="button"
+                  onPress={() => setReferenceRemoval({ id: reference.id, nonce: Date.now() })}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1, padding: SPACE.md })}
+                >
+                  <Typography variant="caption" style={{ color: colors.feedback.danger.text }}>Remove</Typography>
+                </Pressable>
+              </View>
+            </View>
+          )) : (
+            <View style={{ paddingVertical: SPACE.sm }}>
+              <Typography variant="emphasis-sm" style={{ fontSize: 14 }}>Focus OHARA on what matters</Typography>
+              <Typography variant="meta" style={{ lineHeight: 19, marginTop: SPACE.xs }}>
+                Select part of your note and choose Ask OHARA to create a focused reference.
+              </Typography>
+            </View>
+          )}
+          {goalReferences.length ? (
+            <>
+              <Typography variant="eyebrow" style={{ marginBottom: SPACE.md, marginTop: SPACE['3xl'] }}>
+                GOAL REFERENCES
+              </Typography>
+              {goalReferences.map((reference) => {
+                const goal = goals.find((item) => item.id === reference.goalId);
+                return (
+                  <View
+                    key={reference.id}
+                    style={{
+                      backgroundColor: focusedReferenceId === reference.id
+                        ? colors.background.selectedRow
+                        : colorWithAlpha(colors.background.card, darkMode ? 0.48 : 0.54),
+                      borderRadius: RADIUS.md,
+                      marginBottom: SPACE.md,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <Pressable
+                      accessibilityLabel={`Jump to Goal reference: ${goal?.title ?? 'Unavailable Goal'}`}
+                      accessibilityRole="button"
+                      onPress={() => setFocusedReferenceId(reference.id)}
+                      style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1, padding: SPACE.lg })}
+                    >
+                      <Typography variant="emphasis-sm" style={{ fontSize: 14 }}>
+                        {goal?.title ?? 'Goal unavailable'}
+                      </Typography>
+                      {reference.excerpt ? (
+                        <Typography variant="meta" numberOfLines={2} style={{ marginTop: SPACE.xs }}>
+                          “{reference.excerpt}”
+                        </Typography>
+                      ) : null}
+                      <Typography variant="caption" style={{ marginTop: SPACE.sm }}>
+                        {reference.sourceType.replaceAll('_', ' ')}
+                        {reference.progressEvidence
+                          ? reference.checkboxCompleted ? ' · progress completed' : ' · progress evidence'
+                          : ' · reference only'}
+                      </Typography>
+                    </Pressable>
+                    <View style={{ borderTopColor: colors.border.divider, borderTopWidth: 1, flexDirection: 'row' }}>
+                      <Pressable
+                        accessibilityLabel="Open Goal reference in document"
+                        accessibilityRole="button"
+                        onPress={() => setFocusedReferenceId(reference.id)}
+                        style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.65 : 1, padding: SPACE.md })}
+                      >
+                        <Typography variant="caption" style={{ color: colors.text.accent }}>Jump to source</Typography>
+                      </Pressable>
+                      {goal ? (
+                        <Pressable
+                          accessibilityLabel={`Open Goal: ${goal.title}`}
+                          accessibilityRole="button"
+                          onPress={() => router.push(goalWorkspaceHref(goal.id) as never)}
+                          style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1, padding: SPACE.md })}
+                        >
+                          <Typography variant="caption" style={{ color: colors.text.accent }}>Open Goal</Typography>
+                        </Pressable>
+                      ) : null}
+                      <Pressable
+                        accessibilityLabel="Remove Goal reference"
+                        accessibilityRole="button"
+                        onPress={() => setReferenceRemoval({ id: reference.id, nonce: Date.now() })}
+                        style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1, padding: SPACE.md })}
+                      >
+                        <Typography variant="caption" style={{ color: colors.feedback.danger.text }}>Remove</Typography>
+                      </Pressable>
+                    </View>
+                  </View>
+                );
+              })}
+            </>
+          ) : null}
           <Typography variant="eyebrow" style={{ marginBottom: SPACE.md, marginTop: SPACE['3xl'] }}>
             LINKED GOALS
           </Typography>
@@ -417,7 +567,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
         <Pressable
           accessibilityLabel="Back to Notes library"
           accessibilityRole="button"
-          onPress={handleBack}
+          onPress={() => void handleBack()}
           hitSlop={8}
           style={({ pressed }) => [chromeIconButton, {
             backgroundColor: pressed ? colors.background.hoverAccent : 'transparent',
@@ -563,6 +713,22 @@ export function NoteEditor({ entryId }: { entryId: string }) {
         <View style={{ backgroundColor: colors.background.card, flex: 1, minWidth: 0 }}>
           <RichTextEditor
             document={content}
+            entryId={entry.id}
+            goals={goals}
+            focusedReferenceId={focusedReferenceId}
+            referenceRemoval={referenceRemoval}
+            onReferenceRemoved={(referenceId) => {
+              setReferenceRemoval(null);
+              if (focusedReferenceId === referenceId) setFocusedReferenceId(null);
+            }}
+            onIntelligenceReferenceCreated={(referenceId) => {
+              setFocusedReferenceId(referenceId);
+              setIntelligenceOpen(true);
+            }}
+            onReferenceActivated={(referenceId) => {
+              setFocusedReferenceId(referenceId);
+              setIntelligenceOpen(true);
+            }}
             onChange={(nextContent, nextPlainText) => {
               setContent(nextContent);
               setPlainText(nextPlainText);

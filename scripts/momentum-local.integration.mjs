@@ -2,27 +2,40 @@ import assert from 'node:assert/strict';
 import { createClient } from '@supabase/supabase-js';
 import { verifyLocalTarget } from './momentum-local-target.mjs';
 
-const { origin, values } = verifyLocalTarget();
+const { origin, values } = verifyLocalTarget({
+  envPath: process.env.OHARA_LOCAL_ENV_PATH ?? '.env.local',
+});
 for (const [key, value] of Object.entries(values)) process.env[key] = value;
 
 const { getMomentumHomeSummary } = await import('../features/momentum/services/momentum-service.ts');
+const { addLocalDays, getMomentumWeek, getPreviousMomentumWeek, localDateForInstant, localDateToUtcStart } = await import('../features/momentum/time.ts');
 
 const anonKey = values.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 const serviceKey = values.SUPABASE_SERVICE_ROLE_KEY;
 const service = createClient(origin, serviceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
-const now = new Date('2026-08-03T16:00:00.000Z');
+const now = new Date();
+const ownerTimezone = 'America/New_York';
+const currentBoundary = getMomentumWeek(now, ownerTimezone);
+const completedBoundary = getPreviousMomentumWeek(now, ownerTimezone);
+const currentLocalDate = localDateForInstant(now.toISOString(), ownerTimezone);
+const currentCompletion = new Date(Math.max(
+  new Date(currentBoundary.startInclusive).getTime(),
+  now.getTime() - 60 * 60 * 1000,
+)).toISOString();
+const instantForLocalDate = (ymd, timezone = ownerTimezone) => new Date(
+  new Date(localDateToUtcStart(ymd, timezone)).getTime() + 12 * 60 * 60 * 1000,
+).toISOString();
 const password = 'LocalMomentum!2026';
+const runId = `${Date.now().toString(36)}-${process.pid}`;
+const actionIds = Object.fromEntries(
+  ['ownerCurrent', 'ownerPriorA', 'ownerPriorB', 'ownerOlder', 'ownerLate', 'otherCurrent', 'otherOlder', 'boundaryMonday', 'boundarySunday']
+    .map((key) => [key, crypto.randomUUID()]),
+);
 
-async function resetUser(email, timezone) {
-  const { data: listed, error: listError } = await service.auth.admin.listUsers({ perPage: 1000 });
-  assert.equal(listError, null);
-  const existing = listed.users.find((user) => user.email === email);
-  if (existing) {
-    const { error } = await service.auth.admin.deleteUser(existing.id);
-    assert.equal(error, null);
-  }
+async function createTestUser(label, timezone) {
+  const email = `momentum.${label}.${runId}@local.ohara.test`;
   const { data, error } = await service.auth.admin.createUser({
     email,
     email_confirm: true,
@@ -72,12 +85,13 @@ async function createAction({ completedAt, dueDate, goalId, id, userId }) {
   assert.equal(error, null);
 }
 
-async function snapshotRows(userId) {
+async function snapshotRows(userId, weekStart) {
   const { data, error } = await service
     .from('momentum_weekly_snapshots')
     .select('id, calculation_hash, revision, supersedes_snapshot_id')
     .eq('user_id', userId)
-    .eq('week_start', '2026-07-27')
+    .eq('week_start', weekStart)
+    .eq('algorithm_version', 'ohara-momentum-v1.0')
     .order('revision', { ascending: true });
   assert.equal(error, null);
   return data;
@@ -85,7 +99,7 @@ async function snapshotRows(userId) {
 
 console.log(`Verified isolated Supabase API target: ${origin}`);
 
-const owner = await resetUser('momentum.owner@local.ohara.test', 'America/New_York');
+const owner = await createTestUser('owner', ownerTimezone);
 const ownerGoal = await createGoal(owner.userId, 'Owner validation goal');
 
 const empty = await getMomentumHomeSummary(owner.client, service, owner.userId, now);
@@ -94,10 +108,10 @@ assert.equal(empty.summary.weeklyStreak, 0);
 assert.equal(empty.summary.currentValue, 0);
 
 await createAction({
-  completedAt: '2026-08-03T14:00:00.000Z',
-  dueDate: '2026-08-03',
+  completedAt: currentCompletion,
+  dueDate: currentLocalDate,
   goalId: ownerGoal,
-  id: 'a1000000-0000-0000-0000-000000000001',
+  id: actionIds.ownerCurrent,
   userId: owner.userId,
 });
 const current = await getMomentumHomeSummary(owner.client, service, owner.userId, now);
@@ -105,103 +119,111 @@ assert.equal(current.summary.tasksCompletedThisWeek, 1);
 assert.equal(current.summary.weeklyStreak, 1);
 
 await createAction({
-  completedAt: '2026-07-30T15:00:00.000Z',
-  dueDate: '2026-07-30',
+  completedAt: instantForLocalDate(addLocalDays(currentBoundary.weekStart, -4)),
+  dueDate: addLocalDays(currentBoundary.weekStart, -4),
   goalId: ownerGoal,
-  id: 'a1000000-0000-0000-0000-000000000002',
+  id: actionIds.ownerPriorA,
   userId: owner.userId,
 });
 await createAction({
-  completedAt: '2026-07-31T15:00:00.000Z',
-  dueDate: '2026-08-10',
+  completedAt: instantForLocalDate(addLocalDays(currentBoundary.weekStart, -3)),
+  dueDate: addLocalDays(currentBoundary.weekStart, 7),
   goalId: ownerGoal,
-  id: 'a1000000-0000-0000-0000-000000000003',
+  id: actionIds.ownerPriorB,
   userId: owner.userId,
 });
 await createAction({
-  completedAt: '2026-07-21T15:00:00.000Z',
-  dueDate: '2026-07-21',
+  completedAt: instantForLocalDate(addLocalDays(currentBoundary.weekStart, -13)),
+  dueDate: addLocalDays(currentBoundary.weekStart, -13),
   goalId: ownerGoal,
-  id: 'a1000000-0000-0000-0000-000000000004',
+  id: actionIds.ownerOlder,
   userId: owner.userId,
 });
 
 const populated = await getMomentumHomeSummary(owner.client, service, owner.userId, now);
 assert.equal(populated.summary.tasksCompletedThisWeek, 1);
 assert.equal(populated.summary.weeklyStreak, 3);
-assert.equal(populated.diagnostic.weeklyAggregates.eligiblePlannedActions, 1);
-assert.equal(populated.diagnostic.weeklyAggregates.completedPlannedActions, 1);
-assert.ok(populated.diagnostic.weeklyAggregates.completedPlannedActions <= populated.diagnostic.weeklyAggregates.eligiblePlannedActions);
+assert.equal(populated.summary.algorithmVersion, 'ohara-momentum-v1.0');
+assert.equal(populated.goalDiagnostics[0].result.algorithmVersion, 'goal-momentum-v1.0');
+assert.equal(populated.goalDiagnostics[0].normalizedInput.consistency.dueCommitmentUnits, 1);
+assert.equal(populated.goalDiagnostics[0].normalizedInput.consistency.completedCommitmentUnits, 1);
+assert.ok(populated.goalDiagnostics[0].normalizedInput.consistency.completedCommitmentUnits
+  <= populated.goalDiagnostics[0].normalizedInput.consistency.dueCommitmentUnits);
 
-const afterFirstPopulated = await snapshotRows(owner.userId);
+const afterFirstPopulated = await snapshotRows(owner.userId, completedBoundary.weekStart);
 assert.equal(afterFirstPopulated.length, 2);
 const replay = await getMomentumHomeSummary(owner.client, service, owner.userId, now);
-const afterReplay = await snapshotRows(owner.userId);
+const afterReplay = await snapshotRows(owner.userId, completedBoundary.weekStart);
 assert.equal(afterReplay.length, afterFirstPopulated.length);
 assert.equal(replay.diagnostic.calculationHash, populated.diagnostic.calculationHash);
 assert.equal(afterReplay.at(-1).calculation_hash, afterFirstPopulated.at(-1).calculation_hash);
 
 const { error: duplicateError } = await service.from('action_logs').insert({
   action_text: 'Duplicate attempt',
-  completed_at: '2026-07-30T15:00:00.000Z',
-  created_at: '2026-07-30T14:00:00.000Z',
-  due_date: '2026-07-30',
+  completed_at: instantForLocalDate(addLocalDays(currentBoundary.weekStart, -4)),
+  created_at: instantForLocalDate(addLocalDays(currentBoundary.weekStart, -5)),
+  due_date: addLocalDays(currentBoundary.weekStart, -4),
   goal_id: ownerGoal,
-  id: 'a1000000-0000-0000-0000-000000000002',
+  id: actionIds.ownerPriorA,
   status: 'complete',
   user_id: owner.userId,
 });
 assert.ok(duplicateError, 'duplicate authoritative action id must be rejected');
 
 await createAction({
-  completedAt: '2026-08-01T15:00:00.000Z',
-  dueDate: '2026-08-01',
+  completedAt: instantForLocalDate(addLocalDays(currentBoundary.weekStart, -2)),
+  dueDate: addLocalDays(currentBoundary.weekStart, -2),
   goalId: ownerGoal,
-  id: 'a1000000-0000-0000-0000-000000000005',
+  id: actionIds.ownerLate,
   userId: owner.userId,
 });
 const late = await getMomentumHomeSummary(owner.client, service, owner.userId, now);
-const afterLate = await snapshotRows(owner.userId);
+const afterLate = await snapshotRows(owner.userId, completedBoundary.weekStart);
 assert.equal(afterLate.length, 3);
 assert.notEqual(late.diagnostic.calculationHash, replay.diagnostic.calculationHash);
 assert.equal(afterLate.at(-1).supersedes_snapshot_id, afterLate.at(-2).id);
 
-const other = await resetUser('momentum.other@local.ohara.test', 'America/New_York');
+const other = await createTestUser('other', 'America/New_York');
 const otherGoal = await createGoal(other.userId, 'Gap-week validation goal');
 await createAction({
-  completedAt: '2026-08-03T15:00:00.000Z',
-  dueDate: '2026-08-03',
+  completedAt: currentCompletion,
+  dueDate: currentLocalDate,
   goalId: otherGoal,
-  id: 'b1000000-0000-0000-0000-000000000001',
+  id: actionIds.otherCurrent,
   userId: other.userId,
 });
 await createAction({
-  completedAt: '2026-07-21T15:00:00.000Z',
-  dueDate: '2026-07-21',
+  completedAt: instantForLocalDate(addLocalDays(currentBoundary.weekStart, -13)),
+  dueDate: addLocalDays(currentBoundary.weekStart, -13),
   goalId: otherGoal,
-  id: 'b1000000-0000-0000-0000-000000000002',
+  id: actionIds.otherOlder,
   userId: other.userId,
 });
 const gap = await getMomentumHomeSummary(other.client, service, other.userId, now);
 assert.equal(gap.summary.weeklyStreak, 1);
 
-const boundaryUser = await resetUser('momentum.timezone@local.ohara.test', 'Pacific/Kiritimati');
+const boundaryUser = await createTestUser('timezone', 'Pacific/Kiritimati');
 const boundaryGoal = await createGoal(boundaryUser.userId, 'Timezone validation goal');
 await createAction({
   completedAt: '2026-08-02T10:30:00.000Z',
   dueDate: '2026-08-03',
   goalId: boundaryGoal,
-  id: 'c1000000-0000-0000-0000-000000000001',
+  id: actionIds.boundaryMonday,
   userId: boundaryUser.userId,
 });
 await createAction({
   completedAt: '2026-08-02T09:30:00.000Z',
   dueDate: '2026-08-02',
   goalId: boundaryGoal,
-  id: 'c1000000-0000-0000-0000-000000000002',
+  id: actionIds.boundarySunday,
   userId: boundaryUser.userId,
 });
-const timezone = await getMomentumHomeSummary(boundaryUser.client, service, boundaryUser.userId, now);
+const timezone = await getMomentumHomeSummary(
+  boundaryUser.client,
+  service,
+  boundaryUser.userId,
+  new Date('2026-08-03T16:00:00.000Z'),
+);
 assert.equal(timezone.summary.tasksCompletedThisWeek, 1);
 assert.equal(timezone.summary.weeklyStreak, 2);
 
@@ -252,8 +274,39 @@ const { error: forgedRpcError } = await owner.client.rpc('publish_momentum_snaps
 });
 assert.ok(forgedRpcError, 'authenticated forged publication must fail');
 
+const { error: forgedGoalV1Error } = await owner.client.rpc('publish_goal_momentum_v1_snapshot', {
+  p_algorithm_version: 'goal-momentum-v1.0',
+  p_calculation_hash: 'f'.repeat(64),
+  p_category: 'education',
+  p_category_config_version: 'momentum-categories-v1.0',
+  p_current_value: 99,
+  p_difficulty_band: 'D1',
+  p_difficulty_dimensions: {},
+  p_difficulty_effective_weights: {},
+  p_difficulty_score: 1,
+  p_difficulty_source_inputs: {},
+  p_difficulty_version: 'difficulty-v1.0',
+  p_effective_weights: {},
+  p_goal_id: otherGoal,
+  p_goal_mode: 'qualitative',
+  p_input_events: [],
+  p_pillar_components: {},
+  p_pillar_scores: {},
+  p_plan_revision_key: 'forged',
+  p_previous_value: null,
+  p_raw_aggregates: {},
+  p_raw_score: 99,
+  p_reason_codes: ['FORGED'],
+  p_score_status: 'active',
+  p_timezone: 'UTC',
+  p_user_id: other.userId,
+  p_week_end: '2026-08-02',
+  p_week_start: '2026-07-27',
+});
+assert.ok(forgedGoalV1Error, 'authenticated forged Goal Momentum V1 publication must fail');
+
 console.log(JSON.stringify({
-  apiFixture: { email: owner.email, password },
+  apiFixtureEmail: owner.email,
   authoritativeSummary: {
     algorithmVersion: late.summary.algorithmVersion,
     status: late.summary.status,

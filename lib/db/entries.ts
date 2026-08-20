@@ -13,6 +13,7 @@ import type {
   RichTextDocument,
 } from '@/features/entries/types';
 import { buildRetrievalDocument } from '@/features/entries/utils';
+import { extractGoalReferences } from '@/features/entries/editor-document';
 import { GOAL_CATEGORY_LABELS } from '@/lib/goals/catalog';
 
 type DbEntryRow = {
@@ -65,7 +66,8 @@ function requireUuid(value: string, label: string): string {
 function isRichTextDocument(value: unknown): value is RichTextDocument {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<RichTextDocument>;
-  return candidate.type === 'doc' && Array.isArray(candidate.blocks);
+  return candidate.type === 'doc'
+    && (Array.isArray(candidate.blocks) || Array.isArray(candidate.content));
 }
 
 function toTurns(value: unknown): ReflectionTurn[] {
@@ -271,7 +273,21 @@ async function saveEntry(
   entryId: string | null,
   draft: EntryDraft,
 ): Promise<string> {
-  const { data, error } = await db.rpc('save_entry', {
+  const evidence = draft.entryType === 'note'
+    ? extractGoalReferences(draft.content)
+      .filter((reference) => reference.progressEvidence && reference.sourceType !== 'embedded_goal_card')
+      .map((reference) => ({
+        referenceId: reference.id,
+        goalId: reference.goalId,
+        blockId: reference.blockId,
+        sourceType: reference.sourceType,
+        excerpt: reference.excerpt,
+        createdAt: reference.createdAt,
+        checkboxCompleted: reference.checkboxCompleted,
+        planRevision: null,
+      }))
+    : [];
+  const { data, error } = await db.rpc('save_entry_v2', {
     p_entry_id: entryId,
     p_entry_type: draft.entryType,
     p_title: draft.title.trim(),
@@ -286,6 +302,8 @@ async function saveEntry(
     p_goal_ids: [...new Set(draft.relationships.goalIds)],
     p_category_ids: [...new Set(draft.relationships.categoryIds)],
     p_milestone_ids: [...new Set(draft.relationships.milestoneIds)],
+    p_expected_content_version: draft.expectedContentVersion ?? null,
+    p_progress_evidence: evidence,
   });
   if (error) throw error;
   if (typeof data !== 'string') throw new Error('Entry save returned an invalid identifier');
@@ -317,6 +335,12 @@ export async function updateEntry(
     .maybeSingle();
   if (existingError) throw existingError;
   if (!existing) return null;
+  if (
+    draft.expectedContentVersion !== undefined
+    && existing.content_version !== draft.expectedContentVersion
+  ) {
+    throw new Error('Entry changed in another session. Reload before saving again.');
+  }
 
   await saveEntry(db, entryId, draft);
   return getEntry(db, userId, entryId);

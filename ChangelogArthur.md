@@ -1,5 +1,50 @@
 # Arthur Implementation Changelog
 
+## 2026-08-20 — OHARA Notes Version 1.0
+
+### Final editor reliability and page polish
+- Fixed the actual list rendering regression caused by the global CSS reset by explicitly restoring visible bullet, nested-bullet, number, and nested-number markers with theme-aware contrast and consistent indentation. Replaced browser-dependent checkboxes with clear neutral unchecked outlines, restrained OHARA-green checked states, keyboard focus, and persisted task-item state.
+- Reframed Notes as a calm document sheet inside the workspace: 960px maximum page width, approximately 740px maximum reading width, responsive 80–110px desktop/40–64px tablet/18–28px mobile inner margins, 56–72px top spacing, a subtle page border/radius/shadow, a visually separate sticky toolbar, and polished 17px long-form typography in light and dark themes.
+
+### References, images, and trusted autosave
+- Added inline Goal Reference controls for Open Goal, Change Goal, progress-evidence settings, and Remove Goal Link, plus panel-level jump/open/remove actions. Added equivalent OHARA Intelligence open, question/context edit, and removal actions. Removing either reference preserves source text, paragraphs, external-link marks, Goals, and checkbox state while updating the document and panel together.
+- Kept embedded Goal cards separate and authoritative, retained responsive private images and alignment/selection controls, and extended tests proving removed progress links stop future evidence without deleting immutable completion history or rewriting Momentum snapshots. Revision-safe debounced autosave continues to cover formatting, lists, checklists, alignment, images, and reference changes.
+
+### Temporary internal release update
+- Added a concise accessible “What’s New in OHARA” modal for **OHARA Notes Version 1.0** and Momentum Version 1.0 Beta. It is integrated once at the root auth lifecycle, appears once per explicit login session, ignores refresh/token/focus/route events, returns after logout and login, and supports X, Escape, backdrop, focus containment/restoration, light/dark themes, and narrow layouts.
+- Centralized the temporary feature in `config/internal-release.ts`; setting `SHOW_INTERNAL_RELEASE_NOTES` to `false` disables it without changing authentication or routes. Added `docs/NOTES_V1_IMPLEMENTATION.md` covering the editor, schema, page layout, lists, checklists, images, references, trusted evidence, autosave, responsive behavior, modal lifecycle, and known limitations.
+
+## 2026-08-19 — OHARA Notes V1 Editor Rebuild
+
+### Familiar document editing
+- Replaced the web note body’s deprecated browser-command/HTML-blob implementation with a ProseMirror/Tiptap 2 editor and centralized command layer. Notes now support Normal, H1/H2/H3, bold, italic, underline, strikethrough, bullet and numbered lists, interactive nested checklists, left/center/right alignment, links, undo/redo, quotes, and private responsive images with conventional labeled controls and active states.
+- Kept the writing surface calm and responsive: the toolbar scrolls/collapses for narrow widths, the existing Intelligence drawer behavior remains, keyboard selection is preserved through toolbar menus, and Tiptap’s schema filters unsupported pasted layout/style content.
+
+### Goal context and OHARA Intelligence
+- Added stable inline Goal marks for text, paragraphs, and checklist items plus optional explicit progress-evidence intent. Linked checklist completion creates a canonical server-validated evidence transition; unlinked checkboxes and ordinary Goal references never alter Momentum. Note-level Goal links remain a separate relationship.
+- Added deliberate live embedded Goal cards that store only Goal IDs and render current Goal title/category/status/next-milestone data, including a graceful unavailable state.
+- Rebuilt Ask OHARA as selection-based citation anchors with action/question metadata, subtle inline markers, panel excerpts, bidirectional editor/panel focus, reference-only deletion, and an honest premium-locked state. No AI call or fabricated response is produced.
+
+### Persistence, compatibility, and validation
+- Added document schema V2 using ProseMirror JSON nodes/marks with persistent block IDs; legacy block/HTML notes remain readable and convert on edit rather than through a destructive bulk migration. Autosave retains debounce, local draft recovery, and status/error UI while adding expected-content-version conflict protection.
+- Kept schema V2 platform-neutral and protected mobile data: native can edit plain V2 paragraphs, but opens rich V2 notes read-only rather than flattening headings, marks, cards, images, or references while full native rich-editor parity remains future work.
+- Added Migration 042 for schema-version tracking, private owner-scoped note-image storage, canonical note progress evidence/events, and atomic revision-checked saves. Added document/security regression tests, passed the TypeScript check and production web export, and verified the signed-in Notes toolbar, active formatting state, Goal picker, progress-evidence control, and Ask OHARA menu without error-level browser logs. Full persistence, upload, and reload validation awaits deployment of Migration 042; the current hosted backend correctly exposes the missing RPC/bucket through save and storage errors, and no hosted account or fixture note was created.
+
+## 2026-08-13 — OHARA Momentum Version 1.0
+
+### Two authoritative scores
+- Implemented deterministic `goal-momentum-v1.0` for each active Goal using the canonical 30/30/20/20 Consistency, Progress, Reflection, and Initiative model, plus independent `ohara-momentum-v1.0` using the canonical 50/20/15/10/5 portfolio model. Both are bounded 0–100, smoothed, versioned, reproducible, and pause during true inactivity.
+- Added category-relative `difficulty-v1.0` profiles for Health & Fitness, Finance, Career, Creative, Education, Relationships, and Personal Growth. The implementation uses structured inputs and centralized versioned calibration only; AI does not calculate or modify a score, and Goal Difficulty never weights the cross-category OHARA score.
+
+### Trusted persistence and product integration
+- Preserved the Phase 1 authenticated API/service-role trust boundary, immutable history, hashes, reason codes, local weeks, and deduplication. Additive migrations 040–041 introduce Goal-level profiles/snapshots and bounded OHARA metadata without modifying Migration 038 or relabeling historical Phase 1 snapshots.
+- Connected Home, expanded Home Momentum, the full Momentum workspace, Goal-specific Momentum cards, and canonical Goals analytics to authoritative V1 results and V1-only history. Removed production sample Momentum values, kept Goal progress distinct from Goal Momentum, and added user-scoped request sharing so cards do not duplicate calculation requests or leak cached values across accounts.
+
+### Validation and documentation
+- Added the canonical DOCX unchanged under `docs/` and documented formulas, mappings, migrations, APIs, calibration, UI coverage, and known structured-data limits in `docs/MOMENTUM_V1_IMPLEMENTATION.md`.
+- Passed 53 Momentum source tests, the disposable Phase 1/V1 PostgreSQL security harness, and the ten-scenario/five-adversarial loopback Supabase integration harness. The latter verified `ohara-momentum-v1.0`, Weekly Streak `3`, Tasks Completed This Week `1`, deterministic recalculation, late-event revisions, local timezones, and cross-user isolation without contacting a hosted database.
+- Passed an authenticated local API smoke test (including forged-query rejection and an unauthenticated `401`), affected Goals/Entries suites, the known-valid TypeScript check, and a 51-route web export. Browser verification confirmed authoritative light/dark Home, expanded OHARA Momentum, full Momentum, and selected-Goal Momentum surfaces; a one-snapshot Home history now renders its honest 0–100 chart instead of an unavailable message.
+
 ## 2026-08-12 — Canonical Goals Workspace Consolidation
 
 ### One Goal destination

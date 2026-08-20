@@ -363,7 +363,13 @@ function momentumChangeLabel(summary: MomentumHomeSummary | null): string {
 
 function momentumValueLabel(summary: MomentumHomeSummary | null): string {
   if (!summary || summary.currentValue === null) return 'Unavailable';
-  return summary.currentValue.toFixed(2);
+  return `${summary.displayedValue ?? Math.round(summary.currentValue)} / 100`;
+}
+
+function momentumStatusLabel(summary: MomentumHomeSummary | null): string {
+  const status = summary?.status;
+  if (!status) return 'Unavailable';
+  return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
 function MomentumCard({
@@ -377,7 +383,7 @@ function MomentumCard({
 }) {
   const colors = useThemeColors();
   const [expanded, setExpanded] = useState(false);
-  const hasTrend = Boolean(summary && summary.trendPoints.length >= 2);
+  const hasTrend = Boolean(summary && summary.trendPoints.length >= 1);
 
   return (
     <>
@@ -433,7 +439,7 @@ function MomentumCard({
           />
           <View style={{ alignItems: 'baseline', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.lg, marginTop: SPACE['2xl'] }}>
             <Typography variant="title" style={{ fontSize: 28, fontWeight: '500', lineHeight: 36 }}>
-              {isLoading ? 'Calculating…' : summary?.status ?? 'Unavailable'}
+              {isLoading ? 'Calculating…' : momentumStatusLabel(summary)}
             </Typography>
             {!isLoading && summary?.currentValue !== null ? (
               <Typography variant="caption" style={{ color: colors.text.accent, fontSize: 13 }}>
@@ -444,7 +450,7 @@ function MomentumCard({
 
           <View style={{ marginTop: SPACE.lg }}>
             {hasTrend && summary ? (
-              <MomentumTrendChart height={244} points={summary.trendPoints} xLabels={summary.trendLabels} />
+              <MomentumTrendChart height={244} points={summary.trendPoints} xLabels={summary.trendLabels} yDomainMax={100} />
             ) : (
               <View style={{ alignItems: 'center', height: 244, justifyContent: 'center' }}>
                 <Typography variant="description" style={{ color: colors.text.secondary }}>
@@ -541,7 +547,13 @@ function MomentumCard({
             </View>
             <View style={{ marginVertical: 20, pointerEvents: 'none' }}>
               {hasTrend && summary ? (
-                <MomentumTrendChart height={260} points={summary.trendPoints} showAxes xLabels={summary.trendLabels} />
+                <MomentumTrendChart
+                  height={260}
+                  points={summary.trendPoints}
+                  showAxes
+                  xLabels={summary.trendLabels}
+                  yDomainMax={100}
+                />
               ) : (
                 <Typography variant="description" style={{ color: colors.text.secondary }}>
                   {error ?? 'Momentum is not available yet.'}

@@ -88,19 +88,252 @@ body {
   outline-offset: -2px;
 }
 
-.ohara-rich-editor:empty::before {
-  color: var(--ohara-editor-secondary);
-  content: attr(data-placeholder);
-  pointer-events: none;
-}
-
 .ohara-rich-editor::selection,
 .ohara-rich-editor *::selection {
   background: color-mix(in srgb, var(--ohara-editor-accent) 18%, transparent);
 }
 
-.ohara-rich-editor p,
-.ohara-rich-editor > div {
+.ohara-editor-shell {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  position: relative;
+}
+
+.ohara-editor-toolbar {
+  align-items: center;
+  background: var(--ohara-editor-surface);
+  border-bottom: 1px solid var(--ohara-editor-border);
+  display: flex;
+  flex: 0 0 auto;
+  gap: 2px;
+  min-height: 56px;
+  overflow: visible;
+  padding: 7px 18px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.ohara-editor-tool,
+.ohara-editor-style-select {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ohara-editor-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  height: 40px;
+  justify-content: center;
+  min-width: 40px;
+  padding: 0 10px;
+}
+
+.ohara-editor-style-select {
+  color: var(--ohara-editor-primary);
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 118px;
+}
+
+.ohara-editor-tool:hover,
+.ohara-editor-tool.is-active,
+.ohara-editor-style-select:hover {
+  background: var(--ohara-editor-selected);
+  color: var(--ohara-editor-accent);
+}
+
+.ohara-editor-tool[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ohara-editor-accent) 28%, transparent);
+}
+
+.ohara-editor-tool:disabled,
+.ohara-editor-popover button:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
+.ohara-editor-tool:focus-visible,
+.ohara-editor-style-select:focus-visible,
+.ohara-editor-popover button:focus-visible,
+.ohara-goal-card button:focus-visible,
+.ohara-note-image button:focus-visible {
+  outline: 2px solid var(--ohara-editor-accent);
+  outline-offset: 2px;
+}
+
+.ohara-editor-separator {
+  background: var(--ohara-editor-border);
+  height: 24px;
+  margin: 0 5px;
+  width: 1px;
+}
+
+.ohara-editor-menu-wrap {
+  position: relative;
+}
+
+.ohara-editor-popover {
+  background: var(--ohara-editor-surface);
+  border: 1px solid var(--ohara-editor-border);
+  border-radius: 12px;
+  box-shadow: 0 16px 44px rgba(8, 22, 16, 0.18);
+  display: flex;
+  flex-direction: column;
+  left: 0;
+  min-width: 226px;
+  overflow: hidden;
+  padding: 6px;
+  position: absolute;
+  top: calc(100% + 6px);
+  z-index: 20;
+}
+
+.ohara-editor-popover.compact {
+  min-width: 170px;
+}
+
+.ohara-editor-popover.goal {
+  max-height: min(420px, 65vh);
+  min-width: 310px;
+  right: 0;
+  left: auto;
+}
+
+.ohara-editor-popover button {
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ohara-editor-primary);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 14px;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.ohara-editor-popover button:hover,
+.ohara-editor-popover button.is-active {
+  background: var(--ohara-editor-selected);
+  color: var(--ohara-editor-accent);
+}
+
+.ohara-editor-popover-tabs {
+  border-bottom: 1px solid var(--ohara-editor-border);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 4px;
+  padding-bottom: 5px;
+}
+
+.ohara-editor-popover-heading {
+  border-bottom: 1px solid var(--ohara-editor-border);
+  color: var(--ohara-editor-primary);
+  display: block;
+  font-size: 13px;
+  font-weight: 650;
+  padding: 9px 10px 11px;
+}
+
+.ohara-editor-check-option {
+  align-items: center;
+  color: var(--ohara-editor-secondary);
+  display: flex;
+  font-size: 13px;
+  gap: 8px;
+  padding: 9px 10px;
+}
+
+.ohara-editor-goal-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.ohara-editor-goal-list button {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ohara-editor-goal-list span,
+.ohara-editor-premium-note,
+.ohara-editor-empty {
+  color: var(--ohara-editor-secondary);
+  font-size: 12px;
+}
+
+.ohara-editor-premium-note,
+.ohara-editor-empty {
+  border-top: 1px solid var(--ohara-editor-border);
+  display: block;
+  line-height: 1.45;
+  margin-top: 4px;
+  padding: 9px 12px 6px;
+}
+
+.ohara-editor-message {
+  align-items: center;
+  background: color-mix(in srgb, var(--ohara-editor-accent) 8%, var(--ohara-editor-surface));
+  border-bottom: 1px solid var(--ohara-editor-border);
+  color: var(--ohara-editor-secondary);
+  display: flex;
+  font-size: 13px;
+  justify-content: space-between;
+  padding: 8px 20px;
+}
+
+.ohara-editor-message button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.ohara-editor-content {
+  background: var(--ohara-editor-workspace);
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px clamp(16px, 3vw, 36px) 32px;
+}
+
+.ohara-rich-editor {
+  background: var(--ohara-editor-page);
+  border: 1px solid var(--ohara-editor-page-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--ohara-editor-shadow) 7%, transparent);
+  box-sizing: border-box;
+  caret-color: var(--ohara-editor-accent);
+  color: var(--ohara-editor-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Helvetica Neue", Arial, sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.65;
+  margin: 0 auto;
+  max-width: 960px;
+  min-height: calc(100% - 8px);
+  outline: none;
+  padding: clamp(56px, 5vw, 72px) clamp(80px, 9vw, 110px) 120px;
+  width: 100%;
+}
+
+.ohara-rich-editor p.is-editor-empty:first-child::before {
+  color: var(--ohara-editor-secondary);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.ohara-rich-editor p {
   margin: 0 0 12px;
 }
 
@@ -120,14 +353,122 @@ body {
   margin: 1.25em 0 0.45em;
 }
 
+.ohara-rich-editor h3 {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, "Helvetica Neue", Arial, sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 1.15em 0 0.4em;
+}
+
 .ohara-rich-editor ul,
 .ohara-rich-editor ol {
   margin: 0.8em 0 1em;
-  padding-left: 1.6em;
+  padding-left: 1.65em;
+}
+
+.ohara-rich-editor ul:not([data-type="taskList"]) {
+  list-style-position: outside;
+  list-style-type: disc;
+}
+
+.ohara-rich-editor ol {
+  list-style-position: outside;
+  list-style-type: decimal;
+}
+
+.ohara-rich-editor ul:not([data-type="taskList"]) ul:not([data-type="taskList"]) {
+  list-style-type: circle;
+}
+
+.ohara-rich-editor ul:not([data-type="taskList"]) ul:not([data-type="taskList"]) ul:not([data-type="taskList"]) {
+  list-style-type: square;
+}
+
+.ohara-rich-editor ol ol {
+  list-style-type: lower-alpha;
+}
+
+.ohara-rich-editor ul:not([data-type="taskList"]) li::marker,
+.ohara-rich-editor ol li::marker {
+  color: var(--ohara-editor-marker);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  opacity: 0.92;
 }
 
 .ohara-rich-editor li {
   margin: 0.3em 0;
+}
+
+.ohara-rich-editor ul[data-type="taskList"] {
+  list-style: none;
+  margin-left: 0;
+  padding-left: 0;
+}
+
+.ohara-rich-editor ul[data-type="taskList"] li {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+}
+
+.ohara-rich-editor ul[data-type="taskList"] li > label {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 28px;
+  user-select: none;
+}
+
+.ohara-rich-editor ul[data-type="taskList"] li > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.ohara-rich-editor input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: 1.5px solid var(--ohara-editor-checkbox-border);
+  border-radius: 5px;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: grid;
+  height: 18px;
+  margin: 0;
+  place-content: center;
+  transition: background-color 120ms ease, border-color 120ms ease;
+  width: 18px;
+}
+
+.ohara-rich-editor input[type="checkbox"]::before {
+  background: var(--ohara-editor-checkbox-check);
+  clip-path: polygon(14% 44%, 0 59%, 40% 100%, 100% 20%, 84% 6%, 39% 70%);
+  content: "";
+  height: 9px;
+  transform: scale(0);
+  transform-origin: center;
+  transition: transform 100ms ease;
+  width: 11px;
+}
+
+.ohara-rich-editor input[type="checkbox"]:checked {
+  background: var(--ohara-editor-accent);
+  border-color: var(--ohara-editor-accent);
+}
+
+.ohara-rich-editor input[type="checkbox"]:checked::before {
+  transform: scale(1);
+}
+
+.ohara-rich-editor input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--ohara-editor-accent);
+  outline-offset: 2px;
+}
+
+.ohara-rich-editor ul[data-type="taskList"] li[data-checked="true"] > div {
+  opacity: 0.72;
 }
 
 .ohara-rich-editor blockquote {
@@ -141,4 +482,246 @@ body {
   color: var(--ohara-editor-accent);
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+.ohara-goal-reference {
+  background: color-mix(in srgb, var(--ohara-editor-accent) 5%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--ohara-editor-accent) 48%, transparent);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.ohara-intelligence-reference {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--ohara-editor-accent) 10%, transparent), transparent 72%);
+  border-left: 2px solid var(--ohara-editor-accent);
+  cursor: pointer;
+  padding-left: 3px;
+}
+
+.ohara-goal-reference:hover,
+.ohara-goal-reference:focus,
+.ohara-intelligence-reference:hover,
+.ohara-intelligence-reference:focus,
+.ohara-goal-reference.is-reference-focused,
+.ohara-intelligence-reference.is-reference-focused {
+  background-color: color-mix(in srgb, var(--ohara-editor-accent) 12%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--ohara-editor-accent) 28%, transparent);
+  outline-offset: 2px;
+}
+
+.ohara-reference-popover {
+  background: var(--ohara-editor-surface);
+  border: 1px solid var(--ohara-editor-border);
+  border-radius: 11px;
+  box-shadow: 0 14px 36px color-mix(in srgb, var(--ohara-editor-shadow) 18%, transparent);
+  display: flex;
+  flex-direction: column;
+  min-width: 250px;
+  padding: 6px;
+  position: fixed;
+  z-index: 40;
+}
+
+.ohara-reference-popover-summary {
+  border-bottom: 1px solid var(--ohara-editor-border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 4px;
+  padding: 8px 10px 10px;
+}
+
+.ohara-reference-popover-summary strong {
+  color: var(--ohara-editor-primary);
+  font-size: 13px;
+}
+
+.ohara-reference-popover-summary span {
+  color: var(--ohara-editor-secondary);
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.ohara-reference-popover button {
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  color: var(--ohara-editor-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  padding: 9px 10px;
+  text-align: left;
+}
+
+.ohara-reference-popover button:hover,
+.ohara-reference-popover button:focus-visible {
+  background: var(--ohara-editor-selected);
+  outline: none;
+}
+
+.ohara-reference-popover button.is-destructive {
+  color: #c35b4f;
+}
+
+.ohara-reference-popover button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.ohara-goal-card {
+  align-items: center;
+  background: color-mix(in srgb, var(--ohara-editor-accent) 6%, var(--ohara-editor-surface));
+  border: 1px solid color-mix(in srgb, var(--ohara-editor-accent) 20%, var(--ohara-editor-border));
+  border-radius: 14px;
+  display: flex;
+  gap: 13px;
+  margin: 20px 0;
+  padding: 14px 16px;
+}
+
+.ohara-goal-card.is-selected,
+.ohara-note-image.is-selected {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ohara-editor-accent) 45%, transparent);
+}
+
+.ohara-goal-card-mark {
+  color: var(--ohara-editor-accent);
+  font-size: 24px;
+}
+
+.ohara-goal-card-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  line-height: 1.35;
+}
+
+.ohara-goal-card-copy span {
+  color: var(--ohara-editor-secondary);
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+.ohara-goal-card-copy .ohara-goal-card-label {
+  color: var(--ohara-editor-accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.ohara-goal-card > button,
+.ohara-note-image-actions button {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--ohara-editor-secondary);
+  cursor: pointer;
+  min-height: 30px;
+  min-width: 30px;
+}
+
+.ohara-note-image {
+  margin: 22px 0;
+  max-width: 100%;
+  position: relative;
+  width: fit-content;
+}
+
+.ohara-note-image.align-left { margin-left: 0; margin-right: auto; }
+.ohara-note-image.align-center { margin-left: auto; margin-right: auto; }
+.ohara-note-image.align-right { margin-left: auto; margin-right: 0; }
+
+.ohara-note-image img {
+  border-radius: 12px;
+  display: block;
+  height: auto;
+  max-height: 70vh;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.ohara-note-image-placeholder {
+  align-items: center;
+  background: var(--ohara-editor-selected);
+  border: 1px solid var(--ohara-editor-border);
+  border-radius: 12px;
+  color: var(--ohara-editor-secondary);
+  display: flex;
+  font-size: 13px;
+  height: 180px;
+  justify-content: center;
+  width: min(520px, 78vw);
+}
+
+.ohara-note-image-actions {
+  background: var(--ohara-editor-surface);
+  border: 1px solid var(--ohara-editor-border);
+  border-radius: 9px;
+  box-shadow: 0 8px 24px rgba(8, 22, 16, 0.14);
+  display: none;
+  gap: 2px;
+  padding: 3px;
+  position: absolute;
+  right: 8px;
+  top: 8px;
+}
+
+.ohara-note-image:hover .ohara-note-image-actions,
+.ohara-note-image.is-selected .ohara-note-image-actions {
+  display: flex;
+}
+
+@media (max-width: 1100px) {
+  .ohara-editor-toolbar {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .ohara-editor-menu-wrap {
+    position: static;
+  }
+
+  .ohara-editor-popover {
+    left: auto;
+    position: fixed;
+    right: 16px;
+    top: 124px;
+  }
+}
+
+@media (max-width: 900px) {
+  .ohara-editor-content {
+    padding: 16px;
+  }
+
+  .ohara-rich-editor {
+    padding: 52px clamp(40px, 6vw, 64px) 100px;
+  }
+}
+
+@media (max-width: 600px) {
+  .ohara-editor-content {
+    padding: 8px 6px 16px;
+  }
+
+  .ohara-editor-toolbar {
+    min-height: 52px;
+    padding: 6px 10px;
+  }
+
+  .ohara-rich-editor {
+    border-radius: 6px;
+    font-size: 16px;
+    line-height: 1.6;
+    min-height: calc(100% - 4px);
+    padding: 40px clamp(18px, 6vw, 28px) 88px;
+  }
+
+  .ohara-reference-popover {
+    bottom: 12px;
+    left: 12px !important;
+    right: 12px;
+    top: auto !important;
+  }
 }

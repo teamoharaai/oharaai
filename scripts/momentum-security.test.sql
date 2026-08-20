@@ -6,6 +6,9 @@ insert into auth.users (id) values
 insert into public.profiles (id, timezone) values
   ('10000000-0000-0000-0000-000000000001', 'America/New_York'),
   ('10000000-0000-0000-0000-000000000002', 'UTC');
+insert into public.goals (id, user_id, title, status) values
+  ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'V1 owner goal', 'active'),
+  ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 'V1 other goal', 'active');
 
 set role service_role;
 select set_config('request.jwt.claim.role', 'service_role', false);
@@ -46,6 +49,76 @@ begin
 end;
 $$;
 
+-- V1 Goal Momentum publishes only through the trusted role and is idempotent.
+select public.publish_goal_momentum_v1_snapshot(
+  '10000000-0000-0000-0000-000000000001',
+  '20000000-0000-0000-0000-000000000001',
+  '2026-07-27', '2026-08-02', 'America/New_York',
+  null, 72.5, 72.5, 'building',
+  '{"consistency":80,"progress":70,"reflection":60,"initiative":75}',
+  '{"consistency":{},"progress":{},"reflection":{},"initiative":{}}',
+  '{"consistency":0.3,"progress":0.3,"reflection":0.2,"initiative":0.2}',
+  '{"meaningfulMovement":true}', '[]', '["PACE_ON_TRACK"]',
+  'goal-momentum-v1.0', repeat('c', 64), 'plan-revision-1',
+  'health_fitness', 'frequency_routine',
+  '{"effort":50,"duration":50,"frequency":50,"complexity":50,"magnitude":50,"externalDependency":0}',
+  '{"effort":0.25,"duration":0.2,"frequency":0.15,"complexity":0.15,"magnitude":0.15,"externalDependency":0.1}',
+  45, 'D2', '{"goalId":"20000000-0000-0000-0000-000000000001"}',
+  'difficulty-v1.0', 'momentum-categories-v1.0'
+);
+
+select public.publish_goal_momentum_v1_snapshot(
+  '10000000-0000-0000-0000-000000000001',
+  '20000000-0000-0000-0000-000000000001',
+  '2026-07-27', '2026-08-02', 'America/New_York',
+  null, 72.5, 72.5, 'building',
+  '{"consistency":80,"progress":70,"reflection":60,"initiative":75}',
+  '{"consistency":{},"progress":{},"reflection":{},"initiative":{}}',
+  '{"consistency":0.3,"progress":0.3,"reflection":0.2,"initiative":0.2}',
+  '{"meaningfulMovement":true}', '[]', '["PACE_ON_TRACK"]',
+  'goal-momentum-v1.0', repeat('c', 64), 'plan-revision-1',
+  'health_fitness', 'frequency_routine',
+  '{"effort":50,"duration":50,"frequency":50,"complexity":50,"magnitude":50,"externalDependency":0}',
+  '{"effort":0.25,"duration":0.2,"frequency":0.15,"complexity":0.15,"magnitude":0.15,"externalDependency":0.1}',
+  45, 'D2', '{"goalId":"20000000-0000-0000-0000-000000000001"}',
+  'difficulty-v1.0', 'momentum-categories-v1.0'
+);
+
+-- V1 OHARA Momentum is independently persisted and idempotent.
+select public.publish_ohara_momentum_v1_snapshot(
+  '10000000-0000-0000-0000-000000000001',
+  '2026-07-27', '2026-08-02', 'America/New_York',
+  null, 68, 68, 'building',
+  '{"portfolioProgress":72,"milestoneVelocity":65,"growthCadence":70,"sustainedGrowth":60,"portfolioCoverage":100}',
+  '{"portfolioProgress":0.5,"milestoneVelocity":0.2,"growthCadence":0.15,"sustainedGrowth":0.1,"portfolioCoverage":0.05}',
+  '{"eligibleGoals":1}', '[]', '["PORTFOLIO_PROGRESS_STRONG"]',
+  'ohara-momentum-v1.0', repeat('d', 64), '[]', 'ohara-momentum-v1.0'
+);
+
+select public.publish_ohara_momentum_v1_snapshot(
+  '10000000-0000-0000-0000-000000000001',
+  '2026-07-27', '2026-08-02', 'America/New_York',
+  null, 68, 68, 'building',
+  '{"portfolioProgress":72,"milestoneVelocity":65,"growthCadence":70,"sustainedGrowth":60,"portfolioCoverage":100}',
+  '{"portfolioProgress":0.5,"milestoneVelocity":0.2,"growthCadence":0.15,"sustainedGrowth":0.1,"portfolioCoverage":0.05}',
+  '{"eligibleGoals":1}', '[]', '["PORTFOLIO_PROGRESS_STRONG"]',
+  'ohara-momentum-v1.0', repeat('d', 64), '[]', 'ohara-momentum-v1.0'
+);
+
+do $$
+begin
+  if (select count(*) from public.goal_momentum_weekly_snapshots) <> 1 then
+    raise exception 'Identical Goal Momentum V1 calculation created a duplicate snapshot';
+  end if;
+  if (select count(*) from public.momentum_weekly_snapshots where algorithm_version = 'ohara-momentum-v1.0') <> 1 then
+    raise exception 'Identical OHARA Momentum V1 calculation created a duplicate snapshot';
+  end if;
+  if (select count(*) from public.goal_difficulty_profiles) <> 1 then
+    raise exception 'Identical Goal Difficulty profile was not deduplicated';
+  end if;
+end;
+$$;
+
 -- A late canonical input creates an immutable superseding revision.
 select public.publish_momentum_snapshot(
   '10000000-0000-0000-0000-000000000001',
@@ -63,11 +136,13 @@ do $$
 declare
   latest public.momentum_weekly_snapshots;
 begin
-  select * into latest from public.momentum_weekly_snapshots order by revision desc limit 1;
+  select * into latest from public.momentum_weekly_snapshots
+  where algorithm_version = 'momentum-v1.0' order by revision desc limit 1;
   if latest.revision <> 2 or latest.supersedes_snapshot_id is null then
     raise exception 'Late input did not create a superseding revision';
   end if;
-  if (select count(*) from public.momentum_weekly_snapshots where revision = 1) <> 1 then
+  if (select count(*) from public.momentum_weekly_snapshots
+      where algorithm_version = 'momentum-v1.0' and revision = 1) <> 1 then
     raise exception 'Original snapshot history was not preserved';
   end if;
 end;
@@ -88,6 +163,12 @@ begin
   exception when raise_exception then
     if sqlerrm not like 'Momentum snapshots are immutable%' then raise; end if;
   end;
+  begin
+    update public.goal_momentum_weekly_snapshots set current_value = 99;
+    raise exception 'Direct trusted Goal Momentum snapshot update unexpectedly succeeded';
+  exception when raise_exception then
+    if sqlerrm not like 'Momentum snapshots are immutable%' then raise; end if;
+  end;
 end;
 $$;
 
@@ -103,10 +184,25 @@ begin
     'EXECUTE') then
     raise exception 'Authenticated role can forge Momentum snapshots';
   end if;
+  if has_function_privilege('authenticated',
+    'public.publish_goal_momentum_v1_snapshot(uuid,uuid,date,date,text,numeric,numeric,numeric,text,jsonb,jsonb,jsonb,jsonb,jsonb,jsonb,text,text,text,text,text,jsonb,jsonb,numeric,text,jsonb,text,text)',
+    'EXECUTE') then
+    raise exception 'Authenticated role can forge Goal Momentum V1 snapshots';
+  end if;
+  if has_function_privilege('authenticated',
+    'public.publish_ohara_momentum_v1_snapshot(uuid,date,date,text,numeric,numeric,numeric,text,jsonb,jsonb,jsonb,jsonb,jsonb,text,text,jsonb,text)',
+    'EXECUTE') then
+    raise exception 'Authenticated role can forge OHARA Momentum V1 snapshots';
+  end if;
   if has_table_privilege('authenticated', 'public.momentum_weekly_snapshots', 'INSERT')
     or has_table_privilege('authenticated', 'public.momentum_weekly_snapshots', 'UPDATE')
     or has_table_privilege('authenticated', 'public.momentum_weekly_snapshots', 'DELETE') then
     raise exception 'Authenticated role has direct snapshot mutation privileges';
+  end if;
+  if has_table_privilege('authenticated', 'public.goal_momentum_weekly_snapshots', 'INSERT')
+    or has_table_privilege('authenticated', 'public.goal_momentum_weekly_snapshots', 'UPDATE')
+    or has_table_privilege('authenticated', 'public.goal_momentum_weekly_snapshots', 'DELETE') then
+    raise exception 'Authenticated role has direct Goal Momentum snapshot mutation privileges';
   end if;
 end;
 $$;
@@ -132,7 +228,7 @@ $$;
 -- User A can read only A's rows.
 do $$
 begin
-  if (select count(*) from public.momentum_weekly_snapshots) <> 2 then
+  if (select count(*) from public.momentum_weekly_snapshots) <> 3 then
     raise exception 'Owner cannot read own Momentum revisions';
   end if;
 end;
@@ -149,6 +245,12 @@ begin
   end if;
   if (select count(*) from public.momentum_events) <> 0 then
     raise exception 'Cross-user event read escaped RLS';
+  end if;
+  if (select count(*) from public.goal_momentum_weekly_snapshots) <> 0 then
+    raise exception 'Cross-user Goal Momentum V1 snapshot read escaped RLS';
+  end if;
+  if (select count(*) from public.goal_difficulty_profiles) <> 0 then
+    raise exception 'Cross-user Goal Difficulty read escaped RLS';
   end if;
 end;
 $$;

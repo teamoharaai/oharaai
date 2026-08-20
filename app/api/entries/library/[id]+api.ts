@@ -58,6 +58,9 @@ async function handlePatch(
       : Response.json({ error: 'Not found' }, { status: 404 });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Could not update entry';
+    if (message.startsWith('Entry changed in another session')) {
+      return Response.json({ error: message }, { status: 409 });
+    }
     const invalid = /must|required|invalid|exceeds|too many/i.test(message);
     return Response.json(
       { error: invalid ? message : 'Could not update entry' },

@@ -1,7 +1,7 @@
 import {
   GOAL_CREATION_CATEGORIES,
   type GoalCreationCategory,
-} from '@/lib/goals/schema';
+} from '../../lib/goals/schema.ts';
 import type {
   EntryDraft,
   EntryRelationships,
@@ -23,6 +23,14 @@ const BLOCK_TYPES: RichTextBlock['type'][] = [
   'checklist',
   'quote',
 ];
+const V2_NODE_TYPES = new Set([
+  'doc', 'paragraph', 'heading', 'text', 'hardBreak', 'bulletList', 'orderedList',
+  'listItem', 'taskList', 'taskItem', 'blockquote', 'horizontalRule', 'goalCard', 'noteImage',
+]);
+const V2_MARK_TYPES = new Set([
+  'bold', 'italic', 'underline', 'strike', 'link', 'code', 'goalReference',
+  'intelligenceReference',
+]);
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -41,6 +49,17 @@ function text(value: unknown, label: string, maxLength: number, allowEmpty = tru
   return cleaned;
 }
 
+function optionalText(value: unknown, label: string, maxLength: number): string | null {
+  if (value == null || value === '') return null;
+  return text(value, label, maxLength, false);
+}
+
+function isoTimestamp(value: unknown, label: string): string | null {
+  const result = optionalText(value, label, 100);
+  if (result && Number.isNaN(new Date(result).getTime())) throw new Error(`${label} is invalid`);
+  return result;
+}
+
 function uuidArray(value: unknown, label: string): string[] {
   if (!Array.isArray(value)) throw new Error(`${label} must be a list`);
   const ids = value.map((item) => {
@@ -54,8 +73,128 @@ function uuidArray(value: unknown, label: string): string[] {
 
 function parseDocument(value: unknown): RichTextDocument {
   const document = record(value, 'content');
-  if (document.type !== 'doc' || !Array.isArray(document.blocks)) {
+  if (document.type !== 'doc') {
     throw new Error('content must be a structured document');
+  }
+  if (document.schemaVersion === 2) {
+    if (!Array.isArray(document.content)) throw new Error('content.content must be a list');
+    let nodeCount = 0;
+    const parseNode = (value: unknown, path: string): import('./types').RichTextNode => {
+      if (++nodeCount > 5000) throw new Error('content has too many nodes');
+      const node = record(value, path);
+      if (typeof node.type !== 'string' || !V2_NODE_TYPES.has(node.type)) {
+        throw new Error(`${path}.type is invalid`);
+      }
+      const parsed: import('./types').RichTextNode = { type: node.type };
+      if (node.text !== undefined) parsed.text = text(node.text, `${path}.text`, 100000);
+      if (node.attrs !== undefined) {
+        const attrs = record(node.attrs, `${path}.attrs`);
+        const id = optionalText(attrs.id, `${path}.attrs.id`, 200);
+        const textAlign = attrs.textAlign == null
+          ? null
+          : attrs.textAlign === 'left' || attrs.textAlign === 'center' || attrs.textAlign === 'right'
+            ? attrs.textAlign
+            : (() => { throw new Error(`${path}.attrs.textAlign is invalid`); })();
+        if (node.type === 'paragraph') parsed.attrs = { id, ...(textAlign ? { textAlign } : {}) };
+        if (node.type === 'heading') {
+          if (attrs.level !== 1 && attrs.level !== 2 && attrs.level !== 3) {
+            throw new Error(`${path}.attrs.level is invalid`);
+          }
+          parsed.attrs = { id, level: attrs.level, ...(textAlign ? { textAlign } : {}) };
+        }
+        if (node.type === 'taskItem') parsed.attrs = { id, checked: attrs.checked === true };
+        if (node.type === 'listItem') parsed.attrs = { id };
+        if (node.type === 'goalCard') {
+          const goalId = text(attrs.goalId, `${path}.attrs.goalId`, 100, false);
+          if (!UUID_PATTERN.test(goalId)) throw new Error(`${path}.attrs.goalId is invalid`);
+          parsed.attrs = {
+            id,
+            goalId,
+            referenceId: text(attrs.referenceId, `${path}.attrs.referenceId`, 200, false),
+            createdAt: isoTimestamp(attrs.createdAt, `${path}.attrs.createdAt`),
+          };
+        }
+        if (node.type === 'noteImage') {
+          const storagePath = text(attrs.storagePath, `${path}.attrs.storagePath`, 500, false);
+          if (storagePath.includes('..') || !/^[0-9a-f-]+\/[0-9a-f-]+\/[a-z0-9-]+\.[a-z0-9]+$/i.test(storagePath)) {
+            throw new Error(`${path}.attrs.storagePath is invalid`);
+          }
+          parsed.attrs = {
+            id,
+            storagePath,
+            alt: optionalText(attrs.alt, `${path}.attrs.alt`, 500) ?? 'Note image',
+            align: attrs.align === 'left' || attrs.align === 'right' ? attrs.align : 'center',
+          };
+        }
+      }
+      if (node.marks !== undefined) {
+        if (!Array.isArray(node.marks) || node.marks.length > 20) {
+          throw new Error(`${path}.marks is invalid`);
+        }
+        parsed.marks = node.marks.map((markValue, markIndex) => {
+          const mark = record(markValue, `${path}.marks[${markIndex}]`);
+          if (typeof mark.type !== 'string' || !V2_MARK_TYPES.has(mark.type)) {
+            throw new Error(`${path}.marks[${markIndex}].type is invalid`);
+          }
+          if (mark.attrs === undefined) return { type: mark.type };
+          const markPath = `${path}.marks[${markIndex}].attrs`;
+          const attrs = record(mark.attrs, markPath);
+          if (mark.type === 'link') {
+            const href = text(attrs.href, `${markPath}.href`, 2048, false);
+            if (!/^(https?:|mailto:)/i.test(href)) throw new Error(`${markPath}.href is invalid`);
+            return { type: mark.type, attrs: { href } };
+          }
+          if (mark.type === 'goalReference') {
+            const goalId = text(attrs.goalId, `${markPath}.goalId`, 100, false);
+            if (!UUID_PATTERN.test(goalId)) throw new Error(`${markPath}.goalId is invalid`);
+            if (!['text', 'paragraph', 'checkbox'].includes(String(attrs.sourceType))) {
+              throw new Error(`${markPath}.sourceType is invalid`);
+            }
+            return { type: mark.type, attrs: {
+              referenceId: text(attrs.referenceId, `${markPath}.referenceId`, 200, false),
+              goalId,
+              blockId: optionalText(attrs.blockId, `${markPath}.blockId`, 200),
+              sourceType: attrs.sourceType,
+              createdAt: isoTimestamp(attrs.createdAt, `${markPath}.createdAt`),
+              progressEvidence: attrs.progressEvidence === true,
+            } };
+          }
+          if (mark.type === 'intelligenceReference') {
+            if (!['ask', 'reflect', 'understand', 'connect_goal', 'pattern', 'custom'].includes(String(attrs.action))) {
+              throw new Error(`${markPath}.action is invalid`);
+            }
+            const goalIds = Array.isArray(attrs.goalIds) ? attrs.goalIds.map((goalId, goalIndex) => {
+              if (typeof goalId !== 'string' || !UUID_PATTERN.test(goalId)) {
+                throw new Error(`${markPath}.goalIds[${goalIndex}] is invalid`);
+              }
+              return goalId;
+            }) : [];
+            return { type: mark.type, attrs: {
+              referenceId: text(attrs.referenceId, `${markPath}.referenceId`, 200, false),
+              blockId: optionalText(attrs.blockId, `${markPath}.blockId`, 200),
+              createdAt: isoTimestamp(attrs.createdAt, `${markPath}.createdAt`),
+              action: attrs.action,
+              question: optionalText(attrs.question, `${markPath}.question`, 2000),
+              goalIds: [...new Set(goalIds)],
+            } };
+          }
+          return { type: mark.type };
+        });
+      }
+      if (node.content !== undefined) {
+        if (!Array.isArray(node.content)) throw new Error(`${path}.content must be a list`);
+        parsed.content = node.content.map((child, index) => parseNode(child, `${path}.content[${index}]`));
+      }
+      return parsed;
+    };
+    return {
+      type: 'doc',
+      schemaVersion: 2,
+      content: document.content.map((node, index) => parseNode(node, `content.content[${index}]`)),
+    };
+  }
+  if (!Array.isArray(document.blocks)) {
+    throw new Error('content.blocks must be a list');
   }
   if (document.blocks.length > 1000) throw new Error('content has too many blocks');
   const blocks: RichTextBlock[] = document.blocks.map((value, index) => {
@@ -76,7 +215,7 @@ function parseDocument(value: unknown): RichTextDocument {
       ...(block.type === 'checklist' ? { checked: block.checked === true } : {}),
     };
   });
-  return { type: 'doc', blocks };
+  return { type: 'doc', schemaVersion: 1, blocks };
 }
 
 function parseTurns(value: unknown): ReflectionTurn[] {
@@ -144,6 +283,13 @@ export function parseEntryDraft(value: unknown): EntryDraft {
     pinned: body.pinned === true,
     archived: body.archived === true,
     completedAt,
+    ...(body.expectedContentVersion === undefined
+      ? {}
+      : typeof body.expectedContentVersion === 'number'
+        && Number.isInteger(body.expectedContentVersion)
+        && body.expectedContentVersion > 0
+        ? { expectedContentVersion: body.expectedContentVersion }
+        : (() => { throw new Error('expectedContentVersion is invalid'); })()),
     relationships: parseRelationships(body.relationships),
   };
 }

@@ -7,15 +7,32 @@ import type {
 export function createEmptyDocument(): RichTextDocument {
   return {
     type: 'doc',
-    blocks: [{ id: `block-${Date.now()}`, type: 'paragraph', text: '' }],
+    schemaVersion: 2,
+    content: [{
+      type: 'paragraph',
+      attrs: { id: `block-${Date.now()}` },
+    }],
   };
 }
 
 export function documentToPlainText(document: RichTextDocument): string {
+  if (document.schemaVersion === 2 && document.content) {
+    const lines: string[] = [];
+    const visit = (node: import('./types.ts').RichTextNode) => {
+      if (node.type === 'text' && node.text) lines.push(node.text);
+      if (node.type === 'hardBreak') lines.push('\n');
+      node.content?.forEach(visit);
+      if (['paragraph', 'heading', 'listItem', 'taskItem', 'goalCard'].includes(node.type)) {
+        lines.push('\n');
+      }
+    };
+    document.content.forEach(visit);
+    return lines.join('').replace(/\n{3,}/g, '\n\n').trim();
+  }
   return document.blocks
-    .map((block) => block.text.trim())
+    ?.map((block) => block.text.trim())
     .filter(Boolean)
-    .join('\n');
+    .join('\n') ?? '';
 }
 
 export function sortEntriesByRecency<T extends { updatedAt: Date }>(entries: T[]): T[] {

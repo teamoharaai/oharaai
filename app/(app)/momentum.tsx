@@ -12,11 +12,8 @@ import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
-import { RADIUS, SPACE } from '@/constants/design';
-import {
-  GoalEchoAnalysisCard,
-  getGoalEchoAnalysisPreview,
-} from '@/features/goals/components/GoalEchoAnalysisCard';
+import { SPACE } from '@/constants/design';
+import { GoalEchoAnalysisCard } from '@/features/goals/components/GoalEchoAnalysisCard';
 import { useGoals } from '@/features/goals/hooks/useGoals';
 import {
   MomentumTrendChart,
@@ -26,7 +23,7 @@ import type { MomentumHistoryPoint } from '@/features/momentum/types';
 import { useThemeColors } from '@/store/uiStore';
 
 type TimeRange = '7D' | '30D' | '3M' | '1Y';
-type GoalFilter = 'All goals' | 'Building' | 'Steady' | 'Needs attention';
+type GoalFilter = 'All goals' | 'Building' | 'Active' | 'Paused' | 'Limited';
 type ActivityFilter = 'All' | 'Progress' | 'Entries' | 'Changes';
 
 const RANGE_DAYS: Record<TimeRange, number> = {
@@ -59,44 +56,24 @@ function momentumChange(value: number | null): string | null {
   return `${rounded > 0 ? '+' : ''}${rounded.toFixed(2)} this week`;
 }
 
-const DRIVERS = [
-  { icon: 'trending-up-outline' as const, label: 'Consistency', state: 'Improving' },
-  { icon: 'remove-outline' as const, label: 'Milestone progress', state: 'Steady' },
-  { icon: 'trending-up-outline' as const, label: 'Reflection rhythm', state: 'Improving' },
-  { icon: 'trending-down-outline' as const, label: 'Recent activity', state: 'Slowing' },
-];
-
-const PATTERNS = [
-  'Your consistency may be strongest earlier in the week.',
-  'Reflection may often follow milestone progress.',
-  'A smaller weekly target may help restore momentum when routines change.',
-];
-
-function PreviewBadge() {
-  const colors = useThemeColors();
-  return (
-    <View
-      style={{
-        backgroundColor: colors.background.input,
-        borderRadius: RADIUS.round,
-        paddingHorizontal: SPACE.lg,
-        paddingVertical: SPACE.xs,
-      }}
-    >
-      <Typography variant="badge-text" style={{ color: colors.text.accent }}>
-        Preview
-      </Typography>
-    </View>
-  );
+function statusLabel(status: string | null | undefined): string {
+  if (!status) return 'Unavailable';
+  return status.charAt(0).toUpperCase() + status.slice(1);
 }
+
+const COMPONENTS = [
+  { key: 'portfolioProgress' as const, label: 'Portfolio progress', icon: 'trending-up-outline' as const },
+  { key: 'milestoneVelocity' as const, label: 'Milestone velocity', icon: 'flag-outline' as const },
+  { key: 'growthCadence' as const, label: 'Growth cadence', icon: 'pulse-outline' as const },
+  { key: 'sustainedGrowth' as const, label: 'Sustained growth', icon: 'leaf-outline' as const },
+  { key: 'portfolioCoverage' as const, label: 'Portfolio coverage', icon: 'layers-outline' as const },
+];
 
 function SectionHeading({
   title,
-  preview = false,
   copy,
 }: {
   title: string;
-  preview?: boolean;
   copy?: string;
 }) {
   const colors = useThemeColors();
@@ -106,7 +83,6 @@ function SectionHeading({
         <Typography accessibilityRole="header" variant="heading" style={{ fontSize: 20 }}>
           {title}
         </Typography>
-        {preview ? <PreviewBadge /> : null}
       </View>
       {copy ? (
         <Typography variant="caption" style={{ color: colors.text.secondary, lineHeight: 19 }}>
@@ -169,11 +145,10 @@ export default function MomentumScreen() {
   const visibleGoals = useMemo(
     () => activeGoals.filter((goal) => {
       if (goalFilter === 'All goals') return true;
-      const status = getGoalEchoAnalysisPreview(goal.category).status;
-      if (goalFilter === 'Needs attention') return status === 'Developing';
-      return status === goalFilter;
+      const status = momentum.summary?.goals.find((item) => item.goalId === goal.id)?.status;
+      return status === goalFilter.toLowerCase();
     }),
-    [activeGoals, goalFilter],
+    [activeGoals, goalFilter, momentum.summary?.goals],
   );
   const visibleHistory = useMemo(
     () => historyForRange(momentum.summary?.history ?? [], range),
@@ -188,6 +163,14 @@ export default function MomentumScreen() {
       <View style={{ minWidth: 0 }}>
           <View style={{ marginBottom: SPACE['4xl'] }}>
             <FeaturePageHeader
+              badge={(
+                <Typography
+                  variant="label"
+                  style={{ color: colors.text.secondary, fontWeight: '400' }}
+                >
+                  (Version 1.0)
+                </Typography>
+              )}
               description="Understand what is moving forward, what is changing, and where your attention may help."
               icon={<BrandIcon name="momentum" size={24} color={colors.accent.primary} />}
               title="Momentum"
@@ -215,7 +198,7 @@ export default function MomentumScreen() {
                     </View>
                     <View style={{ alignItems: 'baseline', flexDirection: 'row', gap: 10 }}>
                       <Typography variant="heading">
-                        {momentum.isLoading ? 'Calculating…' : momentum.summary?.status ?? 'Unavailable'}
+                        {momentum.isLoading ? 'Calculating…' : statusLabel(momentum.summary?.status)}
                       </Typography>
                       {!momentum.isLoading && typeof momentum.summary?.currentValue === 'number' ? (
                         <Typography variant="label" style={{ color: colors.text.accent }}>
@@ -266,6 +249,7 @@ export default function MomentumScreen() {
                       height={width < 720 ? 250 : 330}
                       points={historyValues}
                       showAxes
+                      yDomainMax={100}
                       xAxisLabel="Week"
                       xLabels={historyLabels}
                     />
@@ -305,8 +289,7 @@ export default function MomentumScreen() {
                   }}
                 >
                   <Typography variant="caption" style={{ color: colors.text.secondary, lineHeight: 19 }}>
-                    This weekly trend uses the latest authoritative snapshot revision for each period.
-                    Echo-derived explanations are not yet available and remain a future preview concept.
+                    This 0–100 weekly trend uses the latest authoritative OHARA Momentum V1 snapshot revision for each period.
                   </Typography>
                 </View>
               </Card>
@@ -314,9 +297,8 @@ export default function MomentumScreen() {
 
             <View>
               <SectionHeading
-                copy="Examples of future inputs. These directional states are sample UI, not user analysis."
-                preview
-                title="Momentum drivers"
+                copy="Authoritative portfolio components from the current V1 snapshot. Unavailable components are reweighted rather than fabricated."
+                title="Momentum components"
               />
               <View
                 style={{
@@ -325,9 +307,9 @@ export default function MomentumScreen() {
                   gap: 12,
                 }}
               >
-                {DRIVERS.map((driver) => (
+                {COMPONENTS.map((component) => (
                   <Card
-                    key={driver.label}
+                    key={component.key}
                     padding="compact"
                     style={{
                       flexBasis: width >= 1180 ? '23%' : width >= 640 ? '47%' : '100%',
@@ -345,12 +327,14 @@ export default function MomentumScreen() {
                           width: 34,
                         }}
                       >
-                        <Ionicons color={colors.text.accent} name={driver.icon} size={18} />
+                        <Ionicons color={colors.text.accent} name={component.icon} size={18} />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Typography variant="label">{driver.label}</Typography>
+                        <Typography variant="label">{component.label}</Typography>
                         <Typography variant="caption" style={{ color: colors.text.accent, marginTop: 2 }}>
-                          {driver.state}
+                          {typeof momentum.summary?.components[component.key] === 'number'
+                            ? `${Math.round(momentum.summary.components[component.key]!)} / 100`
+                            : 'Unavailable'}
                         </Typography>
                       </View>
                     </View>
@@ -361,12 +345,11 @@ export default function MomentumScreen() {
 
             <View>
               <SectionHeading
-                copy="Category-specific sample metrics for your active goals. Values remain preview-only."
-                preview
+                copy="Each active goal uses its own authoritative 0–100 Goal Momentum score and V1 snapshot history."
                 title="Goal Momentum"
               />
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-                {(['All goals', 'Building', 'Steady', 'Needs attention'] as GoalFilter[]).map((filter) => (
+                {(['All goals', 'Building', 'Active', 'Paused', 'Limited'] as GoalFilter[]).map((filter) => (
                   <FilterPill
                     active={goalFilter === filter}
                     key={filter}
@@ -396,8 +379,8 @@ export default function MomentumScreen() {
                 <Card padding="compact">
                   <Typography variant="hint">
                     {activeGoals.length
-                      ? 'No active goals match this preview filter.'
-                      : 'Active goals will appear here with a clearly labeled preview metric.'}
+                      ? 'No active goals match this Momentum status.'
+                      : 'Active goals will appear here after an authoritative V1 calculation.'}
                   </Typography>
                 </Card>
               )}
@@ -431,37 +414,20 @@ export default function MomentumScreen() {
               </View>
 
               <View style={{ flex: 1, minWidth: 0 }}>
-                <SectionHeading preview title="Patterns from entries" />
+                <SectionHeading title="Why it changed" />
                 <Card>
-                  <Typography variant="caption" style={{ color: colors.text.secondary, lineHeight: 19 }}>
-                    Examples of future pattern recognition—not observations derived from your account.
-                  </Typography>
-                  <View style={{ gap: 12, marginTop: 16 }}>
-                    {PATTERNS.map((pattern) => (
-                      <View key={pattern} style={{ alignItems: 'flex-start', flexDirection: 'row', gap: 9 }}>
-                        <Ionicons color={colors.text.accent} name="sparkles-outline" size={15} />
-                        <Typography variant="caption" style={{ color: colors.text.primary, flex: 1, lineHeight: 19 }}>
-                          {pattern}
-                        </Typography>
-                      </View>
-                    ))}
-                  </View>
+                  {momentum.summary?.reasons.length ? (
+                    <View style={{ gap: 12 }}>
+                      {momentum.summary.reasons.map((reason) => (
+                        <View key={reason.code} style={{ alignItems: 'flex-start', flexDirection: 'row', gap: 9 }}>
+                          <Ionicons color={colors.text.accent} name="sparkles-outline" size={15} />
+                          <Typography variant="caption" style={{ color: colors.text.primary, flex: 1, lineHeight: 19 }}>{reason.message}</Typography>
+                        </View>
+                      ))}
+                    </View>
+                  ) : <Typography variant="hint">No reason codes are available for this period.</Typography>}
                 </Card>
               </View>
-            </View>
-
-            <View>
-              <SectionHeading preview title="Suggested next step" />
-              <Card padding="compact" style={{ backgroundColor: colors.background.subtle }}>
-                <Typography variant="title">A useful next step</Typography>
-                <Typography
-                  variant="caption"
-                  style={{ color: colors.text.secondary, lineHeight: 19, marginTop: 6 }}
-                >
-                  Choose one scheduled action to complete today, or adjust its timing if your week has changed.
-                  This is sample guidance, not a personalized recommendation.
-                </Typography>
-              </Card>
             </View>
 
             <View style={{ alignItems: 'flex-start', gap: 8 }}>
@@ -496,12 +462,12 @@ export default function MomentumScreen() {
         <View style={{ gap: 11, marginTop: 16 }}>
           {[
             'Ohara Momentum reflects movement across active goals.',
-            'Goal Momentum uses a preview metric appropriate to each goal category.',
-            'Future signals may include consistency, milestones, recent activity, reflection, and recovery after interruptions.',
-            'Recent activity may eventually carry more weight than older activity.',
-            'Pausing, rescoping, or adjusting a goal should not automatically be treated as failure.',
+            'Goal Momentum combines Consistency, Progress, Reflection, and Initiative on a bounded 0–100 scale.',
+            'OHARA Momentum independently represents portfolio progress, milestone velocity, growth cadence, sustained growth, and coverage.',
+            'True inactivity pauses Momentum; missed commitments remain part of the active calculation.',
+            'Difficulty is deterministic and category-relative, but never weights one category against another in OHARA Momentum.',
             'Momentum is guidance, not a judgment or grade.',
-            'The weekly Momentum overview is authoritative. Goal analysis, drivers, and personalized explanations remain preview concepts.',
+            'All values shown here come from authoritative, versioned V1 snapshots.',
           ].map((item) => (
             <View key={item} style={{ alignItems: 'flex-start', flexDirection: 'row', gap: 9 }}>
               <View

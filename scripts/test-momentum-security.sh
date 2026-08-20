@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# Runs migration 038 and adversarial assertions against a disposable local
+# Runs migrations 038 and 040 plus adversarial assertions against a disposable local
 # PostgreSQL cluster bound only to a private Unix socket. It never reads .env.
 
 set -euo pipefail
 
 REPOSITORY_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MIGRATION_PATH="$REPOSITORY_ROOT/supabase/migrations/038_momentum_foundation.sql"
+V1_MIGRATION_PATH="$REPOSITORY_ROOT/supabase/migrations/040_momentum_v1.sql"
+V1_BASELINE_FIX_PATH="$REPOSITORY_ROOT/supabase/migrations/041_momentum_v1_recalculation_baseline.sql"
 BOOTSTRAP_PATH="$REPOSITORY_ROOT/scripts/momentum-security-bootstrap.sql"
 TEST_PATH="$REPOSITORY_ROOT/scripts/momentum-security.test.sql"
 
@@ -58,4 +60,6 @@ PSQL=("$MOMENTUM_PG_BIN/psql" -X -v ON_ERROR_STOP=1 -h "$MOMENTUM_SOCKET_DIR" -U
 echo "Verified disposable local PostgreSQL target: unix socket $MOMENTUM_SOCKET_DIR"
 "${PSQL[@]}" -f "$BOOTSTRAP_PATH" >/dev/null
 "${PSQL[@]}" -f "$MIGRATION_PATH" >/dev/null
+"${PSQL[@]}" -f "$V1_MIGRATION_PATH" >/dev/null
+"${PSQL[@]}" -f "$V1_BASELINE_FIX_PATH" >/dev/null
 "${PSQL[@]}" -f "$TEST_PATH"

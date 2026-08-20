@@ -2,7 +2,38 @@
 
 ## [Unreleased]
 
+### Added
+- Completed **OHARA Notes Version 1.0** with contextual inline Goal/Intelligence reference menus, panel-level jump/open/remove actions, keyboard-focusable anchors, an explicit document-sheet layout, and `docs/NOTES_V1_IMPLEMENTATION.md`.
+- Added the temporary config-driven internal “What’s New” login modal at the root auth lifecycle, with a single `SHOW_INTERNAL_RELEASE_NOTES` flag, session-scoped SIGNED_IN/SIGNED_OUT behavior, focus containment/restoration, Escape/backdrop/X dismissal, and focused auth lifecycle tests.
+- Rebuilt Notes V1 on a ProseMirror/Tiptap 2 document model with conventional H1/H2/H3, bold, italic, underline, strikethrough, bullet/numbered/task lists, block alignment, links, undo/redo, private image nodes, stable node IDs, lightweight Goal references, live embedded Goal cards, and selection-based OHARA Intelligence anchors in `features/entries/components/`, `features/entries/editor-document.ts`, `features/entries/types.ts`, and `global.css`.
+- Added additive Migration 042 with schema-V2 tracking, a private owner-scoped `note-images` bucket, document-derived/server-validated current Goal progress evidence, canonical completion-transition events, and an atomic revision-checked `save_entry_v2` wrapper; clients cannot invoke the evidence synchronizer directly, and Notes never writes Momentum scores or snapshots.
+- Added editor document compatibility, reference extraction, persistence, validation, source-level security coverage, and a disposable PostgreSQL Migration 042 trust-boundary harness in `features/entries/*.test.ts` and `scripts/notes-editor-security*`.
+- Added OHARA Momentum V1 as two deterministic, server-authoritative 0–100 metrics: `goal-momentum-v1.0` for each active Goal and `ohara-momentum-v1.0` for portfolio movement, with centralized category/mode configuration and deterministic `difficulty-v1.0` Goal Difficulty profiles in `features/momentum/`.
+- Added additive migrations `040_momentum_v1.sql` and `041_momentum_v1_recalculation_baseline.sql` for Goal Difficulty, immutable/versioned Goal Momentum snapshots, bounded OHARA V1 snapshot metadata, service-role-only publishers, idempotent hashes, superseding revisions, RLS, and protected recalculation baselines while preserving Migration 038 and historical Phase 1 records.
+- Added the authenticated owner-scoped `/api/momentum/goals/:goalId` contract, shared user-scoped Momentum client cache/selectors, the canonical specification copy, and `docs/MOMENTUM_V1_IMPLEMENTATION.md`.
+- Expanded unit, trust-boundary, disposable database, and loopback integration coverage for the V1 formulas, all categories/modes, inactivity, missing-data reweighting, reflection/recovery caps, portfolio weighting, revisions, timezone boundaries, idempotency, forgery rejection, immutable records, and cross-user isolation.
+- Expanded the authenticated loopback API smoke to cover both overall and owner-scoped Goal Momentum endpoints, missing-Goal non-disclosure, and unauthorized access rejection.
+
+### Changed
+- Refined the Notes writing workspace to a 960px document sheet with approximately 740px maximum reading width, responsive 80–110px desktop/40–64px tablet/18–28px mobile page padding, a restrained page border/shadow, sticky separated toolbar, 17px long-form body typography, and explicit light/dark semantic tokens.
+- Expanded Goal Reference management with Open Goal, Change Goal, progress-evidence settings, and source-preserving removal; expanded OHARA Intelligence Reference management with open, question/context edit, and source-preserving removal from both inline anchors and the panel.
+- Replaced the deprecated `document.execCommand`/single-HTML-blob web implementation with centralized Tiptap commands and active selection state; legacy V1 block/HTML notes remain readable and upgrade in place only after an editor change, while note-level Goal links remain separate from inline references.
+- Expanded the existing OHARA Intelligence rail with bidirectional inline-reference navigation, excerpts, action/question metadata, linked Goal references, progress state, removal controls, and an honest premium-locked response state with no fabricated AI output.
+- Made Notes saves schema-aware and revision-conditional, while preserving the existing 900 ms debounce, Saving/Saved/Error states, local unsaved-draft recovery, and relationship behavior in `features/entries/components/NoteEditor.tsx`, `features/entries/validation.ts`, and `lib/db/entries.ts`.
+- Kept the V2 document contract platform-neutral and made the native fallback data-safe: plain V2 notes remain editable as structured paragraphs, while rich V2 notes render read-only instead of being silently flattened into legacy text until native rich-editor parity is implemented.
+- Added a quiet `(Version 1.0)` label beside the authenticated Momentum workspace title in `app/(app)/momentum.tsx` so the implemented model version is visible without changing calculations or API behavior.
+- Replaced active production uses of the experimental Phase 1 equation with the bounded Goal/OHARA V1 engines while isolating the historical five-pillar/unbounded formula in `features/momentum/legacy-phase1.ts` solely for reproducibility.
+- Updated Home, the expanded Home Momentum view, the full Momentum workspace, shared Goal Momentum cards, and canonical Goals workspace analytics to use authoritative V1 values and V1-only histories; removed authenticated Momentum preview/sample values and kept Goal progress visually and semantically distinct from Goal Momentum.
+- Updated the trusted Momentum service to normalize owner-scoped Goals, actions, milestones, trackers, tracker logs, and goal-linked reflections into stable local-week evidence; raw reflection text stays inside the qualification boundary and is not returned or persisted in V1 diagnostic payloads.
+
 ### Fixed
+- Restored visible bullet and numbered markers after Tailwind Preflight’s global `list-style: none` reset, including explicit theme-aware marker colors, indentation, and nested marker styles.
+- Replaced browser-dependent task checkbox appearance with an explicit accessible unchecked outline, restrained checked state/checkmark, focus state, and checked-text treatment in both themes.
+- Preserved checked document items, Goals, immutable progress events, and historical Momentum state when a Goal Reference is removed; the disposable Migration 042 harness now proves current evidence is removed without rewriting history.
+- Replaced ambiguous editor symbols and nonfunctional pseudo-checkbox insertion with conventional accessible controls, structural task items, preserved toolbar selections, standard keyboard commands, safe schema-based paste handling, and responsive overflow behavior.
+- Scoped the shared Momentum response cache by authenticated user ID to prevent stale cross-account reuse.
+- Corrected first-week OHARA V1 recalculation baseline handling through additive Migration 041 and made local integration fixtures repeatable and non-destructive by using unique users/source IDs plus dates relative to the current local week.
+- Kept the authoritative 0–100 Home trend visible when only the first V1 weekly snapshot exists, instead of replacing a valid one-point history with an unavailable message.
 - Prevented the closed Goal-extension modal from repeatedly resetting state in `features/goals/components/ExtendGoalModal.tsx`, eliminating the maximum-update-depth crash when a Home Goal opens the canonical Goals workspace.
 
 ### Added

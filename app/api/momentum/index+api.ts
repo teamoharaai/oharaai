@@ -1,7 +1,11 @@
 import { withAuth, type AuthContext } from '@/lib/api/auth';
 import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 import { createServiceRoleClient } from '@/lib/db/service-client';
-import { getMomentumHomeSummary, safeDiagnostic } from '@/features/momentum/services/momentum-service';
+import {
+  getMomentumHomeSummary,
+  safeDiagnostic,
+  safeGoalDiagnostic,
+} from '@/features/momentum/services/momentum-service';
 
 export async function GET(request: Request): Promise<Response> {
   if (!isDatabaseConfigured) {
@@ -19,13 +23,16 @@ async function handleGet(request: Request, _params: Record<string, string>, auth
     return Response.json({
       data: {
         ...result.summary,
-        ...(diagnosticsRequested ? { diagnostic: safeDiagnostic(result.diagnostic) } : {}),
+        ...(diagnosticsRequested ? {
+          diagnostic: safeDiagnostic(result.diagnostic),
+          goalDiagnostics: result.goalDiagnostics.map(safeGoalDiagnostic),
+        } : {}),
       },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Momentum calculation failed';
     console.error('[momentum] authoritative calculation failed', {
-      algorithmVersion: 'momentum-v1.0',
+      algorithmVersion: 'ohara-momentum-v1.0',
       error: message,
       userId: auth.userId,
     });
