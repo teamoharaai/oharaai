@@ -113,6 +113,8 @@ function action(overrides: Partial<MomentumActionInput> = {}): MomentumActionInp
 }
 
 test('V1 exposes the canonical 30/30/20/20 and 50/20/15/10/5 weights', () => {
+  assert.equal(GOAL_MOMENTUM_CONFIG.version, 'goal-momentum-v1.1');
+  assert.equal(OHARA_MOMENTUM_CONFIG.version, 'ohara-momentum-v1.1');
   assert.deepEqual(GOAL_MOMENTUM_CONFIG.pillarWeights, {
     consistency: 0.30, initiative: 0.20, progress: 0.30, reflection: 0.20,
   });
@@ -136,6 +138,72 @@ test('Goal Momentum is bounded, precise internally, and rounded only for display
 test('Goal Momentum is deterministic across repeated inputs', () => {
   const input = goalInput();
   assert.deepEqual(calculateGoalMomentum(input), calculateGoalMomentum(input));
+});
+
+test('provisional recalculation always uses the same closed baseline without compounding', () => {
+  const baseline = 60;
+  const monday = calculateGoalMomentum(goalInput({
+    previousValue: baseline,
+    progress: { ...goalInput().progress, completedMilestoneUnits: 0, completedProgressEvidenceUnits: 1 },
+  }));
+  const tuesdayInput = goalInput({ previousValue: baseline });
+  const tuesday = calculateGoalMomentum(tuesdayInput);
+  const repeated = calculateGoalMomentum(tuesdayInput);
+  assert.notEqual(monday.currentValue, tuesday.currentValue);
+  assert.deepEqual(tuesday, repeated);
+  assert.equal(tuesday.previousValue, baseline);
+  assert.equal(tuesday.currentValue, 0.6 * baseline + 0.4 * tuesday.rawScore);
+});
+
+test('a milestone missed in a closed week can count when completed in the current provisional week', () => {
+  const closed = calculateGoalMomentum(goalInput({
+    consistency: { completedCommitmentUnits: 0, completedOnScheduleUnits: 0, dueCommitmentUnits: 1, meaningfulActivePeriods: 0, plannedActivePeriods: 1 },
+    hasEligibleEvidence: false,
+    previousValue: 65,
+    progress: { ...goalInput().progress, completedMilestoneUnits: 0, completedProgressEvidenceUnits: 0 },
+  }));
+  const provisional = calculateGoalMomentum(goalInput({
+    previousValue: closed.currentValue,
+    progress: { ...goalInput().progress, completedMilestoneUnits: 1, completedProgressEvidenceUnits: 1 },
+  }));
+  assert.equal(provisional.previousValue, closed.currentValue);
+  assert.ok(provisional.reasonCodes.includes('MILESTONE_COMPLETED'));
+  assert.ok(provisional.pillars.progress > closed.pillars.progress);
+  assert.notEqual(provisional.currentValue, closed.currentValue);
+
+  const closedOhara = calculateOharaMomentum({
+    goals: [evidence({ completedMilestoneUnits: 0, meaningfulMovement: false, normalizedProgressEvidence: closed.pillars.progress })],
+    hasDueCommitments: true,
+    hasEligibleEvidence: false,
+    previousValue: 72,
+    trailingCadence: null,
+    trailingMovementWeeks: [],
+  });
+  const provisionalOhara = calculateOharaMomentum({
+    goals: [evidence({ completedMilestoneUnits: 1, meaningfulMovement: true, normalizedProgressEvidence: provisional.pillars.progress })],
+    hasDueCommitments: true,
+    hasEligibleEvidence: true,
+    previousValue: closedOhara.currentValue,
+    trailingCadence: null,
+    trailingMovementWeeks: [],
+  });
+  assert.notEqual(provisionalOhara.currentValue, closedOhara.currentValue);
+});
+
+test('brand-new users and goals build while established inactive scores pause', () => {
+  const newGoal = calculateGoalMomentum(goalInput({ hasDueCommitments: false, hasEligibleEvidence: false, previousValue: null }));
+  const newOhara = calculateOharaMomentum({
+    goals: [], hasDueCommitments: false, hasEligibleEvidence: false,
+    previousValue: null, trailingCadence: null, trailingMovementWeeks: [],
+  });
+  assert.equal(newGoal.status, 'building');
+  assert.equal(newOhara.status, 'building');
+});
+
+test('week-close calculation matches the final provisional value for identical canonical inputs', () => {
+  const finalProvisional = calculateGoalMomentum(goalInput({ previousValue: 64 }));
+  const closed = calculateGoalMomentum(goalInput({ previousValue: 64 }));
+  assert.deepEqual(closed, finalProvisional);
 });
 
 test('true inactivity pauses without decay while missed commitments calculate', () => {
@@ -163,6 +231,18 @@ test('true inactivity pauses without decay while missed commitments calculate', 
   assert.equal(missed.pillars.consistency, 0);
   assert.notEqual(missed.currentValue, 52.25);
   assert.ok(missed.reasonCodes.includes('COMMITMENTS_MISSED'));
+
+  const pausedOhara = calculateOharaMomentum({
+    goals: [],
+    hasDueCommitments: false,
+    hasEligibleEvidence: false,
+    previousValue: 72,
+    trailingCadence: null,
+    trailingMovementWeeks: [],
+  });
+  assert.equal(pausedOhara.status, 'paused');
+  assert.equal(pausedOhara.currentValue, 72);
+  assert.equal(pausedOhara.weeklyChange, 0);
 });
 
 test('top-level unavailable pillars are dynamically reweighted to one', () => {
@@ -194,6 +274,21 @@ test('reflection coverage caps at two and does not reward spam', () => {
     reflection: { qualifiedReflectionCount: 20, reflectionToAction: false, weeklyReviewCompleted: false },
   }));
   assert.equal(two.pillars.reflection, twenty.pillars.reflection);
+});
+
+test('a qualified current-week Reflection updates Goal Momentum from the closed baseline', () => {
+  const baseline = 65;
+  const beforeReflection = calculateGoalMomentum(goalInput({
+    previousValue: baseline,
+    reflection: { qualifiedReflectionCount: 0, reflectionToAction: false, weeklyReviewCompleted: false },
+  }));
+  const afterReflection = calculateGoalMomentum(goalInput({
+    previousValue: baseline,
+    reflection: { qualifiedReflectionCount: 1, reflectionToAction: false, weeklyReviewCompleted: false },
+  }));
+  assert.ok(afterReflection.pillars.reflection > beforeReflection.pillars.reflection);
+  assert.notEqual(afterReflection.currentValue, beforeReflection.currentValue);
+  assert.equal(afterReflection.previousValue, baseline);
 });
 
 test('recovery units only count after a qualifying disruption', () => {

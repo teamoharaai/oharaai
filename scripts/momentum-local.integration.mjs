@@ -91,7 +91,7 @@ async function snapshotRows(userId, weekStart) {
     .select('id, calculation_hash, revision, supersedes_snapshot_id')
     .eq('user_id', userId)
     .eq('week_start', weekStart)
-    .eq('algorithm_version', 'ohara-momentum-v1.0')
+    .eq('algorithm_version', 'ohara-momentum-v1.1')
     .order('revision', { ascending: true });
   assert.equal(error, null);
   return data;
@@ -117,6 +117,7 @@ await createAction({
 const current = await getMomentumHomeSummary(owner.client, service, owner.userId, now);
 assert.equal(current.summary.tasksCompletedThisWeek, 1);
 assert.equal(current.summary.weeklyStreak, 1);
+assert.equal(current.summary.periodState, 'provisional');
 
 await createAction({
   completedAt: instantForLocalDate(addLocalDays(currentBoundary.weekStart, -4)),
@@ -143,15 +144,15 @@ await createAction({
 const populated = await getMomentumHomeSummary(owner.client, service, owner.userId, now);
 assert.equal(populated.summary.tasksCompletedThisWeek, 1);
 assert.equal(populated.summary.weeklyStreak, 3);
-assert.equal(populated.summary.algorithmVersion, 'ohara-momentum-v1.0');
-assert.equal(populated.goalDiagnostics[0].result.algorithmVersion, 'goal-momentum-v1.0');
+assert.equal(populated.summary.algorithmVersion, 'ohara-momentum-v1.1');
+assert.equal(populated.goalDiagnostics[0].result.algorithmVersion, 'goal-momentum-v1.1');
 assert.equal(populated.goalDiagnostics[0].normalizedInput.consistency.dueCommitmentUnits, 1);
 assert.equal(populated.goalDiagnostics[0].normalizedInput.consistency.completedCommitmentUnits, 1);
 assert.ok(populated.goalDiagnostics[0].normalizedInput.consistency.completedCommitmentUnits
   <= populated.goalDiagnostics[0].normalizedInput.consistency.dueCommitmentUnits);
 
 const afterFirstPopulated = await snapshotRows(owner.userId, completedBoundary.weekStart);
-assert.equal(afterFirstPopulated.length, 2);
+assert.equal(afterFirstPopulated.length, 1);
 const replay = await getMomentumHomeSummary(owner.client, service, owner.userId, now);
 const afterReplay = await snapshotRows(owner.userId, completedBoundary.weekStart);
 assert.equal(afterReplay.length, afterFirstPopulated.length);
@@ -179,9 +180,9 @@ await createAction({
 });
 const late = await getMomentumHomeSummary(owner.client, service, owner.userId, now);
 const afterLate = await snapshotRows(owner.userId, completedBoundary.weekStart);
-assert.equal(afterLate.length, 3);
-assert.notEqual(late.diagnostic.calculationHash, replay.diagnostic.calculationHash);
-assert.equal(afterLate.at(-1).supersedes_snapshot_id, afterLate.at(-2).id);
+assert.equal(afterLate.length, 1);
+assert.equal(late.diagnostic.calculationHash, replay.diagnostic.calculationHash);
+assert.equal(afterLate[0].supersedes_snapshot_id, null);
 
 const other = await createTestUser('other', 'America/New_York');
 const otherGoal = await createGoal(other.userId, 'Gap-week validation goal');
@@ -275,7 +276,7 @@ const { error: forgedRpcError } = await owner.client.rpc('publish_momentum_snaps
 assert.ok(forgedRpcError, 'authenticated forged publication must fail');
 
 const { error: forgedGoalV1Error } = await owner.client.rpc('publish_goal_momentum_v1_snapshot', {
-  p_algorithm_version: 'goal-momentum-v1.0',
+  p_algorithm_version: 'goal-momentum-v1.1',
   p_calculation_hash: 'f'.repeat(64),
   p_category: 'education',
   p_category_config_version: 'momentum-categories-v1.0',

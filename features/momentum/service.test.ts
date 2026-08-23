@@ -85,12 +85,31 @@ test('history keeps only the latest revision for each weekly period and sorts ch
   ]);
 
   assert.deepEqual(history.map((point) => ({
+    algorithmVersion: point.algorithmVersion,
+    periodState: point.periodState,
     periodStart: point.periodStart,
     revision: point.revision,
     value: point.value,
   })), [
-    { periodStart: '2026-07-20', revision: 1, value: 1 },
-    { periodStart: '2026-07-27', revision: 2, value: 4 },
+    { algorithmVersion: 'momentum-v1.0', periodState: 'closed', periodStart: '2026-07-20', revision: 1, value: 1 },
+    { algorithmVersion: 'momentum-v1.0', periodState: 'closed', periodStart: '2026-07-27', revision: 2, value: 4 },
+  ]);
+});
+
+test('history preserves recorded algorithm versions across the V1.0 to V1.1 boundary', () => {
+  const history = latestMomentumHistory([
+    {
+      algorithm_version: 'ohara-momentum-v1.0', next_value: 68, previous_value: 64,
+      revision: 1, week_end: '2026-08-02', week_start: '2026-07-27',
+    },
+    {
+      algorithm_version: 'ohara-momentum-v1.1', next_value: 72, previous_value: 68,
+      revision: 1, week_end: '2026-08-09', week_start: '2026-08-03',
+    },
+  ]);
+  assert.deepEqual(history.map(({ algorithmVersion, periodState }) => ({ algorithmVersion, periodState })), [
+    { algorithmVersion: 'ohara-momentum-v1.0', periodState: 'closed' },
+    { algorithmVersion: 'ohara-momentum-v1.1', periodState: 'closed' },
   ]);
 });
 

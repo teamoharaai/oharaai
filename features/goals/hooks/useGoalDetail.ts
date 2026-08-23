@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { authedFetch, UnauthorizedError } from '@/lib/api/client';
+import { refreshMomentumAfterMeaningfulMutation } from '@/features/momentum/hooks/useMomentumHomeSummary';
 import supabase from '@/lib/db/client';
 import {
   completeMilestone,
@@ -197,6 +198,7 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
       if (tracker.type === 'checklist') {
         upsertTracker(goalId, { ...tracker, currentValue: 1 });
       }
+      void refreshMomentumAfterMeaningfulMutation();
     } catch (error) {
       setCompletedTrackerIds((previous) => {
         const next = new Set(previous);
@@ -229,6 +231,7 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
       return;
     }
     upsertMilestone(goalId, saved);
+    void refreshMomentumAfterMeaningfulMutation();
   }, [goalId, readOnlyGoal, upsertMilestone]);
 
   const onDeleteMilestone = useCallback(async (milestoneId: string) => {
@@ -263,6 +266,7 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
       return;
     }
     upsertMilestone(goalId, saved);
+    void refreshMomentumAfterMeaningfulMutation();
   }, [goalId, readOnlyGoal, upsertMilestone]);
 
   const onCompleteMilestone = useCallback(async (milestoneId: string) => {
@@ -287,6 +291,7 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
       return;
     }
     upsertMilestone(goalId, saved);
+    void refreshMomentumAfterMeaningfulMutation();
   }, [completingMilestoneIds, goalId, readOnlyGoal, upsertMilestone]);
 
   const persistGoalUpdate = useCallback(async (
@@ -305,6 +310,9 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
       return false;
     }
     upsertGoal(mergeServerGoal(current, saved));
+    if (updates.progress !== undefined || updates.status !== undefined || updates.deadline !== undefined) {
+      void refreshMomentumAfterMeaningfulMutation();
+    }
     return true;
   }, [goalId, readOnlyGoal, upsertGoal]);
 

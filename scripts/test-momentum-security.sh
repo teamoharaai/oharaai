@@ -8,6 +8,7 @@ REPOSITORY_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MIGRATION_PATH="$REPOSITORY_ROOT/supabase/migrations/038_momentum_foundation.sql"
 V1_MIGRATION_PATH="$REPOSITORY_ROOT/supabase/migrations/040_momentum_v1.sql"
 V1_BASELINE_FIX_PATH="$REPOSITORY_ROOT/supabase/migrations/041_momentum_v1_recalculation_baseline.sql"
+V1_1_BASELINE_PATH="$REPOSITORY_ROOT/supabase/migrations/043_momentum_v1_1_cross_version_baseline.sql"
 BOOTSTRAP_PATH="$REPOSITORY_ROOT/scripts/momentum-security-bootstrap.sql"
 TEST_PATH="$REPOSITORY_ROOT/scripts/momentum-security.test.sql"
 
@@ -62,4 +63,5 @@ echo "Verified disposable local PostgreSQL target: unix socket $MOMENTUM_SOCKET_
 "${PSQL[@]}" -f "$MIGRATION_PATH" >/dev/null
 "${PSQL[@]}" -f "$V1_MIGRATION_PATH" >/dev/null
 "${PSQL[@]}" -f "$V1_BASELINE_FIX_PATH" >/dev/null
+"${PSQL[@]}" -f "$V1_1_BASELINE_PATH" >/dev/null
 "${PSQL[@]}" -f "$TEST_PATH"

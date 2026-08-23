@@ -41,12 +41,16 @@ function historyForRange(
   return history.filter((point) => Date.parse(`${point.periodEnd}T23:59:59Z`) >= cutoff);
 }
 
-function weeklyLabel(periodStart: string): string {
-  return new Intl.DateTimeFormat(undefined, {
+function weeklyLabel(point: MomentumHistoryPoint): string {
+  if (point.periodState === 'provisional') return 'This week · provisional';
+  const formatter = new Intl.DateTimeFormat(undefined, {
     day: 'numeric',
     month: 'short',
     timeZone: 'UTC',
-  }).format(new Date(`${periodStart}T00:00:00Z`));
+  });
+  const start = formatter.format(new Date(`${point.periodStart}T00:00:00Z`));
+  const end = formatter.format(new Date(`${point.periodEnd}T00:00:00Z`));
+  return `${start}–${end} · closed`;
 }
 
 function momentumChange(value: number | null): string | null {
@@ -155,7 +159,7 @@ export default function MomentumScreen() {
     [momentum.summary?.history, range],
   );
   const historyValues = visibleHistory.map((point) => point.value);
-  const historyLabels = visibleHistory.map((point) => weeklyLabel(point.periodStart));
+  const historyLabels = visibleHistory.map(weeklyLabel);
   const currentChange = momentumChange(momentum.summary?.weeklyChange ?? null);
 
   return (
@@ -168,7 +172,7 @@ export default function MomentumScreen() {
                   variant="label"
                   style={{ color: colors.text.secondary, fontWeight: '400' }}
                 >
-                  (Version 1.0)
+                  (Version 1.1)
                 </Typography>
               )}
               description="Understand what is moving forward, what is changing, and where your attention may help."
@@ -207,6 +211,11 @@ export default function MomentumScreen() {
                         </Typography>
                       ) : null}
                     </View>
+                    {momentum.summary ? (
+                      <Typography variant="caption" style={{ color: colors.text.secondary }}>
+                        This week · {momentum.summary.periodState}
+                      </Typography>
+                    ) : null}
                   </View>
                   <Pressable
                     accessibilityRole="button"
@@ -267,7 +276,7 @@ export default function MomentumScreen() {
                     variant="description"
                     style={{ color: colors.text.secondary, marginTop: SPACE.md }}
                   >
-                    One authoritative weekly period is available. More completed periods will form the trend.
+                    One Momentum period is available. The current week remains provisional until local week close.
                   </Typography>
                 ) : null}
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
@@ -289,7 +298,7 @@ export default function MomentumScreen() {
                   }}
                 >
                   <Typography variant="caption" style={{ color: colors.text.secondary, lineHeight: 19 }}>
-                    This 0–100 weekly trend uses the latest authoritative OHARA Momentum V1 snapshot revision for each period.
+                    Closed points are immutable weekly snapshots. The newest point is this week&apos;s live provisional calculation.
                   </Typography>
                 </View>
               </Card>
@@ -297,7 +306,7 @@ export default function MomentumScreen() {
 
             <View>
               <SectionHeading
-                copy="Authoritative portfolio components from the current V1 snapshot. Unavailable components are reweighted rather than fabricated."
+                copy="Live current-week portfolio components. Unavailable components are reweighted rather than fabricated."
                 title="Momentum components"
               />
               <View
@@ -345,7 +354,7 @@ export default function MomentumScreen() {
 
             <View>
               <SectionHeading
-                copy="Each active goal uses its own authoritative 0–100 Goal Momentum score and V1 snapshot history."
+                copy="Each active goal uses closed history plus a live current-week provisional calculation."
                 title="Goal Momentum"
               />
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
@@ -380,7 +389,7 @@ export default function MomentumScreen() {
                   <Typography variant="hint">
                     {activeGoals.length
                       ? 'No active goals match this Momentum status.'
-                      : 'Active goals will appear here after an authoritative V1 calculation.'}
+                      : 'Active goals will appear here after a Momentum V1.1 calculation.'}
                   </Typography>
                 </Card>
               )}
@@ -467,7 +476,7 @@ export default function MomentumScreen() {
             'True inactivity pauses Momentum; missed commitments remain part of the active calculation.',
             'Difficulty is deterministic and category-relative, but never weights one category against another in OHARA Momentum.',
             'Momentum is guidance, not a judgment or grade.',
-            'All values shown here come from authoritative, versioned V1 snapshots.',
+            'Closed history remains authoritative and immutable; this week is recalculated provisionally from the latest closed baseline.',
           ].map((item) => (
             <View key={item} style={{ alignItems: 'flex-start', flexDirection: 'row', gap: 9 }}>
               <View

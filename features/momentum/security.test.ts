@@ -11,6 +11,9 @@ const v1MigrationPath = decodeURIComponent(
 const v1RecalculationMigrationPath = decodeURIComponent(
   new URL('../../supabase/migrations/041_momentum_v1_recalculation_baseline.sql', import.meta.url).pathname,
 );
+const v11BaselineMigrationPath = decodeURIComponent(
+  new URL('../../supabase/migrations/043_momentum_v1_1_cross_version_baseline.sql', import.meta.url).pathname,
+);
 
 test('Momentum tables are private and owner-readable only', async () => {
   const sql = await readFile(migrationPath, 'utf8');
@@ -55,6 +58,19 @@ test('V1 OHARA recalculation baseline fix is additive and remains service-role-o
   assert.match(sql, /from public, anon, authenticated/i);
   assert.match(sql, /grant execute on function public\.publish_ohara_momentum_v1_snapshot[\s\S]*to service_role/i);
   assert.doesNotMatch(sql, /grant execute on function public\.publish_ohara_momentum_v1_snapshot[\s\S]*to authenticated/i);
+});
+
+test('V1.1 closed-week publishers accept only the latest cross-version closed baseline', async () => {
+  const sql = await readFile(v11BaselineMigrationPath, 'utf8');
+  assert.match(sql, /week_start < p_week_start/i);
+  assert.doesNotMatch(sql, /algorithm_version = p_algorithm_version\s+and week_start < p_week_start/i);
+  assert.match(sql, /algorithm_version like 'ohara-momentum-v%'/i);
+  assert.match(sql, /latest earlier closed snapshot/i);
+  assert.match(sql, /V1\.1 provisional values are never persisted/i);
+  assert.match(sql, /from public, anon, authenticated/i);
+  assert.match(sql, /grant execute on function public\.publish_goal_momentum_v1_snapshot[\s\S]*to service_role/i);
+  assert.match(sql, /grant execute on function public\.publish_ohara_momentum_v1_snapshot[\s\S]*to service_role/i);
+  assert.doesNotMatch(sql, /to authenticated/i);
 });
 
 test('snapshot publication locks the profile and deduplicates identical hashes', async () => {

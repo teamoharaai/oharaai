@@ -16,10 +16,10 @@ export interface InternalReleaseNotes {
 export const SHOW_INTERNAL_RELEASE_NOTES = true;
 
 export const INTERNAL_RELEASE_NOTES: InternalReleaseNotes = {
-  id: 'notes-v1-internal-release',
-  version: 'OHARA Notes Version 1.0',
+  id: 'momentum-v1-1-internal-release',
+  version: 'OHARA Momentum Version 1.1',
   title: "What's new in OHARA",
-  summary: 'A calmer, more dependable writing space with focused Goal and Intelligence context.',
+  summary: 'Live current-week Momentum with persistent history, alongside the completed Notes Version 1.0 release.',
   sections: [
     {
       heading: 'OHARA Notes Version 1.0',
@@ -34,6 +34,14 @@ export const INTERNAL_RELEASE_NOTES: InternalReleaseNotes = {
       heading: 'Momentum Version 1.0 Beta',
       updates: [
         'Goal Momentum and OHARA Momentum now use the new authoritative 0–100 scoring architecture.',
+      ],
+    },
+    {
+      heading: 'Momentum Version 1.1',
+      updates: [
+        'Momentum now responds to progress made during the current week.',
+        'Completed milestones, actions, and reflections can update Momentum without waiting for the week to close.',
+        'Inactive weeks preserve your existing Momentum instead of making the score disappear.',
       ],
     },
   ],

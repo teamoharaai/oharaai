@@ -25,6 +25,8 @@ export function normalizeActionRecords(
   rows: readonly RawActionCompletion[],
   boundary: MomentumWeekBoundary,
   expectedUserId: string,
+  asOfLocalDate = boundary.weekEnd,
+  includePendingDueOnAsOfDate = true,
 ): MomentumActionInput[] {
   const start = Date.parse(boundary.startInclusive);
   const end = Date.parse(boundary.endExclusive);
@@ -45,6 +47,8 @@ export function normalizeActionRecords(
       else if (!goalIsScoreable(row.goalStatus)) plannedExclusionReason = 'GOAL_NOT_SCOREABLE';
       else if (!isLocalDate(row.dueDate)) plannedExclusionReason = 'MISSING_OR_INVALID_DUE_DATE';
       else if (row.dueDate < boundary.weekStart || row.dueDate > boundary.weekEnd) plannedExclusionReason = 'DUE_OUTSIDE_WEEK';
+      else if (row.dueDate > asOfLocalDate) plannedExclusionReason = 'DUE_NOT_REACHED';
+      else if (!includePendingDueOnAsOfDate && row.dueDate === asOfLocalDate && row.status !== 'complete') plannedExclusionReason = 'DUE_NOT_REACHED';
       else if (!row.createdAt || !Number.isFinite(createdTime)) plannedExclusionReason = 'MISSING_CREATED_TIMESTAMP';
       else if (createdTime >= end) plannedExclusionReason = 'CREATED_AFTER_WEEK';
 

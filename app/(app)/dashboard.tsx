@@ -29,7 +29,10 @@ import { GoalRingGrid } from '@/features/goals/components/GoalRingGrid';
 import { GoalCard } from '@/features/goals/components/GoalCard';
 import { GoalEchoAnalysisCard } from '@/features/goals/components/GoalEchoAnalysisCard';
 import { MomentumTrendChart } from '@/features/momentum/components/MomentumTrendChart';
-import { useMomentumHomeSummary } from '@/features/momentum/hooks/useMomentumHomeSummary';
+import {
+  refreshMomentumAfterMeaningfulMutation,
+  useMomentumHomeSummary,
+} from '@/features/momentum/hooks/useMomentumHomeSummary';
 import type { MomentumHomeSummary } from '@/features/momentum/types';
 import { ProjectGoalRow } from '@/features/goals/components/ProjectGoalRow';
 import { GoalTitleRow } from '@/features/goals/components/GoalTitleRow';
@@ -406,7 +409,9 @@ function MomentumCard({
                 borderRadius: RADIUS.md, height: 44, justifyContent: 'center', paddingHorizontal: SPACE.lg,
               }}>
                 <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
-                  <Typography variant="caption" style={{ color: colors.text.primary }}>This Week</Typography>
+                  <Typography variant="caption" style={{ color: colors.text.primary }}>
+                    {summary?.periodState === 'provisional' ? 'This week · provisional' : 'This week'}
+                  </Typography>
                   <Ionicons color={colors.text.secondary} name="chevron-down" size={13} />
                 </View>
               </View>
@@ -832,6 +837,7 @@ function DueTodayZone() {
           m.id === item.id ? { ...m, lastCompletedAt: new Date().toISOString() } : m,
         ),
       );
+      void refreshMomentumAfterMeaningfulMutation();
     } catch {
       // Fail silently — row stays unchecked
     } finally {
@@ -977,6 +983,7 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
         body: JSON.stringify({ status }),
       });
       if (!res.ok) throw new Error('Failed to update action');
+      if (status === 'complete') void refreshMomentumAfterMeaningfulMutation();
     } catch (err) {
       setOptimisticAction(current);
       setMutationError(err instanceof Error ? err.message : 'Failed to update');

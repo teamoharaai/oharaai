@@ -3,6 +3,9 @@
 ## [Unreleased]
 
 ### Added
+- Added **Momentum Version 1.1** with deterministic live current-week Goal and OHARA provisional scores, explicit provisional/closed period metadata, stable closed baselines, preserved paused scores, current-week due-boundary handling, cross-version tests, and `docs/MOMENTUM_V1_1_IMPLEMENTATION.md` in `features/momentum/`, the Momentum APIs, and Migration 043.
+- Updated the guarded loopback integration and authenticated API smoke assertions for V1.1 provisional responses and immutable single-close behavior in `scripts/momentum-local.integration.mjs` and `scripts/momentum-api.smoke.mjs`.
+- Clarified `features/momentum/legacy-phase1.ts` so the historical `momentum-v1.0` replay implementation cannot be mistaken for the current V1.1 production path.
 - Completed **OHARA Notes Version 1.0** with contextual inline Goal/Intelligence reference menus, panel-level jump/open/remove actions, keyboard-focusable anchors, an explicit document-sheet layout, and `docs/NOTES_V1_IMPLEMENTATION.md`.
 - Added the temporary config-driven internal “What’s New” login modal at the root auth lifecycle, with a single `SHOW_INTERNAL_RELEASE_NOTES` flag, session-scoped SIGNED_IN/SIGNED_OUT behavior, focus containment/restoration, Escape/backdrop/X dismissal, and focused auth lifecycle tests.
 - Rebuilt Notes V1 on a ProseMirror/Tiptap 2 document model with conventional H1/H2/H3, bold, italic, underline, strikethrough, bullet/numbered/task lists, block alignment, links, undo/redo, private image nodes, stable node IDs, lightweight Goal references, live embedded Goal cards, and selection-based OHARA Intelligence anchors in `features/entries/components/`, `features/entries/editor-document.ts`, `features/entries/types.ts`, and `global.css`.
@@ -15,6 +18,8 @@
 - Expanded the authenticated loopback API smoke to cover both overall and owner-scoped Goal Momentum endpoints, missing-Goal non-disclosure, and unauthorized access rejection.
 
 ### Changed
+- Updated Home, full Momentum, Goal Momentum, and Goal Analytics surfaces to label the current local week as provisional; successful tracker, action, milestone, Notes progress-anchor, Goal-progress, and qualified goal-linked Reflection writes now request one best-effort shared Momentum refresh without coupling domain-write success to recalculation success.
+- Updated the temporary internal What's New content for Momentum Version 1.1 and retained the existing Notes Version 1.0 and Momentum beta release history.
 - Refined the Notes writing workspace to a 960px document sheet with approximately 740px maximum reading width, responsive 80–110px desktop/40–64px tablet/18–28px mobile page padding, a restrained page border/shadow, sticky separated toolbar, 17px long-form body typography, and explicit light/dark semantic tokens.
 - Expanded Goal Reference management with Open Goal, Change Goal, progress-evidence settings, and source-preserving removal; expanded OHARA Intelligence Reference management with open, question/context edit, and source-preserving removal from both inline anchors and the panel.
 - Replaced the deprecated `document.execCommand`/single-HTML-blob web implementation with centralized Tiptap commands and active selection state; legacy V1 block/HTML notes remain readable and upgrade in place only after an editor change, while note-level Goal links remain separate from inline references.
@@ -27,6 +32,9 @@
 - Updated the trusted Momentum service to normalize owner-scoped Goals, actions, milestones, trackers, tracker logs, and goal-linked reflections into stable local-week evidence; raw reflection text stays inside the qualification boundary and is not returned or persisted in V1 diagnostic payloads.
 
 ### Fixed
+- Fixed inactivity being presented as unavailable by retaining established Goal/OHARA scores with `paused`, reserving `building` for users without a baseline and `unavailable` for technical failures.
+- Fixed qualified Reflection occurrence normalization so a completion uses `completed_at` and ordinary later editor autosaves do not move old evidence into the current week.
+- Fixed the V1.0-to-V1.1 closed-week transition in `supabase/migrations/043_momentum_v1_1_cross_version_baseline.sql` so trusted publishers validate against the latest earlier immutable snapshot across algorithm versions without rewriting V1.0 history.
 - Restored visible bullet and numbered markers after Tailwind Preflight’s global `list-style: none` reset, including explicit theme-aware marker colors, indentation, and nested marker styles.
 - Replaced browser-dependent task checkbox appearance with an explicit accessible unchecked outline, restrained checked state/checkmark, focus state, and checked-text treatment in both themes.
 - Preserved checked document items, Goals, immutable progress events, and historical Momentum state when a Goal Reference is removed; the disposable Migration 042 harness now proves current evidence is removed without rewriting history.

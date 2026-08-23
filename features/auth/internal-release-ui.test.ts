@@ -15,8 +15,8 @@ const modal = readFileSync(
 
 test('keeps the internal release concise, versioned, and controlled by one flag', () => {
   assert.equal(SHOW_INTERNAL_RELEASE_NOTES, true);
-  assert.equal(INTERNAL_RELEASE_NOTES.version, 'OHARA Notes Version 1.0');
-  assert.equal(INTERNAL_RELEASE_NOTES.sections.flatMap((section) => section.updates).length, 5);
+  assert.equal(INTERNAL_RELEASE_NOTES.version, 'OHARA Momentum Version 1.1');
+  assert.equal(INTERNAL_RELEASE_NOTES.sections.flatMap((section) => section.updates).length, 8);
   assert.match(rootLayout, /SHOW_INTERNAL_RELEASE_NOTES/);
   assert.equal((rootLayout.match(/<InternalReleaseNotesModal/g) ?? []).length, 1);
 });

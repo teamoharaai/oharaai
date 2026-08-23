@@ -1,7 +1,7 @@
 /**
  * Historical Phase 1 calculation retained only to reproduce snapshots written
  * with algorithm_version = momentum-v1.0. Production V1 calculation paths must
- * use goal-momentum-v1.0 and ohara-momentum-v1.0 from engine.ts.
+ * use the current goal-momentum and ohara-momentum versions from engine.ts.
  */
 export const LEGACY_PHASE1_CONFIG = Object.freeze({
   version: 'momentum-v1.0',

@@ -245,7 +245,7 @@ export function calculateGoalMomentum(input: GoalMomentumCalculationInput): Goal
       previousValue: previous,
       rawScore: currentValue,
       reasonCodes: ['NO_ELIGIBLE_ACTIVITY'],
-      status: 'paused',
+      status: previous === null ? 'building' : 'paused',
       weeklyChange: 0,
     };
   }
@@ -379,7 +379,7 @@ export function calculateOharaMomentum(input: OharaMomentumCalculationInput): Oh
       previousValue: previous,
       rawScore: currentValue,
       reasonCodes: ['NO_ELIGIBLE_ACTIVITY'],
-      status: 'paused',
+      status: previous === null ? 'building' : 'paused',
       weeklyChange: 0,
     };
   }

@@ -1151,6 +1151,11 @@ function GoalAnalyticsCard({ goal, items, entries }: { goal: GoalWithDetails; it
             <Typography variant="caption" style={{ marginTop: SPACE.xs }}>
               {goalMomentum ? `${goalMomentum.status.charAt(0).toUpperCase()}${goalMomentum.status.slice(1)}` : momentum.isLoading ? 'Calculating…' : 'Unavailable'}
             </Typography>
+            {goalMomentum ? (
+              <Typography variant="caption" style={{ marginTop: SPACE.xs }}>
+                This week · {goalMomentum.periodState}
+              </Typography>
+            ) : null}
           </View>
           <Typography variant="heading" style={{ color: accent.color }}>
             {goalMomentum?.displayedValue ?? '—'} / 100
@@ -1167,7 +1172,7 @@ function GoalAnalyticsCard({ goal, items, entries }: { goal: GoalWithDetails; it
           </View>
         ) : null}
         <Typography variant="caption" style={{ marginTop: SPACE.md }}>
-          {goalMomentum?.reasons[0]?.message ?? momentum.error ?? 'Authoritative V1 history will appear after calculation.'}
+          {goalMomentum?.reasons[0]?.message ?? momentum.error ?? 'Momentum V1.1 history will appear after calculation.'}
         </Typography>
       </View>
     </Surface>

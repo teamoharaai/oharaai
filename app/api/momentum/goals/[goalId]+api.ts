@@ -1,7 +1,7 @@
 import { withAuth, type AuthContext } from '@/lib/api/auth';
 import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 import { createServiceRoleClient } from '@/lib/db/service-client';
-import { getMomentumV1Summary, safeGoalDiagnostic } from '@/features/momentum/services/momentum-service';
+import { getMomentumV11Summary, safeGoalDiagnostic } from '@/features/momentum/services/momentum-service';
 
 export async function GET(request: Request, params: Record<string, string>): Promise<Response> {
   if (!isDatabaseConfigured) {
@@ -20,7 +20,7 @@ async function handleGet(
   try {
     const readDb = createAuthedClient(auth.accessToken);
     const writeDb = createServiceRoleClient();
-    const result = await getMomentumV1Summary(readDb, writeDb, auth.userId);
+    const result = await getMomentumV11Summary(readDb, writeDb, auth.userId);
     const goal = result.summary.goals.find((candidate) => candidate.goalId === goalId);
     if (!goal) return Response.json({ error: 'Goal not found' }, { status: 404 });
     const diagnosticsRequested = new URL(request.url).searchParams.get('diagnostics') === '1';
@@ -34,7 +34,7 @@ async function handleGet(
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Goal Momentum calculation failed';
     console.error('[momentum] authoritative Goal Momentum calculation failed', {
-      algorithmVersion: 'goal-momentum-v1.0',
+      algorithmVersion: 'goal-momentum-v1.1',
       error: message,
       goalId,
       userId: auth.userId,

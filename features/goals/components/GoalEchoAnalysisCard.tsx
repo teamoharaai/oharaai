@@ -53,7 +53,7 @@ export function GoalEchoAnalysisCard({
   const explanation = summary?.reasons[0]?.message
     ?? (momentum.isLoading
       ? 'Calculating from your goal’s authoritative activity…'
-      : momentum.error ?? 'Momentum will appear when the V1 calculation is available.');
+      : momentum.error ?? 'Momentum will appear when the V1.1 calculation is available.');
   const navigation = goalId && navigationAction ? (
     <Pressable
       accessibilityRole="link"
@@ -94,6 +94,7 @@ export function GoalEchoAnalysisCard({
           <View style={{ width: rowStacked ? '100%' : '16%' }}>
             <Typography variant="caption" style={{ color: colors.text.muted }}>Goal Momentum</Typography>
             <Typography variant="title" style={{ color: colors.text.primary, marginTop: 3 }}>{statusLabel(summary?.status)}</Typography>
+            {summary ? <Typography variant="caption">This week · {summary.periodState}</Typography> : null}
           </View>
           <View style={{ width: rowStacked ? '100%' : '17%' }}>
             <Typography variant="heading" style={{ color: accentColor, fontSize: 24 }}>{summary?.displayedValue ?? '—'}%</Typography>
@@ -119,11 +120,12 @@ export function GoalEchoAnalysisCard({
           <Ionicons color={accentColor} name="pulse-outline" size={16} />
           <Typography variant="eyebrow" style={{ color: accentColor }}>Goal Momentum</Typography>
         </View>
-        <Typography variant="badge-text" style={{ color: accentColor }}>{summary?.algorithmVersion ?? 'V1 unavailable'}</Typography>
+        <Typography variant="badge-text" style={{ color: accentColor }}>{summary?.algorithmVersion ?? 'V1.1 unavailable'}</Typography>
       </View>
       <View style={{ alignItems: 'flex-end', flexDirection: 'row', gap: 10, justifyContent: 'space-between', marginTop: 13 }}>
         <View style={{ flex: 1, minWidth: 180 }}>
           <Typography variant="caption" style={{ color: colors.text.muted }}>{statusLabel(summary?.status)}</Typography>
+          {summary ? <Typography variant="caption" style={{ color: colors.text.muted }}>This week · {summary.periodState}</Typography> : null}
           <Typography variant="title" style={{ color: colors.text.primary, marginTop: 2 }}>{summary?.displayedValue ?? '—'} / 100</Typography>
         </View>
         {summary && summary.history.length ? (

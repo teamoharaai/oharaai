@@ -119,6 +119,55 @@ begin
 end;
 $$;
 
+-- V1.1 must continue from the latest closed V1.0 baseline without rewriting it.
+select public.publish_goal_momentum_v1_snapshot(
+  '10000000-0000-0000-0000-000000000001',
+  '20000000-0000-0000-0000-000000000001',
+  '2026-08-03', '2026-08-09', 'America/New_York',
+  72.5, 76, 76, 'active',
+  '{"consistency":82,"progress":76,"reflection":65,"initiative":78}',
+  '{"consistency":{},"progress":{},"reflection":{},"initiative":{}}',
+  '{"consistency":0.3,"progress":0.3,"reflection":0.2,"initiative":0.2}',
+  '{"meaningfulMovement":true}', '[]', '["PACE_ON_TRACK"]',
+  'goal-momentum-v1.1', repeat('e', 64), 'plan-revision-1',
+  'health_fitness', 'frequency_routine',
+  '{"effort":50,"duration":50,"frequency":50,"complexity":50,"magnitude":50,"externalDependency":0}',
+  '{"effort":0.25,"duration":0.2,"frequency":0.15,"complexity":0.15,"magnitude":0.15,"externalDependency":0.1}',
+  45, 'D2', '{"goalId":"20000000-0000-0000-0000-000000000001"}',
+  'difficulty-v1.0', 'momentum-categories-v1.0'
+);
+
+select public.publish_ohara_momentum_v1_snapshot(
+  '10000000-0000-0000-0000-000000000001',
+  '2026-08-03', '2026-08-09', 'America/New_York',
+  68, 70, 70, 'active',
+  '{"portfolioProgress":74,"milestoneVelocity":68,"growthCadence":72,"sustainedGrowth":62,"portfolioCoverage":100}',
+  '{"portfolioProgress":0.5,"milestoneVelocity":0.2,"growthCadence":0.15,"sustainedGrowth":0.1,"portfolioCoverage":0.05}',
+  '{"eligibleGoals":1}', '[]', '["PORTFOLIO_PROGRESS_STRONG"]',
+  'ohara-momentum-v1.1', repeat('f', 64), '[]', 'ohara-momentum-v1.1'
+);
+
+do $$
+begin
+  if (select count(*) from public.goal_momentum_weekly_snapshots
+      where algorithm_version = 'goal-momentum-v1.0') <> 1 then
+    raise exception 'V1.1 Goal publication rewrote V1.0 history';
+  end if;
+  if (select count(*) from public.goal_momentum_weekly_snapshots
+      where algorithm_version = 'goal-momentum-v1.1' and previous_value = 72.5) <> 1 then
+    raise exception 'V1.1 Goal publication did not accept the V1.0 closed baseline';
+  end if;
+  if (select count(*) from public.momentum_weekly_snapshots
+      where algorithm_version = 'ohara-momentum-v1.0') <> 1 then
+    raise exception 'V1.1 OHARA publication rewrote V1.0 history';
+  end if;
+  if (select count(*) from public.momentum_weekly_snapshots
+      where algorithm_version = 'ohara-momentum-v1.1' and previous_value = 68) <> 1 then
+    raise exception 'V1.1 OHARA publication did not accept the V1.0 closed baseline';
+  end if;
+end;
+$$;
+
 -- A late canonical input creates an immutable superseding revision.
 select public.publish_momentum_snapshot(
   '10000000-0000-0000-0000-000000000001',
@@ -228,7 +277,7 @@ $$;
 -- User A can read only A's rows.
 do $$
 begin
-  if (select count(*) from public.momentum_weekly_snapshots) <> 3 then
+  if (select count(*) from public.momentum_weekly_snapshots) <> 4 then
     raise exception 'Owner cannot read own Momentum revisions';
   end if;
 end;

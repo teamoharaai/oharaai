@@ -49,3 +49,24 @@ test('planned eligibility requires the same owner, scoreable goal, and due-date 
     'OWNER_MISMATCH',
   ]);
 });
+
+test('current-week commitments are not missed before their local due date', () => {
+  const rows = normalizeActionRecords([
+    row({ dueDate: '2026-08-07', status: 'pending', completedAt: null }),
+    row({ id: 'due-today', dueDate: '2026-08-05', status: 'pending', completedAt: null }),
+  ], boundary, '30000000-0000-0000-0000-000000000001', '2026-08-05', false);
+  assert.equal(rows[0].plannedEligibility, 'excluded');
+  assert.equal(rows[0].plannedExclusionReason, 'DUE_NOT_REACHED');
+  assert.equal(rows[1].plannedEligibility, 'excluded');
+  assert.equal(rows[1].plannedExclusionReason, 'DUE_NOT_REACHED');
+
+  const afterDue = normalizeActionRecords([
+    row({ dueDate: '2026-08-05', status: 'pending', completedAt: null }),
+  ], boundary, '30000000-0000-0000-0000-000000000001', '2026-08-06');
+  assert.equal(afterDue[0].plannedEligibility, 'included');
+
+  const completedToday = normalizeActionRecords([
+    row({ dueDate: '2026-08-05' }),
+  ], boundary, '30000000-0000-0000-0000-000000000001', '2026-08-05', false);
+  assert.equal(completedToday[0].plannedEligibility, 'included');
+});

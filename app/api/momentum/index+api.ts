@@ -32,7 +32,7 @@ async function handleGet(request: Request, _params: Record<string, string>, auth
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Momentum calculation failed';
     console.error('[momentum] authoritative calculation failed', {
-      algorithmVersion: 'ohara-momentum-v1.0',
+      algorithmVersion: 'ohara-momentum-v1.1',
       error: message,
       userId: auth.userId,
     });

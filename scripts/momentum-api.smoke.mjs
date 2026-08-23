@@ -22,7 +22,8 @@ const response = await fetch(`${webOrigin}/api/momentum?diagnostics=1&score=99&h
 });
 assert.equal(response.status, 200);
 const payload = await response.json();
-assert.equal(payload.data.algorithmVersion, 'ohara-momentum-v1.0');
+assert.equal(payload.data.algorithmVersion, 'ohara-momentum-v1.1');
+assert.equal(payload.data.periodState, 'provisional');
 assert.equal(payload.data.tasksCompletedThisWeek, 1);
 assert.equal(payload.data.weeklyStreak, 3);
 assert.ok(payload.data.diagnostic.calculationHash);
@@ -36,9 +37,10 @@ const goalResponse = await fetch(
 );
 assert.equal(goalResponse.status, 200);
 const goalPayload = await goalResponse.json();
-assert.equal(goalPayload.data.algorithmVersion, 'goal-momentum-v1.0');
+assert.equal(goalPayload.data.algorithmVersion, 'goal-momentum-v1.1');
+assert.equal(goalPayload.data.periodState, 'provisional');
 assert.equal(goalPayload.data.goalId, payload.data.goals[0].goalId);
-assert.equal(goalPayload.data.diagnostic.result.algorithmVersion, 'goal-momentum-v1.0');
+assert.equal(goalPayload.data.diagnostic.result.algorithmVersion, 'goal-momentum-v1.1');
 
 const missingGoal = await fetch(
   `${webOrigin}/api/momentum/goals/00000000-0000-0000-0000-000000000000`,

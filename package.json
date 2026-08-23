@@ -16,7 +16,7 @@
     "test:entries": "node --experimental-strip-types --test features/entries/utils.test.ts features/entries/editor-document.test.ts features/entries/editor-ui.test.ts features/entries/security.test.ts",
     "test:entries:db": "bash scripts/test-notes-editor-security.sh",
     "test:auth": "node --experimental-strip-types --test features/auth/internal-release.test.ts features/auth/internal-release-ui.test.ts",
-    "test:momentum": "node --experimental-strip-types --test features/momentum/engine.test.ts features/momentum/time.test.ts features/momentum/normalization.test.ts features/momentum/service.test.ts features/momentum/security.test.ts features/momentum/trust-boundary.test.ts features/momentum/local-target.test.ts",
+    "test:momentum": "node --experimental-strip-types --test features/momentum/engine.test.ts features/momentum/time.test.ts features/momentum/normalization.test.ts features/momentum/service.test.ts features/momentum/security.test.ts features/momentum/trust-boundary.test.ts features/momentum/refresh.test.ts features/momentum/local-target.test.ts",
     "test:momentum:db": "bash scripts/test-momentum-security.sh",
     "test:momentum:local": "node --experimental-strip-types scripts/momentum-local.integration.mjs",
     "test:momentum:api": "node scripts/momentum-api.smoke.mjs",

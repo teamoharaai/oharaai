@@ -5,8 +5,8 @@ import type {
   OharaMomentumComponent,
 } from './types.ts';
 
-export const GOAL_MOMENTUM_VERSION = 'goal-momentum-v1.0' as const;
-export const OHARA_MOMENTUM_VERSION = 'ohara-momentum-v1.0' as const;
+export const GOAL_MOMENTUM_VERSION = 'goal-momentum-v1.1' as const;
+export const OHARA_MOMENTUM_VERSION = 'ohara-momentum-v1.1' as const;
 export const GOAL_DIFFICULTY_VERSION = 'difficulty-v1.0' as const;
 export const MOMENTUM_CATEGORY_CONFIG_VERSION = 'momentum-categories-v1.0' as const;
 

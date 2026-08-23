@@ -36,6 +36,7 @@ export type OharaMomentumComponent = (typeof OHARA_MOMENTUM_COMPONENTS)[number];
 export type GoalMomentumCategory = (typeof GOAL_MOMENTUM_CATEGORIES)[number];
 export type GoalMomentumMode = (typeof GOAL_MOMENTUM_MODES)[number];
 export type MomentumScoreStatus = 'building' | 'active' | 'paused' | 'limited' | 'unavailable';
+export type MomentumPeriodState = 'provisional' | 'closed';
 
 export type MomentumReasonCode =
   | 'CONSISTENCY_ON_TRACK'
@@ -245,7 +246,11 @@ export interface MomentumWeeklyAggregates {
 }
 
 export interface GoalMomentumDiagnostic {
+  asOf: string;
+  baselineScore: number | null;
+  baselineSnapshotId: string | null;
   boundary: MomentumWeekBoundary;
+  calculationScope: MomentumPeriodState;
   calculationHash: string;
   difficultyProfile: GoalDifficultySnapshot;
   excludedEvents: MomentumEvent[];
@@ -255,7 +260,11 @@ export interface GoalMomentumDiagnostic {
 }
 
 export interface OharaMomentumDiagnostic {
+  asOf: string;
+  baselineScore: number | null;
+  baselineSnapshotId: string | null;
   boundary: MomentumWeekBoundary;
+  calculationScope: MomentumPeriodState;
   calculationHash: string;
   normalizedInput: OharaMomentumCalculationInput;
   result: OharaMomentumResult;
@@ -269,6 +278,7 @@ export interface MomentumReason {
 
 export interface MomentumHistoryPoint {
   algorithmVersion: string;
+  periodState: MomentumPeriodState;
   periodEnd: string;
   periodStart: string;
   previousValue: number;
@@ -278,24 +288,30 @@ export interface MomentumHistoryPoint {
 
 export interface GoalMomentumSummary {
   algorithmVersion: string;
+  asOf: string;
   currentValue: number;
   difficulty: Pick<GoalDifficultySnapshot, 'band' | 'compositeScore' | 'version'>;
   displayedValue: number;
   goalId: string;
   history: MomentumHistoryPoint[];
+  periodState: MomentumPeriodState;
   pillars: Record<GoalMomentumPillar, number>;
   reasons: MomentumReason[];
   status: Exclude<MomentumScoreStatus, 'unavailable'>;
+  weekEnd: string;
+  weekStart: string;
   weeklyChange: number;
 }
 
 export interface MomentumHomeSummary {
   algorithmVersion: string;
+  asOf: string;
   components: Record<OharaMomentumComponent, number | null>;
   currentValue: number | null;
   displayedValue: number | null;
   goals: GoalMomentumSummary[];
   history: MomentumHistoryPoint[];
+  periodState: MomentumPeriodState;
   reasons: MomentumReason[];
   status: MomentumScoreStatus;
   tasksCompletedThisWeek: number;

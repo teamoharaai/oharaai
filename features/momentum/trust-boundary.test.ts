@@ -16,9 +16,10 @@ test('authenticated requests supply identity only and trusted services derive bo
     assert.doesNotMatch(route, /searchParams\.get\(['"](?:score|hash|reason|userId)/);
   }
   assert.match(api, /getMomentumHomeSummary\(readDb, writeDb, auth\.userId\)/);
-  assert.match(goalApi, /getMomentumV1Summary\(readDb, writeDb, auth\.userId\)/);
+  assert.match(goalApi, /getMomentumV11Summary\(readDb, writeDb, auth\.userId\)/);
   assert.match(service, /calculateGoalMomentum\(normalizedInput\)/);
-  assert.match(service, /calculateOharaMomentum\(oharaInput\)/);
+  assert.match(service, /calculateOharaMomentum\(normalizedInput\)/);
+  assert.match(service, /calculationScope: 'provisional'/);
   assert.match(service, /calculationHash\(/);
   assert.match(service, /p_user_id: userId/);
   assert.match(service, /p_reason_codes: result\.reasonCodes/);

@@ -71,6 +71,7 @@ type TrackerRow = {
   type: string;
 };
 type TrackerLogRow = { id: string; loggedAt: string; trackerId: string; value: number };
+type GoalProgressEventRow = { goalId: string; id: string; occurredAt: string };
 type ReflectionRow = {
   completedAt: string | null;
   goalId: string;
@@ -82,6 +83,7 @@ type ReflectionRow = {
 type GoalSnapshotRow = {
   algorithm_version: string;
   calculation_hash: string;
+  created_at?: string;
   current_value: number | string;
   goal_id: string;
   id: string;
@@ -94,6 +96,8 @@ type GoalSnapshotRow = {
 type OharaSnapshotRow = {
   algorithm_version: string;
   calculation_hash?: string;
+  created_at?: string;
+  id?: string;
   next_value: number | string;
   previous_value: number | string;
   revision: number;
@@ -220,6 +224,7 @@ async function fetchGoalSourceData(
 ): Promise<{
   actions: ActionRow[];
   goals: GoalRow[];
+  goalProgressEvents: GoalProgressEventRow[];
   milestones: MilestoneRow[];
   reflections: ReflectionRow[];
   trackerLogs: TrackerLogRow[];
@@ -233,9 +238,17 @@ async function fetchGoalSourceData(
   const goalIds = goals.map((goal) => goal.id);
   const actionsPromise = fetchActionRows(db, userId, boundary);
   if (!goalIds.length) {
-    return { actions: await actionsPromise, goals, milestones: [], reflections: [], trackerLogs: [], trackers: [] };
+    return {
+      actions: await actionsPromise,
+      goalProgressEvents: [],
+      goals,
+      milestones: [],
+      reflections: [],
+      trackerLogs: [],
+      trackers: [],
+    };
   }
-  const [actions, milestoneResult, trackerResult, reflectionResult] = await Promise.all([
+  const [actions, milestoneResult, trackerResult, reflectionResult, progressEventResult] = await Promise.all([
     actionsPromise,
     db.from('milestones').select('id, goal_id, due_date, completed_at, created_at')
       .eq('user_id', userId).in('goal_id', goalIds),
@@ -245,8 +258,11 @@ async function fetchGoalSourceData(
       .select('goal_id, entries!inner(id, user_id, entry_type, reflection_type, plain_text, completed_at, created_at, updated_at, archived)')
       .in('goal_id', goalIds).eq('entries.user_id', userId)
       .eq('entries.entry_type', 'reflection').eq('entries.archived', false),
+    db.from('entry_goal_progress_events').select('id, goal_id, occurred_at')
+      .eq('owner_id', userId).in('goal_id', goalIds)
+      .gte('occurred_at', boundary.startInclusive).lt('occurred_at', boundary.endExclusive),
   ]);
-  const sourceError = milestoneResult.error ?? trackerResult.error ?? reflectionResult.error;
+  const sourceError = milestoneResult.error ?? trackerResult.error ?? reflectionResult.error ?? progressEventResult.error;
   if (sourceError) throw new Error(`Momentum goal evidence read failed: ${sourceError.message}`);
   const trackers = (trackerResult.data ?? []).map((row) => {
     const value = row as Record<string, unknown>;
@@ -283,6 +299,14 @@ async function fetchGoalSourceData(
       value: numberOrNull(value.value) ?? 0,
     } satisfies TrackerLogRow;
   });
+  const goalProgressEvents = (progressEventResult.data ?? []).map((row) => {
+    const value = row as Record<string, unknown>;
+    return {
+      goalId: String(value.goal_id),
+      id: String(value.id),
+      occurredAt: String(value.occurred_at),
+    } satisfies GoalProgressEventRow;
+  });
   const reflections = (reflectionResult.data ?? []).flatMap((row) => {
     const link = row as Record<string, unknown>;
     const nested = Array.isArray(link.entries) ? link.entries[0] : link.entries;
@@ -292,12 +316,12 @@ async function fetchGoalSourceData(
       completedAt: typeof entry.completed_at === 'string' ? entry.completed_at : null,
       goalId: String(link.goal_id),
       id: String(entry.id),
-      occurredAt: String(entry.updated_at ?? entry.created_at),
+      occurredAt: String(entry.completed_at ?? entry.created_at),
       plainText: typeof entry.plain_text === 'string' ? entry.plain_text : '',
       reflectionType: typeof entry.reflection_type === 'string' ? entry.reflection_type : null,
     } satisfies ReflectionRow];
   });
-  return { actions, goals, milestones, reflections, trackerLogs, trackers };
+  return { actions, goalProgressEvents, goals, milestones, reflections, trackerLogs, trackers };
 }
 
 function targetFrequencyPerWeek(value: Record<string, unknown> | null): number | null {
@@ -343,6 +367,7 @@ function normalizedGoalEvents(
   trackers: readonly TrackerRow[],
   logs: readonly TrackerLogRow[],
   reflections: readonly ReflectionRow[],
+  progressEvents: readonly GoalProgressEventRow[],
 ): MomentumEvent[] {
   const category = normalizeMomentumCategory(goal.category);
   const normalizedActions = normalizeActionRecords(actions, boundary, goal.user_id);
@@ -380,6 +405,17 @@ function normalizedGoalEvents(
       sourceEntityId: reflection.id, userId: goal.user_id,
     };
   });
+  const progressEvidenceEvents = progressEvents.map((event) => ({
+    category,
+    deduplicationKey: `goal.progress_updated:${event.id}`,
+    eligibility: 'included' as const,
+    eventType: 'goal.progress_updated' as const,
+    exclusionReason: null,
+    goalId: goal.id,
+    occurredAt: event.occurredAt,
+    sourceEntityId: event.id,
+    userId: goal.user_id,
+  }));
   const nextStepEvents = normalizedActions.filter((action) => (
     action.createdAt && inBoundary(action.createdAt, boundary) && action.plannedEligibility === 'included'
   )).map((action) => ({
@@ -388,7 +424,7 @@ function normalizedGoalEvents(
     exclusionReason: null, goalId: goal.id, occurredAt: action.createdAt!,
     sourceEntityId: action.id, userId: goal.user_id,
   }));
-  return [...actionEvents, ...milestoneEvents, ...logEvents, ...reflectionEvents, ...nextStepEvents]
+  return [...actionEvents, ...milestoneEvents, ...logEvents, ...reflectionEvents, ...progressEvidenceEvents, ...nextStepEvents]
     .sort((left, right) => left.deduplicationKey.localeCompare(right.deduplicationKey));
 }
 
@@ -397,6 +433,9 @@ async function buildGoalDiagnostic(
   source: Awaited<ReturnType<typeof fetchGoalSourceData>>,
   boundary: MomentumWeekBoundary,
   previousValue: number | null,
+  asOf: Date,
+  calculationScope: 'provisional' | 'closed',
+  baselineSnapshotId: string | null,
 ): Promise<GoalMomentumDiagnostic> {
   const actions = source.actions.filter((row) => row.goalId === goal.id);
   const milestones = source.milestones.filter((row) => row.goalId === goal.id);
@@ -404,7 +443,17 @@ async function buildGoalDiagnostic(
   const trackerIds = new Set(trackers.map((tracker) => tracker.id));
   const logs = source.trackerLogs.filter((row) => trackerIds.has(row.trackerId));
   const reflections = source.reflections.filter((row) => row.goalId === goal.id);
-  const normalizedActions = normalizeActionRecords(actions, boundary, goal.user_id);
+  const progressEvents = source.goalProgressEvents.filter((row) => row.goalId === goal.id);
+  const asOfLocalDate = calculationScope === 'closed'
+    ? boundary.weekEnd
+    : localDateForInstant(asOf.toISOString(), boundary.timezone);
+  const normalizedActions = normalizeActionRecords(
+    actions,
+    boundary,
+    goal.user_id,
+    asOfLocalDate,
+    calculationScope === 'closed',
+  );
   const dueActions = normalizedActions.filter((action) => action.plannedEligibility === 'included');
   const completedDueActions = dueActions.filter((action) => action.completionEligibility === 'included');
   const completedActions = normalizedActions.filter((action) => action.completionEligibility === 'included');
@@ -418,7 +467,9 @@ async function buildGoalDiagnostic(
         : trackers.some((tracker) => tracker.frequency === 'monthly') ? 1 / 4.345 : null);
   const cadenceExpected = dueActions.length ? 0 : Math.ceil(frequency ?? 0);
   const routineCompletions = cadenceExpected ? Math.min(logs.length, cadenceExpected) : 0;
-  const dueMilestones = milestones.filter((milestone) => dateInBoundary(milestone.dueDate, boundary));
+  const dueMilestones = milestones.filter((milestone) => dateInBoundary(milestone.dueDate, boundary) && (
+    calculationScope === 'closed' ? milestone.dueDate! <= asOfLocalDate : milestone.dueDate! < asOfLocalDate
+  ));
   const completedMilestones = milestones.filter((milestone) => inBoundary(milestone.completedAt, boundary));
   const numericTrackers = trackers.filter((tracker) => tracker.type === 'counter' && tracker.targetValue !== null);
   const actualProgressDelta = numericTrackers.length
@@ -446,6 +497,7 @@ async function buildGoalDiagnostic(
     ...completedActions.flatMap((action) => action.completedAt ? [localDateForInstant(action.completedAt, boundary.timezone)] : []),
     ...logs.map((log) => localDateForInstant(log.loggedAt, boundary.timezone)),
     ...completedMilestones.flatMap((milestone) => milestone.completedAt ? [localDateForInstant(milestone.completedAt, boundary.timezone)] : []),
+    ...progressEvents.map((event) => localDateForInstant(event.occurredAt, boundary.timezone)),
   ]).size;
   const goalMode = modeForGoal(goal, trackers, milestones);
   const planRevisionKey = await calculationHash({
@@ -468,7 +520,7 @@ async function buildGoalDiagnostic(
     magnitudeScore: smartNumber(goal.smart_data, 'magnitudeScore', 'magnitude_score'),
     planRevisionKey,
   });
-  const completedProgressEvidence = completedActions.length + logs.length + completedMilestones.length;
+  const completedProgressEvidence = completedActions.length + logs.length + completedMilestones.length + progressEvents.length;
   const expectedProgressEvidence = dueCommitmentUnits + dueMilestones.length;
   const normalizedInput: GoalMomentumCalculationInput = {
     consistency: {
@@ -481,7 +533,12 @@ async function buildGoalDiagnostic(
     difficultyProfile,
     goalId: goal.id,
     goalMode,
-    hasDueCommitments: dueCommitmentUnits > 0 || dueMilestones.length > 0 || dateInBoundary(goal.deadline?.slice(0, 10) ?? null, boundary),
+    hasDueCommitments: dueCommitmentUnits > 0 || dueMilestones.length > 0 || (
+      dateInBoundary(goal.deadline?.slice(0, 10) ?? null, boundary)
+      && (calculationScope === 'closed'
+        ? goal.deadline!.slice(0, 10) <= asOfLocalDate
+        : goal.deadline!.slice(0, 10) < asOfLocalDate)
+    ),
     hasEligibleEvidence: completedProgressEvidence > 0 || qualified.length > 0,
     initiative: {
       milestoneStartedCount: milestones.filter((milestone) => inBoundary(milestone.createdAt, boundary)).length,
@@ -510,10 +567,14 @@ async function buildGoalDiagnostic(
     },
   };
   const result = calculateGoalMomentum(normalizedInput);
-  const events = normalizedGoalEvents(goal, boundary, actions, milestones, trackers, logs, reflections);
+  const events = normalizedGoalEvents(goal, boundary, actions, milestones, trackers, logs, reflections, progressEvents);
   const hashInput = { boundary, difficultyProfile, events, normalizedInput, result };
   return {
+    asOf: asOf.toISOString(),
+    baselineScore: previousValue,
+    baselineSnapshotId,
     boundary,
+    calculationScope,
     calculationHash: await calculationHash(hashInput),
     difficultyProfile,
     excludedEvents: events.filter((event) => event.eligibility === 'excluded'),
@@ -579,12 +640,13 @@ function latestHistory<T extends {
 }>(rows: readonly T[], value: (row: T) => number): MomentumHistoryPoint[] {
   const latest = new Map<string, T>();
   for (const row of rows) {
-    const key = `${row.algorithm_version}:${row.week_start}`;
+    const key = row.week_start;
     const prior = latest.get(key);
     if (!prior || row.revision > prior.revision) latest.set(key, row);
   }
   return [...latest.values()].sort((left, right) => left.week_start.localeCompare(right.week_start)).map((row) => ({
     algorithmVersion: row.algorithm_version,
+    periodState: 'closed',
     periodEnd: row.week_end,
     periodStart: row.week_start,
     previousValue: Number(row.previous_value ?? 0),
@@ -600,7 +662,7 @@ export function latestMomentumHistory(rows: readonly OharaSnapshotRow[]): Moment
 async function fetchGoalHistory(db: SupabaseClient, userId: string, goalId: string): Promise<MomentumHistoryPoint[]> {
   const { data, error } = await db.from('goal_momentum_weekly_snapshots')
     .select('week_start, week_end, previous_value, current_value, revision, algorithm_version')
-    .eq('user_id', userId).eq('goal_id', goalId).eq('algorithm_version', GOAL_MOMENTUM_VERSION)
+    .eq('user_id', userId).eq('goal_id', goalId)
     .order('week_start').order('revision', { ascending: false });
   if (error) throw new Error(`Goal Momentum history read failed: ${error.message}`);
   return latestHistory((data ?? []) as GoalSnapshotRow[], (row) => Number(row.current_value));
@@ -609,7 +671,7 @@ async function fetchGoalHistory(db: SupabaseClient, userId: string, goalId: stri
 async function fetchOharaHistory(db: SupabaseClient, userId: string): Promise<MomentumHistoryPoint[]> {
   const { data, error } = await db.from('momentum_weekly_snapshots')
     .select('week_start, week_end, previous_value, next_value, revision, algorithm_version')
-    .eq('user_id', userId).eq('algorithm_version', OHARA_MOMENTUM_VERSION)
+    .eq('user_id', userId).like('algorithm_version', 'ohara-momentum-v%')
     .order('week_start').order('revision', { ascending: false });
   if (error) throw new Error(`OHARA Momentum history read failed: ${error.message}`);
   return latestMomentumHistory((data ?? []) as OharaSnapshotRow[]);
@@ -621,10 +683,10 @@ async function fetchPreviousOharaSnapshot(
   beforeWeek: string,
 ): Promise<OharaSnapshotRow | null> {
   const { data, error } = await db.from('momentum_weekly_snapshots')
-    .select('week_start, week_end, previous_value, next_value, revision, algorithm_version')
-    .eq('user_id', userId).eq('algorithm_version', OHARA_MOMENTUM_VERSION)
+    .select('id, week_start, week_end, previous_value, next_value, revision, algorithm_version, created_at')
+    .eq('user_id', userId).like('algorithm_version', 'ohara-momentum-v%')
     .lt('week_start', beforeWeek).order('week_start', { ascending: false })
-    .order('revision', { ascending: false }).limit(1).maybeSingle();
+    .order('created_at', { ascending: false }).order('revision', { ascending: false }).limit(1).maybeSingle();
   if (error) throw new Error(`OHARA Momentum prior snapshot read failed: ${error.message}`);
   return data as OharaSnapshotRow | null;
 }
@@ -635,9 +697,10 @@ async function fetchTrailingGoalSnapshots(
   beforeWeek: string,
 ): Promise<GoalSnapshotRow[]> {
   const { data, error } = await db.from('goal_momentum_weekly_snapshots')
-    .select('id, goal_id, week_start, week_end, previous_value, current_value, revision, algorithm_version, calculation_hash, raw_aggregates')
-    .eq('user_id', userId).eq('algorithm_version', GOAL_MOMENTUM_VERSION)
-    .lt('week_start', beforeWeek).order('week_start', { ascending: false }).order('revision', { ascending: false }).limit(256);
+    .select('id, goal_id, week_start, week_end, previous_value, current_value, revision, algorithm_version, calculation_hash, raw_aggregates, created_at')
+    .eq('user_id', userId)
+    .lt('week_start', beforeWeek).order('week_start', { ascending: false })
+    .order('created_at', { ascending: false }).order('revision', { ascending: false }).limit(256);
   if (error) throw new Error(`Goal Momentum trailing history read failed: ${error.message}`);
   const latest = new Map<string, GoalSnapshotRow>();
   for (const row of (data ?? []) as GoalSnapshotRow[]) {
@@ -645,6 +708,38 @@ async function fetchTrailingGoalSnapshots(
     if (!latest.has(key)) latest.set(key, row);
   }
   return [...latest.values()];
+}
+
+async function fetchLatestGoalSnapshotsBefore(
+  db: SupabaseClient,
+  userId: string,
+  goalIds: readonly string[],
+  beforeWeek: string,
+): Promise<Map<string, GoalSnapshotRow>> {
+  if (!goalIds.length) return new Map();
+  const { data, error } = await db.from('goal_momentum_weekly_snapshots')
+    .select('id, goal_id, week_start, week_end, previous_value, current_value, revision, algorithm_version, calculation_hash, raw_aggregates, created_at')
+    .eq('user_id', userId).in('goal_id', [...goalIds]).lt('week_start', beforeWeek)
+    .order('week_start', { ascending: false }).order('created_at', { ascending: false })
+    .order('revision', { ascending: false }).limit(Math.max(256, goalIds.length * 16));
+  if (error) throw new Error(`Goal Momentum baseline read failed: ${error.message}`);
+  const latest = new Map<string, GoalSnapshotRow>();
+  for (const row of (data ?? []) as GoalSnapshotRow[]) {
+    if (!latest.has(row.goal_id)) latest.set(row.goal_id, row);
+  }
+  return latest;
+}
+
+async function hasClosedOharaSnapshot(
+  db: SupabaseClient,
+  userId: string,
+  weekStart: string,
+): Promise<boolean> {
+  const { data, error } = await db.from('momentum_weekly_snapshots')
+    .select('id').eq('user_id', userId).eq('week_start', weekStart)
+    .like('algorithm_version', 'ohara-momentum-v%').limit(1);
+  if (error) throw new Error(`OHARA Momentum closed-week read failed: ${error.message}`);
+  return Boolean(data?.length);
 }
 
 function trailingPortfolioInputs(rows: readonly GoalSnapshotRow[]): Pick<OharaMomentumCalculationInput, 'trailingCadence' | 'trailingMovementWeeks'> {
@@ -716,7 +811,101 @@ export function calculateWeeklyStreak(
   return streak;
 }
 
-export async function getMomentumV1Summary(
+function goalEvidenceFor(diagnostics: readonly GoalMomentumDiagnostic[]): OharaGoalEvidence[] {
+  return diagnostics.map((diagnostic) => ({
+    completedMilestoneUnits: diagnostic.normalizedInput.progress.completedMilestoneUnits,
+    dueMilestoneUnits: diagnostic.normalizedInput.progress.dueMilestoneUnits,
+    expectedMovement: diagnostic.normalizedInput.hasDueCommitments,
+    goalId: diagnostic.result.goalId,
+    meaningfulMovement: diagnostic.normalizedInput.progress.completedProgressEvidenceUnits > 0,
+    normalizedProgressEvidence: diagnostic.result.pillars.progress,
+    plannedCommitmentUnits: diagnostic.normalizedInput.consistency.dueCommitmentUnits || null,
+  }));
+}
+
+async function buildOharaDiagnostic(
+  boundary: MomentumWeekBoundary,
+  goalDiagnostics: readonly GoalMomentumDiagnostic[],
+  previousSnapshot: OharaSnapshotRow | null,
+  trailing: readonly GoalSnapshotRow[],
+  asOf: Date,
+  calculationScope: 'provisional' | 'closed',
+  sourceGoalSnapshotIds: readonly string[],
+): Promise<OharaMomentumDiagnostic> {
+  const goalEvidence = goalEvidenceFor(goalDiagnostics);
+  const normalizedInput: OharaMomentumCalculationInput = {
+    goals: goalEvidence,
+    hasDueCommitments: goalEvidence.some((goal) => goal.expectedMovement),
+    hasEligibleEvidence: goalEvidence.some((goal) => goal.meaningfulMovement),
+    previousValue: numberOrNull(previousSnapshot?.next_value),
+    ...trailingPortfolioInputs(trailing),
+  };
+  const result = calculateOharaMomentum(normalizedInput);
+  return {
+    asOf: asOf.toISOString(),
+    baselineScore: normalizedInput.previousValue,
+    baselineSnapshotId: previousSnapshot?.id ?? null,
+    boundary,
+    calculationScope,
+    calculationHash: await calculationHash({
+      algorithmVersion: OHARA_MOMENTUM_VERSION,
+      boundary,
+      calculationScope,
+      normalizedInput,
+      result,
+      sourceGoalSnapshotIds,
+    }),
+    normalizedInput,
+    result,
+    sourceGoalSnapshotIds: [...sourceGoalSnapshotIds],
+  };
+}
+
+async function closeCompletedWeekIfNeeded(
+  readDb: SupabaseClient,
+  writeDb: SupabaseClient,
+  userId: string,
+  boundary: MomentumWeekBoundary,
+): Promise<void> {
+  if (await hasClosedOharaSnapshot(readDb, userId, boundary.weekStart)) return;
+
+  const source = await fetchGoalSourceData(readDb, userId, boundary);
+  const goalIds = source.goals.map((goal) => goal.id);
+  const [goalBaselines, previousOhara, trailing] = await Promise.all([
+    fetchLatestGoalSnapshotsBefore(readDb, userId, goalIds, boundary.weekStart),
+    fetchPreviousOharaSnapshot(readDb, userId, boundary.weekStart),
+    fetchTrailingGoalSnapshots(readDb, userId, boundary.weekStart),
+  ]);
+  const closedAt = new Date(Date.parse(boundary.endExclusive) - 1);
+  const goalDiagnostics: GoalMomentumDiagnostic[] = [];
+  const goalSnapshots: GoalSnapshotRow[] = [];
+  for (const goal of source.goals) {
+    const baseline = goalBaselines.get(goal.id) ?? null;
+    const diagnostic = await buildGoalDiagnostic(
+      goal,
+      source,
+      boundary,
+      numberOrNull(baseline?.current_value),
+      closedAt,
+      'closed',
+      baseline?.id ?? null,
+    );
+    goalDiagnostics.push(diagnostic);
+    goalSnapshots.push(await publishGoalDiagnostic(writeDb, userId, diagnostic));
+  }
+  const oharaDiagnostic = await buildOharaDiagnostic(
+    boundary,
+    goalDiagnostics,
+    previousOhara,
+    trailing,
+    closedAt,
+    'closed',
+    goalSnapshots.map((snapshot) => snapshot.id),
+  );
+  await publishOharaDiagnostic(writeDb, userId, oharaDiagnostic);
+}
+
+export async function getMomentumV11Summary(
   readDb: SupabaseClient,
   writeDb: SupabaseClient,
   userId: string,
@@ -732,93 +921,93 @@ export async function getMomentumV1Summary(
   const timezone = normalizeTimezone((profile as { timezone?: string } | null)?.timezone);
   const currentBoundary = getMomentumWeek(now, timezone);
   const completedBoundary = getPreviousMomentumWeek(now, timezone);
-  const source = await fetchGoalSourceData(readDb, userId, completedBoundary);
+  await closeCompletedWeekIfNeeded(readDb, writeDb, userId, completedBoundary);
+
+  const source = await fetchGoalSourceData(readDb, userId, currentBoundary);
   const goalIds = source.goals.map((goal) => goal.id);
-  const [existingResult, oharaExistingResult, trailing, previousOharaSnapshot] = await Promise.all([
-    goalIds.length ? readDb.from('goal_momentum_weekly_snapshots')
-      .select('goal_id, previous_value, revision').eq('user_id', userId).in('goal_id', goalIds)
-      .eq('week_start', completedBoundary.weekStart).eq('algorithm_version', GOAL_MOMENTUM_VERSION)
-      .order('revision', { ascending: false }) : Promise.resolve({ data: [], error: null }),
-    readDb.from('momentum_weekly_snapshots').select('previous_value, revision')
-      .eq('user_id', userId).eq('week_start', completedBoundary.weekStart)
-      .eq('algorithm_version', OHARA_MOMENTUM_VERSION).order('revision', { ascending: false }).limit(1).maybeSingle(),
-    fetchTrailingGoalSnapshots(readDb, userId, completedBoundary.weekStart),
-    fetchPreviousOharaSnapshot(readDb, userId, completedBoundary.weekStart),
+  const [goalBaselines, trailing, previousOharaSnapshot] = await Promise.all([
+    fetchLatestGoalSnapshotsBefore(readDb, userId, goalIds, currentBoundary.weekStart),
+    fetchTrailingGoalSnapshots(readDb, userId, currentBoundary.weekStart),
+    fetchPreviousOharaSnapshot(readDb, userId, currentBoundary.weekStart),
   ]);
-  const readError = existingResult.error ?? oharaExistingResult.error;
-  if (readError) throw new Error(`Momentum baseline read failed: ${readError.message}`);
-  const existing = new Map<string, { previous_value: number | string | null; revision: number }>();
-  for (const row of existingResult.data ?? []) {
-    const goalId = String((row as Record<string, unknown>).goal_id);
-    if (!existing.has(goalId)) existing.set(goalId, row as { previous_value: number | string | null; revision: number });
-  }
   const goalDiagnostics: GoalMomentumDiagnostic[] = [];
-  const goalSnapshots: GoalSnapshotRow[] = [];
   for (const goal of source.goals) {
-    const priorSnapshot = existing.get(goal.id);
-    const latestEarlierSnapshot = trailing.find((snapshot) => snapshot.goal_id === goal.id);
-    const previousValue = priorSnapshot
-      ? numberOrNull(priorSnapshot.previous_value)
-      : numberOrNull(latestEarlierSnapshot?.current_value);
-    const diagnostic = await buildGoalDiagnostic(goal, source, completedBoundary, previousValue);
+    const baseline = goalBaselines.get(goal.id) ?? null;
+    const diagnostic = await buildGoalDiagnostic(
+      goal,
+      source,
+      currentBoundary,
+      numberOrNull(baseline?.current_value),
+      now,
+      'provisional',
+      baseline?.id ?? null,
+    );
     goalDiagnostics.push(diagnostic);
-    goalSnapshots.push(await publishGoalDiagnostic(writeDb, userId, diagnostic));
   }
-  const oharaExisting = oharaExistingResult.data as { previous_value: number | string | null } | null;
-  const previousOhara = oharaExisting
-    ? previousOharaSnapshot ? numberOrNull(oharaExisting.previous_value) : null
-    : numberOrNull(previousOharaSnapshot?.next_value);
-  const goalEvidence: OharaGoalEvidence[] = goalDiagnostics.map((diagnostic) => ({
-    completedMilestoneUnits: diagnostic.normalizedInput.progress.completedMilestoneUnits,
-    dueMilestoneUnits: diagnostic.normalizedInput.progress.dueMilestoneUnits,
-    expectedMovement: diagnostic.normalizedInput.hasDueCommitments,
-    goalId: diagnostic.result.goalId,
-    meaningfulMovement: diagnostic.normalizedInput.progress.completedProgressEvidenceUnits > 0,
-    normalizedProgressEvidence: diagnostic.result.pillars.progress,
-    plannedCommitmentUnits: diagnostic.normalizedInput.consistency.dueCommitmentUnits || null,
-  }));
-  const portfolioHistory = trailingPortfolioInputs(trailing);
-  const oharaInput: OharaMomentumCalculationInput = {
-    goals: goalEvidence,
-    hasDueCommitments: goalEvidence.some((goal) => goal.expectedMovement),
-    hasEligibleEvidence: goalEvidence.some((goal) => goal.meaningfulMovement),
-    previousValue: previousOhara,
-    ...portfolioHistory,
-  };
-  const oharaResult = calculateOharaMomentum(oharaInput);
-  const diagnostic: OharaMomentumDiagnostic = {
-    boundary: completedBoundary,
-    calculationHash: await calculationHash({ boundary: completedBoundary, normalizedInput: oharaInput, result: oharaResult, sourceGoalSnapshotIds: goalSnapshots.map((row) => row.id) }),
-    normalizedInput: oharaInput,
-    result: oharaResult,
-    sourceGoalSnapshotIds: goalSnapshots.map((row) => row.id),
-  };
-  const published = await publishOharaDiagnostic(writeDb, userId, diagnostic);
-  const [currentActions, historicalActions, history, goalSummaries] = await Promise.all([
-    fetchActionRows(readDb, userId, currentBoundary),
+  const diagnostic = await buildOharaDiagnostic(
+    currentBoundary,
+    goalDiagnostics,
+    previousOharaSnapshot,
+    trailing,
+    now,
+    'provisional',
+    [...goalBaselines.values()].map((snapshot) => snapshot.id),
+  );
+  const oharaResult = diagnostic.result;
+  const [historicalActions, closedHistory, goalSummaries] = await Promise.all([
     fetchActionRows(readDb, userId),
     fetchOharaHistory(readDb, userId),
-    Promise.all(goalDiagnostics.map(async (goalDiagnostic): Promise<GoalMomentumSummary> => ({
-      algorithmVersion: GOAL_MOMENTUM_VERSION,
-      currentValue: goalDiagnostic.result.currentValue,
-      difficulty: {
-        band: goalDiagnostic.difficultyProfile.band,
-        compositeScore: goalDiagnostic.difficultyProfile.compositeScore,
-        version: goalDiagnostic.difficultyProfile.version,
-      },
-      displayedValue: goalDiagnostic.result.displayedValue,
-      goalId: goalDiagnostic.result.goalId,
-      history: await fetchGoalHistory(readDb, userId, goalDiagnostic.result.goalId),
-      pillars: goalDiagnostic.result.pillars,
-      reasons: reasonsForCodes(goalDiagnostic.result.reasonCodes),
-      status: goalDiagnostic.result.status,
-      weeklyChange: goalDiagnostic.result.weeklyChange,
-    }))),
+    Promise.all(goalDiagnostics.map(async (goalDiagnostic): Promise<GoalMomentumSummary> => {
+      const closed = await fetchGoalHistory(readDb, userId, goalDiagnostic.result.goalId);
+      return {
+        algorithmVersion: GOAL_MOMENTUM_VERSION,
+        asOf: now.toISOString(),
+        currentValue: goalDiagnostic.result.currentValue,
+        difficulty: {
+          band: goalDiagnostic.difficultyProfile.band,
+          compositeScore: goalDiagnostic.difficultyProfile.compositeScore,
+          version: goalDiagnostic.difficultyProfile.version,
+        },
+        displayedValue: goalDiagnostic.result.displayedValue,
+        goalId: goalDiagnostic.result.goalId,
+        history: [...closed, {
+          algorithmVersion: GOAL_MOMENTUM_VERSION,
+          periodEnd: currentBoundary.weekEnd,
+          periodStart: currentBoundary.weekStart,
+          periodState: 'provisional',
+          previousValue: goalDiagnostic.result.previousValue ?? 0,
+          revision: 0,
+          value: goalDiagnostic.result.currentValue,
+        }],
+        periodState: 'provisional',
+        pillars: goalDiagnostic.result.pillars,
+        reasons: reasonsForCodes(goalDiagnostic.result.reasonCodes),
+        status: goalDiagnostic.result.status,
+        weekEnd: currentBoundary.weekEnd,
+        weekStart: currentBoundary.weekStart,
+        weeklyChange: goalDiagnostic.result.weeklyChange,
+      };
+    })),
   ]);
-  const currentNormalized = normalizeActionRecords(currentActions, currentBoundary, userId);
+  const currentNormalized = normalizeActionRecords(
+    source.actions,
+    currentBoundary,
+    userId,
+    localDateForInstant(now.toISOString(), timezone),
+    false,
+  );
   const tasksCompletedThisWeek = currentNormalized.filter((action) => action.completionEligibility === 'included').length;
-  const currentValue = Number(published.next_value);
-  const weeklyChange = currentValue - Number(published.previous_value);
+  const currentValue = oharaResult.currentValue;
+  const weeklyChange = oharaResult.weeklyChange;
+  const history: MomentumHistoryPoint[] = [...closedHistory, {
+    algorithmVersion: OHARA_MOMENTUM_VERSION,
+    periodEnd: currentBoundary.weekEnd,
+    periodStart: currentBoundary.weekStart,
+    periodState: 'provisional',
+    previousValue: oharaResult.previousValue ?? 0,
+    revision: 0,
+    value: currentValue,
+  }];
   const trendPoints = history.map((point) => point.value);
   const trendLabels = history.map((point) => point.periodStart);
   return {
@@ -826,19 +1015,21 @@ export async function getMomentumV1Summary(
     goalDiagnostics,
     summary: {
       algorithmVersion: OHARA_MOMENTUM_VERSION,
+      asOf: now.toISOString(),
       components: oharaResult.components,
       currentValue,
       displayedValue: Math.round(currentValue),
       goals: goalSummaries,
       history,
+      periodState: 'provisional',
       reasons: reasonsForCodes(oharaResult.reasonCodes),
       status: oharaResult.status,
       tasksCompletedThisWeek,
-      trendLabels: trendLabels.length ? trendLabels : [completedBoundary.weekStart],
+      trendLabels: trendLabels.length ? trendLabels : [currentBoundary.weekStart],
       trendPoints: trendPoints.length ? trendPoints : [currentValue],
       trend: weeklyChange > 0.005 ? 'up' : weeklyChange < -0.005 ? 'down' : 'steady',
-      weekEnd: completedBoundary.weekEnd,
-      weekStart: completedBoundary.weekStart,
+      weekEnd: currentBoundary.weekEnd,
+      weekStart: currentBoundary.weekStart,
       weeklyChange,
       weeklyStreak: calculateWeeklyStreak(historicalActions, now, timezone, userId),
     },
@@ -846,7 +1037,8 @@ export async function getMomentumV1Summary(
 }
 
 // Retained function name keeps the authenticated API and existing consumers stable.
-export const getMomentumHomeSummary = getMomentumV1Summary;
+export const getMomentumHomeSummary = getMomentumV11Summary;
+export const getMomentumV1Summary = getMomentumV11Summary;
 
 export function safeGoalDiagnostic(diagnostic: GoalMomentumDiagnostic): GoalMomentumDiagnostic {
   return {

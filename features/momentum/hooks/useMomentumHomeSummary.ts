@@ -35,7 +35,11 @@ async function loadMomentum(userId: string | null, force = false): Promise<void>
   }
   if (cacheUserId !== userId) resetCache(userId);
   if (!force && cache.summary) return;
-  if (pendingRequest) return pendingRequest;
+  if (pendingRequest) {
+    if (!force) return pendingRequest;
+    await pendingRequest;
+    return loadMomentum(userId, true);
+  }
   const generation = requestGeneration;
   publish({ ...cache, error: null, isLoading: true });
   pendingRequest = (async () => {
@@ -57,6 +61,15 @@ async function loadMomentum(userId: string | null, force = false): Promise<void>
     }
   })();
   return pendingRequest;
+}
+
+// Domain writes remain authoritative and independent. This best-effort refresh
+// only asks the trusted API to recalculate the open week after a meaningful
+// persisted mutation; callers intentionally do not await or roll back on it.
+export async function refreshMomentumAfterMeaningfulMutation(): Promise<void> {
+  const userId = cacheUserId ?? useAuthStore.getState().session?.user.id ?? null;
+  if (!userId) return;
+  await loadMomentum(userId, true);
 }
 
 export function useMomentumHomeSummary(): CacheState & { refresh: () => Promise<void> } {
