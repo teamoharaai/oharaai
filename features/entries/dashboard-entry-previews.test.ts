@@ -16,6 +16,7 @@ function entry(
     title: `${entryType} ${id}`,
     content: { type: 'doc', blocks: [] },
     plainText: `${entryType} excerpt`,
+    brtCategory: null,
     reflectionType: entryType === 'reflection' ? 'open' : null,
     conversationTurns: [],
     takeaway: null,

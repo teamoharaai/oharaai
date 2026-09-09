@@ -1,4 +1,5 @@
 import type { GoalCreationCategory } from '@/lib/goals/schema';
+import type { BrtCategory } from '@/lib/utils/resolveBrt';
 
 export type EntryType = 'note' | 'reflection';
 export type ReflectionType = 'week' | 'goal' | 'milestone' | 'open';
@@ -114,6 +115,7 @@ export interface EntryRecord {
   title: string;
   content: RichTextDocument;
   plainText: string;
+  brtCategory: BrtCategory | null;
   reflectionType: ReflectionType | null;
   conversationTurns: ReflectionTurn[];
   takeaway: string | null;
@@ -142,6 +144,10 @@ export interface EntryDraft {
   title: string;
   content: RichTextDocument;
   plainText: string;
+  /** Omitted on update preserves the current category; null explicitly clears it. */
+  brtCategory?: BrtCategory | null;
+  /** Stable owner-scoped UUID used to make a create retry idempotent. */
+  clientRequestId?: string;
   reflectionType?: ReflectionType | null;
   conversationTurns?: ReflectionTurn[];
   takeaway?: string | null;

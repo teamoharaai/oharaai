@@ -24,6 +24,7 @@ type DbEntryRow = {
   title: string;
   content: unknown;
   plain_text: string;
+  brt_category: EntryRecord['brtCategory'];
   reflection_type: ReflectionType | null;
   conversation_turns: unknown;
   takeaway: string | null;
@@ -117,6 +118,7 @@ function mapEntry(
       ? row.content
       : { type: 'doc', blocks: [] },
     plainText: row.plain_text,
+    brtCategory: row.brt_category,
     reflectionType: row.reflection_type,
     conversationTurns: toTurns(row.conversation_turns),
     takeaway: row.takeaway,
@@ -325,7 +327,7 @@ async function saveEntry(
         planRevision: null,
       }))
     : [];
-  const { data, error } = await db.rpc('save_entry_v3', {
+  const { data, error } = await db.rpc('save_entry_v4', {
     p_entry_id: entryId,
     p_entry_type: draft.entryType,
     p_title: draft.title.trim(),
@@ -343,6 +345,9 @@ async function saveEntry(
     p_project_id: draft.relationships.projectId ?? null,
     p_expected_content_version: draft.expectedContentVersion ?? null,
     p_progress_evidence: evidence,
+    p_brt_category: draft.brtCategory ?? null,
+    p_brt_category_provided: Object.prototype.hasOwnProperty.call(draft, 'brtCategory'),
+    p_client_request_id: entryId === null ? draft.clientRequestId ?? null : null,
   });
   if (error) throw error;
   if (typeof data !== 'string') throw new Error('Entry save returned an invalid identifier');

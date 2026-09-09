@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
+import { parseEntryDraft } from './validation.ts';
 
 const migration = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/036_entries_notes_reflections.sql'),
@@ -19,6 +20,11 @@ const echoV1 = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/044_echo_v1_project_links.sql'),
   'utf8',
 );
+const entriesBrt = readFileSync(
+  resolve(process.cwd(), 'supabase/migrations/045_entries_brt_idempotent_create.sql'),
+  'utf8',
+);
+const entriesDb = readFileSync(resolve(process.cwd(), 'lib/db/entries.ts'), 'utf8');
 
 test('enables RLS for entries and every relationship table', () => {
   for (const table of [
@@ -91,4 +97,36 @@ test('Echo V1 Project organization is additive, owner-scoped, and atomic', () =>
   assert.match(echoV1, /v_entry_id := public\.save_entry_v2\([\s\S]*set project_id = p_project_id/);
   assert.match(echoV1, /revoke all on function public\.save_entry_v3[\s\S]*grant execute[\s\S]*to authenticated/);
   assert.doesNotMatch(echoV1, /insert into public\.momentum_|update public\.momentum_/);
+});
+
+test('canonical Entries owns one constrained BRT value and an owner-scoped create key', () => {
+  assert.match(entriesBrt, /brt_category is null or brt_category in \('bud', 'rose', 'thorn'\)/);
+  assert.match(entriesBrt, /check \(entry_type = 'reflection' or brt_category is null\)/);
+  assert.match(entriesBrt, /on public\.entries \(user_id, client_request_id\)/);
+  assert.match(entriesBrt, /create or replace function public\.save_entry_v4/);
+  assert.match(entriesBrt, /v_entry_id := public\.save_entry_v3\([\s\S]*p_project_id/);
+  assert.match(entriesBrt, /where user_id = v_owner_id and client_request_id = p_client_request_id/);
+  assert.match(entriesDb, /db\.rpc\('save_entry_v4'/);
+  assert.match(entriesDb, /p_brt_category_provided:/);
+  assert.match(entriesDb, /p_client_request_id:/);
+});
+
+test('entry validation accepts only canonical BRT and UUID request values', () => {
+  const valid = {
+    entryType: 'reflection',
+    title: '',
+    content: { type: 'doc', blocks: [{ id: 'body', type: 'paragraph', text: 'A thought' }] },
+    plainText: 'A thought',
+    brtCategory: 'bud',
+    clientRequestId: '9e90f104-df1e-45cb-87e6-5d8ee762981a',
+    relationships: { goalIds: [], categoryIds: [], milestoneIds: [] },
+  };
+  assert.equal(parseEntryDraft(valid).brtCategory, 'bud');
+  assert.equal(parseEntryDraft(valid).clientRequestId, valid.clientRequestId);
+  assert.throws(() => parseEntryDraft({ ...valid, brtCategory: 'growth' }), /brtCategory is invalid/);
+  assert.throws(
+    () => parseEntryDraft({ ...valid, entryType: 'note' }),
+    /brtCategory is invalid for non-reflection entries/,
+  );
+  assert.throws(() => parseEntryDraft({ ...valid, clientRequestId: 'retry-1' }), /clientRequestId is invalid/);
 });

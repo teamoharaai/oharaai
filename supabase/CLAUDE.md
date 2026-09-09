@@ -176,6 +176,9 @@ Owner: CTO. Cascade Level 3.
   relationship to canonical Entries and the atomic `save_entry_v3` wrapper.
   Existing Entries and legacy Echo rows are not backfilled or rewritten; full
   Projects Version 1.0 remains outside this migration's scope.
+- 045_entries_brt_idempotent_create.sql: adds canonical nullable BRT storage and
+  owner-scoped create idempotency to Entries. Its `save_entry_v4` wrapper delegates
+  Project-aware V3 so native Reflection retries preserve the complete Echo contract.
 - goals.mode column was dropped in the 2026-06-24 squash (was a single-value
   CHECK column, no longer carried). lib/db/goals.ts no longer inserts it.
 

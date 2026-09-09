@@ -8,6 +8,13 @@
 - Added focused Echo V1 coverage for Project recency/deduplication, Quick-versus-legacy Reflection routing, creation boundaries, inaccessible Guided Reflection behavior, collapse state, caret handling, and the owner-scoped Project trust boundary.
 - Added one shared responsive `AppNavigation` toolbar for the authenticated application, preserving the canonical Home, Goals, Echo, Momentum, and Constellation routes plus global creation and account controls.
 - Added **OHARA Notes Version 1.1** interaction and export polish, including schema-aware selectable-text PDF generation, private-image rendering, stable reference navigation, guarded contextual selection, and focused release documentation across `features/entries/`, `global.css`, `config/internal-release.ts`, and `docs/NOTES_V1_1_POLISH.md`.
+- Added additive Migration 045 for canonical `entries.brt_category` storage and an
+  owner-scoped `client_request_id` create key, including legacy same-ID Echo BRT
+  backfill and the Project-aware `save_entry_v4` wrapper used by native Reflection
+  retries (`supabase/migrations/045_entries_brt_idempotent_create.sql`).
+- Added Entries validation/security coverage for the shared `bud | rose | thorn`
+  contract, reflection-only classification, UUID request keys, and V4 RPC wiring
+  in `features/entries/security.test.ts`.
 - Added **Momentum Version 1.1** with deterministic live current-week Goal and OHARA provisional scores, explicit provisional/closed period metadata, stable closed baselines, preserved paused scores, current-week due-boundary handling, cross-version tests, and `docs/MOMENTUM_V1_1_IMPLEMENTATION.md` in `features/momentum/`, the Momentum APIs, and Migration 043.
 - Updated the guarded loopback integration and authenticated API smoke assertions for V1.1 provisional responses and immutable single-close behavior in `scripts/momentum-local.integration.mjs` and `scripts/momentum-api.smoke.mjs`.
 - Clarified `features/momentum/legacy-phase1.ts` so the historical `momentum-v1.0` replay implementation cannot be mistaken for the current V1.1 production path.
@@ -44,6 +51,12 @@
 - Replaced the live Entries category/date-shelf experience with Echo's editorial reverse-chronological library and optional Project folders while retaining a quiet All/Notes/Reflections filter with Notes as the default; search, canonical IDs, existing content, and legacy Reflection readability remain intact.
 - Routed global and Echo creation through the unified New flow, preserved the completed Notes editor inside the expanded workspace, and added optional Goal/Project organization to Notes and Quick Reflections. The old guided/chat implementation is retained for future assessment but is no longer exposed as the normal Reflection path.
 - Updated `store/uiStore.ts`, `store/clearAllStores.ts`, and `global.css` for stable collapse persistence, responsive list/detail behavior, and non-editable workspace caret suppression without disabling text selection in actual editors.
+- Extended the unified Entries record/draft contract with canonical BRT and
+  optional idempotency fields, and routed create/update persistence through
+  `save_entry_v4` while preserving Project support and BRT when older desktop
+  update payloads omit it
+  (`features/entries/types.ts`, `features/entries/validation.ts`,
+  `lib/db/entries.ts`, and Reflection completion state).
 - Updated Home, full Momentum, Goal Momentum, and Goal Analytics surfaces to label the current local week as provisional; successful tracker, action, milestone, Notes progress-anchor, Goal-progress, and qualified goal-linked Reflection writes now request one best-effort shared Momentum refresh without coupling domain-write success to recalculation success.
 - Updated the temporary internal What's New content for Momentum Version 1.1 and retained the existing Notes Version 1.0 and Momentum beta release history.
 - Refined the Notes writing workspace to a 960px document sheet with approximately 740px maximum reading width, responsive 80–110px desktop/40–64px tablet/18–28px mobile page padding, a restrained page border/shadow, sticky separated toolbar, 17px long-form body typography, and explicit light/dark semantic tokens.
@@ -62,6 +75,10 @@
 - Raised the light-theme muted text token to an AA-readable 4.65:1 on white and the special dark-surface muted token to 6.58:1, preventing small timestamps/helper copy from becoming nearly invisible while preserving secondary hierarchy.
 - Fixed Project browsing feeling like a trapped state by exposing a contextual back action inside the Echo library; Project folders open as combined Note/Reflection views and normal Most Recent browsing restores the Notes default.
 - Fixed Quick Reflection autosave follow-up scheduling so edits made while an earlier save is in flight are queued for the next revision instead of being left only in local recovery storage.
+- Made ambiguous canonical Entry creates safe to retry without duplicate owner
+  rows, retained BRT across Reflection completion updates, and classified a BRT
+  supplied for a non-Reflection Entry as a client validation error rather than a
+  server failure.
 - Fixed inactivity being presented as unavailable by retaining established Goal/OHARA scores with `paused`, reserving `building` for users without a baseline and `unavailable` for technical failures.
 - Fixed qualified Reflection occurrence normalization so a completion uses `completed_at` and ordinary later editor autosaves do not move old evidence into the current week.
 - Fixed the V1.0-to-V1.1 closed-week transition in `supabase/migrations/043_momentum_v1_1_cross_version_baseline.sql` so trusted publishers validate against the latest earlier immutable snapshot across algorithm versions without rewriting V1.0 history.
