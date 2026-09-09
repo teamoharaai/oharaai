@@ -8,10 +8,14 @@ Legend: ☐ not started · ◐ in progress · ☑ done · ⚠ blocked
 
 ## Next action
 
-**Start Task 2** (period-query index migration). Tasks 0 and 1 are complete.
-Create `046_tracker_logs_period_index.sql` (NOT 044), apply via mgmt API with a
-curl UA, **insert the `schema_migrations` row** (D-003), verify with `pg_indexes`
-+ EXPLAIN. Then Tasks 3+4 (atomic) can begin — they depend on both 1 and 2.
+**Start Tasks 3+4** (tracker contract + period derivation — **atomic, land
+together**). Tasks 0, 1, and 2 are complete; both of the 3+4 dependencies are
+satisfied. Add `TrackerPeriodBucket`/`TrackerPeriodState`/`Tracker.periodState`
+to `features/goals/types.ts`, remove `currentValue` from `TrackerUpdates`, add
+the pure derivation function, and build the frequency-batched paginated hydrated
+goal-detail read path (mirror `lib/db/friends.ts` pagination, order by
+`logged_at` then `id`, `PAGE_SIZE=500`). Follow D-004 (relative imports) for any
+test-reachable module.
 
 ## Task status
 
@@ -19,7 +23,7 @@ curl UA, **insert the `schema_migrations` row** (D-003), verify with `pg_indexes
 |---|---|---|---|
 | 0 | Contract & data preflight | ☑ | Done sessions 000–001. Plan reconciled to repo + **live DB audited** (`audits/001-preflight-audit.md`). All schema/index/RLS/consumer-trace items resolved. Null-frequency inventory done (36 null / 29 weekly / 4 daily / 0 monthly). GO for Task 1. |
 | 1 | Shared tz-aware cadence utilities | ☑ | Done session 002. `lib/time/zoned-calendar.ts` (extracted + cached formatters), `lib/goals/tracker-cadence.ts` + 13 tests. Momentum re-exports primitives (64/64 unchanged). tsc clean. See `changelog/002-*`. |
-| 2 | Period-query index migration | ☐ | Create `046_tracker_logs_period_index.sql` (NOT 044). Re-verify next number first. Apply + verify live via mgmt API (curl UA). |
+| 2 | Period-query index migration | ☑ | Done session 003. `046_tracker_logs_period_index.sql` created + applied live; compound covering index `tracker_logs_tracker_id_logged_at_idx` verified via `pg_indexes`, redundant `idx_tracker_logs_tracker_id` dropped, `schema_migrations` 046 row inserted (D-003). EXPLAIN seq-scans at 37 rows (expected). tsc clean. See `audits/002-*` + `changelog/003-*`. |
 | 3+4 | Tracker contract + period derivation | ☐ | **Atomic** — land together. Adds `periodState` to types, pure derivation fn, hydrated goal-detail read path. |
 | 5 | Auth logging/uncomplete + legacy fixes | ☐ | Refactor `completeTracker`; stop writing `current_value`; counter/habit/checklist logs; null-cadence rejection. |
 | 6 | Goal-detail state + optimistic mutations | ☐ | Delete `completedTrackerIds`; add uncomplete/counter handlers; boundary refresh. Land back-to-back with Task 5. |
@@ -34,9 +38,9 @@ curl UA, **insert the `schema_migrations` row** (D-003), verify with `pg_indexes
       29 weekly, 4 daily, **0 monthly**. See risk #2/#3 below.
 - [x] ~~Confirm exact name of redundant index~~ → `idx_tracker_logs_tracker_id`
       (plain btree on `tracker_id`), confirmed in audit 001.
-- [ ] **Task 2 must insert the `schema_migrations` row after applying 046.**
-      Live tracking is behind files: file `045` exists but live history tops at
-      `044`. No CLI = the insert step gets missed. (D-003)
+- [x] ~~**Task 2 must insert the `schema_migrations` row after applying 046.**~~
+      → done session 003: `046` row inserted and re-queried; live history now
+      tops at `046` (with the known `045` gap still owned by Entries). (D-003)
 - [ ] **Prod has 0 monthly trackers and only 37 total logs** → Task 8 monthly
       buckets and Task 3+4 >1000-log pagination have NO prod coverage; prove via
       fixtures/tests only.

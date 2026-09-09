@@ -5,11 +5,15 @@ correct stale ones in place. Each fact is dated so drift is visible.
 
 ## Repo realities (updated 2026-09-09)
 
-- **Implementation state: Tasks 0–1 done.** `lib/time/zoned-calendar.ts` and
-  `lib/goals/tracker-cadence.ts` (+ test) now exist. Still missing (future
-  tasks): `periodState`/`TrackerPeriodState`/`TrackerPeriodBucket` in
-  `features/goals/types.ts`, `046` migration, new `app/api/trackers/` mutation
-  routes. Next up: Task 2.
+- **Implementation state: Tasks 0–2 done.** `lib/time/zoned-calendar.ts` and
+  `lib/goals/tracker-cadence.ts` (+ test) exist. **Migration `046` created +
+  applied live** (session 003): compound covering index
+  `tracker_logs_tracker_id_logged_at_idx (tracker_id, logged_at desc) include
+  (id, value)` is live; redundant `idx_tracker_logs_tracker_id` dropped;
+  `schema_migrations` now tops at `046`. Still missing (future tasks):
+  `periodState`/`TrackerPeriodState`/`TrackerPeriodBucket` in
+  `features/goals/types.ts`, new `app/api/trackers/` mutation routes. Next up:
+  Tasks 3+4 (atomic).
 
 - **⚠ Test runner gotcha (D-004):** unit tests run under `node
   --experimental-strip-types --test` with **no `@/` import map**. `@/…` imports
@@ -36,14 +40,13 @@ correct stale ones in place. Each fact is dated so drift is visible.
 - **`features/momentum/time.ts` exists** (~3.8KB) — the timezone primitives Task
   1 must extract into a shared module live here.
 
-## ⚠️ Migration number drift (confirmed 2026-09-09)
+## ✅ Migration number drift (RESOLVED 2026-09-09, session 003)
 
-- Plan Task 2 says create `044_tracker_logs_period_index.sql`. **044 and 045 are
-  already taken**: `044_echo_v1_project_links.sql`,
-  `045_entries_brt_idempotent_create.sql`.
-- **Next available migration number is `046`.** Task 2 must create
-  `046_tracker_logs_period_index.sql`. Re-verify the highest number immediately
-  before writing it. See [[DECISIONS.md]] entry D-001.
+- Plan Task 2 said `044_...`; 044 and 045 were already taken. Task 2 correctly
+  created **`046_tracker_logs_period_index.sql`** and applied it live, inserting
+  the `schema_migrations` row (D-003). Live history now tops at `046`. The `045`
+  gap (idempotent, Entries-domain) still exists and is the Entries owner's
+  info-only item. See [[DECISIONS.md]] D-001/D-003/D-006.
 
 ## Git / remote state (confirmed 2026-09-09)
 
@@ -62,9 +65,10 @@ correct stale ones in place. Each fact is dated so drift is visible.
   reading/writing it for period UI only.
 - **`tracker_logs`**: `value numeric NOT NULL DEFAULT 1`, `logged_at timestamptz
   NOT NULL DEFAULT now()`. No period/idempotency column (matches deferred scope).
-- **Indexes on tracker_logs**: only `tracker_logs_pkey` + `idx_tracker_logs_
-  tracker_id` (plain btree on tracker_id — this is the redundant one Task 2 may
-  drop). The plan's compound covering index does NOT exist yet.
+- **Indexes on tracker_logs** (updated session 003): `tracker_logs_pkey` +
+  `tracker_logs_tracker_id_logged_at_idx` (compound covering
+  `(tracker_id, logged_at desc) include (id, value)`, added by migration 046).
+  The old plain btree `idx_tracker_logs_tracker_id` was **dropped** in 046.
 - **Prod data**: 69 trackers = 29 counter / 23 habit / 17 checklist; frequency
   = 36 **null** / 29 weekly / 4 daily / **0 monthly**. `tracker_logs` = **37
   rows / 21 trackers**. → monthly buckets + >1000-log pagination have NO prod

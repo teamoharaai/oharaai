@@ -48,6 +48,33 @@ modules with tests must follow suit.
 
 ---
 
+## D-006 · 2026-09-09 · accepted — 046 built transactionally, not CONCURRENTLY
+
+**Context:** Task 2 (session 003) applied migration `046`. `PLAN.md` Task 2 says
+to use the repo's non-transactional `CONCURRENTLY` process only if the live table
+is large enough that a normal build creates unacceptable lock risk. Re-checked
+`tracker_logs` row count immediately before applying: **37 rows / 21 trackers**,
+unchanged from audit 001 (no material growth).
+
+**Decision:** Build the compound covering index with a **normal transactional**
+`create index if not exists` and drop the redundant single-column index in the
+**same migration**. `CONCURRENTLY` is unnecessary and would preclude the same-file
+create+drop; at 37 rows the exclusive lock is negligible.
+
+**Consequence:** `046_tracker_logs_period_index.sql` is a single ordinary
+transactional migration. If `tracker_logs` ever grows to where an index build's
+lock matters, a *future* index change on this table should reassess and use the
+concurrent process — this decision is scoped to the current volume.
+
+**Execution note (D-001, D-003):** Session 003 confirmed on disk that `045` was
+the highest file → created `046` (executes D-001). Applied both DDL statements
+via the mgmt API (curl UA) and inserted the
+`supabase_migrations.schema_migrations` row for `046`, then re-queried to confirm
+(executes D-003). Live `schema_migrations` now tops at `046`; the `045` gap
+remains the Entries owner's info-only item.
+
+---
+
 ## D-003 · 2026-09-09 · accepted — Task 2 must insert the schema_migrations row
 
 **Context:** Audit 001 found the live `supabase_migrations.schema_migrations`
