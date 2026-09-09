@@ -42,6 +42,7 @@ update public.entries entry
 set brt_category = echo.brt_category
 from public.echo_entries echo
 where entry.id = echo.id
+  and entry.user_id = echo.user_id
   and entry.entry_type = 'reflection'
   and entry.brt_category is null
   and echo.brt_category in ('bud', 'rose', 'thorn');
@@ -52,7 +53,14 @@ language plpgsql
 set search_path = public
 as $$
 begin
+  -- Older V2/V3 callers can still change an Entry's type. Normalize the one
+  -- transition that would otherwise violate the new reflection-only BRT check.
+  if old.entry_type = 'reflection' and new.entry_type = 'note' then
+    new.brt_category := null;
+  end if;
+
   if (
+    new.entry_type,
     new.title,
     new.content,
     new.plain_text,
@@ -66,6 +74,7 @@ begin
     new.project_id,
     new.brt_category
   ) is distinct from (
+    old.entry_type,
     old.title,
     old.content,
     old.plain_text,

@@ -103,6 +103,8 @@ test('canonical Entries owns one constrained BRT value and an owner-scoped creat
   assert.match(entriesBrt, /brt_category is null or brt_category in \('bud', 'rose', 'thorn'\)/);
   assert.match(entriesBrt, /check \(entry_type = 'reflection' or brt_category is null\)/);
   assert.match(entriesBrt, /on public\.entries \(user_id, client_request_id\)/);
+  assert.match(entriesBrt, /entry\.id = echo\.id[\s\S]*entry\.user_id = echo\.user_id/);
+  assert.match(entriesBrt, /old\.entry_type = 'reflection' and new\.entry_type = 'note'[\s\S]*new\.brt_category := null/);
   assert.match(entriesBrt, /create or replace function public\.save_entry_v4/);
   assert.match(entriesBrt, /v_entry_id := public\.save_entry_v3\([\s\S]*p_project_id/);
   assert.match(entriesBrt, /where user_id = v_owner_id and client_request_id = p_client_request_id/);
