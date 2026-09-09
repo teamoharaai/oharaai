@@ -8,7 +8,7 @@ import {
   type ScrollViewProps,
 } from 'react-native';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useThemeColors, useUIStore } from '@/store/uiStore';
+import { useThemeColors } from '@/store/uiStore';
 import { getConstellationResponsiveLayout } from '../responsive';
 
 const INSPECTOR_WIDTH = 420;
@@ -96,8 +96,7 @@ export function ConstellationInspectorSurface({
 }: ConstellationInspectorSurfaceProps) {
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
-  const sidebarCollapsed = useUIStore((state) => state.sidebarCollapsed);
-  const { narrow } = getConstellationResponsiveLayout(width, sidebarCollapsed);
+  const { narrow } = getConstellationResponsiveLayout(width);
   const rootRef = useRef<View>(null);
   const [closeFocused, setCloseFocused] = useState(false);
   const previousFocusRef = useRef<HTMLElement | null>(null);

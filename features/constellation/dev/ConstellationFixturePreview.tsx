@@ -67,9 +67,7 @@ export function ConstellationFixturePreview({
 }: ConstellationFixturePreviewProps) {
   const { height, width } = useWindowDimensions();
   const themeMode = useUIStore((state) => state.themeMode);
-  const sidebarCollapsed = useUIStore((state) => state.sidebarCollapsed);
   const originalUiState = useRef({
-    sidebarCollapsed: useUIStore.getState().sidebarCollapsed,
     themeMode: useUIStore.getState().themeMode,
   });
   const [selectedKey, setSelectedKey] = useState<string | null>(
@@ -121,7 +119,7 @@ export function ConstellationFixturePreview({
   )
     ? selectedNode.node
     : null;
-  const { narrow } = getConstellationResponsiveLayout(width, true);
+  const { narrow } = getConstellationResponsiveLayout(width);
   const sproutedLabel = useMemo(() => {
     if (
       selectedNode?.entityType !== 'earned_node'
@@ -133,10 +131,7 @@ export function ConstellationFixturePreview({
   }, [fixtureLayout, selectedKey, selectedNode]);
 
   useLayoutEffect(() => {
-    useUIStore.setState({
-      sidebarCollapsed: true,
-      themeMode: appearance,
-    });
+    useUIStore.setState({ themeMode: appearance });
   }, [appearance]);
 
   useEffect(() => () => {
@@ -150,7 +145,7 @@ export function ConstellationFixturePreview({
     );
   }, [previewState]);
 
-  if (themeMode !== appearance || !sidebarCollapsed) {
+  if (themeMode !== appearance) {
     return (
       <View
         style={{

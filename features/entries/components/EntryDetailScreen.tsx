@@ -8,9 +8,21 @@ import { useEntriesStore } from '../store';
 import type { EntryRecord } from '../types';
 import { NoteEditor } from './NoteEditor';
 import { CompletedReflection } from './CompletedReflection';
+import { QuickReflectionEditor } from './QuickReflectionEditor';
+import { isQuickReflection } from '../utils';
 import { router } from 'expo-router';
 
-export function EntryDetailScreen({ entryId }: { entryId: string }) {
+export function EntryDetailScreen({
+  entryId,
+  embedded = false,
+  showBack = true,
+  onBack,
+}: {
+  entryId: string;
+  embedded?: boolean;
+  showBack?: boolean;
+  onBack?: () => void;
+}) {
   const colors = useThemeColors();
   const cached = useEntriesStore((state) => state.entries.find((entry) => entry.id === entryId));
   const upsertEntry = useEntriesStore((state) => state.upsertEntry);
@@ -54,13 +66,24 @@ export function EntryDetailScreen({ entryId }: { entryId: string }) {
       <View style={{ alignItems: 'center', flex: 1, justifyContent: 'center', padding: 24 }}>
         <Typography variant="title">Entry unavailable</Typography>
         <Typography variant="body" style={{ marginTop: 8 }}>{error}</Typography>
-        <Button onPress={() => router.replace('/(app)/entries' as never)} style={{ marginTop: 18 }}>
+        <Button onPress={() => onBack ? onBack() : router.replace('/(app)/entries' as never)} style={{ marginTop: 18 }}>
           Back to Entries
         </Button>
       </View>
     );
   }
-  return entry.entryType === 'note'
-    ? <NoteEditor entryId={entry.id} />
-    : <CompletedReflection entry={entry} />;
+  if (entry.entryType === 'note') {
+    return (
+      <NoteEditor
+        embedded={embedded}
+        entryId={entry.id}
+        onBack={onBack}
+        showBack={showBack}
+      />
+    );
+  }
+  if (isQuickReflection(entry)) {
+    return <QuickReflectionEditor entry={entry} onBack={onBack ?? (() => router.replace('/(app)/entries' as never))} showBack={showBack} />;
+  }
+  return <CompletedReflection entry={entry} onBack={onBack} showBack={showBack} />;
 }

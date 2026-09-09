@@ -34,6 +34,12 @@ create table public.goals (
   title text not null,
   status text not null
 );
+create table public.projects (
+  id uuid primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  title text not null,
+  status text not null default 'active'
+);
 create table public.entries (
   id uuid primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -48,7 +54,9 @@ create table public.entries (
   archived boolean not null default false,
   completed_at timestamptz,
   content_version integer not null default 1,
-  schema_version integer not null default 1
+  schema_version integer not null default 1,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 create table storage.buckets (

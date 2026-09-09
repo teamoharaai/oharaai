@@ -51,10 +51,7 @@ export function FeaturePageHeader({
             accessibilityRole="header"
             variant="heading"
             style={{
-              fontSize: compact ? 32 : 42,
-              fontWeight: '600',
-              letterSpacing: -1,
-              lineHeight: compact ? 39 : 50,
+              letterSpacing: -0.6,
             }}
           >
             {title}
@@ -65,7 +62,6 @@ export function FeaturePageHeader({
           variant="body"
           style={{
             color: colors.text.secondary,
-            lineHeight: 24,
             marginTop: SPACE.xs,
             maxWidth: 760,
           }}

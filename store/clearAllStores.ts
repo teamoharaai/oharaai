@@ -43,12 +43,11 @@ export function clearAllStores(): void {
   useEchoDraftStore.setState({ draftsByContext: {}, lastLinkedGoal: null, hasHydrated: false });
   useEchoDraftStore.persist.clearStorage();
 
-  // Reset UI prefs (e.g. sidebar collapse) so they don't leak across users
-  // on a shared device.
+  // Reset user-specific UI preferences so they don't leak across shared-device sessions.
   useUIStore.setState({
-    sidebarCollapsed: false,
     rightPaneWidth: 420,
     entriesIntelligenceOpen: false,
+    entriesLibraryCollapsed: false,
   });
   useUIStore.persist.clearStorage();
 }

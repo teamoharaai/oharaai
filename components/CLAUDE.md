@@ -7,7 +7,7 @@ Post-redesign warm ramp (Sessions 1–4c). Canonical tokens: `constants/colors.t
 - Page background: warm cream #F8F4EC (`background.page`, was #F5F1EA)
 - Cards: white #FFFFFF (`background.card`), rounded 16px, warm border #EDE6D8 (`border.warm`), soft shadow
 - Sidebar: deep emerald #1E3226 (`background.sidebar`, was #3D5247)
-- Accent: earth green #4A7C5F (`accent.primary` / `text.accent` / `border.accent`, was #3D5247); teals `accent.tealMid` #2F8F6D, `accent.tealSoft` #9FD9C4
+- Accent: vibrant OHARA green #63C174 (`accent.primary` / `text.accent` / `border.accent`) with shared hover and soft/selected treatments; teals `accent.tealMid` #2F8F6D, `accent.tealSoft` #9FD9C4
 - Text: #211F1A primary, #8A8172 secondary, #A79E8E muted (`text.*`; retired #1A1F1C / #6B7B6E / #9CAF9F)
 - Feedback: `feedback.danger` is `{ text, bg, border }` (not a flat hex) — danger/overdue text is `feedback.danger.text` #C0483A; `.bg`/`.border` are soft-tint values for error banners. Sibling groups: `feedback.pending.*` (unconfirmed AI-suggestion banners) and `feedback.info.*` (neutral info banners, e.g. Echo composer notices)
 - Typography: Inter for all UI, including headings, greetings, goal titles, and editorial-style moments
@@ -41,7 +41,7 @@ Use the `Typography` component with a `variant` — do not hardcode font/size/co
 
 ## Rules
 - NativeWind for all styling. No inline style objects unless NativeWind cannot express it.
-- fontFamily: 'Inter' must be set explicitly on any Text not using Typography component.
+- Text outside `Typography` must use the canonical `FONT`/`TYPE` tokens from `constants/design.ts`; do not introduce page-local system stacks.
 - No heavy third-party UI libraries. Lightweight custom components preferred.
 - Bottom sheets: simple Modal or custom component. No react-native-bottom-sheet.
 - All components must work on both web and mobile (Platform-aware when needed).

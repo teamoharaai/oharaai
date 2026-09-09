@@ -1,5 +1,7 @@
 import { TextInput, View } from 'react-native';
+import type { ReactNode } from 'react';
 import { Typography } from '@/components/ui/Typography';
+import { TYPE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
 import { isV2Document } from '../editor-document';
 import type { RichTextDocument, RichTextNode } from '../types';
@@ -37,17 +39,20 @@ export function RichTextEditor({
   document,
   onChange,
   placeholder = 'Start writing…',
+  sidePanel,
 }: {
   document: RichTextDocument;
   entryId?: string;
   goals?: import('../types').EntryGoalOption[];
   focusedReferenceId?: string | null;
+  referenceFocusNonce?: number;
   referenceRemoval?: { id: string; nonce: number } | null;
   onChange: (document: RichTextDocument, plainText: string) => void;
   onIntelligenceReferenceCreated?: (referenceId: string) => void;
   onReferenceActivated?: (referenceId: string, kind: 'goal' | 'intelligence') => void;
   onReferenceRemoved?: (referenceId: string) => void;
   placeholder?: string;
+  sidePanel?: ReactNode;
 }) {
   const colors = useThemeColors();
   const plainText = documentToPlainText(document);
@@ -81,27 +86,29 @@ export function RichTextEditor({
           </Typography>
         </View>
       ) : null}
-      <TextInput
-        accessibilityLabel="Note content"
-        editable={!richV2}
-        multiline
-        onChangeText={update}
-        placeholder={placeholder}
-        placeholderTextColor={colors.text.muted}
-        style={{
-          color: colors.text.primary,
-          flex: 1,
-          fontFamily: 'Inter-Regular',
-          fontSize: 18,
-          lineHeight: 30,
-          minHeight: 420,
-          opacity: richV2 ? 0.82 : 1,
-          paddingHorizontal: 32,
-          paddingTop: 40,
-          textAlignVertical: 'top',
-        }}
-        value={plainText}
-      />
+      <View style={{ flex: 1, flexDirection: 'row', minHeight: 0, minWidth: 0 }}>
+        <TextInput
+          accessibilityLabel="Note content"
+          editable={!richV2}
+          multiline
+          onChangeText={update}
+          placeholder={placeholder}
+          placeholderTextColor={colors.text.muted}
+          style={{
+            color: colors.text.primary,
+            flex: 1,
+            ...TYPE.editorBody,
+            minHeight: 420,
+            minWidth: 0,
+            opacity: richV2 ? 0.82 : 1,
+            paddingHorizontal: 32,
+            paddingTop: 40,
+            textAlignVertical: 'top',
+          }}
+          value={plainText}
+        />
+        {sidePanel}
+      </View>
     </View>
   );
 }

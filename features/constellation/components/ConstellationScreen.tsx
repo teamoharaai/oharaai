@@ -142,9 +142,8 @@ function ConstellationErrorState({
 export function ConstellationScreen() {
   const colors = useThemeColors();
   const themeMode = useUIStore((state) => state.themeMode);
-  const sidebarCollapsed = useUIStore((state) => state.sidebarCollapsed);
   const { width } = useWindowDimensions();
-  const { narrow } = getConstellationResponsiveLayout(width, sidebarCollapsed);
+  const { narrow } = getConstellationResponsiveLayout(width);
   const [createKind, setCreateKind] =
     useState<ConstellationAnnotationKind | null>(null);
   const [goalLinkPanelOpen, setGoalLinkPanelOpen] = useState(false);

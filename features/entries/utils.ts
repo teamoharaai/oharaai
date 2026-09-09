@@ -102,6 +102,21 @@ export function entriesForCategory(
   return uniqueEntries(entries.filter((entry) => categoryIdsForEntry(entry).includes(categoryId)));
 }
 
+export function entriesForProject(
+  entries: EntryRecord[],
+  projectId: string,
+): EntryRecord[] {
+  return sortEntriesByRecency(uniqueEntries(
+    entries.filter((entry) => entry.project?.id === projectId),
+  ));
+}
+
+export function isQuickReflection(entry: EntryRecord): boolean {
+  return entry.entryType === 'reflection'
+    && entry.reflectionType === 'open'
+    && entry.conversationTurns.length === 0;
+}
+
 export function buildRetrievalDocument(
   entry: EntryRecord,
   categoryNames: Record<string, string>,

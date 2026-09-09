@@ -169,10 +169,6 @@ export function ConstellationGoalLinkPanel({
     }
   }, [activeLink, activeLinkId]);
 
-  useEffect(() => {
-    if (editing && activeLink) setNote(activeLink.note);
-  }, [activeLink, editing]);
-
   async function create() {
     if (!sourceGoalId || !targetGoalId || noteError) return;
     const saved = await onCreate({
@@ -191,6 +187,12 @@ export function ConstellationGoalLinkPanel({
     if (!activeLink || note.trim().length === 0) return;
     const saved = await onEdit(activeLink.linkId, { note: note.trim() });
     if (saved) setEditing(false);
+  }
+
+  function beginEditing() {
+    if (!activeLink) return;
+    setNote(activeLink.note);
+    setEditing(true);
   }
 
   async function remove() {
@@ -310,7 +312,7 @@ export function ConstellationGoalLinkPanel({
               <>
                 <Button
                   disabled={mutation.isSaving}
-                  onPress={() => setEditing(true)}
+                  onPress={beginEditing}
                   style={{ flex: 1 }}
                 >
                   Edit note

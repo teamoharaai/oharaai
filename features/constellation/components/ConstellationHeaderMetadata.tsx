@@ -109,7 +109,7 @@ export function ConstellationHeaderMetadata({
                 style={{
                   color: tokens.annotation.badgeText,
                   fontFamily: 'Inter-SemiBold',
-                  fontSize: 10,
+                  fontSize: 12,
                   letterSpacing: 1.1,
                   textTransform: 'uppercase',
                 }}
@@ -203,7 +203,7 @@ export function ConstellationHeaderMetadata({
                 <Text style={{
                   color: tokens.text.primary,
                   fontFamily: 'Inter-SemiBold',
-                  fontSize: 12,
+                  fontSize: 14,
                 }}>
                   Fit
                 </Text>
@@ -243,7 +243,7 @@ export function ConstellationHeaderMetadata({
           style={{
             color: tokens.text.secondary,
             fontFamily: 'Inter-Regular',
-            fontSize: 12,
+            fontSize: 13,
             marginTop: 9,
           }}
         >

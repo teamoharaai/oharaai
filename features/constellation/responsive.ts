@@ -1,21 +1,16 @@
 /**
  * Constellation needs room for both a meaningful canvas and an inspector.
- * These breakpoints account for the app rail: a collapsed rail permits the
- * two-column treatment at a smaller viewport, while tablet widths promote the
- * inspector to the full-width replacement surface.
+ * The global application navigation sits above the workspace, so the full
+ * viewport width is available to the canvas and inspector at every size.
  */
 export function getConstellationResponsiveLayout(
   width: number,
-  sidebarCollapsed: boolean,
 ): {
   compact: boolean;
   narrow: boolean;
 } {
-  const narrowBreakpoint = sidebarCollapsed ? 880 : 1_040;
-  const compactBreakpoint = sidebarCollapsed ? 1_080 : 1_280;
-
   return {
-    compact: width < compactBreakpoint,
-    narrow: width < narrowBreakpoint,
+    compact: width < 1_080,
+    narrow: width < 880,
   };
 }

@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { Animated, ScrollView, View, useWindowDimensions } from 'react-native';
 import { Typography } from './Typography';
 import { FocusedField } from '@/constants/focused-tokens';
+import { FONT, TYPE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
 
 export interface FocusedChatMessage {
@@ -39,8 +40,8 @@ function EchoLabel() {
       <Typography
         style={{
           color: FocusedField.accent.primary,
-          fontFamily: 'Inter-SemiBold',
-          fontSize: 10,
+          ...TYPE.meta,
+          fontFamily: FONT.ui.semibold,
           letterSpacing: 1.8,
         }}
       >
@@ -65,9 +66,9 @@ function AssistantTurn({ content }: { content: string }) {
         accessibilityRole="text"
         style={{
           color: FocusedField.text.inverse,
-          fontFamily: 'Lora-Regular',
-          fontSize: 16,
-          lineHeight: 24,
+          fontFamily: FONT.editorial.regular,
+          fontSize: 17,
+          lineHeight: 26,
         }}
       >
         {content}
@@ -90,8 +91,8 @@ function UserTurn({ content }: { content: string }) {
       <Typography
         style={{
           color: FocusedField.text.faint,
-          fontFamily: 'Inter-SemiBold',
-          fontSize: 10,
+          ...TYPE.meta,
+          fontFamily: FONT.ui.semibold,
           letterSpacing: 1.8,
           marginBottom: 4,
         }}
@@ -103,9 +104,7 @@ function UserTurn({ content }: { content: string }) {
         accessibilityRole="text"
         style={{
           color: FocusedField.text.secondary,
-          fontFamily: 'Inter-Regular',
-          fontSize: 13.5,
-          lineHeight: 20,
+          ...TYPE.bodySmall,
           textAlign: 'right',
         }}
       >

@@ -16,7 +16,7 @@ import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Button } from '@/components/ui/Button';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { Typography } from '@/components/ui/Typography';
-import { elevationStyle, RADIUS, SPACE } from '@/constants/design';
+import { elevationStyle, RADIUS, SPACE, TYPE } from '@/constants/design';
 import { getCategoryAccentTheme } from '@/constants/themes';
 import { fetchEntries } from '@/features/entries/services/entry-service';
 import type { EntryRecord } from '@/features/entries/types';
@@ -225,10 +225,14 @@ function HeaderAction({
       accessibilityLabel={label}
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => ({
+      style={({ hovered, pressed }) => ({
         alignItems: 'center',
-        backgroundColor: primary ? colors.accent.primary : colors.background.card,
-        borderColor: primary ? colors.accent.primary : colors.border.input,
+        backgroundColor: primary
+          ? hovered || pressed ? colors.accent.primaryHover : colors.accent.primary
+          : hovered ? colors.background.subtle : colors.background.card,
+        borderColor: primary
+          ? hovered || pressed ? colors.accent.primaryHover : colors.accent.primary
+          : colors.border.input,
         borderRadius: RADIUS.md,
         borderWidth: 1,
         flexDirection: 'row',
@@ -274,20 +278,16 @@ function GoalsHeader({
       }}
     >
       <View style={{ flex: 1, minWidth: 0 }}>
-        <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
-          <BrandIcon name="goals" size={20} color={colors.accent.primary} />
-          <Typography variant="eyebrow" style={{ color: colors.text.primary, fontSize: 12 }}>
-            GOALS
+        <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.lg }}>
+          <BrandIcon name="goals" size={28} color={colors.accent.primary} />
+          <Typography accessibilityRole="header" variant="heading">
+            Goals
           </Typography>
         </View>
-        <Typography
-          accessibilityRole="header"
-          variant="heading"
-          style={{ fontSize: compact ? 30 : 36, lineHeight: compact ? 38 : 44, marginTop: SPACE.sm }}
-        >
+        <Typography variant="card-title" style={{ marginTop: SPACE.md }}>
           Your journeys, your becoming.
         </Typography>
-        <Typography variant="body" style={{ color: colors.text.secondary, marginTop: SPACE.xs }}>
+        <Typography variant="body-small" style={{ marginTop: SPACE.xs }}>
           Every goal is a living journey. Reflect, adjust, and grow.
         </Typography>
       </View>
@@ -317,8 +317,7 @@ function GoalsHeader({
             style={{
               color: colors.text.primary,
               flex: 1,
-              fontFamily: '-apple-system, BlinkMacSystemFont, Inter, sans-serif',
-              fontSize: 14,
+              ...TYPE.control,
               minWidth: 0,
               outlineStyle: 'none',
             } as never}
@@ -389,7 +388,14 @@ function CategoryFilters({
 }) {
   const colors = useThemeColors();
   return (
-    <Surface style={{ marginTop: SPACE.lg, padding: SPACE.xl }} subtle>
+    <View
+      style={{
+        borderTopColor: colors.border.divider,
+        borderTopWidth: 1,
+        marginTop: SPACE.lg,
+        paddingTop: SPACE.lg,
+      }}
+    >
       <Typography variant="eyebrow" style={{ color: colors.text.secondary, marginBottom: SPACE.lg }}>
         CATEGORY
       </Typography>
@@ -426,7 +432,7 @@ function CategoryFilters({
           </Pressable>
         ))}
       </View>
-    </Surface>
+    </View>
   );
 }
 
@@ -440,7 +446,6 @@ function GoalListCard({
   selected: boolean;
 }) {
   const colors = useThemeColors();
-  const dark = useUIStore((state) => state.themeMode) === 'dark';
   const accent = getCategoryAccentTheme(goal.category);
   const next = getNextGoalMilestone(goal.milestones);
 
@@ -450,12 +455,14 @@ function GoalListCard({
       accessibilityLabel={`Select ${goal.title}`}
       accessibilityRole="button"
       onPress={onSelect}
-      style={({ pressed }) => ({
-        ...elevationStyle(selected ? 'sm' : 'none', colors, dark),
-        backgroundColor: selected ? colors.background.selectedRow : colors.background.card,
-        borderColor: selected ? colors.border.accent : colors.border.warmSubtle,
-        borderRadius: RADIUS.lg,
-        borderWidth: 1,
+      style={({ hovered, pressed }) => ({
+        backgroundColor: selected
+          ? colors.background.selectedRow
+          : hovered ? colors.background.subtle : colors.background.card,
+        borderLeftColor: selected ? colors.border.accent : 'transparent',
+        borderLeftWidth: 3,
+        borderTopColor: colors.border.divider,
+        borderTopWidth: 1,
         opacity: pressed ? 0.76 : 1,
         overflow: 'hidden',
         padding: SPACE.xl,
@@ -464,7 +471,7 @@ function GoalListCard({
       <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.lg }}>
         <CategoryGlyph goal={goal} size={46} />
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Typography numberOfLines={1} variant="goal-title" style={{ fontSize: 16 }}>
+          <Typography numberOfLines={1} variant="goal-title">
             {goal.title}
           </Typography>
           <Typography variant="caption" style={{ color: colors.text.secondary, marginTop: 2 }}>
@@ -530,13 +537,13 @@ function GoalList({
 }) {
   const colors = useThemeColors();
   return (
-    <View style={{ gap: SPACE.lg, minWidth: 0 }}>
-      <Surface style={{ padding: SPACE.xl }} subtle>
+    <Surface style={{ minWidth: 0, overflow: 'hidden' }}>
+      <View style={{ padding: SPACE.xl }}>
         <GoalStatusTabs onChange={onStatusChange} value={status} />
         {filterOpen ? (
           <CategoryFilters categories={categories} onChange={onCategoryChange} value={category} />
         ) : null}
-      </Surface>
+      </View>
 
       {goals.length ? goals.map((goal) => (
         <GoalListCard
@@ -546,7 +553,15 @@ function GoalList({
           selected={selectedGoalId === goal.id}
         />
       )) : (
-        <Surface style={{ alignItems: 'center', paddingHorizontal: SPACE['3xl'], paddingVertical: SPACE['5xl'] }} subtle>
+        <View
+          style={{
+            alignItems: 'center',
+            borderTopColor: colors.border.divider,
+            borderTopWidth: 1,
+            paddingHorizontal: SPACE['3xl'],
+            paddingVertical: SPACE['5xl'],
+          }}
+        >
           <BrandIcon name="goals" size={30} color={colors.text.accent} />
           <Typography variant="title" style={{ marginTop: SPACE.xl, textAlign: 'center' }}>
             No goals match this view.
@@ -557,9 +572,9 @@ function GoalList({
           <Button onPress={() => router.push('/goals/create')} size="compact" style={{ marginTop: SPACE.xl }}>
             New Goal
           </Button>
-        </Surface>
+        </View>
       )}
-    </View>
+    </Surface>
   );
 }
 
@@ -654,11 +669,13 @@ function DetailTabs({ onChange, value }: { onChange: (value: WorkspaceTab) => vo
     <View
       accessibilityRole="tablist"
       style={{
+        borderTopColor: colors.border.divider,
+        borderTopWidth: 1,
         borderBottomColor: colors.border.divider,
         borderBottomWidth: 1,
         flexDirection: 'row',
         flexWrap: 'wrap',
-        marginTop: SPACE.xl,
+        paddingHorizontal: SPACE.lg,
       }}
     >
       {DETAIL_TABS.map((tab) => {
@@ -688,6 +705,14 @@ function DetailTabs({ onChange, value }: { onChange: (value: WorkspaceTab) => vo
   );
 }
 
+function WorkspaceSection({ children }: { children: ReactNode }) {
+  return (
+    <View style={{ paddingHorizontal: SPACE['3xl'], paddingVertical: SPACE['2xl'] }}>
+      {children}
+    </View>
+  );
+}
+
 function SectionHeading({ action, children }: { action?: ReactNode; children: ReactNode }) {
   const colors = useThemeColors();
   return (
@@ -703,7 +728,7 @@ function SectionHeading({ action, children }: { action?: ReactNode; children: Re
 function NextStepCard({ goal, milestone, onOpen }: { goal: GoalWithDetails; milestone: GoalMilestone | null; onOpen: () => void }) {
   const colors = useThemeColors();
   return (
-    <Surface style={{ padding: SPACE.xl }} subtle>
+    <View>
       <SectionHeading>NEXT STEP</SectionHeading>
       {milestone ? (
         <Pressable
@@ -748,7 +773,7 @@ function NextStepCard({ goal, milestone, onOpen }: { goal: GoalWithDetails; mile
           No next milestone is recorded for this goal yet.
         </Typography>
       )}
-    </Surface>
+    </View>
   );
 }
 
@@ -799,7 +824,7 @@ function MilestoneJourney({ milestones }: { milestones: readonly GoalMilestone[]
                   <View style={{ backgroundColor: completed ? colors.accent.primary : colors.border.divider, flex: 1, height: 1 }} />
                 ) : null}
               </View>
-              <Typography numberOfLines={2} variant="emphasis-sm" style={{ fontSize: 12, marginTop: SPACE.md }}>
+              <Typography numberOfLines={2} variant="emphasis-sm" style={{ marginTop: SPACE.md }}>
                 {milestone.title}
               </Typography>
               <Typography variant="caption" style={{ marginTop: SPACE.xs }}>
@@ -817,7 +842,7 @@ function ActivityList({ error, items, loading }: { error: string | null; items: 
   const colors = useThemeColors();
   const visibleItems = items.slice(0, 4);
   return (
-    <Surface style={{ padding: SPACE.xl }} subtle>
+    <View>
       <SectionHeading>RECENT ACTIVITY</SectionHeading>
       {loading ? (
         <ActivityIndicator color={colors.accent.primary} style={{ alignSelf: 'flex-start', marginTop: SPACE.xl }} />
@@ -861,7 +886,7 @@ function ActivityList({ error, items, loading }: { error: string | null; items: 
           No activity has been recorded for this goal yet.
         </Typography>
       )}
-    </Surface>
+    </View>
   );
 }
 
@@ -991,48 +1016,65 @@ function GoalTabContent({
     const ended = deadlineProgress !== null && deadlineProgress >= 100;
     const mutationsDisabled = ended || goal.status === 'complete';
     return (
-      <View style={{ gap: SPACE.xl }}>
-        <CountdownTimer
-          createdAt={goal.createdAt}
-          deadline={goal.deadline}
-          disabled={goal.has_successor || goal.status === 'archived' || goal.status === 'complete'}
-          onUpdateDeadline={goalDetail.onUpdateDeadline}
-        />
-        <NextStepCard goal={goal} milestone={next} onOpen={() => onTabChange('milestones')} />
-        <MilestonesPanel
-          archived={goal.status === 'archived'}
-          completingIds={goalDetail.completingMilestoneIds}
-          ended={mutationsDisabled}
-          error={goalDetail.milestoneError}
-          hasSuccessor={goal.has_successor}
-          milestones={goal.milestones}
-          onAdd={goalDetail.onAddMilestone}
-          onComplete={goalDetail.onCompleteMilestone}
-          onDelete={goalDetail.onDeleteMilestone}
-          onDismissError={goalDetail.clearMilestoneError}
-          onSave={goalDetail.onSaveMilestone}
-        />
-        <TrackersPanel
-          archived={goal.status === 'archived'}
-          completedIds={goalDetail.completedTrackerIds}
-          ended={mutationsDisabled}
-          error={goalDetail.trackerError}
-          hasSuccessor={goal.has_successor}
-          onAdd={goalDetail.onAddTracker}
-          onDelete={goalDetail.onDeleteTracker}
-          onDismissError={goalDetail.clearTrackerError}
-          onLogComplete={goalDetail.onCompleteTracker}
-          onSave={goalDetail.onSaveTracker}
-          trackers={goal.trackers}
-        />
-        <ActivityList error={activityError} items={activityItems} loading={activityLoading} />
+      <View>
+        <WorkspaceSection>
+          <CountdownTimer
+            createdAt={goal.createdAt}
+            deadline={goal.deadline}
+            disabled={goal.has_successor || goal.status === 'archived' || goal.status === 'complete'}
+            embedded
+            onUpdateDeadline={goalDetail.onUpdateDeadline}
+          />
+        </WorkspaceSection>
+        <View style={{ backgroundColor: colors.border.divider, height: 1 }} />
+        <WorkspaceSection>
+          <NextStepCard goal={goal} milestone={next} onOpen={() => onTabChange('milestones')} />
+        </WorkspaceSection>
+        <View style={{ backgroundColor: colors.border.divider, height: 1 }} />
+        <WorkspaceSection>
+          <MilestonesPanel
+            archived={goal.status === 'archived'}
+            completingIds={goalDetail.completingMilestoneIds}
+            embedded
+            ended={mutationsDisabled}
+            error={goalDetail.milestoneError}
+            hasSuccessor={goal.has_successor}
+            milestones={goal.milestones}
+            onAdd={goalDetail.onAddMilestone}
+            onComplete={goalDetail.onCompleteMilestone}
+            onDelete={goalDetail.onDeleteMilestone}
+            onDismissError={goalDetail.clearMilestoneError}
+            onSave={goalDetail.onSaveMilestone}
+          />
+        </WorkspaceSection>
+        <View style={{ backgroundColor: colors.border.divider, height: 1 }} />
+        <WorkspaceSection>
+          <TrackersPanel
+            archived={goal.status === 'archived'}
+            completedIds={goalDetail.completedTrackerIds}
+            embedded
+            ended={mutationsDisabled}
+            error={goalDetail.trackerError}
+            hasSuccessor={goal.has_successor}
+            onAdd={goalDetail.onAddTracker}
+            onDelete={goalDetail.onDeleteTracker}
+            onDismissError={goalDetail.clearTrackerError}
+            onLogComplete={goalDetail.onCompleteTracker}
+            onSave={goalDetail.onSaveTracker}
+            trackers={goal.trackers}
+          />
+        </WorkspaceSection>
+        <View style={{ backgroundColor: colors.border.divider, height: 1 }} />
+        <WorkspaceSection>
+          <ActivityList error={activityError} items={activityItems} loading={activityLoading} />
+        </WorkspaceSection>
       </View>
     );
   }
 
   const title = DETAIL_TABS.find((item) => item.value === tab)?.label ?? '';
   return (
-    <Surface style={{ padding: SPACE.xl }} subtle>
+    <WorkspaceSection>
       <SectionHeading
         action={tab === 'notes' ? (
           <Pressable onPress={() => router.push('/(app)/entries?create=note')} style={{ minHeight: 44, justifyContent: 'center' }}>
@@ -1054,6 +1096,7 @@ function GoalTabContent({
           <MilestonesPanel
             archived={goal.status === 'archived'}
             completingIds={goalDetail.completingMilestoneIds}
+            embedded
             ended={goal.status === 'complete'}
             error={goalDetail.milestoneError}
             hasSuccessor={goal.has_successor}
@@ -1069,6 +1112,7 @@ function GoalTabContent({
           <TrackersPanel
             archived={goal.status === 'archived'}
             completedIds={goalDetail.completedTrackerIds}
+            embedded
             ended={goal.status === 'complete'}
             error={goalDetail.trackerError}
             hasSuccessor={goal.has_successor}
@@ -1106,7 +1150,7 @@ function GoalTabContent({
           )
         ) : null}
       </View>
-    </Surface>
+    </WorkspaceSection>
   );
 }
 
@@ -1118,7 +1162,7 @@ function GoalAnalyticsCard({ goal, items, entries }: { goal: GoalWithDetails; it
   const completedMilestones = goal.milestones.filter((milestone) => milestone.completedAt !== null).length;
   const recordedActions = items.filter((item) => item.kind !== 'goal_created').length;
   return (
-    <Surface style={{ padding: SPACE.xl }} subtle>
+    <View style={{ padding: SPACE.xl }}>
       <SectionHeading>GOAL ANALYTICS</SectionHeading>
       <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.xl, marginTop: SPACE.xl }}>
         <ProgressRing color={accent.color} progress={goal.progress} size={74} strokeWidth={5} variant="warm" />
@@ -1135,7 +1179,7 @@ function GoalAnalyticsCard({ goal, items, entries }: { goal: GoalWithDetails; it
           { label: 'Recorded activity', value: String(recordedActions) },
           { label: 'Linked entries', value: String(entries.length) },
         ].map((metric) => (
-          <View key={metric.label} style={{ backgroundColor: colors.background.card, borderRadius: RADIUS.md, flex: 1, minWidth: 0, padding: SPACE.lg }}>
+          <View key={metric.label} style={{ backgroundColor: colors.background.subtle, borderRadius: RADIUS.md, flex: 1, minWidth: 0, padding: SPACE.lg }}>
             <Typography variant="title">{metric.value}</Typography>
             <Typography variant="caption" style={{ marginTop: SPACE.xs }}>{metric.label}</Typography>
           </View>
@@ -1175,27 +1219,21 @@ function GoalAnalyticsCard({ goal, items, entries }: { goal: GoalWithDetails; it
           {goalMomentum?.reasons[0]?.message ?? momentum.error ?? 'Momentum V1.1 history will appear after calculation.'}
         </Typography>
       </View>
-    </Surface>
+    </View>
   );
 }
 
 function InsightContextCard({ goal, items }: { goal: GoalWithDetails; items: readonly ActivityItem[] }) {
   const colors = useThemeColors();
-  const dark = useUIStore((state) => state.themeMode) === 'dark';
   const insight = items.find((item) => item.kind === 'insight_confirmed');
   return (
     <View
-      style={[
-        {
-          backgroundColor: colors.background.selectedRow,
-          borderColor: colors.border.accent,
-          borderRadius: RADIUS.xl,
-          borderWidth: 1,
-          overflow: 'hidden',
-          padding: SPACE.xl,
-        },
-        elevationStyle('md', colors, dark),
-      ]}
+      style={{
+        backgroundColor: colors.background.selectedRow,
+        borderBottomColor: colors.border.divider,
+        borderBottomWidth: 1,
+        padding: SPACE.xl,
+      }}
     >
       <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
         <Ionicons color={colors.text.accent} name="sparkles-outline" size={18} />
@@ -1222,7 +1260,7 @@ function InsightContextCard({ goal, items }: { goal: GoalWithDetails; items: rea
 
 function RecommendationsContextCard({ goal }: { goal: GoalWithDetails }) {
   return (
-    <Surface style={{ padding: SPACE.xl }} subtle>
+    <View style={{ padding: SPACE.xl }}>
       <SectionHeading>RECOMMENDATIONS</SectionHeading>
       <Typography variant="title" style={{ marginTop: SPACE.xl }}>No personalized recommendation yet.</Typography>
       <Typography variant="body" style={{ marginTop: SPACE.md }}>
@@ -1230,7 +1268,7 @@ function RecommendationsContextCard({ goal }: { goal: GoalWithDetails }) {
           ? 'OHARA is collecting real milestone and tracker activity. Recommendations will appear only when a supported recommendation source is available.'
           : 'Add milestones, trackers, notes, or reflections to build the context needed for a useful recommendation.'}
       </Typography>
-    </Surface>
+    </View>
   );
 }
 
@@ -1240,7 +1278,7 @@ function LinkedContextCard({ entries, error, goalId }: { entries: readonly Entry
   const reflection = entries.find((entry) => entry.entryType === 'reflection');
   const recent = [note, reflection].filter((entry): entry is EntryRecord => Boolean(entry));
   return (
-    <Surface style={{ padding: SPACE.xl }} subtle>
+    <View style={{ padding: SPACE.xl }}>
       <SectionHeading
         action={(
           <Pressable
@@ -1271,7 +1309,7 @@ function LinkedContextCard({ entries, error, goalId }: { entries: readonly Entry
           </>
         )}
       </View>
-    </Surface>
+    </View>
   );
 }
 
@@ -1286,13 +1324,16 @@ function ContextRail({
   goal: GoalWithDetails;
   items: readonly ActivityItem[];
 }) {
+  const colors = useThemeColors();
   return (
-    <View style={{ gap: SPACE.xl, minWidth: 0 }}>
+    <Surface style={{ minWidth: 0, overflow: 'hidden' }}>
       <InsightContextCard goal={goal} items={items} />
       <GoalAnalyticsCard entries={entries} goal={goal} items={items} />
+      <View style={{ backgroundColor: colors.border.divider, height: 1 }} />
       <RecommendationsContextCard goal={goal} />
+      <View style={{ backgroundColor: colors.border.divider, height: 1 }} />
       <LinkedContextCard entries={entries} error={entriesError} goalId={goal.id} />
-    </View>
+    </Surface>
   );
 }
 
@@ -1349,30 +1390,41 @@ function SelectedGoalWorkspace({
 
   return (
     <>
-      <GoalDetailHeader
-        deadlineProgress={goal.progress}
-        ended={ended}
-        goal={goal}
-        isMomentum={!goal.has_successor && goal.previous_goal_id !== null}
-        isSuperseded={goal.has_successor}
-        onArchive={goalDetail.onArchiveGoal}
-        onComplete={goalDetail.onCompleteGoal}
-        onOpenProjectPicker={openProjectPicker}
-        onUpdateDescription={goalDetail.onUpdateDescription}
-        successorGoalId={goal.successor?.id ?? null}
-      />
-      {goalDetail.goalError ? (
-        <Surface style={{ backgroundColor: colors.feedback.danger.bg, borderColor: colors.feedback.danger.border, marginBottom: SPACE.lg, padding: SPACE.lg }} subtle>
-          <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.lg }}>
-            <Typography variant="body" style={{ color: colors.feedback.danger.text, flex: 1 }}>{goalDetail.goalError}</Typography>
-            <Pressable onPress={goalDetail.clearGoalError} style={{ justifyContent: 'center', minHeight: 44 }}>
-              <Typography variant="emphasis-sm" style={{ color: colors.feedback.danger.text }}>Dismiss</Typography>
-            </Pressable>
+      <Surface style={{ minWidth: 0 }}>
+        <GoalDetailHeader
+          deadlineProgress={goal.progress}
+          embedded
+          ended={ended}
+          goal={goal}
+          isMomentum={!goal.has_successor && goal.previous_goal_id !== null}
+          isSuperseded={goal.has_successor}
+          onArchive={goalDetail.onArchiveGoal}
+          onComplete={goalDetail.onCompleteGoal}
+          onOpenProjectPicker={openProjectPicker}
+          onUpdateDescription={goalDetail.onUpdateDescription}
+          successorGoalId={goal.successor?.id ?? null}
+        />
+        {goalDetail.goalError ? (
+          <View
+            style={{
+              backgroundColor: colors.feedback.danger.bg,
+              borderColor: colors.feedback.danger.border,
+              borderRadius: RADIUS.md,
+              borderWidth: 1,
+              marginBottom: SPACE.lg,
+              marginHorizontal: SPACE['3xl'],
+              padding: SPACE.lg,
+            }}
+          >
+            <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.lg }}>
+              <Typography variant="body" style={{ color: colors.feedback.danger.text, flex: 1 }}>{goalDetail.goalError}</Typography>
+              <Pressable onPress={goalDetail.clearGoalError} style={{ justifyContent: 'center', minHeight: 44 }}>
+                <Typography variant="emphasis-sm" style={{ color: colors.feedback.danger.text }}>Dismiss</Typography>
+              </Pressable>
+            </View>
           </View>
-        </Surface>
-      ) : null}
-      <DetailTabs onChange={onTabChange} value={tab} />
-      <View style={{ marginTop: SPACE.xl }}>
+        ) : null}
+        <DetailTabs onChange={onTabChange} value={tab} />
         <GoalTabContent
           activityError={activityError}
           activityItems={activityItems}
@@ -1384,7 +1436,7 @@ function SelectedGoalWorkspace({
           onTabChange={onTabChange}
           tab={tab}
         />
-      </View>
+      </Surface>
       <GoalProjectPickerModal
         currentProjectId={goal.projectId}
         error={projectError}

@@ -1,5 +1,92 @@
-import { Platform, type ViewStyle } from 'react-native';
+import { Platform, type TextStyle, type ViewStyle } from 'react-native';
 import type { ThemeColors } from './colors';
+
+/**
+ * Canonical application typography.
+ *
+ * Inter is bundled at the app root and is the single cross-platform UI family.
+ * Lora is reserved for the OHARA wordmark and intentionally reflective/editorial
+ * moments; it should not be used as a second general-purpose interface family.
+ */
+export const FONT = {
+  ui: {
+    regular: 'Inter-Regular',
+    italic: 'Inter-Italic',
+    medium: 'Inter-Medium',
+    semibold: 'Inter-SemiBold',
+    bold: 'Inter-Bold',
+  },
+  editorial: {
+    regular: 'Lora-Regular',
+    italic: 'Lora-Italic',
+    medium: 'Lora-Medium',
+    semibold: 'Lora-SemiBold',
+  },
+} as const;
+
+/** Semantic type roles used by shared primitives and non-Typography text inputs. */
+export const TYPE = {
+  meta: {
+    fontFamily: FONT.ui.medium,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  caption: {
+    fontFamily: FONT.ui.regular,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  bodySmall: {
+    fontFamily: FONT.ui.regular,
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  body: {
+    fontFamily: FONT.ui.regular,
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  bodyLarge: {
+    fontFamily: FONT.ui.regular,
+    fontSize: 17,
+    lineHeight: 26,
+  },
+  control: {
+    fontFamily: FONT.ui.medium,
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  cardTitle: {
+    fontFamily: FONT.ui.semibold,
+    fontSize: 18,
+    lineHeight: 24,
+  },
+  sectionTitle: {
+    fontFamily: FONT.ui.semibold,
+    fontSize: 20,
+    lineHeight: 26,
+  },
+  pageTitle: {
+    fontFamily: FONT.ui.semibold,
+    fontSize: 28,
+    lineHeight: 34,
+  },
+  overline: {
+    fontFamily: FONT.ui.medium,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  editorBody: {
+    fontFamily: FONT.ui.regular,
+    fontSize: 17,
+    lineHeight: 27,
+  },
+  chartLabel: {
+    fontFamily: FONT.ui.medium,
+    fontSize: 11,
+    lineHeight: 15,
+  },
+} as const satisfies Record<string, TextStyle>;
 
 export const SPACE = {
   none: 0,
@@ -28,8 +115,8 @@ export const RADIUS = {
 } as const;
 
 export const CONTROL = {
-  compactHeight: 40,
-  defaultHeight: 46,
+  compactHeight: 42,
+  defaultHeight: 48,
   iconSize: 44,
 } as const;
 
@@ -40,8 +127,6 @@ export const LAYOUT = {
   wideGutter: 48,
   contentMaxWidth: 1440,
   readingMaxWidth: 880,
-  sidebarCollapsedWidth: 76,
-  sidebarExpandedWidth: 236,
 } as const;
 
 export type ElevationLevel = 'none' | 'sm' | 'md' | 'lg';

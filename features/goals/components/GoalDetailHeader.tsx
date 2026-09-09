@@ -2,16 +2,19 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { Typography } from '@/components/ui/Typography';
 import { ExtendGoalModal } from './ExtendGoalModal';
 import { GoalTitleRow } from './GoalTitleRow';
 import { useThemeColors } from '@/store/uiStore';
+import { FONT, SPACE, TYPE } from '@/constants/design';
 import type { GoalWithDetails } from '../types';
 import { goalWorkspaceHref } from '../navigation';
 
 interface GoalDetailHeaderProps {
   deadlineProgress: number | null;
+  embedded?: boolean;
   ended: boolean;
   goal: GoalWithDetails;
   isMomentum: boolean;
@@ -62,8 +65,8 @@ function MetaItem({ label, value }: { label: string; value: string }) {
       <Text
         style={{
           color: colors.text.muted,
-          fontFamily: 'Inter-SemiBold',
-          fontSize: 10,
+          ...TYPE.meta,
+          fontFamily: FONT.ui.semibold,
           letterSpacing: 1,
           textTransform: 'uppercase',
         }}
@@ -73,8 +76,8 @@ function MetaItem({ label, value }: { label: string; value: string }) {
       <Text
         style={{
           color: colors.text.primary,
-          fontFamily: 'Inter-SemiBold',
-          fontSize: 13.5,
+          ...TYPE.bodySmall,
+          fontFamily: FONT.ui.semibold,
         }}
       >
         {value}
@@ -85,6 +88,7 @@ function MetaItem({ label, value }: { label: string; value: string }) {
 
 export function GoalDetailHeader({
   deadlineProgress,
+  embedded = false,
   ended,
   goal,
   isMomentum,
@@ -161,16 +165,16 @@ export function GoalDetailHeader({
           ? colors.background.selectedRow
           : colors.background.card,
         borderColor: colors.border.warm,
-        borderRadius: 20,
-        borderWidth: 1,
-        marginBottom: 16,
+        borderRadius: embedded ? 0 : 20,
+        borderWidth: embedded ? 0 : 1,
+        marginBottom: embedded ? 0 : 16,
         paddingHorizontal: 28,
         paddingVertical: 26,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 22,
-        elevation: 2,
+        shadowOpacity: embedded ? 0 : 0.05,
+        shadowRadius: embedded ? 0 : 22,
+        elevation: embedded ? 0 : 2,
         zIndex: 5,
       }}
     >
@@ -232,7 +236,7 @@ export function GoalDetailHeader({
               borderWidth: 1,
               flexDirection: 'row',
               gap: 6,
-              height: 30,
+              minHeight: 38,
               opacity: isReadOnly ? 0.5 : pressed ? 0.72 : 1,
               paddingHorizontal: 13,
             })}
@@ -243,8 +247,7 @@ export function GoalDetailHeader({
               <Typography
                 variant="emphasis-sm"
                 style={{
-                  color: completed ? colors.accent.tealSubtle : colors.text.accent,
-                  fontSize: 12.5,
+                  color: completed ? colors.text.onAccent : colors.text.accent,
                 }}
               >
                 ✓ {completed ? 'Completed' : 'Mark complete'}
@@ -346,10 +349,8 @@ export function GoalDetailHeader({
             style={{ alignItems: 'flex-start', marginBottom: goal.description || editingDescription ? 10 : 0 }}
             textStyle={{
               color: isSuperseded ? colors.text.secondary : colors.text.primary,
-              fontFamily: 'Inter-SemiBold',
-              fontSize: 32,
+              ...TYPE.pageTitle,
               letterSpacing: -0.4,
-              lineHeight: 36,
             }}
             title={goal.title}
             variant="heading"
@@ -380,9 +381,7 @@ export function GoalDetailHeader({
                   borderRadius: 10,
                   borderWidth: 1,
                   color: colors.text.primary,
-                  fontFamily: 'Inter-Regular',
-                  fontSize: 14.5,
-                  lineHeight: 22,
+                  ...TYPE.bodySmall,
                   minHeight: 92,
                   paddingHorizontal: 12,
                   paddingVertical: 10,
@@ -417,7 +416,7 @@ export function GoalDetailHeader({
               </View>
             </View>
           ) : goal.description ? (
-            <Typography variant="description" style={{ fontSize: 14.5, lineHeight: 22.5 }}>
+            <Typography variant="description">
               {goal.description}
             </Typography>
           ) : (
@@ -437,7 +436,7 @@ export function GoalDetailHeader({
             strokeWidth={7}
             variant="warm"
           />
-          <Typography variant="caption" style={{ color: colors.accent.tealMid, fontFamily: 'Inter-SemiBold' }}>
+          <Typography variant="caption" style={{ color: colors.accent.tealMid, fontFamily: FONT.ui.semibold }}>
             {completed ? 'Completed' : archived ? 'Archived' : 'On track'}
           </Typography>
         </View>
@@ -454,7 +453,7 @@ export function GoalDetailHeader({
       {ended && !isSuperseded && !completed && !archived && showEndedCard ? (
         <View
           style={{
-            backgroundColor: colors.background.goalCard,
+            backgroundColor: colors.background.subtle,
             borderColor: colors.border.warm,
             borderRadius: 12,
             borderWidth: 1,
@@ -462,27 +461,19 @@ export function GoalDetailHeader({
             padding: 16,
           }}
         >
-          <Text style={{ color: colors.text.primary, fontFamily: 'Inter-Regular', fontSize: 20, lineHeight: 26, marginBottom: 6 }}>
+          <Typography variant="section-header" style={{ marginBottom: SPACE.sm }}>
             This goal has ended.
-          </Text>
+          </Typography>
           <Typography variant="description" style={{ marginBottom: 14 }}>
             Continue this work in a new phase when you&apos;re ready.
           </Typography>
           <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            <Pressable
-              onPress={() => setShowExtendModal(true)}
-              style={{ backgroundColor: colors.background.sidebar, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9 }}
-            >
-              <Typography variant="emphasis-sm" style={{ color: colors.text.inverse, fontSize: 12 }}>
-                Extend into a new phase
-              </Typography>
-            </Pressable>
-            <Pressable
-              onPress={() => setShowEndedCard(false)}
-              style={{ borderColor: colors.border.input, borderRadius: 999, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 8 }}
-            >
-              <Typography variant="emphasis-sm" style={{ color: colors.text.primary, fontSize: 12 }}>Not now</Typography>
-            </Pressable>
+            <Button onPress={() => setShowExtendModal(true)} size="compact">
+              Extend into a new phase
+            </Button>
+            <Button onPress={() => setShowEndedCard(false)} size="compact" variant="outline">
+              Not now
+            </Button>
           </View>
         </View>
       ) : null}

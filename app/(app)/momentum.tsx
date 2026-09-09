@@ -84,7 +84,7 @@ function SectionHeading({
   return (
     <View style={{ gap: SPACE.sm, marginBottom: SPACE.xl }}>
       <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md }}>
-        <Typography accessibilityRole="header" variant="heading" style={{ fontSize: 20 }}>
+        <Typography accessibilityRole="header" variant="section-header">
           {title}
         </Typography>
       </View>
@@ -440,7 +440,7 @@ export default function MomentumScreen() {
             </View>
 
             <View style={{ alignItems: 'flex-start', gap: 8 }}>
-              <Typography accessibilityRole="header" variant="heading" style={{ fontSize: 18 }}>
+              <Typography accessibilityRole="header" variant="title">
                 How Momentum works
               </Typography>
               <Typography variant="caption" style={{ color: colors.text.secondary, lineHeight: 19, maxWidth: 760 }}>

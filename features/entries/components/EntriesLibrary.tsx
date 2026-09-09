@@ -1,715 +1,484 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  TextInput,
-  View,
-  useWindowDimensions,
-} from 'react-native';
-import { router } from 'expo-router';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { Button } from '@/components/ui/Button';
+import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { BrandIcon } from '@/components/ui/BrandIcon';
-import { Card } from '@/components/ui/Card';
-import { Modal } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
 import { Typography } from '@/components/ui/Typography';
-import { GOAL_CATEGORY_CATALOG } from '@/lib/goals/catalog';
-import { RADIUS, SPACE } from '@/constants/design';
+import { RADIUS, SPACE, TYPE } from '@/constants/design';
+import type { Project } from '@/features/projects/types';
+import { useProjectStore } from '@/features/projects/store';
 import { useThemeColors } from '@/store/uiStore';
 import { useEntriesStore } from '../store';
-import type { EntryDraft, EntryRecord } from '../types';
-import {
-  createEmptyDocument,
-  entriesForCategory,
-  isEntryShelfExpanded,
-  isUnlinkedEntry,
-  prioritizeEntryTypeAnchors,
-  sortEntriesByRecency,
-  toggleEntryShelfExpansion,
-} from '../utils';
+import type { EntryRecord, EntryType } from '../types';
+import { entriesForProject, sortEntriesByRecency } from '../utils';
 
-type LibraryFilter =
-  | { kind: 'all' }
-  | { kind: 'unlinked' }
-  | { kind: 'category'; id: string; label: string }
-  | { kind: 'goal'; id: string; label: string };
+export type EchoLibraryFilter = 'all' | EntryType;
 
-function formatEdited(date: Date): string {
+function formatUpdatedAt(date: Date): string {
   const difference = Date.now() - date.getTime();
-  if (difference < 60_000) return 'Edited just now';
-  if (difference < 3_600_000) return `Edited ${Math.max(1, Math.floor(difference / 60_000))}m ago`;
-  if (difference < 86_400_000) return `Edited ${Math.floor(difference / 3_600_000)}h ago`;
-  return `Edited ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+  if (difference < 60_000) return 'Now';
+  if (difference < 3_600_000) return `${Math.max(1, Math.floor(difference / 60_000))}m`;
+  if (difference < 86_400_000) return `${Math.floor(difference / 3_600_000)}h`;
+  return date.toLocaleDateString('en-US', {
+    day: 'numeric',
+    month: 'short',
+    ...(date.getFullYear() === new Date().getFullYear() ? {} : { year: 'numeric' }),
+  });
 }
 
-function emptyNoteDraft(categoryId?: EntryRecord['categoryIds'][number]): EntryDraft {
-  return {
-    entryType: 'note',
-    title: '',
-    content: createEmptyDocument(),
-    plainText: '',
-    relationships: {
-      goalIds: [],
-      categoryIds: categoryId ? [categoryId] : [],
-      milestoneIds: [],
-    },
-  };
+function entryTitle(entry: EntryRecord): string {
+  if (entry.title.trim()) return entry.title.trim();
+  return entry.entryType === 'reflection' ? 'Reflection' : 'Untitled note';
 }
 
-function EntryCard({
+function EntryRow({
   entry,
-  accent,
-  list,
-  onDelete,
-  onPin,
+  selected,
+  onPress,
 }: {
   entry: EntryRecord;
-  accent: string;
-  list: boolean;
-  onDelete: () => void;
-  onPin: () => void;
+  selected: boolean;
+  onPress: () => void;
 }) {
   const colors = useThemeColors();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const isReflection = entry.entryType === 'reflection';
-  const fallbackTitle = isReflection ? 'Reflection' : 'Untitled note';
-  const entryLabel = isReflection ? 'Reflection' : 'Note';
-  const context = entry.goals[0]?.title
-    ?? GOAL_CATEGORY_CATALOG.find((category) => entry.categoryIds.includes(category.id))?.label
-    ?? 'Unlinked';
+  const reflection = entry.entryType === 'reflection';
+
   return (
-    <Card
-      elevation="sm"
-      padding="spacious"
-      style={{
-        gap: SPACE.md,
-        minHeight: list ? 132 : 204,
-        width: list ? '100%' : 276,
-      }}
+    <Pressable
+      accessibilityLabel={`Open ${reflection ? 'reflection' : 'note'} ${entryTitle(entry)}`}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ hovered, pressed }) => ({
+        backgroundColor: selected
+          ? colors.background.selectedRow
+          : hovered
+            ? colors.background.hoverAccent
+            : 'transparent',
+        borderColor: selected ? colors.border.accent : 'transparent',
+        borderRadius: RADIUS.md,
+        borderWidth: 1,
+        gap: SPACE.sm,
+        minHeight: 92,
+        opacity: pressed ? 0.72 : 1,
+        paddingHorizontal: SPACE.lg,
+        paddingVertical: SPACE.md,
+      })}
     >
-      <View style={{ flex: 1, position: 'relative' }}>
-        <Pressable
-          accessibilityLabel={`Open ${entryLabel.toLowerCase()} ${entry.title || fallbackTitle}`}
-          accessibilityRole="button"
-          onPress={() => router.push(`/(app)/entries/${entry.id}` as never)}
-          style={({ pressed }) => ({ flex: 1, gap: SPACE.md, opacity: pressed ? 0.72 : 1 })}
-        >
-          <View
-            style={{
-              alignItems: 'flex-start',
-              flexDirection: 'row',
-              gap: 8,
-              paddingRight: 26,
-            }}
-          >
-            <View style={{
-              alignItems: 'center',
-              backgroundColor: colors.background.selectedRow,
-              borderRadius: RADIUS.sm,
-              height: 36,
-              justifyContent: 'center',
-              width: 36,
-            }}>
-              <BrandIcon
-                name={isReflection ? 'echo' : 'echo-add-entry'}
-                color={accent}
-                size={18}
-              />
-            </View>
-            <Typography variant="title" numberOfLines={2} style={{ flex: 1, fontSize: 16 }}>
-              {entry.title || fallbackTitle}
-            </Typography>
-            {entry.pinned ? <Ionicons name="pin" color={accent} size={15} /> : null}
-          </View>
-          <Typography
-            variant="body"
-            numberOfLines={list ? 2 : 3}
-            style={{ color: colors.text.secondary, flex: 1 }}
-          >
-            {entry.takeaway || entry.plainText || (isReflection ? 'Open reflection…' : 'Start writing…')}
-          </Typography>
-          <View style={{ alignItems: 'center', flexDirection: 'row', gap: 6 }}>
-            <View style={{ backgroundColor: accent, borderRadius: 3, height: 6, width: 6 }} />
-            <Typography variant="caption" numberOfLines={1} style={{ flex: 1 }}>
-              {context}
-            </Typography>
-            <Typography variant="caption">{formatEdited(entry.updatedAt)}</Typography>
-          </View>
-        </Pressable>
-        <Pressable
-          accessibilityLabel={`${entryLabel} actions`}
-          accessibilityRole="button"
-          onPress={() => setMenuOpen((open) => !open)}
-          hitSlop={8}
-          style={({ pressed }) => ({
-            alignItems: 'center',
-            borderRadius: RADIUS.round,
-            height: 44,
-            justifyContent: 'center',
-            opacity: pressed ? 0.56 : 1,
-            position: 'absolute',
-            right: -10,
-            top: -10,
-            width: 44,
-          })}
-        >
-          <Ionicons name="ellipsis-horizontal" color={colors.text.muted} size={18} />
-        </Pressable>
-      </View>
-      {menuOpen ? (
+      <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md, minWidth: 0 }}>
         <View
           style={{
-            backgroundColor: colors.background.input,
-            borderRadius: RADIUS.md,
-            flexDirection: 'row',
-            gap: 12,
-            minHeight: 44,
-            padding: SPACE.md,
+            alignItems: 'center',
+            backgroundColor: reflection
+              ? colors.background.selectedRow
+              : colors.background.input,
+            borderRadius: RADIUS.round,
+            flexShrink: 0,
+            height: 34,
+            justifyContent: 'center',
+            width: 34,
           }}
         >
-          {!isReflection ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => { onPin(); setMenuOpen(false); }}
-            >
-              <Typography variant="caption">{entry.pinned ? 'Unpin' : 'Pin'}</Typography>
-            </Pressable>
-          ) : null}
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => { onDelete(); setMenuOpen(false); }}
-          >
-            <Typography variant="caption" style={{ color: colors.feedback.danger.text }}>
-              Delete
-            </Typography>
-          </Pressable>
+          <BrandIcon
+            name={reflection ? 'echo' : 'echo-add-entry'}
+            color={colors.accent.primary}
+            size={17}
+          />
         </View>
-      ) : null}
-    </Card>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Typography numberOfLines={1} variant="emphasis-sm">
+            {entryTitle(entry)}
+          </Typography>
+          <Typography numberOfLines={1} variant="caption" style={{ marginTop: 2 }}>
+            {reflection ? 'Reflection' : 'Note'}
+            {entry.project?.title ? ` · ${entry.project.title}` : ''}
+          </Typography>
+        </View>
+        <Typography variant="caption" style={{ flexShrink: 0 }}>
+          {formatUpdatedAt(entry.updatedAt)}
+        </Typography>
+      </View>
+      <Typography
+        numberOfLines={2}
+        variant="caption"
+        style={{ color: colors.text.secondary, lineHeight: 19, paddingLeft: 46 }}
+      >
+        {entry.takeaway || entry.plainText || (reflection ? 'Write freely…' : 'Start writing…')}
+      </Typography>
+    </Pressable>
   );
 }
 
-export function EntriesLibrary() {
+function ProjectRow({
+  project,
+  selected,
+  count,
+  onPress,
+}: {
+  project: Project;
+  selected: boolean;
+  count: number;
+  onPress: () => void;
+}) {
   const colors = useThemeColors();
-  const { width } = useWindowDimensions();
-  const compact = width < 720;
+  return (
+    <Pressable
+      accessibilityLabel={`Open Echo project ${project.title}`}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ hovered, pressed }) => ({
+        alignItems: 'center',
+        backgroundColor: selected
+          ? colors.background.selectedRow
+          : hovered
+            ? colors.background.hoverAccent
+            : 'transparent',
+        borderRadius: RADIUS.md,
+        flexDirection: 'row',
+        gap: SPACE.md,
+        minHeight: 44,
+        opacity: pressed ? 0.72 : 1,
+        paddingHorizontal: SPACE.lg,
+      })}
+    >
+      <BrandIcon name="project" color={colors.text.accent} size={17} />
+      <Typography numberOfLines={1} variant="emphasis-sm" style={{ flex: 1 }}>
+        {project.title}
+      </Typography>
+      <Typography variant="caption">{count}</Typography>
+    </Pressable>
+  );
+}
+
+export function EntriesLibrary({
+  selectedEntryId,
+  selectedProjectId,
+  onSelectEntry,
+  onSelectMostRecent,
+  onSelectProject,
+  onNew,
+  onCollapse,
+}: {
+  selectedEntryId?: string;
+  selectedProjectId?: string;
+  onSelectEntry: (entryId: string) => void;
+  onSelectMostRecent: () => void;
+  onSelectProject: (projectId: string) => void;
+  onNew: () => void;
+  onCollapse?: () => void;
+}) {
+  const colors = useThemeColors();
+  const { entries, isLoading, error, loadEntries, loadContext } = useEntriesStore();
   const {
-    entries,
-    goals,
-    isLoading,
-    error,
-    loadEntries,
-    loadContext,
-    createEntry,
-    updateEntry,
-    deleteEntry,
-  } = useEntriesStore();
+    projects,
+    isLoading: projectsLoading,
+    error: projectsError,
+    loadProjects,
+  } = useProjectStore();
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<LibraryFilter>({ kind: 'all' });
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [sortMode, setSortMode] = useState<'recent' | 'title'>('recent');
-  const [view, setView] = useState<'grid' | 'list'>('grid');
-  const [creating, setCreating] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [shelfExpansion, setShelfExpansion] = useState<Record<string, boolean>>({});
-  const [pendingDelete, setPendingDelete] = useState<EntryRecord | null>(null);
+  const [filter, setFilter] = useState<EchoLibraryFilter>('note');
+
+  useEffect(() => {
+    setFilter(selectedProjectId ? 'all' : 'note');
+  }, [selectedProjectId]);
 
   useEffect(() => {
     void loadEntries();
     void loadContext();
-  }, [loadContext, loadEntries]);
+    void loadProjects();
+  }, [loadContext, loadEntries, loadProjects]);
 
-  const libraryEntries = useMemo(() => {
+  const activeProjects = useMemo(
+    () => projects.filter((project) => project.status !== 'archived'),
+    [projects],
+  );
+  const selectedProject = activeProjects.find((project) => project.id === selectedProjectId) ?? null;
+  const inProjectContext = Boolean(selectedProjectId);
+  const visibleEntries = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    let result = entries.filter((entry) => !entry.archived);
-    if (normalizedQuery) {
-      result = result.filter((entry) => (
-        entry.title.toLowerCase().includes(normalizedQuery)
+    const scopedEntries = selectedProjectId ? entriesForProject(entries, selectedProjectId) : entries;
+    return sortEntriesByRecency(scopedEntries.filter((entry) => {
+      if (entry.archived) return false;
+      if (filter !== 'all' && entry.entryType !== filter) return false;
+      if (!normalizedQuery) return true;
+      return entry.title.toLowerCase().includes(normalizedQuery)
         || entry.plainText.toLowerCase().includes(normalizedQuery)
-        || entry.takeaway?.toLowerCase().includes(normalizedQuery)
-      ));
-    }
-    if (filter.kind === 'unlinked') result = result.filter(isUnlinkedEntry);
-    if (filter.kind === 'category') {
-      result = result.filter((entry) => entriesForCategory([entry], filter.id).length > 0);
-    }
-    if (filter.kind === 'goal') {
-      result = result.filter((entry) => entry.goals.some((goal) => goal.id === filter.id));
-    }
-    return sortMode === 'title'
-      ? [...result].sort((a, b) => a.title.localeCompare(b.title))
-      : sortEntriesByRecency(result);
-  }, [entries, filter, query, sortMode]);
+        || entry.takeaway?.toLowerCase().includes(normalizedQuery);
+    }));
+  }, [entries, filter, query, selectedProjectId]);
 
-  async function handleCreate(categoryId?: EntryRecord['categoryIds'][number]) {
-    if (creating) return;
-    setCreating(true);
-    setActionError(null);
-    try {
-      const entry = await createEntry(emptyNoteDraft(categoryId));
-      router.push(`/(app)/entries/${entry.id}` as never);
-    } catch (creationError) {
-      setActionError(creationError instanceof Error ? creationError.message : 'Could not create note');
-    } finally {
-      setCreating(false);
-    }
+  const projectCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    entries.forEach((entry) => {
+      if (!entry.archived && entry.project?.id) {
+        counts.set(entry.project.id, (counts.get(entry.project.id) ?? 0) + 1);
+      }
+    });
+    return counts;
+  }, [entries]);
+
+  function retryLibraryLoad() {
+    void Promise.all([loadEntries(), loadContext(), loadProjects()]);
   }
 
-  async function handlePin(entry: EntryRecord) {
-    try {
-      await updateEntry(entry.id, {
-        entryType: 'note',
-        title: entry.title,
-        content: entry.content,
-        plainText: entry.plainText,
-        pinned: !entry.pinned,
-        archived: entry.archived,
-        relationships: {
-          goalIds: entry.goals.map((goal) => goal.id),
-          categoryIds: entry.categoryIds,
-          milestoneIds: [],
-        },
-      });
-    } catch (pinError) {
-      setActionError(pinError instanceof Error ? pinError.message : 'Could not update note');
-    }
-  }
-
-  async function handleDelete(entry: EntryRecord) {
-    try {
-      await deleteEntry(entry.id);
-      setPendingDelete(null);
-    } catch (deleteError) {
-      setActionError(deleteError instanceof Error ? deleteError.message : 'Could not delete entry');
-    }
-  }
-
-  function renderShelf(
-    id: string,
-    title: string,
-    icon: string,
-    accent: string,
-    shelfEntries: EntryRecord[],
-    unlinked = false,
-  ) {
-    const expanded = isEntryShelfExpanded(shelfExpansion, id, shelfEntries.length);
-    if (shelfEntries.length === 0) return null;
-
-    function toggleShelf() {
-      setShelfExpansion((current) => toggleEntryShelfExpansion(current, id));
-    }
-
-    return (
-      <View key={id} style={{ gap: 12 }}>
-        <Card
-          elevation="sm"
-          padding="none"
-          style={{
-            alignItems: 'center',
-            borderColor: expanded ? colors.border.accent : colors.border.divider,
-            borderRadius: RADIUS.lg,
-            flexDirection: 'row',
-            gap: SPACE.sm,
-            minHeight: 64,
-            overflow: 'hidden',
-            paddingHorizontal: SPACE.lg,
-          }}
-        >
+  return (
+    <View
+      style={{
+        backgroundColor: colors.background.card,
+        flex: 1,
+        minHeight: 0,
+        minWidth: 0,
+        userSelect: 'none',
+      }}
+    >
+      <View
+        style={{
+          borderBottomColor: colors.border.divider,
+          borderBottomWidth: 1,
+          gap: SPACE.lg,
+          paddingBottom: SPACE['2xl'],
+          paddingHorizontal: SPACE.xl,
+          paddingTop: SPACE.xl,
+        }}
+      >
+        <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}>
           <Pressable
-            accessibilityLabel={`${expanded ? 'Collapse' : 'Expand'} ${title}`}
+            accessibilityLabel={inProjectContext ? 'Return to Most Recent Echo content' : 'Show Most Recent Echo content'}
             accessibilityRole="button"
-            accessibilityState={{ expanded }}
-            onPress={toggleShelf}
+            accessibilityState={{ selected: !inProjectContext }}
+            onPress={onSelectMostRecent}
             style={({ hovered, pressed }) => ({
               alignItems: 'center',
-              backgroundColor: hovered ? colors.background.hoverAccent : 'transparent',
+              backgroundColor: !inProjectContext
+                ? colors.background.selectedRow
+                : hovered
+                  ? colors.background.hoverAccent
+                  : 'transparent',
               borderRadius: RADIUS.md,
               flex: 1,
               flexDirection: 'row',
               gap: SPACE.md,
-              minHeight: 64,
-              minWidth: 0,
-              opacity: pressed ? 0.7 : 1,
-              overflow: 'hidden',
-              paddingHorizontal: SPACE.xs,
-              paddingVertical: SPACE.md,
-              transform: [{ scale: 1 }],
+              minHeight: 44,
+              opacity: pressed ? 0.72 : 1,
+              paddingHorizontal: SPACE.lg,
             })}
           >
-            <View
-              style={{
-                alignItems: 'center',
-                flex: 1,
-                flexDirection: 'row',
-                gap: SPACE.md,
-                minWidth: 0,
-                overflow: 'hidden',
-              }}
-            >
-              <Typography style={{ color: accent, flexShrink: 0, fontSize: 18 }}>{icon}</Typography>
-              <Typography
-                ellipsizeMode="tail"
-                numberOfLines={1}
-                variant="title"
-                style={{ flex: 1, fontSize: 18, lineHeight: 26, minWidth: 0 }}
-              >
-                {title}
-              </Typography>
-            </View>
-            <View
-              style={{
-                alignItems: 'center',
-                flexDirection: 'row',
-                flexShrink: 0,
-                gap: SPACE.md,
-              }}
-            >
-              <View
-                style={{
-                  alignItems: 'center',
-                  backgroundColor: colors.background.input,
-                  borderRadius: 999,
-                  justifyContent: 'center',
-                  minWidth: 28,
-                  paddingHorizontal: 8,
-                  paddingVertical: 3,
-                }}
-              >
-                <Typography variant="caption">{shelfEntries.length}</Typography>
-              </View>
-              <Ionicons
-                name={expanded ? 'chevron-up' : 'chevron-down'}
-                color={colors.text.muted}
-                size={18}
-              />
-            </View>
+            <Ionicons
+              name={inProjectContext ? 'arrow-back' : 'time-outline'}
+              color={colors.text.accent}
+              size={19}
+            />
+            <Typography variant="title" style={{ flex: 1, fontSize: 17 }}>
+              Most Recent
+            </Typography>
           </Pressable>
-          {!unlinked ? (
+          {onCollapse ? (
             <Pressable
-              accessibilityLabel={`New note in ${title}`}
+              accessibilityLabel="Collapse Echo library"
               accessibilityRole="button"
-              onPress={() => handleCreate(id as EntryRecord['categoryIds'][number])}
-              style={({ pressed }) => ({
+              accessibilityState={{ expanded: true }}
+              hitSlop={6}
+              onPress={onCollapse}
+              style={({ hovered, pressed }) => ({
                 alignItems: 'center',
-                borderColor: colors.border.input,
+                backgroundColor: hovered ? colors.background.hoverAccent : 'transparent',
                 borderRadius: RADIUS.round,
-                borderWidth: 1,
-                flexShrink: 0,
-                height: 44,
+                height: 38,
                 justifyContent: 'center',
-                opacity: pressed ? 0.65 : 1,
-                transform: [{ scale: 1 }],
-                width: 44,
+                opacity: pressed ? 0.68 : 1,
+                width: 38,
               })}
             >
-              <Ionicons name="add" color={colors.text.secondary} size={18} />
+              <Ionicons name="chevron-back" color={colors.text.accent} size={18} />
             </Pressable>
           ) : null}
-        </Card>
-        {expanded && view === 'list' ? (
-          <View style={{ gap: 10 }}>
-            {unlinked ? (
-              <Pressable
-                accessibilityLabel="Create a new unlinked note"
-                accessibilityRole="button"
-                onPress={() => handleCreate()}
-                style={({ pressed }) => ({
-                  alignItems: 'center',
-                  borderColor: colors.border.input,
-                  borderRadius: 14,
-                  borderStyle: 'dashed',
-                  borderWidth: 1,
-                  flexDirection: 'row',
-                  gap: 9,
-                  minHeight: 58,
-                  opacity: pressed ? 0.7 : 1,
-                  paddingHorizontal: 16,
-                })}
-              >
-                <Ionicons name="add-circle-outline" color={colors.text.accent} size={22} />
-                <Typography variant="emphasis-sm">New Note</Typography>
-              </Pressable>
-            ) : null}
-            {shelfEntries.map((entry) => (
-              <EntryCard
-                accent={accent}
-                entry={entry}
-                key={entry.id}
-                list
-                onDelete={() => setPendingDelete(entry)}
-                onPin={() => handlePin(entry)}
-              />
-            ))}
-          </View>
-        ) : expanded ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 12, paddingRight: 24 }}
-          >
-            {unlinked ? (
-              <Pressable
-                accessibilityLabel="Create a new unlinked note"
-                accessibilityRole="button"
-                onPress={() => handleCreate()}
-                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-              >
-                <View
-                  style={{
-                    alignItems: 'center',
-                    borderColor: colors.border.input,
-                    borderRadius: 16,
-                    borderStyle: 'dashed',
-                    borderWidth: 1,
-                    gap: 10,
-                    justifyContent: 'center',
-                    minHeight: 190,
-                    width: 220,
-                  }}
-                >
-                  <Ionicons name="add-circle-outline" color={colors.text.accent} size={28} />
-                  <Typography variant="emphasis-sm">New Note</Typography>
-                </View>
-              </Pressable>
-            ) : null}
-            {shelfEntries.map((entry) => (
-              <EntryCard
-                accent={accent}
-                entry={entry}
-                key={entry.id}
-                list={false}
-                onDelete={() => setPendingDelete(entry)}
-                onPin={() => handlePin(entry)}
-              />
-            ))}
-          </ScrollView>
-        ) : null}
-      </View>
-    );
-  }
+        </View>
 
-  const unlinkedEntries = useMemo(
-    () => prioritizeEntryTypeAnchors(libraryEntries.filter(isUnlinkedEntry)),
-    [libraryEntries],
-  );
-  const populatedCategoryShelves = useMemo(
-    () => GOAL_CATEGORY_CATALOG
-      .map((category) => ({
-        category,
-        entries: prioritizeEntryTypeAnchors(entriesForCategory(libraryEntries, category.id)),
-      }))
-      .filter((shelf) => shelf.entries.length > 0),
-    [libraryEntries],
-  );
-
-  return (
-    <View style={{ gap: compact ? 22 : 28 }}>
-      <View
-        style={{
-          alignItems: compact ? 'stretch' : 'center',
-          flexDirection: compact ? 'column' : 'row',
-          gap: 10,
-        }}
-      >
         <View
           style={{
             alignItems: 'center',
-            backgroundColor: colors.background.card,
+            backgroundColor: colors.background.input,
             borderColor: colors.border.input,
             borderRadius: RADIUS.md,
             borderWidth: 1,
-            flex: 1,
             flexDirection: 'row',
-            maxWidth: compact ? undefined : 480,
             paddingHorizontal: SPACE.lg,
           }}
         >
           <Ionicons name="search-outline" color={colors.text.muted} size={18} />
           <TextInput
-            accessibilityLabel="Search entries"
+            accessibilityLabel="Search Echo"
             onChangeText={setQuery}
-            placeholder="Search notes and reflections"
+            placeholder="Search Echo"
             placeholderTextColor={colors.text.muted}
             style={{
               color: colors.text.primary,
               flex: 1,
-              fontFamily: 'Inter-Regular',
-              minHeight: 44,
+            ...TYPE.bodySmall,
+            minHeight: 42,
               outlineStyle: 'solid',
               outlineWidth: 0,
-              paddingHorizontal: 8,
+              paddingHorizontal: SPACE.md,
             }}
             value={query}
           />
         </View>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          <Button onPress={() => setFilterOpen(true)} size="compact" variant="secondary">
-            <Ionicons name="filter-outline" size={16} />{' '}
-            {filter.kind === 'all'
-              ? 'Filter'
-              : filter.kind === 'unlinked'
-                ? 'Unlinked Entries'
-                : filter.label}
-          </Button>
-          <Button
-            onPress={() => setSortMode((current) => current === 'recent' ? 'title' : 'recent')}
-            size="compact"
-            variant="secondary"
-          >
-            {sortMode === 'recent' ? 'Recently edited' : 'Title A–Z'}
-          </Button>
-          <Button
-            onPress={() => setView((current) => current === 'grid' ? 'list' : 'grid')}
-            size="compact"
-            variant="secondary"
-          >
-            <Ionicons name={view === 'grid' ? 'grid-outline' : 'list-outline'} size={16} />
-          </Button>
-          <Button disabled={creating} loading={creating} onPress={() => handleCreate()} size="compact">
-            New Note
-          </Button>
+
+        <View accessibilityRole="tablist" style={{ flexDirection: 'row', gap: SPACE.xs }}>
+          {([
+            { id: 'all', label: 'All' },
+            { id: 'note', label: 'Notes' },
+            { id: 'reflection', label: 'Reflections' },
+          ] as const).map((option) => {
+            const selected = filter === option.id;
+            return (
+              <Pressable
+                accessibilityRole="tab"
+                accessibilityState={{ selected }}
+                key={option.id}
+                onPress={() => setFilter(option.id)}
+                style={({ pressed }) => ({
+                  alignItems: 'center',
+                  backgroundColor: selected ? colors.background.selectedRow : 'transparent',
+                  borderRadius: RADIUS.round,
+                  flex: 1,
+                  justifyContent: 'center',
+                minHeight: 38,
+                  opacity: pressed ? 0.7 : 1,
+                  paddingHorizontal: SPACE.md,
+                })}
+              >
+                <Typography
+                  variant="emphasis-sm"
+                  style={{ color: selected ? colors.text.accent : colors.text.secondary }}
+                >
+                  {option.label}
+                </Typography>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
 
-      {actionError || error ? (
-        <View
-          accessibilityRole="alert"
-          style={{
-            backgroundColor: colors.feedback.danger.bg,
-            borderColor: colors.feedback.danger.border,
-            borderRadius: 12,
-            borderWidth: 1,
-            padding: 12,
-          }}
-        >
-          <Typography variant="caption" style={{ color: colors.feedback.danger.text }}>
-            {actionError ?? error}
-          </Typography>
-        </View>
-      ) : null}
-
-      {isLoading && entries.length === 0 ? (
-        <View style={{ alignItems: 'center', paddingVertical: 60 }}>
-          <ActivityIndicator color={colors.accent.primary} />
-          <Typography variant="caption" style={{ marginTop: 10 }}>Loading entries…</Typography>
-        </View>
-      ) : libraryEntries.length === 0 ? (
-        <View
-          style={{
-            alignItems: 'center',
-            borderColor: colors.border.subtle,
-            borderRadius: 16,
-            borderStyle: 'dashed',
-            borderWidth: 1,
-            gap: 8,
-            padding: 28,
-          }}
-        >
-          <Ionicons name="documents-outline" color={colors.text.accent} size={28} />
-          <Typography variant="title">No entries to show</Typography>
-          <Typography variant="caption" style={{ textAlign: 'center' }}>
-            Create a note or start a reflection to begin your record.
-          </Typography>
-          <Button disabled={creating} loading={creating} onPress={() => handleCreate()} size="compact">
-            New Note
-          </Button>
-        </View>
-      ) : (
-        <>
-          {renderShelf(
-            'unlinked',
-            'Unlinked Entries',
-            '○',
-            colors.text.muted,
-            unlinkedEntries,
-            true,
-          )}
-          {populatedCategoryShelves.map(({ category, entries: shelfEntries }) => renderShelf(
-            category.id,
-            category.label,
-            category.icon,
-            category.accent.color,
-            shelfEntries,
-          ))}
-        </>
-      )}
-
-      <Modal
-        visible={filterOpen}
-        onClose={() => setFilterOpen(false)}
-        closeOnBackdropPress
-        showCloseButton={false}
-        contentStyle={{ maxHeight: '80%', maxWidth: 480 }}
+      <ScrollView
+        contentContainerStyle={{ padding: SPACE.xl, paddingBottom: SPACE['3xl'] }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        style={{ flex: 1 }}
       >
-        <Typography variant="title">Filter entries</Typography>
-        <ScrollView style={{ marginTop: 14, maxHeight: 420 }}>
-          {([
-            { kind: 'all', label: 'All entries' },
-            { kind: 'unlinked', label: 'Unlinked Entries' },
-          ] as const).map((option) => (
-            <Pressable
-              key={option.kind}
-              onPress={() => { setFilter({ kind: option.kind }); setFilterOpen(false); }}
-              style={{ paddingVertical: 10 }}
-            >
-              <Typography variant="emphasis-sm">{option.label}</Typography>
-            </Pressable>
-          ))}
-          {populatedCategoryShelves.length > 0 ? (
-            <>
-              <Typography variant="eyebrow" style={{ marginBottom: 6, marginTop: 12 }}>
-                CATEGORIES
-              </Typography>
-              {populatedCategoryShelves.map(({ category }) => (
-                <Pressable
-                  key={category.id}
-                  onPress={() => {
-                    setFilter({ kind: 'category', id: category.id, label: category.label });
-                    setFilterOpen(false);
-                  }}
-                  style={{ paddingVertical: 9 }}
-                >
-                  <Typography variant="emphasis-sm">{category.icon} {category.label}</Typography>
-                </Pressable>
-              ))}
-            </>
-          ) : null}
-          <Typography variant="eyebrow" style={{ marginBottom: 6, marginTop: 12 }}>
-            GOALS
-          </Typography>
-          {goals.filter((goal) => goal.status !== 'archived').map((goal) => (
-            <Pressable
-              key={goal.id}
-              onPress={() => {
-                setFilter({ kind: 'goal', id: goal.id, label: goal.title });
-                setFilterOpen(false);
-              }}
-              style={{ paddingVertical: 9 }}
-            >
-              <Typography variant="emphasis-sm">{goal.title}</Typography>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </Modal>
-
-      <Modal
-        visible={pendingDelete !== null}
-        onClose={() => setPendingDelete(null)}
-        closeOnBackdropPress
-        showCloseButton={false}
-        cancelText="Cancel"
-        confirmText="Delete entry"
-        confirmVariant="destructive"
-        onConfirm={() => pendingDelete && void handleDelete(pendingDelete)}
-      >
-        <Typography variant="title">Delete this entry?</Typography>
-        <Typography variant="body" style={{ marginTop: 8 }}>
-          “{pendingDelete?.title
-            || (pendingDelete?.entryType === 'reflection' ? 'Reflection' : 'Untitled note')}”
-          {' '}will be permanently removed.
+        <Typography variant="eyebrow" style={{ marginBottom: SPACE.md, paddingHorizontal: SPACE.sm }}>
+          {selectedProject?.title ?? 'MOST RECENT'}
         </Typography>
-      </Modal>
+
+        {(isLoading || projectsLoading) && entries.length === 0 ? (
+          <View style={{ alignItems: 'center', paddingVertical: SPACE['5xl'] }}>
+            <ActivityIndicator color={colors.accent.primary} />
+            <Typography variant="caption" style={{ marginTop: SPACE.md }}>Loading Echo…</Typography>
+          </View>
+        ) : visibleEntries.length ? (
+          <View style={{ gap: SPACE.xs }}>
+            {visibleEntries.map((entry) => (
+              <EntryRow
+                entry={entry}
+                key={entry.id}
+                onPress={() => onSelectEntry(entry.id)}
+                selected={entry.id === selectedEntryId}
+              />
+            ))}
+          </View>
+        ) : (
+          <View style={{ alignItems: 'flex-start', gap: SPACE.md, padding: SPACE.lg }}>
+            <BrandIcon name="echo" color={colors.text.accent} size={25} />
+            <Typography variant="title">
+              {selectedProject ? 'This project is quiet for now' : 'A clear place to begin'}
+            </Typography>
+            <Typography variant="body-small">
+              {selectedProject
+                ? 'Notes and Reflections added to this Project will appear here by recency.'
+                : query
+                  ? 'No Notes or Reflections match this search.'
+                  : 'Your Notes and Reflections will appear here as you create them.'}
+            </Typography>
+            {!query ? <Button onPress={onNew} size="compact">New</Button> : null}
+          </View>
+        )}
+
+        {error || projectsError ? (
+          <View
+            accessibilityRole="alert"
+            style={{
+              backgroundColor: colors.feedback.danger.bg,
+              borderColor: colors.feedback.danger.border,
+              borderRadius: RADIUS.md,
+              borderWidth: 1,
+              gap: SPACE.md,
+              marginTop: SPACE.lg,
+              padding: SPACE.lg,
+            }}
+          >
+            <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
+              <Ionicons name="alert-circle-outline" color={colors.feedback.danger.text} size={18} />
+              <Typography
+                variant="body-small"
+                style={{ color: colors.feedback.danger.text, flex: 1 }}
+              >
+                We couldn’t load all of your Echo content.
+              </Typography>
+            </View>
+            <Pressable
+              accessibilityLabel="Retry loading Echo content"
+              accessibilityRole="button"
+              onPress={retryLibraryLoad}
+              style={({ pressed }) => ({
+                alignSelf: 'flex-start',
+                borderRadius: RADIUS.sm,
+                opacity: pressed ? 0.65 : 1,
+                paddingHorizontal: SPACE.sm,
+                paddingVertical: SPACE.xs,
+              })}
+            >
+              <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>
+                Retry
+              </Typography>
+            </Pressable>
+          </View>
+        ) : null}
+
+        <View
+          style={{
+            backgroundColor: colors.background.input,
+            borderColor: colors.border.subtle,
+            borderRadius: RADIUS.lg,
+            borderWidth: 1,
+            marginTop: SPACE['2xl'],
+            padding: SPACE.sm,
+            paddingBottom: SPACE.md,
+            paddingTop: SPACE.lg,
+          }}
+        >
+          <Typography variant="eyebrow" style={{ marginBottom: SPACE.md, paddingHorizontal: SPACE.lg }}>
+            PROJECTS
+          </Typography>
+          {activeProjects.length ? (
+            <View style={{ gap: SPACE.xs }}>
+              {activeProjects.map((project) => (
+                <ProjectRow
+                  count={projectCounts.get(project.id) ?? 0}
+                  key={project.id}
+                  onPress={() => onSelectProject(project.id)}
+                  project={project}
+                  selected={project.id === selectedProjectId}
+                />
+              ))}
+            </View>
+          ) : (
+            <Typography variant="body-small" style={{ paddingHorizontal: SPACE.lg }}>
+              No projects yet.
+            </Typography>
+          )}
+        </View>
+      </ScrollView>
     </View>
   );
 }

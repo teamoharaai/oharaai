@@ -35,6 +35,7 @@ export interface ThemeColors {
   };
   readonly accent: {
     readonly primary: string;
+    readonly primaryHover: string;
     readonly teal: string;
     readonly tealSubtle: string;
     readonly tealMid: string;
@@ -59,6 +60,9 @@ interface FeedbackColors {
 
 export type ThemeTextColor = keyof ThemeColors['text'];
 
+export const OHARA_ACCENT_PRIMARY = '#63C174';
+export const OHARA_ACCENT_PRIMARY_HOVER = '#4EAA60';
+
 export const LIGHT_THEME = {
   background: {
     page: '#F8F8F6',
@@ -67,22 +71,22 @@ export const LIGHT_THEME = {
     input: '#F3F4F1',
     subtle: '#F5F6F3',
     goalCard: '#FFFFFF',
-    selectedRow: 'rgba(42,127,80,0.12)',
-    hoverAccent: 'rgba(42,127,80,0.18)',
+    selectedRow: 'rgba(99,193,116,0.15)',
+    hoverAccent: 'rgba(99,193,116,0.23)',
   },
   text: {
     primary: '#1C1C1E',
     secondary: '#6E6E73',
     inverse: '#EDE7DA', // reconciled: was #E8EDE9 (on-dark / wordmark)
-    onAccent: '#EDE7DA', // high-contrast text on accent.primary
-    accent: '#2A7F50',
-    muted: '#8E8E93',
+    onAccent: '#111111', // high-contrast text on the vibrant primary accent
+    accent: OHARA_ACCENT_PRIMARY,
+    muted: '#747478', // 4.65:1 on white for readable small metadata
     mutedOnDark: '#9C9483', // new: muted text on dark surfaces (checked hero)
   },
   border: {
     default: 'rgba(0,0,0,0.06)',
     subtle: 'rgba(0,0,0,0.04)',
-    accent: '#2A7F50',
+    accent: OHARA_ACCENT_PRIMARY,
     warm: '#E5E5EA',
     warmSubtle: 'rgba(15,23,42,0.06)',
     input: '#E5E5EA',
@@ -95,7 +99,8 @@ export const LIGHT_THEME = {
     thorn: '#EF4444',
   },
   accent: {
-    primary: '#2A7F50',
+    primary: OHARA_ACCENT_PRIMARY,
+    primaryHover: OHARA_ACCENT_PRIMARY_HOVER,
     teal: '#6FDFB8',
     tealSubtle: '#E8F5EF',
     tealMid: '#2F8F6D', // new: mid teal (today-ring, project dot, streak number)
@@ -132,22 +137,22 @@ export const DARK_THEME = {
     input: '#242426',
     subtle: '#18191B',
     goalCard: '#1C1C1E',
-    selectedRow: 'rgba(88,199,123,0.14)',
-    hoverAccent: 'rgba(88,199,123,0.18)',
+    selectedRow: 'rgba(99,193,116,0.2)',
+    hoverAccent: 'rgba(99,193,116,0.28)',
   },
   text: {
     primary: '#F5F5F7',
     secondary: '#A1A1A6',
     inverse: '#F1F0ED', // derived, no Figma dark token
     onAccent: '#111111', // high-contrast text on accent.primary
-    accent: '#58C77B',
+    accent: OHARA_ACCENT_PRIMARY,
     muted: '#8E8E93',
-    mutedOnDark: '#737378',
+    mutedOnDark: '#98989E', // 6.58:1 on the dark page surface
   },
   border: {
     default: 'rgba(255,255,255,0.06)', // derived, no Figma dark token
     subtle: 'rgba(255,255,255,0.04)', // derived, no Figma dark token
-    accent: '#58C77B',
+    accent: OHARA_ACCENT_PRIMARY,
     warm: '#2C2C2E',
     warmSubtle: 'rgba(255,255,255,0.06)',
     input: '#38383A',
@@ -160,7 +165,8 @@ export const DARK_THEME = {
     thorn: '#F48181', // derived, no Figma dark token
   },
   accent: {
-    primary: '#58C77B',
+    primary: OHARA_ACCENT_PRIMARY,
+    primaryHover: OHARA_ACCENT_PRIMARY_HOVER,
     teal: '#7BE0B4',
     tealSubtle: '#FAFDFB', // derived, no Figma dark token
     tealMid: '#55C983',

@@ -35,6 +35,7 @@ import Svg, {
   Rect,
   Stop,
 } from 'react-native-svg';
+import { TYPE } from '@/constants/design';
 import type {
   ConstellationLayout,
   SproutedLabelLayout,
@@ -949,8 +950,7 @@ const ConstellationViewport = forwardRef<
           <Text
             style={{
               color: props.tokens.text.secondary,
-              fontFamily: 'Inter-Regular',
-              fontSize: 12,
+              ...TYPE.caption,
             }}
           >
             {props.layoutError}

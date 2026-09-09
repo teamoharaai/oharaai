@@ -2,22 +2,24 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Modal as RNModal,
-  Platform,
   Pressable,
   ScrollView,
   TextInput,
   View,
+  type LayoutChangeEvent,
   type ViewStyle,
   useWindowDimensions,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
 import { RADIUS, SPACE, elevationStyle } from '@/constants/design';
 import { GOAL_CATEGORY_CATALOG } from '@/lib/goals/catalog';
 import { goalWorkspaceHref } from '@/features/goals/navigation';
+import { useProjectStore } from '@/features/projects/store';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { fetchEntry, isPersistenceUnavailable } from '../services/entry-service';
 import { useEntriesStore } from '../store';
@@ -34,15 +36,7 @@ import { EntryLinkPicker } from './EntryLinkPicker';
 import { RichTextEditor } from './RichTextEditor';
 
 const AUTOSAVE_DELAY = 900;
-
-function colorWithAlpha(color: string, alpha: number): string {
-  const hex = color.replace('#', '');
-  if (hex.length !== 6) return color;
-  const red = Number.parseInt(hex.slice(0, 2), 16);
-  const green = Number.parseInt(hex.slice(2, 4), 16);
-  const blue = Number.parseInt(hex.slice(4, 6), 16);
-  return `rgba(${red},${green},${blue},${alpha})`;
-}
+const MIN_INLINE_INTELLIGENCE_WORKSPACE = 1020;
 
 const chromeIconButton: ViewStyle = {
   alignItems: 'center',
@@ -63,19 +57,46 @@ function saveLabel(status: EntrySaveStatus): string {
   return 'Saved';
 }
 
-export function NoteEditor({ entryId }: { entryId: string }) {
+export function NoteEditor({
+  entryId,
+  embedded = false,
+  showBack = true,
+  onBack,
+}: {
+  entryId: string;
+  embedded?: boolean;
+  showBack?: boolean;
+  onBack?: () => void;
+}) {
   const colors = useThemeColors();
   const darkMode = useUIStore((state) => state.themeMode === 'dark');
   const { width } = useWindowDimensions();
   const narrow = width < 840;
+  const libraryCollapsed = useUIStore((state) => state.entriesLibraryCollapsed);
   const entries = useEntriesStore((state) => state.entries);
   const goals = useEntriesStore((state) => state.goals);
   const loadContext = useEntriesStore((state) => state.loadContext);
   const upsertEntry = useEntriesStore((state) => state.upsertEntry);
   const updateEntry = useEntriesStore((state) => state.updateEntry);
   const deleteEntry = useEntriesStore((state) => state.deleteEntry);
+  const projects = useProjectStore((state) => state.projects);
+  const loadProjects = useProjectStore((state) => state.loadProjects);
   const intelligenceOpen = useUIStore((state) => state.entriesIntelligenceOpen);
   const setIntelligenceOpen = useUIStore((state) => state.setEntriesIntelligenceOpen);
+  const [workspaceWidth, setWorkspaceWidth] = useState(0);
+
+  const estimatedWorkspaceWidth = embedded
+    ? Math.max(0, width - (libraryCollapsed && width >= 900 ? 48 : 390))
+    : width;
+  const intelligenceInSheet = narrow
+    || (workspaceWidth || estimatedWorkspaceWidth) < MIN_INLINE_INTELLIGENCE_WORKSPACE;
+
+  function measureWorkspace(event: LayoutChangeEvent) {
+    const nextWidth = event.nativeEvent.layout.width;
+    setWorkspaceWidth((currentWidth) => (
+      Math.abs(currentWidth - nextWidth) > 1 ? nextWidth : currentWidth
+    ));
+  }
 
   const cachedEntry = entries.find((entry) => entry.id === entryId) ?? null;
   const [entry, setEntry] = useState<EntryRecord | null>(cachedEntry);
@@ -88,6 +109,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
   const [plainText, setPlainText] = useState(cachedEntry?.plainText ?? '');
   const [goalIds, setGoalIds] = useState(cachedEntry?.goals.map((goal) => goal.id) ?? []);
   const [categoryIds, setCategoryIds] = useState(cachedEntry?.categoryIds ?? []);
+  const [projectId, setProjectId] = useState(cachedEntry?.project?.id ?? null);
   const [saveStatus, setSaveStatus] = useState<EntrySaveStatus>('idle');
   const [saveError, setSaveError] = useState<string | null>(null);
   const [linkPickerOpen, setLinkPickerOpen] = useState(false);
@@ -97,6 +119,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
   const [exportMessage, setExportMessage] = useState<string | null>(null);
   const [dirtyVersion, setDirtyVersion] = useState(0);
   const [focusedReferenceId, setFocusedReferenceId] = useState<string | null>(null);
+  const [referenceFocusNonce, setReferenceFocusNonce] = useState(0);
   const [referenceRemoval, setReferenceRemoval] = useState<{ id: string; nonce: number } | null>(null);
   const lastSavedVersion = useRef(0);
   const lastAttemptedVersion = useRef(0);
@@ -105,7 +128,8 @@ export function NoteEditor({ entryId }: { entryId: string }) {
 
   useEffect(() => {
     if (goals.length === 0) void loadContext();
-  }, [goals.length, loadContext]);
+    if (projects.length === 0) void loadProjects();
+  }, [goals.length, loadContext, loadProjects, projects.length]);
 
   useEffect(() => {
     let active = true;
@@ -125,6 +149,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
         setPlainText(result.plainText);
         setGoalIds(result.goals.map((goal) => goal.id));
         setCategoryIds(result.categoryIds);
+        setProjectId(result.project?.id ?? null);
       })
       .catch((error) => {
         if (active) setLoadError(error instanceof Error ? error.message : 'Could not load note');
@@ -146,6 +171,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
       setPlainText(draft.plainText);
       setGoalIds(draft.relationships.goalIds);
       setCategoryIds(draft.relationships.categoryIds);
+      setProjectId(draft.relationships.projectId ?? null);
       setSaveStatus('error');
       setSaveError('Recovered an unsaved local draft. Retry saving when you are online.');
       setDirtyVersion((version) => version + 1);
@@ -162,8 +188,8 @@ export function NoteEditor({ entryId }: { entryId: string }) {
     pinned: entry?.pinned ?? false,
     archived: false,
     expectedContentVersion: entry?.contentVersion,
-    relationships: { goalIds, categoryIds, milestoneIds: [] },
-  }), [categoryIds, content, entry?.contentVersion, entry?.pinned, goalIds, plainText, title]);
+    relationships: { goalIds, projectId, categoryIds, milestoneIds: [] },
+  }), [categoryIds, content, entry?.contentVersion, entry?.pinned, goalIds, plainText, projectId, title]);
   latestDraftRef.current = draft;
 
   useEffect(() => {
@@ -221,14 +247,16 @@ export function NoteEditor({ entryId }: { entryId: string }) {
 
   async function handleBack() {
     if (dirtyVersion > lastSavedVersion.current) await persist(dirtyVersion);
-    router.replace('/(app)/entries' as never);
+    if (onBack) onBack();
+    else router.replace('/(app)/entries' as never);
   }
 
   async function handleDelete() {
     if (!entry) return;
     try {
       await deleteEntry(entry.id);
-      router.replace('/(app)/entries' as never);
+      if (onBack) onBack();
+      else router.replace('/(app)/entries' as never);
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : 'Could not delete note');
     }
@@ -242,7 +270,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
   async function exportAction(action: 'pdf' | 'text' | 'copy') {
     setExportMessage(null);
     try {
-      if (action === 'pdf') exportEntryPdf(title, plainText);
+      if (action === 'pdf') await exportEntryPdf(title, plainText, { document: content, goals });
       if (action === 'text') exportEntryText(title, plainText);
       if (action === 'copy') await copyEntryText(title, plainText);
       setExportMessage(action === 'copy' ? 'Copied to clipboard.' : 'Export started.');
@@ -252,6 +280,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
   }
 
   const selectedGoals = goals.filter((goal) => goalIds.includes(goal.id));
+  const selectedProject = projects.find((project) => project.id === projectId) ?? null;
   const goalReferences = useMemo(() => extractGoalReferences(content), [content]);
   const intelligenceReferences = useMemo(
     () => extractIntelligenceReferences(content),
@@ -262,34 +291,35 @@ export function NoteEditor({ entryId }: { entryId: string }) {
     && candidate.goals.some((goal) => goalIds.includes(goal.id))
   )).slice(0, 3);
 
-  function intelligencePanel() {
-    const glassStyle = Platform.OS === 'web'
-      ? ({
-          backdropFilter: 'blur(22px)',
-          WebkitBackdropFilter: 'blur(22px)',
-          boxShadow: darkMode
-            ? `-10px 0 34px ${colorWithAlpha(colors.effects.shadow, 0.24)}`
-            : `-10px 0 34px ${colorWithAlpha(colors.effects.shadow, 0.08)}`,
-        } as ViewStyle)
-      : elevationStyle('md', colors, darkMode);
+  function focusReference(referenceId: string) {
+    setFocusedReferenceId(referenceId);
+    setReferenceFocusNonce((nonce) => nonce + 1);
+  }
+
+  function intelligencePanel(asSheet: boolean) {
+    const panelElevation = asSheet ? {} : elevationStyle('sm', colors, darkMode);
 
     return (
       <View
         style={[{
-          backgroundColor: colorWithAlpha(colors.accent.primary, darkMode ? 0.1 : 0.055),
-          borderColor: colorWithAlpha(colors.accent.primary, darkMode ? 0.22 : 0.18),
-          borderLeftWidth: narrow ? 0 : 1,
-          borderTopWidth: narrow ? 1 : 0,
-          flex: 1,
-          maxWidth: narrow ? undefined : 328,
+          alignSelf: 'stretch',
+          backgroundColor: colors.background.selectedRow,
+          borderColor: colors.border.divider,
+          borderRadius: asSheet ? 0 : RADIUS.lg,
+          borderWidth: asSheet ? 0 : 1,
+          borderTopWidth: 1,
+          flex: asSheet ? 1 : undefined,
+          flexShrink: 0,
+          margin: asSheet ? 0 : SPACE.lg,
+          maxWidth: asSheet ? undefined : 328,
           overflow: 'hidden',
-          width: narrow ? '100%' : 328,
-        }, glassStyle]}
+          width: asSheet ? '100%' : 328,
+        }, panelElevation]}
       >
         <View
           style={{
             alignItems: 'center',
-            borderBottomColor: colorWithAlpha(colors.accent.primary, darkMode ? 0.16 : 0.12),
+            borderBottomColor: colors.border.divider,
             borderBottomWidth: 1,
             flexDirection: 'row',
             minHeight: 68,
@@ -299,7 +329,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
           <View
             style={{
               alignItems: 'center',
-              backgroundColor: colorWithAlpha(colors.accent.primary, darkMode ? 0.16 : 0.1),
+              backgroundColor: colors.background.card,
               borderRadius: RADIUS.round,
               height: 36,
               justifyContent: 'center',
@@ -307,7 +337,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
               width: 36,
             }}
           >
-            <Ionicons name="sparkles-outline" color={colors.accent.primary} size={20} />
+            <BrandIcon name="ohara" color={colors.accent.primary} size={20} />
           </View>
           <Typography variant="title" style={{ flex: 1, fontSize: 17, lineHeight: 24 }}>
             Ohara Intelligence
@@ -327,7 +357,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
           contentContainerStyle={{ padding: SPACE['2xl'], paddingBottom: SPACE['4xl'] }}
           showsVerticalScrollIndicator={false}
         >
-          <Typography variant="meta" style={{ lineHeight: 20 }}>
+          <Typography variant="body-small">
             Selection references stay anchored to this note. No AI response has been generated.
           </Typography>
           <Typography variant="eyebrow" style={{ marginBottom: SPACE.md, marginTop: SPACE['3xl'] }}>
@@ -339,10 +369,13 @@ export function NoteEditor({ entryId }: { entryId: string }) {
               style={{
                 backgroundColor: focusedReferenceId === reference.id
                   ? colors.background.selectedRow
-                  : colorWithAlpha(colors.background.card, darkMode ? 0.62 : 0.68),
-                borderColor: colorWithAlpha(colors.accent.primary, 0.2),
-                borderLeftWidth: 2,
+                  : colors.background.card,
+                borderColor: focusedReferenceId === reference.id
+                  ? colors.border.accent
+                  : colors.border.divider,
                 borderRadius: RADIUS.md,
+                borderWidth: 1,
+                borderLeftWidth: focusedReferenceId === reference.id ? 2 : 1,
                 marginBottom: SPACE.md,
                 overflow: 'hidden',
               }}
@@ -350,7 +383,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
               <Pressable
                 accessibilityLabel={`Jump to reference: ${reference.excerpt}`}
                 accessibilityRole="button"
-                onPress={() => setFocusedReferenceId(reference.id)}
+                onPress={() => focusReference(reference.id)}
                 style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1, padding: SPACE.lg })}
               >
                 <Typography variant="emphasis-sm" numberOfLines={3} style={{ fontSize: 14, lineHeight: 20 }}>
@@ -362,7 +395,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
                     : 'Just now'}
                 </Typography>
                 {reference.question ? (
-                  <Typography variant="meta" style={{ marginTop: SPACE.sm }}>
+                  <Typography variant="body-small" style={{ marginTop: SPACE.sm }}>
                     {reference.question}
                   </Typography>
                 ) : null}
@@ -374,7 +407,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
                 <Pressable
                   accessibilityLabel="Open reference in document"
                   accessibilityRole="button"
-                  onPress={() => setFocusedReferenceId(reference.id)}
+                  onPress={() => focusReference(reference.id)}
                   style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.65 : 1, padding: SPACE.md })}
                 >
                   <Typography variant="caption" style={{ color: colors.text.accent }}>Jump to source</Typography>
@@ -410,8 +443,12 @@ export function NoteEditor({ entryId }: { entryId: string }) {
                     style={{
                       backgroundColor: focusedReferenceId === reference.id
                         ? colors.background.selectedRow
-                        : colorWithAlpha(colors.background.card, darkMode ? 0.48 : 0.54),
+                        : colors.background.card,
+                      borderColor: focusedReferenceId === reference.id
+                        ? colors.border.accent
+                        : colors.border.divider,
                       borderRadius: RADIUS.md,
+                      borderWidth: 1,
                       marginBottom: SPACE.md,
                       overflow: 'hidden',
                     }}
@@ -419,7 +456,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
                     <Pressable
                       accessibilityLabel={`Jump to Goal reference: ${goal?.title ?? 'Unavailable Goal'}`}
                       accessibilityRole="button"
-                      onPress={() => setFocusedReferenceId(reference.id)}
+                      onPress={() => focusReference(reference.id)}
                       style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1, padding: SPACE.lg })}
                     >
                       <Typography variant="emphasis-sm" style={{ fontSize: 14 }}>
@@ -441,7 +478,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
                       <Pressable
                         accessibilityLabel="Open Goal reference in document"
                         accessibilityRole="button"
-                        onPress={() => setFocusedReferenceId(reference.id)}
+                        onPress={() => focusReference(reference.id)}
                         style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.65 : 1, padding: SPACE.md })}
                       >
                         <Typography variant="caption" style={{ color: colors.text.accent }}>Jump to source</Typography>
@@ -477,8 +514,8 @@ export function NoteEditor({ entryId }: { entryId: string }) {
             <View
               key={goal.id}
               style={{
-                backgroundColor: colorWithAlpha(colors.background.card, darkMode ? 0.62 : 0.68),
-                borderColor: colorWithAlpha(colors.accent.primary, darkMode ? 0.16 : 0.12),
+                backgroundColor: colors.background.card,
+                borderColor: colors.border.divider,
                 borderRadius: RADIUS.md,
                 borderWidth: 1,
                 marginBottom: SPACE.md,
@@ -493,7 +530,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
                 {goal.status}
               </Typography>
             </View>
-          )) : <Typography variant="meta">No goals linked yet.</Typography>}
+          )) : <Typography variant="body-small">No goals linked yet.</Typography>}
           <Typography variant="eyebrow" style={{ marginBottom: SPACE.md, marginTop: SPACE['3xl'] }}>
             RELATED ENTRIES
           </Typography>
@@ -501,7 +538,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
             <View
               key={related.id}
               style={{
-                backgroundColor: colorWithAlpha(colors.background.card, darkMode ? 0.48 : 0.54),
+                backgroundColor: colors.background.input,
                 borderRadius: RADIUS.md,
                 marginBottom: SPACE.md,
                 paddingHorizontal: SPACE.lg,
@@ -511,12 +548,12 @@ export function NoteEditor({ entryId }: { entryId: string }) {
               <Typography variant="meta">{related.title || 'Untitled entry'}</Typography>
             </View>
           )) : (
-            <Typography variant="meta">Related Notes and Reflections will appear here.</Typography>
+            <Typography variant="body-small">Related Notes and Reflections will appear here.</Typography>
           )}
           <View
             style={{
-              backgroundColor: colorWithAlpha(colors.background.card, darkMode ? 0.58 : 0.64),
-              borderColor: colorWithAlpha(colors.accent.primary, darkMode ? 0.28 : 0.22),
+              backgroundColor: colors.background.card,
+              borderColor: colors.border.divider,
               borderRadius: RADIUS.lg,
               borderWidth: 1,
               marginTop: SPACE['3xl'],
@@ -527,7 +564,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
               <Ionicons name="sparkles-outline" color={colors.accent.primary} size={18} />
               <Typography variant="emphasis-sm" style={{ fontSize: 15 }}>Ask Ohara</Typography>
             </View>
-            <Typography variant="meta" style={{ lineHeight: 19, marginTop: SPACE.md }}>
+            <Typography variant="body-small" style={{ marginTop: SPACE.md }}>
               Future insights and chat will use your linked context. This preview does not make an AI request.
             </Typography>
           </View>
@@ -564,17 +601,19 @@ export function NoteEditor({ entryId }: { entryId: string }) {
           paddingVertical: 8,
         }}
       >
-        <Pressable
-          accessibilityLabel="Back to Notes library"
-          accessibilityRole="button"
-          onPress={() => void handleBack()}
-          hitSlop={8}
-          style={({ pressed }) => [chromeIconButton, {
-            backgroundColor: pressed ? colors.background.hoverAccent : 'transparent',
-          }]}
-        >
-          <Ionicons name="arrow-back" color={colors.text.primary} size={22} />
-        </Pressable>
+        {showBack ? (
+          <Pressable
+            accessibilityLabel="Back to Echo library"
+            accessibilityRole="button"
+            onPress={() => void handleBack()}
+            hitSlop={8}
+            style={({ pressed }) => [chromeIconButton, {
+              backgroundColor: pressed ? colors.background.hoverAccent : 'transparent',
+            }]}
+          >
+            <Ionicons name="arrow-back" color={colors.text.primary} size={22} />
+          </Pressable>
+        ) : null}
         <TextInput
           accessibilityLabel="Note title"
           onChangeText={(value) => { setTitle(value); markDirty(); }}
@@ -602,13 +641,13 @@ export function NoteEditor({ entryId }: { entryId: string }) {
             </Typography>
           </Pressable>
         ) : null}
-        <Pressable accessibilityLabel="Link note to goals" accessibilityRole="button" onPress={() => setLinkPickerOpen(true)} style={chromeIconButton}>
+        <Pressable accessibilityLabel="Organize note with Goals or a Project" accessibilityRole="button" onPress={() => setLinkPickerOpen(true)} style={chromeIconButton}>
           <Ionicons name="link-outline" color={colors.text.secondary} size={21} />
         </Pressable>
         <Pressable accessibilityLabel="Export note" accessibilityRole="button" onPress={() => setExportOpen(true)} style={chromeIconButton}>
           <Ionicons name="share-outline" color={colors.text.secondary} size={21} />
         </Pressable>
-        {!narrow ? <Button onPress={handleNewNote} size="compact" variant="secondary">New Note</Button> : null}
+        {!narrow && !embedded ? <Button onPress={handleNewNote} size="compact" variant="secondary">New Note</Button> : null}
         <Pressable
           accessibilityLabel={intelligenceOpen ? 'Collapse Ohara Intelligence' : 'Open Ohara Intelligence'}
           accessibilityRole="button"
@@ -644,7 +683,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
         </Pressable>
       ) : null}
 
-      {(selectedGoals.length || categoryIds.length) ? (
+      {(selectedGoals.length || categoryIds.length || selectedProject) ? (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -663,7 +702,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
               style={{
                 alignItems: 'center',
                 backgroundColor: colors.background.selectedRow,
-                borderColor: colorWithAlpha(colors.accent.primary, 0.12),
+                borderColor: colors.border.divider,
                 borderRadius: RADIUS.round,
                 borderWidth: 1,
                 flexDirection: 'row',
@@ -690,6 +729,22 @@ export function NoteEditor({ entryId }: { entryId: string }) {
               </Typography>
             </View>
           ))}
+          {selectedProject ? (
+            <View
+              style={{
+                alignItems: 'center',
+                backgroundColor: colors.background.input,
+                borderRadius: RADIUS.round,
+                flexDirection: 'row',
+                gap: SPACE.sm,
+                minHeight: 32,
+                paddingHorizontal: SPACE.lg,
+              }}
+            >
+              <Ionicons name="folder-outline" color={colors.text.accent} size={15} />
+              <Typography variant="emphasis-sm" style={{ fontSize: 14 }}>{selectedProject.title}</Typography>
+            </View>
+          ) : null}
           <Pressable
             accessibilityRole="button"
             onPress={() => setLinkPickerOpen(true)}
@@ -703,30 +758,43 @@ export function NoteEditor({ entryId }: { entryId: string }) {
             })}
           >
             <Typography variant="emphasis-sm" style={{ color: colors.text.accent, fontSize: 14 }}>
-              + Add goal
+              Edit links
             </Typography>
           </Pressable>
         </ScrollView>
       ) : null}
 
-      <View style={{ flex: 1, flexDirection: 'row', minHeight: 0 }}>
-        <View style={{ backgroundColor: colors.background.card, flex: 1, minWidth: 0 }}>
+      <View
+        onLayout={measureWorkspace}
+        style={{ flex: 1, flexDirection: 'row', minHeight: 0, minWidth: 0, overflow: 'hidden' }}
+      >
+        <View
+          testID="note-editor-column"
+          style={{
+            backgroundColor: colors.background.card,
+            flexBasis: 0,
+            flexGrow: 1,
+            minWidth: 0,
+            overflow: 'hidden',
+          }}
+        >
           <RichTextEditor
             document={content}
             entryId={entry.id}
             goals={goals}
             focusedReferenceId={focusedReferenceId}
+            referenceFocusNonce={referenceFocusNonce}
             referenceRemoval={referenceRemoval}
             onReferenceRemoved={(referenceId) => {
               setReferenceRemoval(null);
               if (focusedReferenceId === referenceId) setFocusedReferenceId(null);
             }}
             onIntelligenceReferenceCreated={(referenceId) => {
-              setFocusedReferenceId(referenceId);
+              focusReference(referenceId);
               setIntelligenceOpen(true);
             }}
             onReferenceActivated={(referenceId) => {
-              setFocusedReferenceId(referenceId);
+              focusReference(referenceId);
               setIntelligenceOpen(true);
             }}
             onChange={(nextContent, nextPlainText) => {
@@ -734,12 +802,14 @@ export function NoteEditor({ entryId }: { entryId: string }) {
               setPlainText(nextPlainText);
               markDirty();
             }}
+            sidePanel={intelligenceOpen && !intelligenceInSheet
+              ? intelligencePanel(false)
+              : undefined}
           />
         </View>
-        {intelligenceOpen && !narrow ? intelligencePanel() : null}
       </View>
 
-      {narrow ? (
+      {intelligenceInSheet ? (
         <RNModal
           animationType="slide"
           transparent
@@ -760,7 +830,7 @@ export function NoteEditor({ entryId }: { entryId: string }) {
                 minHeight: '55%',
               }}
             >
-              {intelligencePanel()}
+              {intelligencePanel(true)}
             </Pressable>
           </Pressable>
         </RNModal>
@@ -768,14 +838,17 @@ export function NoteEditor({ entryId }: { entryId: string }) {
 
       <EntryLinkPicker
         goals={goals}
-        onApply={(nextGoalIds, nextCategoryIds) => {
+        projects={projects}
+        onApply={(nextGoalIds, nextCategoryIds, nextProjectId) => {
           setGoalIds(nextGoalIds);
           setCategoryIds(nextCategoryIds);
+          setProjectId(nextProjectId);
           markDirty();
         }}
         onClose={() => setLinkPickerOpen(false)}
         selectedCategoryIds={categoryIds}
         selectedGoalIds={goalIds}
+        selectedProjectId={projectId}
         visible={linkPickerOpen}
       />
 
@@ -802,7 +875,9 @@ export function NoteEditor({ entryId }: { entryId: string }) {
         showCloseButton={false}
       >
         <Typography variant="title">Note actions</Typography>
-        <Button onPress={handleNewNote} style={{ marginTop: 16 }} variant="secondary">New Note</Button>
+        {!embedded ? (
+          <Button onPress={handleNewNote} style={{ marginTop: 16 }} variant="secondary">New Note</Button>
+        ) : null}
         <Button
           onPress={() => {
             setOverflowOpen(false);

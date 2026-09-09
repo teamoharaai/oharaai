@@ -172,6 +172,10 @@ Owner: CTO. Cascade Level 3.
   PostgREST privilege matrix for clean CLI resets without broad anon grants;
   retains capability-only friendship mutation and server-authoritative Momentum
   writes. Local-only as of 2026-08-03; not applied to a remote project.
+- 044_echo_v1_project_links.sql: adds one nullable, owner-scoped Project folder
+  relationship to canonical Entries and the atomic `save_entry_v3` wrapper.
+  Existing Entries and legacy Echo rows are not backfilled or rewritten; full
+  Projects Version 1.0 remains outside this migration's scope.
 - goals.mode column was dropped in the 2026-06-24 squash (was a single-value
   CHECK column, no longer carried). lib/db/goals.ts no longer inserts it.
 

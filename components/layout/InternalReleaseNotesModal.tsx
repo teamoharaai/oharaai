@@ -89,7 +89,7 @@ export function InternalReleaseNotesModal({
           <Typography nativeID={titleId} variant="heading" style={{ fontSize: 28, lineHeight: 34, paddingRight: 46 }}>
             {release.title}
           </Typography>
-          <Typography variant="body" style={{ color: colors.text.secondary, lineHeight: 22, marginTop: SPACE.md }}>
+          <Typography variant="body" style={{ color: colors.text.secondary, marginTop: SPACE.md }}>
             {release.summary}
           </Typography>
           <Pressable

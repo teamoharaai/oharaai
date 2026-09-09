@@ -53,7 +53,6 @@ export function EchoScreen() {
   } = useEntries();
   const removeEntry = useEchoStore((state) => state.removeEntry);
   const deleteEntry = useEchoStore((state) => state.deleteEntry);
-  const sidebarCollapsed = useUIStore((state) => state.sidebarCollapsed);
   const rightPaneWidth = useUIStore((state) => state.rightPaneWidth);
   const setRightPaneWidth = useUIStore((state) => state.setRightPaneWidth);
   const middleMode = useUIStore((state) => state.echoMiddleMode);
@@ -112,14 +111,13 @@ export function EchoScreen() {
   const clampRightPaneWidth = useCallback(
     (width: number) => {
       const windowWidth = Dimensions.get('window').width;
-      const sidebarWidth = sidebarCollapsed ? 76 : 220;
       const maxWidth = Math.max(
         RIGHT_PANE_MIN_WIDTH,
-        windowWidth - sidebarWidth - MIDDLE_COLUMN_MIN_WIDTH,
+        windowWidth - MIDDLE_COLUMN_MIN_WIDTH,
       );
       return Math.max(RIGHT_PANE_MIN_WIDTH, Math.min(width, maxWidth));
     },
-    [sidebarCollapsed],
+    [],
   );
 
   const handleResizeRightPane = useCallback(

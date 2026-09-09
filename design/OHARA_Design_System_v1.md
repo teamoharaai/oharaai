@@ -72,7 +72,7 @@ The current `LIGHT_THEME` and `DARK_THEME` in `constants/colors.ts` are the runt
 | `text.primary` | `#24231F` | `#FFFFFF` | Main content |
 | `text.secondary` | `#5F5B52` | `#B8B8B8` | Supporting content |
 | `text.muted` | `#7C766B` | `#A3A3A3` | Metadata; never essential low-contrast copy |
-| `accent.primary` | `#4A7C5F` | `#8FAE8A` | Primary actions, selected emphasis |
+| `accent.primary` | `#63C174` | `#63C174` | Primary actions, selected emphasis |
 | `border.subtle` | existing theme alpha | existing theme alpha | Quiet structural separation |
 | `border.control` | `#D8D2C8` | `#202020` | Form controls |
 | `overlay.scrim` | `rgba(36,35,31,.24)` | `rgba(0,0,0,.48)` | Dialog/popover backdrop |
@@ -114,18 +114,20 @@ Do not introduce another font without design approval.
 | Token | Size / line height | Weight | Typical use |
 |---|---|---|---|
 | `display` | 36 / 44 | Semibold or editorial regular | Public hero, rare reflective statement |
-| `pageTitle` | 30 / 38 | Semibold | Screen title |
-| `sectionTitle` | 24 / 32 | Semibold | Major page section |
-| `panelTitle` | 20 / 28 | Semibold | Card/panel heading |
-| `title` | 17 / 24 | Medium/Semibold | Row or compact card title |
-| `body` | 15 / 22 | Regular | Default copy |
-| `bodySmall` | 13 / 18 | Regular | Supporting copy |
-| `label` | 13 / 18 | Medium | Form/control label |
-| `caption` | 12 / 16 | Regular/Medium | Metadata |
-| `overline` | 11 / 16 | Semibold | Short uppercase section cue |
-| `micro` | 10 / 14 | Medium | Dense metadata only |
+| `pageTitle` | 28 / 34 | Semibold | Screen title |
+| `sectionTitle` | 20 / 26 | Semibold | Major page section |
+| `cardTitle` | 18 / 24 | Semibold | Card/panel heading |
+| `bodyLarge` | 17 / 26 | Regular | Prominent or long-form copy |
+| `body` | 16 / 24 | Regular | Default copy |
+| `bodySmall` | 14 / 21 | Regular | Supporting copy |
+| `control` | 15 / 20 | Medium | Navigation, buttons, and controls |
+| `caption` | 13 / 18 | Regular | Secondary copy and timestamps |
+| `meta` | 12 / 17 | Medium | Compact metadata and badges |
+| `overline` | 12 / 17 | Medium/Semibold | Short uppercase section cue |
+| `editorBody` | 17 / 27 | Regular | Notes and freeform Reflections |
+| `chartLabel` | 11 / 15 | Medium | Constrained chart/SVG labels only |
 
-Feature-specific names such as Echo entry title should alias these roles or a documented compact density variant. Avoid global variants tied to a single screen.
+Feature-specific names such as Echo entry title should alias these roles or a documented compact density variant. Avoid global variants tied to a single screen. The canonical UI font is the bundled Inter family on web and native; Lora remains an intentional brand/editorial exception only.
 
 ### 6.3 Typography rules
 

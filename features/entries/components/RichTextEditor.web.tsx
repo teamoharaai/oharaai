@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent,
+  type ReactNode,
+} from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { EditorContent, useEditor } from '@tiptap/react';
@@ -10,6 +19,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
 import type { Editor } from '@tiptap/core';
+import { BrandIcon } from '@/components/ui/BrandIcon';
 import { useThemeColors } from '@/store/uiStore';
 import {
   createReferenceId,
@@ -39,18 +49,21 @@ type ReferenceMenu = {
   left: number;
   top: number;
 };
+type SelectionToolbar = SavedSelection & { left: number; top: number };
 
 export interface RichTextEditorProps {
   document: RichTextDocument;
   entryId: string;
   goals: EntryGoalOption[];
   focusedReferenceId?: string | null;
+  referenceFocusNonce?: number;
   referenceRemoval?: { id: string; nonce: number } | null;
   onChange: (document: RichTextDocument, plainText: string) => void;
   onIntelligenceReferenceCreated?: (referenceId: string) => void;
   onReferenceActivated?: (referenceId: string, kind: 'goal' | 'intelligence') => void;
   onReferenceRemoved?: (referenceId: string) => void;
   placeholder?: string;
+  sidePanel?: ReactNode;
 }
 
 const ASK_ACTIONS: Array<{ action: IntelligenceReferenceAction; label: string }> = [
@@ -96,6 +109,41 @@ function findReference(editor: Editor, referenceId: string): SavedSelection | nu
     return !result;
   });
   return result;
+}
+
+function findReferenceElement(editor: Editor, referenceId: string): HTMLElement | null {
+  const references = editor.view.dom.querySelectorAll<HTMLElement>(
+    '[data-goal-reference], [data-intelligence-reference], [data-reference-id]',
+  );
+  return Array.from(references).find((element) => (
+    element.dataset.goalReference === referenceId
+    || element.dataset.intelligenceReference === referenceId
+    || element.dataset.referenceId === referenceId
+  )) ?? null;
+}
+
+function selectionBounds(editor: Editor): SelectionToolbar | null {
+  const { from, to, empty } = editor.state.selection;
+  if (empty || from === to || !editor.state.doc.textBetween(from, to, ' ', ' ').trim()) return null;
+
+  const selection = editor.view.dom.ownerDocument.getSelection();
+  if (!selection || selection.isCollapsed || !selection.rangeCount) return null;
+  const anchor = selection.anchorNode;
+  const focus = selection.focusNode;
+  if (!anchor || !focus || !editor.view.dom.contains(anchor) || !editor.view.dom.contains(focus)) {
+    return null;
+  }
+
+  const bounds = selection.getRangeAt(0).getBoundingClientRect();
+  if (!bounds.width || !bounds.height) return null;
+  const viewport = editor.view.dom.closest('.ohara-editor-content');
+  const viewportBounds = viewport?.getBoundingClientRect();
+  const halfWidth = 123;
+  const minimum = (viewportBounds?.left ?? 0) + halfWidth + 8;
+  const maximum = (viewportBounds?.right ?? globalThis.innerWidth) - halfWidth - 8;
+  const left = Math.max(minimum, Math.min(bounds.left + bounds.width / 2, maximum));
+  const top = Math.max((viewportBounds?.top ?? 0) + 8, bounds.top - 50);
+  return { from, to, left, top };
 }
 
 function findReferenceAttributes(
@@ -148,12 +196,14 @@ export function RichTextEditor({
   entryId,
   goals,
   focusedReferenceId,
+  referenceFocusNonce = 0,
   referenceRemoval,
   onChange,
   onIntelligenceReferenceCreated,
   onReferenceActivated,
   onReferenceRemoved,
   placeholder = 'Start writing…',
+  sidePanel,
 }: RichTextEditorProps) {
   const colors = useThemeColors();
   const [menu, setMenu] = useState<'alignment' | 'goal' | 'ask' | 'more' | null>(null);
@@ -161,12 +211,32 @@ export function RichTextEditor({
   const [progressEvidence, setProgressEvidence] = useState(false);
   const [editingGoalReferenceId, setEditingGoalReferenceId] = useState<string | null>(null);
   const [referenceMenu, setReferenceMenu] = useState<ReferenceMenu | null>(null);
+  const [selectionToolbar, setSelectionToolbar] = useState<SelectionToolbar | null>(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const savedSelection = useRef<SavedSelection>({ from: 1, to: 1 });
   const lastEmittedDocument = useRef<string | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
+  const scrollContainer = useRef<HTMLDivElement | null>(null);
+  const selectionFrame = useRef<number | null>(null);
+  const jumpHighlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialContent = useMemo(() => editorContentForDocument(document), []);
+
+  const syncSelectionToolbar = useCallback((nextEditor: Editor) => {
+    if (selectionFrame.current !== null) globalThis.cancelAnimationFrame(selectionFrame.current);
+    selectionFrame.current = globalThis.requestAnimationFrame(() => {
+      selectionFrame.current = null;
+      const next = selectionBounds(nextEditor);
+      setSelectionToolbar((previous) => (
+        previous?.from === next?.from
+        && previous?.to === next?.to
+        && previous?.left === next?.left
+        && previous?.top === next?.top
+          ? previous
+          : next
+      ));
+    });
+  }, []);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -253,6 +323,7 @@ export function RichTextEditor({
         from: nextEditor.state.selection.from,
         to: nextEditor.state.selection.to,
       };
+      syncSelectionToolbar(nextEditor);
     },
     onUpdate: ({ editor: nextEditor }) => {
       const nextDocument = toV2Document(
@@ -278,14 +349,37 @@ export function RichTextEditor({
   }, [document, editor]);
 
   useEffect(() => {
-    if (!editor || !focusedReferenceId) return;
-    const range = findReference(editor, focusedReferenceId);
-    if (range) editor.chain().focus().setTextSelection(range).scrollIntoView().run();
-  }, [editor, focusedReferenceId]);
+    if (!editor || !focusedReferenceId || !scrollContainer.current) return;
+    const target = findReferenceElement(editor, focusedReferenceId);
+    if (!target) return;
+
+    const viewport = scrollContainer.current;
+    const viewportBounds = viewport.getBoundingClientRect();
+    const targetBounds = target.getBoundingClientRect();
+    const centeredTop = viewport.scrollTop
+      + targetBounds.top
+      - viewportBounds.top
+      - (viewportBounds.height - targetBounds.height) / 2;
+    const top = Math.max(0, Math.min(centeredTop, viewport.scrollHeight - viewport.clientHeight));
+    viewport.scrollTo({
+      top,
+      behavior: globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+    });
+
+    editor.view.dom.querySelectorAll('.is-reference-jump-target').forEach((element) => {
+      element.classList.remove('is-reference-jump-target');
+    });
+    if (jumpHighlightTimer.current) clearTimeout(jumpHighlightTimer.current);
+    target.classList.add('is-reference-jump-target');
+    jumpHighlightTimer.current = setTimeout(() => {
+      target.classList.remove('is-reference-jump-target');
+      jumpHighlightTimer.current = null;
+    }, 1_700);
+  }, [editor, focusedReferenceId, referenceFocusNonce]);
 
   useEffect(() => {
     if (!editor) return;
-    const referenceId = referenceMenu?.id ?? focusedReferenceId;
+    const referenceId = referenceMenu?.id;
     const referenceElements = editor.view.dom.querySelectorAll<HTMLElement>(
       '[data-goal-reference], [data-intelligence-reference]',
     );
@@ -299,7 +393,12 @@ export function RichTextEditor({
     return () => referenceElements.forEach((element) => {
       element.classList.remove('is-reference-focused');
     });
-  }, [editor, focusedReferenceId, referenceMenu?.id]);
+  }, [editor, referenceMenu?.id]);
+
+  useEffect(() => () => {
+    if (selectionFrame.current !== null) globalThis.cancelAnimationFrame(selectionFrame.current);
+    if (jumpHighlightTimer.current) clearTimeout(jumpHighlightTimer.current);
+  }, []);
 
   useEffect(() => {
     if (!referenceMenu) return;
@@ -335,6 +434,19 @@ export function RichTextEditor({
     if (!editor) return editor;
     editor.commands.setTextSelection(savedSelection.current);
     return editor;
+  }, [editor]);
+
+  const handlePagePointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) return;
+    event.preventDefault();
+    if (editor && !editor.state.selection.empty) {
+      const { to } = editor.state.selection;
+      editor.commands.setTextSelection({ from: to, to });
+    }
+    editor?.view.dom.blur();
+    globalThis.getSelection()?.removeAllRanges();
+    setSelectionToolbar(null);
+    setReferenceMenu(null);
   }, [editor]);
 
   if (!editor) return <div className="ohara-editor-loading">Preparing editor…</div>;
@@ -531,7 +643,14 @@ export function RichTextEditor({
         <ToolButton label="Strikethrough" active={editor.isActive('strike')} onClick={() => editor.chain().focus().toggleStrike().run()}><s>S</s></ToolButton>
         {separator}
         <ToolButton label="Bulleted list" active={editor.isActive('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()}><Ionicons name="list-outline" color="currentColor" size={19} /></ToolButton>
-        <ToolButton label="Numbered list" active={editor.isActive('orderedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()}><Ionicons name="list-circle-outline" color="currentColor" size={19} /></ToolButton>
+        <ToolButton label="Numbered list" active={editor.isActive('orderedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
+          <svg aria-hidden="true" className="ohara-numbered-list-icon" height="20" viewBox="0 0 20 20" width="20">
+            <text fill="currentColor" fontSize="5" fontWeight="600" x="1.4" y="5.8">1.</text>
+            <text fill="currentColor" fontSize="5" fontWeight="600" x="1.1" y="11.4">2.</text>
+            <text fill="currentColor" fontSize="5" fontWeight="600" x="1.1" y="17">3.</text>
+            <path d="M8 4.2h9M8 9.8h9M8 15.4h9" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5" />
+          </svg>
+        </ToolButton>
         <ToolButton label="Checklist" active={editor.isActive('taskList')} onClick={() => editor.chain().focus().toggleTaskList().run()}><Ionicons name="checkbox-outline" color="currentColor" size={19} /></ToolButton>
         <div className="ohara-editor-menu-wrap">
           <ToolButton label="Alignment" active={editor.isActive({ textAlign: 'center' }) || editor.isActive({ textAlign: 'right' })} onClick={() => setMenu(menu === 'alignment' ? null : 'alignment')}><Ionicons name="reorder-three-outline" color="currentColor" size={19} /></ToolButton>
@@ -544,7 +663,7 @@ export function RichTextEditor({
         <ToolButton label="Insert image" disabled={uploading} onClick={() => fileInput.current?.click()}><Ionicons name="image-outline" color="currentColor" size={19} /></ToolButton>
         <input ref={fileInput} hidden type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={(event) => void insertImage(event.target.files?.[0] ?? null)} />
         <div className="ohara-editor-menu-wrap">
-          <ToolButton label="Link selection to Goal" active={menu === 'goal'} onClick={() => { setEditingGoalReferenceId(null); setGoalMode('reference'); setMenu(menu === 'goal' ? null : 'goal'); }}><Ionicons name="flag-outline" color="currentColor" size={19} /></ToolButton>
+          <ToolButton label="Link selection to Goal" active={menu === 'goal'} onClick={() => { setEditingGoalReferenceId(null); setGoalMode('reference'); setMenu(menu === 'goal' ? null : 'goal'); }}><BrandIcon name="goals" color={menu === 'goal' ? colors.accent.primary : colors.text.secondary} size={19} /></ToolButton>
           {menu === 'goal' ? <div className="ohara-editor-popover goal" role="dialog" aria-label="Link to Goal">
             {editingGoalReferenceId ? <span className="ohara-editor-popover-heading">Change linked Goal</span> : <div className="ohara-editor-popover-tabs">
               <button type="button" className={goalMode === 'reference' ? 'is-active' : ''} onClick={() => setGoalMode('reference')}>Link selection</button>
@@ -573,7 +692,28 @@ export function RichTextEditor({
         </div>
       </div>
       {message ? <div className="ohara-editor-message" role="status">{message}<button type="button" aria-label="Dismiss message" onClick={() => setMessage(null)}>×</button></div> : null}
-      <EditorContent editor={editor} className="ohara-editor-content" />
+      <div className="ohara-editor-body">
+        <div className="ohara-editor-content" onScroll={() => setSelectionToolbar(null)} ref={scrollContainer}>
+          <div className="ohara-editor-page" onPointerDown={handlePagePointerDown}>
+            <EditorContent editor={editor} className="ohara-editor-document" />
+          </div>
+        </div>
+        {sidePanel}
+      </div>
+      {selectionToolbar ? (
+        <div
+          aria-label="Selected text actions"
+          className="ohara-editor-selection-toolbar"
+          role="toolbar"
+          style={{ left: selectionToolbar.left, top: selectionToolbar.top }}
+        >
+          <ToolButton label="Bold selected text" active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}><strong>B</strong></ToolButton>
+          <ToolButton label="Italicize selected text" active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()}><em>I</em></ToolButton>
+          <ToolButton label="Add link to selected text" onClick={editLink}><Ionicons name="link-outline" color="currentColor" size={17} /></ToolButton>
+          <ToolButton label="Reference selected text to a Goal" onClick={() => { setEditingGoalReferenceId(null); setGoalMode('reference'); setMenu('goal'); }}><BrandIcon name="goals" color={colors.text.secondary} size={17} /></ToolButton>
+          <ToolButton label="Create OHARA Intelligence reference" onClick={() => askOhara('ask')}><Ionicons name="sparkles-outline" color="currentColor" size={17} /></ToolButton>
+        </div>
+      ) : null}
       {referenceMenu && referenceAttributes ? (
         <div
           aria-label={referenceMenu.kind === 'goal' ? 'Goal Reference actions' : 'OHARA Intelligence Reference actions'}

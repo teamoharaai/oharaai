@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useThemeColors } from '@/store/uiStore';
+import { FONT, TYPE } from '@/constants/design';
 import type { Tracker, TrackerFrequency, TrackerUpdates } from '../types';
 
 const FREQUENCY_LABELS = {
@@ -169,8 +170,7 @@ export function TrackerCard({
     borderRadius: 8,
     borderWidth: 1,
     color: colors.text.primary,
-    fontFamily: 'Inter-Regular' as const,
-    fontSize: 12.5,
+    ...TYPE.bodySmall,
     paddingHorizontal: 10,
     paddingVertical: 8,
   };
@@ -204,9 +204,9 @@ export function TrackerCard({
               style={{
                 color: colors.text.primary,
                 flexShrink: 1,
-                fontFamily: 'Inter-SemiBold',
-                fontSize: 14.5,
-                lineHeight: 20,
+                fontFamily: FONT.ui.semibold,
+                fontSize: 16,
+                lineHeight: 22,
               }}
             >
               {tracker.title}
@@ -221,7 +221,7 @@ export function TrackerCard({
                 }}
               >
                 <Text
-                  style={{ color: colors.text.accent, fontFamily: 'Inter-SemiBold', fontSize: 9.5 }}
+                  style={{ color: colors.text.accent, ...TYPE.meta, fontFamily: FONT.ui.semibold }}
                 >
                   ✦ AI
                 </Text>
@@ -229,11 +229,11 @@ export function TrackerCard({
             ) : null}
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 3 }}>
-            <Text style={{ color: colors.text.muted, fontFamily: 'Inter-Regular', fontSize: 11.5 }}>
+            <Text style={{ color: colors.text.muted, ...TYPE.caption }}>
               {trackerTypeLabel(tracker.type)}
             </Text>
             {tracker.frequency ? (
-              <Text style={{ color: colors.text.muted, fontFamily: 'Inter-Regular', fontSize: 11.5 }}>
+              <Text style={{ color: colors.text.muted, ...TYPE.caption }}>
                 · {frequencyLabel(tracker.frequency)}
               </Text>
             ) : null}
@@ -256,7 +256,7 @@ export function TrackerCard({
                 borderWidth: 1,
                 flexDirection: 'row',
                 gap: 5,
-                minHeight: 30,
+                minHeight: 36,
                 opacity: pressed ? 0.76 : 1,
                 paddingHorizontal: 9,
               })}
@@ -264,8 +264,8 @@ export function TrackerCard({
               <Text
                 style={{
                   color: isCompleted ? colors.text.inverse : colors.text.accent,
-                  fontFamily: 'Inter-SemiBold',
-                  fontSize: 11.5,
+                  ...TYPE.caption,
+                  fontFamily: FONT.ui.medium,
                 }}
               >
                 {isCompleted ? '✓ Logged' : '✓ Log'}
@@ -387,8 +387,7 @@ export function TrackerCard({
             <Text
               style={{
                 color: colors.text.secondary,
-                fontFamily: 'Inter-Regular',
-                fontSize: 12,
+                ...TYPE.caption,
                 marginLeft: 3,
               }}
             >
@@ -419,15 +418,14 @@ export function TrackerCard({
             }}
           >
             {isCompleted || displayValue >= target ? (
-              <Text style={{ color: colors.text.inverse, fontFamily: 'Inter-Bold', fontSize: 11 }}>✓</Text>
+              <Text style={{ color: colors.text.inverse, fontFamily: FONT.ui.bold, fontSize: 12 }}>✓</Text>
             ) : null}
           </View>
           <Text
             style={{
               color: isCompleted ? colors.text.muted : colors.text.secondary,
               flex: 1,
-              fontFamily: 'Inter-Regular',
-              fontSize: 12.5,
+              ...TYPE.bodySmall,
               textDecorationLine: isCompleted ? 'line-through' : 'none',
             }}
           >
@@ -505,8 +503,8 @@ export function TrackerCard({
                   <Text
                     style={{
                       color: selected ? colors.text.inverse : colors.text.secondary,
-                      fontFamily: 'Inter-Medium',
-                      fontSize: 11,
+                      ...TYPE.caption,
+                      fontFamily: FONT.ui.medium,
                     }}
                   >
                     {frequencyLabel(frequency)}
@@ -518,7 +516,7 @@ export function TrackerCard({
           {validationError ? (
             <Text
               accessibilityRole="alert"
-              style={{ color: colors.feedback.danger.text, fontFamily: 'Inter-Regular', fontSize: 12 }}
+              style={{ color: colors.feedback.danger.text, ...TYPE.caption }}
             >
               {validationError}
             </Text>
@@ -538,7 +536,7 @@ export function TrackerCard({
                 paddingVertical: 8,
               }}
             >
-              <Text style={{ color: colors.text.secondary, fontFamily: 'Inter-Medium', fontSize: 12 }}>
+              <Text style={{ color: colors.text.secondary, ...TYPE.bodySmall, fontFamily: FONT.ui.medium }}>
                 Cancel
               </Text>
             </Pressable>
@@ -555,7 +553,7 @@ export function TrackerCard({
                 paddingVertical: 8,
               }}
             >
-              <Text style={{ color: colors.text.inverse, fontFamily: 'Inter-SemiBold', fontSize: 12 }}>
+              <Text style={{ color: colors.text.inverse, ...TYPE.bodySmall, fontFamily: FONT.ui.medium }}>
                 Save
               </Text>
             </Pressable>
@@ -576,7 +574,7 @@ export function TrackerCard({
             paddingTop: 12,
           }}
         >
-          <Text style={{ color: colors.text.secondary, fontFamily: 'Inter-Medium', fontSize: 12 }}>
+          <Text style={{ color: colors.text.secondary, ...TYPE.bodySmall, fontFamily: FONT.ui.medium }}>
             Delete this tracker?
           </Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -586,7 +584,7 @@ export function TrackerCard({
               onPress={() => setDeleting(false)}
               style={{ paddingHorizontal: 10, paddingVertical: 6 }}
             >
-              <Text style={{ color: colors.text.secondary, fontFamily: 'Inter-Medium', fontSize: 12 }}>
+              <Text style={{ color: colors.text.secondary, ...TYPE.bodySmall, fontFamily: FONT.ui.medium }}>
                 Cancel
               </Text>
             </Pressable>
@@ -606,8 +604,8 @@ export function TrackerCard({
               <Text
                 style={{
                   color: colors.feedback.danger.text,
-                  fontFamily: 'Inter-SemiBold',
-                  fontSize: 12,
+                  ...TYPE.bodySmall,
+                  fontFamily: FONT.ui.medium,
                 }}
               >
                 Delete

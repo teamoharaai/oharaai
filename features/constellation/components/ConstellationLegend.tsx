@@ -1,4 +1,5 @@
 import { Pressable, Text, View } from 'react-native';
+import { FONT, TYPE } from '@/constants/design';
 import { useUIStore } from '@/store/uiStore';
 import type { ConstellationVisualTokens } from '../visual-tokens.ts';
 
@@ -147,7 +148,7 @@ function LegendRow({
       <View style={{ alignItems: 'center', justifyContent: 'center', width: 28 }}>
         <ShapeSwatch kind={kind} tokens={tokens} />
       </View>
-      <Text style={{ color: tokens.text.secondary, fontFamily: 'Inter-Regular', fontSize: 12 }}>
+      <Text style={{ color: tokens.text.secondary, ...TYPE.caption }}>
         {label}
       </Text>
     </View>
@@ -175,7 +176,7 @@ function EdgeSample({
           width: 28,
         }}
       />
-      <Text style={{ color: tokens.text.secondary, fontFamily: 'Inter-Regular', fontSize: 12 }}>
+      <Text style={{ color: tokens.text.secondary, ...TYPE.caption }}>
         {label}
       </Text>
     </View>
@@ -226,8 +227,8 @@ export function ConstellationLegend({ tokens }: ConstellationLegendProps) {
         <Text
           style={{
             color: tokens.text.primary,
-            fontFamily: 'Inter-SemiBold',
-            fontSize: 11,
+            ...TYPE.overline,
+            fontFamily: FONT.ui.semibold,
             letterSpacing: 1.4,
             textTransform: 'uppercase',
           }}

@@ -81,6 +81,16 @@ test('optimistic goal-link add, reconcile, note edit, and remove preserve unrela
     editedEdge?.kind === 'user_goal_link' ? editedEdge.note : null,
     'Edited note.',
   );
+  assert.equal(
+    editedEdge?.kind === 'user_goal_link' ? editedEdge.linkId : null,
+    authoritative.id,
+  );
+  assert.equal(
+    editedEdge?.kind === 'user_goal_link'
+      ? editedEdge.note.includes('Initial note.')
+      : true,
+    false,
+  );
 
   const removed = removeGoalLinkFromGraph(edited, authoritative.id);
   assert.equal(removed.counts.goalLinks, 0);

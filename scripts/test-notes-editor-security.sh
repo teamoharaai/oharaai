@@ -7,6 +7,7 @@ set -euo pipefail
 REPOSITORY_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BOOTSTRAP_PATH="$REPOSITORY_ROOT/scripts/notes-editor-security-bootstrap.sql"
 MIGRATION_PATH="$REPOSITORY_ROOT/supabase/migrations/042_notes_editor_v2.sql"
+ECHO_MIGRATION_PATH="$REPOSITORY_ROOT/supabase/migrations/044_echo_v1_project_links.sql"
 TEST_PATH="$REPOSITORY_ROOT/scripts/notes-editor-security.test.sql"
 
 if command -v pg_config >/dev/null 2>&1; then
@@ -54,4 +55,5 @@ PSQL=("$NOTES_PG_BIN/psql" -X -v ON_ERROR_STOP=1 -h "$NOTES_SOCKET_DIR" -U postg
 echo "Verified disposable local PostgreSQL target: unix socket $NOTES_SOCKET_DIR"
 "${PSQL[@]}" -f "$BOOTSTRAP_PATH" >/dev/null
 "${PSQL[@]}" -f "$MIGRATION_PATH" >/dev/null
+"${PSQL[@]}" -f "$ECHO_MIGRATION_PATH" >/dev/null
 "${PSQL[@]}" -f "$TEST_PATH"

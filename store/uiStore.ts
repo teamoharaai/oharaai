@@ -8,21 +8,21 @@ export type ThemeMode = 'light' | 'dark';
 export type DashboardGoalsView = 'grid' | 'list';
 
 interface UIStore {
-  sidebarCollapsed: boolean;
   rightPaneWidth: number;
   echoMiddleMode: 'list' | 'tree';
   dashboardGoalsView: DashboardGoalsView;
   constellationLegendCollapsed: boolean;
   entriesIntelligenceOpen: boolean;
+  entriesLibraryCollapsed: boolean;
   themeMode: ThemeMode;
-  setSidebarCollapsed: (collapsed: boolean) => void;
-  toggleSidebarCollapsed: () => void;
   setRightPaneWidth: (width: number) => void;
   setEchoMiddleMode: (mode: 'list' | 'tree') => void;
   setDashboardGoalsView: (view: DashboardGoalsView) => void;
   setConstellationLegendCollapsed: (collapsed: boolean) => void;
   toggleConstellationLegendCollapsed: () => void;
   setEntriesIntelligenceOpen: (open: boolean) => void;
+  setEntriesLibraryCollapsed: (collapsed: boolean) => void;
+  toggleEntriesLibraryCollapsed: () => void;
   toggleTheme: () => void;
 }
 
@@ -49,16 +49,13 @@ const webStorage: StateStorage = {
 export const useUIStore = create<UIStore>()(
   persist(
     (set) => ({
-      sidebarCollapsed: false,
       rightPaneWidth: 420,
       echoMiddleMode: 'list',
       dashboardGoalsView: 'list',
       constellationLegendCollapsed: false,
       entriesIntelligenceOpen: true,
+      entriesLibraryCollapsed: false,
       themeMode: 'light',
-      setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
-      toggleSidebarCollapsed: () =>
-        set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setRightPaneWidth: (width) => set({ rightPaneWidth: width }),
       setEchoMiddleMode: (mode) => set({ echoMiddleMode: mode }),
       setDashboardGoalsView: (view) => set({ dashboardGoalsView: view }),
@@ -69,6 +66,10 @@ export const useUIStore = create<UIStore>()(
           constellationLegendCollapsed: !state.constellationLegendCollapsed,
         })),
       setEntriesIntelligenceOpen: (open) => set({ entriesIntelligenceOpen: open }),
+      setEntriesLibraryCollapsed: (collapsed) => set({ entriesLibraryCollapsed: collapsed }),
+      toggleEntriesLibraryCollapsed: () => set((state) => ({
+        entriesLibraryCollapsed: !state.entriesLibraryCollapsed,
+      })),
       toggleTheme: () =>
         set((state) => {
           const themeMode = state.themeMode === 'light' ? 'dark' : 'light';
@@ -78,9 +79,11 @@ export const useUIStore = create<UIStore>()(
     }),
     {
       name: 'ohara-ui-state',
-      version: 3,
+      version: 5,
       migrate: (persistedState, version) => {
-        const state = persistedState as Partial<UIStore>;
+        const { sidebarCollapsed: _legacySidebarCollapsed, ...state } = persistedState as Partial<UIStore> & {
+          sidebarCollapsed?: boolean;
+        };
         return {
           ...state,
           dashboardGoalsView: version < 2
@@ -89,15 +92,18 @@ export const useUIStore = create<UIStore>()(
           constellationLegendCollapsed: version < 3
             ? false
             : state.constellationLegendCollapsed ?? false,
+          entriesLibraryCollapsed: version < 5
+            ? false
+            : state.entriesLibraryCollapsed ?? false,
         } as UIStore;
       },
       storage: createJSONStorage(() => webStorage),
       partialize: (state) => ({
-        sidebarCollapsed: state.sidebarCollapsed,
         rightPaneWidth: state.rightPaneWidth,
         echoMiddleMode: state.echoMiddleMode,
         dashboardGoalsView: state.dashboardGoalsView,
         constellationLegendCollapsed: state.constellationLegendCollapsed,
+        entriesLibraryCollapsed: state.entriesLibraryCollapsed,
         themeMode: state.themeMode,
       }),
       onRehydrateStorage: () => (state) => {

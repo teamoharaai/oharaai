@@ -60,31 +60,32 @@ module.exports = {
         "lp-panel-amber": "#FBF1E1",
       },
       fontFamily: {
-        sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'Inter', 'Helvetica Neue', 'Arial', 'sans-serif'],
-        'inter-medium': ['Inter-Medium', 'System', 'sans-serif'],
-        'inter-semibold': ['Inter-SemiBold', 'System', 'sans-serif'],
-        'inter-bold': ['Inter-Bold', 'System', 'sans-serif'],
-        'inter-extrabold': ['Inter-ExtraBold', 'System', 'sans-serif'],
+        sans: ['Inter-Regular', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        'inter-regular': ['Inter-Regular', 'Inter', 'System', 'sans-serif'],
+        'inter-medium': ['Inter-Medium', 'Inter', 'System', 'sans-serif'],
+        'inter-semibold': ['Inter-SemiBold', 'Inter', 'System', 'sans-serif'],
+        'inter-bold': ['Inter-Bold', 'Inter', 'System', 'sans-serif'],
+        'inter-extrabold': ['Inter-ExtraBold', 'Inter', 'System', 'sans-serif'],
       },
       fontSize: {
-        '3xs': ['9px', { lineHeight: '12px' }],
-        '2xs': ['10px', { lineHeight: '14px' }],
-        xs:    ['12px', { lineHeight: '16px' }],
-        sm:    ['13px', { lineHeight: '18px' }],
-        base:  ['15px', { lineHeight: '22px' }],
-        lg:    ['17px', { lineHeight: '24px' }],
-        xl:    ['20px', { lineHeight: '28px' }],
-        '2xl': ['24px', { lineHeight: '32px' }],
+        '3xs': ['11px', { lineHeight: '15px' }],
+        '2xs': ['12px', { lineHeight: '17px' }],
+        xs:    ['13px', { lineHeight: '18px' }],
+        sm:    ['14px', { lineHeight: '20px' }],
+        base:  ['16px', { lineHeight: '24px' }],
+        lg:    ['18px', { lineHeight: '24px' }],
+        xl:    ['20px', { lineHeight: '26px' }],
+        '2xl': ['28px', { lineHeight: '34px' }],
         '3xl': ['30px', { lineHeight: '38px' }],
         '4xl': ['36px', { lineHeight: '44px' }],
-        // Echo type scale (exact pixel values from EchoEntryRow/EchoScreen/EchoDetailPane)
-        'echo-2xs':      ['10.5px', { lineHeight: '14px' }], // entry-list meta / timestamp caption
-        'echo-xs':       ['12px',   { lineHeight: '16px' }], // entry-list preview / detail meta
-        'echo-sm':       ['13.5px', { lineHeight: '18px' }], // entry-list title / add-entry button
-        'echo-sm-loose': ['13.5px', { lineHeight: '20px' }], // detail empty-state subtitle
-        'echo-base':     ['15px',   { lineHeight: '27px' }], // detail body copy
-        'echo-md':       ['16px',   { lineHeight: '22px' }], // detail empty-state title
-        'echo-lg':       ['26px',   { lineHeight: '34px' }], // detail entry title
+        // Legacy Echo aliases now resolve to the shared readable semantic scale.
+        'echo-2xs':      ['12px', { lineHeight: '17px' }],
+        'echo-xs':       ['13px', { lineHeight: '18px' }],
+        'echo-sm':       ['14px', { lineHeight: '20px' }],
+        'echo-sm-loose': ['14px', { lineHeight: '21px' }],
+        'echo-base':     ['17px', { lineHeight: '27px' }],
+        'echo-md':       ['18px', { lineHeight: '24px' }],
+        'echo-lg':       ['28px', { lineHeight: '34px' }],
       },
     },
   },

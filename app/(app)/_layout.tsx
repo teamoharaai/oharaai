@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { router, Stack } from 'expo-router';
-import { GlobalCreateControl } from '@/components/layout/GlobalCreateControl';
-import { Sidebar } from '@/components/layout/Sidebar';
+import { AppNavigation } from '@/components/layout/AppNavigation';
 import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal';
 import { useThemeColors } from '@/store/uiStore';
 
@@ -15,11 +14,17 @@ export default function AppLayout() {
       style={{
         backgroundColor: colors.background.page,
         flex: 1,
-        flexDirection: 'row',
+        flexDirection: 'column',
         minHeight: 0,
       }}
     >
-      <Sidebar />
+      <AppNavigation
+        onNewEntry={() => router.push({
+          pathname: '/entries',
+          params: { create: 'new' },
+        })}
+        onNewProject={() => setProjectModalOpen(true)}
+      />
       <View
         style={{
           backgroundColor: colors.background.page,
@@ -53,13 +58,6 @@ export default function AppLayout() {
           <Stack.Screen name="goals/[id]/vault" />
         </Stack>
       </View>
-      <GlobalCreateControl
-        onNewEntry={() => router.push({
-          pathname: '/entries',
-          params: { create: 'note' },
-        })}
-        onNewProject={() => setProjectModalOpen(true)}
-      />
       <CreateProjectModal
         onClose={() => setProjectModalOpen(false)}
         visible={projectModalOpen}

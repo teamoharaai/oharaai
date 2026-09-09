@@ -123,3 +123,88 @@ end
 $$;
 
 select 'Notes editor database security harness passed.' as result;
+
+reset role;
+insert into auth.users (id) values ('10000000-0000-0000-0000-000000000002');
+insert into public.projects (id, user_id, title, status) values
+  (
+    '40000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000001',
+    'Build OHARA',
+    'active'
+  ),
+  (
+    '40000000-0000-0000-0000-000000000002',
+    '10000000-0000-0000-0000-000000000002',
+    'Another user project',
+    'active'
+  );
+
+set role authenticated;
+select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000001', false);
+
+select public.save_entry_v3(
+  '30000000-0000-0000-0000-000000000001',
+  'note',
+  'Prototype plan',
+  '{"type":"doc","schemaVersion":2,"content":[{"type":"paragraph","attrs":{"id":"paragraph-1"},"content":[{"type":"text","text":"Finish prototype"}]}]}'::jsonb,
+  'Finish prototype',
+  null,
+  '[]'::jsonb,
+  null,
+  false,
+  false,
+  null,
+  array[]::uuid[],
+  array[]::text[],
+  array[]::uuid[],
+  '40000000-0000-0000-0000-000000000001',
+  3,
+  '[]'::jsonb
+);
+
+do $$
+begin
+  begin
+    perform public.save_entry_v3(
+      '30000000-0000-0000-0000-000000000001',
+      'note',
+      'Prototype plan',
+      '{"type":"doc","schemaVersion":2,"content":[{"type":"paragraph","attrs":{"id":"paragraph-1"}}]}'::jsonb,
+      '',
+      null,
+      '[]'::jsonb,
+      null,
+      false,
+      false,
+      null,
+      array[]::uuid[],
+      array[]::text[],
+      array[]::uuid[],
+      '40000000-0000-0000-0000-000000000002',
+      4,
+      '[]'::jsonb
+    );
+    raise exception 'Cross-user Project assignment unexpectedly succeeded';
+  exception
+    when others then
+      if sqlerrm = 'Cross-user Project assignment unexpectedly succeeded' then raise; end if;
+      if sqlerrm <> 'Invalid Project' then raise; end if;
+  end;
+end
+$$;
+
+reset role;
+
+do $$
+begin
+  if (
+    select project_id from public.entries
+    where id = '30000000-0000-0000-0000-000000000001'
+  ) <> '40000000-0000-0000-0000-000000000001'::uuid then
+    raise exception 'Owner Project association did not persist';
+  end if;
+end
+$$;
+
+select 'Echo V1 Project relationship harness passed.' as result;

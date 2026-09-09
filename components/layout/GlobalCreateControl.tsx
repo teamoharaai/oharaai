@@ -17,6 +17,8 @@ import { useUIStore } from '@/store/uiStore';
 type GlobalCreateControlProps = {
   onNewEntry: () => void;
   onNewProject: () => void;
+  iconOnly?: boolean;
+  inline?: boolean;
 };
 
 function rectFromValues(x: number, y: number, width: number, height: number): AnchorRect {
@@ -33,13 +35,15 @@ function rectFromValues(x: number, y: number, width: number, height: number): An
 }
 
 export function GlobalCreateControl({
+  iconOnly = false,
+  inline = false,
   onNewEntry,
   onNewProject,
 }: GlobalCreateControlProps) {
   const colors = useThemeColors();
   const darkMode = useUIStore((state) => state.themeMode) === 'dark';
   const { width } = useWindowDimensions();
-  const compact = width < 720;
+  const compact = iconOnly || width < 720;
   const [open, setOpen] = useState(false);
   const [anchorRect, setAnchorRect] = useState<AnchorRect | null>(null);
   const anchorRef = useRef<View>(null);
@@ -93,7 +97,9 @@ export function GlobalCreateControl({
       <View
         collapsable={false}
         ref={anchorRef}
-        style={{ bottom: compact ? 18 : 24, position: 'absolute', right: compact ? 16 : 24 }}
+        style={inline
+          ? { position: 'relative' }
+          : { bottom: compact ? 18 : 24, position: 'absolute', right: compact ? 16 : 24 }}
       >
         <Pressable
           accessibilityLabel="Create"
@@ -105,7 +111,7 @@ export function GlobalCreateControl({
             alignItems: 'center',
             backgroundColor: colors.background.sidebar,
             borderColor: colors.border.divider,
-            borderRadius: RADIUS.round,
+            borderRadius: inline ? RADIUS.md : RADIUS.round,
             borderWidth: 1,
             flexDirection: 'row',
             gap: SPACE.sm,
@@ -157,7 +163,7 @@ export function GlobalCreateControl({
             })}
           >
             <BrandIcon color={colors.text.accent} name={item.icon} size={18} />
-            <Typography variant="meta" style={{ color: colors.text.primary }}>
+            <Typography variant="control" style={{ color: colors.text.primary }}>
               {item.label}
             </Typography>
           </Pressable>

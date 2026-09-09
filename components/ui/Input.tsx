@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, TextInput, type StyleProp, type TextInputProps, type TextStyle } from 'react-native';
 import { Typography } from '@/components/ui/Typography';
-import { CONTROL, RADIUS, SPACE } from '@/constants/design';
+import { CONTROL, RADIUS, SPACE, TYPE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
 
 interface InputProps {
@@ -53,12 +53,11 @@ export function Input({
           color: colors.text.primary,
           borderRadius: RADIUS.md,
           borderWidth: 1,
-          fontFamily: 'Inter-Regular',
-          fontSize: 15,
+          ...TYPE.body,
           minHeight: multiline ? 112 : CONTROL.defaultHeight,
           opacity: disabled ? 0.5 : 1,
           paddingHorizontal: SPACE.xl,
-          paddingVertical: SPACE.lg,
+          paddingVertical: SPACE.md,
         }, inputStyle]}
         value={value}
         onChangeText={onChangeText}

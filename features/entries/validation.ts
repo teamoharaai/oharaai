@@ -249,6 +249,14 @@ function parseRelationships(value: unknown): EntryRelationships {
   });
   return {
     goalIds: uuidArray(relationships.goalIds, 'relationships.goalIds'),
+    projectId: relationships.projectId == null || relationships.projectId === ''
+      ? null
+      : (() => {
+          if (typeof relationships.projectId !== 'string' || !UUID_PATTERN.test(relationships.projectId)) {
+            throw new Error('relationships.projectId is invalid');
+          }
+          return relationships.projectId;
+        })(),
     categoryIds: [...new Set(categoryIds)],
     milestoneIds: uuidArray(relationships.milestoneIds, 'relationships.milestoneIds'),
   };

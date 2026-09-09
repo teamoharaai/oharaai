@@ -24,7 +24,7 @@ export function AuthenticatedPageShell({ children }: AuthenticatedPageShellProps
       <ScrollView
         contentContainerStyle={{
           minWidth: 0,
-          paddingBottom: compact ? 104 : SPACE.lg,
+          paddingBottom: compact ? SPACE['4xl'] : SPACE.lg,
           paddingHorizontal: compact ? SPACE.xl : SPACE['3xl'],
           paddingTop: compact ? SPACE.xl : SPACE.lg,
         }}

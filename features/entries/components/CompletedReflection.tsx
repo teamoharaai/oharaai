@@ -11,7 +11,15 @@ import { useEntriesStore } from '../store';
 import type { EntryRecord } from '../types';
 import { copyEntryText, exportEntryPdf, exportEntryText } from '../export';
 
-export function CompletedReflection({ entry }: { entry: EntryRecord }) {
+export function CompletedReflection({
+  entry,
+  onBack,
+  showBack = true,
+}: {
+  entry: EntryRecord;
+  onBack?: () => void;
+  showBack?: boolean;
+}) {
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
   const compact = width < 720;
@@ -42,6 +50,7 @@ export function CompletedReflection({ entry }: { entry: EntryRecord }) {
         completedAt: entry.completedAt?.toISOString() ?? new Date().toISOString(),
         relationships: {
           goalIds: entry.goals.map((goal) => goal.id),
+          projectId: entry.project?.id ?? null,
           categoryIds: entry.categoryIds,
           milestoneIds: entry.milestones.map((milestone) => milestone.id),
         },
@@ -57,7 +66,8 @@ export function CompletedReflection({ entry }: { entry: EntryRecord }) {
   async function remove() {
     try {
       await deleteEntry(entry.id);
-      router.replace('/(app)/entries' as never);
+      if (onBack) onBack();
+      else router.replace('/(app)/entries' as never);
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : 'Could not delete reflection');
     }
@@ -66,7 +76,9 @@ export function CompletedReflection({ entry }: { entry: EntryRecord }) {
   async function exportAction(action: 'pdf' | 'text' | 'copy') {
     setExportMessage(null);
     try {
-      if (action === 'pdf') exportEntryPdf(title, entry.plainText);
+      if (action === 'pdf') {
+        await exportEntryPdf(title, entry.plainText, { document: entry.content, goals: entry.goals });
+      }
       if (action === 'text') exportEntryText(title, entry.plainText);
       if (action === 'copy') await copyEntryText(title, entry.plainText);
       setExportMessage(action === 'copy' ? 'Copied to clipboard.' : 'Export started.');
@@ -89,12 +101,14 @@ export function CompletedReflection({ entry }: { entry: EntryRecord }) {
           paddingHorizontal: compact ? 14 : 22,
         }}
       >
-        <Pressable
-          accessibilityLabel="Back to Entries"
-          onPress={() => router.replace('/(app)/entries' as never)}
-        >
-          <Ionicons name="arrow-back" color={colors.text.primary} size={22} />
-        </Pressable>
+        {showBack ? (
+          <Pressable
+            accessibilityLabel="Back to Echo library"
+            onPress={() => onBack ? onBack() : router.replace('/(app)/entries' as never)}
+          >
+            <Ionicons name="arrow-back" color={colors.text.primary} size={22} />
+          </Pressable>
+        ) : null}
         <Typography variant="nav-title" numberOfLines={1} style={{ flex: 1 }}>
           Reflection
         </Typography>
@@ -151,7 +165,7 @@ export function CompletedReflection({ entry }: { entry: EntryRecord }) {
               year: 'numeric',
             })}
           </Typography>
-          {(entry.goals.length || entry.milestones.length) ? (
+          {(entry.goals.length || entry.milestones.length || entry.project) ? (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 12 }}>
               {entry.goals.map((goal) => (
                 <View key={goal.id} style={{ backgroundColor: colors.background.input, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 }}>
@@ -163,6 +177,12 @@ export function CompletedReflection({ entry }: { entry: EntryRecord }) {
                   <Typography variant="caption">{milestone.title}</Typography>
                 </View>
               ))}
+              {entry.project ? (
+                <View style={{ alignItems: 'center', backgroundColor: colors.background.input, borderRadius: 999, flexDirection: 'row', gap: 6, paddingHorizontal: 10, paddingVertical: 6 }}>
+                  <Ionicons name="folder-outline" color={colors.text.accent} size={14} />
+                  <Typography variant="caption">{entry.project.title}</Typography>
+                </View>
+              ) : null}
             </View>
           ) : null}
         </View>

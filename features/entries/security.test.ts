@@ -15,6 +15,10 @@ const editorV2 = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/042_notes_editor_v2.sql'),
   'utf8',
 );
+const echoV1 = readFileSync(
+  resolve(process.cwd(), 'supabase/migrations/044_echo_v1_project_links.sql'),
+  'utf8',
+);
 
 test('enables RLS for entries and every relationship table', () => {
   for (const table of [
@@ -78,4 +82,13 @@ test('schema V2 saves are atomic and revision checked', () => {
   assert.match(editorV2, /Expected content version is required/);
   assert.match(editorV2, /v_current_version <> p_expected_content_version/);
   assert.match(editorV2, /v_entry_id := public\.save_entry\([\s\S]*perform public\.sync_entry_goal_progress_evidence/);
+});
+
+test('Echo V1 Project organization is additive, owner-scoped, and atomic', () => {
+  assert.match(echoV1, /add column project_id uuid references public\.projects\(id\) on delete set null/);
+  assert.match(echoV1, /create or replace function public\.save_entry_v3[\s\S]*security definer/);
+  assert.match(echoV1, /p\.user_id = auth\.uid\(\)[\s\S]*p\.status <> 'archived'/);
+  assert.match(echoV1, /v_entry_id := public\.save_entry_v2\([\s\S]*set project_id = p_project_id/);
+  assert.match(echoV1, /revoke all on function public\.save_entry_v3[\s\S]*grant execute[\s\S]*to authenticated/);
+  assert.doesNotMatch(echoV1, /insert into public\.momentum_|update public\.momentum_/);
 });

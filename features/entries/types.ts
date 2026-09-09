@@ -101,6 +101,12 @@ export interface EntryGoalOption extends EntryGoalLink {
   milestones: EntryMilestoneLink[];
 }
 
+export interface EntryProjectLink {
+  id: string;
+  title: string;
+  status: string;
+}
+
 export interface EntryRecord {
   id: string;
   userId: string;
@@ -119,12 +125,14 @@ export interface EntryRecord {
   createdAt: Date;
   updatedAt: Date;
   goals: EntryGoalLink[];
+  project?: EntryProjectLink | null;
   categoryIds: GoalCreationCategory[];
   milestones: EntryMilestoneLink[];
 }
 
 export interface EntryRelationships {
   goalIds: string[];
+  projectId?: string | null;
   categoryIds: GoalCreationCategory[];
   milestoneIds: string[];
 }

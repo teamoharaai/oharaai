@@ -7,12 +7,14 @@ import {
   parseCalendarDate,
 } from '@/components/ui/DatePicker';
 import { Typography } from '@/components/ui/Typography';
+import { FONT, TYPE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
 
 interface CountdownTimerProps {
   createdAt: Date;
   deadline: Date | null;
   disabled?: boolean;
+  embedded?: boolean;
   onUpdateDeadline: (deadline: Date | null) => Promise<boolean>;
 }
 
@@ -73,7 +75,7 @@ function TimeValue({ value, unit }: { value: number; unit: string }) {
       <Text
         style={{
           color: colors.text.accent,
-          fontFamily: 'Inter-Bold',
+          fontFamily: FONT.ui.bold,
           fontSize: 22,
           fontVariant: ['tabular-nums'],
           lineHeight: 24,
@@ -81,7 +83,7 @@ function TimeValue({ value, unit }: { value: number; unit: string }) {
       >
         {String(value).padStart(2, '0')}
       </Text>
-      <Text style={{ color: colors.text.secondary, fontFamily: 'Inter-Regular', fontSize: 11 }}>
+      <Text style={{ color: colors.text.secondary, ...TYPE.meta }}>
         {unit}
       </Text>
     </View>
@@ -92,6 +94,7 @@ export function CountdownTimer({
   createdAt,
   deadline,
   disabled = false,
+  embedded = false,
   onUpdateDeadline,
 }: CountdownTimerProps) {
   const colors = useThemeColors();
@@ -137,7 +140,7 @@ export function CountdownTimer({
       : `Day ${elapsed.elapsedDays} of ${elapsed.totalDays}`;
 
   return (
-    <View style={{ marginBottom: 16 }}>
+    <View style={{ marginBottom: embedded ? 0 : 16 }}>
       <View
         style={{
           alignItems: 'center',
@@ -149,18 +152,18 @@ export function CountdownTimer({
           minHeight: 56,
           paddingHorizontal: 20,
           paddingVertical: 14,
-          shadowColor: '#000',
+          shadowColor: embedded ? 'transparent' : '#000',
           shadowOffset: { width: 0, height: 3 },
-          shadowOpacity: 0.1,
-          shadowRadius: 16,
-          elevation: 2,
+          shadowOpacity: embedded ? 0 : 0.1,
+          shadowRadius: embedded ? 0 : 16,
+          elevation: embedded ? 0 : 2,
         }}
       >
         <Text
           style={{
             color: colors.text.accent,
-            fontFamily: 'Inter-SemiBold',
-            fontSize: 10.5,
+            ...TYPE.overline,
+            fontFamily: FONT.ui.semibold,
             letterSpacing: 1.5,
             textTransform: 'uppercase',
           }}
@@ -175,7 +178,7 @@ export function CountdownTimer({
             <TimeValue value={timeLeft.minutes} unit="m" />
           </View>
         ) : (
-          <Text style={{ color: colors.text.primary, fontFamily: 'Inter-SemiBold', fontSize: 14 }}>
+          <Text style={{ color: colors.text.primary, ...TYPE.bodySmall, fontFamily: FONT.ui.semibold }}>
             Not set
           </Text>
         )}
@@ -196,7 +199,7 @@ export function CountdownTimer({
               style={{ height: 4, width: `${elapsed.percentage}%` as `${number}%` }}
             />
           </View>
-          <Text style={{ color: colors.text.secondary, fontFamily: 'Inter-Regular', fontSize: 10.5 }}>
+          <Text style={{ color: colors.text.secondary, ...TYPE.meta }}>
             {caption}
           </Text>
         </View>

@@ -13,11 +13,10 @@ import Svg, {
   Text as SvgText,
 } from 'react-native-svg';
 
+import { FONT, TYPE } from '@/constants/design';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 
 export type MomentumTrendPoint = number;
-
-const SYSTEM_FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Helvetica Neue", Arial, sans-serif';
 
 function momentumDomainMaximum(points: readonly number[]): number {
   const maximum = Math.max(0, ...points.filter(Number.isFinite));
@@ -161,8 +160,8 @@ export function MomentumTrendChart({
                 />
                 <SvgText
                   fill={labelColor}
-                  fontFamily={SYSTEM_FONT}
-                  fontSize={showAxes ? 10.5 : 9}
+                  fontFamily={FONT.ui.medium}
+                  fontSize={showAxes ? TYPE.chartLabel.fontSize : 10}
                   textAnchor="end"
                   x={left - (showAxes ? 10 : 7)}
                   y={y + 3.5}
@@ -231,8 +230,8 @@ export function MomentumTrendChart({
           {pointCoordinates.map(([x], index) => (
             <SvgText
               fill={labelColor}
-              fontFamily={SYSTEM_FONT}
-              fontSize={showAxes ? 10.5 : 9}
+              fontFamily={FONT.ui.medium}
+              fontSize={showAxes ? TYPE.chartLabel.fontSize : 10}
               key={`label-${index}`}
               textAnchor="middle"
               x={x}
@@ -246,8 +245,8 @@ export function MomentumTrendChart({
             <>
               <SvgText
                 fill={labelColor}
-                fontFamily={SYSTEM_FONT}
-                fontSize={10.5}
+                fontFamily={FONT.ui.medium}
+                fontSize={TYPE.chartLabel.fontSize}
                 textAnchor="middle"
                 x={left + plotWidth / 2}
                 y={viewHeight - 7}
@@ -256,8 +255,8 @@ export function MomentumTrendChart({
               </SvgText>
               <SvgText
                 fill={labelColor}
-                fontFamily={SYSTEM_FONT}
-                fontSize={10.5}
+                fontFamily={FONT.ui.medium}
+                fontSize={TYPE.chartLabel.fontSize}
                 textAnchor="middle"
                 transform={`rotate(-90 14 ${top + plotHeight / 2})`}
                 x={14}

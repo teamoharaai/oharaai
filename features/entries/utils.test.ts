@@ -3,7 +3,9 @@ import test from 'node:test';
 import {
   buildRetrievalDocument,
   entriesForCategory,
+  entriesForProject,
   isEntryShelfExpanded,
+  isQuickReflection,
   isUnlinkedEntry,
   prioritizeEntryTypeAnchors,
   sortEntriesByRecency,
@@ -30,6 +32,7 @@ function entry(overrides: Partial<EntryRecord> = {}): EntryRecord {
     createdAt: overrides.createdAt ?? new Date('2026-01-01T00:00:00Z'),
     updatedAt: overrides.updatedAt ?? new Date('2026-01-02T00:00:00Z'),
     goals: overrides.goals ?? [],
+    project: overrides.project ?? null,
     categoryIds: overrides.categoryIds ?? [],
     milestones: overrides.milestones ?? [],
   };
@@ -192,4 +195,34 @@ test('normalizes a retrieval document with canonical relationship IDs', () => {
   assert.deepEqual(document.goalIds, ['g1']);
   assert.deepEqual(document.milestoneIds, ['m1']);
   assert.deepEqual(document.constellationIds, ['constellation-1']);
+});
+
+test('uses one canonical entry inside Most Recent and its optional Project folder', () => {
+  const projectEntry = entry({
+    id: 'project-note',
+    project: { id: 'project-1', title: 'Build OHARA', status: 'active' },
+    updatedAt: new Date('2026-09-09T14:00:00Z'),
+  });
+  const laterReflection = entry({
+    id: 'project-reflection',
+    entryType: 'reflection',
+    project: { id: 'project-1', title: 'Build OHARA', status: 'active' },
+    reflectionType: 'open',
+    updatedAt: new Date('2026-09-09T15:00:00Z'),
+  });
+  assert.deepEqual(
+    entriesForProject([projectEntry, laterReflection, projectEntry], 'project-1').map((item) => item.id),
+    ['project-reflection', 'project-note'],
+  );
+  assert.equal(isQuickReflection(laterReflection), true);
+  assert.equal(isQuickReflection(entry({
+    entryType: 'reflection',
+    reflectionType: 'open',
+    conversationTurns: [{
+      id: 'old',
+      role: 'user',
+      content: 'Legacy guided response',
+      createdAt: '2026-01-01T00:00:00Z',
+    }],
+  })), false);
 });

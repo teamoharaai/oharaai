@@ -1,7 +1,6 @@
 import {
   Animated,
   Pressable,
-  SafeAreaView,
   ScrollView,
   TextInput,
   useWindowDimensions,
@@ -13,7 +12,7 @@ import {
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { AppHeader } from '@/components/layout/AppHeader';
-import { Sidebar } from '@/components/layout/Sidebar';
+import { AppNavigation } from '@/components/layout/AppNavigation';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { DatePicker } from '@/components/ui/DatePicker';
@@ -294,7 +293,6 @@ export default function GoalCreateScreen() {
   const themeMode = useUIStore((current) => current.themeMode);
   const { width } = useWindowDimensions();
   const compact = width < 720;
-  const showSidebar = width >= 900;
   const { projectId: incomingProjectId } = useLocalSearchParams<{ projectId?: string }>();
   const initialProjectId = typeof incomingProjectId === 'string' ? incomingProjectId : null;
   const wizardOptions = useMemo(() => ({ initialProjectId }), [initialProjectId]);
@@ -1683,8 +1681,8 @@ export default function GoalCreateScreen() {
       : true;
 
   return (
-    <SafeAreaView style={{ backgroundColor: pageBackground, flex: 1, flexDirection: 'row' }}>
-      {showSidebar ? <Sidebar /> : null}
+    <View style={{ backgroundColor: pageBackground, flex: 1 }}>
+      <AppNavigation />
       <View style={{ flex: 1, minWidth: 0 }}>
         <AppHeader
           backLabel="Journey"
@@ -1826,6 +1824,6 @@ export default function GoalCreateScreen() {
       </View>
 
       <Toast message={toastMessage} onUndo={undoRemoval} visible={undoState !== null} />
-    </SafeAreaView>
+    </View>
   );
 }

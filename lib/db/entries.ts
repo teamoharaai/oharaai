@@ -5,6 +5,7 @@ import type {
   EntryGoalLink,
   EntryGoalOption,
   EntryMilestoneLink,
+  EntryProjectLink,
   EntryRecord,
   EntryRetrievalDocument,
   EntryType,
@@ -30,6 +31,7 @@ type DbEntryRow = {
   archived: boolean;
   content_version: number;
   schema_version: number;
+  project_id: string | null;
   completed_at: string | null;
   created_at: string;
   updated_at: string;
@@ -48,6 +50,12 @@ type MilestoneRow = {
   goal_id: string;
   title: string;
   completed_at: string | null;
+};
+
+type ProjectRow = {
+  id: string;
+  title: string;
+  status: string;
 };
 
 type RelationshipRows = {
@@ -82,7 +90,11 @@ function toTurns(value: unknown): ReflectionTurn[] {
   });
 }
 
-function mapEntry(row: DbEntryRow, relationships: RelationshipRows): EntryRecord {
+function mapEntry(
+  row: DbEntryRow,
+  relationships: RelationshipRows,
+  project: EntryProjectLink | null = null,
+): EntryRecord {
   const goals: EntryGoalLink[] = relationships.goalRows.map((goal) => ({
     id: goal.id,
     title: goal.title,
@@ -116,9 +128,26 @@ function mapEntry(row: DbEntryRow, relationships: RelationshipRows): EntryRecord
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
     goals,
+    project,
     categoryIds: relationships.categoryIds.map(normalizeGoalCategoryForEntries),
     milestones,
   };
+}
+
+async function loadEntryProjects(
+  db: SupabaseClient,
+  rows: DbEntryRow[],
+): Promise<Map<string, ProjectRow>> {
+  const projectIds = [...new Set(rows
+    .map((row) => row.project_id)
+    .filter((id): id is string => Boolean(id)))];
+  if (!projectIds.length) return new Map();
+  const { data, error } = await db
+    .from('projects')
+    .select('id, title, status')
+    .in('id', projectIds);
+  if (error) throw error;
+  return new Map(((data ?? []) as ProjectRow[]).map((project) => [project.id, project]));
 }
 
 async function loadRelationships(
@@ -201,10 +230,14 @@ export async function getEntries(
   if (error) throw error;
 
   const rows = (data ?? []) as DbEntryRow[];
-  const relationships = await loadRelationships(db, rows.map((row) => row.id));
+  const [relationships, projects] = await Promise.all([
+    loadRelationships(db, rows.map((row) => row.id)),
+    loadEntryProjects(db, rows),
+  ]);
   return rows.map((row) => mapEntry(
     row,
     relationships.get(row.id) ?? { goalRows: [], categoryIds: [], milestoneRows: [] },
+    row.project_id ? projects.get(row.project_id) ?? null : null,
   ));
 }
 
@@ -261,10 +294,15 @@ export async function getEntry(
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
-  const relationships = await loadRelationships(db, [entryId]);
+  const row = data as DbEntryRow;
+  const [relationships, projects] = await Promise.all([
+    loadRelationships(db, [entryId]),
+    loadEntryProjects(db, [row]),
+  ]);
   return mapEntry(
-    data as DbEntryRow,
+    row,
     relationships.get(entryId) ?? { goalRows: [], categoryIds: [], milestoneRows: [] },
+    row.project_id ? projects.get(row.project_id) ?? null : null,
   );
 }
 
@@ -287,7 +325,7 @@ async function saveEntry(
         planRevision: null,
       }))
     : [];
-  const { data, error } = await db.rpc('save_entry_v2', {
+  const { data, error } = await db.rpc('save_entry_v3', {
     p_entry_id: entryId,
     p_entry_type: draft.entryType,
     p_title: draft.title.trim(),
@@ -302,6 +340,7 @@ async function saveEntry(
     p_goal_ids: [...new Set(draft.relationships.goalIds)],
     p_category_ids: [...new Set(draft.relationships.categoryIds)],
     p_milestone_ids: [...new Set(draft.relationships.milestoneIds)],
+    p_project_id: draft.relationships.projectId ?? null,
     p_expected_content_version: draft.expectedContentVersion ?? null,
     p_progress_evidence: evidence,
   });

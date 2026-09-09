@@ -1,5 +1,84 @@
 # Arthur Implementation Changelog
 
+## Constellation Acceptance Fix — Goal-Link Note Editing
+
+### Interaction reliability
+- Fixed Constellation Goal-link note editing so entering edit mode initializes the controlled draft synchronously; saving now replaces the existing note text instead of allowing a delayed state effect to append the new text to the old value.
+- Preserved the existing Goal-link record, relationship, optimistic reconciliation, API contract, and database update behavior, with focused replacement assertions and the existing end-to-end acceptance flow retained.
+
+## Goals Version 1.0 — Final UI Polish
+
+### Page hierarchy and three-column workspace
+- Normalized the Goals header to the global page-title system with the canonical Goals mark and `Goals` as the primary heading; retained `Your journeys, your becoming.` and the existing philosophy copy as compact subordinate text beside the existing Search, Filter, and New Goal actions.
+- Preserved the three-column desktop architecture while giving the Goals library, selected Goal, and analysis rail the same restrained border, radius, elevation, and padding logic as the polished Echo workspace.
+- Converted the fragmented center stack into one composed Goal workspace surface. Goal identity, lifecycle state, Overview/Milestones/Tasks/Reflections/Notes/Insights tabs, timing, next step, milestone management, trackers, and recent activity remain distinct through neutral dividers and shared spacing without changing any handlers or data.
+
+### Surface, lifecycle, and responsive polish
+- Consolidated left-column filters and Goal rows into one library surface with internal separators, a soft canonical-green selected state, a clear accent edge, and hover feedback. Consolidated the existing right-column Intelligence, analytics, Momentum, recommendations, and linked-entry modules conservatively into one rail surface with internal sections.
+- Corrected the enabled `Extend into a new phase` action by routing it through the shared primary-button treatment (`#63C174` via semantic tokens) and made the lifecycle panel a deliberate inset section. Reworked all three New Phase modal steps to use current theme surfaces, borders, typography, radii, inputs, disabled states, and shared primary/secondary actions in light and dark mode.
+- Preserved the standardized typography scale, category and Momentum color meaning, all Goal/milestone/tracker/linking/status behavior, and the existing narrow/tablet layout branches. Authenticated light/dark, compact-width, lifecycle-modal, tab, selection, search/filter, and creation-entry checks passed alongside 205 focused tests, a clean-source TypeScript check, the 51-route Expo web export, and `git diff --check`; the normal repository check remains limited to the protected duplicate editor's three pre-existing diagnostics, and no lint script is configured.
+
+## OHARA Global Typography & Readability Polish
+
+### Canonical system and scale
+- Standardized authenticated OHARA UI on the already bundled Inter family across web and native; retained Lora only for the OHARA wordmark and intentional reflective/editorial voice. Removed the competing Apple-first page-local web stacks without adding a font dependency.
+- Added one semantic type scale in `constants/design.ts` and routed `Typography` through it: 12/17 meta, 13/18 caption, 14/21 supporting body, 15/20 controls, 16/24 body, 17/26 prominent and 17/27 editor copy, 18/24 card titles, 20/26 section titles, and 28/34 page titles. Functional reading text remains regular, controls/metadata medium, hierarchy semibold, and bold remains reserved for explicit emphasis.
+- Raised the shared NativeWind aliases and legacy Echo aliases onto the same scale, removed undersized functional 9–11.5px copy from the active Home/Goals/Echo/Momentum shells, and retained an explicit 11/15 chart label plus geometry-bound Constellation node/glyph exceptions.
+
+### Readability and layout protection
+- Increased shared button/input and compact-control heights proportionally, preserved one-line button labels, enlarged navigation and creation controls, rebalanced Echo entry rows/filters/search, and improved Goals milestone/tracker titles, metadata, errors, chips, and actions without changing feature behavior or page structure.
+- Kept Note and Quick Reflection copy regular-weight with long-form line heights, standardized editor chrome/popovers/references on Inter, and retained Lora only for the intentionally reflective Quick Reflection title and assistant voice.
+- Improved the light-theme muted text token from 3.26:1 to 4.65:1 on white and the dark-on-dark special muted token from 4.00:1 to 6.58:1, while preserving primary/secondary hierarchy and the existing color system.
+- Responsive light/dark visual QA and final typecheck, focused tests, web export, and diff validation are recorded in the completion report.
+
+## Echo Version 1.0 — UI & Interaction Polish
+
+### Echo library and workspace
+- Redesigned Echo as a calm two-area workspace with a collapsible library and a substantially larger active Note or Reflection surface. Replaced date-bucket/category navigation with **Most Recent** and **Projects**, retained a restrained All/Notes/Reflections filter with Notes as the default, and kept search across canonical Notes and Reflections.
+- Added optional Project folder browsing without duplicating content: a canonical Entry may appear in Most Recent and its associated Project, with combined Notes and Reflections ordered by recency. Empty library, empty Project, loading, error, selected, hover, focus, and narrow-screen states use the existing OHARA light/dark design language.
+
+### Focused layout and writing-canvas polish
+- Replaced Echo's large title/subtitle treatment with a compact `[Echo mark] Echo` + `New` page toolbar aligned directly to the workspace bounds. Restored the canonical Echo asset, removed the persistent subtitle, refined the single primary action's proportions, and reduced the header-to-workspace gap using shared OHARA spacing tokens; the unified Note/Reflection creation flow remains unchanged.
+- Replaced the single outer slab with three restrained companion surfaces: a bordered/elevated Echo library card, a separate active workspace card, and a rounded Ohara Intelligence side card. Shared radii, soft semantic borders, subtle `sm` elevation, and a real inter-card gap provide depth in light and dark mode without gradients, glass blur, or heavy shadows.
+- Refined library padding, content gutters, entry rhythm, and the selected-state hierarchy. Projects now sits in a quiet inset group rather than reading as an appended list, while search, Notes-default filtering, mixed recency, Project selection, and the explicit return path remain unchanged.
+- Added a clear `← Most Recent` Project exit state that clears only the Project context and preserves an open Entry on desktop. Project folders now enter with the combined All view, while returning to Most Recent restores Notes as the default filter.
+- Removed the dedicated 42px collapse-divider rail. The collapse chevron now lives in the library header, and a restrained overlay affordance on the active workspace edge restores the library without reserving a permanent column; the selected Entry, Project URL context, editor state, and released workspace width are preserved.
+- Expanded the Note sheet from 960px to 1280px, reduced outer editor gutters to 10–18px, and centered a controlled 900px maximum writing measure inside responsive 56–88px document padding. Added editor-container breakpoints at 820px and 600px so the canvas responds to the actual space released by the Echo library and Ohara Intelligence panel rather than only the browser viewport.
+- Increased desktop Note body text from 17px/1.65 to 18px/1.68 with 14px paragraph spacing; constrained and mobile editing remains a comfortable 17px/1.65. Narrow canvas padding now scales down to 24–44px and then 18–28px without horizontal overflow.
+- Reframed the empty workspace as a compact inset composition inside the workspace card, kept the persistent header `New` action as its clear path forward, and removed the duplicate center button. Refined Ohara Intelligence into a softly tinted, bordered companion card with its canonical mark and preserved references, linked context, close/reopen behavior, and honest non-AI state.
+- Validated the focused polish with 50 Entries/Echo source tests, a clean-source TypeScript pass, the 51-route production Expo web export, and `git diff --check`. The normal repository typecheck remains blocked only by the protected duplicate editor's three pre-existing diagnostics, no lint script is configured, and authenticated visual mutation checks remain unavailable without a connected signed-in browser session.
+
+### Echo Version 1.0 — Final Cleanup
+- Fixed the remaining Ohara Intelligence/editor collision by keeping the formatting toolbar in a full-width band above the editor-body split. The 328px Intelligence card is now a non-shrinking sibling of the writing canvas beneath the toolbar, with deliberate top/bottom inset so it starts lower, finishes shorter, and cannot occupy or cut into the formatting row.
+- Kept the toolbar container-responsive with compact spacing below 960px and contained horizontal overflow as a last resort; all formatting, Goal, image, Intelligence, and overflow actions remain available. The editor body still measures its real available width, uses the existing sheet presentation when both regions cannot coexist comfortably, and immediately returns all released canvas width when Intelligence closes.
+- Replaced the library's raw `Load failed` transport text with a restrained semantic error card and Retry action. The observed wording originated from a rejected local browser request being passed through the Entries/Projects stores verbatim; genuine failures remain visible without exposing low-level fetch text.
+- Standardized the shared application accent on the vibrant OHARA green `#63C174` in both light and dark themes, with a shared pressed/hover value of `#4EAA60` and soft selected/hover surfaces derived from the same RGB family. The global OHARA mark, Echo mark, navigation, primary actions, selected rows, filters, editor active/focus states, links, Projects, and Intelligence accents now resolve through those semantic tokens; intentional BRT/category, feedback, illustration, and neutral structural colors remain distinct.
+- Preserved the approved floating-card hierarchy and edge alignment while adding container-aware responsive behavior for library expanded/collapsed, Intelligence inline/closed/sheet, standard/wide/narrow widths, and light/dark themes.
+- Validated the final cleanup with 54 Entries/Echo source tests, a clean-source TypeScript pass, the 51-route production Expo web export, and `git diff --check`. No lint script is configured; the standard repository typecheck continues to report only the protected duplicate editor's three pre-existing diagnostics. The isolated browser reached the local login boundary and Chrome was not running/connected, so the authenticated visual state matrix remains a manual follow-up rather than being represented as completed.
+
+### Creation and reflection behavior
+- Replaced separate creation entry points with one **New** flow that first offers New Note or New Reflection. Both may be independent or optionally linked to one existing Goal and/or Project; the mature Notes editor, formatting, references, images, autosave, export, persistence, deletion, and responsive behavior remain intact.
+- Introduced **Quick Reflection** as a spacious freestyle, non-AI writing surface with title editing, autosave/recovery, reopen persistence, export, deletion, and optional Goal/Project organization. **Guided Reflection** is visible as an intentional **Coming soon** OHARA Intelligence capability and cannot enter the retained legacy chat implementation or produce fabricated responses.
+
+### Data safety, interaction polish, and validation
+- Added additive Migration 044 with a nullable owner-validated `entries.project_id` and atomic `save_entry_v3` wrapper. No existing Entry, legacy Echo row, Goal, Reflection, or Project is copied, backfilled, or destructively migrated; project removal only clears the optional association.
+- Added an Echo-specific persisted collapse preference, preserved selected/editor state during desktop transitions, used a list/detail compact layout, and prevented browser caret behavior on non-editable Echo chrome while retaining normal selection inside inputs and editable document content.
+- Passed 218 affected source tests, the disposable Entries/Notes database security harness including same-owner/cross-owner Project checks, the 51-route production Expo web export, and `git diff --check`. The Echo changes add no TypeScript diagnostics; the full repository check remains blocked only by three pre-existing diagnostics in the protected untracked `RichTextEditor.web 2.tsx` duplicate. No lint script is configured. Authenticated browser mutation checks were not run because the isolated browser had no local session and Chrome was not running/connected.
+
+**Full Projects Version 1.0 and Guided Reflection intelligence are not part of this release.**
+
+## 2026-09-09 — Application Navigation and Home Layout Polish
+
+### Horizontal application navigation
+- Replaced the persistent desktop sidebar with one shared horizontal application toolbar for Home, Goals, Echo, Momentum, and Constellation. Preserved the global create control and profile/account surface, added a compact two-row treatment for smaller screens, and kept active, hover, focus, light, and dark states within the established OHARA design system.
+- Removed sidebar width, collapse-state, content-offset, and Constellation breakpoint assumptions from the shared shell and dependent feature code. The separate Goal creation route now uses the same application navigation instead of maintaining its own sidebar composition.
+
+### Home page hierarchy
+- Removed the large background card around the Home dashboard. The real greeting now sits directly on the page background above the existing data-backed Today, Momentum, Goals, Project, Echo, draft, and Intelligence modules, with normalized responsive gutters and no replacement wrapper.
+
+### Validation
+- Passed 213 focused Entries, Echo, Auth, Friends, Momentum, Constellation, Home, Goals, and navigation-adjacent source tests plus the 51-route production web export. Confirmed the new shell introduces no TypeScript errors; the full repository typecheck remains blocked only by the three pre-existing diagnostics in the protected untracked `RichTextEditor.web 2.tsx` duplicate.
+
 ## 2026-08-20 — OHARA Notes Version 1.0
 
 ### Final editor reliability and page polish
@@ -151,7 +230,7 @@
 ## 2026-08-04 — Home Brand Green and Width Refinement
 
 ### Brand system
-- Replaced the active Home/Sidebar sage and olive treatments with one semantic OHARA green family: `#2A7F50` in light mode and `#58C77B` in dark mode, with selected and hover surfaces derived through opacity.
+- Consolidated the active Home/application-shell sage and olive treatments onto the semantic OHARA green family, now finalized at `#4A7C5F` in light mode and `#8FAE8A` in dark mode, with selected and hover surfaces derived through shared tokens.
 - Kept the original OHARA artwork while tinting it green in both themes; the dark wordmark remains white. Inactive Sidebar items stay neutral, while Today, Echo, Goals, Momentum, project marks, focus dots, links, and primary actions share the brand accent.
 - Routed raster brand artwork through the supported image tint prop, restored the canonical target mark for Goals, and removed the duplicate untinted project glyph from the Home project preview. Goal-category identity colors remain unchanged.
 

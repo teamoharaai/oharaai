@@ -62,7 +62,7 @@ import { formatRelativeTime } from '@/lib/utils/relativeTime';
 import type { AiResponse } from '@/lib/ai/contracts';
 import type { GoalWithDetails } from '@/features/goals/types';
 import type { ActionLog } from '@/features/actions/types';
-import { RADIUS, SPACE } from '@/constants/design';
+import { FONT, RADIUS, SPACE } from '@/constants/design';
 import { getCategoryAccentTheme } from '@/constants/themes';
 import { startPerformanceTimer } from '@/lib/diagnostics/performance';
 
@@ -105,7 +105,7 @@ function DashboardGreeting({
   const greetingName = name.replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim().split(' ')[0];
 
   return (
-    <View style={{ justifyContent: 'center', minHeight: 132, paddingHorizontal: SPACE.xl }}>
+    <View style={{ justifyContent: 'center', minHeight: 116 }}>
       <Typography
         variant="body"
         style={{ color: colors.text.secondary, fontSize: 18, lineHeight: 26 }}
@@ -114,7 +114,7 @@ function DashboardGreeting({
       </Typography>
       <Typography
         variant="greeting"
-        style={{ fontSize: 46, fontWeight: '600', letterSpacing: -1.5, lineHeight: 54 }}
+        style={{ fontSize: 46, letterSpacing: -1.5, lineHeight: 54 }}
       >
         {greetingName}.
       </Typography>
@@ -159,15 +159,15 @@ function DashboardCreateButton({
         borderRadius: RADIUS.round,
         borderWidth: 1,
         flexDirection: 'row',
-        minHeight: 36,
+        minHeight: 42,
         opacity: pressed ? 0.72 : 1,
         paddingHorizontal: SPACE.lg,
         paddingVertical: SPACE.sm,
       })}
     >
       <Typography
-        variant="emphasis-sm"
-        style={{ color: colors.text.accent, fontSize: 12 }}
+        variant="control"
+        style={{ color: colors.text.accent }}
       >
         + {label}
       </Typography>
@@ -257,8 +257,8 @@ function TodayFocusSummary({ goals }: { goals: TodayCarouselGoal[] }) {
                 <Typography
                   ellipsizeMode="tail"
                   numberOfLines={1}
-                  variant="content"
-                  style={{ flexShrink: 1, fontSize: 15, fontWeight: '500' }}
+                  variant="control"
+                  style={{ flexShrink: 1 }}
                 >
                   {goal.title}
                 </Typography>
@@ -277,7 +277,7 @@ function TodayFocusSummary({ goals }: { goals: TodayCarouselGoal[] }) {
                     ellipsizeMode="tail"
                     numberOfLines={1}
                     variant="caption"
-                    style={{ color: darkMode ? categoryTheme.color : categoryTheme.mid, fontSize: 11 }}
+                    style={{ color: darkMode ? categoryTheme.color : categoryTheme.mid, fontSize: 12 }}
                   >
                     {goal.projectTitle ?? formatCategoryLabel(goal.category)}
                   </Typography>
@@ -343,7 +343,7 @@ function MomentumMetric({ icon, label, supporting, value }: {
     }}>
       <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.lg }}>
         <Ionicons color={colors.text.accent} name={icon} size={28} />
-        <Typography variant="title" style={{ fontSize: 28, fontWeight: '500', lineHeight: 34 }}>
+        <Typography variant="title" style={{ fontFamily: FONT.ui.medium, fontSize: 28, lineHeight: 34 }}>
           {value ?? '—'}
         </Typography>
       </View>
@@ -443,7 +443,7 @@ function MomentumCard({
             }}
           />
           <View style={{ alignItems: 'baseline', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.lg, marginTop: SPACE['2xl'] }}>
-            <Typography variant="title" style={{ fontSize: 28, fontWeight: '500', lineHeight: 36 }}>
+            <Typography variant="title" style={{ fontFamily: FONT.ui.medium, fontSize: 28, lineHeight: 36 }}>
               {isLoading ? 'Calculating…' : momentumStatusLabel(summary)}
             </Typography>
             {!isLoading && summary?.currentValue !== null ? (
@@ -643,7 +643,7 @@ function HomeGoalPreview({
           <BrandIcon name="goal-mark" size={25} tintColor={categoryTheme.color} />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Typography numberOfLines={1} variant="title" style={{ fontSize: 16, fontWeight: '500', lineHeight: 24 }}>
+          <Typography numberOfLines={1} variant="title" style={{ fontFamily: FONT.ui.medium, fontSize: 18, lineHeight: 24 }}>
             {goal.title}
           </Typography>
           <Typography variant="caption" style={{ color: colors.text.secondary, marginTop: SPACE.xs }}>
@@ -1176,7 +1176,7 @@ function ProjectPreview({
             onPress={() => router.push(`/(app)/projects/${project.id}` as never)}
             style={({ pressed }) => ({ flex: 1, justifyContent: 'center', opacity: pressed ? 0.68 : 1 })}
           >
-            <Typography variant="title" numberOfLines={1} style={{ fontSize: 22, fontWeight: '500', lineHeight: 30 }}>
+            <Typography variant="title" numberOfLines={1} style={{ fontFamily: FONT.ui.medium, fontSize: 22, lineHeight: 30 }}>
               {project.title}
             </Typography>
             {project.description ? (
@@ -1193,7 +1193,7 @@ function ProjectPreview({
           </Pressable>
         ) : (
           <View style={{ flex: 1, justifyContent: 'center' }}>
-            <Typography variant="title" style={{ fontSize: 20, fontWeight: '500' }}>No projects yet.</Typography>
+            <Typography variant="title" style={{ fontFamily: FONT.ui.medium, fontSize: 20 }}>No projects yet.</Typography>
             <Typography variant="body" style={{ color: colors.text.secondary, marginTop: SPACE.sm }}>
               Create a project to connect the goals that move it forward.
             </Typography>
@@ -1252,7 +1252,7 @@ function EchoEntryPreviewCard({
           onPress={() => router.push(`/(app)/entries/${entry.id}` as never)}
           style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.68 : 1 })}
         >
-          <Typography variant="title" numberOfLines={1} style={{ fontSize: 20, fontWeight: '500', lineHeight: 28 }}>
+          <Typography variant="title" numberOfLines={1} style={{ fontFamily: FONT.ui.medium, fontSize: 20, lineHeight: 28 }}>
             {entry.title}
           </Typography>
           {entry.excerpt ? (
@@ -1274,7 +1274,7 @@ function EchoEntryPreviewCard({
         </Pressable>
       ) : (
         <View style={{ flex: 1, justifyContent: 'center' }}>
-          <Typography variant="title" style={{ fontSize: 20, fontWeight: '500' }}>{emptyTitle}</Typography>
+          <Typography variant="title" style={{ fontFamily: FONT.ui.medium, fontSize: 20 }}>{emptyTitle}</Typography>
           <Typography variant="body" style={{ color: colors.text.secondary, marginTop: SPACE.sm }}>{emptyCopy}</Typography>
         </View>
       )}
@@ -1376,7 +1376,7 @@ export default function DashboardScreen() {
   const compact = width < 720;
   const tablet = width >= 720 && width < 1180;
   const primaryRowSideBySide = width >= 1180;
-  const dashboardHorizontalPadding = compact ? 0 : undefined;
+  const dashboardHorizontalPadding = compact ? SPACE.xl : SPACE['3xl'];
   const routeParams = useLocalSearchParams<{
     draftSaved?: string | string[];
     goalFilter?: string | string[];
@@ -1637,25 +1637,20 @@ export default function DashboardScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
-          paddingLeft: dashboardHorizontalPadding ?? SPACE['3xl'],
-          paddingRight: dashboardHorizontalPadding ?? SPACE['3xl'],
-          paddingBottom: compact ? 104 : SPACE.lg,
-          paddingTop: compact ? 0 : SPACE.lg,
+          paddingLeft: dashboardHorizontalPadding,
+          paddingRight: dashboardHorizontalPadding,
+          paddingBottom: SPACE['4xl'],
+          paddingTop: compact ? SPACE.xl : SPACE['4xl'],
         }}
       >
         <View
           style={{
-            alignSelf: 'stretch',
-            backgroundColor: colors.background.card,
-            borderColor: colors.border.warmSubtle,
-            borderRadius: compact ? 0 : RADIUS.xl,
-            borderWidth: compact ? 0 : 1,
+            gap: SPACE['4xl'],
             minWidth: 0,
-            padding: compact ? SPACE.xl : SPACE['2xl'],
             width: '100%',
           }}
         >
-
+        {greetingCard}
         {goalsLoading || projectsLoading ? (
           <DashboardSkeleton />
         ) : (
@@ -1663,7 +1658,6 @@ export default function DashboardScreen() {
             {primaryRowSideBySide ? (
               <View style={{ alignItems: 'stretch', flexDirection: 'row', gap: SPACE['3xl'] }}>
                 <View style={{ flex: 0.3, gap: SPACE['3xl'], minWidth: 0 }}>
-                  {greetingCard}
                   {todayCard}
                   {projectCard}
                 </View>
@@ -1674,7 +1668,6 @@ export default function DashboardScreen() {
               <View style={{ gap: SPACE['3xl'] }}>
                 <View style={{ alignItems: 'stretch', flexDirection: 'row', gap: SPACE['3xl'] }}>
                   <View style={{ flex: 1, gap: SPACE['3xl'], minWidth: 0 }}>
-                    {greetingCard}
                     {todayCard}
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>{momentumCard}</View>
@@ -1686,7 +1679,6 @@ export default function DashboardScreen() {
               </View>
             ) : (
               <View style={{ gap: SPACE['3xl'] }}>
-                {greetingCard}
                 {todayCard}
                 {momentumCard}
                 {goalsCard}

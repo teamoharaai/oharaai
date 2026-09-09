@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 import Svg, { Circle, G, Path, Rect, Text as SvgText } from 'react-native-svg';
 
+import { OHARA_ACCENT_PRIMARY } from '@/constants/colors';
 import { CATEGORY_ACCENT_THEME } from '@/constants/themes';
 
 type PublicConstellationProps = {
@@ -25,7 +26,7 @@ export function PublicConstellation({
   const label = dark ? '#E3EAE4' : '#5F5B52';
   const quiet = dark ? '#AFC0B4' : '#7C766B';
   const centerFill = dark ? '#E8EFE9' : '#F7F4EE';
-  const centerStroke = dark ? '#BFD0C3' : '#4A7C5F';
+  const centerStroke = dark ? '#BFD0C3' : OHARA_ACCENT_PRIMARY;
   const viewBox = compact ? '0 0 480 150' : '0 0 720 360';
 
   return (

@@ -70,16 +70,20 @@ export function Button({
       accessibilityRole="button"
       accessibilityState={{ busy: loading, disabled: unavailable }}
       disabled={unavailable}
-      style={({ pressed }) => [
+      style={({ hovered, pressed }) => [
         {
           alignItems: 'center',
-          backgroundColor: appearance.backgroundColor,
-          borderColor: appearance.borderColor,
+          backgroundColor: variant === 'primary' && (hovered || pressed)
+            ? colors.accent.primaryHover
+            : appearance.backgroundColor,
+          borderColor: variant === 'primary' && (hovered || pressed)
+            ? colors.accent.primaryHover
+            : appearance.borderColor,
           borderRadius: compact ? RADIUS.round : RADIUS.md,
           borderWidth: variant === 'ghost' ? 0 : 1,
           justifyContent: 'center',
           minHeight: compact ? CONTROL.compactHeight : CONTROL.defaultHeight,
-          opacity: unavailable ? 0.45 : pressed ? 0.72 : 1,
+          opacity: unavailable ? 0.45 : pressed && variant !== 'primary' ? 0.72 : 1,
           paddingHorizontal: compact ? SPACE.xl : SPACE['2xl'],
           paddingVertical: compact ? SPACE.md : SPACE.lg,
         },
@@ -91,7 +95,8 @@ export function Button({
         <ActivityIndicator color={appearance.textColor} size="small" />
       ) : (
         <Typography
-          variant="emphasis-sm"
+          numberOfLines={1}
+          variant="control"
           style={[{ color: appearance.textColor }, textStyle]}
         >
           {children}

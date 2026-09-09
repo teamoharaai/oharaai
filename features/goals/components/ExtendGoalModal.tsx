@@ -7,12 +7,16 @@ import {
   parseCalendarDate,
 } from '@/components/ui/DatePicker';
 import { Modal } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
+import { Typography } from '@/components/ui/Typography';
+import { FONT, RADIUS, SPACE, TYPE } from '@/constants/design';
 import { authedFetch } from '@/lib/api/client';
 import type { ApiResponse } from '@/lib/api/contracts';
 import type { CreateGoalWithMilestonesAndTrackersResult } from '@/lib/db/goals';
 import { useGoalStore } from '../store';
 import type { GoalWithDetails, Tracker } from '../types';
 import { goalWorkspaceHref } from '../navigation';
+import { useThemeColors } from '@/store/uiStore';
 
 type ExtendGoalStep = 1 | 2 | 3;
 type DeadlineOption = 30 | 60 | 90 | 'custom';
@@ -89,14 +93,15 @@ function formatDeadlineReadout(deadline: string): string {
 }
 
 function TrackerValue({ tracker }: { tracker: Tracker }) {
+  const colors = useThemeColors();
   if (tracker.type === 'checklist') {
     const complete = getChecklistComplete(tracker);
     return (
       <Text
         style={{
-          color: complete ? '#4A7C5F' : '#8A8172',
-          fontFamily: 'Inter-SemiBold',
-          fontSize: 13,
+          color: complete ? colors.text.accent : colors.text.muted,
+          ...TYPE.caption,
+          fontFamily: FONT.ui.semibold,
         }}
       >
         {complete ? 'Done' : 'Not done'}
@@ -106,7 +111,7 @@ function TrackerValue({ tracker }: { tracker: Tracker }) {
 
   const unit = tracker.targetUnit ? ` ${tracker.targetUnit}` : '';
   return (
-    <Text style={{ color: '#4A4339', fontFamily: 'Inter-SemiBold', fontSize: 13 }}>
+    <Text style={{ color: colors.text.primary, ...TYPE.caption, fontFamily: FONT.ui.semibold }}>
       {tracker.currentValue}/{tracker.targetValue ?? '—'}{unit}
     </Text>
   );
@@ -121,49 +126,32 @@ function SummaryStep({
   onClose: () => void;
   onContinue: () => void;
 }) {
+  const colors = useThemeColors();
   return (
     <>
-      <Text
-        style={{
-          color: '#211F1A',
-          fontFamily: 'Inter-Regular',
-          fontSize: 28,
-          lineHeight: 36,
-          marginBottom: 7,
-        }}
-      >
+      <Typography variant="heading" style={{ marginBottom: SPACE.sm }}>
         This goal has ended.
-      </Text>
-      <Text
-        style={{
-          color: '#6B6257',
-          fontFamily: 'Inter-Regular',
-          fontSize: 14,
-          lineHeight: 21,
-          marginBottom: 20,
-        }}
-      >
+      </Typography>
+      <Typography variant="body-small" style={{ marginBottom: SPACE['2xl'] }}>
         Here&apos;s where you finished this phase.
-      </Text>
+      </Typography>
 
       <View
         style={{
-          backgroundColor: '#F6F0E4',
-          borderColor: '#E7DEC9',
-          borderRadius: 14,
+          backgroundColor: colors.background.subtle,
+          borderColor: colors.border.divider,
+          borderRadius: RADIUS.lg,
           borderWidth: 1,
-          marginBottom: 22,
-          paddingHorizontal: 16,
+          marginBottom: SPACE['2xl'],
+          paddingHorizontal: SPACE.xl,
         }}
       >
         {goal.trackers.length === 0 ? (
           <Text
             style={{
-              color: '#8A8172',
-              fontFamily: 'Inter-Regular',
-              fontSize: 13,
-              lineHeight: 19,
-              paddingVertical: 16,
+              color: colors.text.secondary,
+              ...TYPE.bodySmall,
+              paddingVertical: SPACE.xl,
             }}
           >
             No trackers were added during this phase.
@@ -174,22 +162,21 @@ function SummaryStep({
               key={tracker.id}
               style={{
                 alignItems: 'center',
-                borderBottomColor: '#E7DEC9',
+                borderBottomColor: colors.border.divider,
                 borderBottomWidth: index === goal.trackers.length - 1 ? 0 : 1,
                 flexDirection: 'row',
-                gap: 16,
+                gap: SPACE.xl,
                 justifyContent: 'space-between',
-                paddingVertical: 14,
+                paddingVertical: SPACE.lg,
               }}
             >
               <Text
                 numberOfLines={2}
                 style={{
-                  color: '#211F1A',
+                  color: colors.text.primary,
                   flex: 1,
-                  fontFamily: 'Inter-Medium',
-                  fontSize: 13,
-                  lineHeight: 18,
+                  ...TYPE.bodySmall,
+                  fontFamily: FONT.ui.medium,
                 }}
               >
                 {tracker.title}
@@ -200,38 +187,13 @@ function SummaryStep({
         )}
       </View>
 
-      <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-        <TouchableOpacity
-          accessibilityRole="button"
-          onPress={onClose}
-          style={{ borderRadius: 999, paddingHorizontal: 16, paddingVertical: 11 }}
-        >
-          <Text style={{ color: '#4A4339', fontFamily: 'Inter-SemiBold', fontSize: 13 }}>
-            Not now
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          accessibilityRole="button"
-          onPress={onContinue}
-          style={{
-            backgroundColor: '#1E3226',
-            borderRadius: 999,
-            flexGrow: 1,
-            paddingHorizontal: 18,
-            paddingVertical: 11,
-          }}
-        >
-          <Text
-            style={{
-              color: '#EDE7DA',
-              fontFamily: 'Inter-SemiBold',
-              fontSize: 13,
-              textAlign: 'center',
-            }}
-          >
-            Extend into a new phase
-          </Text>
-        </TouchableOpacity>
+      <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md }}>
+        <Button onPress={onClose} size="compact" variant="outline">
+          Not now
+        </Button>
+        <Button onPress={onContinue} size="compact" style={{ flexGrow: 1 }}>
+          Extend into a new phase
+        </Button>
       </View>
     </>
   );
@@ -258,6 +220,7 @@ function DeadlineStep({
   selectedOption: DeadlineOption | null;
   title: string;
 }) {
+  const colors = useThemeColors();
   const customValidation = getCustomDeadline(customDate);
   const titleValid = title.trim().length > 0;
   const deadlineValid = selectedOption === 'custom'
@@ -267,61 +230,44 @@ function DeadlineStep({
 
   return (
     <>
-      <Text
-        style={{
-          color: '#211F1A',
-          fontFamily: 'Inter-Regular',
-          fontSize: 28,
-          lineHeight: 36,
-          marginBottom: 7,
-        }}
-      >
+      <Typography variant="heading" style={{ marginBottom: SPACE.sm }}>
         Begin the next phase.
-      </Text>
-      <Text
-        style={{
-          color: '#6B6257',
-          fontFamily: 'Inter-Regular',
-          fontSize: 14,
-          lineHeight: 21,
-          marginBottom: 22,
-        }}
-      >
+      </Typography>
+      <Typography variant="body-small" style={{ marginBottom: SPACE['2xl'] }}>
         Give this next stretch a name and a new deadline.
-      </Text>
+      </Typography>
 
-      <Text style={{ color: '#6B6257', fontFamily: 'Inter-SemiBold', fontSize: 11, letterSpacing: 1.2, marginBottom: 8 }}>
+      <Typography variant="eyebrow" style={{ marginBottom: SPACE.md }}>
         GOAL TITLE
-      </Text>
+      </Typography>
       <TextInput
         accessibilityLabel="Goal title"
         onChangeText={onTitleChange}
         placeholder="Name this next phase"
-        placeholderTextColor="#A79E8E"
+        placeholderTextColor={colors.text.muted}
         style={{
-          backgroundColor: '#FFFFFF',
-          borderColor: titleValid ? '#D8D0C2' : '#C0483A',
-          borderRadius: 10,
+          backgroundColor: colors.background.input,
+          borderColor: titleValid ? colors.border.input : colors.feedback.danger.text,
+          borderRadius: RADIUS.md,
           borderWidth: 1,
-          color: '#211F1A',
-          fontFamily: 'Inter-Medium',
-          fontSize: 15,
-          marginBottom: titleValid ? 22 : 5,
-          paddingHorizontal: 13,
-          paddingVertical: 11,
+          color: colors.text.primary,
+          ...TYPE.control,
+          marginBottom: titleValid ? SPACE['2xl'] : SPACE.xs,
+          paddingHorizontal: SPACE.lg,
+          paddingVertical: SPACE.lg,
         }}
         value={title}
       />
       {!titleValid && (
-        <Text style={{ color: '#C0483A', fontFamily: 'Inter-Regular', fontSize: 12, marginBottom: 22 }}>
+        <Typography variant="caption" style={{ color: colors.feedback.danger.text, marginBottom: SPACE['2xl'] }}>
           A title is required.
-        </Text>
+        </Typography>
       )}
 
-      <Text style={{ color: '#6B6257', fontFamily: 'Inter-SemiBold', fontSize: 11, letterSpacing: 1.2, marginBottom: 8 }}>
+      <Typography variant="eyebrow" style={{ marginBottom: SPACE.md }}>
         DEADLINE
-      </Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: selectedOption === 'custom' ? 12 : 18 }}>
+      </Typography>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md, marginBottom: selectedOption === 'custom' ? SPACE.lg : SPACE.xl }}>
         {DEADLINE_PRESETS.map((days) => (
           <DeadlineOptionButton
             key={days}
@@ -338,10 +284,10 @@ function DeadlineStep({
       </View>
 
       {selectedOption === 'custom' && (
-        <View style={{ marginBottom: 18 }}>
-          <Text style={{ color: '#6B6257', fontFamily: 'Inter-Regular', fontSize: 13, marginBottom: 7 }}>
+        <View style={{ marginBottom: SPACE.xl }}>
+          <Typography variant="body-small" style={{ marginBottom: SPACE.sm }}>
             Choose a future date
-          </Text>
+          </Typography>
           <DatePicker
             accessibilityLabel="Custom deadline"
             error={customValidation.iso === null ? customValidation.error : null}
@@ -352,67 +298,47 @@ function DeadlineStep({
             value={customDate}
           />
           {customValidation.error && (
-            <Text style={{ color: '#C0483A', fontFamily: 'Inter-Regular', fontSize: 12, marginTop: 6 }}>
+            <Typography variant="caption" style={{ color: colors.feedback.danger.text, marginTop: SPACE.sm }}>
               {customValidation.error}
-            </Text>
+            </Typography>
           )}
         </View>
       )}
 
       {deadline && deadlineValid && (
-        <View style={{ backgroundColor: '#F6F0E4', borderRadius: 10, marginBottom: 22, paddingHorizontal: 13, paddingVertical: 11 }}>
-          <Text style={{ color: '#6B6257', fontFamily: 'Inter-Regular', fontSize: 12, marginBottom: 2 }}>New deadline</Text>
-          <Text style={{ color: '#1E3226', fontFamily: 'Inter-SemiBold', fontSize: 15 }}>
+        <View style={{ backgroundColor: colors.background.subtle, borderRadius: RADIUS.md, marginBottom: SPACE['2xl'], paddingHorizontal: SPACE.lg, paddingVertical: SPACE.lg }}>
+          <Typography variant="caption" style={{ marginBottom: SPACE.xs }}>New deadline</Typography>
+          <Text style={{ color: colors.text.accent, ...TYPE.control, fontFamily: FONT.ui.semibold }}>
             {formatDeadlineReadout(deadline)}
           </Text>
         </View>
       )}
 
-      <View style={{ alignItems: 'center', flexDirection: 'row', gap: 10 }}>
-        <TouchableOpacity
-          accessibilityRole="button"
-          onPress={onBack}
-          style={{ borderColor: '#D8D0C2', borderRadius: 999, borderWidth: 1, paddingHorizontal: 18, paddingVertical: 11 }}
-        >
-          <Text style={{ color: '#4A4339', fontFamily: 'Inter-SemiBold', fontSize: 13 }}>Back</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !nextEnabled }}
-          disabled={!nextEnabled}
-          onPress={onNext}
-          style={{
-            backgroundColor: '#1E3226',
-            borderRadius: 999,
-            flex: 1,
-            opacity: nextEnabled ? 1 : 0.45,
-            paddingHorizontal: 18,
-            paddingVertical: 11,
-          }}
-        >
-          <Text style={{ color: '#EDE7DA', fontFamily: 'Inter-SemiBold', fontSize: 13, textAlign: 'center' }}>Next</Text>
-        </TouchableOpacity>
+      <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
+        <Button onPress={onBack} size="compact" variant="outline">Back</Button>
+        <Button disabled={!nextEnabled} onPress={onNext} size="compact" style={{ flex: 1 }}>Next</Button>
       </View>
     </>
   );
 }
 
 function DeadlineOptionButton({ label, onPress, selected }: { label: string; onPress: () => void; selected: boolean }) {
+  const colors = useThemeColors();
   return (
     <TouchableOpacity
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={onPress}
       style={{
-        backgroundColor: selected ? '#EEF4F0' : '#FFFFFF',
-        borderColor: selected ? '#1E3226' : '#D8D0C2',
-        borderRadius: 999,
+        backgroundColor: selected ? colors.background.selectedRow : colors.background.card,
+        borderColor: selected ? colors.border.accent : colors.border.input,
+        borderRadius: RADIUS.round,
         borderWidth: 1,
-        paddingHorizontal: 14,
-        paddingVertical: 9,
+        paddingHorizontal: SPACE.lg,
+        paddingVertical: SPACE.md,
       }}
     >
-      <Text style={{ color: selected ? '#1E3226' : '#4A4339', fontFamily: 'Inter-SemiBold', fontSize: 13 }}>
+      <Text style={{ color: selected ? colors.text.accent : colors.text.secondary, ...TYPE.control }}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -434,107 +360,52 @@ function ReflectionStep({
   onSubmit: () => void;
   reflection: string;
 }) {
+  const colors = useThemeColors();
   return (
     <>
-      <Text
-        style={{
-          color: '#211F1A',
-          fontFamily: 'Inter-Regular',
-          fontSize: 28,
-          lineHeight: 36,
-          marginBottom: 22,
-        }}
-      >
+      <Typography variant="heading" style={{ marginBottom: SPACE['2xl'] }}>
         Anything to remember from this phase?
-      </Text>
+      </Typography>
       <TextInput
         accessibilityLabel="Reflection"
         editable={!isSubmitting}
         multiline
         onChangeText={onReflectionChange}
         placeholder="I didn't hit the number, but…"
-        placeholderTextColor="#A79E8E"
+        placeholderTextColor={colors.text.muted}
         style={{
-          backgroundColor: '#FCFAF4',
-          borderColor: '#D8D2C8',
-          borderRadius: 10,
+          backgroundColor: colors.background.input,
+          borderColor: colors.border.input,
+          borderRadius: RADIUS.md,
           borderWidth: 1,
-          color: '#211F1A',
-          fontFamily: 'Inter-Regular',
-          fontSize: 16,
-          lineHeight: 24,
-          marginBottom: error ? 6 : 22,
+          color: colors.text.primary,
+          ...TYPE.body,
+          marginBottom: error ? SPACE.sm : SPACE['2xl'],
           minHeight: 148,
-          paddingHorizontal: 13,
-          paddingVertical: 12,
+          paddingHorizontal: SPACE.lg,
+          paddingVertical: SPACE.lg,
           textAlignVertical: 'top',
         }}
         value={reflection}
       />
       {error && (
-        <Text style={{ color: '#C0483A', fontFamily: 'Inter-Regular', fontSize: 12, marginBottom: 22 }}>
+        <Typography variant="caption" style={{ color: colors.feedback.danger.text, marginBottom: SPACE['2xl'] }}>
           {error}
-        </Text>
+        </Typography>
       )}
-      <View style={{ alignItems: 'center', flexDirection: 'row', gap: 10 }}>
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityState={{ disabled: isSubmitting }}
-          disabled={isSubmitting}
-          onPress={onBack}
-          style={{
-            borderColor: '#D8D0C2',
-            borderRadius: 999,
-            borderWidth: 1,
-            opacity: isSubmitting ? 0.45 : 1,
-            paddingHorizontal: 18,
-            paddingVertical: 11,
-          }}
-        >
-          <Text style={{ color: '#4A4339', fontFamily: 'Inter-SemiBold', fontSize: 13 }}>Back</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityState={{ disabled: isSubmitting }}
-          disabled={isSubmitting}
-          onPress={onSubmit}
-          style={{
-            borderColor: '#1E3226',
-            borderRadius: 999,
-            borderWidth: 1,
-            opacity: isSubmitting ? 0.45 : 1,
-            paddingHorizontal: 18,
-            paddingVertical: 11,
-          }}
-        >
-          <Text style={{ color: '#1E3226', fontFamily: 'Inter-SemiBold', fontSize: 13 }}>
-            Skip
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityState={{ disabled: isSubmitting }}
-          disabled={isSubmitting}
-          onPress={onSubmit}
-          style={{
-            backgroundColor: '#1E3226',
-            borderRadius: 999,
-            flex: 1,
-            opacity: isSubmitting ? 0.45 : 1,
-            paddingHorizontal: 18,
-            paddingVertical: 11,
-          }}
-        >
-          <Text style={{ color: '#EDE7DA', fontFamily: 'Inter-SemiBold', fontSize: 13, textAlign: 'center' }}>
-            {isSubmitting ? 'Starting…' : 'Start next phase'}
-          </Text>
-        </TouchableOpacity>
+      <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
+        <Button disabled={isSubmitting} onPress={onBack} size="compact" variant="outline">Back</Button>
+        <Button disabled={isSubmitting} onPress={onSubmit} size="compact" variant="ghost">Skip</Button>
+        <Button loading={isSubmitting} onPress={onSubmit} size="compact" style={{ flex: 1 }}>
+          Start next phase
+        </Button>
       </View>
     </>
   );
 }
 
 export function ExtendGoalModal({ visible, goal, onClose }: ExtendGoalModalProps) {
+  const colors = useThemeColors();
   const upsertGoal = useGoalStore((store) => store.upsertGoal);
   const [state, setState] = useState<ExtendGoalState>(() => createInitialState(goal.title));
   const [selectedDeadlineOption, setSelectedDeadlineOption] = useState<DeadlineOption | null>(null);
@@ -656,29 +527,22 @@ export function ExtendGoalModal({ visible, goal, onClose }: ExtendGoalModalProps
       onClose={handleClose}
       showCloseButton={false}
       closeOnBackdropPress={!isSubmitting}
-      backdropColor="rgba(30,25,15,0.45)"
       motion={EXTEND_MODAL_MOTION}
       contentStyle={{
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        boxShadow: '0 24px 60px rgba(0,0,0,0.25)',
-        elevation: 12,
+        backgroundColor: colors.background.card,
+        borderRadius: RADIUS.xl,
         maxHeight: '90%',
         maxWidth: 468,
-        padding: 24,
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 24 },
-        shadowOpacity: 0.25,
-        shadowRadius: 30,
+        padding: SPACE['3xl'],
       }}
     >
-      <View style={{ flexDirection: 'row', gap: 7, marginBottom: 24 }}>
+      <View style={{ flexDirection: 'row', gap: SPACE.sm, marginBottom: SPACE['3xl'] }}>
         {([1, 2, 3] as const).map((step) => (
           <View
             key={step}
             style={{
-              backgroundColor: step <= state.currentStep ? '#1E3226' : '#E7DEC9',
-              borderRadius: 999,
+              backgroundColor: step <= state.currentStep ? colors.accent.primary : colors.border.divider,
+              borderRadius: RADIUS.round,
               flex: 1,
               height: 4,
             }}

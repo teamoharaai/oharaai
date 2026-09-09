@@ -1,37 +1,56 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
 import { GOAL_CATEGORY_CATALOG, normalizeGoalCategoryForEntries } from '@/lib/goals/catalog';
 import { getCategoryAccentTheme } from '@/constants/themes';
+import { TYPE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
 import type { EntryGoalOption } from '../types';
 import type { GoalCreationCategory } from '@/lib/goals/schema';
+import type { Project } from '@/features/projects/types';
 
 export function EntryLinkPicker({
   goals,
+  projects,
   visible,
   selectedGoalIds,
   selectedCategoryIds,
+  selectedProjectId,
   onClose,
   onApply,
 }: {
   goals: EntryGoalOption[];
+  projects: Project[];
   visible: boolean;
   selectedGoalIds: string[];
   selectedCategoryIds: GoalCreationCategory[];
+  selectedProjectId: string | null;
   onClose: () => void;
-  onApply: (goalIds: string[], categoryIds: GoalCreationCategory[]) => void;
+  onApply: (
+    goalIds: string[],
+    categoryIds: GoalCreationCategory[],
+    projectId: string | null,
+  ) => void;
 }) {
   const colors = useThemeColors();
   const [query, setQuery] = useState('');
   const [goalIds, setGoalIds] = useState(selectedGoalIds);
   const [categoryIds, setCategoryIds] = useState(selectedCategoryIds);
+  const [projectId, setProjectId] = useState<string | null>(selectedProjectId);
   const availableGoals = useMemo(() => goals.filter((goal) => (
     goal.status !== 'archived'
     && goal.title.toLowerCase().includes(query.trim().toLowerCase())
   )), [goals, query]);
+
+  useEffect(() => {
+    if (!visible) return;
+    setGoalIds(selectedGoalIds);
+    setCategoryIds(selectedCategoryIds);
+    setProjectId(selectedProjectId);
+    setQuery('');
+  }, [selectedCategoryIds, selectedGoalIds, selectedProjectId, visible]);
 
   function toggleGoal(goalId: string) {
     setGoalIds((current) => current.includes(goalId)
@@ -55,14 +74,14 @@ export function EntryLinkPicker({
       onCancel={onClose}
       confirmText="Apply links"
       onConfirm={() => {
-        onApply(goalIds, categoryIds);
+        onApply(goalIds, categoryIds, projectId);
         onClose();
       }}
       contentStyle={{ maxHeight: '82%', maxWidth: 560 }}
     >
-      <Typography variant="title">Link this entry</Typography>
+      <Typography variant="title">Organize this entry</Typography>
       <Typography variant="body" style={{ marginTop: 6 }}>
-        Specific goals provide the strongest context. Category-only links remain available.
+        Goal and Project links are optional. The entry remains available in Most Recent.
       </Typography>
       <View
         style={{
@@ -85,7 +104,7 @@ export function EntryLinkPicker({
           style={{
             color: colors.text.primary,
             flex: 1,
-            fontFamily: 'Inter-Regular',
+            ...TYPE.bodySmall,
             minHeight: 44,
             outlineStyle: 'solid',
             outlineWidth: 0,
@@ -134,6 +153,54 @@ export function EntryLinkPicker({
             No accessible goals match your search.
           </Typography>
         )}
+
+        <Typography variant="eyebrow" style={{ marginBottom: 8, marginTop: 18 }}>
+          PROJECT
+        </Typography>
+        <Pressable
+          accessibilityRole="radio"
+          accessibilityState={{ selected: projectId === null }}
+          onPress={() => setProjectId(null)}
+          style={({ pressed }) => ({
+            alignItems: 'center',
+            backgroundColor: projectId === null ? colors.background.selectedRow : 'transparent',
+            borderRadius: 10,
+            flexDirection: 'row',
+            gap: 10,
+            opacity: pressed ? 0.7 : 1,
+            padding: 10,
+          })}
+        >
+          <Ionicons name="remove-circle-outline" color={colors.text.muted} size={20} />
+          <Typography variant="emphasis-sm" style={{ flex: 1 }}>No Project</Typography>
+          {projectId === null ? <Ionicons name="checkmark" color={colors.text.accent} size={18} /> : null}
+        </Pressable>
+        {projects.filter((project) => project.status !== 'archived').map((project) => {
+          const selected = projectId === project.id;
+          return (
+            <Pressable
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+              key={project.id}
+              onPress={() => setProjectId(project.id)}
+              style={({ pressed }) => ({
+                alignItems: 'center',
+                backgroundColor: selected ? colors.background.selectedRow : 'transparent',
+                borderRadius: 10,
+                flexDirection: 'row',
+                gap: 10,
+                opacity: pressed ? 0.7 : 1,
+                padding: 10,
+              })}
+            >
+              <Ionicons name="folder-outline" color={colors.text.accent} size={20} />
+              <Typography variant="emphasis-sm" numberOfLines={1} style={{ flex: 1 }}>
+                {project.title}
+              </Typography>
+              {selected ? <Ionicons name="checkmark" color={colors.text.accent} size={18} /> : null}
+            </Pressable>
+          );
+        })}
 
         <Typography variant="eyebrow" style={{ marginBottom: 8, marginTop: 18 }}>
           CATEGORY ONLY

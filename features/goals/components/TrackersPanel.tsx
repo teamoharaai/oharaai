@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useThemeColors } from '@/store/uiStore';
+import { FONT, TYPE } from '@/constants/design';
 import type { Tracker, TrackerFrequency, TrackerInput, TrackerType, TrackerUpdates } from '../types';
 import { TrackerCard } from './TrackerCard';
 
@@ -29,6 +30,7 @@ export interface TrackersPanelProps {
   trackers: readonly Tracker[];
   hasSuccessor: boolean;
   ended: boolean;
+  embedded?: boolean;
   archived?: boolean;
   accentColor?: string;
   progressColor?: string;
@@ -45,6 +47,7 @@ export function TrackersPanel({
   trackers,
   hasSuccessor,
   ended,
+  embedded = false,
   archived = false,
   accentColor,
   progressColor,
@@ -116,8 +119,7 @@ export function TrackersPanel({
     borderRadius: 9,
     borderWidth: 1,
     color: colors.text.primary,
-    fontFamily: 'Inter-Regular' as const,
-    fontSize: 13,
+    ...TYPE.bodySmall,
     paddingHorizontal: 12,
     paddingVertical: 9,
   };
@@ -126,17 +128,17 @@ export function TrackersPanel({
     <View
       accessibilityLabel="Trackers. What you measure each week."
       style={{
-        backgroundColor: colors.background.card,
+        backgroundColor: embedded ? 'transparent' : colors.background.card,
         borderColor: colors.border.warm,
-        borderRadius: 20,
-        borderWidth: 1,
-        elevation: 1,
-        paddingHorizontal: compact ? 18 : 26,
-        paddingVertical: 24,
+        borderRadius: embedded ? 0 : 20,
+        borderWidth: embedded ? 0 : 1,
+        elevation: embedded ? 0 : 1,
+        paddingHorizontal: embedded ? 0 : compact ? 18 : 26,
+        paddingVertical: embedded ? 0 : 24,
         shadowColor: colors.background.sidebar,
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 22,
+        shadowOpacity: embedded ? 0 : 0.05,
+        shadowRadius: embedded ? 0 : 22,
       }}
     >
       <View
@@ -152,8 +154,8 @@ export function TrackersPanel({
           <Text
             style={{
               color: colors.text.secondary,
-              fontFamily: 'Inter-SemiBold',
-              fontSize: 11,
+              ...TYPE.overline,
+              fontFamily: FONT.ui.semibold,
               letterSpacing: 1.5,
               textTransform: 'uppercase',
             }}
@@ -163,24 +165,21 @@ export function TrackersPanel({
           <Text
             style={{
               color: colors.text.primary,
-              fontFamily: 'Inter-Regular',
-              fontSize: 19,
+              ...TYPE.sectionTitle,
               marginTop: 3,
             }}
           >
             What you measure each week
           </Text>
         </View>
-        <Text style={{ color: colors.text.accent, fontFamily: 'Inter-Medium', fontSize: 12.5 }}>
+        <Text style={{ color: colors.text.accent, ...TYPE.caption, fontFamily: FONT.ui.medium }}>
           This week
         </Text>
       </View>
       <Text
         style={{
           color: colors.text.muted,
-          fontFamily: 'Inter-Regular',
-          fontSize: 13,
-          lineHeight: 20,
+          ...TYPE.bodySmall,
           marginBottom: 18,
           maxWidth: 560,
         }}
@@ -209,8 +208,7 @@ export function TrackersPanel({
             style={{
               color: colors.feedback.danger.text,
               flex: 1,
-              fontFamily: 'Inter-Regular',
-              fontSize: 12,
+              ...TYPE.caption,
             }}
           >
             {error}
@@ -225,8 +223,8 @@ export function TrackersPanel({
               <Text
                 style={{
                   color: colors.feedback.danger.text,
-                  fontFamily: 'Inter-SemiBold',
-                  fontSize: 12,
+                  ...TYPE.bodySmall,
+                  fontFamily: FONT.ui.medium,
                 }}
               >
                 Dismiss
@@ -321,8 +319,8 @@ export function TrackersPanel({
                   <Text
                     style={{
                       color: selected ? colors.text.inverse : colors.text.secondary,
-                      fontFamily: 'Inter-Medium',
-                      fontSize: 11.5,
+                      ...TYPE.bodySmall,
+                      fontFamily: FONT.ui.medium,
                     }}
                   >
                     {TYPE_LABELS[trackerType]}
@@ -353,8 +351,8 @@ export function TrackersPanel({
                   <Text
                     style={{
                       color: selected ? colors.text.accent : colors.text.secondary,
-                      fontFamily: 'Inter-Medium',
-                      fontSize: 11,
+                      ...TYPE.caption,
+                      fontFamily: FONT.ui.medium,
                     }}
                   >
                     {frequencyLabel(trackerFrequency)}
@@ -387,7 +385,7 @@ export function TrackersPanel({
           {validationError ? (
             <Text
               accessibilityRole="alert"
-              style={{ color: colors.feedback.danger.text, fontFamily: 'Inter-Regular', fontSize: 12 }}
+              style={{ color: colors.feedback.danger.text, ...TYPE.caption }}
             >
               {validationError}
             </Text>

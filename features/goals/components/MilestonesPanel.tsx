@@ -6,6 +6,7 @@ import {
   parseCalendarDate,
 } from '@/components/ui/DatePicker';
 import { useThemeColors } from '@/store/uiStore';
+import { FONT, TYPE } from '@/constants/design';
 import type {
   GoalMilestone,
   GoalMilestoneInput,
@@ -18,6 +19,7 @@ export interface MilestonesPanelProps {
   milestones: readonly GoalMilestone[];
   hasSuccessor: boolean;
   ended: boolean;
+  embedded?: boolean;
   archived?: boolean;
   subtitle?: string;
   completingIds?: ReadonlySet<string>;
@@ -99,8 +101,7 @@ function MilestoneEditor({ initial, submitLabel, onCancel, onSubmit }: Milestone
     borderRadius: 9,
     borderWidth: 1,
     color: colors.text.primary,
-    fontFamily: 'Inter-Regular' as const,
-    fontSize: 13,
+    ...TYPE.bodySmall,
     paddingHorizontal: 12,
     paddingVertical: 9,
   };
@@ -146,7 +147,7 @@ function MilestoneEditor({ initial, submitLabel, onCancel, onSubmit }: Milestone
       {validationError ? (
         <Text
           accessibilityRole="alert"
-          style={{ color: colors.feedback.danger.text, fontFamily: 'Inter-Regular', fontSize: 12 }}
+          style={{ color: colors.feedback.danger.text, ...TYPE.caption }}
         >
           {validationError}
         </Text>
@@ -205,6 +206,7 @@ export function MilestonesPanel({
   milestones,
   hasSuccessor,
   ended,
+  embedded = false,
   archived = false,
   subtitle = 'The critical moments along the way',
   completingIds = new Set<string>(),
@@ -235,17 +237,17 @@ export function MilestonesPanel({
     <View
       accessibilityLabel={`Milestones. ${completedCount} of ${sortedMilestones.length} reached.`}
       style={{
-        backgroundColor: colors.background.card,
+        backgroundColor: embedded ? 'transparent' : colors.background.card,
         borderColor: colors.border.warm,
-        borderRadius: 20,
-        borderWidth: 1,
-        elevation: 1,
-        paddingHorizontal: compact ? 18 : 26,
-        paddingVertical: 24,
+        borderRadius: embedded ? 0 : 20,
+        borderWidth: embedded ? 0 : 1,
+        elevation: embedded ? 0 : 1,
+        paddingHorizontal: embedded ? 0 : compact ? 18 : 26,
+        paddingVertical: embedded ? 0 : 24,
         shadowColor: colors.background.sidebar,
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 22,
+        shadowOpacity: embedded ? 0 : 0.05,
+        shadowRadius: embedded ? 0 : 22,
       }}
     >
       <View
@@ -261,8 +263,8 @@ export function MilestonesPanel({
           <Text
             style={{
               color: colors.text.secondary,
-              fontFamily: 'Inter-SemiBold',
-              fontSize: 11,
+              ...TYPE.overline,
+              fontFamily: FONT.ui.semibold,
               letterSpacing: 1.5,
               textTransform: 'uppercase',
             }}
@@ -272,8 +274,7 @@ export function MilestonesPanel({
           <Text
             style={{
               color: colors.text.primary,
-              fontFamily: 'Inter-Regular',
-              fontSize: 19,
+              ...TYPE.sectionTitle,
               marginTop: 3,
             }}
           >
@@ -283,8 +284,8 @@ export function MilestonesPanel({
         <Text
           style={{
             color: colors.text.accent,
-            fontFamily: 'Inter-Medium',
-            fontSize: 12.5,
+            ...TYPE.caption,
+            fontFamily: FONT.ui.medium,
           }}
         >
           {completedCount} of {sortedMilestones.length} reached
@@ -312,8 +313,7 @@ export function MilestonesPanel({
             style={{
               color: colors.feedback.danger.text,
               flex: 1,
-              fontFamily: 'Inter-Regular',
-              fontSize: 12,
+              ...TYPE.caption,
             }}
           >
             {error}
@@ -328,8 +328,8 @@ export function MilestonesPanel({
               <Text
                 style={{
                   color: colors.feedback.danger.text,
-                  fontFamily: 'Inter-SemiBold',
-                  fontSize: 12,
+                  ...TYPE.bodySmall,
+                  fontFamily: FONT.ui.medium,
                 }}
               >
                 Dismiss
@@ -412,7 +412,7 @@ export function MilestonesPanel({
                       style={{
                         color: colors.text.inverse,
                         fontFamily: 'Inter-Bold',
-                        fontSize: 12,
+                        fontSize: 13,
                       }}
                     >
                       ✓
@@ -446,7 +446,8 @@ export function MilestonesPanel({
                           style={{
                             color: colors.text.inverse,
                             fontFamily: 'Inter-SemiBold',
-                            fontSize: 9.5,
+                            fontSize: 12,
+                            lineHeight: 16,
                             letterSpacing: 0.5,
                             textTransform: 'uppercase',
                           }}
@@ -468,7 +469,8 @@ export function MilestonesPanel({
                           style={{
                             color: colors.text.accent,
                             fontFamily: 'Inter-SemiBold',
-                            fontSize: 9.5,
+                            fontSize: 12,
+                            lineHeight: 16,
                           }}
                         >
                           ✦ AI
@@ -480,8 +482,8 @@ export function MilestonesPanel({
                     style={{
                       color: colors.text.secondary,
                       fontFamily: 'Inter-Regular',
-                      fontSize: 12,
-                      lineHeight: 18,
+                      fontSize: 13,
+                      lineHeight: 19,
                       marginTop: 2,
                     }}
                   >
@@ -503,7 +505,7 @@ export function MilestonesPanel({
                       }}
                     >
                       <Text
-                        style={{ color: colors.text.secondary, fontFamily: 'Inter-Medium', fontSize: 12 }}
+                        style={{ color: colors.text.secondary, fontFamily: 'Inter-Medium', fontSize: 14 }}
                       >
                         Delete this milestone?
                       </Text>
@@ -515,7 +517,7 @@ export function MilestonesPanel({
                           style={{ paddingHorizontal: 10, paddingVertical: 6 }}
                         >
                           <Text
-                            style={{ color: colors.text.secondary, fontFamily: 'Inter-Medium', fontSize: 12 }}
+                            style={{ color: colors.text.secondary, fontFamily: 'Inter-Medium', fontSize: 14 }}
                           >
                             Cancel
                           </Text>
@@ -537,7 +539,7 @@ export function MilestonesPanel({
                             style={{
                               color: colors.feedback.danger.text,
                               fontFamily: 'Inter-SemiBold',
-                              fontSize: 12,
+                              fontSize: 14,
                             }}
                           >
                             Delete
@@ -598,8 +600,8 @@ export function MilestonesPanel({
             style={{
               color: colors.text.muted,
               fontFamily: 'Inter-Regular',
-              fontSize: 12.5,
-              lineHeight: 19,
+              fontSize: 14,
+              lineHeight: 21,
             }}
           >
             Add the one-time moments that provide meaningful evidence of goal progress.
