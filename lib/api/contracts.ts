@@ -14,13 +14,17 @@ export interface ApiErrorResponse {
     message: string;
     details?: unknown;
   };
+  requestId?: string;
 }
 
 export type ApiErrorCode =
   | 'UNAUTHORIZED'
+  | 'FORBIDDEN'
   | 'INVALID_INPUT'
   | 'NOT_FOUND'
   | 'CONFLICT'
+  | 'UNPROCESSABLE'
   | 'RATE_LIMITED'
+  | 'SERVICE_UNAVAILABLE'
   | 'INTERNAL_ERROR'
   | 'UNKNOWN_ERROR';

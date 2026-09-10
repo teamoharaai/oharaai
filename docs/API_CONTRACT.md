@@ -7,6 +7,14 @@
 
 ## Conventions
 
+### Native iOS v1 boundary
+
+The currently implemented native subset uses the unversioned Expo routes listed in
+[`IOS_API_CONTRACT_V1.md`](IOS_API_CONTRACT_V1.md), with versioned fixtures under
+`contracts/ios/v1`. That document supersedes the legacy generic error convention
+below for those routes: all native-route errors include `ok: false`, `data: null`,
+a structured `error`, and a request-correlating `requestId`/`X-Request-ID`.
+
 **Base URL:** `/api/v1/` (all endpoints prefixed)
 **Auth:** All endpoints require a valid Supabase JWT in the `Authorization: Bearer <token>` header. The backend extracts `user_id` from the JWT — clients never send `user_id` in the body.
 **Content-Type:** `application/json` for all requests and responses.

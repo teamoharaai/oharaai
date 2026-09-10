@@ -186,8 +186,7 @@ export async function createGoalWithMilestonesAndTrackers(
     console.error('[goal-create] persistence failed', {
       requestId,
       stage: 'persistence',
-      userId,
-      error,
+      reason: 'missing_title',
     });
     return { goalId: null, error, warning: null };
   }
@@ -197,8 +196,7 @@ export async function createGoalWithMilestonesAndTrackers(
     console.error('[goal-create] persistence failed', {
       requestId,
       stage: 'persistence',
-      userId,
-      error,
+      reason: 'missing_category',
     });
     return { goalId: null, error, warning: null };
   }
@@ -206,7 +204,7 @@ export async function createGoalWithMilestonesAndTrackers(
   const normalizedDeadline = normalizeDeadlineForPersistence(input.deadline);
   const normalizationWarnings = normalizedDeadline
     ? []
-    : [`Invalid deadline "${input.deadline}" was normalized to null before persistence`];
+    : ['Invalid deadline was normalized to null before persistence'];
   const embeddingText = buildGoalEmbeddingText(
     input.title,
     input.description,
@@ -236,20 +234,15 @@ export async function createGoalWithMilestonesAndTrackers(
   console.info('[goal-create] persistence started', {
     requestId,
     stage: 'persistence',
-    userId,
-    title: input.title,
-    category: input.category,
     milestoneCount: input.milestones.length,
     trackerCount: input.trackers.length,
-    projectId: input.project_id,
   });
 
   if (normalizationWarnings.length > 0) {
     console.warn('[goal-create] persistence normalization adjusted payload', {
       requestId,
       stage: 'persistence',
-      userId,
-      warnings: normalizationWarnings,
+      adjustment: 'deadline_normalized',
     });
   }
 
@@ -260,15 +253,11 @@ export async function createGoalWithMilestonesAndTrackers(
     .single();
 
   if (goalError || !goalRow) {
-    const error = goalError?.message ?? 'Goal insert returned no row';
+    const error = 'Goal insert failed';
     console.error('[goal-create] persistence failed', {
       requestId,
-      stage: 'persistence',
-      userId,
-      error,
+      stage: 'goal_insert',
       code: goalError?.code,
-      details: goalError?.details,
-      hint: goalError?.hint,
     });
     return { goalId: null, error, warning: null };
   }
@@ -295,21 +284,16 @@ export async function createGoalWithMilestonesAndTrackers(
     const { error: milestoneError } = await db.from('milestones').insert(milestoneInserts);
 
     if (milestoneError) {
-      warning = [warning, milestoneError.message].filter(Boolean).join(' | ');
+      warning = [warning, 'One or more milestones could not be saved'].filter(Boolean).join(' | ');
       console.error('[goal-create] persistence failed', {
         requestId,
-        stage: 'persistence',
-        goalId,
-        error: milestoneError.message,
+        stage: 'milestone_insert',
         code: milestoneError.code,
-        details: milestoneError.details,
-        hint: milestoneError.hint,
       });
     } else {
       console.info('[goal-create] persistence milestones saved', {
         requestId,
-        stage: 'persistence',
-        goalId,
+        stage: 'milestone_insert',
         milestoneCount: input.milestones.length,
       });
     }
@@ -319,21 +303,16 @@ export async function createGoalWithMilestonesAndTrackers(
     const { error: trackerError } = await db.from('trackers').insert(trackerInserts);
 
     if (trackerError) {
-      warning = [warning, trackerError.message].filter(Boolean).join(' | ');
+      warning = [warning, 'One or more trackers could not be saved'].filter(Boolean).join(' | ');
       console.error('[goal-create] persistence failed', {
         requestId,
-        stage: 'persistence',
-        goalId,
-        error: trackerError.message,
+        stage: 'tracker_insert',
         code: trackerError.code,
-        details: trackerError.details,
-        hint: trackerError.hint,
       });
     } else {
       console.info('[goal-create] persistence trackers saved', {
         requestId,
-        stage: 'persistence',
-        goalId,
+        stage: 'tracker_insert',
         trackerCount: input.trackers.length,
       });
     }
@@ -353,12 +332,11 @@ export async function createGoalWithMilestonesAndTrackers(
           .eq('id', goalId);
       }
     })
-    .catch((err) => {
+    .catch(() => {
       console.error(JSON.stringify({
         event: 'embedding_write_failed',
         table: 'goals',
-        record_id: goalId,
-        error: err instanceof Error ? err.message : 'unknown',
+        requestId,
         timestamp: new Date().toISOString(),
       }));
     });
@@ -376,10 +354,9 @@ export async function createGoalWithMilestonesAndTrackers(
       });
 
     if (vaultError) {
-      console.error('[vault] Failed to auto-create vault for goal', goalId, {
+      console.error('[vault] Failed to auto-create vault for goal', {
         requestId,
-        stage: 'persistence',
-        error: vaultError.message,
+        stage: 'vault_insert',
         code: vaultError.code,
       });
       // Non-blocking: goal creation still succeeds
@@ -389,8 +366,7 @@ export async function createGoalWithMilestonesAndTrackers(
   console.info('[goal-create] persistence succeeded', {
     requestId,
     stage: 'persistence',
-    goalId,
-    warning,
+    hasWarning: warning !== null,
   });
   return { goalId, error: null, warning };
 }
@@ -970,7 +946,10 @@ export async function completeTracker(
     .single();
 
   if (goalError || !(goalRow as DbGoalOwnershipRow | null)?.id) {
-    throw new Error('Goal not found');
+    throw new GoalExtensionError(
+      'GOAL_NOT_FOUND',
+      'Goal not found',
+    );
   }
 
   const { data: trackerRow, error: trackerError } = await db
@@ -981,7 +960,10 @@ export async function completeTracker(
     .single();
 
   if (trackerError || !trackerRow) {
-    throw new Error('Tracker not found');
+    throw new GoalExtensionError(
+      'GOAL_NOT_FOUND',
+      'Tracker not found',
+    );
   }
 
   const tracker = trackerRow as DbCompletableTrackerRow;

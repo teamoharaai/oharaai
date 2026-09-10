@@ -1,0 +1,59 @@
+{
+  "list": {
+    "request": { "method": "GET", "path": "/api/entries/library?type=reflection", "body": null },
+    "response": { "status": 200, "body": { "entries": [] } }
+  },
+  "create": {
+    "request": {
+      "method": "POST",
+      "path": "/api/entries/library",
+      "body": {
+        "entryType": "reflection",
+        "title": "",
+        "content": {
+          "type": "doc",
+          "blocks": [{
+            "id": "33333333-3333-4333-8333-333333333333-body",
+            "type": "paragraph",
+            "text": "Fixture reflection"
+          }]
+        },
+        "plainText": "Fixture reflection",
+        "reflectionType": "open",
+        "conversationTurns": [{
+          "id": "33333333-3333-4333-8333-333333333333-response",
+          "role": "user",
+          "content": "Fixture reflection",
+          "createdAt": "2026-09-09T12:34:56Z"
+        }],
+        "pinned": false,
+        "archived": false,
+        "completedAt": "2026-09-09T12:34:56Z",
+        "brtCategory": "rose",
+        "clientRequestId": "33333333-3333-4333-8333-333333333333",
+        "relationships": {
+          "goalIds": ["11111111-1111-4111-8111-111111111111"],
+          "categoryIds": [],
+          "milestoneIds": []
+        }
+      }
+    },
+    "response": {
+      "status": 201,
+      "body": {
+        "entry": {
+          "id": "22222222-2222-4222-8222-222222222222",
+          "entryType": "reflection",
+          "title": "",
+          "content": { "type": "doc", "schemaVersion": 1, "blocks": [] },
+          "plainText": "Fixture reflection",
+          "brtCategory": "rose",
+          "completedAt": "2026-09-09T12:34:56Z",
+          "createdAt": "2026-09-09T12:34:56Z",
+          "updatedAt": "2026-09-09T12:34:56Z",
+          "goals": []
+        }
+      }
+    }
+  }
+}

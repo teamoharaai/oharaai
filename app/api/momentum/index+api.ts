@@ -1,4 +1,11 @@
 import { withAuth, type AuthContext } from '@/lib/api/auth';
+import {
+  iosError,
+  iosJSON,
+  iosRequestContext,
+  logIosRouteFailure,
+  type IosRequestContext,
+} from '@/lib/api/ios-contract';
 import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 import { createServiceRoleClient } from '@/lib/db/service-client';
 import {
@@ -8,19 +15,28 @@ import {
 } from '@/features/momentum/services/momentum-service';
 
 export async function GET(request: Request): Promise<Response> {
+  const context = iosRequestContext(request);
   if (!isDatabaseConfigured) {
-    return Response.json({ error: 'Database not configured' }, { status: 503 });
+    return iosError(context, 503, 'SERVICE_UNAVAILABLE', 'Service unavailable');
   }
-  return withAuth(handleGet)(request);
+  return withAuth(
+    (innerRequest, params, auth) => handleGet(innerRequest, params, auth, context),
+    { onUnauthorized: () => iosError(context, 401, 'UNAUTHORIZED', 'Unauthorized') },
+  )(request);
 }
 
-async function handleGet(request: Request, _params: Record<string, string>, auth: AuthContext): Promise<Response> {
+async function handleGet(
+  request: Request,
+  _params: Record<string, string>,
+  auth: AuthContext,
+  context: IosRequestContext,
+): Promise<Response> {
   try {
     const readDb = createAuthedClient(auth.accessToken);
     const writeDb = createServiceRoleClient();
     const result = await getMomentumHomeSummary(readDb, writeDb, auth.userId);
     const diagnosticsRequested = new URL(request.url).searchParams.get('diagnostics') === '1';
-    return Response.json({
+    return iosJSON(context, {
       data: {
         ...result.summary,
         ...(diagnosticsRequested ? {
@@ -30,12 +46,7 @@ async function handleGet(request: Request, _params: Record<string, string>, auth
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Momentum calculation failed';
-    console.error('[momentum] authoritative calculation failed', {
-      algorithmVersion: 'ohara-momentum-v1.1',
-      error: message,
-      userId: auth.userId,
-    });
-    return Response.json({ error: 'Momentum is temporarily unavailable' }, { status: 500 });
+    logIosRouteFailure('momentum_read_failed', context, 500, error);
+    return iosError(context, 500, 'INTERNAL_ERROR', 'Momentum is temporarily unavailable');
   }
 }

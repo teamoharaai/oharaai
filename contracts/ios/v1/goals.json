@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/api/goals",
+    "body": {
+      "title": "Run a 10K",
+      "description": "Build confidence",
+      "deadline": "2026-10-31",
+      "category": "health",
+      "visibility": "private",
+      "target_frequency": { "times": 1, "period": "week" },
+      "status": "active",
+      "milestones": [],
+      "trackers": [{
+        "title": "Complete the weekly run",
+        "type": "counter",
+        "targetValue": 10,
+        "targetUnit": "kilometres",
+        "frequency": "weekly"
+      }],
+      "origin": "manual"
+    }
+  },
+  "response": {
+    "status": 201,
+    "body": {
+      "ok": true,
+      "data": {
+        "goalId": "11111111-1111-4111-8111-111111111111",
+        "error": null,
+        "warning": null
+      },
+      "error": null
+    }
+  }
+}

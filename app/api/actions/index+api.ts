@@ -1,5 +1,12 @@
 import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 import { withAuth, type AuthContext } from '@/lib/api/auth';
+import {
+  iosError,
+  iosJSON,
+  iosRequestContext,
+  logIosRouteFailure,
+  type IosRequestContext,
+} from '@/lib/api/ios-contract';
 import type { ActionLog, ActionLogStatus } from '@/features/actions/types';
 
 const ACTION_LOG_STATUSES: readonly ActionLogStatus[] = ['pending', 'complete', 'skipped'];
@@ -34,10 +41,11 @@ function sanitizeActionText(input: unknown): string {
 }
 
 function sanitizeUuid(input: unknown, field: string): string {
-  if (typeof input !== 'string' || !input.trim()) {
+  const value = typeof input === 'string' ? input.trim() : '';
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
     throw new Error(`${field} is required`);
   }
-  return input.trim();
+  return value;
 }
 
 function sanitizeOptionalDate(input: unknown): string | null {
@@ -55,25 +63,30 @@ function sanitizeOptionalDate(input: unknown): string | null {
 // Query params: goal_id (required), status (optional), limit (optional, default 10)
 
 export async function GET(request: Request): Promise<Response> {
+  const context = iosRequestContext(request);
   if (!isDatabaseConfigured) {
-    return Response.json({ error: 'Database not configured' }, { status: 503 });
+    return iosError(context, 503, 'SERVICE_UNAVAILABLE', 'Service unavailable');
   }
-  return withAuth(handleGet)(request);
+  return withAuth(
+    (innerRequest, params, auth) => handleGet(innerRequest, params, auth, context),
+    { onUnauthorized: () => iosError(context, 401, 'UNAUTHORIZED', 'Unauthorized') },
+  )(request);
 }
 
-async function handleGet(request: Request, _params: Record<string, string>, auth: AuthContext): Promise<Response> {
+async function handleGet(
+  request: Request,
+  _params: Record<string, string>,
+  auth: AuthContext,
+  context: IosRequestContext,
+): Promise<Response> {
   const url = new URL(request.url);
-  const goalId = url.searchParams.get('goal_id');
-  if (!goalId?.trim()) {
-    return Response.json({ error: 'goal_id is required' }, { status: 400 });
-  }
+  let goalId: string;
+  try { goalId = sanitizeUuid(url.searchParams.get('goal_id'), 'goal_id'); }
+  catch { return iosError(context, 400, 'INVALID_INPUT', 'goal_id must be a UUID'); }
 
   const statusParam = url.searchParams.get('status');
   if (statusParam && !(ACTION_LOG_STATUSES as readonly string[]).includes(statusParam)) {
-    return Response.json(
-      { error: `status must be one of: ${ACTION_LOG_STATUSES.join(', ')}` },
-      { status: 400 },
-    );
+    return iosError(context, 400, 'INVALID_INPUT', 'Invalid action status');
   }
 
   const rawLimit = url.searchParams.get('limit');
@@ -84,7 +97,7 @@ async function handleGet(request: Request, _params: Record<string, string>, auth
   let query = authedDb
     .from('action_logs')
     .select('*')
-    .eq('goal_id', goalId.trim())
+    .eq('goal_id', goalId)
     .eq('user_id', auth.userId)
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -96,10 +109,11 @@ async function handleGet(request: Request, _params: Record<string, string>, auth
   const { data, error } = await query;
 
   if (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    logIosRouteFailure('actions_read_failed', context, 500, error);
+    return iosError(context, 500, 'INTERNAL_ERROR', 'Could not load actions');
   }
 
-  return Response.json({ items: ((data as Record<string, unknown>[]) ?? []).map(mapActionLog) });
+  return iosJSON(context, { items: ((data as Record<string, unknown>[]) ?? []).map(mapActionLog) });
 }
 
 // ─── POST /api/actions ────────────────────────────────────────────────────────

@@ -1,5 +1,12 @@
 import { withAuth, type AuthContext } from '@/lib/api/auth';
-import { createAuthedClient } from '@/lib/db/client';
+import {
+  iosError,
+  iosJSON,
+  iosRequestContext,
+  logIosRouteFailure,
+  type IosRequestContext,
+} from '@/lib/api/ios-contract';
+import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 import {
   createGoalWithMilestonesAndTrackers,
   type GoalCreationOrigin,
@@ -238,30 +245,28 @@ function validateManualGoalCreationInput(value: unknown): ManualGoalCreationInpu
   };
 }
 
-function unauthorizedResponse(): Response {
-  const errBody: ApiResponse<never> = {
-    ok: false,
-    data: null,
-    error: { code: 'UNAUTHORIZED', message: 'Unauthorized' },
-  };
-  return Response.json(errBody, { status: 401 });
-}
-
 export async function POST(request: Request): Promise<Response> {
-  return withAuth(handlePost, { onUnauthorized: unauthorizedResponse })(request);
+  const context = iosRequestContext(request);
+  if (!isDatabaseConfigured) {
+    return iosError(context, 503, 'SERVICE_UNAVAILABLE', 'Service unavailable');
+  }
+  return withAuth(
+    (innerRequest, params, auth) => handlePost(innerRequest, params, auth, context),
+    { onUnauthorized: () => iosError(context, 401, 'UNAUTHORIZED', 'Unauthorized') },
+  )(request);
 }
 
-async function handlePost(request: Request, _params: Record<string, string>, auth: AuthContext): Promise<Response> {
+async function handlePost(
+  request: Request,
+  _params: Record<string, string>,
+  auth: AuthContext,
+  context: IosRequestContext,
+): Promise<Response> {
   let payload: unknown;
   try {
     payload = await request.json();
   } catch {
-    const errBody: ApiResponse<never> = {
-      ok: false,
-      data: null,
-      error: { code: 'INVALID_INPUT', message: 'Invalid JSON body' },
-    };
-    return Response.json(errBody, { status: 400 });
+    return iosError(context, 400, 'INVALID_INPUT', 'Invalid JSON body');
   }
 
   let input: ManualGoalCreationInput;
@@ -271,12 +276,7 @@ async function handlePost(request: Request, _params: Record<string, string>, aut
     origin = validateOrigin(payload);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Invalid goal payload';
-    const errBody: ApiResponse<never> = {
-      ok: false,
-      data: null,
-      error: { code: 'INVALID_INPUT', message },
-    };
-    return Response.json(errBody, { status: 400 });
+    return iosError(context, 422, 'UNPROCESSABLE', message);
   }
 
   const authedDb = createAuthedClient(auth.accessToken);
@@ -285,21 +285,22 @@ async function handlePost(request: Request, _params: Record<string, string>, aut
     const result = await createGoalWithMilestonesAndTrackers(
       auth.userId,
       input,
-      { origin },
+      { origin, requestId: context.requestId },
       authedDb,
     );
-    const body: ApiResponse<typeof result> = { ok: true, data: result, error: null };
-    return Response.json(body, { status: 201 });
-  } catch (err) {
-    const errBody: ApiResponse<never> = {
-      ok: false,
-      data: null,
-      error: {
-        code: 'INTERNAL_ERROR',
-        message: 'Failed to create goal',
-        details: err instanceof Error ? err.message : undefined,
-      },
+    if (result.error || !result.goalId) {
+      logIosRouteFailure('goal_create_failed', context, 500);
+      return iosError(context, 500, 'INTERNAL_ERROR', 'Failed to create goal');
+    }
+    const safeResult = {
+      goalId: result.goalId,
+      error: null,
+      warning: result.warning ? 'A related goal item could not be confirmed' : null,
     };
-    return Response.json(errBody, { status: 500 });
+    const body: ApiResponse<typeof safeResult> = { ok: true, data: safeResult, error: null };
+    return iosJSON(context, body, { status: 201 });
+  } catch (err) {
+    logIosRouteFailure('goal_create_failed', context, 500, err);
+    return iosError(context, 500, 'INTERNAL_ERROR', 'Failed to create goal');
   }
 }
