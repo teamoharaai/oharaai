@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import {
   Modal,
   View,
@@ -60,7 +60,8 @@ import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { authedFetch } from '@/lib/api/client';
 import { formatRelativeTime } from '@/lib/utils/relativeTime';
 import type { AiResponse } from '@/lib/ai/contracts';
-import type { GoalWithDetails } from '@/features/goals/types';
+import type { GoalWithDetails, Tracker } from '@/features/goals/types';
+import { useTrackerBoundaryRefresh } from '@/features/goals/hooks/useTrackerBoundaryRefresh';
 import type { ActionLog } from '@/features/actions/types';
 import { FONT, RADIUS, SPACE } from '@/constants/design';
 import { getCategoryAccentTheme } from '@/constants/themes';
@@ -744,12 +745,16 @@ function HomeGoalsPreview({ goals, goalActivity }: {
 
 // --- Zone 1: Today's Trackers ---
 
+type DueTodayTrackerType = 'counter' | 'habit' | 'checklist';
+
 type DueTodayItem = {
   goalId: string;
   goalTitle: string;
   id: string;
   title: string;
-  lastCompletedAt: string | null;
+  type: DueTodayTrackerType;
+  isCompleted: boolean;
+  periodEndExclusive: Date;
 };
 
 type DueTodayApiGroup = {
@@ -758,20 +763,11 @@ type DueTodayApiGroup = {
   trackers: Array<{
     id: string;
     title: string;
-    lastCompletedAt: string | null;
+    type: DueTodayTrackerType;
+    isCompletedThisPeriod: boolean;
+    periodEndExclusive: string;
   }>;
 };
-
-function isCompletedToday(lastCompletedAt: string | null): boolean {
-  if (!lastCompletedAt) return false;
-  const last = new Date(lastCompletedAt);
-  const now = new Date();
-  return (
-    last.getFullYear() === now.getFullYear() &&
-    last.getMonth() === now.getMonth() &&
-    last.getDate() === now.getDate()
-  );
-}
 
 function TodayHeader({ bottomMargin = 16 }: { bottomMargin?: number }) {
   return (
@@ -789,53 +785,82 @@ function DueTodayZone() {
   const [items, setItems] = useState<DueTodayItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [completingIds, setCompletingIds] = useState(new Set<string>());
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
-    let isActive = true;
-    async function load() {
-      try {
-        const res = await authedFetch('/api/trackers/due-today');
-        if (!res.ok || !isActive) return;
-        const body = (await res.json()) as { data: DueTodayApiGroup[] };
-        if (!isActive) return;
-        setItems(
-          body.data.flatMap((group) =>
-            group.trackers.map((tracker) => ({
-              goalId: group.goalId,
-              goalTitle: group.goalTitle,
-              id: tracker.id,
-              title: tracker.title,
-              lastCompletedAt: tracker.lastCompletedAt,
-            })),
-          ),
-        );
-      } catch {
-        // Fail silently — empty state shown
-      } finally {
-        if (isActive) setLoading(false);
-      }
-    }
-    void load();
+    isMountedRef.current = true;
     return () => {
-      isActive = false;
+      isMountedRef.current = false;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Stable so the boundary-refresh effects are not recreated every render.
+  const load = useCallback(async () => {
+    try {
+      const res = await authedFetch('/api/trackers/due-today');
+      if (!res.ok || !isMountedRef.current) return;
+      const body = (await res.json()) as { data: DueTodayApiGroup[] };
+      if (!isMountedRef.current) return;
+      setItems(
+        body.data.flatMap((group) =>
+          group.trackers.map((tracker) => ({
+            goalId: group.goalId,
+            goalTitle: group.goalTitle,
+            id: tracker.id,
+            title: tracker.title,
+            type: tracker.type,
+            isCompleted: tracker.isCompletedThisPeriod,
+            periodEndExclusive: new Date(tracker.periodEndExclusive),
+          })),
+        ),
+      );
+    } catch {
+      // Fail silently — empty state shown
+    } finally {
+      if (isMountedRef.current) setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  // Refresh at user-local midnight (the earliest daily `periodEndExclusive`) and
+  // on foreground/visibility/focus, consistent with goal detail. The hook only
+  // reads `periodState.endExclusive`, so minimal boundary-carrying stand-ins
+  // suffice — server-derived booleans stay authoritative on refresh.
+  const boundaryTrackers = useMemo(
+    () =>
+      items.map(
+        (item) =>
+          ({ periodState: { endExclusive: item.periodEndExclusive } }) as unknown as Tracker,
+      ),
+    [items],
+  );
+  useTrackerBoundaryRefresh(boundaryTrackers, () => void load());
+
   async function handleComplete(item: DueTodayItem) {
-    if (isCompletedToday(item.lastCompletedAt) || completingIds.has(item.id)) return;
+    if (item.isCompleted || completingIds.has(item.id)) return;
     setCompletingIds((prev) => new Set(prev).add(item.id));
     try {
-      const res = await authedFetch('/api/goals/complete-tracker', {
+      // Counters accumulate via a +1 log (completing only once the period sum
+      // meets target); habit/checklist complete on a single presence log.
+      const action = item.type === 'counter' ? 'counter-log' : 'complete';
+      const res = await authedFetch('/api/trackers/log', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trackerId: item.id, goalId: item.goalId }),
+        body: JSON.stringify({ trackerId: item.id, goalId: item.goalId, action }),
       });
-      if (!res.ok) throw new Error('Request failed');
+      const payload = (await res.json()) as {
+        success?: boolean;
+        periodState?: { isCompleted?: boolean } | null;
+      };
+      if (!res.ok || payload.success !== true) throw new Error('Request failed');
+      // Reconcile completion from the canonical mutation response, not a client
+      // clock — a counter below target stays incomplete.
+      const completed = payload.periodState?.isCompleted ?? false;
       setItems((prev) =>
-        prev.map((m) =>
-          m.id === item.id ? { ...m, lastCompletedAt: new Date().toISOString() } : m,
-        ),
+        prev.map((m) => (m.id === item.id ? { ...m, isCompleted: completed } : m)),
       );
       void refreshMomentumAfterMeaningfulMutation();
     } catch {
@@ -903,7 +928,7 @@ function DueTodayZone() {
       <TodayHeader />
       <View className="gap-3">
         {items.map((item) => {
-          const done = isCompletedToday(item.lastCompletedAt);
+          const done = item.isCompleted;
           const completing = completingIds.has(item.id);
           return (
             <View key={item.id} className="flex-row items-center gap-3">

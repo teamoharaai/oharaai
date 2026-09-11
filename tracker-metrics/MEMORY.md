@@ -5,7 +5,38 @@ correct stale ones in place. Each fact is dated so drift is visible.
 
 ## Repo realities (updated 2026-09-11)
 
-- **Implementation state: Tasks 0–8 done.** **Task 8 done (session 008):** the
+- **Implementation state: Tasks 0–9 done.** **Task 9 done (session 009):** the
+  dashboard due-today card is migrated onto the shared mutation route and the
+  legacy route is gone. New pure, node-tested `lib/goals/due-today.ts` (relative
+  imports — D-004): `deriveDueTodayState(meta, logs, timezone, asOf)` derives the
+  CURRENT daily window via the shared `getPeriodBounds('daily', …)` and returns
+  `{ currentPeriodValue, isCompletedThisPeriod, periodEndExclusive }` with the
+  settled completion semantics (counter: sum ≥ positive target; habit/checklist:
+  any presence). `app/api/trackers/due-today+api.ts` rewritten: reads
+  `profiles.timezone` (normalized), derives one daily half-open window in that
+  zone, queries **only that window's** logs via `fetchAllPages` (`gte`/`lt`, not
+  full history), and returns per-tracker `currentPeriodValue`/
+  `isCompletedThisPeriod`/`periodEndExclusive` — **dropped `current_value` and
+  `lastCompletedAt`**. `dashboard.tsx` `DueTodayZone`: removed the browser-tz
+  `isCompletedToday` helper + all `lastCompletedAt`; consumes the server boolean;
+  `handleComplete` posts `/api/trackers/log` with action by type
+  (`counter → 'counter-log'`, else `'complete'`) and reconciles from
+  `payload.periodState.isCompleted`; stable `load` (`useCallback`) + `isMountedRef`;
+  wired `useTrackerBoundaryRefresh` over minimal `periodEndExclusive`-carrying
+  stand-ins (refresh at local midnight + foreground/visibility/focus). **Legacy
+  `app/api/goals/complete-tracker+api.ts` DELETED** and the `completeTracker`
+  wrapper removed from `lib/db/goals.ts` (D-009 condition met — dashboard was the
+  last caller); shared `logTrackerMutation` + `createTrackerMutationDb` KEPT.
+  `docs/API_CONTRACT.md` updated (removed complete-tracker section; new due-today
+  booleans/tz shape). +14 tests (8 pure `due-today.test.ts` incl. Tokyo
+  cross-UTC-day + DST determinism per D-005; 6 text-level
+  `dashboard-due-today.test.ts` incl. legacy-files-gone assertion). tsc clean;
+  goals+lib 129/129; momentum 64/64. New decision **D-011** (action-by-type,
+  one-way dashboard card, boundary-refresh reuse). Pre-existing legacy read
+  flagged for Task 10: `HomeGoalPreview` still reads `tracker.currentValue` on the
+  goal-list path. **Next: Task 10** (test:tracker-metrics script + full matrix +
+  release gate). See `changelog/009-*`.
+- **Implementation state (prior): Tasks 0–8 done.** **Task 8 done (session 008):** the
   tracker card DISPLAY is finally driven off the log-derived `periodState`,
   retiring the interim legacy-scalar read (D-007/D-008). New pure, node-tested
   `features/goals/tracker-display.ts` (relative imports + `import type` — D-004):

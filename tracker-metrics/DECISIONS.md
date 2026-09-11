@@ -8,6 +8,51 @@ decision → consequence.
 
 ---
 
+## D-011 · 2026-09-11 · accepted — Dashboard due-today: action-by-type, one-way card, boundary-refresh reuse
+
+**Context:** Task 9 migrates the dashboard due-today card off the legacy
+`/api/goals/complete-tracker` route onto the shared `POST /api/trackers/log`.
+Three decisions the plan left to implementation:
+
+1. **The shared route rejects `complete` for counters** (`INVALID_ACTION` → 400,
+   per D-008), yet due-today lists ALL daily trackers, counters included. Tapping
+   a daily counter's checkbox must therefore do something valid.
+2. Task 9's prompt notes "habit/checklist complete/uncomplete as applicable —
+   check what the dashboard card actually needs." The dashboard checkbox has
+   always been a one-way check-off (disabled once done); it has no undo gesture.
+3. "Refresh the zone at `periodEndExclusive` and on focus/resume, consistent with
+   goal detail." Goal detail uses `useTrackerBoundaryRefresh(trackers, refresh)`,
+   which reads only `periodState.endExclusive`.
+
+**Decision:**
+- **Action by tracker type.** The card's tap maps `counter → 'counter-log'`
+  (a `+1`) and `habit|checklist → 'complete'`. A counter accumulates and its
+  checkbox stays tappable/enabled until the server-derived
+  `isCompletedThisPeriod` (sum ≥ positive target) flips true; habit/checklist
+  complete on the first tap. This satisfies "counter +1 below target does not
+  mark complete" without a counter ever hitting the rejected `complete` action.
+- **Keep the card one-way.** No uncomplete gesture is added to the dashboard.
+  Uncomplete stays a goal-detail concern (the accessible checkbox toggle from
+  Task 8); the dashboard remains a lightweight "check it off" surface. Completion
+  is reconciled from the mutation response's `periodState.isCompleted`, not a
+  client clock.
+- **Reuse `useTrackerBoundaryRefresh`.** The dashboard builds minimal
+  boundary-carrying stand-ins (`{ periodState: { endExclusive } }` cast to
+  `Tracker`) from each item's `periodEndExclusive` and passes them to the same
+  hook goal detail uses, so it refreshes at user-local midnight and on
+  foreground/visibility/focus with no duplicated timer logic.
+
+**Consequence:** The dashboard and goal detail now share one mutation route, one
+completion-derivation path, and one boundary-refresh hook. The due-today API
+returns log-derived booleans (`isCompletedThisPeriod`, `currentPeriodValue`,
+`periodEndExclusive`) in the user's timezone instead of the stale
+`currentValue`/`lastCompletedAt` scalars, so a device timezone differing from
+`profiles.timezone` shows the correct daily state. The legacy route +
+`completeTracker` wrapper are deleted (D-009 condition met); the shared
+core/adapter remain.
+
+---
+
 ## D-010 · 2026-09-11 · accepted — Card display is fully periodState-driven, incl. the null/unhydrated fallback
 
 **Context:** Task 8 retires the interim legacy-scalar reads (D-007/D-008) and

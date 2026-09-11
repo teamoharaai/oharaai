@@ -1031,21 +1031,6 @@ export async function logTrackerMutation(
   return mutateTrackerLog(input, createTrackerMutationDb(db));
 }
 
-/**
- * Habit/checklist one-tap completion used by the legacy
- * `app/api/goals/complete-tracker` route (kept working until Task 6 migrates the
- * client to the shared route). Delegates to the shared idempotent mutation and
- * returns the same `{ success, periodState }` DTO.
- */
-export async function completeTracker(
-  trackerId: string,
-  goalId: string,
-  userId: string,
-  db: SupabaseClient = supabase,
-): Promise<TrackerLogMutationResult> {
-  return logTrackerMutation({ action: 'complete', trackerId, goalId, userId }, db);
-}
-
 export async function getProjectTitle(projectId: string): Promise<string | null> {
   const { data, error } = await supabase
     .from('projects')

@@ -558,22 +558,31 @@ The client updates optimistically but must reconcile with the returned
 `periodState`. Timestamps are ISO strings; convert to `Date` at the client
 mapping boundary.
 
-#### `POST /api/goals/complete-tracker` (legacy, deprecated — pending removal in Task 9)
-Authenticated Expo route for one-tap checklist/habit completion. Accepts
-`{ trackerId, goalId }` and delegates to the shared mutation, returning
-`{ success: true, periodState }` (same DTO as above). Goals with successors
-return `409`. Superseded by `POST /api/trackers/log` with `action: 'complete'`.
-
-**Goal detail no longer uses this route** — as of Task 6 the goal-detail client
-posts to `/api/trackers/log`. The only remaining caller is the dashboard
-due-today card (`app/(app)/dashboard.tsx`), which Task 9 migrates onto the shared
-route; this route (and its `completeTracker` wrapper in `lib/db/goals.ts`) is
-deleted once that migration lands (see tracker-metrics D-009).
+> **Removed:** `POST /api/goals/complete-tracker` (the legacy one-tap
+> completion route) and its `completeTracker` wrapper in `lib/db/goals.ts` were
+> deleted in Task 9 once every caller had migrated onto `POST /api/trackers/log`
+> (`action: 'complete'`). The shared mutation core/adapter (`logTrackerMutation`,
+> `createTrackerMutationDb`) remain (see tracker-metrics D-009).
 
 #### `GET /api/trackers/due-today`
-Returns daily trackers grouped as `{ goalId, goalTitle, trackers }`. Each tracker
-contains `id`, `title`, `type`, `targetValue`, `targetUnit`, `currentValue`, and
-`lastCompletedAt`. Only active goals owned by the authenticated user are included.
+Returns today's daily trackers grouped as `{ goalId, goalTitle, trackers }`. Each
+tracker contains `id`, `title`, `type`, `targetValue`, `targetUnit`, and the
+log-derived current daily-period state:
+
+```typescript
+{
+  currentPeriodValue: number,     // sum of today's log values (user timezone)
+  isCompletedThisPeriod: boolean, // counter: sum >= positive target; else: >=1 log
+  periodEndExclusive: string      // ISO — end of the current daily window (local midnight)
+}
+```
+
+The daily window is evaluated in `profiles.timezone` (invalid/missing → `UTC`),
+never the server/browser zone, and only that window's logs are queried
+(paginated). Completion is log-derived, not a `current_value` scalar or a
+browser-clock date comparison. Only active goals owned by the authenticated user
+are included. The client reconciles completion from the mutation response and
+refreshes at `periodEndExclusive` and on foreground/focus.
 
 When extending an expired goal, trackers are copied with `currentValue: 0`.
 Only pending milestones are carried forward; completed one-time events stay on
