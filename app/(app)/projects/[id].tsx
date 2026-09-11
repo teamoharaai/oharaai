@@ -70,6 +70,8 @@ export default function ProjectDetailScreen() {
       ? 'Complete'
       : 'Archived';
   const statusVariant = getProjectStatusBadgeVariant(project.status);
+  const activeGoals = project.goals.filter((goal) => goal.status === 'active');
+  const historicalGoals = project.goals.filter((goal) => goal.status !== 'active');
 
   const inputStyle = {
     backgroundColor: colors.background.input,
@@ -210,9 +212,9 @@ export default function ProjectDetailScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }}>
                 <Typography variant="section-header">
-                  Goals
+                  Active Goals
                 </Typography>
-                <Badge label={`${project.goals.length}`} variant="category" />
+                <Badge label={`${activeGoals.length}`} variant="category" />
               </View>
               <Pressable
                 onPress={() => router.push({ pathname: '/goals/create', params: { projectId: project.id } })}
@@ -229,7 +231,7 @@ export default function ProjectDetailScreen() {
               </Pressable>
             </View>
 
-            {project.goals.length === 0 ? (
+            {activeGoals.length === 0 ? (
               <View
                 style={{
                   backgroundColor: colors.background.card,
@@ -250,7 +252,7 @@ export default function ProjectDetailScreen() {
                   variant="body"
                   style={{ marginBottom: 16, textAlign: 'center' }}
                 >
-                  Break this ambition into achievable goals
+                  No active Goals in this Project.
                 </Typography>
                 <Pressable
                   onPress={() => router.push({ pathname: '/goals/create', params: { projectId: project.id } })}
@@ -266,11 +268,25 @@ export default function ProjectDetailScreen() {
               </View>
             ) : (
               <View style={{ gap: 8 }}>
-                {project.goals.map((goal) => (
+                {activeGoals.map((goal) => (
                   <ProjectGoalRow key={goal.id} goal={goal} />
                 ))}
               </View>
             )}
+
+            {historicalGoals.length > 0 ? (
+              <View style={{ marginTop: 24 }}>
+                <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                  <Typography variant="section-header">Goal History</Typography>
+                  <Badge label={`${historicalGoals.length}`} variant="archived" />
+                </View>
+                <View style={{ gap: 8 }}>
+                  {historicalGoals.map((goal) => (
+                    <ProjectGoalRow key={goal.id} goal={goal} />
+                  ))}
+                </View>
+              </View>
+            ) : null}
           </View>
 
           {/* Settings */}

@@ -211,7 +211,7 @@ export function GuidedReflection({
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={{ alignItems: 'center', flexDirection: 'row', gap: 7 }}>
                 <Typography variant="caption">{type === 'milestone' ? 'Goal:' : 'Reflecting on:'}</Typography>
-                {goals.filter((goal) => goal.status !== 'archived').map((goal) => (
+                {goals.filter((goal) => goal.status === 'active').map((goal) => (
                   <Pressable
                     key={goal.id}
                     onPress={() => { setGoalId(goal.id); setMilestoneId(''); }}

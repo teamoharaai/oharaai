@@ -3,9 +3,11 @@ import { useGoalStore } from '../store';
 import { fetchGoals } from '../services/goal-service';
 import supabase from '@/lib/db/client';
 import { startPerformanceTimer, type LoadPhase } from '@/lib/diagnostics/performance';
+import type { GoalStatus } from '../types';
 
-export function useGoals() {
+export function useGoals(options?: { status?: GoalStatus }) {
   const { goals, isLoading, setGoals, setIsLoading } = useGoalStore();
+  const requestedStatus = options?.status;
 
   useEffect(() => {
     async function load() {
@@ -19,7 +21,10 @@ export function useGoals() {
           setIsLoading(false);
           return;
         }
-        const data = await fetchGoals(user.id);
+        const data = await fetchGoals(
+          user.id,
+          requestedStatus ? { status: requestedStatus } : undefined,
+        );
         setGoals(data);
         timing.end({ success: true, resultCount: data.length, requestCount: 2 });
         setIsLoading(false);
@@ -29,8 +34,7 @@ export function useGoals() {
       }
     }
     load();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [requestedStatus, setGoals, setIsLoading]);
 
   return { goals, isLoading };
 }

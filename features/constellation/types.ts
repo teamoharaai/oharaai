@@ -473,6 +473,7 @@ export interface ConstellationGraphCountsDTO {
       stagnant: number;
       discovered: number;
       archived: number;
+      expired: number;
     };
   };
 }

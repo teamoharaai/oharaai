@@ -3,7 +3,7 @@ import { useThemeColors } from '@/store/uiStore';
 import { Typography } from './Typography';
 import { RADIUS, SPACE } from '@/constants/design';
 
-type BadgeVariant = 'new' | 'active' | 'ended' | 'complete' | 'ai' | 'category' | 'momentum' | 'paused' | 'archived' | 'draft';
+type BadgeVariant = 'new' | 'active' | 'ended' | 'complete' | 'ai' | 'category' | 'momentum' | 'paused' | 'archived' | 'expired' | 'draft';
 
 interface BadgeProps {
   label: string;
@@ -19,6 +19,7 @@ export function Badge({ label, variant = 'active' }: BadgeProps) {
     complete: { bg: colors.background.subtle, text: colors.text.secondary },
     paused: { bg: colors.background.subtle, text: colors.text.secondary },
     archived: { bg: colors.background.subtle, text: colors.text.muted },
+    expired: { bg: colors.feedback.danger.bg, text: colors.feedback.danger.text },
     draft: { bg: colors.feedback.info.bg, text: colors.feedback.info.text },
     ai: { bg: colors.feedback.info.bg, text: colors.feedback.info.text },
     category: { bg: colors.background.input, text: colors.text.accent },

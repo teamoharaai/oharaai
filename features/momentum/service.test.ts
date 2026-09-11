@@ -3,8 +3,10 @@ import test from 'node:test';
 import {
   calculateWeeklyStreak,
   calculationHash,
+  goalWasActiveDuringBoundary,
   latestMomentumHistory,
 } from './services/momentum-service.ts';
+import { getMomentumWeek } from './time.ts';
 import type { RawActionCompletion } from './normalization.ts';
 
 function completion(id: string, completedAt: string): RawActionCompletion {
@@ -123,4 +125,95 @@ test('history handles empty and one-period datasets without fabricating points',
     week_end: '2026-08-02',
     week_start: '2026-07-27',
   }]).map((point) => point.value), [4.5192]);
+});
+
+test('closed-week lifecycle selection uses the transition time instead of current status alone', () => {
+  const boundary = getMomentumWeek(new Date('2026-08-05T12:00:00.000Z'), 'UTC');
+  const base = {
+    archived_at: null,
+    category: 'career',
+    completed_at: null,
+    created_at: '2026-07-01T12:00:00.000Z',
+    deadline: '2026-09-01T12:00:00.000Z',
+    expired_at: null,
+    id: 'goal',
+    previous_goal_id: null,
+    progress: 0,
+    smart_data: null,
+    status: 'active',
+    target_frequency: null,
+    updated_at: '2026-08-05T12:00:00.000Z',
+    user_id: 'user',
+  };
+
+  assert.equal(goalWasActiveDuringBoundary(base, [base], boundary), true);
+  assert.equal(goalWasActiveDuringBoundary({
+    ...base,
+    id: 'archived-during-week',
+    status: 'archived',
+    archived_at: '2026-08-06T12:00:00.000Z',
+  }, [], boundary), true);
+  assert.equal(goalWasActiveDuringBoundary({
+    ...base,
+    id: 'archived-before-week',
+    status: 'archived',
+    archived_at: '2026-08-02T12:00:00.000Z',
+  }, [], boundary), false);
+  assert.equal(goalWasActiveDuringBoundary({
+    ...base,
+    id: 'created-after-week',
+    created_at: boundary.endExclusive,
+  }, [], boundary), false);
+});
+
+test('legacy repaired phases use the successor creation time as a trustworthy archive boundary', () => {
+  const boundary = getMomentumWeek(new Date('2026-08-05T12:00:00.000Z'), 'UTC');
+  const predecessor = {
+    archived_at: null,
+    category: 'career',
+    completed_at: null,
+    created_at: '2026-07-01T12:00:00.000Z',
+    deadline: '2026-08-01T12:00:00.000Z',
+    expired_at: null,
+    id: 'previous',
+    previous_goal_id: null,
+    progress: 80,
+    smart_data: null,
+    status: 'archived',
+    target_frequency: null,
+    updated_at: '2026-08-05T12:00:00.000Z',
+    user_id: 'user',
+  };
+  const successor = {
+    ...predecessor,
+    created_at: '2026-08-06T12:00:00.000Z',
+    deadline: '2026-10-01T12:00:00.000Z',
+    id: 'successor',
+    previous_goal_id: predecessor.id,
+    status: 'active',
+  };
+
+  assert.equal(goalWasActiveDuringBoundary(predecessor, [predecessor, successor], boundary), true);
+});
+
+test('historical lifecycle selection excludes a later-extended Goal after its old deadline', () => {
+  const boundary = getMomentumWeek(new Date('2026-08-12T12:00:00.000Z'), 'UTC');
+  const goal = {
+    archived_at: null,
+    category: 'career',
+    completed_at: null,
+    created_at: '2026-07-01T12:00:00.000Z',
+    deadline: '2026-08-01T12:00:00.000Z',
+    expired_at: '2026-08-20T12:00:00.000Z',
+    id: 'later-extended',
+    previous_goal_id: null,
+    progress: 0,
+    smart_data: null,
+    status: 'active',
+    target_frequency: null,
+    updated_at: '2026-08-20T12:00:00.000Z',
+    user_id: 'user',
+  };
+
+  assert.equal(goalWasActiveDuringBoundary(goal, [goal], boundary), false);
 });

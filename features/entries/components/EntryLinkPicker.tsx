@@ -40,9 +40,14 @@ export function EntryLinkPicker({
   const [categoryIds, setCategoryIds] = useState(selectedCategoryIds);
   const [projectId, setProjectId] = useState<string | null>(selectedProjectId);
   const availableGoals = useMemo(() => goals.filter((goal) => (
-    goal.status !== 'archived'
+    goal.status === 'active'
     && goal.title.toLowerCase().includes(query.trim().toLowerCase())
   )), [goals, query]);
+  const selectedHistoricalGoals = useMemo(() => goals.filter((goal) => (
+    goal.status !== 'active'
+    && goalIds.includes(goal.id)
+    && goal.title.toLowerCase().includes(query.trim().toLowerCase())
+  )), [goalIds, goals, query]);
 
   useEffect(() => {
     if (!visible) return;
@@ -114,6 +119,37 @@ export function EntryLinkPicker({
       </View>
       <ScrollView style={{ marginTop: 14, maxHeight: 390 }}>
         <Typography variant="eyebrow" style={{ marginBottom: 8 }}>SPECIFIC GOALS</Typography>
+        {selectedHistoricalGoals.map((goal) => {
+          const category = normalizeGoalCategoryForEntries(goal.category);
+          const accent = getCategoryAccentTheme(category);
+          return (
+            <Pressable
+              accessibilityHint="Removes this historical Goal link"
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: true }}
+              key={goal.id}
+              onPress={() => toggleGoal(goal.id)}
+              style={({ pressed }) => ({
+                alignItems: 'center',
+                backgroundColor: colors.background.subtle,
+                borderRadius: 10,
+                flexDirection: 'row',
+                gap: 10,
+                opacity: pressed ? 0.7 : 1,
+                padding: 10,
+              })}
+            >
+              <View style={{ backgroundColor: accent.color, borderRadius: 5, height: 10, width: 10 }} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Typography variant="emphasis-sm" numberOfLines={1}>{goal.title}</Typography>
+                <Typography variant="caption">
+                  Historical link · {goal.status}
+                </Typography>
+              </View>
+              <Ionicons name="checkmark-circle" color={colors.text.secondary} size={20} />
+            </Pressable>
+          );
+        })}
         {availableGoals.length ? availableGoals.map((goal) => {
           const selected = goalIds.includes(goal.id);
           const category = normalizeGoalCategoryForEntries(goal.category);
@@ -148,11 +184,11 @@ export function EntryLinkPicker({
               />
             </Pressable>
           );
-        }) : (
+        }) : selectedHistoricalGoals.length === 0 ? (
           <Typography variant="caption" style={{ paddingVertical: 12 }}>
             No accessible goals match your search.
           </Typography>
-        )}
+        ) : null}
 
         <Typography variant="eyebrow" style={{ marginBottom: 8, marginTop: 18 }}>
           PROJECT

@@ -56,6 +56,7 @@ export const GOAL_DB_STATUSES = [
   'stagnant',
   'discovered',
   'archived',
+  'expired',
 ] as const;
 export type GoalDbStatus = (typeof GOAL_DB_STATUSES)[number];
 

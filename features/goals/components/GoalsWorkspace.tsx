@@ -30,6 +30,8 @@ import {
   getGoalCategoryLabel,
   getGoalStatusLabel,
   getNextGoalMilestone,
+  goalMatchesWorkspaceStatus,
+  workspaceStatusToGoalStatus,
   type GoalWorkspaceStatusFilter,
 } from '../goals-workspace';
 import { getGoalWorkspaceSelection } from '../navigation';
@@ -48,10 +50,11 @@ import { TrackersPanel } from './TrackersPanel';
 type WorkspaceTab = 'overview' | 'milestones' | 'tasks' | 'reflections' | 'notes' | 'insights';
 
 const STATUS_OPTIONS: ReadonlyArray<{ label: string; value: GoalWorkspaceStatusFilter }> = [
-  { label: 'All', value: 'all' },
   { label: 'Active', value: 'active' },
-  { label: 'Paused', value: 'paused' },
   { label: 'Completed', value: 'completed' },
+  { label: 'Expired', value: 'expired' },
+  { label: 'Archive', value: 'archived' },
+  { label: 'Paused', value: 'paused' },
 ];
 
 const DETAIL_TABS: ReadonlyArray<{ label: string; value: WorkspaceTab }> = [
@@ -1401,6 +1404,7 @@ function SelectedGoalWorkspace({
           onArchive={goalDetail.onArchiveGoal}
           onComplete={goalDetail.onCompleteGoal}
           onOpenProjectPicker={openProjectPicker}
+          onUpdateDeadline={goalDetail.onUpdateDeadline}
           onUpdateDescription={goalDetail.onUpdateDescription}
           successorGoalId={goal.successor?.id ?? null}
         />
@@ -1451,39 +1455,53 @@ function SelectedGoalWorkspace({
   );
 }
 
-function GoalEmptyState() {
+function GoalEmptyState({ status }: { status: GoalWorkspaceStatusFilter }) {
   const colors = useThemeColors();
+  const historical = status !== 'active';
   return (
     <Surface style={{ alignItems: 'center', paddingHorizontal: SPACE['4xl'], paddingVertical: SPACE['6xl'] }}>
       <BrandIcon name="goals" size={42} color={colors.accent.primary} />
       <Typography variant="heading" style={{ fontSize: 28, marginTop: SPACE.xl, textAlign: 'center' }}>
-        Begin a journey that matters.
+        {historical ? `No ${status === 'completed' ? 'completed' : status} Goals yet.` : 'Begin a journey that matters.'}
       </Typography>
       <Typography variant="body" style={{ marginTop: SPACE.md, maxWidth: 520, textAlign: 'center' }}>
-        Goals become more useful when they connect intention, reflection, and the next meaningful step.
+        {historical
+          ? 'Goals will remain available here when they enter this lifecycle state.'
+          : 'Goals become more useful when they connect intention, reflection, and the next meaningful step.'}
       </Typography>
-      <Button onPress={() => router.push('/goals/create')} style={{ marginTop: SPACE['3xl'] }}>
-        Create your first Goal
-      </Button>
+      {!historical ? (
+        <Button onPress={() => router.push('/goals/create')} style={{ marginTop: SPACE['3xl'] }}>
+          Create your first Goal
+        </Button>
+      ) : null}
     </Surface>
   );
 }
 
 export function GoalsWorkspace() {
   const colors = useThemeColors();
-  const params = useLocalSearchParams<{ goal?: string | string[]; selected?: string | string[] }>();
+  const params = useLocalSearchParams<{
+    goal?: string | string[];
+    selected?: string | string[];
+    status?: string | string[];
+  }>();
   const { width: windowWidth } = useWindowDimensions();
   const [workspaceWidth, setWorkspaceWidth] = useState(0);
   const responsiveWidth = workspaceWidth || windowWidth;
   const wide = responsiveWidth >= 1120;
   const tablet = responsiveWidth >= 680 && !wide;
   const compactHeader = responsiveWidth < 700;
-  const { goals, isLoading } = useGoals();
+  const requestedStatus = Array.isArray(params.status) ? params.status[0] : params.status;
+  const [status, setStatus] = useState<GoalWorkspaceStatusFilter>(() => (
+    STATUS_OPTIONS.some((option) => option.value === requestedStatus)
+      ? requestedStatus as GoalWorkspaceStatusFilter
+      : 'active'
+  ));
+  const { goals, isLoading } = useGoals({ status: workspaceStatusToGoalStatus(status) });
   const selectedGoalId = useGoalStore((state) => state.selectedGoalId);
   const setSelectedGoalId = useGoalStore((state) => state.setSelectedGoalId);
   const routeSelected = getGoalWorkspaceSelection(params);
   const [query, setQuery] = useState('');
-  const [status, setStatus] = useState<GoalWorkspaceStatusFilter>('all');
   const [category, setCategory] = useState<GoalWithDetails['category'] | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [tab, setTab] = useState<WorkspaceTab>('overview');
@@ -1505,28 +1523,38 @@ export function GoalsWorkspace() {
   }, []);
 
   useEffect(() => {
-    if (isLoading || goals.length === 0) return;
-    const validRouteGoal = routeSelected && goals.some((goal) => goal.id === routeSelected)
+    const statusGoals = goals.filter((goal) => goalMatchesWorkspaceStatus(goal, status));
+    if (isLoading) return;
+    if (statusGoals.length === 0) {
+      if (selectedGoalId !== null) setSelectedGoalId(null);
+      return;
+    }
+    const validRouteGoal = routeSelected && statusGoals.some((goal) => goal.id === routeSelected)
       ? routeSelected
       : null;
-    const validStoredGoal = selectedGoalId && goals.some((goal) => goal.id === selectedGoalId)
+    const validStoredGoal = selectedGoalId && statusGoals.some((goal) => goal.id === selectedGoalId)
       ? selectedGoalId
       : null;
-    const next = validRouteGoal ?? validStoredGoal ?? goals[0].id;
+    const next = validRouteGoal ?? validStoredGoal ?? statusGoals[0].id;
     if (selectedGoalId !== next) setSelectedGoalId(next);
-  }, [goals, isLoading, routeSelected, selectedGoalId, setSelectedGoalId]);
+  }, [goals, isLoading, routeSelected, selectedGoalId, setSelectedGoalId, status]);
+
+  const statusGoals = useMemo(
+    () => goals.filter((goal) => goalMatchesWorkspaceStatus(goal, status)),
+    [goals, status],
+  );
 
   const categories = useMemo(
-    () => [...new Set(goals.map((goal) => goal.category))].sort((left, right) => (
+    () => [...new Set(statusGoals.map((goal) => goal.category))].sort((left, right) => (
       getGoalCategoryLabel(left).localeCompare(getGoalCategoryLabel(right))
     )),
-    [goals],
+    [statusGoals],
   );
   const filteredGoals = useMemo(
     () => filterGoalsForWorkspace(goals, query, status, category),
     [category, goals, query, status],
   );
-  const selectedGoal = goals.find((goal) => goal.id === selectedGoalId) ?? null;
+  const selectedGoal = statusGoals.find((goal) => goal.id === selectedGoalId) ?? null;
   const selectedGoalDetail = useGoalDetail(selectedGoal?.id ?? '');
   const workspaceGoal = selectedGoalDetail.goal ?? selectedGoal;
   const selectedEntries = workspaceGoal
@@ -1559,8 +1587,13 @@ export function GoalsWorkspace() {
             <ActivityIndicator color={colors.accent.primary} size="large" />
             <Typography variant="body" style={{ marginTop: SPACE.xl }}>Loading your Goals…</Typography>
           </Surface>
-        ) : goals.length === 0 ? (
-          <GoalEmptyState />
+        ) : statusGoals.length === 0 ? (
+          <View style={{ gap: SPACE.lg }}>
+            <Surface style={{ paddingHorizontal: SPACE['3xl'], paddingVertical: SPACE.xl }}>
+              <GoalStatusTabs onChange={setStatus} value={status} />
+            </Surface>
+            <GoalEmptyState status={status} />
+          </View>
         ) : wide ? (
           <View style={{ alignItems: 'flex-start', flexDirection: 'row', gap: SPACE.xl }}>
             <View style={{ flex: 0.82, gap: SPACE.lg, minWidth: 300 }}>

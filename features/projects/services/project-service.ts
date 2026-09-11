@@ -18,6 +18,9 @@ export async function fetchProjects(userId: string): Promise<Project[]> {
 }
 
 export async function fetchProjectWithGoals(projectId: string): Promise<ProjectWithGoals | null> {
+  const { error: reconciliationError } = await supabase.rpc('reconcile_goal_expiration_v1');
+  if (reconciliationError) throw reconciliationError;
+
   const { data: projectData, error: projectError } = await supabase
     .from('projects')
     .select(PROJECT_SELECT)
@@ -37,7 +40,6 @@ export async function fetchGoalsByProject(projectId: string): Promise<GoalWithDe
     .from('goals')
     .select(GOAL_SELECT)
     .eq('project_id', projectId)
-    .neq('status', 'archived')
     .order('created_at', { ascending: false });
 
   if (error) throw error;

@@ -71,6 +71,9 @@ export type DbGoal = {
   smart_data: Record<string, unknown> | null;
   color_theme: string;
   deadline: string | null;
+  completed_at: string | null;
+  archived_at: string | null;
+  expired_at: string | null;
   target_frequency: Record<string, unknown> | null;
   visibility: string;
   progress: number | string;
@@ -234,6 +237,9 @@ export function mapGoal(row: DbGoal): GoalWithDetails {
     visibility: toVisibility(row.visibility),
     progress: toNumber(row.progress, 0),
     status: toStatus(row.status),
+    completedAt: toDate(row.completed_at),
+    archivedAt: toDate(row.archived_at),
+    expiredAt: toDate(row.expired_at),
     aiGenerated: row.ai_generated,
     smartData: toSmartData(row.smart_data),
     projectId: row.project_id,
@@ -361,7 +367,8 @@ async function fetchGoalSignals(
 
 export const GOAL_SELECT = `
   id, user_id, title, description, category, smart_data, color_theme, deadline,
-  target_frequency, visibility, progress, status, ai_generated, project_id, previous_goal_id,
+  target_frequency, visibility, progress, status, completed_at, archived_at, expired_at,
+  ai_generated, project_id, previous_goal_id,
   prior_phase_summary, reflection, reflected_at, created_at, updated_at,
   milestones (
     id, goal_id, user_id, title, description, due_date, completed_at,
@@ -412,6 +419,9 @@ export async function fetchGoals(
   userId: string,
   options?: { status?: GoalStatus },
 ): Promise<GoalWithDetails[]> {
+  const { error: reconciliationError } = await supabase.rpc('reconcile_goal_expiration_v1');
+  if (reconciliationError) throw reconciliationError;
+
   let query = supabase
     .from('goals')
     .select(GOAL_SELECT)
@@ -420,7 +430,7 @@ export async function fetchGoals(
   if (options?.status) {
     query = query.eq('status', options.status);
   } else {
-    query = query.neq('status', 'archived');
+    query = query.eq('status', 'active');
   }
 
   const { data, error } = await query.order('created_at', { ascending: false });
@@ -428,6 +438,18 @@ export async function fetchGoals(
   if (error || !data) return [];
   const goals = (data as unknown as DbGoal[]).map(mapGoal);
   return enrichGoalsWithSignals(goals, userId);
+}
+
+export async function extendGoalDeadline(
+  goalId: string,
+  deadline: Date,
+): Promise<GoalWithDetails | null> {
+  const { error } = await supabase.rpc('extend_goal_deadline_v1', {
+    p_goal_id: goalId,
+    p_new_deadline: deadline.toISOString(),
+  });
+  if (error) throw error;
+  return fetchGoalById(goalId);
 }
 
 export async function fetchActiveGoalsFeed(

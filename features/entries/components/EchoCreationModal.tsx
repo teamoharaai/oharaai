@@ -144,7 +144,7 @@ export function EchoCreationModal({
     }
   }
 
-  const activeGoals = goals.filter((goal) => goal.status !== 'archived');
+  const activeGoals = goals.filter((goal) => goal.status === 'active');
   const activeProjects = projects.filter((project) => project.status !== 'archived');
   const creationType: EntryType | null = step === 'note'
     ? 'note'

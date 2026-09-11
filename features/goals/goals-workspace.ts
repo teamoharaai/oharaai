@@ -1,15 +1,18 @@
-import type { GoalMilestone, GoalWithDetails } from './types';
+import type { GoalMilestone, GoalStatus, GoalWithDetails } from './types';
 
-export type GoalWorkspaceStatusFilter = 'all' | 'active' | 'paused' | 'completed';
+export type GoalWorkspaceStatusFilter = 'active' | 'paused' | 'completed' | 'expired' | 'archived';
+
+export function workspaceStatusToGoalStatus(status: GoalWorkspaceStatusFilter): GoalStatus {
+  if (status === 'paused') return 'stagnant';
+  if (status === 'completed') return 'complete';
+  return status;
+}
 
 export function goalMatchesWorkspaceStatus(
   goal: Pick<GoalWithDetails, 'status'>,
   status: GoalWorkspaceStatusFilter,
 ): boolean {
-  if (status === 'all') return true;
-  if (status === 'paused') return goal.status === 'stagnant';
-  if (status === 'completed') return goal.status === 'complete';
-  return goal.status === 'active';
+  return goal.status === workspaceStatusToGoalStatus(status);
 }
 
 export function filterGoalsForWorkspace(
@@ -58,6 +61,8 @@ export function getGoalStatusLabel(status: GoalWithDetails['status']): string {
       return 'Discovered';
     case 'archived':
       return 'Archived';
+    case 'expired':
+      return 'Expired';
   }
 }
 

@@ -18,6 +18,9 @@ function goal(overrides: Partial<GoalWithDetails> = {}): GoalWithDetails {
     category: 'mind',
     colorTheme: 'ocean',
     deadline: null,
+    completedAt: null,
+    archivedAt: null,
+    expiredAt: null,
     targetFrequency: null,
     visibility: 'private',
     progress: 20,
@@ -69,7 +72,7 @@ test('filters by real status mappings, category, and searchable fields', () => {
 
   assert.deepEqual(filterGoalsForWorkspace(goals, '', 'paused', null).map((item) => item.id), ['goal-2']);
   assert.deepEqual(filterGoalsForWorkspace(goals, '', 'completed', null).map((item) => item.id), ['goal-3']);
-  assert.deepEqual(filterGoalsForWorkspace(goals, 'reflect', 'all', 'mind').map((item) => item.id), ['goal-1']);
+  assert.deepEqual(filterGoalsForWorkspace(goals, 'reflect', 'active', 'mind').map((item) => item.id), ['goal-1']);
 });
 
 test('returns the first incomplete milestone by canonical sort order', () => {
@@ -87,4 +90,5 @@ test('formats stored category and status identities without relabeling legacy va
   assert.equal(getGoalCategoryLabel('health'), 'Health & Fitness');
   assert.equal(getGoalStatusLabel('stagnant'), 'Paused');
   assert.equal(getGoalStatusLabel('complete'), 'Completed');
+  assert.equal(getGoalStatusLabel('expired'), 'Expired');
 });

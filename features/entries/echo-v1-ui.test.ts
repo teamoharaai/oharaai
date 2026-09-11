@@ -12,6 +12,7 @@ const workspace = source('features/entries/components/EntriesScreen.tsx');
 const creation = source('features/entries/components/EchoCreationModal.tsx');
 const quick = source('features/entries/components/QuickReflectionEditor.tsx');
 const noteEditor = source('features/entries/components/NoteEditor.tsx');
+const linkPicker = source('features/entries/components/EntryLinkPicker.tsx');
 const richTextEditor = source('features/entries/components/RichTextEditor.web.tsx');
 const legacyRoute = source('app/(app)/entries/reflection.tsx');
 const navigation = source('components/layout/AppNavigation.tsx');
@@ -110,4 +111,12 @@ test('Echo UI chrome suppresses accidental caret selection while editors remain 
   assert.match(workspace, /className="ohara-echo-workspace"/);
   assert.match(css, /\.ohara-echo-workspace \{[\s\S]*user-select: none/);
   assert.match(css, /\.ohara-echo-workspace \[contenteditable="true"\][\s\S]*user-select: text/);
+});
+
+test('historical Goal links remain visible and removable without becoming new-link options', () => {
+  assert.match(noteEditor, /for \(const linkedGoal of entry\?\.goals \?\? \[\]\)/);
+  assert.match(linkPicker, /goal\.status === 'active'/);
+  assert.match(linkPicker, /goal\.status !== 'active'[\s\S]*goalIds\.includes\(goal\.id\)/);
+  assert.match(linkPicker, /Historical link · \{goal\.status\}/);
+  assert.match(linkPicker, /onPress=\{\(\) => toggleGoal\(goal\.id\)\}/);
 });

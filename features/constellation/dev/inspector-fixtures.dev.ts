@@ -237,6 +237,7 @@ export const constellationPreviewEmptyCounts = {
       stagnant: 0,
       discovered: 0,
       archived: 0,
+      expired: 0,
     },
   },
 } satisfies ConstellationGraphCountsDTO;

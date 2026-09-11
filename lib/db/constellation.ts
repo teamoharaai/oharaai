@@ -354,6 +354,9 @@ export async function loadConstellationSnapshot(
   ownerId: string,
   client: DbClient = supabase,
 ): Promise<ConstellationSnapshot> {
+  const { error: reconciliationError } = await client.rpc('reconcile_goal_expiration_v1');
+  if (reconciliationError) throw reconciliationError;
+
   const [
     nodes,
     edges,

@@ -50,7 +50,7 @@ export function QuickReflectionEditor({
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
   const compact = width < 720;
-  const goals = useEntriesStore((state) => state.goals);
+  const activeGoalOptions = useEntriesStore((state) => state.goals);
   const updateEntry = useEntriesStore((state) => state.updateEntry);
   const deleteEntry = useEntriesStore((state) => state.deleteEntry);
   const loadContext = useEntriesStore((state) => state.loadContext);
@@ -73,6 +73,18 @@ export function QuickReflectionEditor({
   const lastAttemptedVersion = useRef(0);
   const savingRef = useRef(false);
   const latestDraftRef = useRef<EntryDraft | null>(null);
+  const goals = useMemo(() => {
+    const options = new Map(activeGoalOptions.map((goal) => [goal.id, goal]));
+    for (const linkedGoal of entry.goals) {
+      if (!options.has(linkedGoal.id)) {
+        options.set(linkedGoal.id, {
+          ...linkedGoal,
+          milestones: entry.milestones.filter((milestone) => milestone.goalId === linkedGoal.id),
+        });
+      }
+    }
+    return [...options.values()];
+  }, [activeGoalOptions, entry.goals, entry.milestones]);
 
   useEffect(() => {
     void loadContext();

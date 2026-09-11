@@ -485,10 +485,14 @@ export async function createEntry(params: {
 export async function fetchGoalsForPicker(
   userId: string,
 ): Promise<EchoGoalOption[]> {
+  const { error: reconciliationError } = await supabase.rpc('reconcile_goal_expiration_v1');
+  if (reconciliationError) return [];
+
   const { data, error } = await supabase
     .from('goals')
     .select('id, title, project_id')
     .eq('user_id', userId)
+    .eq('status', 'active')
     .order('created_at', { ascending: false });
 
   if (error || !data) return [];

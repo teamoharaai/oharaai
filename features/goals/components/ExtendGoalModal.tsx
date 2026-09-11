@@ -14,6 +14,8 @@ import { authedFetch } from '@/lib/api/client';
 import type { ApiResponse } from '@/lib/api/contracts';
 import type { CreateGoalWithMilestonesAndTrackersResult } from '@/lib/db/goals';
 import { useGoalStore } from '../store';
+import { fetchGoalById } from '../services/goal-service';
+import { refreshMomentumAfterMeaningfulMutation } from '@/features/momentum/hooks/useMomentumHomeSummary';
 import type { GoalWithDetails, Tracker } from '../types';
 import { goalWorkspaceHref } from '../navigation';
 import { useThemeColors } from '@/store/uiStore';
@@ -192,7 +194,7 @@ function SummaryStep({
           Not now
         </Button>
         <Button onPress={onContinue} size="compact" style={{ flexGrow: 1 }}>
-          Extend into a new phase
+          Begin new phase
         </Button>
       </View>
     </>
@@ -483,23 +485,25 @@ export function ExtendGoalModal({ visible, goal, onClose }: ExtendGoalModalProps
 
       if (!body.ok) {
         if (response.status === 409) {
-          setSubmitError('This goal was already extended.');
+          setSubmitError('This Goal already has a successor phase.');
         } else if (response.status === 400) {
-          setSubmitError(body.error.message || 'Could not extend this goal.');
+          setSubmitError(body.error.message || 'Could not begin this phase.');
         } else {
-          setSubmitError('Could not extend this goal. Please try again.');
+          setSubmitError('Could not begin this phase. Please try again.');
         }
         return;
       }
 
       if (!body.data.goalId) {
-        setSubmitError('Could not extend this goal. Please try again.');
+        setSubmitError('Could not begin this phase. Please try again.');
         return;
       }
 
       const newGoalId = body.data.goalId;
       upsertGoal({
         ...goal,
+        status: 'archived',
+        archivedAt: new Date(),
         has_successor: true,
         successor: {
           id: newGoalId,
@@ -507,6 +511,9 @@ export function ExtendGoalModal({ visible, goal, onClose }: ExtendGoalModalProps
           reflectedAt: normalizedReflection ? new Date() : null,
         },
       });
+      const newGoal = await fetchGoalById(newGoalId);
+      if (newGoal) upsertGoal(newGoal);
+      void refreshMomentumAfterMeaningfulMutation();
       setState(createInitialState(goal.title));
       setSelectedDeadlineOption(null);
       setCustomDate('');
@@ -514,7 +521,7 @@ export function ExtendGoalModal({ visible, goal, onClose }: ExtendGoalModalProps
       onClose();
       router.replace(goalWorkspaceHref(newGoalId) as never);
     } catch {
-      setSubmitError('Could not extend this goal. Please try again.');
+      setSubmitError('Could not begin this phase. Please try again.');
     } finally {
       submissionInFlightRef.current = false;
       setIsSubmitting(false);

@@ -42,10 +42,14 @@ import type {
 } from '../types.ts';
 
 type GoalRow = {
+  archived_at: string | null;
   category: string;
+  completed_at: string | null;
   created_at: string;
   deadline: string | null;
+  expired_at: string | null;
   id: string;
+  previous_goal_id: string | null;
   progress: number | string;
   smart_data: Record<string, unknown> | null;
   status: string;
@@ -53,6 +57,8 @@ type GoalRow = {
   updated_at: string;
   user_id: string;
 };
+
+type GoalSourceScope = 'provisional' | 'closed';
 
 type ActionRow = RawActionCompletion & { actionText: string };
 type MilestoneRow = {
@@ -163,6 +169,33 @@ function dateInBoundary(date: string | null, boundary: MomentumWeekBoundary): bo
   return Boolean(date && date >= boundary.weekStart && date <= boundary.weekEnd);
 }
 
+export function goalWasActiveDuringBoundary(
+  goal: GoalRow,
+  allGoals: readonly GoalRow[],
+  boundary: MomentumWeekBoundary,
+): boolean {
+  const createdAt = Date.parse(goal.created_at);
+  const boundaryStart = Date.parse(boundary.startInclusive);
+  const boundaryEnd = Date.parse(boundary.endExclusive);
+  if (!Number.isFinite(createdAt) || createdAt >= boundaryEnd) return false;
+  if (goal.status === 'active') {
+    const deadline = Date.parse(goal.deadline ?? '');
+    return !Number.isFinite(deadline) || deadline >= boundaryStart;
+  }
+
+  let exitedAt: string | null = null;
+  if (goal.status === 'complete') exitedAt = goal.completed_at;
+  if (goal.status === 'expired') exitedAt = goal.deadline ?? goal.expired_at;
+  if (goal.status === 'archived') {
+    exitedAt = goal.archived_at
+      ?? allGoals.find((candidate) => candidate.previous_goal_id === goal.id)?.created_at
+      ?? null;
+  }
+  if (!exitedAt) return false;
+  const exitTime = Date.parse(exitedAt);
+  return Number.isFinite(exitTime) && exitTime > boundaryStart;
+}
+
 function mapActionRows(rows: unknown[]): ActionRow[] {
   return rows.map((row) => {
     const value = row as Record<string, unknown>;
@@ -221,6 +254,7 @@ async function fetchGoalSourceData(
   db: SupabaseClient,
   userId: string,
   boundary: MomentumWeekBoundary,
+  scope: GoalSourceScope,
 ): Promise<{
   actions: ActionRow[];
   goals: GoalRow[];
@@ -230,11 +264,36 @@ async function fetchGoalSourceData(
   trackerLogs: TrackerLogRow[];
   trackers: TrackerRow[];
 }> {
-  const { data: goalData, error: goalError } = await db.from('goals')
-    .select('id, user_id, category, status, smart_data, target_frequency, deadline, progress, created_at, updated_at')
-    .eq('user_id', userId).eq('status', 'active').order('id');
+  let goalQuery = db.from('goals')
+    .select('id, user_id, category, status, smart_data, target_frequency, deadline, progress, created_at, updated_at, completed_at, archived_at, expired_at, previous_goal_id')
+    .eq('user_id', userId);
+  if (scope === 'provisional') goalQuery = goalQuery.eq('status', 'active');
+  const { data: goalData, error: goalError } = await goalQuery.order('id');
   if (goalError) throw new Error(`Momentum goal read failed: ${goalError.message}`);
-  const goals = (goalData ?? []) as GoalRow[];
+  let allGoals = (goalData ?? []) as GoalRow[];
+
+  if (scope === 'closed' && allGoals.length > 0) {
+    const { data: deadlineHistory, error: historyError } = await db.from('goal_deadline_history')
+      .select('goal_id, previous_deadline, changed_at')
+      .in('goal_id', allGoals.map((goal) => goal.id))
+      .gte('changed_at', boundary.endExclusive)
+      .order('changed_at', { ascending: true });
+    if (historyError) throw new Error(`Momentum deadline history read failed: ${historyError.message}`);
+    const deadlineAtClose = new Map<string, string | null>();
+    for (const row of (deadlineHistory ?? []) as Array<{
+      changed_at: string;
+      goal_id: string;
+      previous_deadline: string | null;
+    }>) {
+      if (!deadlineAtClose.has(row.goal_id)) deadlineAtClose.set(row.goal_id, row.previous_deadline);
+    }
+    allGoals = allGoals.map((goal) => deadlineAtClose.has(goal.id)
+      ? { ...goal, deadline: deadlineAtClose.get(goal.id) ?? null }
+      : goal);
+  }
+  const goals = scope === 'closed'
+    ? allGoals.filter((goal) => goalWasActiveDuringBoundary(goal, allGoals, boundary))
+    : allGoals;
   const goalIds = goals.map((goal) => goal.id);
   const actionsPromise = fetchActionRows(db, userId, boundary);
   if (!goalIds.length) {
@@ -437,7 +496,9 @@ async function buildGoalDiagnostic(
   calculationScope: 'provisional' | 'closed',
   baselineSnapshotId: string | null,
 ): Promise<GoalMomentumDiagnostic> {
-  const actions = source.actions.filter((row) => row.goalId === goal.id);
+  const actions = source.actions
+    .filter((row) => row.goalId === goal.id)
+    .map((row) => calculationScope === 'closed' ? { ...row, goalStatus: 'active' } : row);
   const milestones = source.milestones.filter((row) => row.goalId === goal.id);
   const trackers = source.trackers.filter((row) => row.goalId === goal.id);
   const trackerIds = new Set(trackers.map((tracker) => tracker.id));
@@ -869,7 +930,7 @@ async function closeCompletedWeekIfNeeded(
 ): Promise<void> {
   if (await hasClosedOharaSnapshot(readDb, userId, boundary.weekStart)) return;
 
-  const source = await fetchGoalSourceData(readDb, userId, boundary);
+  const source = await fetchGoalSourceData(readDb, userId, boundary, 'closed');
   const goalIds = source.goals.map((goal) => goal.id);
   const [goalBaselines, previousOhara, trailing] = await Promise.all([
     fetchLatestGoalSnapshotsBefore(readDb, userId, goalIds, boundary.weekStart),
@@ -915,6 +976,9 @@ export async function getMomentumV11Summary(
   goalDiagnostics: GoalMomentumDiagnostic[];
   summary: MomentumHomeSummary;
 }> {
+  const { error: expirationError } = await readDb.rpc('reconcile_goal_expiration_v1');
+  if (expirationError) throw new Error(`Goal expiration reconciliation failed: ${expirationError.message}`);
+
   const { data: profile, error: profileError } = await readDb.from('profiles')
     .select('timezone').eq('id', userId).single();
   if (profileError) throw new Error(`Momentum timezone read failed: ${profileError.message}`);
@@ -923,7 +987,7 @@ export async function getMomentumV11Summary(
   const completedBoundary = getPreviousMomentumWeek(now, timezone);
   await closeCompletedWeekIfNeeded(readDb, writeDb, userId, completedBoundary);
 
-  const source = await fetchGoalSourceData(readDb, userId, currentBoundary);
+  const source = await fetchGoalSourceData(readDb, userId, currentBoundary, 'provisional');
   const goalIds = source.goals.map((goal) => goal.id);
   const [goalBaselines, trailing, previousOharaSnapshot] = await Promise.all([
     fetchLatestGoalSnapshotsBefore(readDb, userId, goalIds, currentBoundary.weekStart),

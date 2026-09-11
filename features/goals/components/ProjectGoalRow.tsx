@@ -7,6 +7,7 @@ import { getCategoryAccentTheme } from '@/constants/themes';
 import { elevationStyle, RADIUS, SPACE } from '@/constants/design';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { goalWorkspaceHref } from '../navigation';
+import type { GoalWorkspaceStatusFilter } from '../goals-workspace';
 import type { GoalWithDetails } from '../types';
 
 interface ProjectGoalRowProps {
@@ -45,6 +46,13 @@ export function ProjectGoalRow({
   const themeMode = useUIStore((state) => state.themeMode);
   const accent = getCategoryAccentTheme(goal.category);
   const commitment = formatCommitment(goal);
+  const workspaceStatus: GoalWorkspaceStatusFilter | undefined = goal.status === 'complete'
+    ? 'completed'
+    : goal.status === 'stagnant'
+      ? 'paused'
+      : goal.status === 'active' || goal.status === 'expired' || goal.status === 'archived'
+        ? goal.status
+        : undefined;
 
   return (
     <View
@@ -64,7 +72,7 @@ export function ProjectGoalRow({
         accessibilityHint="Opens this goal"
         accessibilityLabel={`Open ${goal.title}`}
         accessibilityRole="button"
-        onPress={() => router.push(goalWorkspaceHref(goal.id) as never)}
+        onPress={() => router.push(goalWorkspaceHref(goal.id, workspaceStatus) as never)}
         style={({ pressed }) => ({
           alignItems: 'center',
           flex: 1,
@@ -114,6 +122,7 @@ export function ProjectGoalRow({
           >
             {formatDate(goal.deadline)}
             {commitment ? ` · ${commitment}` : ''}
+            {goal.status !== 'active' ? ` · ${goal.status === 'complete' ? 'Completed' : goal.status.charAt(0).toUpperCase() + goal.status.slice(1)}` : ''}
           </Typography>
           <View style={{
             backgroundColor: colors.background.input,

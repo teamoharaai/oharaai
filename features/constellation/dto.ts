@@ -73,6 +73,7 @@ const GOAL_STATUSES = [
   'stagnant',
   'discovered',
   'archived',
+  'expired',
 ] as const;
 const REFLECTION_VALENCES = [
   'positive',

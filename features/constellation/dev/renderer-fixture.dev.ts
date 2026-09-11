@@ -398,6 +398,7 @@ export const constellationRendererFixtureGraphDTO: ConstellationGraphDTO = {
         stagnant: 0,
         discovered: 0,
         archived: 0,
+        expired: 0,
       },
     },
   },

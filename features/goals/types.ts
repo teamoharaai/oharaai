@@ -29,6 +29,9 @@ export interface Goal {
   visibility: GoalVisibility;
   progress: number;
   status: GoalStatus;
+  completedAt: Date | null;
+  archivedAt: Date | null;
+  expiredAt: Date | null;
   aiGenerated: boolean;
   smartData: GoalSmartData | null;
   projectId: string | null;

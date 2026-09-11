@@ -74,7 +74,7 @@ export function NoteEditor({
   const narrow = width < 840;
   const libraryCollapsed = useUIStore((state) => state.entriesLibraryCollapsed);
   const entries = useEntriesStore((state) => state.entries);
-  const goals = useEntriesStore((state) => state.goals);
+  const activeGoalOptions = useEntriesStore((state) => state.goals);
   const loadContext = useEntriesStore((state) => state.loadContext);
   const upsertEntry = useEntriesStore((state) => state.upsertEntry);
   const updateEntry = useEntriesStore((state) => state.updateEntry);
@@ -125,11 +125,23 @@ export function NoteEditor({
   const lastAttemptedVersion = useRef(0);
   const savingRef = useRef(false);
   const latestDraftRef = useRef<EntryDraft | null>(null);
+  const goals = useMemo(() => {
+    const options = new Map(activeGoalOptions.map((goal) => [goal.id, goal]));
+    for (const linkedGoal of entry?.goals ?? []) {
+      if (!options.has(linkedGoal.id)) {
+        options.set(linkedGoal.id, {
+          ...linkedGoal,
+          milestones: entry?.milestones.filter((milestone) => milestone.goalId === linkedGoal.id) ?? [],
+        });
+      }
+    }
+    return [...options.values()];
+  }, [activeGoalOptions, entry?.goals, entry?.milestones]);
 
   useEffect(() => {
-    if (goals.length === 0) void loadContext();
+    if (activeGoalOptions.length === 0) void loadContext();
     if (projects.length === 0) void loadProjects();
-  }, [goals.length, loadContext, loadProjects, projects.length]);
+  }, [activeGoalOptions.length, loadContext, loadProjects, projects.length]);
 
   useEffect(() => {
     let active = true;

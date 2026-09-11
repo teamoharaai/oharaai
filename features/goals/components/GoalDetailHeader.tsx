@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { Typography } from '@/components/ui/Typography';
 import { ExtendGoalModal } from './ExtendGoalModal';
+import { ExtendDeadlineModal } from './ExtendDeadlineModal';
 import { GoalTitleRow } from './GoalTitleRow';
 import { useThemeColors } from '@/store/uiStore';
 import { FONT, SPACE, TYPE } from '@/constants/design';
@@ -22,13 +23,14 @@ interface GoalDetailHeaderProps {
   onArchive: () => Promise<boolean>;
   onComplete: () => Promise<boolean>;
   onOpenProjectPicker: () => void;
+  onUpdateDeadline: (deadline: Date | null) => Promise<boolean>;
   onUpdateDescription: (description: string | null) => Promise<boolean>;
   successorGoalId: string | null;
 }
 
 function getStatusBadgeVariant(
   status: GoalWithDetails['status'],
-): 'active' | 'complete' | 'paused' | 'archived' | 'draft' {
+): 'active' | 'complete' | 'paused' | 'archived' | 'expired' | 'draft' {
   switch (status) {
     case 'active':
       return 'active';
@@ -39,6 +41,9 @@ function getStatusBadgeVariant(
     case 'stagnant':
       return 'paused';
     case 'archived':
+      return 'archived';
+    case 'expired':
+      return 'expired';
     case 'discovered':
     default:
       return 'archived';
@@ -96,6 +101,7 @@ export function GoalDetailHeader({
   onArchive,
   onComplete,
   onOpenProjectPicker,
+  onUpdateDeadline,
   onUpdateDescription,
   successorGoalId,
 }: GoalDetailHeaderProps) {
@@ -108,6 +114,7 @@ export function GoalDetailHeader({
   const [savingStatus, setSavingStatus] = useState(false);
   const [showEndedCard, setShowEndedCard] = useState(true);
   const [showExtendModal, setShowExtendModal] = useState(false);
+  const [showDeadlineModal, setShowDeadlineModal] = useState(false);
 
   useEffect(() => {
     if (!editingDescription) setDescriptionDraft(goal.description ?? '');
@@ -115,6 +122,7 @@ export function GoalDetailHeader({
 
   const completed = goal.status === 'complete';
   const archived = goal.status === 'archived';
+  const expired = goal.status === 'expired';
   const isReadOnly = isSuperseded || archived;
   const ringProgress = completed || isSuperseded ? 100 : deadlineProgress ?? 0;
 
@@ -437,7 +445,7 @@ export function GoalDetailHeader({
             variant="warm"
           />
           <Typography variant="caption" style={{ color: colors.accent.tealMid, fontFamily: FONT.ui.semibold }}>
-            {completed ? 'Completed' : archived ? 'Archived' : 'On track'}
+            {completed ? 'Completed' : archived ? 'Archived' : expired ? 'Expired' : 'On track'}
           </Typography>
         </View>
       </View>
@@ -465,11 +473,14 @@ export function GoalDetailHeader({
             This goal has ended.
           </Typography>
           <Typography variant="description" style={{ marginBottom: 14 }}>
-            Continue this work in a new phase when you&apos;re ready.
+            Extend this Goal with the same identity, or preserve this phase and begin a successor.
           </Typography>
           <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            <Button onPress={() => setShowExtendModal(true)} size="compact">
-              Extend into a new phase
+            <Button onPress={() => setShowDeadlineModal(true)} size="compact">
+              Extend Goal
+            </Button>
+            <Button onPress={() => setShowExtendModal(true)} size="compact" variant="outline">
+              Begin new phase
             </Button>
             <Button onPress={() => setShowEndedCard(false)} size="compact" variant="outline">
               Not now
@@ -482,6 +493,12 @@ export function GoalDetailHeader({
         goal={goal}
         onClose={() => setShowExtendModal(false)}
         visible={showExtendModal}
+      />
+      <ExtendDeadlineModal
+        currentDeadline={goal.deadline}
+        onClose={() => setShowDeadlineModal(false)}
+        onSave={onUpdateDeadline}
+        visible={showDeadlineModal}
       />
     </View>
   );

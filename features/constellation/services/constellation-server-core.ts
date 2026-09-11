@@ -429,6 +429,7 @@ function emptyGoalsByStatus(): ConstellationGraphCountsDTO['source']['goalsBySta
     stagnant: 0,
     discovered: 0,
     archived: 0,
+    expired: 0,
   };
 }
 

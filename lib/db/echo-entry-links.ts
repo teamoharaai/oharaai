@@ -223,10 +223,14 @@ export async function getUnconfirmedLinksForUserGoals(
   userId: string,
   client: DbClient = supabase,
 ): Promise<EchoGoalLink[]> {
+  const { error: reconciliationError } = await client.rpc('reconcile_goal_expiration_v1');
+  if (reconciliationError) throw reconciliationError;
+
   const { data: goals, error: goalError } = await client
     .from('goals')
     .select('id')
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .eq('status', 'active');
 
   if (goalError) throw goalError;
 
@@ -281,11 +285,15 @@ export async function createLinkForUserGoal(
   confidence?: number,
   client: DbClient = supabase,
 ): Promise<EchoGoalLink | null> {
+  const { error: reconciliationError } = await client.rpc('reconcile_goal_expiration_v1');
+  if (reconciliationError) throw reconciliationError;
+
   const { data: goal, error: goalError } = await client
     .from('goals')
     .select('id')
     .eq('id', goalId)
     .eq('user_id', userId)
+    .eq('status', 'active')
     .maybeSingle();
 
   if (goalError) throw goalError;

@@ -406,6 +406,7 @@ type DbGoalForCloneRow = {
   visibility: string;
   created_at: string;
   deadline: string | null;
+  status: string;
 };
 
 type DbTrackerForCloneRow = {
@@ -419,27 +420,12 @@ type DbTrackerForCloneRow = {
   sort_order: number;
 };
 
-type DbTrackerLogForSummaryRow = {
-  tracker_id: string;
-};
-
 type DbPendingMilestoneForCloneRow = {
   title: string;
   description: string | null;
   due_date: string | null;
   sort_order: number;
 };
-
-type PriorPhaseSummaryItem =
-  | {
-      title: string;
-      achieved: number;
-      target: number | null;
-    }
-  | {
-      title: string;
-      completions: number;
-    };
 
 function isPreviousGoalUniqueViolation(error: {
   code?: string | null;
@@ -449,15 +435,17 @@ function isPreviousGoalUniqueViolation(error: {
   if (error.code !== '23505') return false;
 
   return [error.message, error.details].some(
-    (value) => typeof value === 'string' && value.includes('idx_goals_previous_goal_id'),
+    (value) => typeof value === 'string' && (
+      value.includes('idx_goals_previous_goal_id')
+      || value.includes('already been extended')
+    ),
   );
 }
 
 /**
- * Creates a continuation goal from an expired goal and resets its trackers.
+ * Atomically creates a successor phase and archives its predecessor.
  * Completed milestones stay with the completed phase; only pending one-time
  * events are carried into the continuation goal.
- * All validation and snapshot reads finish before the first insert.
  */
 export async function cloneGoalWithMilestonesAndTrackers(
   previousGoalId: string,
@@ -480,7 +468,7 @@ export async function cloneGoalWithMilestonesAndTrackers(
   const { data: previousGoalData, error: previousGoalError } = await db
     .from('goals')
     .select(
-      'id, title, description, category, project_id, space_id, target_frequency, visibility, created_at, deadline',
+      'id, title, description, category, project_id, space_id, target_frequency, visibility, created_at, deadline, status',
     )
     .eq('id', previousGoalId)
     .eq('user_id', userId)
@@ -494,14 +482,10 @@ export async function cloneGoalWithMilestonesAndTrackers(
   }
 
   const previousGoal = previousGoalData as unknown as DbGoalForCloneRow;
-  if (
-    !previousGoal.deadline
-    || Number.isNaN(new Date(previousGoal.deadline).getTime())
-    || new Date(previousGoal.deadline).getTime() >= Date.now()
-  ) {
+  if (previousGoal.status !== 'active' && previousGoal.status !== 'expired') {
     throw new GoalExtensionError(
       'GOAL_NOT_EXPIRED',
-      'Goal deadline has not passed',
+      'Only active or expired Goals can begin a new phase',
     );
   }
 
@@ -520,54 +504,6 @@ export async function cloneGoalWithMilestonesAndTrackers(
   const trackers = (
     trackerData as unknown as DbTrackerForCloneRow[] | null
   ) ?? [];
-  const habitTrackerIds = trackers
-    .filter((tracker) => tracker.type === 'habit')
-    .map((tracker) => tracker.id);
-  const completionCounts = new Map<string, number>();
-
-  if (habitTrackerIds.length > 0) {
-    const { data: logData, error: logReadError } = await db
-      .from('tracker_logs')
-      .select('tracker_id')
-      .in('tracker_id', habitTrackerIds)
-      .gte('logged_at', previousGoal.created_at)
-      .lte('logged_at', previousGoal.deadline);
-
-    if (logReadError) {
-      throw new Error(logReadError.message);
-    }
-
-    for (const log of (
-      logData as unknown as DbTrackerLogForSummaryRow[] | null
-    ) ?? []) {
-      completionCounts.set(
-        log.tracker_id,
-        (completionCounts.get(log.tracker_id) ?? 0) + 1,
-      );
-    }
-  }
-
-  const priorPhaseSummary: PriorPhaseSummaryItem[] = trackers.map((tracker) => {
-    if (tracker.type === 'counter') {
-      return {
-        title: tracker.title,
-        achieved: tracker.current_value,
-        target: tracker.target_value,
-      };
-    }
-
-    if (tracker.type === 'checklist') {
-      return {
-        title: tracker.title,
-        completions: tracker.current_value > 0 ? 1 : 0,
-      };
-    }
-
-    return {
-      title: tracker.title,
-      completions: completionCounts.get(tracker.id) ?? 0,
-    };
-  });
 
   const { data: milestoneData, error: milestoneReadError } = await db
     .from('milestones')
@@ -591,29 +527,13 @@ export async function cloneGoalWithMilestonesAndTrackers(
     pendingMilestones,
     trackers,
   );
-  const { data: newGoalRow, error: goalInsertError } = await db
-    .from('goals')
-    .insert({
-      user_id: userId,
-      title: resolvedTitle,
-      description: previousGoal.description,
-      category: previousGoal.category,
-      project_id: previousGoal.project_id,
-      space_id: previousGoal.space_id,
-      target_frequency: previousGoal.target_frequency,
-      visibility: previousGoal.visibility,
-      color_theme: CATEGORY_COLOR_THEME[previousGoal.category] ?? 'ocean',
-      embedding_text: embeddingText,
-      previous_goal_id: previousGoal.id,
-      deadline,
-      prior_phase_summary: priorPhaseSummary,
-      reflection: reflection ?? null,
-      reflected_at: reflection ? new Date().toISOString() : null,
-      status: 'active',
-      ai_generated: false,
-    })
-    .select('id')
-    .single();
+  const { data: newGoalId, error: goalInsertError } = await db.rpc('start_goal_new_phase_v1', {
+    p_previous_goal_id: previousGoal.id,
+    p_deadline: deadline,
+    p_title: resolvedTitle,
+    p_reflection: reflection ?? null,
+    p_embedding_text: embeddingText,
+  });
 
   if (goalInsertError) {
     if (isPreviousGoalUniqueViolation(goalInsertError)) {
@@ -625,52 +545,11 @@ export async function cloneGoalWithMilestonesAndTrackers(
 
     throw new Error(goalInsertError.message);
   }
-  if (!newGoalRow) {
+  if (typeof newGoalId !== 'string') {
     throw new Error('Goal insert returned no row');
   }
 
-  const goalId = (newGoalRow as { id: string }).id;
-  const trackerInserts = trackers.map((tracker) => ({
-    goal_id: goalId,
-    title: tracker.title,
-    type: tracker.type,
-    target_value: tracker.target_value,
-    target_unit: tracker.target_unit,
-    frequency: tracker.frequency,
-    sort_order: tracker.sort_order,
-    current_value: 0,
-    is_ai_suggested: false,
-  }));
-
-  if (trackerInserts.length > 0) {
-    const { error: trackerInsertError } = await db
-      .from('trackers')
-      .insert(trackerInserts);
-
-    if (trackerInsertError) {
-      throw new Error(trackerInsertError.message);
-    }
-  }
-
-  const milestoneInserts = pendingMilestones.map((milestone) => ({
-    goal_id: goalId,
-    user_id: userId,
-    title: milestone.title,
-    description: milestone.description,
-    due_date: milestone.due_date,
-    sort_order: milestone.sort_order,
-    is_ai_suggested: false,
-  }));
-
-  if (milestoneInserts.length > 0) {
-    const { error: milestoneInsertError } = await db
-      .from('milestones')
-      .insert(milestoneInserts);
-
-    if (milestoneInsertError) {
-      throw new Error(milestoneInsertError.message);
-    }
-  }
+  const goalId = newGoalId;
 
   // Fire-and-forget embedding (non-blocking), matching first-time goal creation.
   void generateEmbedding(embeddingText, 'document')

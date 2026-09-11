@@ -22,6 +22,9 @@ function createGoal(
     category: 'mind',
     colorTheme: 'ocean',
     deadline: null,
+    completedAt: null,
+    archivedAt: null,
+    expiredAt: null,
     targetFrequency: null,
     visibility: 'private',
     progress: 0,
@@ -52,6 +55,7 @@ test('selectActiveGoals filters out every non-active status', () => {
     createGoal('draft', { status: 'draft' }),
     createGoal('complete', { status: 'complete' }),
     createGoal('archived', { status: 'archived' }),
+    createGoal('expired', { status: 'expired' }),
   ];
 
   assert.deepEqual(selectActiveGoals(goals).map((goal) => goal.id), ['active']);

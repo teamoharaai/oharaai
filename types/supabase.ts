@@ -783,18 +783,56 @@ export type Database = {
           },
         ]
       }
+      goal_deadline_history: {
+        Row: {
+          changed_at: string
+          goal_id: string
+          id: string
+          new_deadline: string | null
+          previous_deadline: string | null
+          user_id: string
+        }
+        Insert: {
+          changed_at?: string
+          goal_id: string
+          id?: string
+          new_deadline?: string | null
+          previous_deadline?: string | null
+          user_id: string
+        }
+        Update: {
+          changed_at?: string
+          goal_id?: string
+          id?: string
+          new_deadline?: string | null
+          previous_deadline?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_deadline_history_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           ai_generated: boolean
+          archived_at: string | null
           category: string
           color_theme: string
           community_id: string | null
+          completed_at: string | null
           created_at: string
           deadline: string | null
           description: string | null
           embedding: string | null
           embedding_model: string | null
           embedding_text: string | null
+          expired_at: string | null
           id: string
           is_private: boolean
           previous_goal_id: string | null
@@ -814,15 +852,18 @@ export type Database = {
         }
         Insert: {
           ai_generated?: boolean
+          archived_at?: string | null
           category: string
           color_theme?: string
           community_id?: string | null
+          completed_at?: string | null
           created_at?: string
           deadline?: string | null
           description?: string | null
           embedding?: string | null
           embedding_model?: string | null
           embedding_text?: string | null
+          expired_at?: string | null
           id?: string
           is_private?: boolean
           previous_goal_id?: string | null
@@ -842,15 +883,18 @@ export type Database = {
         }
         Update: {
           ai_generated?: boolean
+          archived_at?: string | null
           category?: string
           color_theme?: string
           community_id?: string | null
+          completed_at?: string | null
           created_at?: string
           deadline?: string | null
           description?: string | null
           embedding?: string | null
           embedding_model?: string | null
           embedding_text?: string | null
+          expired_at?: string | null
           id?: string
           is_private?: boolean
           previous_goal_id?: string | null
@@ -1629,6 +1673,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: string
       }
+      extend_goal_deadline_v1: {
+        Args: { p_goal_id: string; p_new_deadline: string }
+        Returns: string
+      }
       get_profiles_by_ids: {
         Args: { user_ids: string[] }
         Returns: {
@@ -1688,6 +1736,20 @@ export type Database = {
           title: string
           vault_id: string
         }[]
+      }
+      reconcile_goal_expiration_v1: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      start_goal_new_phase_v1: {
+        Args: {
+          p_deadline: string
+          p_embedding_text?: string | null
+          p_previous_goal_id: string
+          p_reflection?: string | null
+          p_title?: string | null
+        }
+        Returns: string
       }
       publish_agent_session: {
         Args: {

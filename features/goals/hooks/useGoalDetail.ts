@@ -8,6 +8,7 @@ import {
   createTracker,
   deleteMilestone,
   deleteTracker,
+  extendGoalDeadline,
   fetchGoalById,
   fetchGoals,
   updateGoal,
@@ -319,8 +320,25 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
   const onUpdateDeadline = useCallback(async (deadline: Date | null) => {
     const current = readOnlyGoal();
     if (!current) return false;
-    return persistGoalUpdate({ ...current, deadline }, { deadline });
-  }, [persistGoalUpdate, readOnlyGoal]);
+    if (!deadline) {
+      if (current.status === 'expired') {
+        setGoalError('Choose a future deadline to reactivate this expired Goal.');
+        return false;
+      }
+      return persistGoalUpdate({ ...current, deadline: null }, { deadline: null });
+    }
+    setGoalError(null);
+    try {
+      const saved = await extendGoalDeadline(goalId, deadline);
+      if (!saved) throw new Error('Goal could not be reloaded');
+      upsertGoal(saved);
+      void refreshMomentumAfterMeaningfulMutation();
+      return true;
+    } catch {
+      setGoalError('Failed to extend the goal deadline. Please try again.');
+      return false;
+    }
+  }, [goalId, persistGoalUpdate, readOnlyGoal, upsertGoal]);
 
   const onUpdateProject = useCallback(async (projectId: string | null) => {
     const current = readOnlyGoal();
@@ -341,7 +359,7 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
     if (!current) return false;
     if (current.status === 'complete') return true;
     return persistGoalUpdate(
-      { ...current, status: 'complete', progress: 100 },
+      { ...current, status: 'complete', progress: 100, completedAt: new Date() },
       { status: 'complete', progress: 100 },
     );
   }, [persistGoalUpdate, readOnlyGoal]);
@@ -350,7 +368,10 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
     const current = readOnlyGoal();
     if (!current) return false;
     if (current.status === 'archived') return true;
-    return persistGoalUpdate({ ...current, status: 'archived' }, { status: 'archived' });
+    return persistGoalUpdate(
+      { ...current, status: 'archived', archivedAt: new Date() },
+      { status: 'archived' },
+    );
   }, [persistGoalUpdate, readOnlyGoal]);
 
   return {

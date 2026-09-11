@@ -1,5 +1,11 @@
-export function goalWorkspaceHref(goalId: string): string {
-  return `/(app)/goals?goal=${encodeURIComponent(goalId)}`;
+import type { GoalWorkspaceStatusFilter } from './goals-workspace';
+
+export function goalWorkspaceHref(
+  goalId: string,
+  status?: GoalWorkspaceStatusFilter,
+): string {
+  const statusQuery = status ? `&status=${encodeURIComponent(status)}` : '';
+  return `/(app)/goals?goal=${encodeURIComponent(goalId)}${statusQuery}`;
 }
 
 export function getGoalWorkspaceSelection(params: {
