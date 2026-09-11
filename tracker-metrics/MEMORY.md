@@ -5,7 +5,35 @@ correct stale ones in place. Each fact is dated so drift is visible.
 
 ## Repo realities (updated 2026-09-11)
 
-- **Implementation state: Tasks 0–7 done.** **Task 7 done (session 007):**
+- **Implementation state: Tasks 0–8 done.** **Task 8 done (session 008):** the
+  tracker card DISPLAY is finally driven off the log-derived `periodState`,
+  retiring the interim legacy-scalar read (D-007/D-008). New pure, node-tested
+  `features/goals/tracker-display.ts` (relative imports + `import type` — D-004):
+  `counterProgressPercent` (0–100 clamp, missing/zero target → denom 1),
+  `currentPeriodValue`/`isTrackerPeriodComplete` (null-safe), `habitBucketViews`
+  (exactly 7 `recentPeriods` dots oldest→newest current-last, trusts derivation
+  ordering; pads to 7 empty placeholders when `periodState` null; slices newest 7),
+  `bucketPeriodLabel` (date / "Week of …" / "Month YYYY" via `Intl` in the
+  period-state tz). `TrackerCard.tsx`: removed the `displayValue` local state +
+  effect (last scalar-drift path); counter number/bar, habit dots (same 26px +
+  `brt.rose`/`border.warmSubtle` tokens, now with a11y bucket labels), checklist
+  checked/strike (from `isCompleted` **only**, dropped `|| displayValue >= target`)
+  all read `periodState`. The habit/checklist control is now an accessible
+  **checkbox toggle** (`accessibilityRole="checkbox"`, `checked`) that logs when
+  unchecked and calls `onUncompleteTracker` when checked, disabled when the
+  applicable handler is absent — a discrete control, card-as-a-whole is never an
+  undo target. `onLogUncomplete` threaded `TrackersPanel`→`TrackerCard`;
+  `GoalsWorkspace` wires `onLogUncomplete={goalDetail.onUncompleteTracker}` at both
+  call sites and **removed the dead `TrackerList`** (+ its now-unused `Tracker`
+  import). +15 tests (9 pure display + 6 text-level; `tracker-detail-state.test.ts`
+  completion assertion updated to the `isTrackerPeriodComplete` helper). tsc clean;
+  goals 58/58; momentum 64/64. New decision **D-010** (periodState is the sole
+  display source incl. the null/unhydrated empty fallback: counter 0, habit 7 empty
+  dots). **Interim caveat now RESOLVED** — the card no longer reads
+  `trackers.current_value`. **Next: Task 9** (dashboard migrate off
+  `/api/goals/complete-tracker` + tz-aware `due-today`, then delete legacy route +
+  `completeTracker` wrapper — D-009). See `changelog/008-*`.
+- **Implementation state (prior): Tasks 0–7 done.** **Task 7 done (session 007):**
   goal-detail trackers now render in **Ongoing** vs **Completed** sections. New
   pure, node-tested `features/goals/tracker-grouping.ts` (relative imports —
   D-004): `isTrackerCompleted(t)=t.periodState?.isCompleted ?? false` and

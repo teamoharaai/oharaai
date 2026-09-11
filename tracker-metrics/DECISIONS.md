@@ -8,6 +8,44 @@ decision → consequence.
 
 ---
 
+## D-010 · 2026-09-11 · accepted — Card display is fully periodState-driven, incl. the null/unhydrated fallback
+
+**Context:** Task 8 retires the interim legacy-scalar reads (D-007/D-008) and
+drives DISPLAY off `tracker.periodState`. Two shapes have no period data, so a
+fallback had to be chosen rather than falling back to the legacy `currentValue`
+(which Task 8 explicitly stops reading): (a) null-cadence trackers
+(`periodState === null` by derivation), and (b) the brief pre-hydration window
+before goal-detail hydration lands (`periodState` is also `null`). The habit dot
+row previously used `Math.round(targetValue)` for its dot count and the legacy
+scalar for filled dots — both retired.
+
+**Decision:** Display reads only `periodState`, with an explicit, honest empty
+fallback:
+- **Counter** current value = `periodState?.currentValue ?? 0`; progress =
+  `counterProgressPercent(currentValue, targetValue)` (0–100 clamp, missing/zero
+  target → denominator 1, non-finite → 0).
+- **Checklist** checked/label/strike derive from `periodState?.isCompleted ??
+  false` **only** — the old `|| displayValue >= target` fallback is gone.
+- **Habit** renders exactly seven `recentPeriods` buckets (oldest→newest, current
+  last, trusted from derivation, not re-sorted). When `periodState` is null the
+  row **pads to seven empty placeholder dots** (unique negative keys, label "No
+  history yet") rather than inventing history or reading the scalar.
+- The habit/checklist one-tap control becomes an accessible **checkbox toggle**
+  (`accessibilityRole="checkbox"`, `accessibilityState.checked`) that logs when
+  unchecked and calls `onUncompleteTracker` when checked; it is disabled when the
+  applicable-direction handler is absent. It stays a discrete control — the
+  editable/deletable card is never an undo target.
+
+**Consequence:** For the sub-second pre-hydration window a counter shows `0` and a
+habit shows seven empty dots instead of a stale legacy value; both resolve the
+moment hydration lands (Task 4 hydrates the selected goal on open). This is
+acceptable and preferable to presenting an un-derived scalar as period truth. New
+pure `features/goals/tracker-display.ts` (relative imports — D-004) owns the
+clamp/bucket/label logic and is node-tested; the card is a thin shell. Display
+logic now has a single source (`periodState`) with no scalar drift path.
+
+---
+
 ## D-009 · 2026-09-11 · accepted — Legacy complete-tracker route retirement deferred to Task 9
 
 **Context:** Task 6's deliverable D says to delete `app/api/goals/complete-tracker`

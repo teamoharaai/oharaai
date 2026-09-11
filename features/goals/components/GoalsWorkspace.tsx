@@ -37,7 +37,7 @@ import { useActivity } from '../hooks/useActivity';
 import { useGoalDetail, type UseGoalDetailResult } from '../hooks/useGoalDetail';
 import { useGoals } from '../hooks/useGoals';
 import { useGoalStore } from '../store';
-import type { GoalMilestone, GoalWithDetails, Tracker } from '../types';
+import type { GoalMilestone, GoalWithDetails } from '../types';
 import { getGoalRingProgress } from '../utils/ringProgress';
 import { CountdownTimer } from './CountdownTimer';
 import { GoalDetailHeader } from './GoalDetailHeader';
@@ -952,38 +952,6 @@ function MilestoneList({ milestones }: { milestones: readonly GoalMilestone[] })
   );
 }
 
-function TrackerList({ trackers }: { trackers: readonly Tracker[] }) {
-  const colors = useThemeColors();
-  if (!trackers.length) {
-    return (
-      <Typography variant="body">
-        A dedicated task list is not stored for this goal. Trackers and completed activity will appear here when available.
-      </Typography>
-    );
-  }
-  return (
-    <View style={{ gap: SPACE.lg }}>
-      {trackers.map((tracker) => {
-        const target = tracker.targetValue ?? 0;
-        const progress = target > 0 ? Math.min(100, (tracker.currentValue / target) * 100) : 0;
-        return (
-          <View key={tracker.id} style={{ backgroundColor: colors.background.subtle, borderRadius: RADIUS.md, padding: SPACE.lg }}>
-            <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Typography variant="emphasis-sm">{tracker.title}</Typography>
-              <Typography variant="caption">
-                {tracker.currentValue}{target ? ` / ${target}` : ''}{tracker.targetUnit ? ` ${tracker.targetUnit}` : ''}
-              </Typography>
-            </View>
-            <View style={{ backgroundColor: colors.border.divider, borderRadius: RADIUS.round, height: 5, marginTop: SPACE.md, overflow: 'hidden' }}>
-              <View style={{ backgroundColor: colors.accent.primary, height: 5, width: `${progress}%` }} />
-            </View>
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-
 function GoalTabContent({
   activityError,
   activityItems,
@@ -1059,6 +1027,7 @@ function GoalTabContent({
             onDelete={goalDetail.onDeleteTracker}
             onDismissError={goalDetail.clearTrackerError}
             onLogComplete={goalDetail.onCompleteTracker}
+            onLogUncomplete={goalDetail.onUncompleteTracker}
             onLogCounter={goalDetail.onLogCounter}
             onSave={goalDetail.onSaveTracker}
             trackers={goal.trackers}
@@ -1119,6 +1088,7 @@ function GoalTabContent({
             onDelete={goalDetail.onDeleteTracker}
             onDismissError={goalDetail.clearTrackerError}
             onLogComplete={goalDetail.onCompleteTracker}
+            onLogUncomplete={goalDetail.onUncompleteTracker}
             onLogCounter={goalDetail.onLogCounter}
             onSave={goalDetail.onSaveTracker}
             trackers={goal.trackers}

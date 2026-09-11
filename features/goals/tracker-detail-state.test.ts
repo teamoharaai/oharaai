@@ -18,8 +18,9 @@ test('the local completion set is fully removed — completion is DB-derived', (
   assert.doesNotMatch(hook, /completedTrackerIds/);
   assert.doesNotMatch(panel, /completedIds/);
   assert.doesNotMatch(workspace, /completedIds/);
-  // The card's checked-state now derives from the log-derived period state.
-  assert.match(card, /tracker\.periodState\?\.isCompleted \?\? false/);
+  // The card's checked-state now derives from the log-derived period state via
+  // the pure display helper (Task 8 moved the inline expression into it).
+  assert.match(card, /isTrackerPeriodComplete\(tracker\.periodState\)/);
 });
 
 test('all three tracker mutations go through the shared /api/trackers/log route', () => {

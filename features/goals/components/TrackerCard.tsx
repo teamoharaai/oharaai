@@ -3,6 +3,12 @@ import { ActivityIndicator, Pressable, Text, TextInput, View, useWindowDimension
 import { useThemeColors } from '@/store/uiStore';
 import { FONT, TYPE } from '@/constants/design';
 import type { Tracker, TrackerFrequency, TrackerUpdates } from '../types';
+import {
+  counterProgressPercent,
+  currentPeriodValue,
+  habitBucketViews,
+  isTrackerPeriodComplete,
+} from '../tracker-display';
 
 const FREQUENCY_LABELS = {
   daily: 'Daily',
@@ -20,6 +26,7 @@ export interface TrackerCardProps {
   onSave?: (trackerId: string, updates: TrackerUpdates) => Promise<void>;
   onDelete?: (trackerId: string) => Promise<void>;
   onLogComplete?: (trackerId: string) => Promise<void>;
+  onLogUncomplete?: (trackerId: string) => Promise<void>;
   onLogCounter?: (trackerId: string) => Promise<void>;
 }
 
@@ -47,18 +54,20 @@ export function TrackerCard({
   onSave,
   onDelete,
   onLogComplete,
+  onLogUncomplete,
   onLogCounter,
 }: TrackerCardProps) {
-  // Completion is DB-derived: it comes from the log-derived period state, not a
-  // local set. A null/unhydrated periodState is never presented as an
-  // authoritative incomplete (Task 8 drives full card display from periodState).
-  const isCompleted = tracker.periodState?.isCompleted ?? false;
+  // DISPLAY and completion are DB-derived from the log-derived period state, not
+  // the legacy `tracker.currentValue` scalar or a local set. A null/unhydrated
+  // periodState is never presented as an authoritative incomplete result; its
+  // current value falls back to 0 (Task 8 drives full card display off periodState).
+  const isCompleted = isTrackerPeriodComplete(tracker.periodState);
+  const currentValue = currentPeriodValue(tracker.periodState);
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
   const compact = width < 500;
   const accent = accentColor ?? colors.accent.primary;
   const progressAccent = progressColor ?? colors.accent.tealMid;
-  const [displayValue, setDisplayValue] = useState(tracker.currentValue);
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -67,10 +76,6 @@ export function TrackerCard({
   const [draftTarget, setDraftTarget] = useState(String(tracker.targetValue ?? ''));
   const [draftUnit, setDraftUnit] = useState(tracker.targetUnit ?? '');
   const [draftFrequency, setDraftFrequency] = useState<TrackerFrequency | null>(tracker.frequency);
-
-  useEffect(() => {
-    setDisplayValue(tracker.currentValue);
-  }, [tracker.currentValue]);
 
   useEffect(() => {
     setDraftTitle(tracker.title);
@@ -138,11 +143,16 @@ export function TrackerCard({
     }
   }
 
-  async function logComplete() {
-    if (!onLogComplete || readOnly || isCompleted || isSaving) return;
+  // Explicit complete/uncomplete toggle for habit/checklist (counters progress by
+  // +1, not one-tap complete). Distinct from the edit/delete controls so the card
+  // as a whole is never an undo target: only this control flips completion.
+  async function toggleComplete() {
+    if (readOnly || isSaving) return;
+    const handler = isCompleted ? onLogUncomplete : onLogComplete;
+    if (!handler) return;
     setIsSaving(true);
     try {
-      await onLogComplete(tracker.id);
+      await handler(tracker.id);
     } finally {
       setIsSaving(false);
     }
@@ -158,10 +168,12 @@ export function TrackerCard({
     }
   }
 
-  const target = tracker.targetValue && tracker.targetValue > 0 ? tracker.targetValue : 1;
-  const progress = Math.min(100, Math.max(0, (displayValue / target) * 100));
-  const dotCount = Math.min(7, Math.max(1, Math.round(tracker.targetValue ?? 7)));
-  const filledDots = Math.min(dotCount, Math.max(0, Math.round(displayValue)));
+  const progress = counterProgressPercent(currentValue, tracker.targetValue);
+  const habitBuckets = habitBucketViews(tracker.periodState, tracker.frequency);
+  // The accessible toggle acts on whichever direction applies next; it is disabled
+  // when that handler is absent (e.g. a completed card with no uncomplete wired).
+  const toggleHandler = isCompleted ? onLogUncomplete : onLogComplete;
+  const toggleDisabled = !toggleHandler || isSaving;
   const inputStyle = {
     backgroundColor: colors.background.input,
     borderColor: colors.border.input,
@@ -175,7 +187,7 @@ export function TrackerCard({
 
   return (
     <View
-      accessibilityLabel={`${tracker.title}, ${trackerTypeLabel(tracker.type)}, ${formatNumber(displayValue)}${tracker.targetValue !== null ? ` of ${formatNumber(tracker.targetValue)}` : ''}${tracker.targetUnit ? ` ${tracker.targetUnit}` : ''}`}
+      accessibilityLabel={`${tracker.title}, ${trackerTypeLabel(tracker.type)}, ${formatNumber(currentValue)}${tracker.targetValue !== null ? ` of ${formatNumber(tracker.targetValue)}` : ''}${tracker.targetUnit ? ` ${tracker.targetUnit}` : ''}`}
       style={{
         backgroundColor: colors.background.card,
         borderColor: colors.border.warm,
@@ -240,14 +252,20 @@ export function TrackerCard({
 
         {!readOnly ? (
           <View style={{ alignItems: 'center', flexDirection: 'row', gap: 3 }}>
-            {/* Counters progress by logging their value (+1), not one-tap complete. */}
+            {/* Counters progress by logging their value (+1), not one-tap complete.
+                Habit/checklist get an explicit checkbox toggle that both logs and
+                undoes the current period without navigating. */}
             {tracker.type !== 'counter' ? (
               <Pressable
-                accessibilityLabel={isCompleted ? `${tracker.title} logged` : `Log ${tracker.title} complete`}
-                accessibilityRole="button"
-                accessibilityState={{ disabled: !onLogComplete || isCompleted || isSaving }}
-                disabled={!onLogComplete || isCompleted || isSaving}
-                onPress={() => void logComplete()}
+                accessibilityLabel={
+                  isCompleted
+                    ? `Mark ${tracker.title} not done this period`
+                    : `Mark ${tracker.title} done this period`
+                }
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: isCompleted, disabled: toggleDisabled }}
+                disabled={toggleDisabled}
+                onPress={() => void toggleComplete()}
                 style={({ pressed }) => ({
                   alignItems: 'center',
                   backgroundColor: isCompleted ? accent : colors.background.goalCard,
@@ -320,7 +338,7 @@ export function TrackerCard({
               <Text
                 style={{ color: colors.text.primary, fontFamily: 'Inter-SemiBold', fontSize: 15 }}
               >
-                {formatNumber(displayValue)}
+                {formatNumber(currentValue)}
               </Text>
               {tracker.targetValue !== null ? ` / ${formatNumber(tracker.targetValue)}` : ''}
               {tracker.targetUnit ? ` ${tracker.targetUnit}` : ''}
@@ -374,11 +392,13 @@ export function TrackerCard({
               gap: 6,
             }}
           >
-            {Array.from({ length: dotCount }, (_, index) => (
+            {habitBuckets.map((bucket) => (
               <View
-                key={index}
+                key={bucket.key}
+                accessibilityLabel={bucket.accessibilityLabel}
+                accessibilityRole="image"
                 style={{
-                  backgroundColor: index < filledDots ? colors.brt.rose : colors.border.warmSubtle,
+                  backgroundColor: bucket.filled ? colors.brt.rose : colors.border.warmSubtle,
                   borderRadius: 13,
                   height: 26,
                   width: 26,
@@ -392,7 +412,7 @@ export function TrackerCard({
                 marginLeft: 3,
               }}
             >
-              {formatNumber(displayValue)}
+              {formatNumber(currentValue)}
               {tracker.targetValue !== null ? ` / ${formatNumber(tracker.targetValue)}` : ''}
               {tracker.targetUnit ? ` ${tracker.targetUnit}` : ''}
             </Text>
@@ -409,8 +429,8 @@ export function TrackerCard({
           <View
             style={{
               alignItems: 'center',
-              backgroundColor: isCompleted || displayValue >= target ? accent : 'transparent',
-              borderColor: isCompleted || displayValue >= target ? accent : colors.border.divider,
+              backgroundColor: isCompleted ? accent : 'transparent',
+              borderColor: isCompleted ? accent : colors.border.divider,
               borderRadius: 5,
               borderWidth: 2,
               height: 22,
@@ -418,7 +438,7 @@ export function TrackerCard({
               width: 22,
             }}
           >
-            {isCompleted || displayValue >= target ? (
+            {isCompleted ? (
               <Text style={{ color: colors.text.inverse, fontFamily: FONT.ui.bold, fontSize: 12 }}>✓</Text>
             ) : null}
           </View>

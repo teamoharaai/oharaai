@@ -39,6 +39,7 @@ export interface TrackersPanelProps {
   onSave?: (trackerId: string, updates: TrackerUpdates) => Promise<void>;
   onDelete?: (trackerId: string) => Promise<void>;
   onLogComplete?: (trackerId: string) => Promise<void>;
+  onLogUncomplete?: (trackerId: string) => Promise<void>;
   onLogCounter?: (trackerId: string) => Promise<void>;
   error?: string | null;
   onDismissError?: () => void;
@@ -56,6 +57,7 @@ export function TrackersPanel({
   onSave,
   onDelete,
   onLogComplete,
+  onLogUncomplete,
   onLogCounter,
   error,
   onDismissError,
@@ -93,6 +95,7 @@ export function TrackersPanel({
         accentColor={accent}
         onDelete={onDelete}
         onLogComplete={onLogComplete}
+        onLogUncomplete={onLogUncomplete}
         onLogCounter={onLogCounter}
         onSave={onSave}
         progressColor={progressColor}
