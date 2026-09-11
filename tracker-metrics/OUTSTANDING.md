@@ -8,20 +8,23 @@ Legend: ☐ not started · ◐ in progress · ☑ done · ⚠ blocked
 
 ## Next action
 
-**Start Task 7** (Ongoing/Completed grouping). Task 6 is done → **GO**. In
-`TrackersPanel.tsx`, partition configured trackers on
-`tracker.periodState?.isCompleted ?? false`; null-cadence stays Ongoing with the
-cadence-not-set affordance; render each section only when non-empty; preserve
-`sortOrder`; memoize the derivation; add accessible section labels; keep
-per-tracker pending state visible while a card moves groups. **Interim:** counter
-`+1` logs correctly but its visible number (and full card/habit-history display)
-waits on Task 8 — do not ship before Task 8.
+**Start Task 8** (tracker card + habit-history rewrite). Task 7 is done → **GO**.
+Drive counter/checklist **display** from `periodState.currentValue`/`isCompleted`
+(retires the interim legacy-scalar read); replace habit `dotCount`/`filledDots`
+math with exactly seven `periodState.recentPeriods` buckets (oldest→newest,
+current last), preserving dot size/color tokens + accessible bucket labels; add an
+explicit accessible complete/uncomplete toggle (`accessibilityRole="checkbox"`)
+and thread `onUncompleteTracker` (already on `useGoalDetail`, no card gesture yet)
+through `TrackersPanel` → `TrackerCard`; keep editing/delete/logging controls from
+triggering each other; confirm/remove the dead `TrackerList` in `GoalsWorkspace`.
 
-`onUncompleteTracker` already exists on `useGoalDetail` but has no card gesture
-yet (Task 8 adds the accessible complete/uncomplete toggle + threads it through
-the panel). **Task 9 must** migrate the dashboard off
-`/api/goals/complete-tracker` and only then delete that route + the
-`completeTracker` wrapper (D-009).
+Task 7 shipped the Ongoing/Completed partition (`features/goals/tracker-grouping.ts`
+pure helper + `TrackersPanel` grouping keyed on `periodState?.isCompleted`;
+null-cadence stays Ongoing; headers only when non-empty; memoized; cards keyed by
+id so they survive moving groups). See `changelog/007-*`.
+
+**Task 9 must** migrate the dashboard off `/api/goals/complete-tracker` and only
+then delete that route + the `completeTracker` wrapper (D-009).
 
 ## Task status
 
@@ -33,8 +36,8 @@ the panel). **Task 9 must** migrate the dashboard off
 | 3+4 | Tracker contract + period derivation | ☑ | Done session 004. `TrackerPeriodBucket`/`TrackerPeriodState`/`Tracker.periodState` in types; `currentValue` removed from `TrackerUpdates` (D-007); `lib/goals/tracker-period.ts` pure derivation (+20 tests); `lib/db/paginate.ts` helper (+5 tests, incl. >1000-log sum); `hydrateGoalTrackers`/`fetchHydratedGoalDetail` frequency-batched ≤3-parallel paginated read; `useGoalDetail` always hydrates the selected goal only. tsc clean; momentum 64/64. See `changelog/004-*`. |
 | 5 | Auth logging/uncomplete + legacy fixes | ☑ | Done session 005. Shared `mutateTrackerLog` core (`lib/db/tracker-mutations.ts`) behind an injected `TrackerMutationDb` port + adapter/`logTrackerMutation` in `goals.ts`; single actioned route `app/api/trackers/log`; `completeTracker` delegates + returns `{success,periodState}`; `current_value` write removed; null-cadence rejected; complete idempotent; uncomplete deletes-all; counter `+1` restored via `onLogCounter`; clone phase-summary + ExtendGoalModal log-derived (D-008). +19 tests; tsc clean; momentum 64/64. See `changelog/005-*`. |
 | 6 | Goal-detail state + optimistic mutations | ☑ | Done session 006. Deleted `completedTrackerIds` (completion now DB-derived via `periodState?.isCompleted`); complete/counter/uncomplete all on `/api/trackers/log` + reconcile `periodStateFromDto`; per-tracker in-flight + latest-mutation ordering guards with rollback-if-latest; functional `patchTracker` store action; `useTrackerBoundaryRefresh` (timer + RN foreground + web visibility/focus); `onSaveTracker` rederives on frequency/target change. Legacy route retirement deferred to Task 9 (D-009 — dashboard still uses it). +24 tests; tsc clean; momentum 64/64. See `changelog/006-*`. |
-| 7 | Ongoing/Completed grouping | ☐ | **NEXT.** `TrackersPanel.tsx` partition on `periodState?.isCompleted`. |
-| 8 | Tracker card + habit-history rewrite | ☐ | 7-bucket history from `recentPeriods`; a11y toggle. Also confirm/remove dead `TrackerList` in GoalsWorkspace. |
+| 7 | Ongoing/Completed grouping | ☑ | Done session 007. Pure `partitionTrackersByCompletion`/`isTrackerCompleted` in `features/goals/tracker-grouping.ts`; `TrackersPanel` splits Ongoing/Completed off `periodState?.isCompleted` in a `useMemo([trackers])`, null-cadence stays Ongoing, headers only when non-empty (accessible), `sortOrder` preserved per section, cards keyed by id survive group moves. +10 tests; tsc clean; goals 43/43; momentum 64/64. No new decision. See `changelog/007-*`. |
+| 8 | Tracker card + habit-history rewrite | ☐ | **NEXT.** Drive counter/checklist display from `periodState`; 7-bucket history from `recentPeriods`; a11y complete/uncomplete toggle threading `onUncompleteTracker`. Also confirm/remove dead `TrackerList` in GoalsWorkspace. |
 | 9 | Dashboard daily-state alignment | ☐ | `due-today+api.ts` tz-aware daily window; return booleans not stale scalars. |
 | 10 | Automated + manual verification | ☐ | Add `test:tracker-metrics` script; full matrix; release gate. |
 

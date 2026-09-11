@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useThemeColors } from '@/store/uiStore';
 import { FONT, TYPE } from '@/constants/design';
 import type { Tracker, TrackerFrequency, TrackerInput, TrackerType, TrackerUpdates } from '../types';
+import { partitionTrackersByCompletion } from '../tracker-grouping';
 import { TrackerCard } from './TrackerCard';
 
 const TRACKER_TYPES: readonly TrackerType[] = ['counter', 'habit', 'checklist'];
@@ -72,7 +73,63 @@ export function TrackersPanel({
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const readOnly = hasSuccessor || ended || archived;
-  const sortedTrackers = [...trackers].sort((left, right) => left.sortOrder - right.sortOrder);
+  const hasTrackers = trackers.length > 0;
+  // Partition into Ongoing vs Completed off the log-derived period state. Memoized
+  // on the trackers array so typing in the add-form (or any unrelated re-render)
+  // does not re-copy/re-sort the list. Cards keep `sortOrder` within each section.
+  const { ongoing, completed } = useMemo(
+    () => partitionTrackersByCompletion(trackers),
+    [trackers],
+  );
+
+  function renderTrackerCard(tracker: Tracker) {
+    // Keyed by tracker.id so a card that moves between the Ongoing and Completed
+    // sections keeps its instance (and its in-flight `isSaving` affordance) rather
+    // than unmounting/remounting. All cards + headers are siblings in one parent,
+    // so React preserves keyed instances across the section boundary.
+    return (
+      <TrackerCard
+        key={tracker.id}
+        accentColor={accent}
+        onDelete={onDelete}
+        onLogComplete={onLogComplete}
+        onLogCounter={onLogCounter}
+        onSave={onSave}
+        progressColor={progressColor}
+        readOnly={readOnly}
+        tracker={tracker}
+      />
+    );
+  }
+
+  function renderSections(): ReactNode[] {
+    const nodes: ReactNode[] = [];
+    const pushSection = (key: string, label: string, sectionTrackers: readonly Tracker[]) => {
+      if (sectionTrackers.length === 0) return; // empty section renders no header
+      nodes.push(
+        <Text
+          key={`section-${key}`}
+          accessibilityLabel={`${label} trackers`}
+          accessibilityRole="header"
+          style={{
+            color: colors.text.secondary,
+            ...TYPE.overline,
+            fontFamily: FONT.ui.semibold,
+            letterSpacing: 1.5,
+            marginBottom: 10,
+            marginTop: nodes.length === 0 ? 2 : 18,
+            textTransform: 'uppercase',
+          }}
+        >
+          {label}
+        </Text>,
+      );
+      for (const tracker of sectionTrackers) nodes.push(renderTrackerCard(tracker));
+    };
+    pushSection('ongoing', 'Ongoing', ongoing);
+    pushSection('completed', 'Completed', completed);
+    return nodes;
+  }
 
   function resetAddForm() {
     setShowAddForm(false);
@@ -234,20 +291,8 @@ export function TrackersPanel({
         </View>
       ) : null}
 
-      {sortedTrackers.length > 0 ? (
-        sortedTrackers.map((tracker) => (
-          <TrackerCard
-            key={tracker.id}
-            accentColor={accent}
-            onDelete={onDelete}
-            onLogComplete={onLogComplete}
-            onLogCounter={onLogCounter}
-            onSave={onSave}
-            progressColor={progressColor}
-            readOnly={readOnly}
-            tracker={tracker}
-          />
-        ))
+      {hasTrackers ? (
+        renderSections()
       ) : !showAddForm ? (
         <View style={{ paddingHorizontal: 2, paddingVertical: 10 }}>
           <Text
@@ -281,7 +326,7 @@ export function TrackersPanel({
             borderRadius: 14,
             borderWidth: 1,
             gap: 10,
-            marginTop: sortedTrackers.length > 0 ? 4 : 0,
+            marginTop: hasTrackers ? 4 : 0,
             padding: 14,
           }}
         >

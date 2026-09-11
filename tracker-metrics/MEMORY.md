@@ -5,7 +5,26 @@ correct stale ones in place. Each fact is dated so drift is visible.
 
 ## Repo realities (updated 2026-09-11)
 
-- **Implementation state: Tasks 0–6 done.** **Task 6 done (session 006):**
+- **Implementation state: Tasks 0–7 done.** **Task 7 done (session 007):**
+  goal-detail trackers now render in **Ongoing** vs **Completed** sections. New
+  pure, node-tested `features/goals/tracker-grouping.ts` (relative imports —
+  D-004): `isTrackerCompleted(t)=t.periodState?.isCompleted ?? false` and
+  `partitionTrackersByCompletion(trackers)→{ongoing,completed}` (sorts by
+  `sortOrder` once, splits, preserves order per section, non-mutating).
+  `TrackersPanel.tsx` replaced the flat `sortedTrackers` map with
+  `useMemo(()=>partitionTrackersByCompletion(trackers),[trackers])` + a
+  `renderSections()` that emits a FLAT sibling array
+  `[Ongoing header?, …ongoing, Completed header?, …completed]` — headers
+  (`accessibilityRole="header"`, overline typography) render only when the
+  section is non-empty; **null-cadence/unhydrated stays Ongoing** with the
+  cadence-not-set affordance. All cards + headers are siblings keyed by
+  `tracker.id`, so a card moving groups on optimistic complete keeps its instance
+  + `isSaving`. `hasTrackers`/add-form `marginTop` now key off `trackers.length`.
+  +10 tests; tsc clean; goals 43/43; momentum 64/64. No new decision.
+  **Interim (unchanged):** counter/checklist visible display still legacy-scalar
+  until Task 8; `onUncompleteTracker` still has no card gesture. **Next: Task 8.**
+  See `changelog/007-*`.
+- **Task 6 done (session 006):**
   `completedTrackerIds` local set **deleted** everywhere (hook state + reset +
   `UseGoalDetailResult` + `TrackersPanel.completedIds` + both `GoalsWorkspace`
   call sites); completion is now DB-derived — `TrackerCard` reads
