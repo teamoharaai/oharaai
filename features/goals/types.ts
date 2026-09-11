@@ -7,6 +7,9 @@ import type {
   GoalTrackerType,
   GoalVisibility,
 } from '@/lib/goals/schema';
+import type { TrackerPeriodBucket, TrackerPeriodState } from '@/lib/goals/tracker-period';
+
+export type { TrackerPeriodBucket, TrackerPeriodState };
 
 export type GoalStatus = GoalDbStatus;
 export type TrackerType = GoalTrackerType;
@@ -61,7 +64,18 @@ export interface Tracker {
   targetValue: number | null;
   targetUnit: string | null;
   frequency: TrackerFrequency | null;
+  /**
+   * Legacy persisted scalar, kept for backward compatibility. It is NOT the
+   * current-period value — period progress/completion comes from `periodState`,
+   * derived from `tracker_logs`. Do not reinterpret this as current-period truth.
+   */
   currentValue: number;
+  /**
+   * Log-derived period state for the selected goal-detail view. `null` means
+   * cadence is not configured OR detail has not been hydrated yet; a `null`
+   * state must never be presented as an authoritative incomplete result.
+   */
+  periodState: TrackerPeriodState | null;
   isAiSuggested: boolean;
   sortOrder: number;
   createdAt: Date;
@@ -138,6 +152,7 @@ export interface TrackerUpdates {
   targetValue?: number | null;
   targetUnit?: string | null;
   frequency?: TrackerFrequency | null;
-  currentValue?: number;
+  // `currentValue` is intentionally not writable: once `tracker_logs` is the
+  // canonical evidence, current progress is derived, never client-set.
   sortOrder?: number;
 }

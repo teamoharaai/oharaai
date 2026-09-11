@@ -3,17 +3,68 @@
 Durable facts that survive across sessions. Read this first. Append new facts;
 correct stale ones in place. Each fact is dated so drift is visible.
 
-## Repo realities (updated 2026-09-09)
+## Repo realities (updated 2026-09-11)
 
-- **Implementation state: Tasks 0–2 done.** `lib/time/zoned-calendar.ts` and
+- **Implementation state: Tasks 0–6 done.** **Task 6 done (session 006):**
+  `completedTrackerIds` local set **deleted** everywhere (hook state + reset +
+  `UseGoalDetailResult` + `TrackersPanel.completedIds` + both `GoalsWorkspace`
+  call sites); completion is now DB-derived — `TrackerCard` reads
+  `tracker.periodState?.isCompleted ?? false` (the `isCompleted` prop is gone).
+  All three goal-detail mutations (`onCompleteTracker`/`onLogCounter`/new
+  `onUncompleteTracker`) POST the shared `/api/trackers/log` route and reconcile
+  via `periodStateFromDto`+`patchTracker`. New pure, node-tested module
+  `features/goals/tracker-optimism.ts` (relative imports): optimistic
+  complete/uncomplete/counter transforms, `completionValueForTracker`,
+  `patchTrackerInGoals` reducer, and a per-tracker mutation registry
+  (`beginMutation`→seq|null in-flight guard, `isLatestMutation` ordering guard,
+  `endMutation`, `resetRegistry`). Rollback restores the prior `periodState`
+  **only if still the latest** mutation → complete-then-uncomplete is
+  order-independent. New `features/goals/store.ts` `patchTracker` (functional
+  merge-by-id, no whole-object clobber). New boundary refresh: pure
+  `features/goals/tracker-boundary.ts` + `hooks/useTrackerBoundaryRefresh.ts`
+  (timer at earliest `periodState.endExclusive` + RN `AppState` active + web
+  `visibilitychange`/`focus`; recomputed via a memoized boundary epoch).
+  `onSaveTracker` now merges metadata via `patchTracker` (preserving live
+  `periodState`) and **rederives** (`periodState:null` + `refreshDetail()`) on a
+  frequency/target change. +24 tests (15 optimism + 4 boundary + 5 text-level);
+  tsc clean; momentum 64/64. **Legacy route NOT deleted** (D-009): dashboard
+  still calls `/api/goals/complete-tracker` → Task 9 migrates + deletes it and
+  the `completeTracker` wrapper. **Interim (unchanged):** counter/checklist
+  visible number still legacy-scalar until Task 8; `onUncompleteTracker` has no
+  card gesture until Task 8. See D-009 + `changelog/006-*`. **Next: Task 7.**
+- **Task 5 done (session 005):** shared
+  authenticated tracker-log mutation core `lib/db/tracker-mutations.ts` (relative
+  imports; `mutateTrackerLog` + `TrackerMutationDb` port + `TrackerMutationError`
+  + `TrackerPeriodStateDto`/`periodStateToDto`) with the Supabase adapter
+  `createTrackerMutationDb` and entry point `logTrackerMutation` in
+  `lib/db/goals.ts`; single actioned route `app/api/trackers/log+api.ts`
+  (`complete|counter-log|uncomplete`); `completeTracker` now delegates + returns
+  `{success,periodState}` and no longer writes `current_value`; complete is
+  idempotent; uncomplete deletes ALL current-period logs; null-cadence rejected
+  (`422`); counter `+1` restored via `onLogCounter` (non-optimistic reconcile —
+  Task 6 adds optimism/boundary); `✓ Log` hidden for counters; manual
+  current-progress input removed; clone phase-summary + ExtendGoalModal now
+  log-derived (`lib/goals/phase-summary.ts`, paginated). +19 fixture tests; tsc
+  clean; momentum 64/64. **Interim:** counter number visible-update waits on
+  Task 8 (card still reads legacy scalar). See D-008 + `changelog/005-*`. **Next:
+  Task 6** (client state/optimism/boundary refresh; delete `completedTrackerIds`).
+- **Tasks 0–4 done.** `lib/time/zoned-calendar.ts` and
   `lib/goals/tracker-cadence.ts` (+ test) exist. **Migration `046` created +
   applied live** (session 003): compound covering index
   `tracker_logs_tracker_id_logged_at_idx (tracker_id, logged_at desc) include
   (id, value)` is live; redundant `idx_tracker_logs_tracker_id` dropped;
-  `schema_migrations` now tops at `046`. Still missing (future tasks):
-  `periodState`/`TrackerPeriodState`/`TrackerPeriodBucket` in
-  `features/goals/types.ts`, new `app/api/trackers/` mutation routes. Next up:
-  Tasks 3+4 (atomic).
+  `schema_migrations` now tops at `046`. **Tasks 3+4 done (session 004):**
+  `TrackerPeriodBucket`/`TrackerPeriodState`/`Tracker.periodState` now in
+  `features/goals/types.ts` (re-exported from `lib/goals/tracker-period.ts`);
+  `currentValue` removed from `TrackerUpdates` (D-007); pure
+  `deriveTrackerPeriodState` in `lib/goals/tracker-period.ts` (+20 tests);
+  generic `fetchAllPages` in `lib/db/paginate.ts` (+5 tests, incl. >1000-log
+  sum); `hydrateGoalTrackers`/`fetchHydratedGoalDetail` in `goal-service.ts`
+  (frequency-batched, ≤3 parallel paginated reads, one `asOf`); `useGoalDetail`
+  always hydrates the selected goal only. Still missing (future tasks): new
+  `app/api/trackers/` mutation routes (Task 5). Next up: **Task 5** (auth
+  logging/uncomplete + legacy fixes) — and it must **restore the counter `+1`**,
+  which is inert on the branch after D-007.
 
 - **⚠ Test runner gotcha (D-004):** unit tests run under `node
   --experimental-strip-types --test` with **no `@/` import map**. `@/…` imports

@@ -34,11 +34,11 @@ export interface TrackersPanelProps {
   archived?: boolean;
   accentColor?: string;
   progressColor?: string;
-  completedIds?: ReadonlySet<string>;
   onAdd?: (input: TrackerInput) => Promise<void>;
   onSave?: (trackerId: string, updates: TrackerUpdates) => Promise<void>;
   onDelete?: (trackerId: string) => Promise<void>;
   onLogComplete?: (trackerId: string) => Promise<void>;
+  onLogCounter?: (trackerId: string) => Promise<void>;
   error?: string | null;
   onDismissError?: () => void;
 }
@@ -51,11 +51,11 @@ export function TrackersPanel({
   archived = false,
   accentColor,
   progressColor,
-  completedIds = new Set<string>(),
   onAdd,
   onSave,
   onDelete,
   onLogComplete,
+  onLogCounter,
   error,
   onDismissError,
 }: TrackersPanelProps) {
@@ -239,9 +239,9 @@ export function TrackersPanel({
           <TrackerCard
             key={tracker.id}
             accentColor={accent}
-            isCompleted={completedIds.has(tracker.id)}
             onDelete={onDelete}
             onLogComplete={onLogComplete}
+            onLogCounter={onLogCounter}
             onSave={onSave}
             progressColor={progressColor}
             readOnly={readOnly}

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { deleteGoal as deleteGoalRecord } from './services/goal-service';
+import { patchTrackerInGoals } from './tracker-optimism';
 import type { GoalMilestone, GoalWithDetails, Tracker } from './types';
 
 interface GoalStore {
@@ -13,6 +14,13 @@ interface GoalStore {
   deleteGoal: (id: string) => Promise<void>;
   updateTrackerValue: (trackerId: string, value: number) => void;
   upsertTracker: (goalId: string, tracker: Tracker) => void;
+  /**
+   * Functional merge of a partial tracker by id. Unlike `upsertTracker` (whole
+   * object replace), this never clobbers unrelated fields — so an optimistic
+   * `periodState` write and a concurrent metadata edit don't overwrite each
+   * other. Used for every optimistic/reconcile/rollback write (Task 6).
+   */
+  patchTracker: (goalId: string, trackerId: string, patch: Partial<Tracker>) => void;
   removeTracker: (goalId: string, trackerId: string) => void;
   upsertMilestone: (goalId: string, milestone: GoalMilestone) => void;
   removeMilestone: (goalId: string, milestoneId: string) => void;
@@ -61,6 +69,10 @@ export const useGoalStore = create<GoalStore>((set) => ({
           : [...goal.trackers, tracker].sort((a, b) => a.sortOrder - b.sortOrder);
         return { ...goal, trackers };
       }),
+    })),
+  patchTracker: (goalId, trackerId, patch) =>
+    set((state) => ({
+      goals: patchTrackerInGoals(state.goals, goalId, trackerId, patch),
     })),
   removeTracker: (goalId, trackerId) =>
     set((state) => ({

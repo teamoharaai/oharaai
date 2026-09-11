@@ -7,7 +7,8 @@ import {
   type IosRequestContext,
 } from '@/lib/api/ios-contract';
 import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
-import { completeTracker, GoalExtensionError } from '@/lib/db/goals';
+import { completeTracker } from '@/lib/db/goals';
+import { TrackerMutationError, trackerMutationErrorStatus } from '@/lib/db/tracker-mutations';
 
 type CompleteTrackerRequest = {
   trackerId?: string;
@@ -50,16 +51,33 @@ async function handlePost(
   }
 
   try {
-    await completeTracker(trackerId, goalId, auth.userId, authedDb);
-    return iosJSON(context, { success: true });
+    // Returns `{ success: true, periodState }`; the current client asserts only
+    // `success === true` and ignores `periodState` (Task 6 consumes it).
+    const result = await completeTracker(trackerId, goalId, auth.userId, authedDb);
+    return iosJSON(context, result);
   } catch (error) {
-    if (error instanceof GoalExtensionError) {
-      if (error.code === 'GOAL_HAS_SUCCESSOR') {
-        return iosError(context, 409, 'CONFLICT', 'Goal is read-only');
-      }
-      if (error.code === 'GOAL_NOT_FOUND') {
-        return iosError(context, 404, 'NOT_FOUND', 'Goal or tracker not found');
-      }
+    if (error instanceof TrackerMutationError) {
+      const status = trackerMutationErrorStatus(error.code);
+      const code = status === 404
+        ? 'NOT_FOUND'
+        : status === 409
+          ? 'CONFLICT'
+          : status === 422
+            ? 'UNPROCESSABLE'
+            : 'INVALID_INPUT';
+      const message = status === 404
+        ? 'Goal or tracker not found'
+        : status === 409
+          ? 'Goal is read-only'
+          : status === 422
+            ? 'Tracker cadence is required'
+            : 'Invalid tracker update';
+      return iosError(
+        context,
+        status,
+        code,
+        message,
+      );
     }
 
     logIosRouteFailure('tracker_complete_failed', context, 500, error);

@@ -8,14 +8,20 @@ Legend: ☐ not started · ◐ in progress · ☑ done · ⚠ blocked
 
 ## Next action
 
-**Start Tasks 3+4** (tracker contract + period derivation — **atomic, land
-together**). Tasks 0, 1, and 2 are complete; both of the 3+4 dependencies are
-satisfied. Add `TrackerPeriodBucket`/`TrackerPeriodState`/`Tracker.periodState`
-to `features/goals/types.ts`, remove `currentValue` from `TrackerUpdates`, add
-the pure derivation function, and build the frequency-batched paginated hydrated
-goal-detail read path (mirror `lib/db/friends.ts` pagination, order by
-`logged_at` then `id`, `PAGE_SIZE=500`). Follow D-004 (relative imports) for any
-test-reachable module.
+**Start Task 7** (Ongoing/Completed grouping). Task 6 is done → **GO**. In
+`TrackersPanel.tsx`, partition configured trackers on
+`tracker.periodState?.isCompleted ?? false`; null-cadence stays Ongoing with the
+cadence-not-set affordance; render each section only when non-empty; preserve
+`sortOrder`; memoize the derivation; add accessible section labels; keep
+per-tracker pending state visible while a card moves groups. **Interim:** counter
+`+1` logs correctly but its visible number (and full card/habit-history display)
+waits on Task 8 — do not ship before Task 8.
+
+`onUncompleteTracker` already exists on `useGoalDetail` but has no card gesture
+yet (Task 8 adds the accessible complete/uncomplete toggle + threads it through
+the panel). **Task 9 must** migrate the dashboard off
+`/api/goals/complete-tracker` and only then delete that route + the
+`completeTracker` wrapper (D-009).
 
 ## Task status
 
@@ -24,10 +30,10 @@ test-reachable module.
 | 0 | Contract & data preflight | ☑ | Done sessions 000–001. Plan reconciled to repo + **live DB audited** (`audits/001-preflight-audit.md`). All schema/index/RLS/consumer-trace items resolved. Null-frequency inventory done (36 null / 29 weekly / 4 daily / 0 monthly). GO for Task 1. |
 | 1 | Shared tz-aware cadence utilities | ☑ | Done session 002. `lib/time/zoned-calendar.ts` (extracted + cached formatters), `lib/goals/tracker-cadence.ts` + 13 tests. Momentum re-exports primitives (64/64 unchanged). tsc clean. See `changelog/002-*`. |
 | 2 | Period-query index migration | ☑ | Done session 003. `046_tracker_logs_period_index.sql` created + applied live; compound covering index `tracker_logs_tracker_id_logged_at_idx` verified via `pg_indexes`, redundant `idx_tracker_logs_tracker_id` dropped, `schema_migrations` 046 row inserted (D-003). EXPLAIN seq-scans at 37 rows (expected). tsc clean. See `audits/002-*` + `changelog/003-*`. |
-| 3+4 | Tracker contract + period derivation | ☐ | **Atomic** — land together. Adds `periodState` to types, pure derivation fn, hydrated goal-detail read path. |
-| 5 | Auth logging/uncomplete + legacy fixes | ☐ | Refactor `completeTracker`; stop writing `current_value`; counter/habit/checklist logs; null-cadence rejection. |
-| 6 | Goal-detail state + optimistic mutations | ☐ | Delete `completedTrackerIds`; add uncomplete/counter handlers; boundary refresh. Land back-to-back with Task 5. |
-| 7 | Ongoing/Completed grouping | ☐ | `TrackersPanel.tsx` partition on `periodState?.isCompleted`. |
+| 3+4 | Tracker contract + period derivation | ☑ | Done session 004. `TrackerPeriodBucket`/`TrackerPeriodState`/`Tracker.periodState` in types; `currentValue` removed from `TrackerUpdates` (D-007); `lib/goals/tracker-period.ts` pure derivation (+20 tests); `lib/db/paginate.ts` helper (+5 tests, incl. >1000-log sum); `hydrateGoalTrackers`/`fetchHydratedGoalDetail` frequency-batched ≤3-parallel paginated read; `useGoalDetail` always hydrates the selected goal only. tsc clean; momentum 64/64. See `changelog/004-*`. |
+| 5 | Auth logging/uncomplete + legacy fixes | ☑ | Done session 005. Shared `mutateTrackerLog` core (`lib/db/tracker-mutations.ts`) behind an injected `TrackerMutationDb` port + adapter/`logTrackerMutation` in `goals.ts`; single actioned route `app/api/trackers/log`; `completeTracker` delegates + returns `{success,periodState}`; `current_value` write removed; null-cadence rejected; complete idempotent; uncomplete deletes-all; counter `+1` restored via `onLogCounter`; clone phase-summary + ExtendGoalModal log-derived (D-008). +19 tests; tsc clean; momentum 64/64. See `changelog/005-*`. |
+| 6 | Goal-detail state + optimistic mutations | ☑ | Done session 006. Deleted `completedTrackerIds` (completion now DB-derived via `periodState?.isCompleted`); complete/counter/uncomplete all on `/api/trackers/log` + reconcile `periodStateFromDto`; per-tracker in-flight + latest-mutation ordering guards with rollback-if-latest; functional `patchTracker` store action; `useTrackerBoundaryRefresh` (timer + RN foreground + web visibility/focus); `onSaveTracker` rederives on frequency/target change. Legacy route retirement deferred to Task 9 (D-009 — dashboard still uses it). +24 tests; tsc clean; momentum 64/64. See `changelog/006-*`. |
+| 7 | Ongoing/Completed grouping | ☐ | **NEXT.** `TrackersPanel.tsx` partition on `periodState?.isCompleted`. |
 | 8 | Tracker card + habit-history rewrite | ☐ | 7-bucket history from `recentPeriods`; a11y toggle. Also confirm/remove dead `TrackerList` in GoalsWorkspace. |
 | 9 | Dashboard daily-state alignment | ☐ | `due-today+api.ts` tz-aware daily window; return booleans not stale scalars. |
 | 10 | Automated + manual verification | ☐ | Add `test:tracker-metrics` script; full matrix; release gate. |
@@ -42,13 +48,27 @@ test-reachable module.
       → done session 003: `046` row inserted and re-queried; live history now
       tops at `046` (with the known `045` gap still owned by Entries). (D-003)
 - [ ] **Prod has 0 monthly trackers and only 37 total logs** → Task 8 monthly
-      buckets and Task 3+4 >1000-log pagination have NO prod coverage; prove via
-      fixtures/tests only.
-- [ ] **36 of 69 trackers have null cadence** → verify Task 5 rejection copy and
-      Task 7 "cadence not set" affordance are friendly, not dead-ends.
-- [ ] Task 5 DTO change (`{success:true}` → `periodState` DTO) breaks the client
-      contract → Task 6 client update must land back-to-back (plan already
-      sequences this).
+      buckets still have NO prod coverage; prove via fixtures/tests only.
+      (Task 3+4 >1000-log pagination is now fixture-covered in
+      `lib/db/paginate.test.ts`, and monthly derivation in
+      `lib/goals/tracker-period.test.ts`.)
+- [ ] **36 of 69 trackers have null cadence** → Task 5 rejection copy is friendly
+      ("Set a daily, weekly, or monthly cadence before logging progress.", `422`);
+      still verify Task 7's "cadence not set" affordance is not a dead-end.
+- [x] ~~Task 5 DTO change breaks the client contract~~ → made **additive**:
+      responses are `{success:true, periodState}`, so `onCompleteTracker`'s
+      `success`-only assertion keeps working untouched. Task 6 consumes
+      `periodState` and drops the `success` check (D-008).
+- [ ] **Task 9 must delete the legacy route** `app/api/goals/complete-tracker`
+      + the `completeTracker` wrapper in `lib/db/goals.ts` (keep
+      `logTrackerMutation`/adapter) once the dashboard is migrated onto
+      `/api/trackers/log`. Deferred from Task 6 because the dashboard still calls
+      it (D-009). Goal detail is already migrated + reconciling `periodState`.
+- [ ] **Task 8 wires `onUncompleteTracker`** — the hook handler + guards exist,
+      but there is no card gesture yet. Task 8 adds the accessible
+      complete/uncomplete toggle and threads it through `TrackersPanel` →
+      `TrackerCard`. Task 8 also drives counter/checklist display from
+      `periodState` (currently still the legacy scalar).
 - [ ] Info-only (out of scope): raise the live `045` migration-tracking gap to
       the Entries owner. `045` is idempotent so it is not a tracker-metrics
       blocker.

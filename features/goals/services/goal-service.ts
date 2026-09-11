@@ -1,7 +1,19 @@
 import supabase from '@/lib/db/client';
 import { fetchLatestReflectionTimestamps } from '@/lib/db/echo-entry-links';
 import { getSuccessorGoalId, getSuccessorGoalIds } from '@/lib/db/goals';
+import { fetchAllPages } from '@/lib/db/paginate';
 import { buildTrackerInsert } from '@/lib/db/tracker-inserts';
+import {
+  getRecentPeriodBounds,
+  type TrackerCadence,
+} from '@/lib/goals/tracker-cadence';
+import {
+  deriveTrackerPeriodState,
+  RECENT_PERIOD_COUNT,
+  type TrackerPeriodLog,
+  type TrackerPeriodState,
+} from '@/lib/goals/tracker-period';
+import type { TrackerPeriodStateDto } from '@/lib/db/tracker-mutations';
 import { resolveBrt } from '@/lib/utils/resolveBrt';
 import { startPerformanceTimer } from '@/lib/diagnostics/performance';
 import type { EchoBrt } from '@/types/brt';
@@ -198,6 +210,9 @@ function mapTracker(row: DbTracker): Tracker {
     targetUnit: row.target_unit,
     frequency: toTrackerFrequency(row.frequency),
     currentValue: toNumber(row.current_value, 0),
+    // Raw/list trackers are never period-hydrated; goal-detail hydration fills
+    // this in via hydrateGoalTrackers. Do not treat null as "incomplete".
+    periodState: null,
     isAiSuggested: row.is_ai_suggested,
     sortOrder: row.sort_order,
     createdAt: new Date(row.created_at),
@@ -489,6 +504,177 @@ export async function fetchGoalById(goalId: string): Promise<GoalWithDetails | n
   }
 }
 
+// ---------------------------------------------------------------------------
+// Goal-detail tracker period hydration (Tasks 3+4)
+//
+// Goal-list data carries no log-derived period state (GOAL_SELECT fetches no
+// tracker_logs). Opening a goal detail hydrates ONLY the selected goal: it reads
+// the authed user's profile timezone, captures one asOf, partitions trackers by
+// cadence, and issues at most three frequency-batched, paginated log reads in
+// parallel — never one query per tracker, and never seven months of daily logs
+// just because one monthly tracker exists.
+// ---------------------------------------------------------------------------
+
+type PeriodLogRow = {
+  id: string;
+  tracker_id: string;
+  value: number | string | null;
+  logged_at: string;
+};
+
+const CADENCES: TrackerCadence[] = ['daily', 'weekly', 'monthly'];
+
+/** Raised when the tracker-log read fails, so callers surface a load error
+ *  instead of mapping missing evidence to zero/incomplete. */
+export class TrackerPeriodLoadError extends Error {
+  constructor(message = 'Failed to load tracker progress.') {
+    super(message);
+    this.name = 'TrackerPeriodLoadError';
+  }
+}
+
+async function fetchProfileTimezone(userId: string): Promise<string> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('timezone')
+    .eq('id', userId)
+    .maybeSingle();
+  if (error) throw error;
+  // profiles.timezone is NOT NULL default 'UTC'; normalizeTimezone still guards
+  // invalid strings downstream in the derivation.
+  return (data as { timezone?: string } | null)?.timezone ?? 'UTC';
+}
+
+async function fetchPeriodLogsForGroup(
+  trackerIds: string[],
+  lowerBound: Date,
+): Promise<PeriodLogRow[]> {
+  return fetchAllPages<PeriodLogRow>(async (from, to) => {
+    const { data, error } = await supabase
+      .from('tracker_logs')
+      .select('id, tracker_id, value, logged_at')
+      .in('tracker_id', trackerIds)
+      .gte('logged_at', lowerBound.toISOString())
+      .order('logged_at', { ascending: true })
+      .order('id', { ascending: true })
+      .range(from, to);
+    return { data: data as PeriodLogRow[] | null, error };
+  });
+}
+
+/**
+ * Returns a copy of `goal` whose trackers carry log-derived `periodState`.
+ * Null-cadence trackers keep `periodState: null`. One `asOf` is reused for every
+ * tracker so the whole view is internally consistent. Throws
+ * `TrackerPeriodLoadError` if any log read fails.
+ */
+export async function hydrateGoalTrackers(
+  goal: GoalWithDetails,
+  userId: string,
+  asOf: Date = new Date(),
+): Promise<GoalWithDetails> {
+  const timezone = await fetchProfileTimezone(userId);
+
+  const groups = new Map<TrackerCadence, string[]>();
+  for (const tracker of goal.trackers) {
+    const frequency = tracker.frequency;
+    if (frequency === 'daily' || frequency === 'weekly' || frequency === 'monthly') {
+      const ids = groups.get(frequency) ?? [];
+      ids.push(tracker.id);
+      groups.set(frequency, ids);
+    }
+  }
+
+  const logsByTracker = new Map<string, TrackerPeriodLog[]>();
+  try {
+    // At most three parallel batches (one per non-empty cadence), each scoped
+    // to that cadence's exact seven-period lower bound.
+    const batches = CADENCES
+      .filter((cadence) => groups.has(cadence))
+      .map(async (cadence) => {
+        const trackerIds = groups.get(cadence)!;
+        const bounds = getRecentPeriodBounds(cadence, asOf, timezone, RECENT_PERIOD_COUNT);
+        const lowerBound = bounds[0].startInclusive;
+        return fetchPeriodLogsForGroup(trackerIds, lowerBound);
+      });
+
+    for (const rows of await Promise.all(batches)) {
+      for (const row of rows) {
+        const list = logsByTracker.get(row.tracker_id) ?? [];
+        list.push({ value: toNumber(row.value, 0), loggedAt: new Date(row.logged_at) });
+        logsByTracker.set(row.tracker_id, list);
+      }
+    }
+  } catch (error) {
+    throw new TrackerPeriodLoadError(
+      error instanceof Error ? error.message : 'Failed to load tracker progress.',
+    );
+  }
+
+  const trackers = goal.trackers.map((tracker) => ({
+    ...tracker,
+    periodState: deriveTrackerPeriodState(
+      { type: tracker.type, frequency: tracker.frequency, targetValue: tracker.targetValue },
+      logsByTracker.get(tracker.id) ?? [],
+      timezone,
+      asOf,
+    ),
+  }));
+
+  return { ...goal, trackers };
+}
+
+/**
+ * Fetches the selected goal and hydrates its trackers' period state. On a
+ * log-read failure the goal is still returned (trackers unhydrated,
+ * `periodState: null`) alongside an `error` string so the caller can surface a
+ * load error rather than a false "incomplete" state.
+ */
+export async function fetchHydratedGoalDetail(
+  goalId: string,
+  userId: string,
+  asOf: Date = new Date(),
+): Promise<{ goal: GoalWithDetails | null; error: string | null }> {
+  const goal = await fetchGoalById(goalId);
+  if (!goal) return { goal: null, error: null };
+
+  try {
+    const hydrated = await hydrateGoalTrackers(goal, userId, asOf);
+    return { goal: hydrated, error: null };
+  } catch {
+    return {
+      goal,
+      error: 'Could not load the latest tracker progress. Pull to refresh.',
+    };
+  }
+}
+
+/**
+ * Converts an authenticated mutation's period-state DTO (ISO strings over the
+ * wire) into the client `TrackerPeriodState` (Date objects). This is the mapping
+ * boundary — never pass a raw DTO into the store as if its timestamps were
+ * already `Date`s.
+ */
+export function periodStateFromDto(
+  dto: TrackerPeriodStateDto | null,
+): TrackerPeriodState | null {
+  if (!dto) return null;
+  return {
+    asOf: new Date(dto.asOf),
+    timezone: dto.timezone,
+    startInclusive: new Date(dto.startInclusive),
+    endExclusive: new Date(dto.endExclusive),
+    currentValue: dto.currentValue,
+    isCompleted: dto.isCompleted,
+    recentPeriods: dto.recentPeriods.map((bucket) => ({
+      startInclusive: new Date(bucket.startInclusive),
+      endExclusive: new Date(bucket.endExclusive),
+      value: bucket.value,
+      hasLog: bucket.hasLog,
+    })),
+  };
+}
+
 export async function updateGoal(goalId: string, updates: Partial<Goal>): Promise<GoalWithDetails | null> {
   const patch: Record<string, unknown> = {};
   if (updates.title !== undefined) patch.title = updates.title;
@@ -556,7 +742,9 @@ export async function updateTracker(
   if ('targetValue' in updates) patch.target_value = updates.targetValue ?? null;
   if ('targetUnit' in updates) patch.target_unit = updates.targetUnit?.trim() || null;
   if ('frequency' in updates) patch.frequency = updates.frequency ?? null;
-  if (updates.currentValue !== undefined) patch.current_value = updates.currentValue;
+  // `current_value` is no longer client-writable — period progress lives in
+  // tracker_logs (see TrackerUpdates). Task 5 replaces the counter/manual write
+  // paths with authenticated logging.
   if (updates.sortOrder !== undefined) patch.sort_order = updates.sortOrder;
 
   if (Object.keys(patch).length === 0) return null;

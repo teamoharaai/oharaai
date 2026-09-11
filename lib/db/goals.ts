@@ -5,6 +5,20 @@ import { buildGoalEmbeddingText } from '@/lib/ai/embedding-text';
 import { generateEmbedding } from '@/lib/ai/embeddings';
 import { EMBEDDING_MODEL } from '@/lib/ai/constants';
 import { buildTrackerInsert } from '@/lib/db/tracker-inserts';
+import { fetchAllPages } from '@/lib/db/paginate';
+import {
+  buildPriorPhaseSummary,
+  type PhaseSummaryLog,
+} from '@/lib/goals/phase-summary';
+import type { TrackerCadence } from '@/lib/goals/tracker-cadence';
+import type { TrackerMeasure, TrackerPeriodLog } from '@/lib/goals/tracker-period';
+import {
+  mutateTrackerLog,
+  type TrackerLogAction,
+  type TrackerLogMutationResult,
+  type TrackerMutationDb,
+  type TrackerMutationMeta,
+} from '@/lib/db/tracker-mutations';
 import type {
   GoalCategory,
   GoalDbStatus,
@@ -391,12 +405,12 @@ type DbTrackerForCloneRow = {
   target_value: number | null;
   target_unit: string | null;
   frequency: string | null;
-  current_value: number;
   sort_order: number;
 };
 
 type DbTrackerLogForSummaryRow = {
   tracker_id: string;
+  value: number | string | null;
 };
 
 type DbPendingMilestoneForCloneRow = {
@@ -484,7 +498,7 @@ export async function cloneGoalWithMilestonesAndTrackers(
   const { data: trackerData, error: trackerReadError } = await db
     .from('trackers')
     .select(
-      'id, title, type, target_value, target_unit, frequency, current_value, sort_order',
+      'id, title, type, target_value, target_unit, frequency, sort_order',
     )
     .eq('goal_id', previousGoalId)
     .order('sort_order', { ascending: true });
@@ -496,54 +510,41 @@ export async function cloneGoalWithMilestonesAndTrackers(
   const trackers = (
     trackerData as unknown as DbTrackerForCloneRow[] | null
   ) ?? [];
-  const habitTrackerIds = trackers
-    .filter((tracker) => tracker.type === 'habit')
-    .map((tracker) => tracker.id);
-  const completionCounts = new Map<string, number>();
 
-  if (habitTrackerIds.length > 0) {
-    const { data: logData, error: logReadError } = await db
-      .from('tracker_logs')
-      .select('tracker_id')
-      .in('tracker_id', habitTrackerIds)
-      .gte('logged_at', previousGoal.created_at)
-      .lte('logged_at', previousGoal.deadline);
-
-    if (logReadError) {
-      throw new Error(logReadError.message);
-    }
-
-    for (const log of (
-      logData as unknown as DbTrackerLogForSummaryRow[] | null
-    ) ?? []) {
-      completionCounts.set(
-        log.tracker_id,
-        (completionCounts.get(log.tracker_id) ?? 0) + 1,
-      );
-    }
+  // Prior-phase achievements are derived from canonical tracker_logs, not the
+  // stale trackers.current_value scalar (which tracker-metrics no longer
+  // writes). Read every phase-window log for all tracker types, paginated so a
+  // long phase cannot silently truncate at the 1000-row response ceiling.
+  const phaseTrackerIds = trackers.map((tracker) => tracker.id);
+  let phaseLogs: PhaseSummaryLog[] = [];
+  if (phaseTrackerIds.length > 0) {
+    const rows = await fetchAllPages<DbTrackerLogForSummaryRow>(async (from, to) => {
+      const { data, error } = await db
+        .from('tracker_logs')
+        .select('tracker_id, value')
+        .in('tracker_id', phaseTrackerIds)
+        .gte('logged_at', previousGoal.created_at)
+        .lte('logged_at', previousGoal.deadline)
+        .order('logged_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, to);
+      return { data: data as DbTrackerLogForSummaryRow[] | null, error };
+    });
+    phaseLogs = rows.map((row) => ({
+      trackerId: row.tracker_id,
+      value: toNumber(row.value, 0),
+    }));
   }
 
-  const priorPhaseSummary: PriorPhaseSummaryItem[] = trackers.map((tracker) => {
-    if (tracker.type === 'counter') {
-      return {
-        title: tracker.title,
-        achieved: tracker.current_value,
-        target: tracker.target_value,
-      };
-    }
-
-    if (tracker.type === 'checklist') {
-      return {
-        title: tracker.title,
-        completions: tracker.current_value > 0 ? 1 : 0,
-      };
-    }
-
-    return {
+  const priorPhaseSummary: PriorPhaseSummaryItem[] = buildPriorPhaseSummary(
+    trackers.map((tracker) => ({
+      id: tracker.id,
       title: tracker.title,
-      completions: completionCounts.get(tracker.id) ?? 0,
-    };
-  });
+      type: tracker.type as TrackerMeasure,
+      targetValue: tracker.target_value,
+    })),
+    phaseLogs,
+  );
 
   const { data: milestoneData, error: milestoneReadError } = await db
     .from('milestones')
@@ -680,10 +681,6 @@ type DbTrackerRow = {
   id: string;
   title: string;
   target_value: number | null;
-};
-
-type DbCompletableTrackerRow = DbTrackerRow & {
-  type: GoalTrackerType;
 };
 
 type DbTrackerLogRow = {
@@ -916,80 +913,137 @@ export async function getActivityByGoalId(
   ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 }
 
-function normalizeTrackerTarget(targetValue: number | null): number {
-  if (targetValue === null) {
-    return 1;
-  }
+const TRACKER_CADENCES: readonly TrackerCadence[] = ['daily', 'weekly', 'monthly'];
 
-  return targetValue > 0 ? targetValue : 1;
+function toTrackerCadence(raw: string | null): TrackerCadence | null {
+  return raw !== null && (TRACKER_CADENCES as readonly string[]).includes(raw)
+    ? (raw as TrackerCadence)
+    : null;
 }
 
+type DbTrackerMutationRow = {
+  type: GoalTrackerType;
+  target_value: number | null;
+  frequency: string | null;
+};
+
+type DbPeriodLogRow = {
+  value: number | string | null;
+  logged_at: string;
+};
+
+/**
+ * Builds the {@link TrackerMutationDb} port over an authenticated Supabase
+ * client. RLS scopes every table tracker -> goal -> user, so ownership is
+ * enforced by the database; the explicit `isGoalOwnedByUser` check keeps the
+ * error precise (404 vs a silent RLS empty result).
+ */
+export function createTrackerMutationDb(db: SupabaseClient): TrackerMutationDb {
+  return {
+    async hasSuccessor(goalId) {
+      return (await getSuccessorGoalIds([goalId], db)).has(goalId);
+    },
+    async isGoalOwnedByUser(goalId, userId) {
+      const { data, error } = await db
+        .from('goals')
+        .select('id')
+        .eq('id', goalId)
+        .eq('user_id', userId)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return Boolean((data as DbGoalOwnershipRow | null)?.id);
+    },
+    async getTracker(trackerId, goalId): Promise<TrackerMutationMeta | null> {
+      const { data, error } = await db
+        .from('trackers')
+        .select('type, target_value, frequency')
+        .eq('id', trackerId)
+        .eq('goal_id', goalId)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      const row = data as DbTrackerMutationRow | null;
+      if (!row) return null;
+      return {
+        type: row.type as TrackerMeasure,
+        targetValue: row.target_value,
+        frequency: toTrackerCadence(row.frequency),
+      };
+    },
+    async getProfileTimezone(userId) {
+      const { data, error } = await db
+        .from('profiles')
+        .select('timezone')
+        .eq('id', userId)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      // profiles.timezone is NOT NULL default 'UTC'; the core normalizes invalid
+      // strings, so a bare fallback here is only for a missing row.
+      return (data as { timezone?: string } | null)?.timezone ?? 'UTC';
+    },
+    async fetchPeriodLogs(trackerId, lowerBoundIso): Promise<TrackerPeriodLog[]> {
+      const rows = await fetchAllPages<DbPeriodLogRow>(async (from, to) => {
+        const { data, error } = await db
+          .from('tracker_logs')
+          .select('value, logged_at')
+          .eq('tracker_id', trackerId)
+          .gte('logged_at', lowerBoundIso)
+          .order('logged_at', { ascending: true })
+          .order('id', { ascending: true })
+          .range(from, to);
+        return { data: data as DbPeriodLogRow[] | null, error };
+      });
+      return rows.map((row) => ({
+        value: typeof row.value === 'number' ? row.value : Number(row.value ?? 0),
+        loggedAt: new Date(row.logged_at),
+      }));
+    },
+    async insertLog(trackerId, value, loggedAtIso) {
+      const { error } = await db.from('tracker_logs').insert({
+        tracker_id: trackerId,
+        value,
+        logged_at: loggedAtIso,
+      });
+      if (error) throw new Error(error.message);
+    },
+    async deleteLogsInRange(trackerId, startIso, endExclusiveIso) {
+      const { error } = await db
+        .from('tracker_logs')
+        .delete()
+        .eq('tracker_id', trackerId)
+        .gte('logged_at', startIso)
+        .lt('logged_at', endExclusiveIso);
+      if (error) throw new Error(error.message);
+    },
+  };
+}
+
+/**
+ * Authenticated tracker-log mutation entry point for the shared
+ * `app/api/trackers/log` route. Server resolves type/frequency/target/timezone
+ * and the period bounds; the caller passes only identifiers (+ a validated
+ * positive value for counter logging). Returns the canonical post-mutation
+ * period-state DTO.
+ */
+export async function logTrackerMutation(
+  input: { action: TrackerLogAction; trackerId: string; goalId: string; userId: string; value?: number },
+  db: SupabaseClient = supabase,
+): Promise<TrackerLogMutationResult> {
+  return mutateTrackerLog(input, createTrackerMutationDb(db));
+}
+
+/**
+ * Habit/checklist one-tap completion used by the legacy
+ * `app/api/goals/complete-tracker` route (kept working until Task 6 migrates the
+ * client to the shared route). Delegates to the shared idempotent mutation and
+ * returns the same `{ success, periodState }` DTO.
+ */
 export async function completeTracker(
   trackerId: string,
   goalId: string,
   userId: string,
   db: SupabaseClient = supabase,
-): Promise<void> {
-  const successorGoalIds = await getSuccessorGoalIds([goalId], db);
-  if (successorGoalIds.has(goalId)) {
-    throw new GoalExtensionError(
-      'GOAL_HAS_SUCCESSOR',
-      'Goal has a successor and is read-only',
-    );
-  }
-
-  const { data: goalRow, error: goalError } = await db
-    .from('goals')
-    .select('id')
-    .eq('id', goalId)
-    .eq('user_id', userId)
-    .single();
-
-  if (goalError || !(goalRow as DbGoalOwnershipRow | null)?.id) {
-    throw new GoalExtensionError(
-      'GOAL_NOT_FOUND',
-      'Goal not found',
-    );
-  }
-
-  const { data: trackerRow, error: trackerError } = await db
-    .from('trackers')
-    .select('id, title, type, target_value')
-    .eq('id', trackerId)
-    .eq('goal_id', goalId)
-    .single();
-
-  if (trackerError || !trackerRow) {
-    throw new GoalExtensionError(
-      'GOAL_NOT_FOUND',
-      'Tracker not found',
-    );
-  }
-
-  const tracker = trackerRow as DbCompletableTrackerRow;
-  const completionValue = normalizeTrackerTarget(tracker.target_value);
-
-  const { error: insertLogError } = await db.from('tracker_logs').insert({
-    tracker_id: trackerId,
-    value: completionValue,
-    logged_at: new Date().toISOString(),
-  });
-
-  if (insertLogError) {
-    throw new Error(insertLogError.message);
-  }
-
-  if (tracker.type === 'checklist') {
-    const { error: updateTrackerError } = await db
-      .from('trackers')
-      .update({ current_value: 1 })
-      .eq('id', trackerId)
-      .eq('goal_id', goalId);
-
-    if (updateTrackerError) {
-      throw new Error(updateTrackerError.message);
-    }
-  }
+): Promise<TrackerLogMutationResult> {
+  return logTrackerMutation({ action: 'complete', trackerId, goalId, userId }, db);
 }
 
 export async function getProjectTitle(projectId: string): Promise<string | null> {

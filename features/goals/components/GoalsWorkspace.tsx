@@ -1051,7 +1051,6 @@ function GoalTabContent({
         <WorkspaceSection>
           <TrackersPanel
             archived={goal.status === 'archived'}
-            completedIds={goalDetail.completedTrackerIds}
             embedded
             ended={mutationsDisabled}
             error={goalDetail.trackerError}
@@ -1060,6 +1059,7 @@ function GoalTabContent({
             onDelete={goalDetail.onDeleteTracker}
             onDismissError={goalDetail.clearTrackerError}
             onLogComplete={goalDetail.onCompleteTracker}
+            onLogCounter={goalDetail.onLogCounter}
             onSave={goalDetail.onSaveTracker}
             trackers={goal.trackers}
           />
@@ -1111,7 +1111,6 @@ function GoalTabContent({
         {tab === 'tasks' ? (
           <TrackersPanel
             archived={goal.status === 'archived'}
-            completedIds={goalDetail.completedTrackerIds}
             embedded
             ended={goal.status === 'complete'}
             error={goalDetail.trackerError}
@@ -1120,6 +1119,7 @@ function GoalTabContent({
             onDelete={goalDetail.onDeleteTracker}
             onDismissError={goalDetail.clearTrackerError}
             onLogComplete={goalDetail.onCompleteTracker}
+            onLogCounter={goalDetail.onLogCounter}
             onSave={goalDetail.onSaveTracker}
             trackers={goal.trackers}
           />

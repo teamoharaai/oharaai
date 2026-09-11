@@ -53,8 +53,16 @@ function createInitialState(title: string): ExtendGoalState {
   };
 }
 
+// Period completion/value comes from log-derived `periodState`, never the
+// legacy `currentValue` scalar (which tracker-metrics no longer writes). The
+// authoritative prior-phase totals are captured server-side in
+// `prior_phase_summary` when the goal is extended.
 function getChecklistComplete(tracker: Tracker): boolean {
-  return tracker.currentValue === 1;
+  return tracker.periodState?.isCompleted ?? false;
+}
+
+function getTrackerValue(tracker: Tracker): number {
+  return tracker.periodState?.currentValue ?? 0;
 }
 
 function getDateAfterDays(days: number): Date {
@@ -112,7 +120,7 @@ function TrackerValue({ tracker }: { tracker: Tracker }) {
   const unit = tracker.targetUnit ? ` ${tracker.targetUnit}` : '';
   return (
     <Text style={{ color: colors.text.primary, ...TYPE.caption, fontFamily: FONT.ui.semibold }}>
-      {tracker.currentValue}/{tracker.targetValue ?? '—'}{unit}
+      {getTrackerValue(tracker)}/{tracker.targetValue ?? '—'}{unit}
     </Text>
   );
 }

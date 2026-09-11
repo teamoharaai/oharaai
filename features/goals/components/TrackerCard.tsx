@@ -15,12 +15,12 @@ const EDITABLE_FREQUENCIES: readonly TrackerFrequency[] = ['daily', 'weekly', 'm
 export interface TrackerCardProps {
   tracker: Tracker;
   readOnly: boolean;
-  isCompleted: boolean;
   accentColor?: string;
   progressColor?: string;
   onSave?: (trackerId: string, updates: TrackerUpdates) => Promise<void>;
   onDelete?: (trackerId: string) => Promise<void>;
   onLogComplete?: (trackerId: string) => Promise<void>;
+  onLogCounter?: (trackerId: string) => Promise<void>;
 }
 
 function trackerTypeLabel(type: Tracker['type']): string {
@@ -42,13 +42,17 @@ function formatNumber(value: number): string {
 export function TrackerCard({
   tracker,
   readOnly,
-  isCompleted,
   accentColor,
   progressColor,
   onSave,
   onDelete,
   onLogComplete,
+  onLogCounter,
 }: TrackerCardProps) {
+  // Completion is DB-derived: it comes from the log-derived period state, not a
+  // local set. A null/unhydrated periodState is never presented as an
+  // authoritative incomplete (Task 8 drives full card display from periodState).
+  const isCompleted = tracker.periodState?.isCompleted ?? false;
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
   const compact = width < 500;
@@ -60,14 +64,12 @@ export function TrackerCard({
   const [isSaving, setIsSaving] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState(tracker.title);
-  const [draftCurrent, setDraftCurrent] = useState(String(tracker.currentValue));
   const [draftTarget, setDraftTarget] = useState(String(tracker.targetValue ?? ''));
   const [draftUnit, setDraftUnit] = useState(tracker.targetUnit ?? '');
   const [draftFrequency, setDraftFrequency] = useState<TrackerFrequency | null>(tracker.frequency);
 
   useEffect(() => {
     setDisplayValue(tracker.currentValue);
-    setDraftCurrent(String(tracker.currentValue));
   }, [tracker.currentValue]);
 
   useEffect(() => {
@@ -81,7 +83,6 @@ export function TrackerCard({
     setEditing(false);
     setValidationError(null);
     setDraftTitle(tracker.title);
-    setDraftCurrent(String(tracker.currentValue));
     setDraftTarget(String(tracker.targetValue ?? ''));
     setDraftUnit(tracker.targetUnit ?? '');
     setDraftFrequency(tracker.frequency);
@@ -90,14 +91,9 @@ export function TrackerCard({
   async function saveEdits() {
     if (!onSave) return;
     const title = draftTitle.trim();
-    const current = Number(draftCurrent);
     const target = draftTarget.trim() === '' ? null : Number(draftTarget);
     if (!title) {
       setValidationError('A tracker name is required.');
-      return;
-    }
-    if (!Number.isFinite(current) || current < 0) {
-      setValidationError('Current progress must be zero or greater.');
       return;
     }
     if (target !== null && (!Number.isFinite(target) || target <= 0)) {
@@ -105,9 +101,11 @@ export function TrackerCard({
       return;
     }
 
+    // Current progress is no longer client-writable: tracker_logs is the
+    // canonical evidence, so the manual current-progress field is gone and
+    // progress changes flow through authenticated logging (counter +1 / complete).
     const updates: TrackerUpdates = {};
     if (title !== tracker.title) updates.title = title;
-    if (current !== tracker.currentValue) updates.currentValue = current;
     if (target !== tracker.targetValue) updates.targetValue = target;
     if ((draftUnit.trim() || null) !== tracker.targetUnit) updates.targetUnit = draftUnit.trim() || null;
     if (draftFrequency !== tracker.frequency) updates.frequency = draftFrequency;
@@ -118,7 +116,6 @@ export function TrackerCard({
     }
 
     setValidationError(null);
-    setDisplayValue(current);
     setIsSaving(true);
     try {
       await onSave(tracker.id, updates);
@@ -129,12 +126,13 @@ export function TrackerCard({
   }
 
   async function increment() {
-    if (!onSave || readOnly || isSaving) return;
-    const next = displayValue + 1;
-    setDisplayValue(next);
+    // Counter +1 logs a value-1 row through the authenticated tracker-log
+    // mutation (tracker_logs is canonical; trackers.current_value is never
+    // written). Task 6 adds the optimistic bucket update + in-flight guard.
+    if (!onLogCounter || readOnly || isSaving) return;
     setIsSaving(true);
     try {
-      await onSave(tracker.id, { currentValue: next });
+      await onLogCounter(tracker.id);
     } finally {
       setIsSaving(false);
     }
@@ -242,35 +240,38 @@ export function TrackerCard({
 
         {!readOnly ? (
           <View style={{ alignItems: 'center', flexDirection: 'row', gap: 3 }}>
-            <Pressable
-              accessibilityLabel={isCompleted ? `${tracker.title} logged` : `Log ${tracker.title} complete`}
-              accessibilityRole="button"
-              accessibilityState={{ disabled: !onLogComplete || isCompleted || isSaving }}
-              disabled={!onLogComplete || isCompleted || isSaving}
-              onPress={() => void logComplete()}
-              style={({ pressed }) => ({
-                alignItems: 'center',
-                backgroundColor: isCompleted ? accent : colors.background.goalCard,
-                borderColor: isCompleted ? accent : colors.border.divider,
-                borderRadius: 9,
-                borderWidth: 1,
-                flexDirection: 'row',
-                gap: 5,
-                minHeight: 36,
-                opacity: pressed ? 0.76 : 1,
-                paddingHorizontal: 9,
-              })}
-            >
-              <Text
-                style={{
-                  color: isCompleted ? colors.text.inverse : colors.text.accent,
-                  ...TYPE.caption,
-                  fontFamily: FONT.ui.medium,
-                }}
+            {/* Counters progress by logging their value (+1), not one-tap complete. */}
+            {tracker.type !== 'counter' ? (
+              <Pressable
+                accessibilityLabel={isCompleted ? `${tracker.title} logged` : `Log ${tracker.title} complete`}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: !onLogComplete || isCompleted || isSaving }}
+                disabled={!onLogComplete || isCompleted || isSaving}
+                onPress={() => void logComplete()}
+                style={({ pressed }) => ({
+                  alignItems: 'center',
+                  backgroundColor: isCompleted ? accent : colors.background.goalCard,
+                  borderColor: isCompleted ? accent : colors.border.divider,
+                  borderRadius: 9,
+                  borderWidth: 1,
+                  flexDirection: 'row',
+                  gap: 5,
+                  minHeight: 36,
+                  opacity: pressed ? 0.76 : 1,
+                  paddingHorizontal: 9,
+                })}
               >
-                {isCompleted ? '✓ Logged' : '✓ Log'}
-              </Text>
-            </Pressable>
+                <Text
+                  style={{
+                    color: isCompleted ? colors.text.inverse : colors.text.accent,
+                    ...TYPE.caption,
+                    fontFamily: FONT.ui.medium,
+                  }}
+                >
+                  {isCompleted ? '✓ Logged' : '✓ Log'}
+                </Text>
+              </Pressable>
+            ) : null}
             {onSave ? (
               <Pressable
                 accessibilityLabel={`Edit ${tracker.title}`}
@@ -324,7 +325,7 @@ export function TrackerCard({
               {tracker.targetValue !== null ? ` / ${formatNumber(tracker.targetValue)}` : ''}
               {tracker.targetUnit ? ` ${tracker.targetUnit}` : ''}
             </Text>
-            {!readOnly && onSave ? (
+            {!readOnly && onLogCounter ? (
               <Pressable
                 accessibilityLabel={`Add one to ${tracker.title}`}
                 accessibilityRole="button"
@@ -454,15 +455,6 @@ export function TrackerCard({
             value={draftTitle}
           />
           <View style={{ flexDirection: compact ? 'column' : 'row', gap: 8 }}>
-            <TextInput
-              accessibilityLabel="Current tracker value"
-              inputMode="decimal"
-              onChangeText={setDraftCurrent}
-              placeholder="Current"
-              placeholderTextColor={colors.text.muted}
-              style={[inputStyle, { flex: 1 }]}
-              value={draftCurrent}
-            />
             <TextInput
               accessibilityLabel="Tracker target value"
               inputMode="decimal"

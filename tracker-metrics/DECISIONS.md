@@ -8,6 +8,112 @@ decision → consequence.
 
 ---
 
+## D-009 · 2026-09-11 · accepted — Legacy complete-tracker route retirement deferred to Task 9
+
+**Context:** Task 6's deliverable D says to delete `app/api/goals/complete-tracker`
+and its `completeTracker` wrapper *"once no client references it"*. Task 6 migrated
+the goal-detail client onto the shared `POST /api/trackers/log` route, but a `grep`
+found a second live caller: the dashboard due-today card
+(`app/(app)/dashboard.tsx:handleComplete`). Migrating that card is explicitly
+Task 9's scope (dashboard daily-state alignment onto `due-today` + the shared
+route), and Task 6's ground rules forbid doing Task 9 work.
+
+**Decision:** Honor the conditional wording. Task 6 does **not** delete the route
+or the `completeTracker` wrapper — the condition ("no client references it") is not
+yet met. Instead: migrate the goal-detail client off it, mark it deprecated in
+`docs/API_CONTRACT.md`, and assign the actual deletion (route file +
+`completeTracker` wrapper in `lib/db/goals.ts`; keep `logTrackerMutation`/adapter)
+to Task 9 once the dashboard is migrated. This supersedes D-008's phrasing that the
+route "is retired by Task 6" — it is *migrated off* by Task 6 and *deleted* by
+Task 9.
+
+**Consequence:** Both routes coexist during Tasks 6–8: goal detail on
+`/api/trackers/log`, the dashboard still on `/api/goals/complete-tracker` (both
+return the same additive `{success, periodState}` DTO, so no contract drift). Task 9
+owns the final deletion and must confirm no remaining reference before removing the
+files.
+
+---
+
+## D-008 · 2026-09-09 · accepted — Task 5 shape: injected DB port, additive DTO, counter restore boundary
+
+**Context:** Task 5 refactors `completeTracker` into a shared authenticated
+mutation supporting `complete | counter-log | uncomplete`, must be unit-tested
+for orchestration semantics (ownership, successor rejection, idempotency,
+counter sums, uncomplete-deletes-all, null-cadence rejection, DTO shape), and
+must restore the counter `+1` inert since D-007 — all without doing Task 6's
+optimism/boundary-refresh or Tasks 8/9's rendering. Three sub-decisions:
+
+1. **Narrow DB port, not a Supabase fake.** The repo's test runner strips types
+   with no `@/` map (D-004) and its convention is to test pure logic, not mock
+   Supabase. So the mutation core lives in `lib/db/tracker-mutations.ts`
+   (relative imports only) behind a `TrackerMutationDb` port with explicit
+   methods; the Supabase-backed adapter (`createTrackerMutationDb`) lives in
+   `lib/db/goals.ts` (which uses `@/`) and is NOT imported by any test. Tests
+   drive the core through a hand-rolled fake port. Consequence: orchestration is
+   fully unit-covered; the thin SQL adapter is covered by tsc + live/manual only.
+
+2. **Single bounded read + local re-derivation.** Rather than read-mutate-reread,
+   the core reads the 7-period log window once, applies the insert/delete, then
+   derives the authoritative DTO from `priorLogs (± the applied change)` using
+   the SAME captured `asOf`. One round-trip; deterministic; matches a re-read
+   except under concurrent writes (acceptable at this volume).
+
+3. **Additive DTO + counter-restore stays non-optimistic.** Every action returns
+   `{ success: true, periodState: <DTO|null> }` (ISO strings). The legacy
+   `complete-tracker` endpoint keeps `success:true` so `onCompleteTracker` is
+   untouched (Task 6 consumes `periodState`). Counter `+1` is restored via a new
+   additive `onLogCounter` handler + `app/api/trackers/log` route; it reconciles
+   `periodState` from the response (no optimism, no in-flight guard, no boundary
+   refresh — those are Task 6). Counter card **display** still reads the legacy
+   scalar, so a `+1` persists and updates store `periodState` but the visible
+   counter number only moves once Task 8 drives display from `periodState`. The
+   `✓ Log` one-tap button is hidden for counters (they progress by logging value,
+   not one-tap complete), preventing a now-`400` legacy call.
+
+**Also:** prior-phase summaries (`cloneGoalWithMilestonesAndTrackers`) now derive
+from logs via the pure `lib/goals/phase-summary.ts` reducer over a **paginated**
+phase-window read (counter = sum of values; habit/checklist = count of logs,
+replacing the stale `current_value>0?1:0` checklist rule). Checklist summary thus
+shifts from 0/1 to a completion count — a deliberate, log-honest change.
+
+**Consequence:** counter `+1` logs correctly end-to-end from Task 5; its visual
+update and full optimism/boundary refresh arrive in Tasks 6/8. Do not ship the
+initiative before Task 8 (counter display still reads the legacy scalar in the
+interim). The `app/api/goals/complete-tracker` route is retired by Task 6 in
+favor of the shared `app/api/trackers/log` route.
+
+---
+
+## D-007 · 2026-09-09 · accepted — Removing `TrackerUpdates.currentValue` neutralizes its two write sites now
+
+**Context:** The Tasks 3+4 contract explicitly requires removing `currentValue`
+from `TrackerUpdates` ("progress is no longer client-writable once logs are
+canonical"). But `TrackerUpdates.currentValue` had three live consumers:
+`goal-service.updateTracker` (writes `current_value`), `TrackerCard` manual-edit
+`saveEdits` (sends `currentValue`), and `TrackerCard` counter `increment()`
+(sends `{ currentValue: next }`). Audit 001 §4 assigned removal of those write
+bypasses to **Task 5**. Removing the type field forces those sites to stop
+compiling unless changed in this session — a direct conflict between "remove the
+field (Task 3+4)" and "remove the bypass (Task 5)".
+
+**Decision:** Honor the explicit contract instruction and remove
+`TrackerUpdates.currentValue` in Tasks 3+4. To keep `tsc` green without doing
+Task 5's real mutation refactor, apply the **minimal** compile-safety edits:
+drop the `current_value` patch line in `updateTracker`; drop the manual-edit
+`updates.currentValue` assignment; and make counter `increment()` **inert**
+(early-return, no write) with a comment pointing at Task 5. No new logging path,
+idempotency, uncomplete, or DTO change is added here — that is all Task 5.
+
+**Consequence:** On this feature branch the counter `+1` button does nothing
+until Task 5 wires it to the authenticated counter-logging mutation. The manual
+current-progress field no longer persists a value (Task 8 removes the field UI).
+This is acceptable only because 3+4 and 5 are sequenced back-to-back and nothing
+is shipped between them. Task 5 must restore counter logging; do not release the
+initiative with `increment()` inert.
+
+---
+
 ## D-005 · 2026-09-09 · accepted — Reuse Momentum's DST conversion as-is
 
 **Context:** Task 1 extracted `localDateToUtcStart` (the DST-critical primitive)

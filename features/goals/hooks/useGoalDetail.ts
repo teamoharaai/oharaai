@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { authedFetch, UnauthorizedError } from '@/lib/api/client';
 import { refreshMomentumAfterMeaningfulMutation } from '@/features/momentum/hooks/useMomentumHomeSummary';
 import supabase from '@/lib/db/client';
@@ -8,22 +8,41 @@ import {
   createTracker,
   deleteMilestone,
   deleteTracker,
-  fetchGoalById,
   fetchGoals,
+  fetchHydratedGoalDetail,
+  periodStateFromDto,
   updateGoal,
   updateMilestone,
   updateTracker,
 } from '../services/goal-service';
+import type { TrackerPeriodStateDto } from '@/lib/db/tracker-mutations';
 import { useGoalStore } from '../store';
+import {
+  applyOptimisticComplete,
+  applyOptimisticCounter,
+  applyOptimisticUncomplete,
+  beginMutation,
+  completionValueForTracker,
+  createMutationRegistry,
+  endMutation,
+  isLatestMutation,
+  resetRegistry,
+} from '../tracker-optimism';
+import { useTrackerBoundaryRefresh } from './useTrackerBoundaryRefresh';
 import type {
   GoalMilestoneInput,
   GoalMilestoneUpdates,
   GoalWithDetails,
+  Tracker,
   TrackerInput,
   TrackerUpdates,
 } from '../types';
 
 type EditableMilestoneUpdates = Omit<GoalMilestoneUpdates, 'completedAt'>;
+
+// Stable empty reference so the boundary hook's memo doesn't churn when no goal
+// is selected.
+const EMPTY_TRACKERS: Tracker[] = [];
 
 export interface UseGoalDetailResult {
   goal: GoalWithDetails | null;
@@ -32,6 +51,8 @@ export interface UseGoalDetailResult {
   onDeleteTracker: (trackerId: string) => Promise<void>;
   onAddTracker: (input: TrackerInput) => Promise<void>;
   onCompleteTracker: (trackerId: string) => Promise<void>;
+  onUncompleteTracker: (trackerId: string) => Promise<void>;
+  onLogCounter: (trackerId: string) => Promise<void>;
   onSaveMilestone: (milestoneId: string, updates: EditableMilestoneUpdates) => Promise<void>;
   onDeleteMilestone: (milestoneId: string) => Promise<void>;
   onAddMilestone: (input: GoalMilestoneInput) => Promise<void>;
@@ -41,7 +62,6 @@ export interface UseGoalDetailResult {
   onUpdateDescription: (description: string | null) => Promise<boolean>;
   onCompleteGoal: () => Promise<boolean>;
   onArchiveGoal: () => Promise<boolean>;
-  completedTrackerIds: Set<string>;
   completingMilestoneIds: Set<string>;
   trackerError: string | null;
   milestoneError: string | null;
@@ -49,6 +69,12 @@ export interface UseGoalDetailResult {
   clearTrackerError: () => void;
   clearMilestoneError: () => void;
   clearGoalError: () => void;
+}
+
+function trackerMutationErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof UnauthorizedError) return 'You need to be signed in to update a tracker.';
+  if (error instanceof Error) return error.message;
+  return fallback;
 }
 
 function mergeServerGoal(current: GoalWithDetails, saved: GoalWithDetails): GoalWithDetails {
@@ -70,6 +96,7 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
     setIsLoading,
     upsertGoal,
     upsertTracker,
+    patchTracker,
     removeTracker,
     upsertMilestone,
     removeMilestone,
@@ -77,22 +104,30 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
   const [trackerError, setTrackerError] = useState<string | null>(null);
   const [milestoneError, setMilestoneError] = useState<string | null>(null);
   const [goalError, setGoalError] = useState<string | null>(null);
-  const [completedTrackerIds, setCompletedTrackerIds] = useState<Set<string>>(new Set());
   const [completingMilestoneIds, setCompletingMilestoneIds] = useState<Set<string>>(new Set());
+  // Per-tracker in-flight + ordering registry (Task 6). A ref, not state: the
+  // card manages its own busy affordance, and these guards must be read/updated
+  // synchronously across overlapping mutations without triggering re-renders.
+  const mutationRegistry = useRef(createMutationRegistry());
+  // Which goalId has had its trackers period-hydrated. A goal present in the
+  // list is NOT treated as already-hydrated: opening detail always runs the
+  // hydrated read path for the selected goal (and only that goal).
+  const [hydratedGoalId, setHydratedGoalId] = useState<string | null>(null);
   const goal = goals.find((item) => item.id === goalId) ?? null;
 
   useEffect(() => {
-    setCompletedTrackerIds(new Set());
     setCompletingMilestoneIds(new Set());
+    resetRegistry(mutationRegistry.current);
+    setHydratedGoalId(null);
     setTrackerError(null);
     setMilestoneError(null);
     setGoalError(null);
   }, [goalId]);
 
   useEffect(() => {
-    if (!goalId || isLoading) return;
-    if (goal && (!goal.has_successor || goal.successor !== null)) return;
+    if (!goalId || hydratedGoalId === goalId) return;
 
+    let cancelled = false;
     async function load() {
       setIsLoading(true);
       try {
@@ -101,27 +136,29 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
         } = await supabase.auth.getUser();
         if (!user) return;
 
-        if (goals.length === 0) {
-          const list = await fetchGoals(user.id);
-          const listedGoal = list.find((item) => item.id === goalId);
-          const detail = listedGoal ?? await fetchGoalById(goalId);
-          setGoals(detail
-            ? [detail, ...list.filter((item) => item.id !== detail.id)]
-            : list);
-          return;
-        }
+        // One asOf drives every tracker's derivation for this open.
+        const asOf = new Date();
+        const baseGoals = goals.length === 0 ? await fetchGoals(user.id) : goals;
+        const { goal: detail, error } = await fetchHydratedGoalDetail(goalId, user.id, asOf);
+        if (cancelled) return;
 
-        const detail = await fetchGoalById(goalId);
+        if (error) setTrackerError(error);
         if (detail) {
-          setGoals([detail, ...goals.filter((item) => item.id !== detail.id)]);
+          setGoals([detail, ...baseGoals.filter((item) => item.id !== detail.id)]);
+          setHydratedGoalId(goalId);
+        } else if (goals.length === 0) {
+          setGoals(baseGoals);
         }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     }
 
     void load();
-  }, [goal, goalId, goals, isLoading, setGoals, setIsLoading]);
+    return () => {
+      cancelled = true;
+    };
+  }, [goalId, hydratedGoalId, goals, setGoals, setIsLoading]);
 
   const readOnlyGoal = useCallback(() => {
     const current = goals.find((item) => item.id === goalId);
@@ -134,20 +171,73 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
   const clearMilestoneError = useCallback(() => setMilestoneError(null), []);
   const clearGoalError = useCallback(() => setGoalError(null), []);
 
+  // Silent re-hydration of the selected goal's tracker period state. Used by the
+  // cadence-boundary refresh and after a frequency/target edit invalidates the
+  // old derivation. Reads the store via getState() (not the `goals` closure) so
+  // the callback stays stable — the boundary timer must not reset every render.
+  const refreshDetail = useCallback(async () => {
+    if (!goalId) return;
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { goal: detail, error } = await fetchHydratedGoalDetail(goalId, user.id, new Date());
+    if (error) setTrackerError(error);
+    if (!detail) return;
+
+    const current = useGoalStore.getState().goals.find((item) => item.id === goalId);
+    upsertGoal(current ? mergeServerGoal(current, detail) : detail);
+  }, [goalId, upsertGoal]);
+
   const onSaveTracker = useCallback(async (trackerId: string, updates: TrackerUpdates) => {
     const currentGoal = readOnlyGoal();
     const current = currentGoal?.trackers.find((item) => item.id === trackerId);
     if (!current) return;
 
-    upsertTracker(goalId, { ...current, ...updates });
+    // A frequency or target change invalidates the derived period state (its
+    // bounds / completion threshold no longer hold) — rederive rather than keep
+    // the stale one. Metadata-only edits (title, unit) preserve periodState.
+    const invalidatesPeriod =
+      ('frequency' in updates && updates.frequency !== current.frequency) ||
+      ('targetValue' in updates && updates.targetValue !== current.targetValue);
+
+    // Merge only the changed metadata fields — never replace the whole tracker
+    // (which would drop the live periodState via mapTracker's null default).
+    patchTracker(goalId, trackerId, updates as Partial<Tracker>);
     const saved = await updateTracker(goalId, trackerId, updates);
     if (!saved) {
-      upsertTracker(goalId, current);
+      patchTracker(goalId, trackerId, {
+        title: current.title,
+        targetValue: current.targetValue,
+        targetUnit: current.targetUnit,
+        frequency: current.frequency,
+        sortOrder: current.sortOrder,
+      });
       setTrackerError('Failed to save tracker changes. Please try again.');
       return;
     }
-    upsertTracker(goalId, saved);
-  }, [goalId, readOnlyGoal, upsertTracker]);
+    // Apply the server-normalized metadata but keep the live periodState
+    // (`saved.periodState` is always null from a metadata update).
+    patchTracker(goalId, trackerId, {
+      title: saved.title,
+      type: saved.type,
+      targetValue: saved.targetValue,
+      targetUnit: saved.targetUnit,
+      frequency: saved.frequency,
+      currentValue: saved.currentValue,
+      isAiSuggested: saved.isAiSuggested,
+      sortOrder: saved.sortOrder,
+      createdAt: saved.createdAt,
+      updatedAt: saved.updatedAt,
+    });
+    if (invalidatesPeriod) {
+      // Drop the now-invalid derivation and rederive under the new bounds/target
+      // rather than briefly presenting a stale completion verdict.
+      patchTracker(goalId, trackerId, { periodState: null });
+      void refreshDetail();
+    }
+  }, [goalId, readOnlyGoal, patchTracker, refreshDetail]);
 
   const onDeleteTracker = useCallback(async (trackerId: string) => {
     const currentGoal = readOnlyGoal();
@@ -176,44 +266,161 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
     upsertTracker(goalId, saved);
   }, [goalId, readOnlyGoal, upsertTracker]);
 
+  // Checklist/habit completion. Goes through the shared authenticated
+  // /api/trackers/log route (action 'complete'), optimistically flips the
+  // current period to completed, then reconciles from the returned periodState.
+  // The in-flight guard makes rapid double-taps one logical completion; the
+  // ordering guard ensures a superseding mutation's response always wins.
   const onCompleteTracker = useCallback(async (trackerId: string) => {
     const currentGoal = readOnlyGoal();
     const tracker = currentGoal?.trackers.find((item) => item.id === trackerId);
-    if (!currentGoal || !tracker || completedTrackerIds.has(trackerId)) return;
+    if (!currentGoal || !tracker) return;
+    // Counters progress by logging their value (+1), not one-tap complete.
+    if (tracker.type === 'counter') return;
+    // Idempotent: already completed this period → nothing to do.
+    if (tracker.periodState?.isCompleted) return;
 
+    const seq = beginMutation(mutationRegistry.current, trackerId, 'complete');
+    if (seq === null) return; // an identical complete is already in flight
+
+    const previousPeriodState = tracker.periodState;
     setTrackerError(null);
-    setCompletedTrackerIds((previous) => new Set(previous).add(trackerId));
+    const optimistic = applyOptimisticComplete(
+      previousPeriodState,
+      completionValueForTracker(tracker.type, tracker.targetValue),
+    );
+    if (optimistic !== previousPeriodState) {
+      patchTracker(goalId, trackerId, { periodState: optimistic });
+    }
 
     try {
-      const response = await authedFetch('/api/goals/complete-tracker', {
+      const response = await authedFetch('/api/trackers/log', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trackerId, goalId }),
+        body: JSON.stringify({ trackerId, goalId, action: 'complete' }),
       });
-      const payload = (await response.json()) as { success?: boolean; error?: string };
+      const payload = (await response.json()) as {
+        success?: boolean;
+        periodState?: TrackerPeriodStateDto | null;
+        error?: string;
+      };
       if (!response.ok || payload.success !== true) {
         throw new Error(payload.error ?? 'Failed to complete tracker');
       }
-
-      if (tracker.type === 'checklist') {
-        upsertTracker(goalId, { ...tracker, currentValue: 1 });
+      if (isLatestMutation(mutationRegistry.current, trackerId, seq)) {
+        patchTracker(goalId, trackerId, {
+          periodState: periodStateFromDto(payload.periodState ?? null),
+        });
+        void refreshMomentumAfterMeaningfulMutation();
       }
-      void refreshMomentumAfterMeaningfulMutation();
     } catch (error) {
-      setCompletedTrackerIds((previous) => {
-        const next = new Set(previous);
-        next.delete(trackerId);
-        return next;
-      });
-      setTrackerError(
-        error instanceof UnauthorizedError
-          ? 'You need to be signed in to update a tracker.'
-          : error instanceof Error
-            ? error.message
-            : 'Failed to complete tracker',
-      );
+      if (isLatestMutation(mutationRegistry.current, trackerId, seq)) {
+        patchTracker(goalId, trackerId, { periodState: previousPeriodState });
+        setTrackerError(trackerMutationErrorMessage(error, 'Failed to complete tracker'));
+      }
+    } finally {
+      endMutation(mutationRegistry.current, trackerId, seq);
     }
-  }, [completedTrackerIds, goalId, readOnlyGoal, upsertTracker]);
+  }, [goalId, readOnlyGoal, patchTracker]);
+
+  // Habit/checklist uncomplete — deletes all current-period logs server-side.
+  // Optimistically clears the current period, then reconciles. Counters have no
+  // uncomplete gesture (rejected server-side); guarded here too.
+  const onUncompleteTracker = useCallback(async (trackerId: string) => {
+    const currentGoal = readOnlyGoal();
+    const tracker = currentGoal?.trackers.find((item) => item.id === trackerId);
+    if (!currentGoal || !tracker) return;
+    if (tracker.type === 'counter') return;
+    // Nothing to undo when the current period is already not completed.
+    if (tracker.periodState && !tracker.periodState.isCompleted) return;
+
+    const seq = beginMutation(mutationRegistry.current, trackerId, 'uncomplete');
+    if (seq === null) return;
+
+    const previousPeriodState = tracker.periodState;
+    setTrackerError(null);
+    const optimistic = applyOptimisticUncomplete(previousPeriodState);
+    if (optimistic !== previousPeriodState) {
+      patchTracker(goalId, trackerId, { periodState: optimistic });
+    }
+
+    try {
+      const response = await authedFetch('/api/trackers/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trackerId, goalId, action: 'uncomplete' }),
+      });
+      const payload = (await response.json()) as {
+        success?: boolean;
+        periodState?: TrackerPeriodStateDto | null;
+        error?: string;
+      };
+      if (!response.ok || payload.success !== true) {
+        throw new Error(payload.error ?? 'Failed to update tracker');
+      }
+      if (isLatestMutation(mutationRegistry.current, trackerId, seq)) {
+        patchTracker(goalId, trackerId, {
+          periodState: periodStateFromDto(payload.periodState ?? null),
+        });
+        void refreshMomentumAfterMeaningfulMutation();
+      }
+    } catch (error) {
+      if (isLatestMutation(mutationRegistry.current, trackerId, seq)) {
+        patchTracker(goalId, trackerId, { periodState: previousPeriodState });
+        setTrackerError(trackerMutationErrorMessage(error, 'Failed to update tracker'));
+      }
+    } finally {
+      endMutation(mutationRegistry.current, trackerId, seq);
+    }
+  }, [goalId, readOnlyGoal, patchTracker]);
+
+  // Counter +1: optimistic current-bucket bump, then reconcile from periodState.
+  // (Card display still reads the legacy scalar until Task 8, so the visible
+  // number moves only after that; periodState is authoritative in the store.)
+  const onLogCounter = useCallback(async (trackerId: string) => {
+    const currentGoal = readOnlyGoal();
+    const tracker = currentGoal?.trackers.find((item) => item.id === trackerId);
+    if (!currentGoal || !tracker) return;
+
+    const seq = beginMutation(mutationRegistry.current, trackerId, 'counter-log');
+    if (seq === null) return;
+
+    const previousPeriodState = tracker.periodState;
+    setTrackerError(null);
+    const optimistic = applyOptimisticCounter(previousPeriodState, 1, tracker.targetValue);
+    if (optimistic !== previousPeriodState) {
+      patchTracker(goalId, trackerId, { periodState: optimistic });
+    }
+
+    try {
+      const response = await authedFetch('/api/trackers/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trackerId, goalId, action: 'counter-log' }),
+      });
+      const payload = (await response.json()) as {
+        success?: boolean;
+        periodState?: TrackerPeriodStateDto | null;
+        error?: string;
+      };
+      if (!response.ok || payload.success !== true) {
+        throw new Error(payload.error ?? 'Failed to log progress');
+      }
+      if (isLatestMutation(mutationRegistry.current, trackerId, seq)) {
+        patchTracker(goalId, trackerId, {
+          periodState: periodStateFromDto(payload.periodState ?? null),
+        });
+        void refreshMomentumAfterMeaningfulMutation();
+      }
+    } catch (error) {
+      if (isLatestMutation(mutationRegistry.current, trackerId, seq)) {
+        patchTracker(goalId, trackerId, { periodState: previousPeriodState });
+        setTrackerError(trackerMutationErrorMessage(error, 'Failed to log progress'));
+      }
+    } finally {
+      endMutation(mutationRegistry.current, trackerId, seq);
+    }
+  }, [goalId, readOnlyGoal, patchTracker]);
 
   const onSaveMilestone = useCallback(async (
     milestoneId: string,
@@ -353,6 +560,10 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
     return persistGoalUpdate({ ...current, status: 'archived' }, { status: 'archived' });
   }, [persistGoalUpdate, readOnlyGoal]);
 
+  // Cadence-boundary refresh: re-hydrate at the earliest configured
+  // periodState.endExclusive and on RN foreground / web visibility+focus.
+  useTrackerBoundaryRefresh(goal?.trackers ?? EMPTY_TRACKERS, refreshDetail);
+
   return {
     goal,
     isLoading,
@@ -360,6 +571,8 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
     onDeleteTracker,
     onAddTracker,
     onCompleteTracker,
+    onUncompleteTracker,
+    onLogCounter,
     onSaveMilestone,
     onDeleteMilestone,
     onAddMilestone,
@@ -369,7 +582,6 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
     onUpdateDescription,
     onCompleteGoal,
     onArchiveGoal,
-    completedTrackerIds,
     completingMilestoneIds,
     trackerError,
     milestoneError,

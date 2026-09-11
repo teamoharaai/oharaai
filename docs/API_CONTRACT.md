@@ -495,14 +495,80 @@ Log progress on a tracker (increment counter, complete habit, check item).
 
 **Notes:**
 - Tracker logs generate `tracker_logged` activity containing `trackerId`; they never generate `milestone_completed` activity.
-- Server recalculates `tracker.currentValue` after each log. Goal completion remains an explicit user action.
-- For `habit` type: logging resets are based on `frequency`. A daily habit resets at midnight user-local time. Server tracks this.
-- For `checklist` type, the one-tap completion action records completion and sets `currentValue` to 1; it does not reopen a completed item.
+- `tracker_logs` is the canonical evidence for period progress and completion.
+  `trackers.current_value` is retained for backward compatibility but is no
+  longer written or read for period state — completion is derived from logs
+  within the current cadence period. Goal completion remains an explicit user action.
+- For `habit` type: logging resets are based on `frequency`. A daily habit resets at midnight user-local time, evaluated in `profiles.timezone`.
+- For `checklist`/`habit`, one-tap completion is idempotent within the current period and reversible via uncomplete (see below).
 
-#### `POST /api/goals/complete-tracker`
-Authenticated Expo route used by goal detail for the current one-tap tracker
-completion behavior. Accepts `{ trackerId, goalId }` and returns
-`{ success: true }`. Goals with successors return `409` and remain read-only.
+#### `POST /api/trackers/log` (shared authenticated tracker-log route)
+Authenticated Expo route used by goal detail for all tracker logging and
+uncomplete. A single `action` discriminator multiplexes three mutations; the
+server resolves tracker type, frequency, target, timezone, and the authoritative
+period bounds — it never trusts them from the body. `userId` comes from the
+session.
+
+**Request body:**
+```typescript
+{
+  trackerId: string,
+  goalId: string,
+  action: 'complete' | 'counter-log' | 'uncomplete',
+  value?: number                 // counter-log only; finite positive, default 1
+}
+```
+
+Action semantics (settled):
+- `complete` — checklist/habit only. Inserts one current-period log (checklist
+  value `1`; habit its positive `targetValue`, else `1`). **Idempotent**: if a
+  current-period log already exists, no row is inserted and current state is
+  returned. Rejected for counters (`400`).
+- `counter-log` — counter only. Inserts one finite-positive-value log (`+1`
+  uses value `1`). Rejected for non-counters (`400`).
+- `uncomplete` — checklist/habit only. Deletes **all** current-period logs so
+  the derived completion becomes false even if duplicates exist. Rejected for
+  counters (`400`).
+
+Logging is rejected when `frequency` is `null` (cadence not set) with `422`.
+Goals with a successor are read-only and return `409`. A goal not owned by the
+user, or a tracker not in the goal, returns `404`.
+
+**Response `200`:**
+```typescript
+{
+  success: true,
+  periodState: {                 // null when cadence is not configured
+    asOf: string,                // ISO timestamp — client converts to Date
+    timezone: string,
+    startInclusive: string,      // current period, half-open [start, end)
+    endExclusive: string,
+    currentValue: number,        // sum of current-period log values
+    isCompleted: boolean,        // counter: sum >= positive target; else: >=1 log
+    recentPeriods: Array<{       // exactly 7, oldest -> newest, current last
+      startInclusive: string,
+      endExclusive: string,
+      value: number,
+      hasLog: boolean
+    }>
+  }
+}
+```
+The client updates optimistically but must reconcile with the returned
+`periodState`. Timestamps are ISO strings; convert to `Date` at the client
+mapping boundary.
+
+#### `POST /api/goals/complete-tracker` (legacy, deprecated — pending removal in Task 9)
+Authenticated Expo route for one-tap checklist/habit completion. Accepts
+`{ trackerId, goalId }` and delegates to the shared mutation, returning
+`{ success: true, periodState }` (same DTO as above). Goals with successors
+return `409`. Superseded by `POST /api/trackers/log` with `action: 'complete'`.
+
+**Goal detail no longer uses this route** — as of Task 6 the goal-detail client
+posts to `/api/trackers/log`. The only remaining caller is the dashboard
+due-today card (`app/(app)/dashboard.tsx`), which Task 9 migrates onto the shared
+route; this route (and its `completeTracker` wrapper in `lib/db/goals.ts`) is
+deleted once that migration lands (see tracker-metrics D-009).
 
 #### `GET /api/trackers/due-today`
 Returns daily trackers grouped as `{ goalId, goalTitle, trackers }`. Each tracker
