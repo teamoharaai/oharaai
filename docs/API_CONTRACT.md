@@ -110,6 +110,42 @@ container failure rolls back the entry instead of leaving an orphan. Embedding
 generation runs server-side after the atomic persistence boundary and remains
 non-blocking.
 
+## Goals V2 Task endpoints (Expo API routes)
+
+These authenticated routes use the canonical Task tables and trusted RPCs.
+Clients provide idempotency keys for create, occurrence, schedule, and
+retroactive-log mutations; identity and ownership are always derived from the
+JWT/database boundary.
+
+- `GET /api/tasks?goal_id=:id` — reconcile eligible active schedules and return
+  owner-readable Task definitions, schedule versions, and occurrence history.
+- `POST /api/tasks` — create a binary or quantity Task, including an optional
+  one-time deadline, optional Milestone link, or validated recurrence schedule.
+- `PATCH /api/tasks/:id` — edit an active Task on an Active Goal.
+- `POST /api/tasks/:id/archive` — archive a Task without deleting occurrences.
+- `PUT /api/tasks/:id/schedule` — replace a schedule as a new version or return
+  the Task to one-time/deadline semantics while preserving old history.
+- `PATCH /api/task-occurrences/:id` — check/uncheck/skip a binary occurrence or
+  atomically set/adjust a quantity occurrence.
+- `POST /api/tasks/log-completed` — atomically create a Task and completed
+  retroactive occurrence.
+- `GET /api/tasks/today` — project today's scheduled occurrences and relevant
+  overdue one-time work for Home; it is not a separate storage model.
+- `GET /api/tasks/compare?goal_id=:id` — temporary, flag-guarded legacy/backfill
+  comparison. Results are compared, never merged or double-counted.
+
+Legacy `POST /api/actions`, `PATCH /api/actions/:id`, and
+`POST /api/goals/complete-tracker` return `410` after local Task write cutover.
+Legacy reads remain available for history, rollback, and parity diagnostics.
+
+Release-only database functions `run_tasks_legacy_catchup_v1`,
+`verify_tasks_legacy_cutover_v1`, `finalize_tasks_legacy_cutover_v1`,
+`freeze_tasks_legacy_writes_v1`, and `restore_tasks_legacy_writes_v1` are
+granted only to `service_role`; they are not application APIs. The finalizer
+atomically catches post-backfill rows, requires zero unmapped or duplicate
+mappings, and freezes authenticated writes to `trackers`, `tracker_logs`, and
+`action_logs` while preserving legacy reads and history.
+
 ---
 
 ## Phase 1 Endpoints

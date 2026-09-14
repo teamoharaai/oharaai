@@ -88,17 +88,25 @@ When in doubt, start inside the feature. Extract to shared only when a second co
 - **Milestones** are one-time events critical to a goal. A milestone is pending
   while `completed_at` is `NULL`; setting `completed_at` records its completion
   evidence.
-- **Trackers** are counter, habit, or checklist measures. Their repeatable
-  cadence is `daily`, `weekly`, or `monthly`; one-time events belong in
-  milestones.
-- Goal status is `active`, `complete`, `stagnant`, `discovered`, or `archived`.
-  Archived goals are excluded from normal goal feeds and are accessed through
-  Settings.
+- **Tasks** are the canonical action definition. One-time Tasks own one durable
+  occurrence; recurring Tasks own a versioned IANA-timezone schedule and
+  durable, stable-keyed occurrences. Quantity state belongs to an occurrence,
+  not a permanently accumulating recurring definition.
+- `trackers`, `tracker_logs`, and `action_logs` are preserved legacy sources.
+  They are backfilled with provenance and remain read-only compatibility inputs;
+  normal application writes use trusted Task RPCs.
+- Goal status explicitly distinguishes `active`, `complete`, `archived`, and
+  `expired` while retaining required legacy states. Only an Active Goal makes
+  its active Tasks actionable; inactive Goal Task history remains readable.
 - Goal completion is a one-way action initiated from goal detail. It is not a
   reversible status toggle.
-- Migration `025_goal_milestones_trackers_archive.sql` is the coordinated hard
-  rename from `measurables`/`measurable_logs` to `trackers`/`tracker_logs`.
-  Current code and schema must not add compatibility aliases for the old names.
+- Migration `025_goal_milestones_trackers_archive.sql` records the older
+  `measurables` → Tracker rename. Migrations 047–050 supersede Trackers for new
+  action writes without deleting or renaming those legacy tables. Migration
+  048's service-role-only catch-up is reused by Migration 050's atomic finalizer,
+  which locks the legacy sources, verifies exact aggregate mappings, and only
+  then freezes authenticated legacy DML. Read and service/admin access remain;
+  the narrow rollback helper restores only the prior authenticated DML grants.
 
 ## Naming conventions
 

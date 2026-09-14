@@ -1,7 +1,6 @@
 import supabase from '@/lib/db/client';
 import { fetchLatestReflectionTimestamps } from '@/lib/db/echo-entry-links';
 import { getSuccessorGoalId, getSuccessorGoalIds } from '@/lib/db/goals';
-import { buildTrackerInsert } from '@/lib/db/tracker-inserts';
 import { resolveBrt } from '@/lib/utils/resolveBrt';
 import { startPerformanceTimer } from '@/lib/diagnostics/performance';
 import type { EchoBrt } from '@/types/brt';
@@ -554,16 +553,9 @@ async function canWriteGoal(goalId: string): Promise<boolean> {
 }
 
 export async function createTracker(goalId: string, input: TrackerInput): Promise<Tracker | null> {
-  if (!await canWriteGoal(goalId)) return null;
-
-  const { data, error } = await supabase
-    .from('trackers')
-    .insert(buildTrackerInsert(goalId, input))
-    .select()
-    .single();
-
-  if (error || !data) return null;
-  return mapTracker(data as unknown as DbTracker);
+  void goalId;
+  void input;
+  return null;
 }
 
 export async function updateTracker(
@@ -571,37 +563,16 @@ export async function updateTracker(
   trackerId: string,
   updates: TrackerUpdates,
 ): Promise<Tracker | null> {
-  if (!await canWriteGoal(goalId)) return null;
-
-  const patch: Record<string, unknown> = {};
-  if (updates.title !== undefined) patch.title = updates.title.trim();
-  if ('targetValue' in updates) patch.target_value = updates.targetValue ?? null;
-  if ('targetUnit' in updates) patch.target_unit = updates.targetUnit?.trim() || null;
-  if ('frequency' in updates) patch.frequency = updates.frequency ?? null;
-  if (updates.currentValue !== undefined) patch.current_value = updates.currentValue;
-  if (updates.sortOrder !== undefined) patch.sort_order = updates.sortOrder;
-
-  if (Object.keys(patch).length === 0) return null;
-
-  const { data, error } = await supabase
-    .from('trackers')
-    .update(patch)
-    .eq('id', trackerId)
-    .select()
-    .single();
-
-  if (error || !data) return null;
-  return mapTracker(data as unknown as DbTracker);
+  void goalId;
+  void trackerId;
+  void updates;
+  return null;
 }
 
 export async function deleteTracker(goalId: string, trackerId: string): Promise<boolean> {
-  if (!await canWriteGoal(goalId)) return false;
-
-  const { error } = await supabase
-    .from('trackers')
-    .delete()
-    .eq('id', trackerId);
-  return !error;
+  void goalId;
+  void trackerId;
+  return false;
 }
 
 export async function createMilestone(

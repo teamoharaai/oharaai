@@ -16,40 +16,8 @@ function mapActionLog(row: Record<string, unknown>): ActionLog {
     createdAt: row.created_at as string,
   };
 }
-const MAX_ACTION_TEXT_LENGTH = 1000;
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 100;
-
-function sanitizeActionText(input: unknown): string {
-  if (typeof input !== 'string') throw new Error('action_text must be a string');
-  const cleaned = input
-    .replace(/\0/g, '')
-    .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-    .trim();
-  if (!cleaned) throw new Error('action_text cannot be empty');
-  if (cleaned.length > MAX_ACTION_TEXT_LENGTH) {
-    throw new Error(`action_text exceeds ${MAX_ACTION_TEXT_LENGTH} character limit`);
-  }
-  return cleaned;
-}
-
-function sanitizeUuid(input: unknown, field: string): string {
-  if (typeof input !== 'string' || !input.trim()) {
-    throw new Error(`${field} is required`);
-  }
-  return input.trim();
-}
-
-function sanitizeOptionalDate(input: unknown): string | null {
-  if (input === undefined || input === null) return null;
-  if (typeof input !== 'string') throw new Error('due_date must be a string');
-  const trimmed = input.trim();
-  if (!trimmed) return null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    throw new Error('due_date must be in YYYY-MM-DD format');
-  }
-  return trimmed;
-}
 
 // ─── GET /api/actions ─────────────────────────────────────────────────────────
 // Query params: goal_id (required), status (optional), limit (optional, default 10)
@@ -105,12 +73,6 @@ async function handleGet(request: Request, _params: Record<string, string>, auth
 // ─── POST /api/actions ────────────────────────────────────────────────────────
 // Body: { goal_id, action_text, due_date? }
 
-interface CreateActionBody {
-  goal_id?: unknown;
-  action_text?: unknown;
-  due_date?: unknown;
-}
-
 export async function POST(request: Request): Promise<Response> {
   if (!isDatabaseConfigured) {
     return Response.json({ error: 'Database not configured' }, { status: 503 });
@@ -119,43 +81,10 @@ export async function POST(request: Request): Promise<Response> {
 }
 
 async function handlePost(request: Request, _params: Record<string, string>, auth: AuthContext): Promise<Response> {
-  let body: CreateActionBody;
-  try {
-    body = (await request.json()) as CreateActionBody;
-  } catch {
-    return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
-  }
-
-  let goalId: string;
-  let actionText: string;
-  let dueDate: string | null;
-
-  try {
-    goalId = sanitizeUuid(body.goal_id, 'goal_id');
-    actionText = sanitizeActionText(body.action_text);
-    dueDate = sanitizeOptionalDate(body.due_date);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Invalid request';
-    return Response.json({ error: message }, { status: 400 });
-  }
-
-  const authedDb = createAuthedClient(auth.accessToken);
-
-  const { data, error } = await authedDb
-    .from('action_logs')
-    .insert({
-      goal_id: goalId,
-      user_id: auth.userId,
-      action_text: actionText,
-      status: 'pending',
-      due_date: dueDate,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    return Response.json({ error: error.message }, { status: 500 });
-  }
-
-  return Response.json({ item: mapActionLog(data as Record<string, unknown>) }, { status: 201 });
+  void request;
+  void auth;
+  return Response.json(
+    { error: 'Legacy action writes are disabled. Use canonical Tasks.' },
+    { status: 410 },
+  );
 }

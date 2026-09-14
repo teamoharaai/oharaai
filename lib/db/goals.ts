@@ -4,7 +4,6 @@ import { CATEGORY_COLOR_THEME } from '@/constants/themes';
 import { buildGoalEmbeddingText } from '@/lib/ai/embedding-text';
 import { generateEmbedding } from '@/lib/ai/embeddings';
 import { EMBEDDING_MODEL } from '@/lib/ai/constants';
-import { buildTrackerInsert } from '@/lib/db/tracker-inserts';
 import type {
   GoalCategory,
   GoalDbStatus,
@@ -168,7 +167,7 @@ function normalizeDeadlineForPersistence(deadline: string | null): string | null
 }
 
 /**
- * Inserts a manually-authored goal and its one-time milestones and trackers.
+ * Inserts a manually-authored goal, milestones, and canonical Tasks.
  * Returns the new goalId on success, null on failure.
  */
 export async function createGoalWithMilestonesAndTrackers(
@@ -283,13 +282,6 @@ export async function createGoalWithMilestonesAndTrackers(
     sort_order: index,
     is_ai_suggested: isAiGenerated,
   }));
-  const trackerInserts = input.trackers.map((tracker, index) =>
-    buildTrackerInsert(goalId, {
-      ...tracker,
-      isAiSuggested: isAiGenerated,
-      sortOrder: index,
-    }),
-  );
 
   if (milestoneInserts.length > 0) {
     const { error: milestoneError } = await db.from('milestones').insert(milestoneInserts);
@@ -315,26 +307,51 @@ export async function createGoalWithMilestonesAndTrackers(
     }
   }
 
-  if (trackerInserts.length > 0) {
-    const { error: trackerError } = await db.from('trackers').insert(trackerInserts);
+  if (input.trackers.length > 0) {
+    const taskResults = await Promise.all(input.trackers.map(async (tracker, index) => {
+      const quantityTask = tracker.type === 'counter'
+        || (tracker.type === 'habit' && (tracker.targetValue ?? 1) > 1);
+      return db.rpc('create_task_v1', {
+      p_goal_id: goalId,
+      p_title: tracker.title,
+      p_completion_mode: quantityTask ? 'quantity' : 'binary',
+      p_description: null,
+      p_target_quantity: quantityTask ? tracker.targetValue : null,
+      p_quantity_unit: quantityTask ? tracker.targetUnit : null,
+      p_due_date: null,
+      p_milestone_id: null,
+      p_sort_order: index,
+      p_idempotency_key: requestId ? `${requestId}:task:${index}` : `goal:${goalId}:task:${index}`,
+      // Legacy wizard templates specify a weekly count but no actual weekdays.
+      // Preserve them as honest Anytime Tasks instead of inventing a schedule.
+      p_schedule_kind: null,
+      p_schedule_interval: 1,
+      p_schedule_weekdays: [],
+      p_schedule_start: null,
+      p_schedule_end: null,
+      p_schedule_local_time: null,
+      p_schedule_timezone: null,
+      });
+    }));
+    const taskError = taskResults.find((result) => result.error)?.error;
 
-    if (trackerError) {
-      warning = [warning, trackerError.message].filter(Boolean).join(' | ');
+    if (taskError) {
+      warning = [warning, taskError.message].filter(Boolean).join(' | ');
       console.error('[goal-create] persistence failed', {
         requestId,
         stage: 'persistence',
         goalId,
-        error: trackerError.message,
-        code: trackerError.code,
-        details: trackerError.details,
-        hint: trackerError.hint,
+        error: taskError.message,
+        code: taskError.code,
+        details: taskError.details,
+        hint: taskError.hint,
       });
     } else {
-      console.info('[goal-create] persistence trackers saved', {
+      console.info('[goal-create] persistence Tasks saved', {
         requestId,
         stage: 'persistence',
         goalId,
-        trackerCount: input.trackers.length,
+        taskCount: input.trackers.length,
       });
     }
   }
@@ -585,10 +602,6 @@ type DbTrackerRow = {
   target_value: number | null;
 };
 
-type DbCompletableTrackerRow = DbTrackerRow & {
-  type: GoalTrackerType;
-};
-
 type DbTrackerLogRow = {
   id: string;
   value: number;
@@ -605,10 +618,6 @@ type DbCompletedMilestoneRow = {
 
 type DbGoalCreatedAtRow = {
   created_at: string;
-};
-
-type DbGoalOwnershipRow = {
-  id: string;
 };
 
 // Additional row types for new activity sources
@@ -819,74 +828,17 @@ export async function getActivityByGoalId(
   ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 }
 
-function normalizeTrackerTarget(targetValue: number | null): number {
-  if (targetValue === null) {
-    return 1;
-  }
-
-  return targetValue > 0 ? targetValue : 1;
-}
-
 export async function completeTracker(
   trackerId: string,
   goalId: string,
   userId: string,
   db: SupabaseClient = supabase,
 ): Promise<void> {
-  const successorGoalIds = await getSuccessorGoalIds([goalId], db);
-  if (successorGoalIds.has(goalId)) {
-    throw new GoalExtensionError(
-      'GOAL_HAS_SUCCESSOR',
-      'Goal has a successor and is read-only',
-    );
-  }
-
-  const { data: goalRow, error: goalError } = await db
-    .from('goals')
-    .select('id')
-    .eq('id', goalId)
-    .eq('user_id', userId)
-    .single();
-
-  if (goalError || !(goalRow as DbGoalOwnershipRow | null)?.id) {
-    throw new Error('Goal not found');
-  }
-
-  const { data: trackerRow, error: trackerError } = await db
-    .from('trackers')
-    .select('id, title, type, target_value')
-    .eq('id', trackerId)
-    .eq('goal_id', goalId)
-    .single();
-
-  if (trackerError || !trackerRow) {
-    throw new Error('Tracker not found');
-  }
-
-  const tracker = trackerRow as DbCompletableTrackerRow;
-  const completionValue = normalizeTrackerTarget(tracker.target_value);
-
-  const { error: insertLogError } = await db.from('tracker_logs').insert({
-    tracker_id: trackerId,
-    value: completionValue,
-    logged_at: new Date().toISOString(),
-  });
-
-  if (insertLogError) {
-    throw new Error(insertLogError.message);
-  }
-
-  if (tracker.type === 'checklist') {
-    const { error: updateTrackerError } = await db
-      .from('trackers')
-      .update({ current_value: 1 })
-      .eq('id', trackerId)
-      .eq('goal_id', goalId);
-
-    if (updateTrackerError) {
-      throw new Error(updateTrackerError.message);
-    }
-  }
+  void trackerId;
+  void goalId;
+  void userId;
+  void db;
+  throw new Error('Legacy Tracker writes are disabled. Use canonical Tasks.');
 }
 
 export async function getProjectTitle(projectId: string): Promise<string | null> {

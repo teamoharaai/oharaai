@@ -65,6 +65,7 @@ import type { ActionLog } from '@/features/actions/types';
 import { FONT, RADIUS, SPACE } from '@/constants/design';
 import { getCategoryAccentTheme } from '@/constants/themes';
 import { startPerformanceTimer } from '@/lib/diagnostics/performance';
+import { newTaskIdempotencyKey } from '@/features/tasks/utils';
 
 // --- Helpers ---
 
@@ -607,10 +608,7 @@ function HomeGoalPreview({
   const categoryTheme = getCategoryAccentTheme(goal.category);
   const recentActivity = resolveGoalActivity(goal, linkedActivity);
   const nextMilestone = goal.milestones.find((milestone) => !milestone.completedAt);
-  const nextTracker = goal.trackers.find((tracker) => (
-    tracker.targetValue === null || tracker.currentValue < tracker.targetValue
-  ));
-  const nextLabel = nextMilestone?.title ?? nextTracker?.title ?? null;
+  const nextLabel = nextMilestone?.title ?? null;
   const nextDate = nextMilestone?.dueDate ?? goal.deadline;
   const hasActivityDetails = Boolean(recentActivity || nextLabel);
 
@@ -742,36 +740,36 @@ function HomeGoalsPreview({ goals, goalActivity }: {
   );
 }
 
-// --- Zone 1: Today's Trackers ---
+// --- Zone 1: Today's Task Occurrences ---
 
 type DueTodayItem = {
   goalId: string;
   goalTitle: string;
   id: string;
   title: string;
-  lastCompletedAt: string | null;
+  status: 'pending' | 'completed' | 'missed';
+  completionMode: 'binary' | 'quantity';
+  actualQuantity: number | null;
+  targetQuantity: number | null;
+  quantityUnit: string | null;
 };
 
-type DueTodayApiGroup = {
+type DueTodayApiItem = {
   goalId: string;
   goalTitle: string;
-  trackers: Array<{
+  task: {
     id: string;
     title: string;
-    lastCompletedAt: string | null;
-  }>;
+    completionMode: 'binary' | 'quantity';
+    targetQuantity: number | null;
+    quantityUnit: string | null;
+  };
+  occurrence: {
+    id: string;
+    status: 'pending' | 'completed' | 'missed';
+    actualQuantity: number | null;
+  };
 };
-
-function isCompletedToday(lastCompletedAt: string | null): boolean {
-  if (!lastCompletedAt) return false;
-  const last = new Date(lastCompletedAt);
-  const now = new Date();
-  return (
-    last.getFullYear() === now.getFullYear() &&
-    last.getMonth() === now.getMonth() &&
-    last.getDate() === now.getDate()
-  );
-}
 
 function TodayHeader({ bottomMargin = 16 }: { bottomMargin?: number }) {
   return (
@@ -794,21 +792,21 @@ function DueTodayZone() {
     let isActive = true;
     async function load() {
       try {
-        const res = await authedFetch('/api/trackers/due-today');
+        const res = await authedFetch('/api/tasks/today');
         if (!res.ok || !isActive) return;
-        const body = (await res.json()) as { data: DueTodayApiGroup[] };
+        const body = (await res.json()) as { data: DueTodayApiItem[] };
         if (!isActive) return;
-        setItems(
-          body.data.flatMap((group) =>
-            group.trackers.map((tracker) => ({
-              goalId: group.goalId,
-              goalTitle: group.goalTitle,
-              id: tracker.id,
-              title: tracker.title,
-              lastCompletedAt: tracker.lastCompletedAt,
-            })),
-          ),
-        );
+        setItems(body.data.map((item) => ({
+          goalId: item.goalId,
+          goalTitle: item.goalTitle,
+          id: item.occurrence.id,
+          title: item.task.title,
+          status: item.occurrence.status,
+          completionMode: item.task.completionMode,
+          actualQuantity: item.occurrence.actualQuantity,
+          targetQuantity: item.task.targetQuantity,
+          quantityUnit: item.task.quantityUnit,
+        })));
       } catch {
         // Fail silently — empty state shown
       } finally {
@@ -823,23 +821,49 @@ function DueTodayZone() {
   }, []);
 
   async function handleComplete(item: DueTodayItem) {
-    if (isCompletedToday(item.lastCompletedAt) || completingIds.has(item.id)) return;
+    if (item.status === 'completed' || completingIds.has(item.id)) return;
     setCompletingIds((prev) => new Set(prev).add(item.id));
     try {
-      const res = await authedFetch('/api/goals/complete-tracker', {
-        method: 'POST',
+      const res = await authedFetch(`/api/task-occurrences/${item.id}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trackerId: item.id, goalId: item.goalId }),
+        body: JSON.stringify({ status: 'completed', idempotencyKey: newTaskIdempotencyKey('home-status') }),
       });
       if (!res.ok) throw new Error('Request failed');
       setItems((prev) =>
         prev.map((m) =>
-          m.id === item.id ? { ...m, lastCompletedAt: new Date().toISOString() } : m,
+          m.id === item.id ? { ...m, status: 'completed' } : m,
         ),
       );
       void refreshMomentumAfterMeaningfulMutation();
     } catch {
       // Fail silently — row stays unchecked
+    } finally {
+      setCompletingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+    }
+  }
+
+  async function handleQuantity(item: DueTodayItem, delta: number) {
+    if (completingIds.has(item.id)) return;
+    setCompletingIds((prev) => new Set(prev).add(item.id));
+    try {
+      const res = await authedFetch(`/api/task-occurrences/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ delta, idempotencyKey: newTaskIdempotencyKey('home-quantity') }),
+      });
+      if (!res.ok) throw new Error('Request failed');
+      const body = (await res.json()) as { data: { actualQuantity: number | null; status: DueTodayItem['status'] } };
+      setItems((prev) => prev.map((row) => row.id === item.id
+        ? { ...row, actualQuantity: body.data.actualQuantity, status: body.data.status }
+        : row));
+      void refreshMomentumAfterMeaningfulMutation();
+    } catch {
+      // Keep the persisted value visible until a later refresh.
     } finally {
       setCompletingIds((prev) => {
         const next = new Set(prev);
@@ -903,31 +927,21 @@ function DueTodayZone() {
       <TodayHeader />
       <View className="gap-3">
         {items.map((item) => {
-          const done = isCompletedToday(item.lastCompletedAt);
+          const done = item.status === 'completed';
           const completing = completingIds.has(item.id);
           return (
             <View key={item.id} className="flex-row items-center gap-3">
-              <TouchableOpacity
-                onPress={() => void handleComplete(item)}
-                disabled={done || completing}
-                className="h-6 w-6 items-center justify-center rounded-full border-2"
-                style={{ borderColor: done ? colors.accent.primary : colors.border.input }}
-              >
-                {done && (
-                  <Text
-                    className="text-xs font-inter-semibold"
-                    style={{ color: colors.accent.primary }}
-                  >
-                    ✓
-                  </Text>
-                )}
-                {completing && !done && (
-                  <View
-                    className="h-2 w-2 rounded-full"
-                    style={{ backgroundColor: colors.border.input }}
-                  />
-                )}
-              </TouchableOpacity>
+              {item.completionMode === 'binary' ? (
+                <TouchableOpacity
+                  onPress={() => void handleComplete(item)}
+                  disabled={done || completing}
+                  className="h-6 w-6 items-center justify-center rounded-full border-2"
+                  style={{ borderColor: done ? colors.accent.primary : colors.border.input }}
+                >
+                  {done ? <Text className="text-xs font-inter-semibold" style={{ color: colors.accent.primary }}>✓</Text> : null}
+                  {completing && !done ? <View className="h-2 w-2 rounded-full" style={{ backgroundColor: colors.border.input }} /> : null}
+                </TouchableOpacity>
+              ) : null}
               <View className="flex-1">
                 <Text className="font-sans text-[11px]" style={{ color: colors.text.muted }}>
                   {item.goalTitle}
@@ -939,6 +953,19 @@ function DueTodayZone() {
                   {item.title}
                 </Typography>
               </View>
+              {item.completionMode === 'quantity' ? (
+                <View className="flex-row items-center gap-2">
+                  <TouchableOpacity disabled={completing || (item.actualQuantity ?? 0) <= 0} onPress={() => void handleQuantity(item, -1)} className="h-8 w-8 items-center justify-center">
+                    <Text style={{ color: colors.text.secondary }}>−</Text>
+                  </TouchableOpacity>
+                  <Typography variant="caption">
+                    {item.actualQuantity ?? 0}{item.targetQuantity ? ` / ${item.targetQuantity}` : ''}{item.quantityUnit ? ` ${item.quantityUnit}` : ''}
+                  </Typography>
+                  <TouchableOpacity disabled={completing} onPress={() => void handleQuantity(item, 1)} className="h-8 w-8 items-center justify-center">
+                    <Text style={{ color: colors.text.accent }}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
             </View>
           );
         })}
@@ -977,10 +1004,13 @@ function ActiveGoalCard({ goal }: ActiveGoalCardProps) {
     setIsMutating(true);
 
     try {
-      const res = await authedFetch(`/api/actions/${current.id}`, {
+      const res = await authedFetch(`/api/task-occurrences/${current.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({
+          status: status === 'complete' ? 'completed' : 'skipped',
+          idempotencyKey: newTaskIdempotencyKey('next-action'),
+        }),
       });
       if (!res.ok) throw new Error('Failed to update action');
       if (status === 'complete') void refreshMomentumAfterMeaningfulMutation();

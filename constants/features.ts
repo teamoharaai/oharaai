@@ -7,6 +7,8 @@ export const FEATURES = {
   CONSTELLATION_ENABLED: true,
   SOCIAL_ENABLED: true,
   COLLAGE_ENABLED: false,
+  TASKS_V2_ENABLED: true,
+  TASKS_V2_COMPARE_LEGACY: true,
 } as const;
 
 export const AI_FEATURES = {

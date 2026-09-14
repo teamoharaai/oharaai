@@ -24,6 +24,7 @@ import { useProjectStore } from '@/features/projects/store';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { useGoalMomentumSummary } from '@/features/momentum/hooks/useMomentumHomeSummary';
 import { MomentumTrendChart } from '@/features/momentum/components/MomentumTrendChart';
+import { TasksPanel } from '@/features/tasks/components/TasksPanel';
 import type { ActivityItem } from '@/types/activity';
 import {
   filterGoalsForWorkspace,
@@ -45,7 +46,6 @@ import { CountdownTimer } from './CountdownTimer';
 import { GoalDetailHeader } from './GoalDetailHeader';
 import { GoalProjectPickerModal } from './GoalProjectPickerModal';
 import { MilestonesPanel } from './MilestonesPanel';
-import { TrackersPanel } from './TrackersPanel';
 
 type WorkspaceTab = 'overview' | 'milestones' | 'tasks' | 'reflections' | 'notes' | 'insights';
 
@@ -1052,28 +1052,13 @@ function GoalTabContent({
         </WorkspaceSection>
         <View style={{ backgroundColor: colors.border.divider, height: 1 }} />
         <WorkspaceSection>
-          <TrackersPanel
-            archived={goal.status === 'archived'}
-            completedIds={goalDetail.completedTrackerIds}
-            embedded
-            ended={mutationsDisabled}
-            error={goalDetail.trackerError}
-            hasSuccessor={goal.has_successor}
-            onAdd={goalDetail.onAddTracker}
-            onDelete={goalDetail.onDeleteTracker}
-            onDismissError={goalDetail.clearTrackerError}
-            onLogComplete={goalDetail.onCompleteTracker}
-            onSave={goalDetail.onSaveTracker}
-            trackers={goal.trackers}
-          />
-        </WorkspaceSection>
-        <View style={{ backgroundColor: colors.border.divider, height: 1 }} />
-        <WorkspaceSection>
           <ActivityList error={activityError} items={activityItems} loading={activityLoading} />
         </WorkspaceSection>
       </View>
     );
   }
+
+  if (tab === 'tasks') return null;
 
   const title = DETAIL_TABS.find((item) => item.value === tab)?.label ?? '';
   return (
@@ -1109,22 +1094,6 @@ function GoalTabContent({
             onDelete={goalDetail.onDeleteMilestone}
             onDismissError={goalDetail.clearMilestoneError}
             onSave={goalDetail.onSaveMilestone}
-          />
-        ) : null}
-        {tab === 'tasks' ? (
-          <TrackersPanel
-            archived={goal.status === 'archived'}
-            completedIds={goalDetail.completedTrackerIds}
-            embedded
-            ended={goal.status === 'complete'}
-            error={goalDetail.trackerError}
-            hasSuccessor={goal.has_successor}
-            onAdd={goalDetail.onAddTracker}
-            onDelete={goalDetail.onDeleteTracker}
-            onDismissError={goalDetail.clearTrackerError}
-            onLogComplete={goalDetail.onCompleteTracker}
-            onSave={goalDetail.onSaveTracker}
-            trackers={goal.trackers}
           />
         ) : null}
         {tab === 'reflections' ? (
@@ -1233,8 +1202,6 @@ function InsightContextCard({ goal, items }: { goal: GoalWithDetails; items: rea
     <View
       style={{
         backgroundColor: colors.background.selectedRow,
-        borderBottomColor: colors.border.divider,
-        borderBottomWidth: 1,
         padding: SPACE.xl,
       }}
     >
@@ -1268,8 +1235,8 @@ function RecommendationsContextCard({ goal }: { goal: GoalWithDetails }) {
       <Typography variant="title" style={{ marginTop: SPACE.xl }}>No personalized recommendation yet.</Typography>
       <Typography variant="body" style={{ marginTop: SPACE.md }}>
         {goal.trackers.length || goal.milestones.length
-          ? 'OHARA is collecting real milestone and tracker activity. Recommendations will appear only when a supported recommendation source is available.'
-          : 'Add milestones, trackers, notes, or reflections to build the context needed for a useful recommendation.'}
+          ? 'OHARA is collecting real milestone and Task activity. Recommendations will appear only when a supported recommendation source is available.'
+          : 'Add milestones, Tasks, notes, or reflections to build the context needed for a useful recommendation.'}
       </Typography>
     </View>
   );
@@ -1330,7 +1297,6 @@ function ContextRail({
   const colors = useThemeColors();
   return (
     <Surface style={{ minWidth: 0, overflow: 'hidden' }}>
-      <InsightContextCard goal={goal} items={items} />
       <GoalAnalyticsCard entries={entries} goal={goal} items={items} />
       <View style={{ backgroundColor: colors.border.divider, height: 1 }} />
       <RecommendationsContextCard goal={goal} />
@@ -1393,7 +1359,8 @@ function SelectedGoalWorkspace({
 
   return (
     <>
-      <Surface style={{ minWidth: 0 }}>
+      <View style={{ gap: SPACE.xl, minWidth: 0 }}>
+        <Surface style={{ minWidth: 0 }}>
         <GoalDetailHeader
           deadlineProgress={goal.progress}
           embedded
@@ -1428,19 +1395,34 @@ function SelectedGoalWorkspace({
             </View>
           </View>
         ) : null}
-        <DetailTabs onChange={onTabChange} value={tab} />
-        <GoalTabContent
-          activityError={activityError}
-          activityItems={activityItems}
-          activityLoading={activityLoading}
-          entriesError={entriesError}
-          goal={goal}
-          goalDetail={goalDetail}
-          linkedEntries={linkedEntries}
-          onTabChange={onTabChange}
-          tab={tab}
-        />
-      </Surface>
+        </Surface>
+        <Surface style={{ minWidth: 0, overflow: 'hidden' }}>
+          <InsightContextCard goal={goal} items={activityItems} />
+        </Surface>
+        <Surface style={{ minWidth: 0, overflow: 'hidden' }}>
+          <TasksPanel
+            full={tab === 'tasks'}
+            goalId={goal.id}
+            goalStatus={goal.status}
+            milestones={goal.milestones}
+            onSeeAll={() => onTabChange('tasks')}
+          />
+        </Surface>
+        <Surface style={{ minWidth: 0 }}>
+          <DetailTabs onChange={onTabChange} value={tab} />
+          <GoalTabContent
+            activityError={activityError}
+            activityItems={activityItems}
+            activityLoading={activityLoading}
+            entriesError={entriesError}
+            goal={goal}
+            goalDetail={goalDetail}
+            linkedEntries={linkedEntries}
+            onTabChange={onTabChange}
+            tab={tab}
+          />
+        </Surface>
+      </View>
       <GoalProjectPickerModal
         currentProjectId={goal.projectId}
         error={projectError}

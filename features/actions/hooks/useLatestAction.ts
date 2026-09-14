@@ -3,12 +3,34 @@ import { authedFetch } from '@/lib/api/client';
 import type { ActionLog } from '../types';
 
 interface ActionsResponse {
-  items?: ActionLog[];
+  data?: Array<{
+    id: string;
+    goalId: string;
+    title: string;
+    completionMode: 'binary' | 'quantity';
+    dueDate: string | null;
+    createdAt: string;
+    occurrences: Array<{ id: string; status: string; completedAt: string | null }>;
+  }>;
 }
 
 async function parseActionsResponse(response: Response): Promise<ActionLog[]> {
   const payload = (await response.json()) as ActionsResponse;
-  return Array.isArray(payload.items) ? payload.items : [];
+  if (!Array.isArray(payload.data)) return [];
+  return payload.data.flatMap((task) => {
+    if (task.completionMode !== 'binary') return [];
+    const occurrence = task.occurrences.find((item) => item.status === 'pending' || item.status === 'missed');
+    return occurrence ? [{
+      id: occurrence.id,
+      goalId: task.goalId,
+      userId: '',
+      actionText: task.title,
+      status: 'pending' as const,
+      dueDate: task.dueDate,
+      completedAt: occurrence.completedAt,
+      createdAt: task.createdAt,
+    }] : [];
+  });
 }
 
 export function useLatestAction(goalId: string): {
@@ -35,7 +57,7 @@ export function useLatestAction(goalId: string): {
 
       try {
         const response = await authedFetch(
-          `/api/actions?goal_id=${encodeURIComponent(goalId)}&status=pending&limit=1`,
+          `/api/tasks?goal_id=${encodeURIComponent(goalId)}`,
         );
 
         if (!response.ok) {
@@ -74,7 +96,7 @@ export function useLatestAction(goalId: string): {
 
       try {
         const response = await authedFetch(
-          `/api/actions?goal_id=${encodeURIComponent(goalId)}&status=pending&limit=1`,
+          `/api/tasks?goal_id=${encodeURIComponent(goalId)}`,
         );
 
         if (!response.ok) {

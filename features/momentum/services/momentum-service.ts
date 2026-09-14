@@ -40,6 +40,7 @@ import type {
   OharaMomentumCalculationInput,
   OharaMomentumDiagnostic,
 } from '../types.ts';
+import { adaptTasksToMomentum, type MomentumTaskRow } from '../task-adapter.ts';
 
 type GoalRow = {
   archived_at: string | null;
@@ -59,6 +60,7 @@ type GoalRow = {
 };
 
 type GoalSourceScope = 'provisional' | 'closed';
+type MomentumEvidenceSource = 'tasks' | 'legacy';
 
 type ActionRow = RawActionCompletion & { actionText: string };
 type MilestoneRow = {
@@ -70,6 +72,7 @@ type MilestoneRow = {
 };
 type TrackerRow = {
   currentValue: number;
+  expectedOccurrences: number | null;
   frequency: string | null;
   goalId: string;
   id: string;
@@ -250,13 +253,114 @@ async function fetchActionRows(
   );
 }
 
+function mapMomentumTaskRows(rows: unknown[]): MomentumTaskRow[] {
+  return rows.map((row) => {
+    const value = row as Record<string, unknown>;
+    return {
+      ...(value as unknown as MomentumTaskRow),
+      id: String(value.id),
+      title: typeof value.title === 'string' ? value.title : '',
+      user_id: String(value.user_id),
+      goal_id: String(value.goal_id),
+      task_schedules: Array.isArray(value.task_schedules)
+        ? value.task_schedules as MomentumTaskRow['task_schedules'] : [],
+      task_occurrences: Array.isArray(value.task_occurrences)
+        ? value.task_occurrences as MomentumTaskRow['task_occurrences'] : [],
+    };
+  });
+}
+
+async function fetchTaskEvidence(
+  db: SupabaseClient,
+  userId: string,
+  goalIds: readonly string[],
+  boundary: MomentumWeekBoundary,
+  asOf: Date,
+  scope: GoalSourceScope,
+  goalStatuses: ReadonlyMap<string, string>,
+): Promise<ReturnType<typeof adaptTasksToMomentum>> {
+  if (!goalIds.length) return { actions: [], trackers: [], trackerLogs: [], completedOccurrenceCount: 0 };
+  const activeGoalIds = goalIds.filter((goalId) => goalStatuses.get(goalId) === 'active');
+  if (activeGoalIds.length) {
+    const { data: definitions, error: definitionError } = await db.from('tasks')
+      .select('id, task_schedules!left(id,is_active)')
+      .eq('user_id', userId).eq('status', 'active').in('goal_id', activeGoalIds);
+    if (definitionError) throw new Error(`Momentum Task reconciliation read failed: ${definitionError.message}`);
+    for (const definition of (definitions ?? []) as Array<Record<string, unknown>>) {
+      const schedules = Array.isArray(definition.task_schedules)
+        ? definition.task_schedules as Array<Record<string, unknown>> : [];
+      if (!schedules.some((schedule) => schedule.is_active === true)) continue;
+      const { error } = await db.rpc('reconcile_task_occurrences_v1', { p_task_id: String(definition.id) });
+      if (error) throw new Error(`Momentum Task reconciliation failed: ${error.message}`);
+    }
+  }
+  const { data, error } = await db.from('tasks').select(`
+    id, user_id, goal_id, title, completion_mode, target_quantity, status, due_date,
+    source, legacy_tracker_id, legacy_action_log_id, legacy_current_value,
+    legacy_frequency, legacy_tracker_type, legacy_status, created_at,
+    task_schedules(id, recurrence_kind, interval_count, weekdays, is_active),
+    task_occurrences(
+      id, schedule_id, scheduled_local_date, status, actual_quantity, completed_at,
+      source, legacy_tracker_log_id, legacy_action_log_id, legacy_raw_value, created_at
+    )
+  `).eq('user_id', userId).in('goal_id', [...goalIds]);
+  if (error) throw new Error(`Momentum Task evidence read failed: ${error.message}`);
+  const asOfLocalDate = scope === 'closed'
+    ? boundary.weekEnd
+    : localDateForInstant(asOf.toISOString(), boundary.timezone);
+  return adaptTasksToMomentum(
+    mapMomentumTaskRows(data ?? []),
+    goalStatuses,
+    boundary,
+    asOfLocalDate,
+    scope === 'closed',
+  );
+}
+
+async function fetchHistoricalTaskActions(db: SupabaseClient, userId: string): Promise<ActionRow[]> {
+  const { data, error } = await db.from('tasks').select(`
+    id, user_id, goal_id, title, created_at, due_date, source, legacy_action_log_id,
+    goal:goals!tasks_goal_id_fkey(status),
+    task_occurrences(id, scheduled_local_date, status, completed_at, legacy_action_log_id)
+  `).eq('user_id', userId);
+  if (error) throw new Error(`Momentum Task history read failed: ${error.message}`);
+  return (data ?? []).flatMap((row) => {
+    const task = row as Record<string, unknown>;
+    if (task.source === 'legacy_tracker') return [];
+    const relation = Array.isArray(task.goal) ? task.goal[0] : task.goal;
+    const goalStatus = relation && typeof relation === 'object'
+      ? String((relation as Record<string, unknown>).status ?? '') : null;
+    const occurrences = Array.isArray(task.task_occurrences)
+      ? task.task_occurrences as Array<Record<string, unknown>> : [];
+    return occurrences.flatMap((occurrence): ActionRow[] => {
+      if (occurrence.status !== 'completed' || typeof occurrence.completed_at !== 'string') return [];
+      return [{
+        actionText: typeof task.title === 'string' ? task.title : '',
+        completedAt: occurrence.completed_at,
+        createdAt: typeof task.created_at === 'string' ? task.created_at : null,
+        dueDate: typeof occurrence.scheduled_local_date === 'string'
+          ? occurrence.scheduled_local_date
+          : typeof task.due_date === 'string' ? task.due_date : null,
+        goalId: String(task.goal_id),
+        goalStatus,
+        id: String(occurrence.legacy_action_log_id ?? occurrence.id),
+        status: 'complete',
+        userId: String(task.user_id),
+      }];
+    });
+  });
+}
+
 async function fetchGoalSourceData(
   db: SupabaseClient,
   userId: string,
   boundary: MomentumWeekBoundary,
   scope: GoalSourceScope,
+  asOf: Date,
+  evidenceSource: MomentumEvidenceSource = 'tasks',
 ): Promise<{
   actions: ActionRow[];
+  completedTaskOccurrences: number;
   goals: GoalRow[];
   goalProgressEvents: GoalProgressEventRow[];
   milestones: MilestoneRow[];
@@ -295,10 +399,13 @@ async function fetchGoalSourceData(
     ? allGoals.filter((goal) => goalWasActiveDuringBoundary(goal, allGoals, boundary))
     : allGoals;
   const goalIds = goals.map((goal) => goal.id);
-  const actionsPromise = fetchActionRows(db, userId, boundary);
+  const actionsPromise = evidenceSource === 'legacy'
+    ? fetchActionRows(db, userId, boundary)
+    : Promise.resolve<ActionRow[]>([]);
   if (!goalIds.length) {
     return {
       actions: await actionsPromise,
+      completedTaskOccurrences: 0,
       goalProgressEvents: [],
       goals,
       milestones: [],
@@ -307,12 +414,14 @@ async function fetchGoalSourceData(
       trackers: [],
     };
   }
-  const [actions, milestoneResult, trackerResult, reflectionResult, progressEventResult] = await Promise.all([
+  const [legacyActions, milestoneResult, trackerResult, reflectionResult, progressEventResult] = await Promise.all([
     actionsPromise,
     db.from('milestones').select('id, goal_id, due_date, completed_at, created_at')
       .eq('user_id', userId).in('goal_id', goalIds),
-    db.from('trackers').select('id, goal_id, type, target_value, current_value, frequency')
-      .in('goal_id', goalIds),
+    evidenceSource === 'legacy'
+      ? db.from('trackers').select('id, goal_id, type, target_value, current_value, frequency')
+        .in('goal_id', goalIds)
+      : Promise.resolve({ data: [], error: null }),
     db.from('entry_goal_links')
       .select('goal_id, entries!inner(id, user_id, entry_type, reflection_type, plain_text, completed_at, created_at, updated_at, archived)')
       .in('goal_id', goalIds).eq('entries.user_id', userId)
@@ -327,6 +436,7 @@ async function fetchGoalSourceData(
     const value = row as Record<string, unknown>;
     return {
       currentValue: numberOrNull(value.current_value) ?? 0,
+      expectedOccurrences: null,
       frequency: typeof value.frequency === 'string' ? value.frequency : null,
       goalId: String(value.goal_id),
       id: String(value.id),
@@ -380,7 +490,27 @@ async function fetchGoalSourceData(
       reflectionType: typeof entry.reflection_type === 'string' ? entry.reflection_type : null,
     } satisfies ReflectionRow];
   });
-  return { actions, goalProgressEvents, goals, milestones, reflections, trackerLogs, trackers };
+  const taskEvidence = evidenceSource === 'tasks'
+    ? await fetchTaskEvidence(
+      db,
+      userId,
+      goalIds,
+      boundary,
+      asOf,
+      scope,
+      new Map(goals.map((goal) => [goal.id, goal.status])),
+    )
+    : null;
+  return {
+    actions: taskEvidence?.actions ?? legacyActions,
+    completedTaskOccurrences: taskEvidence?.completedOccurrenceCount ?? 0,
+    goalProgressEvents,
+    goals,
+    milestones,
+    reflections,
+    trackerLogs: taskEvidence?.trackerLogs ?? trackerLogs,
+    trackers: taskEvidence?.trackers ?? trackers,
+  };
 }
 
 function targetFrequencyPerWeek(value: Record<string, unknown> | null): number | null {
@@ -522,7 +652,12 @@ async function buildGoalDiagnostic(
     action.dueDate && action.completedAt
       && localDateForInstant(action.completedAt, boundary.timezone) <= action.dueDate
   ));
+  const materializedExpectedOccurrences = trackers.reduce(
+    (sum, tracker) => sum + Math.max(0, tracker.expectedOccurrences ?? 0),
+    0,
+  );
   const frequency = targetFrequencyPerWeek(goal.target_frequency)
+    ?? (materializedExpectedOccurrences > 0 ? materializedExpectedOccurrences : null)
     ?? (trackers.some((tracker) => tracker.frequency === 'daily') ? 7
       : trackers.some((tracker) => tracker.frequency === 'weekly') ? 1
         : trackers.some((tracker) => tracker.frequency === 'monthly') ? 1 / 4.345 : null);
@@ -930,14 +1065,14 @@ async function closeCompletedWeekIfNeeded(
 ): Promise<void> {
   if (await hasClosedOharaSnapshot(readDb, userId, boundary.weekStart)) return;
 
-  const source = await fetchGoalSourceData(readDb, userId, boundary, 'closed');
+  const closedAt = new Date(Date.parse(boundary.endExclusive) - 1);
+  const source = await fetchGoalSourceData(readDb, userId, boundary, 'closed', closedAt);
   const goalIds = source.goals.map((goal) => goal.id);
   const [goalBaselines, previousOhara, trailing] = await Promise.all([
     fetchLatestGoalSnapshotsBefore(readDb, userId, goalIds, boundary.weekStart),
     fetchPreviousOharaSnapshot(readDb, userId, boundary.weekStart),
     fetchTrailingGoalSnapshots(readDb, userId, boundary.weekStart),
   ]);
-  const closedAt = new Date(Date.parse(boundary.endExclusive) - 1);
   const goalDiagnostics: GoalMomentumDiagnostic[] = [];
   const goalSnapshots: GoalSnapshotRow[] = [];
   for (const goal of source.goals) {
@@ -987,7 +1122,7 @@ export async function getMomentumV11Summary(
   const completedBoundary = getPreviousMomentumWeek(now, timezone);
   await closeCompletedWeekIfNeeded(readDb, writeDb, userId, completedBoundary);
 
-  const source = await fetchGoalSourceData(readDb, userId, currentBoundary, 'provisional');
+  const source = await fetchGoalSourceData(readDb, userId, currentBoundary, 'provisional', now);
   const goalIds = source.goals.map((goal) => goal.id);
   const [goalBaselines, trailing, previousOharaSnapshot] = await Promise.all([
     fetchLatestGoalSnapshotsBefore(readDb, userId, goalIds, currentBoundary.weekStart),
@@ -1019,7 +1154,7 @@ export async function getMomentumV11Summary(
   );
   const oharaResult = diagnostic.result;
   const [historicalActions, closedHistory, goalSummaries] = await Promise.all([
-    fetchActionRows(readDb, userId),
+    fetchHistoricalTaskActions(readDb, userId),
     fetchOharaHistory(readDb, userId),
     Promise.all(goalDiagnostics.map(async (goalDiagnostic): Promise<GoalMomentumSummary> => {
       const closed = await fetchGoalHistory(readDb, userId, goalDiagnostic.result.goalId);
@@ -1053,14 +1188,7 @@ export async function getMomentumV11Summary(
       };
     })),
   ]);
-  const currentNormalized = normalizeActionRecords(
-    source.actions,
-    currentBoundary,
-    userId,
-    localDateForInstant(now.toISOString(), timezone),
-    false,
-  );
-  const tasksCompletedThisWeek = currentNormalized.filter((action) => action.completionEligibility === 'included').length;
+  const tasksCompletedThisWeek = source.completedTaskOccurrences;
   const currentValue = oharaResult.currentValue;
   const weeklyChange = oharaResult.weeklyChange;
   const history: MomentumHistoryPoint[] = [...closedHistory, {
@@ -1098,6 +1226,73 @@ export async function getMomentumV11Summary(
       weeklyStreak: calculateWeeklyStreak(historicalActions, now, timezone, userId),
     },
   };
+}
+
+export async function getMomentumTaskParity(
+  readDb: SupabaseClient,
+  userId: string,
+  now = new Date(),
+): Promise<{
+  boundary: MomentumWeekBoundary;
+  goals: Array<{
+    goalId: string;
+    legacy: { currentValue: number; pillars: GoalMomentumDiagnostic['result']['pillars']; status: string };
+    taskAdapter: { currentValue: number; pillars: GoalMomentumDiagnostic['result']['pillars']; status: string };
+    differences: string[];
+  }>;
+}> {
+  const { data: profile, error: profileError } = await readDb.from('profiles')
+    .select('timezone').eq('id', userId).single();
+  if (profileError) throw new Error(`Momentum parity timezone read failed: ${profileError.message}`);
+  const timezone = normalizeTimezone((profile as { timezone?: string } | null)?.timezone);
+  const boundary = getMomentumWeek(now, timezone);
+  const [taskSource, legacySource] = await Promise.all([
+    fetchGoalSourceData(readDb, userId, boundary, 'provisional', now, 'tasks'),
+    fetchGoalSourceData(readDb, userId, boundary, 'provisional', now, 'legacy'),
+  ]);
+  const goalIds = taskSource.goals.map((goal) => goal.id);
+  const baselines = await fetchLatestGoalSnapshotsBefore(readDb, userId, goalIds, boundary.weekStart);
+  const legacyGoals = new Map(legacySource.goals.map((goal) => [goal.id, goal]));
+  const goals = [];
+  for (const taskGoal of taskSource.goals) {
+    const legacyGoal = legacyGoals.get(taskGoal.id) ?? taskGoal;
+    const baseline = baselines.get(taskGoal.id) ?? null;
+    const [taskDiagnostic, legacyDiagnostic] = await Promise.all([
+      buildGoalDiagnostic(
+        taskGoal, taskSource, boundary, numberOrNull(baseline?.current_value), now,
+        'provisional', baseline?.id ?? null,
+      ),
+      buildGoalDiagnostic(
+        legacyGoal, legacySource, boundary, numberOrNull(baseline?.current_value), now,
+        'provisional', baseline?.id ?? null,
+      ),
+    ]);
+    const differences: string[] = [];
+    if (taskDiagnostic.result.currentValue !== legacyDiagnostic.result.currentValue) {
+      differences.push('score');
+    }
+    for (const pillar of ['consistency', 'progress', 'reflection', 'initiative'] as const) {
+      if (taskDiagnostic.result.pillars[pillar] !== legacyDiagnostic.result.pillars[pillar]) {
+        differences.push(pillar);
+      }
+    }
+    if (taskDiagnostic.result.status !== legacyDiagnostic.result.status) differences.push('status');
+    goals.push({
+      goalId: taskGoal.id,
+      legacy: {
+        currentValue: legacyDiagnostic.result.currentValue,
+        pillars: legacyDiagnostic.result.pillars,
+        status: legacyDiagnostic.result.status,
+      },
+      taskAdapter: {
+        currentValue: taskDiagnostic.result.currentValue,
+        pillars: taskDiagnostic.result.pillars,
+        status: taskDiagnostic.result.status,
+      },
+      differences,
+    });
+  }
+  return { boundary, goals };
 }
 
 // Retained function name keeps the authenticated API and existing consumers stable.

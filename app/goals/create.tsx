@@ -394,7 +394,7 @@ export default function GoalCreateScreen() {
   function removeTracker(item: GoalCreationWizardTracker) {
     const index = wizard.trackers.findIndex((tracker) => tracker.id === item.id);
     wizard.removeTracker(item.id);
-    showUndo('Tracker removed', { kind: 'tracker', item, index });
+    showUndo('Task removed', { kind: 'tracker', item, index });
   }
 
   function addMilestone() {
@@ -1040,7 +1040,7 @@ export default function GoalCreateScreen() {
       <Card key={item.id} padding="compact" style={{ borderRadius: 14 }}>
         <View style={{ alignItems: 'center', flexDirection: compact ? 'column' : 'row', gap: 10 }}>
           <ManualTextInput
-            accessibilityLabel="Tracker title"
+            accessibilityLabel="Task title"
             onChangeText={(title) => wizard.updateTracker(item.id, { title })}
             style={{
               color: colors.text.primary,
@@ -1057,7 +1057,7 @@ export default function GoalCreateScreen() {
           />
           <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8, width: compact ? '100%' : undefined }}>
             <Pressable
-              accessibilityLabel={`Tracker type ${TRACKER_TYPE_LABELS[item.type]}. Activate to change.`}
+              accessibilityLabel={`Task completion type ${TRACKER_TYPE_LABELS[item.type]}. Activate to change.`}
               accessibilityRole="button"
               onPress={() => {
                 const nextType = nextTrackerType(item.type);
@@ -1115,7 +1115,7 @@ export default function GoalCreateScreen() {
                   }}
                   value={item.targetUnit ?? ''}
                 />
-                <Typography variant="caption">/ week</Typography>
+                <Typography variant="caption">target</Typography>
               </>
             ) : null}
             <View style={{ flex: 1 }} />
@@ -1262,7 +1262,7 @@ export default function GoalCreateScreen() {
 
         <View style={{ alignItems: 'baseline', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
           <Typography variant="title" style={{ fontFamily: 'Inter-SemiBold', fontSize: 16 }}>
-            What you’ll track each week
+            Your first Tasks
           </Typography>
           <Typography variant="caption">
             {wizard.activeTrackers.length} / {GOAL_CREATION_MAX_ACTIVE_TRACKERS} active
@@ -1324,9 +1324,9 @@ export default function GoalCreateScreen() {
         {addingTracker ? (
           <Card padding="compact" style={{ gap: 8, marginTop: 14 }}>
             <TextField
-              accessibilityLabel="Custom tracker title"
+              accessibilityLabel="Custom Task title"
               onChangeText={setNewTrackerTitle}
-              placeholder="Custom tracker name"
+              placeholder="Custom Task name"
               value={newTrackerTitle}
             />
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -1356,7 +1356,7 @@ export default function GoalCreateScreen() {
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <View style={{ flex: 1 }}>
                   <TextField
-                    accessibilityLabel="Custom tracker target"
+                    accessibilityLabel="Custom Task target"
                     onChangeText={setNewTrackerTarget}
                     placeholder="Target"
                     value={newTrackerTarget}
@@ -1364,7 +1364,7 @@ export default function GoalCreateScreen() {
                 </View>
                 <View style={{ flex: 2 }}>
                   <TextField
-                    accessibilityLabel="Custom tracker unit"
+                    accessibilityLabel="Custom Task unit"
                     onChangeText={setNewTrackerUnit}
                     placeholder="Unit, e.g. sessions"
                     value={newTrackerUnit}
@@ -1379,7 +1379,7 @@ export default function GoalCreateScreen() {
                 disabled={!newTrackerTitle.trim() || !wizard.canAddTracker}
                 onPress={addTracker}
               >
-                Add tracker
+                Add Task
               </AccentButton>
             </View>
           </Card>
@@ -1400,7 +1400,7 @@ export default function GoalCreateScreen() {
             })}
           >
             <Typography variant="meta">
-              {wizard.canAddTracker ? '+ Add custom metric' : '5 is the max — remove one to add your own.'}
+              {wizard.canAddTracker ? '+ Add custom Task' : '5 is the max — remove one to add your own.'}
             </Typography>
           </Pressable>
         )}
@@ -1431,8 +1431,8 @@ export default function GoalCreateScreen() {
         </Typography>
         <Typography variant="body" style={{ fontSize: 15, lineHeight: 23, marginBottom: 28, marginTop: 10, textAlign: 'center' }}>
           {wizard.skipTracking
-            ? 'Your goal is ready. You can add milestones and trackers from its goal page whenever you’re ready.'
-            : 'Your first milestone and this week’s trackers are ready on the goal page.'}
+            ? 'Your goal is ready. You can add milestones and Tasks from its Goal page whenever you’re ready.'
+            : 'Your first milestone and Tasks are ready on the Goal page.'}
         </Typography>
         <Pressable
           accessibilityLabel={`View goal ${wizard.outcome}`}
@@ -1553,7 +1553,7 @@ export default function GoalCreateScreen() {
                 ['TARGET DATE', formatDate(wizard.deadline)],
                 ['COMMITMENT', `${wizard.daysPerWeek} days / week`],
                 ['MILESTONES', `${wizard.milestones.length}${wizard.skipTracking ? ' (skipped)' : ''}`],
-                ['TRACKERS', `${wizard.activeTrackers.length}${wizard.skipTracking ? ' (skipped)' : ''}`],
+                ['TASKS', `${wizard.activeTrackers.length}${wizard.skipTracking ? ' (skipped)' : ''}`],
               ].map(([label, value]) => (
                 <View key={label} style={{ minWidth: 110 }}>
                   <Typography variant="eyebrow">{label}</Typography>
@@ -1610,7 +1610,7 @@ export default function GoalCreateScreen() {
 
             {wizard.activeTrackers.length ? (
               <View style={{ paddingTop: 16 }}>
-                <Typography variant="eyebrow" style={{ marginBottom: 8 }}>TRACKERS</Typography>
+                <Typography variant="eyebrow" style={{ marginBottom: 8 }}>TASKS</Typography>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                   {wizard.activeTrackers.map((tracker) => (
                     <View
@@ -1650,7 +1650,7 @@ export default function GoalCreateScreen() {
             variant="caption"
             style={{ color: colors.feedback.danger.text, marginTop: 8, textAlign: 'center' }}
           >
-            Counter trackers need a target above zero and a unit.
+            Quantity Tasks need a target above zero and a unit.
           </Typography>
         ) : null}
         {!trackingTitlesValid ? (
@@ -1659,7 +1659,7 @@ export default function GoalCreateScreen() {
             variant="caption"
             style={{ color: colors.feedback.danger.text, marginTop: 8, textAlign: 'center' }}
           >
-            Milestones and active trackers need a title. Go back to edit or remove blank items.
+            Milestones and active Tasks need a title. Go back to edit or remove blank items.
           </Typography>
         ) : null}
       </View>

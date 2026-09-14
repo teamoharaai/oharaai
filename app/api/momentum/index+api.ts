@@ -3,9 +3,11 @@ import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 import { createServiceRoleClient } from '@/lib/db/service-client';
 import {
   getMomentumHomeSummary,
+  getMomentumTaskParity,
   safeDiagnostic,
   safeGoalDiagnostic,
 } from '@/features/momentum/services/momentum-service';
+import { FEATURES } from '@/constants/features';
 
 export async function GET(request: Request): Promise<Response> {
   if (!isDatabaseConfigured) {
@@ -20,12 +22,16 @@ async function handleGet(request: Request, _params: Record<string, string>, auth
     const writeDb = createServiceRoleClient();
     const result = await getMomentumHomeSummary(readDb, writeDb, auth.userId);
     const diagnosticsRequested = new URL(request.url).searchParams.get('diagnostics') === '1';
+    const taskParity = diagnosticsRequested && FEATURES.TASKS_V2_COMPARE_LEGACY
+      ? await getMomentumTaskParity(readDb, auth.userId)
+      : null;
     return Response.json({
       data: {
         ...result.summary,
         ...(diagnosticsRequested ? {
           diagnostic: safeDiagnostic(result.diagnostic),
           goalDiagnostics: result.goalDiagnostics.map(safeGoalDiagnostic),
+          ...(taskParity ? { taskParity } : {}),
         } : {}),
       },
     });

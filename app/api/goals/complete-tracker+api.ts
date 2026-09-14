@@ -1,11 +1,5 @@
 import { withAuth, type AuthContext } from '@/lib/api/auth';
-import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
-import { completeTracker, GoalExtensionError } from '@/lib/db/goals';
-
-type CompleteTrackerRequest = {
-  trackerId?: string;
-  goalId?: string;
-};
+import { isDatabaseConfigured } from '@/lib/db/client';
 
 export async function POST(request: Request): Promise<Response> {
   if (!isDatabaseConfigured) {
@@ -19,34 +13,10 @@ async function handlePost(
   _params: Record<string, string>,
   auth: AuthContext,
 ): Promise<Response> {
-  const authedDb = createAuthedClient(auth.accessToken);
-
-  let body: CompleteTrackerRequest;
-  try {
-    body = (await request.json()) as CompleteTrackerRequest;
-  } catch {
-    return Response.json({ error: 'Invalid request body' }, { status: 400 });
-  }
-
-  const trackerId = body.trackerId?.trim();
-  const goalId = body.goalId?.trim();
-
-  if (!trackerId || !goalId) {
-    return Response.json({ error: 'trackerId and goalId are required' }, { status: 400 });
-  }
-
-  try {
-    await completeTracker(trackerId, goalId, auth.userId, authedDb);
-    return Response.json({ success: true });
-  } catch (error) {
-    if (error instanceof GoalExtensionError && error.code === 'GOAL_HAS_SUCCESSOR') {
-      return Response.json(
-        { error: 'This goal has already been extended.' },
-        { status: 409 },
-      );
-    }
-
-    const message = error instanceof Error ? error.message : 'Failed to complete tracker';
-    return Response.json({ error: message }, { status: 500 });
-  }
+  void request;
+  void auth;
+  return Response.json(
+    { error: 'Legacy Tracker writes are disabled. Use canonical Tasks.' },
+    { status: 410 },
+  );
 }
