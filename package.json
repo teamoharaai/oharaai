@@ -18,6 +18,7 @@
     "test:auth": "node --experimental-strip-types --test features/auth/internal-release.test.ts features/auth/internal-release-ui.test.ts",
     "test:momentum": "node --experimental-strip-types --test features/momentum/engine.test.ts features/momentum/time.test.ts features/momentum/normalization.test.ts features/momentum/service.test.ts features/momentum/security.test.ts features/momentum/trust-boundary.test.ts features/momentum/refresh.test.ts features/momentum/local-target.test.ts",
     "test:ios-contract": "node --experimental-strip-types --test lib/api/ios-contract.test.ts",
+    "test:tracker-metrics": "node --experimental-strip-types --test lib/goals/tracker-cadence.test.ts lib/goals/tracker-period.test.ts lib/goals/due-today.test.ts lib/db/paginate.test.ts lib/db/tracker-mutations.test.ts features/goals/tracker-optimism.test.ts features/goals/tracker-display.test.ts features/goals/tracker-grouping.test.ts features/goals/tracker-card-display.test.ts features/goals/tracker-boundary.test.ts features/goals/tracker-detail-state.test.ts features/goals/dashboard-due-today.test.ts",
     "test:momentum:db": "bash scripts/test-momentum-security.sh",
     "test:momentum:local": "node --experimental-strip-types scripts/momentum-local.integration.mjs",
     "test:momentum:api": "node scripts/momentum-api.smoke.mjs",

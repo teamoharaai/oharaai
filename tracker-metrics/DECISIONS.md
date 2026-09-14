@@ -8,6 +8,47 @@ decision → consequence.
 
 ---
 
+## D-012 · 2026-09-14 · accepted — Task 10 release gate: accept the `HomeGoalPreview` legacy read; defer dead `updateTrackerValue` cleanup
+
+**Context:** Task 10's `current_value`/`currentValue` audit had to resolve two
+non-derived references and decide keep-with-justification vs. clean up, under the
+Task 10 ground rule that no product behavior changes unless the audit surfaces a
+real bug:
+
+1. **`app/(app)/dashboard.tsx:612`** — `HomeGoalPreview` picks a `nextTracker`
+   (`goal.trackers.find(t => t.targetValue === null || t.currentValue < t.targetValue)`)
+   to display *one tracker's title* as the "next up" label. This runs on the
+   dashboard goal-**list** path, where trackers come from `goal-service` (which
+   hydrates the legacy `Tracker.currentValue` from `current_value`) but
+   `periodState` is **never** populated — hydration only happens for the selected
+   goal in `useGoalDetail`. So `periodState` is unavailable here by construction.
+2. **`features/goals/store.ts:53–61`** — the `updateTrackerValue` store action
+   still writes `tracker.currentValue`, but `rg` confirms it has **zero callers**
+   (interface + implementation only). It is dead code.
+
+**Decision:**
+- **Keep the `HomeGoalPreview` read, with justification.** It is a legacy-safe
+  read *outside* period UI: it selects which title to show, never renders a
+  period value or completion state. Because `current_value` is now frozen (Task 5
+  stopped writing it), the heuristic is degraded — for post-Task-5 counters it
+  tends to `0 < target` (picks the first) — but the outcome is only *which label
+  appears*, which is harmless, not a correctness bug. Switching to the derived
+  value would require hydrating `periodState` for the entire dashboard goal list
+  (a real perf/product change), which is explicitly out of Task 10 scope.
+- **Do not delete `updateTrackerValue` in Task 10.** It is dead and therefore
+  legacy-safe (never executes). Removing it is a valid cleanup but is a
+  product-source change the release gate does not require; record it as an
+  optional post-initiative follow-up rather than mixing it into the gate.
+
+**Consequence:** No tracker **period UI** reads `trackers.current_value`; the two
+remaining non-derived references are documented and accepted. Two optional
+post-initiative cleanups are recorded in `OUTSTANDING.md` (remove
+`updateTrackerValue`; and, once the DB column is dropped under a separate approved
+schema change, remove `Tracker.currentValue` + its hydration and give
+`HomeGoalPreview` a hydrated/derived selection). Neither blocks the ship call.
+
+---
+
 ## D-011 · 2026-09-11 · accepted — Dashboard due-today: action-by-type, one-way card, boundary-refresh reuse
 
 **Context:** Task 9 migrates the dashboard due-today card off the legacy

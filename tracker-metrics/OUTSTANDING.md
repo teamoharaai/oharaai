@@ -8,27 +8,16 @@ Legend: ☐ not started · ◐ in progress · ☑ done · ⚠ blocked
 
 ## Next action
 
-**Start Task 10** (automated + manual verification / release gate). Task 9 is
-done → **GO**. Add a `test:tracker-metrics` package script covering cadence,
-derivation, due-today, and tracker-state tests; run the full matrix
-(`tsc`, `test:tracker-metrics`, `test:momentum`, goals tests); review remaining
-`current_value`/`currentValue` references for legacy-safety (incl. the flagged
-`HomeGoalPreview` goal-list read in `dashboard.tsx`); execute the manual matrix
-(counter/habit/checklist × daily/weekly/monthly, DST, null-cadence, timezone
-divergence, app-resume, prior-period backdating).
+**Initiative COMPLETE (Tasks 0–10 all done).** Task 10 (release gate) closed in
+session 010: `test:tracker-metrics` script added; full automated matrix green
+(`tsc` clean, tracker-metrics 116/116, momentum 64/64, goals 64/64,
+ios-contract 4/4, >1000-log fixture proven); `current_value` audit done (no
+period UI reads the scalar); deletion findings re-confirmed; manual matrix
+mapped to automated coverage; **ship call: SHIP (see below)**. New decision
+**D-012**. Nothing blocks release. No commit yet (awaiting go-ahead; target
+branch `main`). See `changelog/010-*`.
 
-Task 9 shipped the dashboard daily-state migration: new pure
-`lib/goals/due-today.ts` (`deriveDueTodayState` — tz-aware daily window via the
-shared cadence utils, log-derived completion, `periodEndExclusive`);
-`app/api/trackers/due-today+api.ts` now reads `profiles.timezone`, queries only
-today's window (paginated), and returns `currentPeriodValue`/
-`isCompletedThisPeriod`/`periodEndExclusive` instead of stale scalars;
-`dashboard.tsx` `DueTodayZone` posts to the shared `/api/trackers/log`
-(counter→`counter-log`, else `complete`), reconciles from `periodState`, and
-refreshes at local midnight via `useTrackerBoundaryRefresh`. The legacy
-`app/api/goals/complete-tracker` route + `completeTracker` wrapper are
-**deleted** (D-009 condition met); shared core/adapter kept. New decision
-**D-011**. See `changelog/009-*`.
+Only optional post-initiative cleanups remain (not blockers) — see Open items.
 
 ## Task status
 
@@ -43,7 +32,7 @@ refreshes at local midnight via `useTrackerBoundaryRefresh`. The legacy
 | 7 | Ongoing/Completed grouping | ☑ | Done session 007. Pure `partitionTrackersByCompletion`/`isTrackerCompleted` in `features/goals/tracker-grouping.ts`; `TrackersPanel` splits Ongoing/Completed off `periodState?.isCompleted` in a `useMemo([trackers])`, null-cadence stays Ongoing, headers only when non-empty (accessible), `sortOrder` preserved per section, cards keyed by id survive group moves. +10 tests; tsc clean; goals 43/43; momentum 64/64. No new decision. See `changelog/007-*`. |
 | 8 | Tracker card + habit-history rewrite | ☑ | Done session 008. Pure `features/goals/tracker-display.ts` (progress clamp, seven `recentPeriods` buckets oldest→newest current-last, a11y date/week/month labels) drives `TrackerCard` DISPLAY off `periodState` — counter value/progress, checklist checked/strike from `isCompleted`, habit dots from buckets (null → seven empty placeholders). Removed `displayValue` local state. Accessible checkbox toggle (`accessibilityRole="checkbox"`, checked) logs + calls `onUncompleteTracker`, threaded hook→`TrackersPanel`→`TrackerCard`. Dead `TrackerList` + its `Tracker` import removed from `GoalsWorkspace`. +15 tests (9 pure + 6 text-level); tsc clean; goals 58/58; momentum 64/64. New decision **D-010**. See `changelog/008-*`. |
 | 9 | Dashboard daily-state alignment | ☑ | Done session 009. New pure `lib/goals/due-today.ts` (`deriveDueTodayState` — tz-aware daily window + log-derived completion + `periodEndExclusive`); `due-today+api.ts` reads `profiles.timezone`, queries only today's window (paginated), returns `currentPeriodValue`/`isCompletedThisPeriod`/`periodEndExclusive` (dropped `currentValue`/`lastCompletedAt`); `dashboard.tsx` `DueTodayZone` on shared `/api/trackers/log` (counter→`counter-log`, else `complete`), reconciles `periodState`, refreshes at local midnight via `useTrackerBoundaryRefresh`. Legacy `complete-tracker` route + `completeTracker` wrapper **deleted** (D-009 met); core/adapter kept. +14 tests (8 pure + 6 text-level); tsc clean; goals+lib 129/129; momentum 64/64. New decision **D-011**. See `changelog/009-*`. |
-| 10 | Automated + manual verification | ☐ | **NEXT.** Add `test:tracker-metrics` script; full matrix; release gate. |
+| 10 | Automated + manual verification | ☑ | Done session 010. `test:tracker-metrics` script added (12 files); matrix green — `tsc` clean, tracker-metrics 116/116, momentum 64/64, goals 64/64, ios-contract 4/4; >1000-log fixture proves full sum/history. `current_value` audit: no period UI reads the scalar; only accepted `HomeGoalPreview` label read + dead `updateTrackerValue` + insert defaults remain (D-012). Deletion findings re-confirmed. Manual matrix mapped to automated coverage. **SHIP.** See `changelog/010-*`. |
 
 ## Open items / follow-ups
 
@@ -71,10 +60,23 @@ refreshes at local midnight via `useTrackerBoundaryRefresh`. The legacy
       dashboard migrated onto `/api/trackers/log`, both deleted, shared
       `logTrackerMutation`/adapter kept (D-009 condition met). `rg` confirms zero
       remaining references and a test asserts the files are gone.
-- [ ] **Task 10 current_value audit:** `HomeGoalPreview` in `dashboard.tsx`
+- [x] ~~**Task 10 current_value audit:** `HomeGoalPreview` in `dashboard.tsx`
       still reads `tracker.currentValue` on the goal-LIST path (`nextTracker`
-      selection). Pre-existing, outside the due-today card, legacy-safe for now —
-      confirm/clean in the Task 10 reference review.
+      selection)~~ → done session 010: verdict **keep-with-justification**
+      (legacy-safe read outside period UI, on the un-hydrated list path; label
+      picker only). Full audit table in `changelog/010-*`. See **D-012**.
+- [ ] **Optional post-initiative cleanup (not a blocker):** remove the dead
+      `updateTrackerValue` store action (`features/goals/store.ts:53` — zero
+      callers, still writes the legacy scalar). Deferred out of the release gate
+      per D-012.
+- [ ] **Optional post-initiative cleanup (needs separate schema approval):** once
+      `trackers.current_value` is dropped, remove `Tracker.currentValue` + its
+      `goal-service` hydration and give `HomeGoalPreview` a hydrated/derived
+      tracker selection. Tracked in "Deferred" (dropping the column).
+- [ ] **Manual matrix live column** — every settled semantic is automated; the
+      UI-wiring / SQL-backdate / device-tz / real-DST cases need a live
+      authed environment or the user (not app-drivable headless here). See the
+      coverage map in `changelog/010-*`.
 - [x] ~~**Task 8 wires `onUncompleteTracker`**~~ → done session 008: accessible
       checkbox toggle in `TrackerCard` (logs when unchecked, calls
       `onUncompleteTracker` when checked), threaded hook→`TrackersPanel`→

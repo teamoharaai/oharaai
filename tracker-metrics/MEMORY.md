@@ -3,9 +3,38 @@
 Durable facts that survive across sessions. Read this first. Append new facts;
 correct stale ones in place. Each fact is dated so drift is visible.
 
-## Repo realities (updated 2026-09-11)
+## Repo realities (updated 2026-09-14)
 
-- **Implementation state: Tasks 0–9 done.** **Task 9 done (session 009):** the
+- **Implementation state: Tasks 0–10 done — INITIATIVE COMPLETE.** **Task 10 done
+  (session 010, release gate):** added `test:tracker-metrics` npm script (12
+  files: `lib/goals/tracker-cadence|tracker-period|due-today.test.ts`,
+  `lib/db/paginate|tracker-mutations.test.ts`, `features/goals/tracker-optimism|
+  tracker-display|tracker-grouping|tracker-card-display|tracker-boundary|
+  tracker-detail-state.test.ts`, `features/goals/dashboard-due-today.test.ts`;
+  verified via `rg`/`ls`, `node --experimental-strip-types --test`). **Full matrix
+  green:** `npx tsc --noEmit` clean; `test:tracker-metrics` 116/116;
+  `test:momentum` 64/64; all `features/goals/*.test.ts` 64/64; `test:ios-contract`
+  4/4. **>1000-log fixture confirmed** (paginate.test.ts:47 → 1500 logs sum to
+  full `currentValue`; tracker-mutations.test.ts:335 → 1500×2 = achieved 3000; no
+  API row-ceiling truncation). **`current_value` audit:** no tracker *period UI*
+  reads `trackers.current_value`; only non-derived reads left are (a) the accepted
+  `HomeGoalPreview` label picker at `dashboard.tsx:612` on the un-hydrated
+  goal-list path + its `goal-service` hydration into `Tracker.currentValue`, and
+  the **dead** `updateTrackerValue` store action (`store.ts:53`, zero callers);
+  all writes are `NOT NULL DEFAULT 0` insert defaults; everything else is
+  `periodState`-derived. **Deletion findings re-confirmed:** legacy
+  `complete-tracker` route absent, `completeTracker` wrapper gone, `TrackerList`
+  gone; shared `logTrackerMutation`/adapter kept. **Manual matrix** mapped to
+  automated coverage — every settled semantic is unit-covered; the live column
+  (UI taps, SQL backdate, device-tz≠profile-tz, real DST wall-clock) needs an
+  authed live env or the user, not app-drivable headless here. New decision
+  **D-012** (accept `HomeGoalPreview` read; defer `updateTrackerValue` cleanup).
+  **Ship call: SHIP.** No commit yet (target branch `main`, awaiting go-ahead).
+  Optional post-initiative cleanups (non-blocking): remove `updateTrackerValue`;
+  and once `trackers.current_value` is dropped (separate schema approval), remove
+  `Tracker.currentValue` + hydration and derive `HomeGoalPreview` selection. See
+  `changelog/010-*`.
+- **Implementation state (prior): Tasks 0–9 done.** **Task 9 done (session 009):** the
   dashboard due-today card is migrated onto the shared mutation route and the
   legacy route is gone. New pure, node-tested `lib/goals/due-today.ts` (relative
   imports — D-004): `deriveDueTodayState(meta, logs, timezone, asOf)` derives the
