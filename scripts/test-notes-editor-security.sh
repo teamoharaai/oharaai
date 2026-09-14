@@ -8,7 +8,9 @@ REPOSITORY_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BOOTSTRAP_PATH="$REPOSITORY_ROOT/scripts/notes-editor-security-bootstrap.sql"
 MIGRATION_PATH="$REPOSITORY_ROOT/supabase/migrations/042_notes_editor_v2.sql"
 ECHO_MIGRATION_PATH="$REPOSITORY_ROOT/supabase/migrations/044_echo_v1_project_links.sql"
+ENTRIES_BRT_MIGRATION_PATH="$REPOSITORY_ROOT/supabase/migrations/045_entries_brt_idempotent_create.sql"
 TEST_PATH="$REPOSITORY_ROOT/scripts/notes-editor-security.test.sql"
+ENTRIES_BRT_TEST_PATH="$REPOSITORY_ROOT/scripts/entries-brt-idempotency.test.sql"
 
 if command -v pg_config >/dev/null 2>&1; then
   NOTES_PG_BIN="$(pg_config --bindir)"
@@ -56,4 +58,6 @@ echo "Verified disposable local PostgreSQL target: unix socket $NOTES_SOCKET_DIR
 "${PSQL[@]}" -f "$BOOTSTRAP_PATH" >/dev/null
 "${PSQL[@]}" -f "$MIGRATION_PATH" >/dev/null
 "${PSQL[@]}" -f "$ECHO_MIGRATION_PATH" >/dev/null
+"${PSQL[@]}" -f "$ENTRIES_BRT_MIGRATION_PATH" >/dev/null
 "${PSQL[@]}" -f "$TEST_PATH"
+"${PSQL[@]}" -f "$ENTRIES_BRT_TEST_PATH"

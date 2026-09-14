@@ -1,10 +1,10 @@
--- Migration 048: Goals V2.0 Phase 2B legacy Task backfill
+-- Migration 049: Goals V2.0 Phase 2B legacy Task backfill
 -- Preserves Trackers, tracker_logs, and action_logs in place while creating an
 -- idempotent canonical Task representation. No ambiguous history is inferred.
 --
 -- The implementation remains callable by service_role so release tooling can
 -- catch rows written by the previously deployed application after this initial
--- migration pass. Migration 050 performs the final catch-up and write freeze
+-- migration pass. Migration 051 performs the final catch-up and write freeze
 -- atomically once the canonical Task application is deployed.
 
 create or replace function public.run_tasks_legacy_catchup_v1()

@@ -41,7 +41,7 @@ create table public.projects (
   status text not null default 'active'
 );
 create table public.entries (
-  id uuid primary key,
+  id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   entry_type text not null,
   title text not null default '',
@@ -57,6 +57,11 @@ create table public.entries (
   schema_version integer not null default 1,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
+);
+create table public.echo_entries (
+  id uuid primary key references public.entries(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  brt_category text
 );
 
 create table storage.buckets (
@@ -101,14 +106,56 @@ language plpgsql
 security invoker
 set search_path = public
 as $$
+declare
+  v_entry_id uuid;
 begin
-  update public.entries
-  set title = p_title,
-      content = p_content,
-      plain_text = p_plain_text,
-      content_version = content_version + 1
-  where id = p_entry_id and user_id = auth.uid();
-  if not found then raise exception 'Entry not found'; end if;
-  return p_entry_id;
+  if auth.uid() is null then raise exception 'Unauthorized'; end if;
+
+  if p_entry_id is null then
+    insert into public.entries (
+      user_id,
+      entry_type,
+      title,
+      content,
+      plain_text,
+      reflection_type,
+      conversation_turns,
+      takeaway,
+      pinned,
+      archived,
+      completed_at
+    ) values (
+      auth.uid(),
+      p_entry_type,
+      p_title,
+      p_content,
+      p_plain_text,
+      p_reflection_type,
+      p_conversation_turns,
+      p_takeaway,
+      p_pinned,
+      p_archived,
+      p_completed_at
+    )
+    returning id into v_entry_id;
+  else
+    update public.entries
+    set entry_type = p_entry_type,
+        title = p_title,
+        content = p_content,
+        plain_text = p_plain_text,
+        reflection_type = p_reflection_type,
+        conversation_turns = p_conversation_turns,
+        takeaway = p_takeaway,
+        pinned = p_pinned,
+        archived = p_archived,
+        completed_at = p_completed_at,
+        content_version = content_version + 1
+    where id = p_entry_id and user_id = auth.uid()
+    returning id into v_entry_id;
+    if v_entry_id is null then raise exception 'Entry not found'; end if;
+  end if;
+
+  return v_entry_id;
 end;
 $$;

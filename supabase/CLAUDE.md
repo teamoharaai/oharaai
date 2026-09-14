@@ -176,6 +176,21 @@ Owner: CTO. Cascade Level 3.
   relationship to canonical Entries and the atomic `save_entry_v3` wrapper.
   Existing Entries and legacy Echo rows are not backfilled or rewritten; full
   Projects Version 1.0 remains outside this migration's scope.
+- 045_entries_brt_idempotent_create.sql: adds canonical nullable BRT storage and
+  owner-scoped create idempotency to Entries. Its `save_entry_v4` wrapper delegates
+  Project-aware V3 so native Reflection retries preserve the complete Echo contract.
+- 046_tracker_logs_period_index.sql: adds the production-applied compound covering
+  index used by legacy Tracker period reads and removes its redundant prefix index.
+- 047_goal_lifecycle_foundation.sql: adds explicit Goal expiration, lifecycle
+  timestamps, deadline history, same-ID extension, and atomic successor phases.
+- 048_tasks_activity_foundation.sql: adds canonical Tasks, versioned schedules,
+  durable occurrences, request receipts, and trusted owner-scoped mutation RPCs.
+- 049_tasks_legacy_backfill.sql: preserves surviving Tracker/action history through
+  idempotent provenance-backed Task and occurrence mappings without inferred data.
+- 050_tasks_new_phase_continuity.sql: carries eligible active Task definitions and
+  current schedules into atomic successor Goals without copying historical activity.
+- 051_tasks_release_cutover_controls.sql: provides service-role catch-up and mapping
+  verification, atomic authenticated legacy-write freeze, and narrow privilege restore.
 - goals.mode column was dropped in the 2026-06-24 squash (was a single-value
   CHECK column, no longer carried). lib/db/goals.ts no longer inserts it.
 

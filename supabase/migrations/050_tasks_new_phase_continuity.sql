@@ -1,4 +1,4 @@
--- Migration 049: carry canonical active Task definitions into a successor Goal.
+-- Migration 050: carry canonical active Task definitions into a successor Goal.
 -- Historical occurrences and legacy Tracker rows remain on the predecessor.
 
 create or replace function public.start_goal_new_phase_v1(

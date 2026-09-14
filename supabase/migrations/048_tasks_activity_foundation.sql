@@ -1,4 +1,4 @@
--- Migration 047: Goals V2.0 Phase 2B Tasks & Activity Foundation
+-- Migration 048: Goals V2.0 Phase 2B Tasks & Activity Foundation
 -- Canonical Task definitions, versioned schedules, durable occurrences, and
 -- trusted/idempotent mutation paths. Legacy source tables remain intact.
 

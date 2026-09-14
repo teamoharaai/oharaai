@@ -101,9 +101,9 @@ When in doubt, start inside the feature. Extract to shared only when a second co
 - Goal completion is a one-way action initiated from goal detail. It is not a
   reversible status toggle.
 - Migration `025_goal_milestones_trackers_archive.sql` records the older
-  `measurables` → Tracker rename. Migrations 047–050 supersede Trackers for new
+  `measurables` → Tracker rename. Migrations 048–051 supersede Trackers for new
   action writes without deleting or renaming those legacy tables. Migration
-  048's service-role-only catch-up is reused by Migration 050's atomic finalizer,
+  049's service-role-only catch-up is reused by Migration 051's atomic finalizer,
   which locks the legacy sources, verifies exact aggregate mappings, and only
   then freezes authenticated legacy DML. Read and service/admin access remain;
   the narrow rollback helper restores only the prior authenticated DML grants.

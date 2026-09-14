@@ -9,10 +9,10 @@ declare
   v_occurrence_count integer;
 begin
   if (select status from public.goals where id='11000000-0000-4000-8000-00000000000c')<>'expired' then
-    raise exception 'Migration 045 did not reconcile the past-deadline Goal';
+    raise exception 'Migration 047 did not reconcile the past-deadline Goal';
   end if;
   if (select status from public.goals where id='12000000-0000-4000-8000-00000000000c')<>'archived' then
-    raise exception 'Migration 045 did not repair the active predecessor';
+    raise exception 'Migration 047 did not repair the active predecessor';
   end if;
 
   select count(*) into v_tracker_count from public.trackers;

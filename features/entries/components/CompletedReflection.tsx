@@ -44,6 +44,7 @@ export function CompletedReflection({
         title,
         content: entry.content,
         plainText: entry.plainText,
+        brtCategory: entry.brtCategory,
         reflectionType: entry.reflectionType,
         conversationTurns: entry.conversationTurns,
         takeaway: takeaway.trim() || null,

@@ -12,12 +12,13 @@ TASK_SCHEDULE_TEST_PATH="$TASK_REPOSITORY_ROOT/scripts/tasks-schedule.test.sql"
 TASK_CONCURRENCY_TEST_PATH="$TASK_REPOSITORY_ROOT/scripts/tasks-concurrency.test.sql"
 TASK_PRODUCTION_FIXTURE_PATH="$TASK_REPOSITORY_ROOT/scripts/tasks-production-fixture.sql"
 TASK_BACKFILL_TEST_PATH="$TASK_REPOSITORY_ROOT/scripts/tasks-backfill.test.sql"
-TASK_MIGRATION_045="$TASK_REPOSITORY_ROOT/supabase/migrations/045_goal_lifecycle_foundation.sql"
+TASK_MIGRATION_045="$TASK_REPOSITORY_ROOT/supabase/migrations/045_entries_brt_idempotent_create.sql"
 TASK_MIGRATION_046="$TASK_REPOSITORY_ROOT/supabase/migrations/046_tracker_logs_period_index.sql"
-TASK_MIGRATION_047="$TASK_REPOSITORY_ROOT/supabase/migrations/047_tasks_activity_foundation.sql"
-TASK_MIGRATION_048="$TASK_REPOSITORY_ROOT/supabase/migrations/048_tasks_legacy_backfill.sql"
-TASK_MIGRATION_049="$TASK_REPOSITORY_ROOT/supabase/migrations/049_tasks_new_phase_continuity.sql"
-TASK_MIGRATION_050="$TASK_REPOSITORY_ROOT/supabase/migrations/050_tasks_release_cutover_controls.sql"
+TASK_MIGRATION_047="$TASK_REPOSITORY_ROOT/supabase/migrations/047_goal_lifecycle_foundation.sql"
+TASK_MIGRATION_048="$TASK_REPOSITORY_ROOT/supabase/migrations/048_tasks_activity_foundation.sql"
+TASK_MIGRATION_049="$TASK_REPOSITORY_ROOT/supabase/migrations/049_tasks_legacy_backfill.sql"
+TASK_MIGRATION_050="$TASK_REPOSITORY_ROOT/supabase/migrations/050_tasks_new_phase_continuity.sql"
+TASK_MIGRATION_051="$TASK_REPOSITORY_ROOT/supabase/migrations/051_tasks_release_cutover_controls.sql"
 TASK_NEW_PHASE_TEST_PATH="$TASK_REPOSITORY_ROOT/scripts/tasks-new-phase.test.sql"
 TASK_CUTOVER_TEST_PATH="$TASK_REPOSITORY_ROOT/scripts/tasks-cutover.test.sql"
 
@@ -62,20 +63,22 @@ echo "Applying production-present migration 046..."
 "${PSQL[@]}" -f "$TASK_MIGRATION_046" >/dev/null
 echo "Loading production-shaped legacy fixture..."
 "${PSQL[@]}" -f "$TASK_PRODUCTION_FIXTURE_PATH" >/dev/null
-echo "Applying locally pending migration 045..."
+echo "Applying upstream Entries migration 045..."
 "${PSQL[@]}" -f "$TASK_MIGRATION_045" >/dev/null
-echo "Applying Task foundation migration 047..."
+echo "Applying Goal lifecycle migration 047..."
 "${PSQL[@]}" -f "$TASK_MIGRATION_047" >/dev/null
-echo "Applying idempotent legacy backfill migration 048..."
+echo "Applying Task foundation migration 048..."
 "${PSQL[@]}" -f "$TASK_MIGRATION_048" >/dev/null
-echo "Applying New Phase Task continuity migration 049..."
+echo "Applying idempotent legacy backfill migration 049..."
 "${PSQL[@]}" -f "$TASK_MIGRATION_049" >/dev/null
-echo "Applying Task release cutover controls migration 050..."
+echo "Applying New Phase Task continuity migration 050..."
 "${PSQL[@]}" -f "$TASK_MIGRATION_050" >/dev/null
+echo "Applying Task release cutover controls migration 051..."
+"${PSQL[@]}" -f "$TASK_MIGRATION_051" >/dev/null
 echo "Running production-shaped legacy backfill assertions..."
 "${PSQL[@]}" -f "$TASK_BACKFILL_TEST_PATH"
-echo "Rerunning migration 048 to prove backfill idempotency..."
-"${PSQL[@]}" -f "$TASK_MIGRATION_048" >/dev/null
+echo "Rerunning migration 049 to prove backfill idempotency..."
+"${PSQL[@]}" -f "$TASK_MIGRATION_049" >/dev/null
 "${PSQL[@]}" -f "$TASK_BACKFILL_TEST_PATH" >/dev/null
 echo "Running Task foundation security and behavior assertions..."
 "${PSQL[@]}" -f "$TASK_TEST_PATH"

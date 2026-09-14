@@ -1,4 +1,4 @@
--- Migration 045: Goals V2.0 Phase 2A lifecycle foundation
+-- Migration 047: Goals V2.0 Phase 2A lifecycle foundation
 -- Adds explicit expiration, lifecycle timestamps, deadline history, and
 -- transactional same-goal extension / new-phase operations.
 

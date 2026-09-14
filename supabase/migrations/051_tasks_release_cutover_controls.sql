@@ -1,8 +1,8 @@
--- Migration 050: Goals V2.0 Phase 2B release cutover controls
+-- Migration 051: Goals V2.0 Phase 2B release cutover controls
 --
 -- This migration prepares, but does not execute, the production cutover. The
 -- service-role-only finalizer closes the migration/deployment race by locking
--- legacy write sources, rerunning Migration 048's canonical catch-up, proving
+-- legacy write sources, rerunning Migration 049's canonical catch-up, proving
 -- every surviving source has exactly one mapping, and only then revoking
 -- authenticated legacy mutations in the same transaction.
 
@@ -156,7 +156,7 @@ grant execute on function public.finalize_tasks_legacy_cutover_v1()
   to service_role;
 
 comment on function public.run_tasks_legacy_catchup_v1() is
-  'Idempotently maps surviving legacy Tracker/action rows using Migration 048 rules; service role only.';
+  'Idempotently maps surviving legacy Tracker/action rows using Migration 049 rules; service role only.';
 comment on function public.verify_tasks_legacy_cutover_v1() is
   'Returns aggregate-only legacy-to-Task mapping counts without user-generated content; service role only.';
 comment on function public.finalize_tasks_legacy_cutover_v1() is

@@ -21,6 +21,7 @@ function entry(overrides: Partial<EntryRecord> = {}): EntryRecord {
     title: overrides.title ?? 'A note',
     content: overrides.content ?? { type: 'doc', blocks: [] },
     plainText: overrides.plainText ?? 'Plain text',
+    brtCategory: overrides.brtCategory ?? null,
     reflectionType: overrides.reflectionType ?? null,
     conversationTurns: overrides.conversationTurns ?? [],
     takeaway: overrides.takeaway ?? null,

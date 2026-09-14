@@ -2,6 +2,10 @@ import {
   GOAL_CREATION_CATEGORIES,
   type GoalCreationCategory,
 } from '../../lib/goals/schema.ts';
+import {
+  BRT_CATEGORIES,
+  type BrtCategory,
+} from '../../lib/utils/resolveBrt.ts';
 import type {
   EntryDraft,
   EntryRelationships,
@@ -279,12 +283,30 @@ export function parseEntryDraft(value: unknown): EntryDraft {
   if (completedAt && Number.isNaN(new Date(completedAt).getTime())) {
     throw new Error('completedAt is invalid');
   }
+  const brtCategory = body.brtCategory === undefined
+    ? undefined
+    : body.brtCategory === null
+      ? null
+      : BRT_CATEGORIES.includes(body.brtCategory as BrtCategory)
+        ? body.brtCategory as BrtCategory
+        : (() => { throw new Error('brtCategory is invalid'); })();
+  if (entryType !== 'reflection' && brtCategory != null) {
+    throw new Error('brtCategory is invalid for non-reflection entries');
+  }
+  const clientRequestId = body.clientRequestId === undefined
+    ? undefined
+    : text(body.clientRequestId, 'clientRequestId', 100, false);
+  if (clientRequestId !== undefined && !UUID_PATTERN.test(clientRequestId)) {
+    throw new Error('clientRequestId is invalid');
+  }
 
   return {
     entryType,
     title: text(body.title, 'title', 200),
     content: parseDocument(body.content),
     plainText: text(body.plainText, 'plainText', 100000),
+    ...(brtCategory === undefined ? {} : { brtCategory }),
+    ...(clientRequestId === undefined ? {} : { clientRequestId }),
     reflectionType: entryType === 'reflection' ? reflectionType ?? 'open' : null,
     conversationTurns: entryType === 'reflection' ? parseTurns(body.conversationTurns) : [],
     takeaway: body.takeaway == null ? null : text(body.takeaway, 'takeaway', 20000),

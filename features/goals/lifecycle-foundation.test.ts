@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 const lifecycle = readFileSync(
-  resolve(process.cwd(), 'supabase/migrations/045_goal_lifecycle_foundation.sql'),
+  resolve(process.cwd(), 'supabase/migrations/047_goal_lifecycle_foundation.sql'),
   'utf8',
 );
 

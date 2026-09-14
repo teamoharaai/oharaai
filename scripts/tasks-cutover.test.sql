@@ -1,6 +1,6 @@
 \set ON_ERROR_STOP on
 
--- Migration 048 has already run. These synthetic rows represent writes from
+-- Migration 049 has already run. These synthetic rows represent writes from
 -- the previously deployed application during the migration/deployment gap.
 set role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-00000000000c',false);

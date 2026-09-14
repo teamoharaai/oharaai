@@ -71,7 +71,7 @@ test('archived Task history is visibly read-only even on an active Goal', () => 
 
 test('unscheduled legacy definitions remain visible without fabricated occurrences', () => {
   const panel = read('features/tasks/components/TasksPanel.tsx');
-  const backfill = read('supabase/migrations/048_tasks_legacy_backfill.sql');
+  const backfill = read('supabase/migrations/049_tasks_legacy_backfill.sql');
   assert.match(panel, /ImportedTaskDefinitionRow/);
   assert.match(panel, /Imported baseline:/);
   assert.match(panel, /timing needs confirmation/);
@@ -79,15 +79,15 @@ test('unscheduled legacy definitions remain visible without fabricated occurrenc
 });
 
 test('New Phase migration clones Tasks without cloning legacy Trackers', () => {
-  const migration = read('supabase/migrations/049_tasks_new_phase_continuity.sql');
+  const migration = read('supabase/migrations/050_tasks_new_phase_continuity.sql');
   assert.match(migration, /insert into public\.tasks/);
   assert.match(migration, /perform public\.reconcile_task_occurrences_v1/);
   assert.doesNotMatch(migration, /insert into public\.trackers/);
 });
 
 test('release cutover atomically catches, verifies, and freezes legacy writes', () => {
-  const backfill = read('supabase/migrations/048_tasks_legacy_backfill.sql');
-  const cutover = read('supabase/migrations/050_tasks_release_cutover_controls.sql');
+  const backfill = read('supabase/migrations/049_tasks_legacy_backfill.sql');
+  const cutover = read('supabase/migrations/051_tasks_release_cutover_controls.sql');
   const finalizer = cutover.slice(cutover.indexOf('create or replace function public.finalize_tasks_legacy_cutover_v1'));
 
   assert.match(backfill, /create or replace function public\.run_tasks_legacy_catchup_v1/);
