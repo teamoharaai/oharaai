@@ -6,6 +6,7 @@ export type ActivityKind =
   | 'echo_entry'
   | 'milestone_completed'
   | 'tracker_logged'
+  | 'task_completed'
   | 'goal_created'
   | 'vault_item_added'
   | 'insight_confirmed'
@@ -39,6 +40,13 @@ export interface TrackerLoggedActivity extends ActivityBase {
   note: string | null;
 }
 
+export interface TaskCompletedActivity extends ActivityBase {
+  kind: 'task_completed';
+  taskId: string;
+  occurrenceId: string;
+  label: string;
+}
+
 export interface GoalCreatedActivity extends ActivityBase {
   kind: 'goal_created';
 }
@@ -65,6 +73,7 @@ export type ActivityItem =
   | EchoEntryActivity
   | MilestoneCompletedActivity
   | TrackerLoggedActivity
+  | TaskCompletedActivity
   | GoalCreatedActivity
   | VaultItemAddedActivity
   | InsightConfirmedActivity
