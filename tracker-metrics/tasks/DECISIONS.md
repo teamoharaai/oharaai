@@ -9,6 +9,42 @@ decision → consequence.
 
 ---
 
+## TD-012 · 2026-09-16 · accepted — Teammate sign-off on PR #21; L1 is the engagement seam (not the whole recap context); placement is provisional
+
+**Context:** The `features/tasks` slice owner (also the weekly-recap + Entries
+owner) signed off on PR #21 (T1/T2/T3) with 👍 and no requested changes, raising
+two notes.
+
+**Note 1 — T1 boundary refresh timezone (confirmed):** The midnight-boundary
+refresh must use canonical profile/schedule tz, not device tz. **Verified:**
+`features/tasks/task-boundary.ts` derives the boundary from
+`occurrence.scheduleTimezone → active schedule.timezone → 'UTC'` (the same
+precedence `buildTaskSections` uses), via `zonedDateParts` / `localDateToUtcStart`
+in that canonical tz — never the browser/device clock. `useTaskBoundaryRefresh`
+also fires on RN foreground + web visibility/focus, so the timer is never trusted
+alone. No change needed.
+
+**Note 2 — L1 seam scope:** The owner accepts `ActivityDayBucket[]` as the stable
+L1 **engagement/activity** seam and endorses Phase C adding sources behind the
+same signature. **Caveat to honor:** the bucket shape is NOT the entire future
+weekly-recap context — the recap will combine this structured signal with richer
+Task/Milestone/Reflection/Note context. So: keep `ActivityDayBucket[]` frozen and
+source-additive (T4), but do NOT expand it into a general recap payload; richer
+recap context is assembled by the recap pipeline (TD-007, still OFF), not baked
+into L1.
+
+**Decision:** Sign-off recorded (TD-005 gate cleared → PR #21 merged, TD-011).
+The 7-day-row placement in `GoalAnalyticsCard` (TD-010) is explicitly
+**provisional** — the owner plans a Goals V2.0 UI-polish pass and may relocate the
+presentation later; that is safe precisely because it moves only the mount point,
+not the reader/contract.
+
+**Consequence:** T4 (Phase C union + heatmap) proceeds under the frozen L1 shape.
+The recap owner owns any richer-context aggregation. Presentation surface may move
+without reader/contract changes.
+
+---
+
 ## TD-011 · 2026-09-16 · accepted — T1+T2+T3 land as one PR in three coherent commits
 
 **Context:** TD-005 requires `features/tasks` changes land as reviewed PRs after

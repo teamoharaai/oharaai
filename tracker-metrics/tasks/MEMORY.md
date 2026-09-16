@@ -68,7 +68,13 @@ facts in place. Dated so drift is visible. Parent facts live in `../MEMORY.md`.
   session-001 `docs/CLAUDE.md` + `lib/ai/CLAUDE.md` corrections (kept in the docs
   commit because they belong to this initiative — they cite `design/002`).
 - **Merge gate (TD-005) — CLEARED:** teammate signed off on the `features/tasks`
-  slice + L1 shape and the user gave go-ahead; squash-merged 2026-09-16.
+  slice + L1 shape and the user gave go-ahead; squash-merged 2026-09-16. Sign-off
+  notes captured in **TD-012**: (1) T1 boundary refresh confirmed to use canonical
+  occurrence/schedule tz (not device tz); (2) `ActivityDayBucket[]` is the stable
+  **engagement** seam only — keep it frozen + source-additive in T4; the recap
+  pipeline (TD-007, OFF) assembles richer Task/Milestone/Reflection/Note context,
+  not L1; (3) the GoalAnalyticsCard placement (TD-010) is provisional — owner's
+  Goals V2.0 polish pass may relocate the row (mount point only, not reader/contract).
 - Pre-commit `/code-review high`: no blocking findings. Two low-sev notes
   (unbounded completed-occurrence read → the documented T5 trigger; tiny
   `isoWeekdayForYmd` duplication constrained by D-004) — left as-is.
