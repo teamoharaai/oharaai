@@ -41,6 +41,15 @@ export function scheduleLabel(task: Task): string {
   return schedule.intervalCount === 1 ? days : `Every ${schedule.intervalCount} weeks · ${days}`;
 }
 
+const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
+
+export function shortDate(localDate: string | null): string {
+  if (!localDate) return '';
+  const [year, month, day] = localDate.split('-').map((part) => Number.parseInt(part, 10));
+  if (!year || !month || !day || month < 1 || month > 12) return localDate;
+  return `${SHORT_MONTHS[month - 1]} ${day}`;
+}
+
 function occurrenceSortValue(occurrence: TaskOccurrence): string {
   return `${occurrence.scheduledLocalDate ?? '9999-12-31'}T${occurrence.scheduledLocalTime ?? '23:59:59'}`;
 }
@@ -75,6 +84,16 @@ export function buildTaskSections(tasks: readonly Task[], now = new Date()): Tas
   sections.upcoming.sort((a, b) => occurrenceSortValue(a.occurrence).localeCompare(occurrenceSortValue(b.occurrence)));
   sections.anytime.sort((a, b) => a.task.sortOrder - b.task.sortOrder || a.task.createdAt.localeCompare(b.task.createdAt));
   sections.completed.sort((a, b) => (b.occurrence.completedAt ?? '').localeCompare(a.occurrence.completedAt ?? ''));
+  // Collapse Upcoming to one row per task: its earliest future actionable
+  // occurrence. Upcoming is already ordered by occurrenceSortValue above, so the
+  // first entry seen per task.id is the earliest, and cross-task ordering by next
+  // date is preserved (TD-002).
+  const seenUpcoming = new Set<string>();
+  sections.upcoming = sections.upcoming.filter(({ task }) => {
+    if (seenUpcoming.has(task.id)) return false;
+    seenUpcoming.add(task.id);
+    return true;
+  });
   return sections;
 }
 

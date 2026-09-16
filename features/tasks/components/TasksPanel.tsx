@@ -9,7 +9,7 @@ import type { GoalMilestone, GoalStatus } from '@/features/goals/types';
 import { useThemeColors } from '@/store/uiStore';
 import { useGoalTasks } from '../hooks/useGoalTasks';
 import type { Task, TaskCompletionMode, TaskScheduleInput } from '../types';
-import { activeTaskSchedule, buildTaskSections, newTaskIdempotencyKey, scheduleLabel, TASK_WEEKDAYS } from '../utils';
+import { activeTaskSchedule, buildTaskSections, newTaskIdempotencyKey, scheduleLabel, shortDate, TASK_WEEKDAYS } from '../utils';
 
 type RecurrenceChoice = 'none' | 'daily' | 'weekly' | 'biweekly' | 'custom';
 
@@ -20,6 +20,7 @@ function TaskRow({
   onComplete,
   onAdjust,
   onEdit,
+  showNextDate,
 }: {
   task: Task;
   occurrence: Task['occurrences'][number];
@@ -27,9 +28,11 @@ function TaskRow({
   onComplete: (completed: boolean) => void;
   onAdjust: (delta: number) => void;
   onEdit: () => void;
+  showNextDate?: boolean;
 }) {
   const colors = useThemeColors();
   const completed = occurrence.status === 'completed';
+  const nextDate = showNextDate ? shortDate(occurrence.scheduledLocalDate) : '';
   const binary = task.completionMode === 'binary';
   const quantity = occurrence.actualQuantity ?? task.legacyCurrentValue ?? 0;
   const mutationDisabled = readOnly || task.status === 'archived';
@@ -58,7 +61,7 @@ function TaskRow({
         <Pressable accessibilityRole="button" disabled={readOnly || task.status !== 'active'} onPress={onEdit} style={{ flex: 1 }}>
           <Typography variant="emphasis-sm" style={completed ? { color: colors.text.muted } : undefined}>{task.title}</Typography>
           <Typography variant="caption" style={{ marginTop: 2 }}>
-            {scheduleLabel(task)}{task.milestoneId ? ' · Linked milestone' : ''}
+            {scheduleLabel(task)}{nextDate ? ` · next ${nextDate}` : ''}{task.milestoneId ? ' · Linked milestone' : ''}
           </Typography>
         </Pressable>
         {task.completionMode === 'quantity' ? (
@@ -358,9 +361,9 @@ export function TasksPanel({
   )), [taskState.tasks]);
   const readOnly = goalStatus !== 'active';
   const visibleSections = [
-    { definitions: [] as Task[], label: 'Today', rows: sections.today },
-    { definitions: [] as Task[], label: 'Upcoming', rows: sections.upcoming.slice(0, full ? 30 : 4) },
-    { definitions: importedNeedsTiming.slice(0, full ? 30 : 4), label: 'Anytime', rows: sections.anytime.slice(0, full ? 30 : 4) },
+    { definitions: [] as Task[], label: 'Today', rows: sections.today, showNextDate: false },
+    { definitions: [] as Task[], label: 'Upcoming', rows: sections.upcoming.slice(0, full ? 30 : 4), showNextDate: true },
+    { definitions: importedNeedsTiming.slice(0, full ? 30 : 4), label: 'Anytime', rows: sections.anytime.slice(0, full ? 30 : 4), showNextDate: false },
   ].filter((section) => section.rows.length || section.definitions.length);
 
   return (
@@ -392,6 +395,7 @@ export function TasksPanel({
                   onEdit={() => { setEditing(task); setFormVisible(true); }}
                   occurrence={occurrence}
                   readOnly={readOnly}
+                  showNextDate={section.showNextDate}
                   task={task}
                 />
               ))}
