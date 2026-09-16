@@ -9,9 +9,11 @@ Theme (current accent correction): neutral/off-white page and card surfaces, vib
 ## Data Model (Current)
 - **Spaces**: contained environments (personal | team | institutional | community). Every user has a personal space. goals and projects have nullable space_id FK.
 - **Goals**: atomic unit of behavior. Has separate one-time milestones and
-  repeatable trackers, status
+  repeatable **Tasks** (canonical since migrations 047–051: `tasks`,
+  `task_schedules`, `task_occurrences`), status
   (active/complete/stagnant/discovered/archived), category, and optional
-  project_id FK.
+  project_id FK. Legacy `trackers`/`tracker_logs` were superseded by Tasks and are
+  now read-only (`authenticated` writes frozen at the cutover).
 - **Projects**: long-term ambition containers. Aggregate multiple goals. Have their own Vault.
 - **Vaults**: goal-bound content workspaces. One vault per goal (auto-created). Contains vault_items (note | link | document | insight | action_update).
 - **Echo**: standalone journaling (BRT: Bud/Rose/Thorn). Separate Haiku-backed path in lib/ai/echo-client.ts.
@@ -39,7 +41,7 @@ Modules imported at _layout.tsx top level must NEVER throw at module load time.
 ### AI Layer
 - All AI calls go through lib/ai/client.ts (single chokepoint for logging, cost, model swapping)
 - Echo uses lib/ai/echo-client.ts (separate Haiku path, clean abstraction boundary)
-- Vault insights use lib/ai/vault-insights.ts (Haiku, suggestions only, user confirms)
+- Vault insights: PLANNED as lib/ai/vault-insights.ts (Haiku, suggestions only, user confirms) — NOT yet built; slated for the Vaults revival (see tracker-metrics/tasks/design/002). Do not cite as an existing module.
 - Phase 1: Haiku everywhere. Phase 2: Sonnet for goal creation.
 - AI-generated insights require user confirmation (metadata.confirmed). Never auto-applied.
 
@@ -51,8 +53,11 @@ Modules imported at _layout.tsx top level must NEVER throw at module load time.
 - Space creation failure must NOT block signup. Non-blocking, log errors.
 - Milestones are one-time goal-critical events; `milestones.completed_at` is
   their completion evidence (`NULL` means pending).
-- Trackers are counter, habit, or checklist measures with a repeatable
-  daily/weekly/monthly cadence. Do not model one-time events as trackers.
+- Tasks (canonical since migrations 047–051) are the repeatable/scheduled goal
+  measures: `completion_mode` binary | quantity, with versioned `task_schedules`
+  (daily | weekly — no monthly) and materialized `task_occurrences`. Do not model
+  one-time events as Tasks (use milestones). Legacy `trackers`/`tracker_logs` are
+  frozen (read-only) — never write them.
 - Archived is a fifth goal status. Archived goals stay out of normal feeds and
   are accessed through Settings.
 - Goal completion is one-way and may only be initiated from goal detail; do not
@@ -64,8 +69,9 @@ Modules imported at _layout.tsx top level must NEVER throw at module load time.
   feature, database, and service identifiers remain for compatibility.
 - Ohara AI (not Polaris, not Thuban, not Guides, not Clo/Lach/Atri)
 - Milestones (one-time critical goal events)
-- Trackers (counter, habit, or checklist measures; canonical schema name since
-  migration 025)
+- Tasks (canonical repeatable goal measures since migrations 047–051;
+  `completion_mode` binary | quantity). "Trackers" (migration 025) is the frozen
+  legacy predecessor — read-only, not for new work.
 - Vault (goal-bound workspace)
 - Constellation (personal visual graph), Atlas (B2B aggregate view)
 
