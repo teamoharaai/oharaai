@@ -7,6 +7,14 @@ Legend: ☐ not started · ◐ in progress · ☑ done · ⚠ blocked · ❓ nee
 
 ## Next action
 
+**T1+T2+T3 are on PR #21 (→ main), awaiting sign-off (session 004).** Reviewed
+PR opened per TD-005: https://github.com/teamoharaai/oharaai/pull/21 (branch
+`feat/port-tracker-optimism-boundary` @ `435b92e`). tsc clean; test:tasks 47/47.
+**MERGE IS GATED** on (a) teammate sign-off on the `features/tasks` slice + the
+L1 output shape and (b) the user's explicit go-ahead. The user may trigger
+`/code-review ultra 21` for the billed deep pass. TD-011 records the commit
+grouping. After merge → **T4 (union + heatmap)**.
+
 **T3 (L1 goal-activity, occurrences-only + 7-day row) is built (session 003).**
 New `lib/activity/goal-activity.ts` (pure `buildActivityWindow`, node-tested),
 `lib/db/goal-activity.ts` reader (Phase B `task_completed`), `types/activity.ts`
@@ -32,9 +40,9 @@ T2 (session 002) + T3 (session 003) both sit on
 |---|---|---|---|
 | T0 | Audit Tasks vs. salvage; scaffold docs | ☑ | Session 000. `audits/000`. |
 | T0.1 | Settle design (Intelligence/Vaults review, resolve §5) | ☑ | Session 001. `design/001`, `design/002`, TD-002/004–009. |
-| T1 | Optimism + boundary-refresh port | ☑ (merge pending) | On `feat/port-tracker-optimism-boundary` (`0317484`). Merge via PR + review (TD-005). tsc clean; test:tasks 32/32. |
-| T2 | Upcoming collapse (one row per task) | ☑ (merge pending) | Session 002. `changelog/002`. TD-002. tsc clean; test:tasks 38/38. On `feat/port-tracker-optimism-boundary`; PR + teammate sign-off pending (TD-005). |
-| T3 | L1 goal-activity, occurrences-only + 7-day row | ☑ (merge pending) | Session 003. `changelog/003`. TD-006 + TD-010. `lib/activity/goal-activity.ts` (pure, node-tested) + `lib/db/goal-activity.ts` + `GoalActivityRow` in `GoalAnalyticsCard` + `/api/goals/activity-window` + `useGoalActivityWindow`. tsc clean; test:tasks 47/47. PR + sign-off pending (TD-005). |
+| T1 | Optimism + boundary-refresh port | ☑ (PR #21) | On `feat/port-tracker-optimism-boundary` (`0317484`). PR #21 → main, sign-off pending (TD-005). tsc clean; test:tasks 32/32. |
+| T2 | Upcoming collapse (one row per task) | ☑ (PR #21) | Session 002, committed `0179197`. `changelog/002`. TD-002. tsc clean; test:tasks 38/38. PR #21 → main; teammate sign-off pending (TD-005). |
+| T3 | L1 goal-activity, occurrences-only + 7-day row | ☑ (PR #21) | Session 003, committed `0034a5b`. `changelog/003`. TD-006 + TD-010. `lib/activity/goal-activity.ts` (pure, node-tested) + `lib/db/goal-activity.ts` + `GoalActivityRow` in `GoalAnalyticsCard` + `/api/goals/activity-window` + `useGoalActivityWindow`. tsc clean; test:tasks 47/47. PR #21 → main; sign-off pending (TD-005). |
 | T4 | L1 cross-feature union + heatmap | ☐ | TD-006 Phase C. Add `entry_created` + `milestone_completed`; multi-emblem row + heatmap. |
 | T5 | Pagination helper (if needed) | ☐ | Low priority. Only if activity/occurrence reads exceed the row ceiling. |
 | — | L2 correlation seam | ⏸ OFF | TD-007. Design seam only; recap pipeline (teammate) owns it. Do not build. |

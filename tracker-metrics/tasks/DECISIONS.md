@@ -9,6 +9,32 @@ decision → consequence.
 
 ---
 
+## TD-011 · 2026-09-16 · accepted — T1+T2+T3 land as one PR in three coherent commits
+
+**Context:** TD-005 requires `features/tasks` changes land as reviewed PRs after
+sign-off. T1 was already committed+pushed (`0317484`); T2 + T3 were uncommitted
+working-tree changes. All three had to land together (T1 has no PR of its own).
+The working tree also carried session-001 `docs/CLAUDE.md` + `lib/ai/CLAUDE.md`
+constitution corrections.
+
+**Decision:** Open **one PR** (`feat/port-tracker-optimism-boundary` → `main`,
+PR #21) carrying T1+T2+T3. Group the new work into **three commits**: (1) T2 =
+`features/tasks/*`; (2) T3 = `lib/activity` + `lib/db/goal-activity` +
+`types/activity` + `features/goals/*` + `app/api/goals/activity-window` +
+`package.json`; (3) docs = `tracker-metrics/tasks/**` + `CHANGELOGCODEX.md` +
+the two CLAUDE.md corrections. The CLAUDE.md edits were **kept** in the docs
+commit (not dropped) because they are session-001 corrections of this
+initiative — they cite `design/002` and the Tasks-canonical / vault-insights
+facts this initiative established, and are already logged in the CHANGELOGCODEX
+session-001 entry.
+
+**Consequence:** History is not rewritten (T1 stays as its own commit). Reviewer
+sees T2, T3, and docs as separate reviewable units under one PR. Merge remains
+gated on teammate sign-off + user go-ahead (TD-005). If the review forces code
+changes, they append as new commits (supersede, don't rewrite).
+
+---
+
 ## TD-010 · 2026-09-16 · accepted — L1 emblem row lands in `GoalAnalyticsCard`, not the unmounted `AnalyticsPanel`/`IntelligencePanel`
 
 **Context:** `design/001` Part B (and TD-006) said to render the 7-day emblem row

@@ -55,6 +55,23 @@ facts in place. Dated so drift is visible. Parent facts live in `../MEMORY.md`.
 - L1 output shape is the stable seam for the recap pipeline (TD-007, kept OFF)
   and Phase C (T4) — do not change it; only add reader sources.
 
+## PR #21 opened — T1+T2+T3 land together (2026-09-16, session 004)
+
+- **PR:** https://github.com/teamoharaai/oharaai/pull/21 (`feat/port-tracker-optimism-boundary`
+  → `main`, HEAD `435b92e`). Spans T1 (`0317484`) + T2 (`0179197`) + T3
+  (`0034a5b`) + docs commit (`435b92e`). tsc clean; test:tasks 47/47.
+- **Commit grouping (TD-011):** T2 = `features/tasks/*`; T3 = `lib/activity` +
+  `lib/db/goal-activity` + `types/activity` + `features/goals/*` + `app/api` +
+  `package.json`; docs = `tracker-metrics/tasks/**` + `CHANGELOGCODEX.md` + the
+  session-001 `docs/CLAUDE.md` + `lib/ai/CLAUDE.md` corrections (kept in the docs
+  commit because they belong to this initiative — they cite `design/002`).
+- **MERGE GATED (do NOT merge):** needs (a) teammate sign-off on `features/tasks`
+  slice + L1 output shape (TD-005), (b) user's explicit go-ahead. `/code-review
+  ultra 21` is the user-triggered billed deep pass (agent cannot launch it).
+- Pre-commit `/code-review high`: no blocking findings. Two low-sev notes
+  (unbounded completed-occurrence read → the documented T5 trigger; tiny
+  `isoWeekdayForYmd` duplication constrained by D-004) — left as-is.
+
 ## Live DB (verified via mgmt API, 2026-09-15)
 
 - `schema_migrations` tops at **051**. `trackers`/`tracker_logs` readable but
