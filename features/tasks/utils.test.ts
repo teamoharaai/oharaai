@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { Task, TaskOccurrence } from './types.ts';
-import { buildTaskSections, scheduleLabel } from './utils.ts';
+import { buildTaskSections, scheduleLabel, shortDate } from './utils.ts';
 import { scheduleInput, validateQuantityConfiguration } from './validation.ts';
 
 function occurrence(overrides: Partial<TaskOccurrence> = {}): TaskOccurrence {
@@ -47,6 +47,75 @@ test('recurrence labels keep database concepts secondary', () => {
     timezone: 'America/New_York', isActive: true, source: 'user',
   }] });
   assert.equal(scheduleLabel(recurring), 'Every 2 weeks · Mon · Wed · Fri');
+});
+
+test('Upcoming collapses a daily task with a full horizon to one row', () => {
+  const now = new Date('2026-09-11T16:00:00.000Z'); // noon America/New_York → today 2026-09-11
+  const occurrences = Array.from({ length: 28 }, (_, index) => {
+    const day = String(12 + index).padStart(2, '0');
+    const date = index < 19 ? `2026-09-${day}` : `2026-10-${String(index - 18).padStart(2, '0')}`;
+    return occurrence({ id: `daily-${index}`, taskId: 'daily', scheduleId: 'schedule', scheduledLocalDate: date });
+  });
+  const sections = buildTaskSections([task({ id: 'daily', occurrences })], now);
+  assert.equal(sections.upcoming.length, 1);
+  assert.equal(sections.upcoming[0].occurrence.scheduledLocalDate, '2026-09-12');
+});
+
+test('Upcoming keeps one row per task, ordered by earliest next date', () => {
+  const now = new Date('2026-09-11T16:00:00.000Z');
+  const later = task({ id: 'later', occurrences: [
+    occurrence({ id: 'later-a', taskId: 'later', scheduleId: 'schedule', scheduledLocalDate: '2026-09-15' }),
+    occurrence({ id: 'later-b', taskId: 'later', scheduleId: 'schedule', scheduledLocalDate: '2026-09-16' }),
+  ] });
+  const sooner = task({ id: 'sooner', occurrences: [
+    occurrence({ id: 'sooner-a', taskId: 'sooner', scheduleId: 'schedule', scheduledLocalDate: '2026-09-13' }),
+    occurrence({ id: 'sooner-b', taskId: 'sooner', scheduleId: 'schedule', scheduledLocalDate: '2026-09-14' }),
+  ] });
+  const sections = buildTaskSections([later, sooner], now);
+  assert.deepEqual(sections.upcoming.map(({ task: item }) => item.id), ['sooner', 'later']);
+  assert.deepEqual(sections.upcoming.map(({ occurrence: item }) => item.scheduledLocalDate), ['2026-09-13', '2026-09-15']);
+});
+
+test('A task with a Today occurrence still collapses its future rows to one Upcoming row', () => {
+  const now = new Date('2026-09-11T16:00:00.000Z');
+  const mixed = task({ id: 'mixed', occurrences: [
+    occurrence({ id: 'mixed-today', taskId: 'mixed', scheduleId: 'schedule', scheduledLocalDate: '2026-09-11' }),
+    occurrence({ id: 'mixed-next', taskId: 'mixed', scheduleId: 'schedule', scheduledLocalDate: '2026-09-12' }),
+    occurrence({ id: 'mixed-later', taskId: 'mixed', scheduleId: 'schedule', scheduledLocalDate: '2026-09-13' }),
+  ] });
+  const sections = buildTaskSections([mixed], now);
+  assert.deepEqual(sections.today.map(({ occurrence: item }) => item.id), ['mixed-today']);
+  assert.equal(sections.upcoming.length, 1);
+  assert.equal(sections.upcoming[0].occurrence.scheduledLocalDate, '2026-09-12');
+});
+
+test('A weekly task collapses to its earliest future weekday occurrence', () => {
+  const now = new Date('2026-09-11T16:00:00.000Z'); // Fri 2026-09-11
+  const weekly = task({ id: 'weekly', occurrences: [
+    occurrence({ id: 'w-mon', taskId: 'weekly', scheduleId: 'schedule', scheduledLocalDate: '2026-09-14' }), // Mon
+    occurrence({ id: 'w-wed', taskId: 'weekly', scheduleId: 'schedule', scheduledLocalDate: '2026-09-16' }), // Wed
+    occurrence({ id: 'w-fri', taskId: 'weekly', scheduleId: 'schedule', scheduledLocalDate: '2026-09-18' }), // Fri
+  ] });
+  const sections = buildTaskSections([weekly], now);
+  assert.equal(sections.upcoming.length, 1);
+  assert.equal(sections.upcoming[0].occurrence.scheduledLocalDate, '2026-09-14');
+});
+
+test('A task with only completed occurrences has no Upcoming row', () => {
+  const now = new Date('2026-09-11T16:00:00.000Z');
+  const doneOnly = task({ id: 'done-only', occurrences: [
+    occurrence({ id: 'done-1', taskId: 'done-only', scheduleId: 'schedule', status: 'completed', scheduledLocalDate: '2026-09-09', completedAt: '2026-09-09T14:00:00Z' }),
+    occurrence({ id: 'done-2', taskId: 'done-only', scheduleId: 'schedule', status: 'completed', scheduledLocalDate: '2026-09-10', completedAt: '2026-09-10T14:00:00Z' }),
+  ] });
+  const sections = buildTaskSections([doneOnly], now);
+  assert.equal(sections.upcoming.length, 0);
+  assert.equal(sections.completed.length, 2);
+});
+
+test('shortDate renders a local calendar date without timezone drift', () => {
+  assert.equal(shortDate('2026-09-12'), 'Sep 12');
+  assert.equal(shortDate('2026-01-01'), 'Jan 1');
+  assert.equal(shortDate(null), '');
 });
 
 test('schedule and quantity validation reject ambiguous native configuration', () => {

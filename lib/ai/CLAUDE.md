@@ -5,7 +5,7 @@ Owner: CEO (Ariel). Cascade Level 2-3.
 ## Files
 - client.ts: Central AI gateway. ALL AI calls route through here. Single chokepoint.
 - echo-client.ts: Echo journaling (Haiku). BRT analysis. Clean abstraction — swap model here only.
-- vault-insights.ts: Vault intelligence (Haiku). Suggests insights, user confirms. Phase 1 deferrable.
+- vault-insights.ts: PLANNED, not yet built. Vault intelligence (Haiku), suggestions only + user confirm. Slated for the Vaults revival (tracker-metrics/tasks/design/002). Do not cite as an existing module.
 - pipelines/intelligence.ts: Only remaining pipeline wrapper. All other pipeline wrappers (create-goal, reflect, summarize) were removed — they were never adopted. Do NOT reintroduce the wrapper pattern. callLLM (via client.ts) is the canonical invocation path.
 
 ## Rules
@@ -15,7 +15,7 @@ Owner: CEO (Ariel). Cascade Level 2-3.
 - echo-client.ts after BRT analysis: write to echo_goal_links if goal tagged (manual, confirmed=true).
 - Auto-linking (no manual tag): keyword match only in Phase 1. No additional AI calls.
 - Failures in AI calls: log and return silently. Never surface errors to user for optional features.
-- Rate limit vault insights: max 1 per goal per 24 hours.
+- Rate limit vault insights: max 1 per goal per 24 hours (applies once vault-insights.ts is built).
 - Track all AI usage in ai_usage table.
 
 ## Voice

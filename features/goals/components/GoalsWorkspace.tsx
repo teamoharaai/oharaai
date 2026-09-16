@@ -37,6 +37,8 @@ import {
 } from '../goals-workspace';
 import { getGoalWorkspaceSelection } from '../navigation';
 import { useActivity } from '../hooks/useActivity';
+import { useGoalActivityWindow } from '../hooks/useGoalActivityWindow';
+import { GoalActivityRow } from './GoalActivityRow';
 import { useGoalDetail, type UseGoalDetailResult } from '../hooks/useGoalDetail';
 import { useGoals } from '../hooks/useGoals';
 import { useGoalStore } from '../store';
@@ -111,6 +113,8 @@ function activityPresentation(item: ActivityItem): { detail?: string; icon: keyo
         icon: 'trending-up-outline',
         title: `Logged ${item.label}`,
       };
+    case 'task_completed':
+      return { icon: 'checkbox-outline', title: `Completed ${item.label}` };
     case 'goal_created':
       return { icon: 'flag-outline', title: 'Goal created' };
     case 'vault_item_added':
@@ -1131,6 +1135,7 @@ function GoalAnalyticsCard({ goal, items, entries }: { goal: GoalWithDetails; it
   const accent = getCategoryAccentTheme(goal.category);
   const momentum = useGoalMomentumSummary(goal.id);
   const goalMomentum = momentum.goalSummary;
+  const activityWindow = useGoalActivityWindow(goal.id);
   const completedMilestones = goal.milestones.filter((milestone) => milestone.completedAt !== null).length;
   const recordedActions = items.filter((item) => item.kind !== 'goal_created').length;
   return (
@@ -1156,6 +1161,12 @@ function GoalAnalyticsCard({ goal, items, entries }: { goal: GoalWithDetails; it
             <Typography variant="caption" style={{ marginTop: SPACE.xs }}>{metric.label}</Typography>
           </View>
         ))}
+      </View>
+      <View style={{ marginTop: SPACE.xl }}>
+        <SectionHeading>LAST 7 DAYS</SectionHeading>
+        <View style={{ marginTop: SPACE.lg }}>
+          <GoalActivityRow buckets={activityWindow.buckets} loading={activityWindow.loading} />
+        </View>
       </View>
       <Typography variant="caption" style={{ marginTop: SPACE.lg }}>
         Goal progress and Goal Momentum are distinct: progress is the goal&apos;s completion value; Momentum reflects this week&apos;s consistency, progress evidence, reflection, and initiative.
