@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { UnauthorizedError } from '@/lib/api/client';
 import { refreshMomentumAfterMeaningfulMutation } from '@/features/momentum/hooks/useMomentumHomeSummary';
 import type { Task, TaskCreateInput, TaskOccurrence, TaskUpdateInput } from '../types';
 import {
@@ -26,6 +27,29 @@ import {
 } from '../task-optimism';
 import { useTaskBoundaryRefresh } from './useTaskBoundaryRefresh';
 
+// The goal-task fetch occasionally fails on a transient blip (a cold API route,
+// a momentary network hiccup) that clears on the next attempt — historically the
+// "Tasks could not be loaded" flash that vanished on manual refresh. Retry a
+// couple of times with a short backoff before surfacing the error so the panel
+// self-heals instead of the user. An UnauthorizedError is not transient
+// (authedFetch has already kicked off the sign-out/redirect), so it short-circuits.
+async function fetchGoalTasksResilient(goalId: string): Promise<Task[]> {
+  const attempts = 3;
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await getGoalTasks(goalId);
+    } catch (cause) {
+      if (cause instanceof UnauthorizedError) throw cause;
+      lastError = cause;
+      if (attempt < attempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+      }
+    }
+  }
+  throw lastError;
+}
+
 export function useGoalTasks(goalId: string) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,7 +66,7 @@ export function useGoalTasks(goalId: string) {
   const reload = useCallback(async () => {
     setIsLoading(true);
     try {
-      setTasks(await getGoalTasks(goalId));
+      setTasks(await fetchGoalTasksResilient(goalId));
       setError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Tasks could not be loaded.');
@@ -63,7 +87,7 @@ export function useGoalTasks(goalId: string) {
   // patch on any occurrence.
   const silentReload = useCallback(async () => {
     try {
-      const fresh = await getGoalTasks(goalId);
+      const fresh = await fetchGoalTasksResilient(goalId);
       if (registryRef.current.pending.size === 0) setTasks(fresh);
     } catch {
       // A background reconcile failure is non-fatal; the optimistic/occurrence
