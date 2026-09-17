@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   TextInput,
   View,
@@ -12,6 +13,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { AuthenticatedPageShell } from '@/components/layout/AuthenticatedPageShell';
+import { AnchoredPopover, type AnchorRect } from '@/components/ui/AnchoredPopover';
 import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Button } from '@/components/ui/Button';
 import { ProgressRing } from '@/components/ui/ProgressRing';
@@ -59,10 +61,19 @@ const STATUS_OPTIONS: ReadonlyArray<{ label: string; value: GoalWorkspaceStatusF
   { label: 'Paused', value: 'paused' },
 ];
 
+// The goal-list rail is narrow, so only the two primary filters stay as always-
+// visible chips; the rest collapse behind a single overflow pill (the "third"
+// slot) that pops out the remaining choices. The pill reflects the active
+// overflow filter when one is selected so the current view is never hidden.
+const PRIMARY_STATUS_OPTIONS = STATUS_OPTIONS.slice(0, 2);
+const OVERFLOW_STATUS_OPTIONS = STATUS_OPTIONS.slice(2);
+
+// 'tasks' stays a valid WorkspaceTab (used by TasksPanel's "See all" full-view
+// expansion) but is intentionally not listed here: the Tasks panel is always
+// mounted above the tab bar, so it needs no chip of its own.
 const DETAIL_TABS: ReadonlyArray<{ label: string; value: WorkspaceTab }> = [
   { label: 'Overview', value: 'overview' },
   { label: 'Milestones', value: 'milestones' },
-  { label: 'Tasks', value: 'tasks' },
   { label: 'Reflections', value: 'reflections' },
   { label: 'Notes', value: 'notes' },
   { label: 'Insights', value: 'insights' },
@@ -345,6 +356,39 @@ function GoalsHeader({
   );
 }
 
+function StatusChip({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const colors = useThemeColors();
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        alignItems: 'center',
+        backgroundColor: selected ? colors.background.selectedRow : 'transparent',
+        borderRadius: RADIUS.round,
+        justifyContent: 'center',
+        minHeight: 36,
+        minWidth: 60,
+        opacity: pressed ? 0.7 : 1,
+        paddingHorizontal: SPACE.lg,
+      })}
+    >
+      <Typography variant="caption" style={{ color: selected ? colors.text.accent : colors.text.secondary }}>
+        {label}
+      </Typography>
+    </Pressable>
+  );
+}
+
 function GoalStatusTabs({
   onChange,
   value,
@@ -353,33 +397,112 @@ function GoalStatusTabs({
   value: GoalWorkspaceStatusFilter;
 }) {
   const colors = useThemeColors();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [anchorRect, setAnchorRect] = useState<AnchorRect | null>(null);
+  const pillRef = useRef<View | null>(null);
+
+  const activeOverflow = OVERFLOW_STATUS_OPTIONS.find((option) => option.value === value) ?? null;
+  const overflowSelected = activeOverflow !== null;
+  // Pill mirrors the active overflow filter when one is on; otherwise it's a
+  // neutral "More" affordance.
+  const pillLabel = activeOverflow?.label ?? 'More';
+
+  function openMenu() {
+    const node = pillRef.current as
+      | (View & {
+          measureInWindow?: (
+            callback: (x: number, y: number, width: number, height: number) => void,
+          ) => void;
+        })
+      | null;
+    if (node?.measureInWindow) {
+      node.measureInWindow((x, y, width, height) => {
+        setAnchorRect({ x, y, width, height, top: y, left: x, right: x + width, bottom: y + height });
+        setMenuOpen(true);
+      });
+      return;
+    }
+    setMenuOpen(true);
+  }
+
+  function selectOverflow(next: GoalWorkspaceStatusFilter) {
+    setMenuOpen(false);
+    onChange(next);
+  }
+
   return (
     <View accessibilityRole="tablist" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md }}>
-      {STATUS_OPTIONS.map((option) => {
-        const selected = option.value === value;
-        return (
-          <Pressable
-            accessibilityRole="tab"
-            accessibilityState={{ selected }}
-            key={option.value}
-            onPress={() => onChange(option.value)}
-            style={({ pressed }) => ({
-              alignItems: 'center',
-              backgroundColor: selected ? colors.background.selectedRow : 'transparent',
-              borderRadius: RADIUS.round,
-              justifyContent: 'center',
-              minHeight: 36,
-              minWidth: 60,
-              opacity: pressed ? 0.7 : 1,
-              paddingHorizontal: SPACE.lg,
-            })}
-          >
-            <Typography variant="caption" style={{ color: selected ? colors.text.accent : colors.text.secondary }}>
-              {option.label}
-            </Typography>
-          </Pressable>
-        );
-      })}
+      {PRIMARY_STATUS_OPTIONS.map((option) => (
+        <StatusChip
+          key={option.value}
+          label={option.label}
+          onPress={() => onChange(option.value)}
+          selected={option.value === value}
+        />
+      ))}
+
+      <View collapsable={false} ref={pillRef}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="More goal filters"
+          accessibilityState={{ expanded: menuOpen, selected: overflowSelected }}
+          onPress={openMenu}
+          style={({ pressed }) => ({
+            alignItems: 'center',
+            backgroundColor: overflowSelected ? colors.background.selectedRow : colors.background.input,
+            borderRadius: RADIUS.round,
+            flexDirection: 'row',
+            gap: SPACE.sm,
+            justifyContent: 'center',
+            minHeight: 36,
+            minWidth: 60,
+            opacity: pressed ? 0.7 : 1,
+            paddingHorizontal: SPACE.lg,
+          })}
+        >
+          <Typography variant="caption" style={{ color: overflowSelected ? colors.text.accent : colors.text.secondary }}>
+            {pillLabel}
+          </Typography>
+          <Ionicons
+            color={overflowSelected ? colors.text.accent : colors.text.secondary}
+            name="chevron-down"
+            size={13}
+          />
+        </Pressable>
+      </View>
+
+      <AnchoredPopover
+        anchorRect={anchorRect}
+        onDismiss={() => setMenuOpen(false)}
+        visible={menuOpen}
+        contentStyle={{ minWidth: 160, paddingVertical: SPACE.sm }}
+      >
+        {OVERFLOW_STATUS_OPTIONS.map((option) => {
+          const selected = option.value === value;
+          return (
+            <Pressable
+              accessibilityRole="menuitem"
+              accessibilityState={{ selected }}
+              key={option.value}
+              onPress={() => selectOverflow(option.value)}
+              style={({ pressed }) => ({
+                alignItems: 'center',
+                backgroundColor: pressed || selected ? colors.background.selectedRow : 'transparent',
+                flexDirection: 'row',
+                gap: SPACE.md,
+                justifyContent: 'space-between',
+                minHeight: 44,
+                paddingHorizontal: SPACE.lg,
+              })}
+            >
+              <Typography variant="caption" style={{ color: selected ? colors.text.accent : colors.text.primary }}>
+                {option.label}
+              </Typography>
+              {selected ? <Ionicons color={colors.text.accent} name="checkmark" size={14} /> : null}
+            </Pressable>
+          );
+        })}
+      </AnchoredPopover>
     </View>
   );
 }
@@ -1048,10 +1171,12 @@ function GoalTabContent({
             hasSuccessor={goal.has_successor}
             milestones={goal.milestones}
             onAdd={goalDetail.onAddMilestone}
+            onAttachPhoto={goalDetail.onAttachMilestonePhoto}
             onComplete={goalDetail.onCompleteMilestone}
             onDelete={goalDetail.onDeleteMilestone}
             onDismissError={goalDetail.clearMilestoneError}
             onSave={goalDetail.onSaveMilestone}
+            resolvePhotoUrl={goalDetail.resolveMilestonePhotoUrl}
           />
         </WorkspaceSection>
         <View style={{ backgroundColor: colors.border.divider, height: 1 }} />
@@ -1094,10 +1219,12 @@ function GoalTabContent({
             hasSuccessor={goal.has_successor}
             milestones={goal.milestones}
             onAdd={goalDetail.onAddMilestone}
+            onAttachPhoto={goalDetail.onAttachMilestonePhoto}
             onComplete={goalDetail.onCompleteMilestone}
             onDelete={goalDetail.onDeleteMilestone}
             onDismissError={goalDetail.clearMilestoneError}
             onSave={goalDetail.onSaveMilestone}
+            resolvePhotoUrl={goalDetail.resolveMilestonePhotoUrl}
           />
         ) : null}
         {tab === 'reflections' ? (
@@ -1481,12 +1608,20 @@ export function GoalsWorkspace() {
     selected?: string | string[];
     status?: string | string[];
   }>();
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [workspaceWidth, setWorkspaceWidth] = useState(0);
   const responsiveWidth = workspaceWidth || windowWidth;
   const wide = responsiveWidth >= 1120;
   const tablet = responsiveWidth >= 680 && !wide;
   const compactHeader = responsiveWidth < 700;
+  // Side-by-side layouts: pin the goal-list rail and give it its own scroll
+  // ("scrollable roll") so a long list rolls internally instead of stretching
+  // the page, while the center panel keeps scrolling the whole page. Web-only —
+  // sticky/overflow-y have no native equivalent, and the stacked narrow layout
+  // shouldn't cap the list height.
+  const stickyRail: StyleProp<ViewStyle> = Platform.OS === 'web'
+    ? ({ position: 'sticky', top: SPACE.lg, maxHeight: windowHeight - SPACE.lg * 2, overflowY: 'auto' } as unknown as ViewStyle)
+    : null;
   const requestedStatus = Array.isArray(params.status) ? params.status[0] : params.status;
   const [status, setStatus] = useState<GoalWorkspaceStatusFilter>(() => (
     STATUS_OPTIONS.some((option) => option.value === requestedStatus)
@@ -1592,7 +1727,7 @@ export function GoalsWorkspace() {
           </View>
         ) : wide ? (
           <View style={{ alignItems: 'flex-start', flexDirection: 'row', gap: SPACE.xl }}>
-            <View style={{ flex: 0.82, gap: SPACE.lg, minWidth: 300 }}>
+            <View style={[{ flex: 0.82, gap: SPACE.lg, minWidth: 300 }, stickyRail]}>
               <GoalList
                 categories={categories}
                 category={category}
@@ -1633,7 +1768,7 @@ export function GoalsWorkspace() {
           </View>
         ) : tablet ? (
           <View style={{ alignItems: 'flex-start', flexDirection: 'row', gap: SPACE.xl }}>
-            <View style={{ flex: 0.8, minWidth: 280 }}>
+            <View style={[{ flex: 0.8, minWidth: 280 }, stickyRail]}>
               <GoalList
                 categories={categories}
                 category={category}

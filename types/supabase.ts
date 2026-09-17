@@ -1028,7 +1028,11 @@ export type Database = {
           goal_id: string
           id: string
           is_ai_suggested: boolean
+          kind: string
+          parent_id: string | null
+          photo_url: string | null
           sort_order: number
+          target_count: number | null
           title: string
           updated_at: string
           user_id: string
@@ -1041,7 +1045,11 @@ export type Database = {
           goal_id: string
           id?: string
           is_ai_suggested?: boolean
+          kind?: string
+          parent_id?: string | null
+          photo_url?: string | null
           sort_order?: number
+          target_count?: number | null
           title: string
           updated_at?: string
           user_id: string
@@ -1054,7 +1062,11 @@ export type Database = {
           goal_id?: string
           id?: string
           is_ai_suggested?: boolean
+          kind?: string
+          parent_id?: string | null
+          photo_url?: string | null
           sort_order?: number
+          target_count?: number | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -1065,6 +1077,13 @@ export type Database = {
             columns: ["goal_id"]
             isOneToOne: false
             referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "milestones_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "milestones"
             referencedColumns: ["id"]
           },
         ]

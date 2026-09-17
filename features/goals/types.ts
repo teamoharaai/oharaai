@@ -42,6 +42,14 @@ export interface Goal {
   embedding_model?: string | null;
 }
 
+/**
+ * Milestone variants. `prep` is a lightweight enabling step (buy running shoes);
+ * `achievement` is a story-bearing accomplishment that can carry a hero photo,
+ * a surfaced reflection, and sub-milestones. Achievements are the substrate the
+ * Phase 2 social layer will surface.
+ */
+export type MilestoneKind = 'prep' | 'achievement';
+
 export interface GoalMilestone {
   id: string;
   goalId: string;
@@ -52,6 +60,13 @@ export interface GoalMilestone {
   completedAt: Date | null;
   sortOrder: number;
   isAiSuggested: boolean;
+  kind: MilestoneKind;
+  /** Non-null on a sub-milestone; points at its parent achievement milestone. */
+  parentId: string | null;
+  /** Optional target for an achievement with sub-milestones (e.g. 3 recipes). */
+  targetCount: number | null;
+  /** Storage path of the hero evidence photo (milestone-photos bucket). */
+  photoUrl: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -116,6 +131,10 @@ export interface GoalMilestoneInput {
   dueDate?: Date | null;
   sortOrder?: number;
   isAiSuggested?: boolean;
+  kind?: MilestoneKind;
+  parentId?: string | null;
+  targetCount?: number | null;
+  photoUrl?: string | null;
 }
 
 export interface GoalMilestoneUpdates {
@@ -124,6 +143,9 @@ export interface GoalMilestoneUpdates {
   dueDate?: Date | null;
   completedAt?: Date | null;
   sortOrder?: number;
+  kind?: MilestoneKind;
+  targetCount?: number | null;
+  photoUrl?: string | null;
 }
 
 export interface TrackerInput {

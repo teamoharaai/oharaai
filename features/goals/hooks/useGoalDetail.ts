@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
 import { authedFetch, UnauthorizedError } from '@/lib/api/client';
 import { refreshMomentumAfterMeaningfulMutation } from '@/features/momentum/hooks/useMomentumHomeSummary';
 import supabase from '@/lib/db/client';
+import {
+  createSignedMilestonePhotoUrl,
+  removeMilestonePhoto,
+  uploadMilestonePhoto,
+} from '../services/milestone-image-service';
 import {
   completeMilestone,
   createMilestone,
@@ -37,6 +43,8 @@ export interface UseGoalDetailResult {
   onDeleteMilestone: (milestoneId: string) => Promise<void>;
   onAddMilestone: (input: GoalMilestoneInput) => Promise<void>;
   onCompleteMilestone: (milestoneId: string) => Promise<void>;
+  onAttachMilestonePhoto: (milestoneId: string) => Promise<void>;
+  resolveMilestonePhotoUrl: (storagePath: string) => Promise<string>;
   onUpdateDeadline: (deadline: Date | null) => Promise<boolean>;
   onUpdateProject: (projectId: string | null) => Promise<boolean>;
   onUpdateDescription: (description: string | null) => Promise<boolean>;
@@ -295,6 +303,42 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
     void refreshMomentumAfterMeaningfulMutation();
   }, [completingMilestoneIds, goalId, readOnlyGoal, upsertMilestone]);
 
+  // Photo evidence lives on the milestone card (the id already exists), which
+  // also fits authoring a milestone ahead of time and adding the photo once the
+  // achievement actually happens. Picking + upload are side effects, so they
+  // live here; the panel receives this as a prop and stays free of services.
+  const onAttachMilestonePhoto = useCallback(async (milestoneId: string) => {
+    const currentGoal = readOnlyGoal();
+    const current = currentGoal?.milestones.find((item) => item.id === milestoneId);
+    if (!current) return;
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setMilestoneError('Photo library permission is required to add a photo.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+
+    setMilestoneError(null);
+    try {
+      const blob = await (await fetch(result.assets[0].uri)).blob();
+      const { storagePath } = await uploadMilestonePhoto(milestoneId, blob);
+      const saved = await updateMilestone(goalId, milestoneId, { photoUrl: storagePath });
+      if (!saved) {
+        setMilestoneError('Failed to save the photo. Please try again.');
+        return;
+      }
+      if (current.photoUrl) void removeMilestonePhoto(current.photoUrl);
+      upsertMilestone(goalId, saved);
+    } catch {
+      setMilestoneError('Failed to upload the photo. Please try again.');
+    }
+  }, [goalId, readOnlyGoal, upsertMilestone]);
+
   const persistGoalUpdate = useCallback(async (
     optimistic: GoalWithDetails,
     updates: Parameters<typeof updateGoal>[1],
@@ -385,6 +429,8 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
     onDeleteMilestone,
     onAddMilestone,
     onCompleteMilestone,
+    onAttachMilestonePhoto,
+    resolveMilestonePhotoUrl: createSignedMilestonePhotoUrl,
     onUpdateDeadline,
     onUpdateProject,
     onUpdateDescription,

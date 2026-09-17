@@ -57,6 +57,10 @@ type DbMilestone = {
   completed_at: string | null;
   sort_order: number;
   is_ai_suggested: boolean;
+  kind: string;
+  parent_id: string | null;
+  target_count: number | null;
+  photo_url: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -218,6 +222,10 @@ function mapMilestone(row: DbMilestone): GoalMilestone {
     completedAt: toDate(row.completed_at),
     sortOrder: row.sort_order,
     isAiSuggested: row.is_ai_suggested,
+    kind: row.kind === 'prep' ? 'prep' : 'achievement',
+    parentId: row.parent_id,
+    targetCount: row.target_count,
+    photoUrl: row.photo_url,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -371,7 +379,8 @@ export const GOAL_SELECT = `
   prior_phase_summary, reflection, reflected_at, created_at, updated_at,
   milestones (
     id, goal_id, user_id, title, description, due_date, completed_at,
-    sort_order, is_ai_suggested, created_at, updated_at
+    sort_order, is_ai_suggested, kind, parent_id, target_count, photo_url,
+    created_at, updated_at
   ),
   trackers (
     id, goal_id, title, type, target_value, target_unit, frequency,
@@ -592,6 +601,10 @@ export async function createMilestone(
       due_date: input.dueDate?.toISOString() ?? null,
       sort_order: input.sortOrder ?? 0,
       is_ai_suggested: input.isAiSuggested ?? false,
+      kind: input.kind ?? 'achievement',
+      parent_id: input.parentId ?? null,
+      target_count: input.targetCount ?? null,
+      photo_url: input.photoUrl ?? null,
     })
     .select()
     .single();
@@ -612,6 +625,9 @@ export async function updateMilestone(
   if ('description' in updates) patch.description = updates.description?.trim() || null;
   if ('dueDate' in updates) patch.due_date = updates.dueDate?.toISOString() ?? null;
   if (updates.sortOrder !== undefined) patch.sort_order = updates.sortOrder;
+  if (updates.kind !== undefined) patch.kind = updates.kind;
+  if ('targetCount' in updates) patch.target_count = updates.targetCount ?? null;
+  if ('photoUrl' in updates) patch.photo_url = updates.photoUrl ?? null;
 
   if (Object.keys(patch).length === 0) return null;
 

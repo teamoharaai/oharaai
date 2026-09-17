@@ -5,6 +5,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useThemeColors } from '@/store/uiStore';
 import { Button } from './Button';
 import { Modal } from './Modal';
@@ -17,6 +18,12 @@ export interface DatePickerProps {
   accessibilityLabel?: string;
   allowClear?: boolean;
   clearLabel?: string;
+  /**
+   * Renders the trigger as a bare calendar icon that reveals the `placeholder`
+   * label on hover (web) and the chosen date once set. The calendar popup is
+   * unchanged. Handy for optional dates tucked behind a "More options" reveal.
+   */
+  compact?: boolean;
   disabled?: boolean;
   error?: string | null;
   maximumDate?: string;
@@ -121,6 +128,7 @@ export function DatePicker({
   accessibilityLabel = 'Date',
   allowClear = false,
   clearLabel = 'Clear date',
+  compact = false,
   disabled = false,
   error = null,
   maximumDate,
@@ -136,6 +144,7 @@ export function DatePicker({
   const maximum = useMemo(() => parseCalendarDate(maximumDate), [maximumDate]);
   const committed = useMemo(() => parseCalendarDate(value), [value]);
   const [visible, setVisible] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const [draft, setDraft] = useState<Date>(() => initialSelection(value, minimum, maximum));
   const [visibleMonth, setVisibleMonth] = useState<Date>(() => {
     const selection = initialSelection(value, minimum, maximum);
@@ -197,55 +206,104 @@ export function DatePicker({
 
   return (
     <>
-      <Pressable
-        accessibilityHint={error ?? 'Opens a calendar'}
-        accessibilityLabel={accessibilityLabel}
-        accessibilityRole="button"
-        accessibilityState={{ disabled, expanded: visible }}
-        disabled={disabled}
-        onPress={openPicker}
-        style={({ pressed }) => [
-          {
-            alignItems: 'center',
-            backgroundColor: colors.background.input,
-            borderColor: error ? colors.feedback.danger.border : colors.border.input,
-            borderRadius: 12,
-            borderWidth: 1,
-            flexDirection: 'row',
-            gap: 10,
-            minHeight: 44,
-            minWidth: 190,
-            opacity: disabled ? 0.5 : pressed ? 0.72 : 1,
-            paddingHorizontal: 14,
-            paddingVertical: 10,
-          },
-          style,
-        ]}
-      >
-        <Typography
-          accessibilityElementsHidden
-          importantForAccessibility="no"
-          variant="body"
-          style={{ color: colors.text.accent }}
+      {compact ? (
+        <Pressable
+          accessibilityHint={error ?? 'Opens a calendar'}
+          accessibilityLabel={accessibilityLabel}
+          accessibilityRole="button"
+          accessibilityState={{ disabled, expanded: visible }}
+          disabled={disabled}
+          onHoverIn={() => setHovered(true)}
+          onHoverOut={() => setHovered(false)}
+          onPress={openPicker}
+          style={({ pressed }) => [
+            {
+              alignItems: 'center',
+              alignSelf: 'flex-start',
+              backgroundColor: colors.background.input,
+              borderColor: error
+                ? colors.feedback.danger.border
+                : committed
+                  ? colors.border.accent
+                  : colors.border.input,
+              borderRadius: 10,
+              borderWidth: 1,
+              flexDirection: 'row',
+              gap: 8,
+              minHeight: 40,
+              opacity: disabled ? 0.5 : pressed ? 0.72 : 1,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+            },
+            style,
+          ]}
         >
-          ▦
-        </Typography>
-        <Typography
-          numberOfLines={1}
-          variant="meta"
-          style={{ color: committed ? colors.text.primary : colors.text.muted, flex: 1 }}
+          <Ionicons
+            color={committed ? colors.text.accent : colors.text.muted}
+            name="calendar-outline"
+            size={18}
+          />
+          {committed ? (
+            <Typography numberOfLines={1} variant="meta" style={{ color: colors.text.primary }}>
+              {formatDisplayDate(committed)}
+            </Typography>
+          ) : hovered ? (
+            <Typography numberOfLines={1} variant="meta" style={{ color: colors.text.muted }}>
+              {placeholder}
+            </Typography>
+          ) : null}
+        </Pressable>
+      ) : (
+        <Pressable
+          accessibilityHint={error ?? 'Opens a calendar'}
+          accessibilityLabel={accessibilityLabel}
+          accessibilityRole="button"
+          accessibilityState={{ disabled, expanded: visible }}
+          disabled={disabled}
+          onPress={openPicker}
+          style={({ pressed }) => [
+            {
+              alignItems: 'center',
+              backgroundColor: colors.background.input,
+              borderColor: error ? colors.feedback.danger.border : colors.border.input,
+              borderRadius: 12,
+              borderWidth: 1,
+              flexDirection: 'row',
+              gap: 10,
+              minHeight: 44,
+              minWidth: 190,
+              opacity: disabled ? 0.5 : pressed ? 0.72 : 1,
+              paddingHorizontal: 14,
+              paddingVertical: 10,
+            },
+            style,
+          ]}
         >
-          {committed ? formatDisplayDate(committed) : placeholder}
-        </Typography>
-        <Typography
-          accessibilityElementsHidden
-          importantForAccessibility="no"
-          variant="caption"
-          style={{ color: colors.text.muted }}
-        >
-          ▾
-        </Typography>
-      </Pressable>
+          <Typography
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+            variant="body"
+            style={{ color: colors.text.accent }}
+          >
+            ▦
+          </Typography>
+          <Typography
+            numberOfLines={1}
+            variant="meta"
+            style={{ color: committed ? colors.text.primary : colors.text.muted, flex: 1 }}
+          >
+            {committed ? formatDisplayDate(committed) : placeholder}
+          </Typography>
+          <Typography
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+            variant="caption"
+            style={{ color: colors.text.muted }}
+          >
+            ▾
+          </Typography>
+        </Pressable>
+      )}
 
       <Modal
         closeOnBackdropPress
