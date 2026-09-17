@@ -38,8 +38,7 @@ import {
 import { getGoalWorkspaceSelection } from '../navigation';
 import { useActivity } from '../hooks/useActivity';
 import { useGoalActivityWindow } from '../hooks/useGoalActivityWindow';
-import { GoalActivityRow } from './GoalActivityRow';
-import { GoalActivityHeatmap } from './GoalActivityHeatmap';
+import { GoalActivityPanel } from './GoalActivityPanel';
 import { useGoalDetail, type UseGoalDetailResult } from '../hooks/useGoalDetail';
 import { useGoals } from '../hooks/useGoals';
 import { useGoalStore } from '../store';
@@ -1136,11 +1135,10 @@ function GoalAnalyticsCard({ goal, items, entries }: { goal: GoalWithDetails; it
   const accent = getCategoryAccentTheme(goal.category);
   const momentum = useGoalMomentumSummary(goal.id);
   const goalMomentum = momentum.goalSummary;
-  // One window feeds both renders (TD-012): the heatmap needs the long window,
-  // and the 7-day row is just its last seven buckets (oldest→newest, today
-  // last) — no second request, no second full-history read.
+  // One window feeds the merged ACTIVITY panel (TD-012): a single long window
+  // supplies both the Week (current Mon→Sun) and Month (current calendar month)
+  // renders — no second request, no second full-history read.
   const activityWindow = useGoalActivityWindow(goal.id, 70);
-  const last7Buckets = activityWindow.buckets.slice(-7);
   const completedMilestones = goal.milestones.filter((milestone) => milestone.completedAt !== null).length;
   const recordedActions = items.filter((item) => item.kind !== 'goal_created').length;
   return (
@@ -1168,15 +1166,9 @@ function GoalAnalyticsCard({ goal, items, entries }: { goal: GoalWithDetails; it
         ))}
       </View>
       <View style={{ marginTop: SPACE.xl }}>
-        <SectionHeading>LAST 7 DAYS</SectionHeading>
-        <View style={{ marginTop: SPACE.lg }}>
-          <GoalActivityRow buckets={last7Buckets} loading={activityWindow.loading} />
-        </View>
-      </View>
-      <View style={{ marginTop: SPACE.xl }}>
         <SectionHeading>ACTIVITY</SectionHeading>
         <View style={{ marginTop: SPACE.lg }}>
-          <GoalActivityHeatmap buckets={activityWindow.buckets} loading={activityWindow.loading} />
+          <GoalActivityPanel buckets={activityWindow.buckets} loading={activityWindow.loading} />
         </View>
       </View>
       <Typography variant="caption" style={{ marginTop: SPACE.lg }}>
