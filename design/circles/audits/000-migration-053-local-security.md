@@ -59,3 +59,12 @@ A = owner · B = A's accepted friend · C = B's friend, **not** A's friend.
 - Comment soft-delete path and feed pagination (`p_before`, limit clamp).
 - Unfriending after posts/saves exist.
 - `get_profiles_by_ids` interplay for feed author hydration.
+
+## Phase 1b sign-off re-run (2026-09-17)
+
+- 053 was **not modified** at sign-off — Q1–Q4 (CD-013…CD-016) all resolved to
+  API-layer/migration-028 behavior with no schema impact.
+- Re-ran `design/circles/db/run-circles-security.sh` → `circles security: all
+  assertions passed`; non-idempotent re-apply still fails loudly. Suite remains
+  valid for the promoted-as-is 053.
+- L3 sign-off recorded as **CD-017**. Gate cleared → Phase 2.

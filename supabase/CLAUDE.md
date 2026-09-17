@@ -191,6 +191,23 @@ Owner: CTO. Cascade Level 3.
   current schedules into atomic successor Goals without copying historical activity.
 - 051_tasks_release_cutover_controls.sql: provides service-role catch-up and mapping
   verification, atomic authenticated legacy-write freeze, and narrow privilege restore.
+- 052_milestones_kind_hierarchy_photo.sql: Milestones social layer Build 1
+  (milestone kind, sub-milestone hierarchy, photos). Applied live. Owned by the
+  Milestones initiative (`memory/project_milestones_social.md`).
+- 053_circles_social_layer.sql: Circles friends-only social layer. Adds
+  `goal_share_invites`, `circle_posts`, `post_encouragements`, `post_comments`,
+  `saved_posts` (all RLS-enabled, cross-user writes RPC-only), the
+  `goals_one_public_per_user` partial unique index, and 13 SECURITY DEFINER/
+  INVOKER RPCs (`are_friends`, `set_public_goal`, invite send/respond/withdraw,
+  the whitelisted `circles_goal_summary` + `get_viewable_goal`/`list_*` viewer
+  reads, and `create_circle_post`/`delete_circle_post`/`get_circles_feed`).
+  Privacy spine (CD-004): non-owners never read base tables — `circles_goal_summary`
+  is revoked from `authenticated` and reachable only via the wrapper RPCs.
+  Behavior-proven on a disposable local PG16 harness
+  (`scripts/test-circles-security.sh`, `npm run test:circles:db`), then applied
+  via the management API and verified live 2026-09-17
+  (`design/circles/audits/001-migration-053-live-verify.md`). Types regenerated,
+  tsc clean. Design: `design/circles/`.
 - goals.mode column was dropped in the 2026-06-24 squash (was a single-value
   CHECK column, no longer carried). lib/db/goals.ts no longer inserts it.
 

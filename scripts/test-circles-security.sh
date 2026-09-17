@@ -1,20 +1,18 @@
 #!/usr/bin/env bash
-# Applies the DRAFT Migration 053 to an isolated local PostgreSQL cluster and
-# runs the Circles security assertions. Never reads Supabase credentials or
-# contacts a linked/live project. Mirrors scripts/test-tasks-security.sh.
-#
-# When 053 is approved and promoted, move this to scripts/test-circles-security.sh,
-# point MIGRATION_053 at supabase/migrations/, and add "test:circles:db".
+# Applies Migration 053 (Circles social layer) to an isolated local PostgreSQL
+# cluster and runs the Circles security assertions. Never reads Supabase
+# credentials or contacts a linked/live project. Mirrors
+# scripts/test-tasks-security.sh. Run via: npm run test:circles:db
 
 set -euo pipefail
 
 # macOS postmaster aborts ("became multithreaded during startup") without a locale.
 export LC_ALL="${LC_ALL:-C}"
 
-CIRCLES_DB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BOOTSTRAP_PATH="$CIRCLES_DB_DIR/circles-security-bootstrap.sql"
-TEST_PATH="$CIRCLES_DB_DIR/circles-security.test.sql"
-MIGRATION_053="$CIRCLES_DB_DIR/053_circles_social_layer.sql"
+CIRCLES_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BOOTSTRAP_PATH="$CIRCLES_REPO_ROOT/scripts/circles-security-bootstrap.sql"
+TEST_PATH="$CIRCLES_REPO_ROOT/scripts/circles-security.test.sql"
+MIGRATION_053="$CIRCLES_REPO_ROOT/supabase/migrations/053_circles_social_layer.sql"
 
 if command -v pg_config >/dev/null 2>&1; then
   PG_BIN="$(pg_config --bindir)"
@@ -53,7 +51,7 @@ PSQL=("$PG_BIN/psql" -X -v ON_ERROR_STOP=1 -h "$SOCKET_DIR" -U postgres -d postg
 
 echo "Applying isolated bootstrap..."
 "${PSQL[@]}" -f "$BOOTSTRAP_PATH" >/dev/null
-echo "Applying draft Migration 053..."
+echo "Applying Migration 053..."
 "${PSQL[@]}" -f "$MIGRATION_053" >/dev/null
 echo "Running Circles security assertions..."
 "${PSQL[@]}" -f "$TEST_PATH"

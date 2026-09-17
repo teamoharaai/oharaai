@@ -8,6 +8,63 @@ decision → consequence.
 
 ---
 
+## CD-017 · 2026-09-17 · accepted — Migration 053 L3 sign-off
+
+**Context:** Phase 1b gate. Draft 053 (tables `goal_share_invites`,
+`circle_posts`, `post_encouragements`, `post_comments`, `saved_posts`; the
+`are_friends` / `set_public_goal` / invite / whitelisted-summary / feed RPCs;
+select-only RLS with RPC-mediated cross-user writes and column-scoped comment
+soft-delete grant) passed the isolated local security suite (audit 000).
+**Decision:** The 053 schema, RLS, RPC contract, and grants are **approved**
+(CEO types + CTO schema/RLS/RPC). None of Q1–Q4 (CD-013…CD-016) changed the
+schema, so 053 is promoted as-is. The CLAUDE.md "No feed" rule change and Data
+Model / Naming additions are deferred to Phase 7.
+**Consequence:** Phase 2 promotion (`git mv` to `supabase/migrations/`, harness
+to `scripts/`) is authorized. Applying 053 to the live database still requires
+explicit per-session user go-ahead.
+
+## CD-016 · 2026-09-17 · accepted — Invite links reusable; redeem auto-sends a friend request (Q4)
+
+**Context:** OUTSTANDING Q4. Existing `invite_links` + `redeem_invite_link()`
+(migration 028) are unused by the app; CD-008 merges "Invite a friend" into
+Add people.
+**Decision:** Invite links are **reusable** (one shareable link per user), and
+redeeming creates a **pending** friend request (both sides consent) rather than
+an instant friendship.
+**Consequence:** The actual behavior of `redeem_invite_link` must be verified in
+Phase 5; if it auto-accepts or is single-use, reconcile it to this contract then
+(no impact on 053).
+
+## CD-015 · 2026-09-17 · accepted — Posts linking a now-private/withdrawn Goal are kept (Q3)
+
+**Context:** OUTSTANDING Q3. Feed links are server-side title snapshots
+(CD-005), carrying no live join into private tables.
+**Decision:** Making a linked Goal private again, or withdrawing an invite, does
+**not** alter or remove existing feed posts that reference it. The snapshot
+(title + author description) stands as posted.
+**Consequence:** Consistent with CD-005 (renaming a Goal never rewrites old
+posts). No retroactive scrub logic; no schema change.
+
+## CD-014 · 2026-09-17 · accepted — Declined goal invites are hidden from the owner (Q2)
+
+**Context:** OUTSTANDING Q2. `goal_share_invites.status` records `declined`;
+the owner's sent-invites API controls what is surfaced.
+**Decision:** The owner's sent list **hides declines** — a declined invite is
+presented as "Pending" (declined→pending mapping at the API layer), never as an
+explicit rejection.
+**Consequence:** Softens social friction. Pure API-layer behavior in Phase 3
+(`GET /api/circles/invites/sent`); the underlying `declined` row is unchanged
+and the `live_pair` unique index still allows a fresh invite after decline.
+
+## CD-013 · 2026-09-17 · accepted — Encourage shows who, not just counts (Q1)
+
+**Context:** OUTSTANDING Q1, refining CD-006. `post_encouragements` RLS already
+lets any post-viewer read the rows.
+**Decision:** A post's Encourage count is public (CD-006) **and** tapping it
+reveals the friends who encouraged, hydrated via `get_profiles_by_ids`.
+**Consequence:** No schema change; a Phase 3 endpoint lists encouragers for a
+post. A friends-only space makes named encouragement a warm, expected signal.
+
 ## CD-012 · 2026-09-17 · accepted — DB verification runs on an isolated local cluster, not live
 
 **Context:** Draft 053 needed behavioral security proof before sign-off. Rolled-back

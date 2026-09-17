@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -100,6 +100,62 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      circle_posts: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          image_path: string | null
+          link_category: string | null
+          link_description: string | null
+          link_kind: string | null
+          link_ref_id: string | null
+          link_title: string | null
+          post_kind: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          image_path?: string | null
+          link_category?: string | null
+          link_description?: string | null
+          link_kind?: string | null
+          link_ref_id?: string | null
+          link_title?: string | null
+          post_kind?: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          image_path?: string | null
+          link_category?: string | null
+          link_description?: string | null
+          link_kind?: string | null
+          link_ref_id?: string | null
+          link_title?: string | null
+          post_kind?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "circle_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       constellation_annotations: {
         Row: {
@@ -741,6 +797,282 @@ export type Database = {
           },
         ]
       }
+      entries: {
+        Row: {
+          archived: boolean
+          brt_category: string | null
+          client_request_id: string | null
+          completed_at: string | null
+          content: Json
+          content_version: number
+          conversation_turns: Json
+          created_at: string
+          entry_type: string
+          id: string
+          pinned: boolean
+          plain_text: string
+          project_id: string | null
+          reflection_type: string | null
+          schema_version: number
+          takeaway: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean
+          brt_category?: string | null
+          client_request_id?: string | null
+          completed_at?: string | null
+          content?: Json
+          content_version?: number
+          conversation_turns?: Json
+          created_at?: string
+          entry_type: string
+          id?: string
+          pinned?: boolean
+          plain_text?: string
+          project_id?: string | null
+          reflection_type?: string | null
+          schema_version?: number
+          takeaway?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived?: boolean
+          brt_category?: string | null
+          client_request_id?: string | null
+          completed_at?: string | null
+          content?: Json
+          content_version?: number
+          conversation_turns?: Json
+          created_at?: string
+          entry_type?: string
+          id?: string
+          pinned?: boolean
+          plain_text?: string
+          project_id?: string | null
+          reflection_type?: string | null
+          schema_version?: number
+          takeaway?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entry_category_links: {
+        Row: {
+          category_id: string
+          created_at: string
+          entry_id: string
+          id: string
+          link_source: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          entry_id: string
+          id?: string
+          link_source?: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          entry_id?: string
+          id?: string
+          link_source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entry_category_links_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entry_goal_links: {
+        Row: {
+          created_at: string
+          entry_id: string
+          goal_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          entry_id: string
+          goal_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          entry_id?: string
+          goal_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entry_goal_links_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entry_goal_links_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entry_goal_progress_events: {
+        Row: {
+          block_id: string | null
+          created_at: string
+          entry_id: string
+          event_type: string
+          goal_id: string
+          id: string
+          occurred_at: string
+          owner_id: string
+          payload: Json
+          reference_id: string
+        }
+        Insert: {
+          block_id?: string | null
+          created_at?: string
+          entry_id: string
+          event_type?: string
+          goal_id: string
+          id?: string
+          occurred_at?: string
+          owner_id: string
+          payload?: Json
+          reference_id: string
+        }
+        Update: {
+          block_id?: string | null
+          created_at?: string
+          entry_id?: string
+          event_type?: string
+          goal_id?: string
+          id?: string
+          occurred_at?: string
+          owner_id?: string
+          payload?: Json
+          reference_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entry_goal_progress_events_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entry_goal_progress_events_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entry_goal_progress_events_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entry_goal_progress_evidence: {
+        Row: {
+          block_id: string | null
+          checkbox_completed: boolean
+          completed_at: string | null
+          completion_count: number
+          created_at: string
+          entry_id: string
+          excerpt: string
+          goal_id: string
+          id: string
+          owner_id: string
+          reference_created_at: string | null
+          reference_id: string
+          source_type: string
+          updated_at: string
+        }
+        Insert: {
+          block_id?: string | null
+          checkbox_completed?: boolean
+          completed_at?: string | null
+          completion_count?: number
+          created_at?: string
+          entry_id: string
+          excerpt?: string
+          goal_id: string
+          id?: string
+          owner_id: string
+          reference_created_at?: string | null
+          reference_id: string
+          source_type: string
+          updated_at?: string
+        }
+        Update: {
+          block_id?: string | null
+          checkbox_completed?: boolean
+          completed_at?: string | null
+          completion_count?: number
+          created_at?: string
+          entry_id?: string
+          excerpt?: string
+          goal_id?: string
+          id?: string
+          owner_id?: string
+          reference_created_at?: string | null
+          reference_id?: string
+          source_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entry_goal_progress_evidence_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entry_goal_progress_evidence_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entry_goal_progress_evidence_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       friend_connections: {
         Row: {
           addressee_id: string
@@ -814,6 +1146,285 @@ export type Database = {
             columns: ["goal_id"]
             isOneToOne: false
             referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goal_difficulty_profiles: {
+        Row: {
+          category: string
+          category_config_version: string
+          composite_score: number
+          created_at: string
+          difficulty_band: string
+          difficulty_version: string
+          dimension_scores: Json
+          effective_weights: Json
+          goal_id: string
+          goal_mode: string
+          id: string
+          plan_revision_key: string
+          source_inputs: Json
+          user_id: string
+        }
+        Insert: {
+          category: string
+          category_config_version: string
+          composite_score: number
+          created_at?: string
+          difficulty_band: string
+          difficulty_version: string
+          dimension_scores: Json
+          effective_weights: Json
+          goal_id: string
+          goal_mode: string
+          id?: string
+          plan_revision_key: string
+          source_inputs: Json
+          user_id: string
+        }
+        Update: {
+          category?: string
+          category_config_version?: string
+          composite_score?: number
+          created_at?: string
+          difficulty_band?: string
+          difficulty_version?: string
+          dimension_scores?: Json
+          effective_weights?: Json
+          goal_id?: string
+          goal_mode?: string
+          id?: string
+          plan_revision_key?: string
+          source_inputs?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_difficulty_profiles_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goal_difficulty_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goal_momentum_profiles: {
+        Row: {
+          algorithm_version: string
+          created_at: string
+          current_value: number
+          difficulty_profile_version: string
+          goal_id: string
+          last_calculated_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          algorithm_version?: string
+          created_at?: string
+          current_value?: number
+          difficulty_profile_version?: string
+          goal_id: string
+          last_calculated_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          algorithm_version?: string
+          created_at?: string
+          current_value?: number
+          difficulty_profile_version?: string
+          goal_id?: string
+          last_calculated_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_momentum_profiles_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goal_momentum_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goal_momentum_weekly_snapshots: {
+        Row: {
+          algorithm_version: string
+          calculation_hash: string
+          category_config_version: string
+          created_at: string
+          current_value: number
+          difficulty_profile_id: string
+          difficulty_version: string
+          effective_weights: Json
+          goal_id: string
+          id: string
+          input_events: Json
+          pillar_components: Json
+          pillar_scores: Json
+          previous_value: number | null
+          raw_aggregates: Json
+          raw_score: number
+          reason_codes: Json
+          revision: number
+          score_status: string
+          supersedes_snapshot_id: string | null
+          timezone: string
+          user_id: string
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          algorithm_version: string
+          calculation_hash: string
+          category_config_version: string
+          created_at?: string
+          current_value: number
+          difficulty_profile_id: string
+          difficulty_version: string
+          effective_weights: Json
+          goal_id: string
+          id?: string
+          input_events: Json
+          pillar_components: Json
+          pillar_scores: Json
+          previous_value?: number | null
+          raw_aggregates: Json
+          raw_score: number
+          reason_codes: Json
+          revision?: number
+          score_status: string
+          supersedes_snapshot_id?: string | null
+          timezone: string
+          user_id: string
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          algorithm_version?: string
+          calculation_hash?: string
+          category_config_version?: string
+          created_at?: string
+          current_value?: number
+          difficulty_profile_id?: string
+          difficulty_version?: string
+          effective_weights?: Json
+          goal_id?: string
+          id?: string
+          input_events?: Json
+          pillar_components?: Json
+          pillar_scores?: Json
+          previous_value?: number | null
+          raw_aggregates?: Json
+          raw_score?: number
+          reason_codes?: Json
+          revision?: number
+          score_status?: string
+          supersedes_snapshot_id?: string | null
+          timezone?: string
+          user_id?: string
+          week_end?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_momentum_weekly_snapshots_difficulty_profile_id_fkey"
+            columns: ["difficulty_profile_id"]
+            isOneToOne: false
+            referencedRelation: "goal_difficulty_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goal_momentum_weekly_snapshots_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goal_momentum_weekly_snapshots_supersedes_snapshot_id_fkey"
+            columns: ["supersedes_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "goal_momentum_weekly_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goal_momentum_weekly_snapshots_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goal_share_invites: {
+        Row: {
+          created_at: string
+          goal_id: string
+          id: string
+          invitee_id: string
+          owner_id: string
+          responded_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          goal_id: string
+          id?: string
+          invitee_id: string
+          owner_id: string
+          responded_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          goal_id?: string
+          id?: string
+          invitee_id?: string
+          owner_id?: string
+          responded_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_share_invites_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goal_share_invites_invitee_id_fkey"
+            columns: ["invitee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goal_share_invites_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1125,7 +1736,15 @@ export type Database = {
           source_entity_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "momentum_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       momentum_profiles: {
         Row: {
@@ -1133,6 +1752,7 @@ export type Database = {
           current_value: number
           current_version: string
           last_calculated_at: string | null
+          status: string
           updated_at: string
           user_id: string
         }
@@ -1141,6 +1761,7 @@ export type Database = {
           current_value?: number
           current_version?: string
           last_calculated_at?: string | null
+          status?: string
           updated_at?: string
           user_id: string
         }
@@ -1149,15 +1770,25 @@ export type Database = {
           current_value?: number
           current_version?: string
           last_calculated_at?: string | null
+          status?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "momentum_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       momentum_weekly_snapshots: {
         Row: {
           algorithm_version: string
           calculation_hash: string
+          configuration_version: string | null
           created_at: string
           difficulty_multiplier: number
           effective_weights: Json
@@ -1167,10 +1798,14 @@ export type Database = {
           input_events: Json
           next_value: number
           pillar_scores: Json
+          portfolio_components: Json | null
           previous_value: number
           raw_aggregates: Json
+          raw_score: number | null
           reason_codes: Json
           revision: number
+          score_status: string | null
+          source_goal_snapshot_ids: Json
           supersedes_snapshot_id: string | null
           timezone: string
           user_id: string
@@ -1182,6 +1817,7 @@ export type Database = {
         Insert: {
           algorithm_version: string
           calculation_hash: string
+          configuration_version?: string | null
           created_at?: string
           difficulty_multiplier: number
           effective_weights: Json
@@ -1191,10 +1827,14 @@ export type Database = {
           input_events: Json
           next_value: number
           pillar_scores: Json
+          portfolio_components?: Json | null
           previous_value: number
           raw_aggregates: Json
+          raw_score?: number | null
           reason_codes: Json
           revision?: number
+          score_status?: string | null
+          source_goal_snapshot_ids?: Json
           supersedes_snapshot_id?: string | null
           timezone: string
           user_id: string
@@ -1206,6 +1846,7 @@ export type Database = {
         Update: {
           algorithm_version?: string
           calculation_hash?: string
+          configuration_version?: string | null
           created_at?: string
           difficulty_multiplier?: number
           effective_weights?: Json
@@ -1215,10 +1856,14 @@ export type Database = {
           input_events?: Json
           next_value?: number
           pillar_scores?: Json
+          portfolio_components?: Json | null
           previous_value?: number
           raw_aggregates?: Json
+          raw_score?: number | null
           reason_codes?: Json
           revision?: number
+          score_status?: string | null
+          source_goal_snapshot_ids?: Json
           supersedes_snapshot_id?: string | null
           timezone?: string
           user_id?: string
@@ -1227,7 +1872,97 @@ export type Database = {
           weekly_drag?: number
           weekly_gain?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "momentum_weekly_snapshots_supersedes_snapshot_id_fkey"
+            columns: ["supersedes_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "momentum_weekly_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "momentum_weekly_snapshots_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          post_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          post_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "circle_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_encouragements: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_encouragements_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "circle_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_encouragements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -1333,6 +2068,75 @@ export type Database = {
           },
         ]
       }
+      reflection_milestone_links: {
+        Row: {
+          created_at: string
+          entry_id: string
+          id: string
+          milestone_id: string
+        }
+        Insert: {
+          created_at?: string
+          entry_id: string
+          id?: string
+          milestone_id: string
+        }
+        Update: {
+          created_at?: string
+          entry_id?: string
+          id?: string
+          milestone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reflection_milestone_links_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reflection_milestone_links_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "milestones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_posts: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_posts_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "circle_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       space_members: {
         Row: {
           id: string
@@ -1397,6 +2201,322 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      task_mutation_receipts: {
+        Row: {
+          created_at: string
+          entity_id: string
+          id: string
+          idempotency_key: string
+          operation: string
+          result_entity_id: string | null
+          result_payload: Json | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          id?: string
+          idempotency_key: string
+          operation: string
+          result_entity_id?: string | null
+          result_payload?: Json | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          id?: string
+          idempotency_key?: string
+          operation?: string
+          result_entity_id?: string | null
+          result_payload?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_mutation_receipts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_occurrences: {
+        Row: {
+          actual_quantity: number | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          idempotency_key: string | null
+          legacy_action_log_id: string | null
+          legacy_raw_value: number | null
+          legacy_tracker_log_id: string | null
+          note: string | null
+          occurrence_key: string
+          schedule_id: string | null
+          schedule_timezone: string | null
+          scheduled_at: string | null
+          scheduled_local_date: string | null
+          scheduled_local_time: string | null
+          skipped_at: string | null
+          source: string
+          status: string
+          task_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actual_quantity?: number | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          idempotency_key?: string | null
+          legacy_action_log_id?: string | null
+          legacy_raw_value?: number | null
+          legacy_tracker_log_id?: string | null
+          note?: string | null
+          occurrence_key: string
+          schedule_id?: string | null
+          schedule_timezone?: string | null
+          scheduled_at?: string | null
+          scheduled_local_date?: string | null
+          scheduled_local_time?: string | null
+          skipped_at?: string | null
+          source?: string
+          status?: string
+          task_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actual_quantity?: number | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          idempotency_key?: string | null
+          legacy_action_log_id?: string | null
+          legacy_raw_value?: number | null
+          legacy_tracker_log_id?: string | null
+          note?: string | null
+          occurrence_key?: string
+          schedule_id?: string | null
+          schedule_timezone?: string | null
+          scheduled_at?: string | null
+          scheduled_local_date?: string | null
+          scheduled_local_time?: string | null
+          skipped_at?: string | null
+          source?: string
+          status?: string
+          task_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_occurrences_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "task_schedules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_occurrences_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_occurrences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_schedules: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          id: string
+          interval_count: number
+          is_active: boolean
+          local_time: string | null
+          recurrence_kind: string
+          source: string
+          start_date: string
+          task_id: string
+          timezone: string
+          updated_at: string
+          user_id: string
+          version: number
+          weekdays: number[]
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          interval_count?: number
+          is_active?: boolean
+          local_time?: string | null
+          recurrence_kind: string
+          source?: string
+          start_date: string
+          task_id: string
+          timezone: string
+          updated_at?: string
+          user_id: string
+          version: number
+          weekdays?: number[]
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          interval_count?: number
+          is_active?: boolean
+          local_time?: string | null
+          recurrence_kind?: string
+          source?: string
+          start_date?: string
+          task_id?: string
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+          version?: number
+          weekdays?: number[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_schedules_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_schedules_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          archived_at: string | null
+          completed_at: string | null
+          completion_mode: string
+          create_idempotency_key: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          goal_id: string
+          id: string
+          legacy_action_log_id: string | null
+          legacy_current_value: number | null
+          legacy_frequency: string | null
+          legacy_is_ai_suggested: boolean | null
+          legacy_status: string | null
+          legacy_target_unit: string | null
+          legacy_target_value: number | null
+          legacy_tracker_id: string | null
+          legacy_tracker_type: string | null
+          milestone_id: string | null
+          quantity_unit: string | null
+          sort_order: number
+          source: string
+          status: string
+          target_quantity: number | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          completed_at?: string | null
+          completion_mode: string
+          create_idempotency_key?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          goal_id: string
+          id?: string
+          legacy_action_log_id?: string | null
+          legacy_current_value?: number | null
+          legacy_frequency?: string | null
+          legacy_is_ai_suggested?: boolean | null
+          legacy_status?: string | null
+          legacy_target_unit?: string | null
+          legacy_target_value?: number | null
+          legacy_tracker_id?: string | null
+          legacy_tracker_type?: string | null
+          milestone_id?: string | null
+          quantity_unit?: string | null
+          sort_order?: number
+          source?: string
+          status?: string
+          target_quantity?: number | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          completed_at?: string | null
+          completion_mode?: string
+          create_idempotency_key?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          goal_id?: string
+          id?: string
+          legacy_action_log_id?: string | null
+          legacy_current_value?: number | null
+          legacy_frequency?: string | null
+          legacy_is_ai_suggested?: boolean | null
+          legacy_status?: string | null
+          legacy_target_unit?: string | null
+          legacy_target_value?: number | null
+          legacy_tracker_id?: string | null
+          legacy_tracker_type?: string | null
+          milestone_id?: string | null
+          quantity_unit?: string | null
+          sort_order?: number
+          source?: string
+          status?: string
+          target_quantity?: number | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tracker_logs: {
         Row: {
@@ -1615,9 +2735,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adjust_task_occurrence_quantity_v1: {
+        Args: {
+          p_delta: number
+          p_idempotency_key: string
+          p_occurrence_id: string
+        }
+        Returns: number
+      }
+      archive_task_v1: {
+        Args: { p_idempotency_key: string; p_task_id: string }
+        Returns: string
+      }
+      are_friends: { Args: { p_a: string; p_b: string }; Returns: boolean }
       check_username_available: {
         Args: { check_username: string }
         Returns: boolean
+      }
+      circles_goal_summary: {
+        Args: { p_access: string; p_goal_id: string }
+        Returns: Json
       }
       consume_daily_ai_quota: {
         Args: { p_date: string; p_limit?: number }
@@ -1626,29 +2763,15 @@ export type Database = {
           count: number
         }[]
       }
-      publish_momentum_snapshot: {
+      create_circle_post: {
         Args: {
-          p_algorithm_version: string
-          p_calculation_hash: string
-          p_difficulty_multiplier: number
-          p_effective_weights: Json
-          p_events: Json
-          p_growth_quality_score: number
-          p_input_actions: Json
-          p_input_events: Json
-          p_next_value: number
-          p_pillar_scores: Json
-          p_previous_value: number
-          p_raw_aggregates: Json
-          p_reason_codes: Json
-          p_timezone: string
-          p_user_id: string
-          p_week_end: string
-          p_week_start: string
-          p_weekly_drag: number
-          p_weekly_gain: number
+          p_body: string
+          p_image_path?: string
+          p_link_description?: string
+          p_link_kind?: string
+          p_link_ref_id?: string
         }
-        Returns: Database["public"]["Tables"]["momentum_weekly_snapshots"]["Row"]
+        Returns: string
       }
       create_echo_entry_with_container: {
         Args: {
@@ -1662,6 +2785,29 @@ export type Database = {
         }
         Returns: string
       }
+      create_task_v1: {
+        Args: {
+          p_completion_mode: string
+          p_description?: string
+          p_due_date?: string
+          p_goal_id: string
+          p_idempotency_key?: string
+          p_milestone_id?: string
+          p_quantity_unit?: string
+          p_schedule_end?: string
+          p_schedule_interval?: number
+          p_schedule_kind?: string
+          p_schedule_local_time?: string
+          p_schedule_start?: string
+          p_schedule_timezone?: string
+          p_schedule_weekdays?: number[]
+          p_sort_order?: number
+          p_target_quantity?: number
+          p_title: string
+        }
+        Returns: string
+      }
+      delete_circle_post: { Args: { p_post_id: string }; Returns: string }
       delete_folder_reassign: {
         Args: { p_folder_id: string; p_general_folder_id: string }
         Returns: undefined
@@ -1669,6 +2815,20 @@ export type Database = {
       delete_folder_with_contents: {
         Args: { p_folder_id: string }
         Returns: undefined
+      }
+      extend_goal_deadline_v1: {
+        Args: { p_goal_id: string; p_new_deadline: string }
+        Returns: string
+      }
+      finalize_tasks_legacy_cutover_v1: {
+        Args: never
+        Returns: {
+          duplicate_mappings: number
+          mapped_rows: number
+          source_name: string
+          source_rows: number
+          unmapped_rows: number
+        }[]
       }
       finish_agent_session: {
         Args: {
@@ -1682,18 +2842,35 @@ export type Database = {
           session_status: string
         }[]
       }
+      freeze_tasks_legacy_writes_v1: { Args: never; Returns: undefined }
       generate_invite_code: { Args: never; Returns: string }
       generate_unique_username: {
         Args: { p_base: string; p_id: string }
         Returns: string
       }
+      get_circles_feed: {
+        Args: { p_before?: string; p_limit?: number }
+        Returns: {
+          author_id: string
+          body: string
+          comment_count: number
+          created_at: string
+          encouraged_by_me: boolean
+          encouragement_count: number
+          id: string
+          image_path: string
+          link_category: string
+          link_description: string
+          link_kind: string
+          link_ref_id: string
+          link_title: string
+          post_kind: string
+          saved_by_me: boolean
+        }[]
+      }
       get_friend_count: { Args: { user_id: string }; Returns: number }
       get_or_create_general_folder: {
         Args: { p_user_id: string }
-        Returns: string
-      }
-      extend_goal_deadline_v1: {
-        Args: { p_goal_id: string; p_new_deadline: string }
         Returns: string
       }
       get_profiles_by_ids: {
@@ -1704,6 +2881,32 @@ export type Database = {
           id: string
           username: string
         }[]
+      }
+      get_viewable_goal: { Args: { p_goal_id: string }; Returns: Json }
+      list_friend_public_goals: { Args: never; Returns: Json[] }
+      list_goals_shared_with_me: { Args: never; Returns: Json[] }
+      list_my_goal_invites: {
+        Args: never
+        Returns: {
+          created_at: string
+          goal: Json
+          invite_id: string
+        }[]
+      }
+      log_completed_task_v1: {
+        Args: {
+          p_actual_quantity?: number
+          p_completed_at: string
+          p_completion_mode: string
+          p_description?: string
+          p_goal_id: string
+          p_idempotency_key?: string
+          p_milestone_id?: string
+          p_quantity_unit?: string
+          p_target_quantity?: number
+          p_title: string
+        }
+        Returns: string
       }
       match_echo_entries: {
         Args: {
@@ -1756,20 +2959,6 @@ export type Database = {
           vault_id: string
         }[]
       }
-      reconcile_goal_expiration_v1: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      start_goal_new_phase_v1: {
-        Args: {
-          p_deadline: string
-          p_embedding_text?: string | null
-          p_previous_goal_id: string
-          p_reflection?: string | null
-          p_title?: string | null
-        }
-        Returns: string
-      }
       publish_agent_session: {
         Args: {
           p_content: string
@@ -1781,6 +2970,188 @@ export type Database = {
         }
         Returns: string
       }
+      publish_goal_momentum_v1_snapshot: {
+        Args: {
+          p_algorithm_version: string
+          p_calculation_hash: string
+          p_category: string
+          p_category_config_version: string
+          p_current_value: number
+          p_difficulty_band: string
+          p_difficulty_dimensions: Json
+          p_difficulty_effective_weights: Json
+          p_difficulty_score: number
+          p_difficulty_source_inputs: Json
+          p_difficulty_version: string
+          p_effective_weights: Json
+          p_goal_id: string
+          p_goal_mode: string
+          p_input_events: Json
+          p_pillar_components: Json
+          p_pillar_scores: Json
+          p_plan_revision_key: string
+          p_previous_value: number
+          p_raw_aggregates: Json
+          p_raw_score: number
+          p_reason_codes: Json
+          p_score_status: string
+          p_timezone: string
+          p_user_id: string
+          p_week_end: string
+          p_week_start: string
+        }
+        Returns: {
+          algorithm_version: string
+          calculation_hash: string
+          category_config_version: string
+          created_at: string
+          current_value: number
+          difficulty_profile_id: string
+          difficulty_version: string
+          effective_weights: Json
+          goal_id: string
+          id: string
+          input_events: Json
+          pillar_components: Json
+          pillar_scores: Json
+          previous_value: number | null
+          raw_aggregates: Json
+          raw_score: number
+          reason_codes: Json
+          revision: number
+          score_status: string
+          supersedes_snapshot_id: string | null
+          timezone: string
+          user_id: string
+          week_end: string
+          week_start: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "goal_momentum_weekly_snapshots"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      publish_momentum_snapshot: {
+        Args: {
+          p_algorithm_version: string
+          p_calculation_hash: string
+          p_difficulty_multiplier: number
+          p_effective_weights: Json
+          p_events: Json
+          p_growth_quality_score: number
+          p_input_actions: Json
+          p_input_events: Json
+          p_next_value: number
+          p_pillar_scores: Json
+          p_previous_value: number
+          p_raw_aggregates: Json
+          p_reason_codes: Json
+          p_timezone: string
+          p_user_id: string
+          p_week_end: string
+          p_week_start: string
+          p_weekly_drag: number
+          p_weekly_gain: number
+        }
+        Returns: {
+          algorithm_version: string
+          calculation_hash: string
+          configuration_version: string | null
+          created_at: string
+          difficulty_multiplier: number
+          effective_weights: Json
+          growth_quality_score: number
+          id: string
+          input_actions: Json
+          input_events: Json
+          next_value: number
+          pillar_scores: Json
+          portfolio_components: Json | null
+          previous_value: number
+          raw_aggregates: Json
+          raw_score: number | null
+          reason_codes: Json
+          revision: number
+          score_status: string | null
+          source_goal_snapshot_ids: Json
+          supersedes_snapshot_id: string | null
+          timezone: string
+          user_id: string
+          week_end: string
+          week_start: string
+          weekly_drag: number
+          weekly_gain: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "momentum_weekly_snapshots"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      publish_ohara_momentum_v1_snapshot: {
+        Args: {
+          p_algorithm_version: string
+          p_calculation_hash: string
+          p_configuration_version: string
+          p_current_value: number
+          p_effective_weights: Json
+          p_input_events: Json
+          p_portfolio_components: Json
+          p_previous_value: number
+          p_raw_aggregates: Json
+          p_raw_score: number
+          p_reason_codes: Json
+          p_score_status: string
+          p_source_goal_snapshot_ids: Json
+          p_timezone: string
+          p_user_id: string
+          p_week_end: string
+          p_week_start: string
+        }
+        Returns: {
+          algorithm_version: string
+          calculation_hash: string
+          configuration_version: string | null
+          created_at: string
+          difficulty_multiplier: number
+          effective_weights: Json
+          growth_quality_score: number
+          id: string
+          input_actions: Json
+          input_events: Json
+          next_value: number
+          pillar_scores: Json
+          portfolio_components: Json | null
+          previous_value: number
+          raw_aggregates: Json
+          raw_score: number | null
+          reason_codes: Json
+          revision: number
+          score_status: string | null
+          source_goal_snapshot_ids: Json
+          supersedes_snapshot_id: string | null
+          timezone: string
+          user_id: string
+          week_end: string
+          week_start: string
+          weekly_drag: number
+          weekly_gain: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "momentum_weekly_snapshots"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      reconcile_goal_expiration_v1: { Args: never; Returns: number }
+      reconcile_task_occurrences_v1: {
+        Args: { p_task_id: string; p_through_date?: string }
+        Returns: number
+      }
       record_agent_session_change: {
         Args: {
           p_event_key: string
@@ -1791,8 +3162,125 @@ export type Database = {
         Returns: string
       }
       redeem_invite_link: { Args: { code: string }; Returns: Json }
+      replace_entry_relationships: {
+        Args: {
+          p_category_ids: string[]
+          p_entry_id: string
+          p_goal_ids: string[]
+          p_milestone_ids: string[]
+        }
+        Returns: undefined
+      }
+      replace_task_schedule_v1: {
+        Args: {
+          p_due_date?: string
+          p_end_date?: string
+          p_idempotency_key?: string
+          p_interval_count?: number
+          p_local_time?: string
+          p_recurrence_kind: string
+          p_start_date?: string
+          p_task_id: string
+          p_timezone?: string
+          p_weekdays?: number[]
+        }
+        Returns: string
+      }
       respond_to_friend_request: {
         Args: { p_connection_id: string; p_response: string }
+        Returns: string
+      }
+      respond_to_goal_invite: {
+        Args: { p_invite_id: string; p_response: string }
+        Returns: string
+      }
+      restore_tasks_legacy_writes_v1: { Args: never; Returns: undefined }
+      run_tasks_legacy_catchup_v1: { Args: never; Returns: undefined }
+      save_entry: {
+        Args: {
+          p_archived: boolean
+          p_category_ids: string[]
+          p_completed_at: string
+          p_content: Json
+          p_conversation_turns: Json
+          p_entry_id: string
+          p_entry_type: string
+          p_goal_ids: string[]
+          p_milestone_ids: string[]
+          p_pinned: boolean
+          p_plain_text: string
+          p_reflection_type: string
+          p_takeaway: string
+          p_title: string
+        }
+        Returns: string
+      }
+      save_entry_v2: {
+        Args: {
+          p_archived: boolean
+          p_category_ids: string[]
+          p_completed_at: string
+          p_content: Json
+          p_conversation_turns: Json
+          p_entry_id: string
+          p_entry_type: string
+          p_expected_content_version: number
+          p_goal_ids: string[]
+          p_milestone_ids: string[]
+          p_pinned: boolean
+          p_plain_text: string
+          p_progress_evidence: Json
+          p_reflection_type: string
+          p_takeaway: string
+          p_title: string
+        }
+        Returns: string
+      }
+      save_entry_v3: {
+        Args: {
+          p_archived: boolean
+          p_category_ids: string[]
+          p_completed_at: string
+          p_content: Json
+          p_conversation_turns: Json
+          p_entry_id: string
+          p_entry_type: string
+          p_expected_content_version: number
+          p_goal_ids: string[]
+          p_milestone_ids: string[]
+          p_pinned: boolean
+          p_plain_text: string
+          p_progress_evidence: Json
+          p_project_id: string
+          p_reflection_type: string
+          p_takeaway: string
+          p_title: string
+        }
+        Returns: string
+      }
+      save_entry_v4: {
+        Args: {
+          p_archived: boolean
+          p_brt_category: string
+          p_brt_category_provided: boolean
+          p_category_ids: string[]
+          p_client_request_id: string
+          p_completed_at: string
+          p_content: Json
+          p_conversation_turns: Json
+          p_entry_id: string
+          p_entry_type: string
+          p_expected_content_version: number
+          p_goal_ids: string[]
+          p_milestone_ids: string[]
+          p_pinned: boolean
+          p_plain_text: string
+          p_progress_evidence: Json
+          p_project_id: string
+          p_reflection_type: string
+          p_takeaway: string
+          p_title: string
+        }
         Returns: string
       }
       search_profiles_by_username: {
@@ -1805,6 +3293,27 @@ export type Database = {
         }[]
       }
       send_friend_request: { Args: { p_addressee_id: string }; Returns: string }
+      send_goal_invites: {
+        Args: { p_goal_id: string; p_invitee_ids: string[] }
+        Returns: string[]
+      }
+      set_public_goal: { Args: { p_goal_id: string }; Returns: string }
+      set_task_occurrence_quantity_v1: {
+        Args: {
+          p_idempotency_key: string
+          p_occurrence_id: string
+          p_quantity: number
+        }
+        Returns: number
+      }
+      set_task_occurrence_status_v1: {
+        Args: {
+          p_idempotency_key: string
+          p_occurrence_id: string
+          p_status: string
+        }
+        Returns: string
+      }
       start_agent_session: {
         Args: {
           p_end_date: string
@@ -1826,6 +3335,48 @@ export type Database = {
           was_created: boolean
         }[]
       }
+      start_goal_new_phase_v1: {
+        Args: {
+          p_deadline: string
+          p_embedding_text?: string
+          p_previous_goal_id: string
+          p_reflection?: string
+          p_title?: string
+        }
+        Returns: string
+      }
+      sync_entry_goal_progress_evidence: {
+        Args: { p_entry_id: string; p_evidence: Json }
+        Returns: undefined
+      }
+      task_local_instant_v1: {
+        Args: { p_date: string; p_time: string; p_timezone: string }
+        Returns: string
+      }
+      update_task_v1: {
+        Args: {
+          p_completion_mode: string
+          p_description?: string
+          p_due_date?: string
+          p_milestone_id?: string
+          p_quantity_unit?: string
+          p_target_quantity?: number
+          p_task_id: string
+          p_title: string
+        }
+        Returns: string
+      }
+      verify_tasks_legacy_cutover_v1: {
+        Args: never
+        Returns: {
+          duplicate_mappings: number
+          mapped_rows: number
+          source_name: string
+          source_rows: number
+          unmapped_rows: number
+        }[]
+      }
+      withdraw_goal_invite: { Args: { p_invite_id: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
@@ -1844,12 +3395,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1873,11 +3424,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1898,11 +3449,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1923,11 +3474,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1940,11 +3491,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1958,3 +3509,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

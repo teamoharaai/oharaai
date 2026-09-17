@@ -11,6 +11,37 @@ visible.
 - The user's own dev server usually runs on **:8099** (`expo start --web --port 8099`).
   Avoid starting a second server from the same checkout (duplicate background jobs).
 
+## Phase 2 promote + apply (2026-09-17)
+
+- **053 is LIVE.** Applied to `rrgiqemscnyaqkculnmb` via the management API
+  (transaction-wrapped), tracker row inserted; **latest applied migration is now
+  053**. Verified: 5 tables + RLS, `goals_one_public_per_user` index, 13
+  functions, correct policy counts, and `circles_goal_summary` NOT executable by
+  `authenticated` (CD-004 spine holds). See `audits/001`.
+- **File locations changed** (from `design/circles/db/`):
+  - migration → `supabase/migrations/053_circles_social_layer.sql`
+  - harness → `scripts/circles-security-bootstrap.sql`,
+    `scripts/circles-security.test.sql`, `scripts/test-circles-security.sh`
+    (run via `npm run test:circles:db`; repo-root path convention).
+- **`types/supabase.ts` was stale (~migration 034)** — the post-053 regen jumped
+  1960 → 3512 lines, refreshing entries/tasks/momentum/constellation types too.
+  `tsc` stayed clean. If regenerating again, expect a large but benign diff.
+- **Occurrence-gap caveat:** one active daily task (`985be6df…`) has no
+  materialized occurrences → Circles weekly count under-reports (shows nothing),
+  never wrong data. Pre-existing Tasks issue; Phase 5 / Tasks lane.
+
+## Phase 1b sign-off (2026-09-17)
+
+- **053 is signed off (CD-017)** — schema/RLS/RPC/grants approved as-is; Phase 2
+  promotion authorized. Live apply still needs explicit per-session user go-ahead.
+- Q1–Q4 resolved, **none changed 053's schema** (all API-layer or migration-028):
+  - **Q1/CD-013** Encourage shows *who* (names on tap via `get_profiles_by_ids`).
+  - **Q2/CD-014** Owner's sent list **hides declines** — maps declined→"Pending".
+  - **Q3/CD-015** Posts linking a now-private/withdrawn Goal are **kept** (snapshots).
+  - **Q4/CD-016** Invite links **reusable**; redeem auto-sends a **pending** friend
+    request. Verify `redeem_invite_link` (028) actual behavior in Phase 5.
+- CLAUDE.md "No feed" lift + Data Model/Naming additions are **Phase 7**, not now.
+
 ## Prototype realities
 
 - All social state is in-memory: `features/circles/fixtures.ts` +
