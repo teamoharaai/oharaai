@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,7 +10,7 @@ import { RADIUS, SPACE } from '@/constants/design';
 import { useProjectStore } from '@/features/projects/store';
 import { useThemeColors } from '@/store/uiStore';
 import { useEntriesStore } from '../store';
-import { createEmptyDocument } from '../utils';
+import { createEmptyDocument, createEntryRequestId } from '../utils';
 import type { EntryType } from '../types';
 
 type CreationStep = 'choose' | 'note' | 'reflection';
@@ -35,6 +35,8 @@ function ChoiceCard({
   const colors = useThemeColors();
   return (
     <Pressable
+      accessibilityLabel={badge ? `${title}, ${badge}` : title}
+      accessibilityHint={description}
       accessibilityRole="button"
       accessibilityState={{ disabled, selected }}
       disabled={disabled}
@@ -90,7 +92,7 @@ export function EchoCreationModal({
   initialGoalId?: string;
   initialProjectId?: string;
   onClose: () => void;
-  onCreated: (entryId: string) => void;
+  onCreated: (entryId: string, entryType: EntryType) => void;
 }) {
   const colors = useThemeColors();
   const { goals, loadContext, createEntry } = useEntriesStore();
@@ -101,6 +103,10 @@ export function EchoCreationModal({
   const [projectId, setProjectId] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestIds = useRef<Record<EntryType, string>>({
+    note: createEntryRequestId(),
+    reflection: createEntryRequestId(),
+  });
 
   useEffect(() => {
     if (!visible) return;
@@ -110,6 +116,10 @@ export function EchoCreationModal({
     setProjectId(initialProjectId ?? '');
     setCreating(false);
     setError(null);
+    requestIds.current = {
+      note: createEntryRequestId(),
+      reflection: createEntryRequestId(),
+    };
     void loadContext();
     void loadProjects();
   }, [initialGoalId, initialProjectId, initialType, loadContext, loadProjects, visible]);
@@ -122,6 +132,7 @@ export function EchoCreationModal({
       const now = new Date();
       const entry = await createEntry({
         entryType: type,
+        clientRequestId: requestIds.current[type],
         title: type === 'reflection'
           ? `Reflection · ${now.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}`
           : '',
@@ -137,7 +148,7 @@ export function EchoCreationModal({
           milestoneIds: [],
         },
       });
-      onCreated(entry.id);
+      onCreated(entry.id, type);
     } catch (creationError) {
       setError(creationError instanceof Error ? creationError.message : 'Could not create entry');
       setCreating(false);
@@ -300,8 +311,29 @@ export function EchoCreationModal({
             </View>
 
             <Typography variant="body-small">
-              You can change these relationships later. Neither is required to begin writing.
+              These links organize your work inside OHARA. They do not share the Note or Reflection with anyone.
             </Typography>
+
+            {creationType === 'reflection' ? (
+              <View
+                accessibilityRole="summary"
+                style={{
+                  alignItems: 'center',
+                  backgroundColor: colors.background.selectedRow,
+                  borderColor: colors.border.subtle,
+                  borderRadius: RADIUS.md,
+                  borderWidth: 1,
+                  flexDirection: 'row',
+                  gap: SPACE.md,
+                  padding: SPACE.lg,
+                }}
+              >
+                <Ionicons name="lock-closed-outline" color={colors.text.accent} size={18} />
+                <Typography variant="body-small" style={{ flex: 1 }}>
+                  Private by default. Your words stay in your account unless you explicitly export them or write a separate Circles post.
+                </Typography>
+              </View>
+            ) : null}
           </View>
         ) : null}
 

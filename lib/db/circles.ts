@@ -474,14 +474,6 @@ export async function withdrawGoalInvite(
 // Linkable items for the post composer (owner-only reads under RLS)
 // ---------------------------------------------------------------------------
 
-function suggestReflectionDescription(
-  takeaway: string | null,
-  plainText: string | null,
-): string {
-  const source = (takeaway ?? plainText ?? '').trim();
-  return source.length > 280 ? `${source.slice(0, 277)}...` : source;
-}
-
 export async function getLinkableItems(
   userId: string,
   client: DbClient = supabase,
@@ -501,7 +493,7 @@ export async function getLinkableItems(
       .order('completed_at', { ascending: false }),
     client
       .from('entries')
-      .select('id, title, takeaway, plain_text')
+      .select('id, title')
       .eq('user_id', userId)
       .eq('entry_type', 'reflection')
       .eq('archived', false)
@@ -541,13 +533,13 @@ export async function getLinkableItems(
   const reflections = ((reflectionsResult.data ?? []) as {
     id: string;
     title: string;
-    takeaway: string | null;
-    plain_text: string | null;
   }[]).map((row) => ({
     kind: 'reflection' as const,
     id: row.id,
     title: (row.title ?? '').trim() || 'Reflection',
-    description: suggestReflectionDescription(row.takeaway, row.plain_text),
+    // Reflections are the intimate Entry type. Never move their body or
+    // takeaway into a social composer, even as owner-only suggestion data.
+    description: '',
   }));
 
   return { goals, milestones, reflections };

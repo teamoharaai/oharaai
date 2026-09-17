@@ -9,10 +9,8 @@ import type { Project } from '@/features/projects/types';
 import { useProjectStore } from '@/features/projects/store';
 import { useThemeColors } from '@/store/uiStore';
 import { useEntriesStore } from '../store';
-import type { EntryRecord, EntryType } from '../types';
-import { entriesForProject, sortEntriesByRecency } from '../utils';
-
-export type EchoLibraryFilter = 'all' | EntryType;
+import type { EntryRecord } from '../types';
+import { entriesForProject, sortEntriesByRecency, type EchoLibraryFilter } from '../utils';
 
 function formatUpdatedAt(date: Date): string {
   const difference = Date.now() - date.getTime();
@@ -159,6 +157,8 @@ export function EntriesLibrary({
   onSelectProject,
   onNew,
   onCollapse,
+  filter,
+  onFilterChange,
 }: {
   selectedEntryId?: string;
   selectedProjectId?: string;
@@ -167,6 +167,8 @@ export function EntriesLibrary({
   onSelectProject: (projectId: string) => void;
   onNew: () => void;
   onCollapse?: () => void;
+  filter: EchoLibraryFilter;
+  onFilterChange: (filter: EchoLibraryFilter) => void;
 }) {
   const colors = useThemeColors();
   const { entries, isLoading, error, loadEntries, loadContext } = useEntriesStore();
@@ -177,11 +179,6 @@ export function EntriesLibrary({
     loadProjects,
   } = useProjectStore();
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<EchoLibraryFilter>('note');
-
-  useEffect(() => {
-    setFilter(selectedProjectId ? 'all' : 'note');
-  }, [selectedProjectId]);
 
   useEffect(() => {
     void loadEntries();
@@ -325,7 +322,11 @@ export function EntriesLibrary({
           />
         </View>
 
-        <View accessibilityRole="tablist" style={{ flexDirection: 'row', gap: SPACE.xs }}>
+        <View
+          accessibilityLabel="Echo entry type"
+          accessibilityRole="tablist"
+          style={{ flexDirection: 'row', gap: SPACE.xs }}
+        >
           {([
             { id: 'all', label: 'All' },
             { id: 'note', label: 'Notes' },
@@ -336,15 +337,16 @@ export function EntriesLibrary({
               <Pressable
                 accessibilityRole="tab"
                 accessibilityState={{ selected }}
+                accessibilityHint={`Shows ${option.label.toLowerCase()} in the current Echo library`}
                 key={option.id}
-                onPress={() => setFilter(option.id)}
+                onPress={() => onFilterChange(option.id)}
                 style={({ pressed }) => ({
                   alignItems: 'center',
                   backgroundColor: selected ? colors.background.selectedRow : 'transparent',
                   borderRadius: RADIUS.round,
                   flex: 1,
                   justifyContent: 'center',
-                minHeight: 38,
+                  minHeight: 44,
                   opacity: pressed ? 0.7 : 1,
                   paddingHorizontal: SPACE.md,
                 })}
@@ -362,6 +364,8 @@ export function EntriesLibrary({
       </View>
 
       <ScrollView
+        accessibilityLabel={`${visibleEntries.length} ${filter === 'all' ? 'entries' : filter === 'note' ? 'notes' : 'reflections'} shown`}
+        accessibilityLiveRegion="polite"
         contentContainerStyle={{ padding: SPACE.xl, paddingBottom: SPACE['3xl'] }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -391,14 +395,24 @@ export function EntriesLibrary({
           <View style={{ alignItems: 'flex-start', gap: SPACE.md, padding: SPACE.lg }}>
             <BrandIcon name="echo" color={colors.text.accent} size={25} />
             <Typography variant="title">
-              {selectedProject ? 'This project is quiet for now' : 'A clear place to begin'}
+              {selectedProject
+                ? `No ${filter === 'all' ? 'Echo entries' : filter === 'note' ? 'Notes' : 'Reflections'} in this Project`
+                : filter === 'reflection'
+                  ? 'A private place to reflect'
+                  : filter === 'all'
+                    ? 'A clear place to begin'
+                    : 'A place to gather what you learn'}
             </Typography>
             <Typography variant="body-small">
               {selectedProject
-                ? 'Notes and Reflections added to this Project will appear here by recency.'
+                ? `${filter === 'all' ? 'Notes and Reflections' : filter === 'note' ? 'Notes' : 'Reflections'} added to this Project will appear here by recency.`
                 : query
-                  ? 'No Notes or Reflections match this search.'
-                  : 'Your Notes and Reflections will appear here as you create them.'}
+                  ? `No ${filter === 'all' ? 'Notes or Reflections' : filter === 'note' ? 'Notes' : 'Reflections'} match this search.`
+                  : filter === 'reflection'
+                    ? 'Reflections are private by default. Start with what you are thinking, feeling, or learning.'
+                    : filter === 'all'
+                      ? 'Your Notes and Reflections will appear here as you create them.'
+                      : 'Notes are for ideas, research, plans, and anything you want to develop.'}
             </Typography>
             {!query ? <Button onPress={onNew} size="compact">New</Button> : null}
           </View>

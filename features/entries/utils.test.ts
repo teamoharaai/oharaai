@@ -2,16 +2,32 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   buildRetrievalDocument,
+  createEntryRequestId,
   entriesForCategory,
   entriesForProject,
   isEntryShelfExpanded,
   isQuickReflection,
   isUnlinkedEntry,
   prioritizeEntryTypeAnchors,
+  resolveEchoLibraryFilter,
   sortEntriesByRecency,
   toggleEntryShelfExpansion,
 } from './utils.ts';
 import type { EntryRecord } from './types.ts';
+
+test('resolves Echo library filters from stable route state', () => {
+  assert.equal(resolveEchoLibraryFilter('reflection'), 'reflection');
+  assert.equal(resolveEchoLibraryFilter(['all', 'note']), 'all');
+  assert.equal(resolveEchoLibraryFilter('unknown'), 'note');
+  assert.equal(resolveEchoLibraryFilter(undefined, 'project-1'), 'all');
+});
+
+test('creates native-safe UUID v4 Entry request IDs', () => {
+  assert.match(
+    createEntryRequestId(),
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+  );
+});
 
 function entry(overrides: Partial<EntryRecord> = {}): EntryRecord {
   return {

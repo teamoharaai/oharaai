@@ -7,7 +7,7 @@ export default function LegacyReflectionRoute() {
     <Redirect
       href={{
         pathname: '/(app)/entries',
-        params: { create: 'reflection', ...(goalId ? { goalId } : {}) },
+        params: { create: 'reflection', view: 'reflection', ...(goalId ? { goalId } : {}) },
       } as never}
     />
   );

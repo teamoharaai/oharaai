@@ -19,11 +19,14 @@ const navigation = source('components/layout/AppNavigation.tsx');
 const button = source('components/ui/Button.tsx');
 const theme = source('constants/colors.ts');
 const css = source('global.css');
+const circlesData = source('lib/db/circles.ts');
 
 test('Echo library is organized by Most Recent and Projects without date buckets or categories', () => {
   assert.match(library, /Most Recent/);
   assert.match(library, /PROJECTS/);
-  assert.match(library, /useState<EchoLibraryFilter>\('note'\)/);
+  assert.match(workspace, /resolveEchoLibraryFilter\(params\.view, selectedProjectId\)/);
+  assert.match(library, /filter: EchoLibraryFilter/);
+  assert.match(library, /onFilterChange: \(filter: EchoLibraryFilter\) => void/);
   assert.match(library, /entriesForProject/);
   assert.doesNotMatch(library, /GOAL_CATEGORY_CATALOG/);
   assert.doesNotMatch(library, />Today</);
@@ -99,12 +102,34 @@ test('Quick Reflection is freeform while Guided Reflection is intentionally unav
   assert.match(creation, /disabled/);
   assert.match(creation, /name="ohara"/);
   assert.match(quick, /placeholder="Write freely…"/);
+  assert.match(quick, /Private by default/);
+  assert.match(quick, /Unsaved changes/);
+  assert.match(quick, /if \(!saved\) return/);
   assert.doesNotMatch(quick, /FocusedChatMessageList|ChatMessage|send\(/);
 });
 
 test('the old guided Reflection route can no longer expose the legacy chatbot', () => {
   assert.match(legacyRoute, /create: 'reflection'/);
+  assert.match(legacyRoute, /view: 'reflection'/);
   assert.doesNotMatch(legacyRoute, /GuidedReflection/);
+});
+
+test('Reflection selection is route-backed and survives library remounts', () => {
+  assert.match(workspace, /router\.setParams\(\{ view \}\)/);
+  assert.match(workspace, /params: \{ id: entryId, view: entryType \}/);
+  assert.doesNotMatch(library, /setFilter\(selectedProjectId \? 'all' : 'note'\)/);
+});
+
+test('new Entries use stable retry keys and explain private organization', () => {
+  assert.match(creation, /clientRequestId: requestIds\.current\[type\]/);
+  assert.match(creation, /do not share the Note or Reflection/);
+  assert.match(creation, /write a separate Circles post/);
+});
+
+test('Circles cannot prefill a post from intimate Reflection text', () => {
+  assert.match(circlesData, /\.from\('entries'\)[\s\S]*\.select\('id, title'\)/);
+  assert.match(circlesData, /Reflections are the intimate Entry type/);
+  assert.doesNotMatch(circlesData, /\.select\('id, title, (?:takeaway|plain_text)/);
 });
 
 test('Echo UI chrome suppresses accidental caret selection while editors remain selectable', () => {
