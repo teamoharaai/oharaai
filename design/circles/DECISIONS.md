@@ -8,6 +8,78 @@ decision → consequence.
 
 ---
 
+## CD-022 · 2026-09-17 · accepted — Phase 5b (invite links) deferred; `redeem_invite_link` diverges from CD-016
+
+**Context:** Phase 5b. CD-016 specifies invite links are reusable (one per user)
+and redeeming auto-sends a **pending** friend request (both-consent). Live
+verification (management API, read-only) of migration 028 found the opposite:
+`redeem_invite_link` **inserts an `accepted` friend edge directly** (auto-accept,
+confirmed `inserts_accepted: true`) — or upgrades an existing pending to accepted —
+and there is **no get-or-create "my invite link" RPC** (only `redeem_invite_link`
+exists; 0 `invite_links` rows exist). Reusability is only partial: `max_uses IS
+NULL` links are unlimited, but nothing enforces one canonical link per user.
+Reconciling to CD-016 means a **new L3 migration on the live, security-hardened
+friend graph** (028/030).
+**Decision:** **Defer Phase 5b.** The prototype `InviteByLink()` placeholder in
+`features/friends/components/AddPeoplePane.tsx` stays as-is; no invite-link client
+wiring this session. Mobile Add people is already unreachable (<900px), so urgency
+is low.
+**Consequence:** When revived, choose one of: (A) reconcile 028→CD-016 — new
+migration changing `redeem_invite_link` to create a *pending* request plus a
+get-or-create reusable-link RPC (+ per-user uniqueness); or (B) supersede CD-016
+with the shipped auto-accept model (sharing a private link *is* the consent),
+needing only get-or-create-my-link. Either is an L3 decision to bring to the user
+before writing. No impact on 053/054.
+
+## CD-021 · 2026-09-17 · accepted — Comment soft-delete via a SECURITY DEFINER RPC (Fix 0)
+
+**Context:** Phase-4 live QA found `DELETE /api/circles/comments/:id` → 403
+`42501` (audit 002). Root cause: the `post_comments` SELECT policy requires
+`deleted_at is null`, so the post-update row of an author's own soft-delete UPDATE
+fails SELECT visibility and PostgreSQL rejects the UPDATE. 053 gave comments a
+direct column-scoped UPDATE path, unlike `circle_posts` (RPC-based, CD-009).
+**Decision:** Migration `054` adds `delete_circle_comment(uuid)` SECURITY DEFINER
+(author-scoped via `auth.uid()`, idempotent, `raise P0002` when missing), grants
+EXECUTE to `authenticated`, and **drops** the `"Authors can soft delete own
+comments"` UPDATE policy + `update (deleted_at)` grant. `lib/db/circles.ts`
+`deletePostComment` repoints at the RPC. Chosen over broadening the SELECT policy
+(option B) to avoid widening the privacy spine and to match CD-009.
+**Consequence:** Comments and posts now soft-delete the same way (RPC, definer),
+closing the direct-UPDATE path. Applied + verified live 2026-09-17 (audit 003);
+DB harness extended (053+054). No SELECT-policy change; privacy spine intact.
+
+## CD-020 · 2026-09-17 · accepted — Invite-picker friends via the shared `/api/friends` endpoint
+
+**Context:** Phase 4. The "Invite to a Goal" picker (`CirclesPane`) needs the
+user's friends to choose invitees, but `features/CLAUDE.md` forbids
+`features/circles` importing `features/friends` (CD-011 keeps them independent).
+**Decision:** `circles-service.fetchInviteableFriends()` calls the shared HTTP
+resource `GET /api/friends` and maps `PersonSummary` → `CirclesAuthor`. This
+consumes a shared endpoint (allowed) rather than importing the friends feature
+module (forbidden). The friends list is loaded into `useCirclesStore` by
+`ensureLoaded`.
+**Consequence:** No cross-feature coupling; the invite picker works without
+plumbing friends through `AvatarMenu` slots. If a lighter "friends for invite"
+projection is ever needed it can move behind a dedicated route without touching
+the feature boundary.
+
+## CD-019 · 2026-09-17 · accepted — Drop prototype-only "following" and rich person fields
+
+**Context:** Phase 4. The prototype `CirclePerson` carried `following`
+(+ `toggleFollowing`), `activity`, `hasNewPost`, and `focus`. Circles is a
+mutual-friends space (accepted `friend_connections`); there is no follow graph,
+and the real author DTO is `CirclesAuthor` (id, username, displayName,
+avatarUrl) only. The resume prompt asked to decide and note this.
+**Decision:** Remove `following`/`toggleFollowing` and the other prototype-only
+person fields entirely. Author identity everywhere comes from the hydrated
+`author` DTO on posts/comments/encouragers and goal `owner`; the person popover
+(`PersonSheet`) shows name/@username + public goal + goals-shared-with-me +
+"view updates", with no follow affordance.
+**Consequence:** `FollowingPill` deleted; `PersonAvatar` takes a `CirclesAuthor`
+and delegates to the shared `Avatar`. No schema impact. If a follow/mute concept
+is ever wanted it is a new, separately-designed feature — not a revival of this
+fixture affordance.
+
 ## CD-018 · 2026-09-17 · accepted — Sent-list status mapping lives in the DTO mapper
 
 **Context:** Phase 3. CD-014 requires the owner's sent list to hide declines

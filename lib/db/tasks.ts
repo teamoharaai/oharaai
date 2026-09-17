@@ -6,6 +6,12 @@ import type {
   TaskSchedule,
 } from '@/features/tasks/types';
 import { buildTaskSections, dateInTimeZone } from '@/features/tasks/utils';
+import {
+  addLocalDays,
+  localDateForInstant,
+  normalizeTimezone,
+  startOfIsoWeekYmd,
+} from '@/lib/time/zoned-calendar';
 
 type Row = Record<string, any>;
 
@@ -122,6 +128,53 @@ export async function fetchTaskById(
     .eq('id', taskId).eq('user_id', userId).maybeSingle();
   if (error) throw error;
   return data ? mapTask(data as Row) : null;
+}
+
+export interface WeeklyTaskCount {
+  done: number;
+  target: number;
+}
+export type WeeklyTaskCountsByGoal = Record<string, WeeklyTaskCount>;
+
+// This week's Task-occurrence count per goal for `userId`, in the owner's
+// timezone with a Monday-start week — the canonical Circles progress rule
+// (CD-003), mirroring circles_goal_summary (migration 053). `target` counts
+// non-cancelled materialized occurrences whose scheduled_local_date falls in the
+// current local week; `done` counts the completed ones. Only tasks with
+// status = 'active' contribute. Goals with zero materialized occurrences this
+// week are simply absent from the map — the caller omits the count rather than
+// showing a wrong number (the pre-existing occurrence-gap caveat, OUTSTANDING).
+export async function fetchWeeklyTaskCountsByGoal(
+  db: SupabaseClient,
+  userId: string,
+  timezone: string | null | undefined,
+): Promise<WeeklyTaskCountsByGoal> {
+  const zone = normalizeTimezone(timezone);
+  const todayYmd = localDateForInstant(new Date().toISOString(), zone);
+  const weekStart = startOfIsoWeekYmd(todayYmd);
+  const weekEnd = addLocalDays(weekStart, 7);
+
+  const { data, error } = await db
+    .from('task_occurrences')
+    .select('status, tasks!inner(goal_id, status)')
+    .eq('user_id', userId)
+    .eq('tasks.status', 'active')
+    .neq('status', 'cancelled')
+    .gte('scheduled_local_date', weekStart)
+    .lt('scheduled_local_date', weekEnd);
+  if (error) throw error;
+
+  const counts: WeeklyTaskCountsByGoal = {};
+  for (const row of (data ?? []) as Row[]) {
+    const task = Array.isArray(row.tasks) ? row.tasks[0] : row.tasks;
+    const goalId: string | undefined = task?.goal_id;
+    if (!goalId) continue;
+    const entry = counts[goalId] ?? { done: 0, target: 0 };
+    entry.target += 1;
+    if (row.status === 'completed') entry.done += 1;
+    counts[goalId] = entry;
+  }
+  return counts;
 }
 
 export interface TodayTaskItem {

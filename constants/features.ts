@@ -9,6 +9,10 @@ export const FEATURES = {
   COLLAGE_ENABLED: false,
   TASKS_V2_ENABLED: true,
   TASKS_V2_COMPARE_LEGACY: true,
+  // Circles friends-only social layer (Home). Off until the client swap is
+  // QA'd against live data (Phase 8). When false, Home renders greeting +
+  // Today's Focus + drafts with no feed and no Circles fetches on mount.
+  CIRCLES_ENABLED: false,
 } as const;
 
 export const AI_FEATURES = {

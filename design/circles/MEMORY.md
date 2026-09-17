@@ -11,6 +11,92 @@ visible.
 - The user's own dev server usually runs on **:8099** (`expo start --web --port 8099`).
   Avoid starting a second server from the same checkout (duplicate background jobs).
 
+## Fix 0 + Phase 5a (2026-09-17)
+
+- **Migration 054 is LIVE.** `054_circle_comment_soft_delete_rpc.sql` added
+  `delete_circle_comment(uuid)` SECURITY DEFINER (author-scoped, idempotent,
+  P0002 when missing) and **dropped** the `post_comments` UPDATE policy +
+  `update(deleted_at)` grant (CD-021). Fixes the 403 `42501` comment-delete defect.
+  Applied via management API, tracker row inserted; **latest applied migration is
+  now 054**. Types regenerated. Verified live via a rolled-back `set local role
+  authenticated` sim (direct UPDATE → 0 rows; RPC returns id; re-delete → P0002) —
+  audit 003. `lib/db/circles.ts:deletePostComment(commentId, client)` now calls the
+  RPC (dropped `userId`). Harness (`test:circles:db`) applies 053+054 and asserts
+  the round-trip.
+- **Live grant gotcha:** all 053 tables carry table-level UPDATE+DELETE grants for
+  `authenticated` that 053's SQL never wrote — a **Supabase project-wide default**.
+  RLS is the real gate; a dropped policy blocks direct writes regardless of grant.
+  Don't chase these grants in migrations.
+- **Phase 5a weekly Task count is built** (CD-003). `lib/db/tasks.ts:
+  fetchWeeklyTaskCountsByGoal(db, userId, timezone)` (owner-tz Monday-start via
+  `zoned-calendar`; non-cancelled active-task occurrences this week = target,
+  completed = done; goals w/o occurrences absent from the map). Exposed at
+  **`GET /api/goals/weekly-task-counts`** (CTO/goals lane, NOT `/api/circles/**` —
+  dashboard is the slot owner) → `features/goals/services/weekly-task-count-service.ts`
+  → `dashboard.tsx` renders `done/target` beside the milestone fraction in
+  `TodayFocusSummary`. Live browser render deferred to Phase 8.
+- **Phase 5b invite links DEFERRED (CD-022).** Live check: `redeem_invite_link`
+  (028) **auto-accepts** (inserts an `accepted` friend edge, not a pending request)
+  and there is **no get-or-create "my invite link" RPC** — both contradict CD-016.
+  Prototype `InviteByLink()` placeholder left as-is. Reconciliation is a future L3
+  decision.
+
+## Phase 4 client swap (2026-09-17)
+
+- **Built (changelog 004), tsc clean.** Client is off fixtures onto the real
+  `/api/circles/**` endpoints, behind **`FEATURES.CIRCLES_ENABLED`** (added to
+  `constants/features.ts`, still **false**). Files: `features/circles/`
+  `services/circles-service.ts` (new), `store.ts` (rewritten), `types.ts`
+  (re-exports server DTOs type-only from `lib/db/circles-core.ts`), `format.ts`
+  (new), `progress.ts`, `hooks/useCircles.ts`, and every component.
+- **Flag is the single fetch gate.** Every mount-time load runs only when
+  `CIRCLES_ENABLED`: `useCircles` (Home), `useGoalInviteCount` (AvatarMenu,
+  app-wide → returns 0/no-fetch when off), `SavedPostsPane`. With the flag off,
+  Home renders greeting + Today's Focus + drafts, no feed, no Circles fetches.
+- **`ensureLoaded` is idempotent** (guarded on `status !== 'idle'`) so Home +
+  the avatar-menu panes trigger a single `Promise.allSettled` load. Mutations use
+  optimistic update + revert for the light toggles and reload-after-write for
+  publish/send/withdraw/set-public-goal.
+- **Author identity = the hydrated DTO `author`/`owner`** (never a fixture
+  lookup). `me` (current user `CirclesAuthor`) is derived from the session in
+  `useCircles` — no extra request. `PersonAvatar` takes a `CirclesAuthor`.
+- **CD-004** `SharedGoal.why` removed from types + UI. **CD-005** composer shows
+  an editable snapshot description before posting. **CD-013** encourage count is
+  tappable → encouragers modal (`GET .../encouragements`). **CD-019** dropped
+  `following`/`toggleFollowing`. **CD-020** invite-picker friends come from the
+  shared `GET /api/friends` (not a `features/friends` import).
+- **`fixtures.ts` is TEST-ONLY**, rewritten to the new DTO shapes; **zero
+  production importers** (verify with a grep before Phase 6 tests).
+- **No image upload:** composer image toggle + feed image rendering removed
+  (`imagePath` is effectively always null; no upload pipeline). Revisit if/when
+  uploads land (Phase 1.5).
+- **Feed pagination:** service supports the `before=` cursor but the store loads
+  page 1 only. `goal_complete` posts never arise from `create_circle_post`
+  (only reflection/milestone) — the "Completed" filter stays empty in practice.
+
+## Phase 4 live verification + a 053 defect (2026-09-17)
+
+- **Token pass ran 19/20 green** (audit 002) vs live signed-in owner `e4245ec3…`
+  (expo web :8099). All client read endpoints returned the right DTO shapes; a
+  write round-trip verified post create (CD-005 description persisted, server
+  title snapshot, hydrated author), encourage/encouragers (CD-013), save, delete.
+  Test data hard-deleted after (management API); tables back to 0. Server stopped.
+- **Comment soft-delete is broken live — Migration 053 defect (L3/CTO, not Phase
+  4).** `DELETE /api/circles/comments/:id` → 403 `42501`. The `post_comments`
+  **SELECT** policy (`deleted_at IS NULL`) rejects the post-update row, so the
+  author's own soft-delete UPDATE is refused. Proven: `auth.uid() = author_id`;
+  UPDATE policy `with check(true)` still fails; relaxing the SELECT policy fixes
+  it. `circle_posts` is fine (RPC-based delete, CD-009). Fix in a new migration —
+  add `delete_circle_comment(uuid)` SECURITY DEFINER RPC (matches CD-009) or
+  broaden the SELECT policy USING with `or author_id = auth.uid()`. The Phase 4
+  client is correct (`removeComment` reverts on the 403).
+- **Reusable live-DB introspection this session:** management API query endpoint
+  (`POST https://api.supabase.com/v1/projects/<ref>/database/query`, `Authorization:
+  Bearer $SUPABASE_ACCESS_TOKEN` [in shell env], curl UA) runs arbitrary SQL as
+  postgres — great for `pg_policies`/`pg_trigger` reads and **rolled-back
+  `set local role authenticated` + `set local request.jwt.claims` RLS simulations**.
+  `SUPABASE_SERVICE_ROLE_KEY` is in `.env.local` too.
+
 ## Phase 3 server layer (2026-09-17)
 
 - **Built (changelog 003), tsc clean.** `lib/db/circles-core.ts` (pure DTOs +
@@ -108,7 +194,8 @@ visible.
 
 ## Live DB state (read-only checks, 2026-09-17)
 
-- Project ref `rrgiqemscnyaqkculnmb`. Latest applied migration **052**; **053 is free**.
+- Project ref `rrgiqemscnyaqkculnmb`. Latest applied migration **054** (as of
+  2026-09-17; was 052 before 053/054 landed).
 - `goals.visibility`: 45 `private`, 1 `circle`, 0 `public` → the one-public
   partial unique index is safe to create.
 - No `circle_posts` table or `are_friends` function exists yet.

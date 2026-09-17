@@ -208,6 +208,16 @@ Owner: CTO. Cascade Level 3.
   via the management API and verified live 2026-09-17
   (`design/circles/audits/001-migration-053-live-verify.md`). Types regenerated,
   tsc clean. Design: `design/circles/`.
+- 054_circle_comment_soft_delete_rpc.sql: Circles Fix 0. Adds
+  `delete_circle_comment(uuid)` SECURITY DEFINER (author-scoped via auth.uid(),
+  idempotent, raise P0002 when missing; EXECUTE to authenticated) and DROPS the
+  053 `post_comments` "Authors can soft delete own comments" UPDATE policy +
+  `update (deleted_at)` grant. Fixes the live 403 42501 where the `deleted_at IS
+  NULL` SELECT policy hid the post-update row so an author's own soft-delete UPDATE
+  was rejected; now comments soft-delete via an RPC like `circle_posts` (CD-009,
+  CD-021). Applied + verified live via the management API 2026-09-17 (rolled-back
+  `set local role authenticated` sim + harness 053+054); types regenerated, tsc
+  clean. Latest applied migration is now 054. Design: `design/circles/`.
 - goals.mode column was dropped in the 2026-06-24 squash (was a single-value
   CHECK column, no longer carried). lib/db/goals.ts no longer inserts it.
 

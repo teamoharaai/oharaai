@@ -1,19 +1,22 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { AuthenticatedPageShell } from '@/components/layout/AuthenticatedPageShell';
+import { Modal } from '@/components/ui/Modal';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Typography } from '@/components/ui/Typography';
 import { RADIUS, SPACE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
+import { authorName, firstName, toCategory } from '../format';
+import { fetchEncouragers } from '../services/circles-service';
 import { useCircles } from '../hooks/useCircles';
 import { milestoneLabel, milestoneProgress } from '../progress';
-import type { FeedFilter, SharedGoal } from '../types';
+import type { CircleGoalSummary, CirclesAuthor, FeedFilter } from '../types';
 import { SharedWithYouCard } from './ContextCards';
 import { PersonSheet, SharedGoalSheet } from './CirclesSheets';
 import { FeedPostCard } from './FeedPostCard';
 import { PostComposer } from './PostComposer';
-import { CategoryGlyph, ProgressTrack, useCategoryTone } from './primitives';
+import { CategoryGlyph, PersonAvatar, ProgressTrack, useCategoryTone } from './primitives';
 
 const FILTER_OPTIONS: { value: FeedFilter; label: string }[] = [
   { value: 'all', label: 'All updates' },
@@ -26,9 +29,10 @@ const FILTER_OPTIONS: { value: FeedFilter; label: string }[] = [
 const TWO_COLUMN_MIN_WIDTH = 1080;
 const PAGE_MAX_WIDTH = 1280;
 
-function SharedGoalTile({ goal, ownerName, onPress }: { goal: SharedGoal; ownerName: string; onPress: () => void }) {
+function SharedGoalTile({ goal, ownerName, onPress }: { goal: CircleGoalSummary; ownerName: string; onPress: () => void }) {
   const colors = useThemeColors();
-  const tone = useCategoryTone(goal.category);
+  const category = toCategory(goal.category);
+  const tone = useCategoryTone(category);
   const progress = milestoneProgress(goal.milestones);
   return (
     <Pressable
@@ -46,7 +50,7 @@ function SharedGoalTile({ goal, ownerName, onPress }: { goal: SharedGoal; ownerN
         width: 200,
       })}
     >
-      <CategoryGlyph category={goal.category} size={36} />
+      <CategoryGlyph category={category} size={36} />
       <View>
         <Typography numberOfLines={1} variant="emphasis-sm" style={{ fontSize: 15 }}>{goal.title}</Typography>
         <Typography numberOfLines={1} variant="caption" style={{ color: colors.text.secondary }}>Shared by {ownerName}</Typography>
@@ -54,6 +58,57 @@ function SharedGoalTile({ goal, ownerName, onPress }: { goal: SharedGoal; ownerN
       <ProgressTrack color={tone.fg} value={progress.ratio ?? 0} />
       <Typography variant="meta" style={{ color: colors.text.muted }}>{milestoneLabel(progress)}</Typography>
     </Pressable>
+  );
+}
+
+/** CD-013: tapping a post's encourage count reveals who encouraged. */
+function EncouragersModal({ postId, onClose }: { postId: string | null; onClose: () => void }) {
+  const colors = useThemeColors();
+  const [encouragers, setEncouragers] = useState<CirclesAuthor[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!postId) return;
+    let active = true;
+    setLoading(true);
+    setEncouragers([]);
+    fetchEncouragers(postId)
+      .then((people) => { if (active) setEncouragers(people); })
+      .catch(() => { if (active) setEncouragers([]); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [postId]);
+
+  return (
+    <Modal
+      closeOnBackdropPress
+      contentStyle={{ maxWidth: 380, width: '100%', padding: SPACE['3xl'], borderRadius: RADIUS.xl }}
+      onClose={onClose}
+      visible={!!postId}
+    >
+      <Typography accessibilityRole="header" variant="section-header" style={{ marginBottom: SPACE.xl }}>
+        Encouraged by
+      </Typography>
+      {loading ? (
+        <Typography variant="caption" style={{ color: colors.text.muted }}>Loading…</Typography>
+      ) : encouragers.length === 0 ? (
+        <Typography variant="caption" style={{ color: colors.text.secondary }}>No one yet.</Typography>
+      ) : (
+        <View style={{ gap: SPACE.lg }}>
+          {encouragers.map((person) => (
+            <View key={person.id} style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
+              <PersonAvatar person={person} size={34} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Typography numberOfLines={1} variant="emphasis-sm">{authorName(person)}</Typography>
+                {person.username ? (
+                  <Typography variant="meta" style={{ color: colors.text.muted }}>@{person.username}</Typography>
+                ) : null}
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+    </Modal>
   );
 }
 
@@ -81,19 +136,26 @@ export function CirclesScreen({
   const [sharedExpanded, setSharedExpanded] = useState(false);
   const [openPersonId, setOpenPersonId] = useState<string | null>(null);
   const [openGoalId, setOpenGoalId] = useState<string | null>(null);
+  const [encouragersPostId, setEncouragersPostId] = useState<string | null>(null);
 
-  const openPerson = circles.people.find((person) => person.id === openPersonId) ?? null;
   const viewableGoals = [...circles.sharedWithMe, ...circles.publicGoals];
   const openGoal = viewableGoals.find((goal) => goal.id === openGoalId) ?? null;
-  const openGoalOwner = openGoal ? circles.people.find((person) => person.id === openGoal.ownerId) ?? null : null;
+
+  // Author identity comes from hydrated DTOs (post/goal author), never a fixture.
+  const authorsById = new Map<string, CirclesAuthor>();
+  for (const post of circles.posts) if (post.author) authorsById.set(post.author.id, post.author);
+  for (const goal of viewableGoals) if (goal.owner) authorsById.set(goal.owner.id, goal.owner);
+  const openPerson = openPersonId ? authorsById.get(openPersonId) ?? null : null;
+  const openGoalOwner = openGoal?.owner ?? null;
+
   const scope = circles.scope;
   const scopeLabel = scope.kind === 'person'
-    ? `${circles.people.find((person) => person.id === scope.personId)?.firstName ?? ''}’s updates`
+    ? `${firstName(authorsById.get(scope.personId))}’s updates`
     : scope.kind === 'goal'
       ? viewableGoals.find((goal) => goal.id === scope.goalId)?.title ?? ''
       : null;
   const selectedGoalId = scope.kind === 'goal' ? scope.goalId : null;
-  const ownerName = (goal: SharedGoal) => circles.people.find((person) => person.id === goal.ownerId)?.firstName ?? '';
+  const ownerName = (goal: CircleGoalSummary) => firstName(goal.owner);
 
   const sharedCard = (
     <SharedWithYouCard
@@ -101,7 +163,6 @@ export function CirclesScreen({
       goals={circles.sharedWithMe}
       onSelectGoal={setOpenGoalId}
       onToggleExpanded={() => setSharedExpanded((value) => !value)}
-      people={circles.people}
       selectedGoalId={selectedGoalId}
     />
   );
@@ -111,8 +172,10 @@ export function CirclesScreen({
       {feedNotice}
       <PostComposer
         compact={compact}
+        me={circles.me}
         myGoals={circles.myGoals}
         myReflections={circles.myReflections}
+        myMilestones={circles.linkable.milestones}
         onPublish={circles.publishPost}
       />
 
@@ -152,10 +215,15 @@ export function CirclesScreen({
         <FeedPostCard
           compact={compact}
           key={post.id}
-          onAddComment={(body) => circles.addComment(post.id, body)}
-          onEncourage={() => circles.toggleEncourage(post.id)}
+          myId={circles.myId}
+          comments={circles.commentsByPost[post.id] ?? []}
+          onAddComment={(body) => void circles.addComment(post.id, body)}
+          onDeleteComment={(commentId) => void circles.removeComment(post.id, commentId)}
+          onEncourage={() => void circles.toggleEncourage(post.id)}
+          onOpenComments={() => void circles.loadComments(post.id)}
+          onOpenEncouragers={() => setEncouragersPostId(post.id)}
           onOpenPerson={setOpenPersonId}
-          onSave={() => circles.toggleSave(post.id)}
+          onSave={() => void circles.toggleSave(post.id)}
           post={post}
         />
       ))}
@@ -171,6 +239,21 @@ export function CirclesScreen({
       </View>
     </View>
   );
+
+  // Flag off: Home keeps greeting + Today's Focus + drafts, no feed.
+  if (!circles.enabled) {
+    return (
+      <AuthenticatedPageShell>
+        <View style={{ alignSelf: 'center', maxWidth: PAGE_MAX_WIDTH, minWidth: 0, width: '100%' }}>
+          <View style={{ marginBottom: SPACE['3xl'] }}>{greeting}</View>
+          <View style={{ gap: SPACE['3xl'] }}>
+            {todayFocus}
+            {feedNotice}
+          </View>
+        </View>
+      </AuthenticatedPageShell>
+    );
+  }
 
   return (
     <AuthenticatedPageShell>
@@ -216,7 +299,6 @@ export function CirclesScreen({
           setOpenPersonId(null);
           setOpenGoalId(goalId);
         }}
-        onToggleFollowing={() => openPersonId && circles.toggleFollowing(openPersonId)}
         onViewUpdates={() => {
           if (openPersonId) circles.setScope({ kind: 'person', personId: openPersonId });
           setOpenPersonId(null);
@@ -233,6 +315,7 @@ export function CirclesScreen({
         }}
         owner={openGoalOwner}
       />
+      <EncouragersModal postId={encouragersPostId} onClose={() => setEncouragersPostId(null)} />
     </AuthenticatedPageShell>
   );
 }

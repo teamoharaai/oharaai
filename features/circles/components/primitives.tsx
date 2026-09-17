@@ -8,7 +8,7 @@ import { FONT, RADIUS, SPACE, TYPE } from '@/constants/design';
 import { CATEGORY_ACCENT_THEME } from '@/constants/themes';
 import type { GoalCreationCategory } from '@/lib/goals/schema';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
-import type { CirclePerson } from '../types';
+import type { CirclesAuthor } from '../types';
 
 export type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -20,15 +20,6 @@ export const CATEGORY_ICON: Record<GoalCreationCategory, IoniconName> = {
   education: 'book-outline',
   relationships: 'heart-outline',
   growth: 'leaf-outline',
-};
-
-const PERSON_TONE: Record<string, GoalCreationCategory> = {
-  maya: 'health',
-  arthur: 'education',
-  lucas: 'career',
-  priya: 'finance',
-  elena: 'creative',
-  sam: 'relationships',
 };
 
 export function useDarkMode(): boolean {
@@ -45,43 +36,23 @@ export function useCategoryTone(category: GoalCreationCategory) {
   };
 }
 
-function initials(name: string): string {
-  return name.split(/\s+/).slice(0, 2).map((word) => word[0]?.toUpperCase() ?? '').join('');
-}
-
-export function PersonAvatar({ person, size }: { person: CirclePerson; size: number }) {
-  const colors = useThemeColors();
-  const dark = useDarkMode();
-  const tone = PERSON_TONE[person.id];
-  if (person.avatarUrl || !tone) {
-    return <Avatar avatarUrl={person.avatarUrl} displayName={person.id === 'me' ? 'Me' : person.displayName} size={size} />;
-  }
-  const theme = CATEGORY_ACCENT_THEME[tone];
+/**
+ * Avatar for a Circles author (friend or self). Identity comes from the hydrated
+ * `author` DTO — the shared `Avatar` renders the photo or initials fallback.
+ */
+export function PersonAvatar({
+  person,
+  size,
+}: {
+  person: Pick<CirclesAuthor, 'displayName' | 'username' | 'avatarUrl'>;
+  size: number;
+}) {
   return (
-    <View
-      accessible={false}
-      style={{
-        alignItems: 'center',
-        backgroundColor: dark ? `${theme.color}2E` : theme.tint,
-        borderColor: colors.border.warmSubtle,
-        borderRadius: size / 2,
-        borderWidth: 1,
-        height: size,
-        justifyContent: 'center',
-        width: size,
-      }}
-    >
-      <Text
-        style={{
-          color: dark ? theme.color : theme.mid,
-          fontFamily: FONT.ui.semibold,
-          fontSize: Math.round(size * 0.36),
-          includeFontPadding: false,
-        }}
-      >
-        {initials(person.displayName)}
-      </Text>
-    </View>
+    <Avatar
+      avatarUrl={person.avatarUrl}
+      displayName={person.displayName || person.username || 'Someone'}
+      size={size}
+    />
   );
 }
 

@@ -4,17 +4,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Card } from '@/components/ui/Card';
 import { Typography } from '@/components/ui/Typography';
 import { FONT, RADIUS, SPACE, TYPE } from '@/constants/design';
-import { CATEGORY_ACCENT_THEME } from '@/constants/themes';
 import { useThemeColors } from '@/store/uiStore';
-import { personById } from '../fixtures';
-import type { CirclesPost, LinkableItem, PostAttachment } from '../types';
-import {
-  CategoryGlyph,
-  ImagePlaceholder,
-  PersonAvatar,
-  QuietAction,
-  useDarkMode,
-} from './primitives';
+import { authorName, formatRelativeTime, toCategory } from '../format';
+import type { CircleFeedLink, CirclesFeedPost, PostComment } from '../types';
+import { CategoryGlyph, PersonAvatar, QuietAction } from './primitives';
 
 const LINK_META = {
   goal: { eyebrow: 'Goal', icon: 'flag-outline' },
@@ -24,21 +17,19 @@ const LINK_META = {
 
 /**
  * Linked Goal / milestone / reflection. Deliberately title + description only:
- * a feed link never exposes progress, Tasks, or the underlying content.
+ * a feed link never exposes progress, Tasks, or the underlying content (CD-005).
  */
-function LinkAttachment({ attachment }: { attachment: LinkableItem }) {
+function LinkAttachment({ link }: { link: CircleFeedLink }) {
   const colors = useThemeColors();
-  const meta = LINK_META[attachment.kind];
-  const description = attachment.kind === 'milestone'
-    ? `Part of ${attachment.goalTitle}`
-    : attachment.description;
+  const meta = LINK_META[link.kind];
+  const isMilestone = link.kind === 'milestone';
   return (
     <View
-      accessibilityLabel={`${meta.eyebrow}: ${attachment.title}. ${description}`}
+      accessibilityLabel={`${meta.eyebrow}: ${link.title}.${link.description ? ` ${link.description}` : ''}`}
       style={{
         alignItems: 'center',
-        backgroundColor: attachment.kind === 'milestone' ? colors.background.selectedRow : colors.background.subtle,
-        borderColor: attachment.kind === 'milestone' ? 'transparent' : colors.border.warmSubtle,
+        backgroundColor: isMilestone ? colors.background.selectedRow : colors.background.subtle,
+        borderColor: isMilestone ? 'transparent' : colors.border.warmSubtle,
         borderRadius: RADIUS.md,
         borderWidth: 1,
         flexDirection: 'row',
@@ -46,88 +37,42 @@ function LinkAttachment({ attachment }: { attachment: LinkableItem }) {
         padding: SPACE.lg,
       }}
     >
-      {attachment.kind === 'reflection' ? (
-        <View style={{ alignItems: 'center', backgroundColor: colors.background.card, borderRadius: RADIUS.sm, height: 36, justifyContent: 'center', width: 36 }}>
-          <Ionicons color={colors.text.accent} name={meta.icon} size={17} />
-        </View>
-      ) : attachment.kind === 'milestone' ? (
-        <View style={{ alignItems: 'center', backgroundColor: colors.background.card, borderRadius: 18, height: 36, justifyContent: 'center', width: 36 }}>
-          <Ionicons color={colors.text.accent} name={meta.icon} size={17} />
-        </View>
+      {link.kind === 'goal' && link.category ? (
+        <CategoryGlyph category={toCategory(link.category)} size={36} />
       ) : (
-        <CategoryGlyph category={attachment.category} size={36} />
+        <View style={{ alignItems: 'center', backgroundColor: colors.background.card, borderRadius: isMilestone ? 18 : RADIUS.sm, height: 36, justifyContent: 'center', width: 36 }}>
+          <Ionicons color={colors.text.accent} name={meta.icon} size={17} />
+        </View>
       )}
       <View style={{ flex: 1, minWidth: 0 }}>
         <Typography
           variant="meta"
           style={{
-            color: attachment.kind === 'milestone' ? colors.text.accent : colors.text.muted,
-            fontFamily: attachment.kind === 'milestone' ? FONT.ui.semibold : FONT.ui.medium,
+            color: isMilestone ? colors.text.accent : colors.text.muted,
+            fontFamily: isMilestone ? FONT.ui.semibold : FONT.ui.medium,
           }}
         >
           {meta.eyebrow}
         </Typography>
-        <Typography numberOfLines={1} variant="emphasis-sm" style={{ fontSize: 15 }}>{attachment.title}</Typography>
-        <Typography numberOfLines={2} variant="caption" style={{ color: colors.text.secondary }}>{description}</Typography>
+        <Typography numberOfLines={1} variant="emphasis-sm" style={{ fontSize: 15 }}>{link.title}</Typography>
+        {link.description ? (
+          <Typography numberOfLines={2} variant="caption" style={{ color: colors.text.secondary }}>{link.description}</Typography>
+        ) : null}
       </View>
     </View>
   );
-}
-
-function GoalCompleteAttachment({ attachment }: { attachment: Extract<PostAttachment, { kind: 'goal_complete' }> }) {
-  const colors = useThemeColors();
-  const dark = useDarkMode();
-  const theme = CATEGORY_ACCENT_THEME[attachment.category];
-  return (
-    <View
-      accessibilityLabel={`Goal completed: ${attachment.goalTitle}. ${attachment.reflection}`}
-      style={{
-        backgroundColor: colors.background.selectedRow,
-        borderColor: dark ? 'rgba(99,193,116,0.22)' : 'rgba(99,193,116,0.28)',
-        borderRadius: RADIUS.lg,
-        borderWidth: 1,
-        paddingHorizontal: SPACE['3xl'],
-        paddingVertical: SPACE['2xl'],
-      }}
-    >
-      <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.xl }}>
-        <View
-          style={{
-            alignItems: 'center',
-            backgroundColor: colors.background.card,
-            borderRadius: 28,
-            height: 56,
-            justifyContent: 'center',
-            width: 56,
-          }}
-        >
-          <Ionicons color={dark ? theme.color : theme.mid} name="checkmark" size={26} />
-        </View>
-        <View style={{ flex: 1, gap: 2, minWidth: 0 }}>
-          <Typography variant="meta" style={{ color: colors.text.accent, fontFamily: FONT.ui.semibold }}>
-            Goal completed · {attachment.completedLabel}
-          </Typography>
-          <Typography variant="title" style={{ fontSize: 20, lineHeight: 26 }}>{attachment.goalTitle}</Typography>
-          <Typography variant="ai-italic" style={{ ...TYPE.bodySmall, color: colors.text.secondary, fontStyle: 'italic' }}>
-            {attachment.reflection}
-          </Typography>
-        </View>
-      </View>
-    </View>
-  );
-}
-
-function PostAttachmentView({ attachment }: { attachment: PostAttachment }) {
-  if (attachment.kind === 'goal_complete') return <GoalCompleteAttachment attachment={attachment} />;
-  return <LinkAttachment attachment={attachment} />;
 }
 
 function CommentsThread({
-  post,
+  comments,
+  myId,
   onAddComment,
+  onDeleteComment,
 }: {
-  post: CirclesPost;
+  comments: PostComment[];
+  myId: string | null;
   onAddComment: (body: string) => void;
+  onDeleteComment: (commentId: string) => void;
 }) {
   const colors = useThemeColors();
   const [draft, setDraft] = useState('');
@@ -138,16 +83,16 @@ function CommentsThread({
   };
   return (
     <View style={{ gap: SPACE.lg, paddingTop: SPACE.xl }}>
-      {post.comments.length === 0 ? (
+      {comments.length === 0 ? (
         <Typography variant="caption" style={{ color: colors.text.muted }}>
           No comments yet. A few kind words go a long way.
         </Typography>
       ) : null}
-      {post.comments.map((comment) => {
-        const author = personById(comment.authorId);
+      {comments.map((comment) => {
+        const mine = comment.authorId === myId;
         return (
           <View key={comment.id} style={{ flexDirection: 'row', gap: SPACE.md }}>
-            <PersonAvatar person={author} size={30} />
+            <PersonAvatar person={comment.author ?? { displayName: authorName(comment.author), username: '', avatarUrl: null }} size={30} />
             <View
               style={{
                 backgroundColor: colors.background.subtle,
@@ -157,9 +102,14 @@ function CommentsThread({
                 paddingVertical: SPACE.md,
               }}
             >
-              <View style={{ flexDirection: 'row', gap: SPACE.md }}>
-                <Typography variant="emphasis-sm" style={{ fontSize: 13 }}>{author.displayName}</Typography>
-                <Typography variant="meta" style={{ color: colors.text.muted }}>{comment.createdLabel}</Typography>
+              <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
+                <Typography variant="emphasis-sm" style={{ fontSize: 13 }}>{authorName(comment.author)}</Typography>
+                <Typography variant="meta" style={{ color: colors.text.muted }}>{formatRelativeTime(comment.createdAt)}</Typography>
+                {mine ? (
+                  <Pressable accessibilityLabel="Delete comment" accessibilityRole="button" hitSlop={6} onPress={() => onDeleteComment(comment.id)} style={{ marginLeft: 'auto' }}>
+                    <Ionicons color={colors.text.muted} name="trash-outline" size={13} />
+                  </Pressable>
+                ) : null}
               </View>
               <Typography variant="body-small" style={{ color: colors.text.primary }}>{comment.body}</Typography>
             </View>
@@ -212,78 +162,64 @@ function CommentsThread({
 export function FeedPostCard({
   post,
   compact,
+  myId,
+  comments,
   onOpenPerson,
+  onOpenComments,
+  onOpenEncouragers,
   onEncourage,
   onSave,
   onAddComment,
+  onDeleteComment,
 }: {
-  post: CirclesPost;
+  post: CirclesFeedPost;
   compact: boolean;
+  myId: string | null;
+  comments: PostComment[];
   onOpenPerson: (personId: string) => void;
+  onOpenComments: () => void;
+  onOpenEncouragers: () => void;
   onEncourage: () => void;
   onSave: () => void;
   onAddComment: (body: string) => void;
+  onDeleteComment: (commentId: string) => void;
 }) {
   const colors = useThemeColors();
-  const author = personById(post.authorId);
   const [commentsOpen, setCommentsOpen] = useState(false);
-  const sideImage = !!post.image && !compact;
-  const isMine = post.authorId === 'me';
+  const isMine = post.authorId === myId;
+  const name = isMine ? 'You' : authorName(post.author);
+
+  const openComments = () => {
+    setCommentsOpen((value) => {
+      if (!value) onOpenComments();
+      return !value;
+    });
+  };
 
   return (
     <Card elevated padding="spacious">
       <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.lg }}>
         <Pressable
-          accessibilityLabel={isMine ? 'You' : `Open ${author.displayName}`}
+          accessibilityLabel={isMine ? 'You' : `Open ${name}`}
           accessibilityRole="button"
-          disabled={isMine}
-          onPress={() => onOpenPerson(author.id)}
+          disabled={isMine || !post.author}
+          onPress={() => onOpenPerson(post.authorId)}
           style={{ alignItems: 'center', flex: 1, flexDirection: 'row', gap: SPACE.lg, minWidth: 0 }}
         >
-          <PersonAvatar person={author} size={44} />
+          <PersonAvatar person={post.author ?? { displayName: name, username: '', avatarUrl: null }} size={44} />
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Typography numberOfLines={1} variant="emphasis-sm" style={{ fontSize: 16 }}>
-              {author.displayName}
-            </Typography>
-            <Typography variant="meta" style={{ color: colors.text.muted }}>{post.createdLabel}</Typography>
+            <Typography numberOfLines={1} variant="emphasis-sm" style={{ fontSize: 16 }}>{name}</Typography>
+            <Typography variant="meta" style={{ color: colors.text.muted }}>{formatRelativeTime(post.createdAt)}</Typography>
           </View>
-        </Pressable>
-        <Pressable
-          accessibilityLabel="Post options"
-          accessibilityRole="button"
-          hitSlop={8}
-          style={({ hovered }) => ({
-            alignItems: 'center',
-            backgroundColor: hovered ? colors.background.subtle : 'transparent',
-            borderRadius: 18,
-            height: 36,
-            justifyContent: 'center',
-            width: 36,
-          })}
-        >
-          <Ionicons color={colors.text.muted} name="ellipsis-horizontal" size={18} />
         </Pressable>
       </View>
 
       <View style={{ gap: SPACE.xl, marginTop: SPACE.xl, paddingLeft: compact ? 0 : 56 }}>
-        {post.kind === 'goal_complete' && post.attachment ? (
-          <PostAttachmentView attachment={post.attachment} />
-        ) : null}
-
-        <View style={{ flexDirection: sideImage ? 'row' : 'column', gap: SPACE.xl }}>
-          {post.image ? (
-            <View style={{ width: sideImage ? '42%' : '100%' }}>
-              <ImagePlaceholder caption={post.image.caption} height={sideImage ? 200 : 190} tone={post.image.tone} />
-            </View>
-          ) : null}
-          <View style={{ flex: sideImage ? 1 : undefined, gap: SPACE.xl, minWidth: 0 }}>
-            <Typography variant="content" style={{ color: colors.text.primary, fontSize: 16, lineHeight: 25 }}>
-              {post.body}
-            </Typography>
-            {post.kind !== 'goal_complete' && post.attachment ? (
-              <PostAttachmentView attachment={post.attachment} />
-            ) : null}
-          </View>
+        <View style={{ gap: SPACE.xl, minWidth: 0 }}>
+          <Typography variant="content" style={{ color: colors.text.primary, fontSize: 16, lineHeight: 25 }}>
+            {post.body}
+          </Typography>
+          {post.link ? <LinkAttachment link={post.link} /> : null}
         </View>
 
         <View
@@ -298,16 +234,23 @@ export function FeedPostCard({
           <QuietAction
             active={post.encouragedByMe}
             activeColor={colors.text.accent}
-            accessibilityLabel={`${post.encouragedByMe ? 'Encouraged' : 'Encourage'}, ${post.encouragements}`}
+            accessibilityLabel={post.encouragedByMe ? 'Encouraged' : 'Encourage'}
             icon={post.encouragedByMe ? 'leaf' : 'leaf-outline'}
-            label={post.encouragements > 0 ? `Encourage · ${post.encouragements}` : 'Encourage'}
+            label="Encourage"
             onPress={onEncourage}
           />
+          {post.encouragementCount > 0 ? (
+            <QuietAction
+              accessibilityLabel={`${post.encouragementCount} ${post.encouragementCount === 1 ? 'person' : 'people'} encouraged. See who`}
+              label={String(post.encouragementCount)}
+              onPress={onOpenEncouragers}
+            />
+          ) : null}
           <QuietAction
             active={commentsOpen}
             icon="chatbubble-outline"
-            label={post.comments.length > 0 ? `Comment · ${post.comments.length}` : 'Comment'}
-            onPress={() => setCommentsOpen((value) => !value)}
+            label={post.commentCount > 0 ? `Comment · ${post.commentCount}` : 'Comment'}
+            onPress={openComments}
           />
           <View style={{ flex: 1 }} />
           <QuietAction
@@ -328,7 +271,7 @@ export function FeedPostCard({
             marginTop: SPACE.sm,
           }}
         >
-          <CommentsThread onAddComment={onAddComment} post={post} />
+          <CommentsThread comments={comments} myId={myId} onAddComment={onAddComment} onDeleteComment={onDeleteComment} />
         </View>
       ) : null}
     </Card>

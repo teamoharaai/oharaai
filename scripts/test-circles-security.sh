@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Applies Migration 053 (Circles social layer) to an isolated local PostgreSQL
-# cluster and runs the Circles security assertions. Never reads Supabase
-# credentials or contacts a linked/live project. Mirrors
+# Applies Migrations 053 + 054 (Circles social layer) to an isolated local
+# PostgreSQL cluster and runs the Circles security assertions. Never reads
+# Supabase credentials or contacts a linked/live project. Mirrors
 # scripts/test-tasks-security.sh. Run via: npm run test:circles:db
 
 set -euo pipefail
@@ -13,6 +13,7 @@ CIRCLES_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BOOTSTRAP_PATH="$CIRCLES_REPO_ROOT/scripts/circles-security-bootstrap.sql"
 TEST_PATH="$CIRCLES_REPO_ROOT/scripts/circles-security.test.sql"
 MIGRATION_053="$CIRCLES_REPO_ROOT/supabase/migrations/053_circles_social_layer.sql"
+MIGRATION_054="$CIRCLES_REPO_ROOT/supabase/migrations/054_circle_comment_soft_delete_rpc.sql"
 
 if command -v pg_config >/dev/null 2>&1; then
   PG_BIN="$(pg_config --bindir)"
@@ -53,6 +54,8 @@ echo "Applying isolated bootstrap..."
 "${PSQL[@]}" -f "$BOOTSTRAP_PATH" >/dev/null
 echo "Applying Migration 053..."
 "${PSQL[@]}" -f "$MIGRATION_053" >/dev/null
+echo "Applying Migration 054..."
+"${PSQL[@]}" -f "$MIGRATION_054" >/dev/null
 echo "Running Circles security assertions..."
 "${PSQL[@]}" -f "$TEST_PATH"
 echo "Re-applying 053 must fail loudly (not idempotent by design; catches double-apply)..."

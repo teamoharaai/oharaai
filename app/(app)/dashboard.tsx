@@ -22,6 +22,10 @@ import {
 } from '@/features/goals/active-goal-selectors';
 import { fetchActiveGoalReflectionTimestamps } from '@/features/goals/services/active-goal-reflection-service';
 import {
+  fetchWeeklyTaskCountsByGoal,
+  type WeeklyTaskCountsByGoal,
+} from '@/features/goals/services/weekly-task-count-service';
+import {
   DASHBOARD_DRAFT_SAVED_PARAM,
   DASHBOARD_GOAL_FILTER_PARAM,
 } from '@/lib/navigation/dashboard';
@@ -71,6 +75,21 @@ function milestoneProgressLabel(goal: TodayCarouselGoal): string {
 
 function formatCategoryLabel(category: string): string {
   return category.charAt(0).toUpperCase() + category.slice(1);
+}
+
+/**
+ * This week's Task count for a goal (CD-003): "done/target" of the goal's
+ * materialized Task occurrences in the current owner-tz week. Returns null when
+ * the goal has no occurrences this week (graceful degradation — the count is
+ * omitted, never shown as a wrong number).
+ */
+function weeklyTaskLabel(
+  goalId: string,
+  weeklyTaskCounts: WeeklyTaskCountsByGoal,
+): string | null {
+  const count = weeklyTaskCounts[goalId];
+  if (!count || count.target === 0) return null;
+  return `${count.done}/${count.target}`;
 }
 
 function DashboardGreeting({
@@ -157,7 +176,13 @@ function DashboardCreateButton({
   );
 }
 
-function TodayFocusSummary({ goals }: { goals: TodayCarouselGoal[] }) {
+function TodayFocusSummary({
+  goals,
+  weeklyTaskCounts,
+}: {
+  goals: TodayCarouselGoal[];
+  weeklyTaskCounts: WeeklyTaskCountsByGoal;
+}) {
   const colors = useThemeColors();
   const darkMode = useUIStore((state) => state.themeMode === 'dark');
   const { width } = useWindowDimensions();
@@ -265,13 +290,32 @@ function TodayFocusSummary({ goals }: { goals: TodayCarouselGoal[] }) {
                   </Typography>
                 </View>
               </View>
-              <Typography
-                variant="caption"
-                accessibilityLabel={`Milestones: ${milestoneProgressLabel(goal)}`}
-                style={{ color: colors.text.accent, marginLeft: SPACE.lg, minWidth: 32, textAlign: 'right' }}
-              >
-                {milestoneProgressLabel(goal)}
-              </Typography>
+              <View style={{ alignItems: 'flex-end', gap: SPACE.xs, marginLeft: SPACE.lg, minWidth: 52 }}>
+                <View
+                  accessibilityLabel={`Milestones: ${milestoneProgressLabel(goal)}`}
+                  style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.xs }}
+                >
+                  <Ionicons color={colors.text.accent} name="flag-outline" size={13} />
+                  <Typography variant="caption" style={{ color: colors.text.accent }}>
+                    {milestoneProgressLabel(goal)}
+                  </Typography>
+                </View>
+                {(() => {
+                  const label = weeklyTaskLabel(goal.id, weeklyTaskCounts);
+                  if (!label) return null;
+                  return (
+                    <View
+                      accessibilityLabel={`This week's tasks: ${label.replace('/', ' of ')}`}
+                      style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.xs }}
+                    >
+                      <Ionicons color={colors.text.secondary} name="calendar-outline" size={12} />
+                      <Typography variant="caption" style={{ color: colors.text.secondary, fontSize: 11 }}>
+                        {label}
+                      </Typography>
+                    </View>
+                  );
+                })()}
+              </View>
               <View
                 style={{
                   alignItems: 'center',
@@ -352,6 +396,8 @@ export default function DashboardScreen() {
   const { projects, loadProjects } = useProjectStore();
   const [reflectionTimestamps, setReflectionTimestamps] =
     useState<ReflectionTimestampsByGoalId>({});
+  const [weeklyTaskCounts, setWeeklyTaskCounts] =
+    useState<WeeklyTaskCountsByGoal>({});
 
   const draftsRequested = routeParams[DASHBOARD_GOAL_FILTER_PARAM] === 'drafts';
   const draftSaved = routeParams[DASHBOARD_DRAFT_SAVED_PARAM] === '1';
@@ -421,6 +467,27 @@ export default function DashboardScreen() {
     };
   }, [activeGoalIdsKey]);
 
+  // This week's Task count per goal (owner-tz, Monday-start) for Today's Focus
+  // (CD-003). Degrades to no count on failure or when a goal has no occurrences.
+  useEffect(() => {
+    if (!activeGoalIdsKey) {
+      setWeeklyTaskCounts({});
+      return;
+    }
+
+    let isActive = true;
+    fetchWeeklyTaskCountsByGoal()
+      .then((counts) => {
+        if (isActive) setWeeklyTaskCounts(counts);
+      })
+      .catch(() => {
+        if (isActive) setWeeklyTaskCounts({});
+      });
+    return () => {
+      isActive = false;
+    };
+  }, [activeGoalIdsKey]);
+
   const todayGoals = useMemo(
     () => resolveActiveGoalProjectTitles(orderActiveGoals(activeGoals, reflectionTimestamps), projects),
     [activeGoals, projects, reflectionTimestamps],
@@ -440,7 +507,7 @@ export default function DashboardScreen() {
             weeklyStreak={momentum.summary?.weeklyStreak ?? null}
           />
         )}
-        todayFocus={goalsLoading ? <TodayFocusLoading /> : <TodayFocusSummary goals={todayGoals} />}
+        todayFocus={goalsLoading ? <TodayFocusLoading /> : <TodayFocusSummary goals={todayGoals} weeklyTaskCounts={weeklyTaskCounts} />}
       />
       <Toast
         message="Saved as draft — pick it back up anytime"

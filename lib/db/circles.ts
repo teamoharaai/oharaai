@@ -2,7 +2,6 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import supabase from './client';
 import {
   buildAuthorMap,
-  CircleDataError,
   mapFeedRow,
   mapGoalSummary,
   mapPostCore,
@@ -206,28 +205,23 @@ export async function createPostComment(
   return (data as { id: string }).id;
 }
 
-// Soft delete via the column-scoped update grant (no delete RPC exists).
+// Soft delete via the delete_circle_comment SECURITY DEFINER RPC (migration
+// 054, CD-021 — mirrors delete_circle_post/CD-009). A direct RLS UPDATE is
+// rejected 42501 because the post-update row fails the `deleted_at is null`
+// SELECT policy; the RPC bypasses that while staying author-scoped via
+// auth.uid(). Raises P0002 (→ 404) when the comment is missing or already gone.
 export async function deletePostComment(
   commentId: string,
-  userId: string,
   client: DbClient = supabase,
 ): Promise<string> {
-  const { data, error } = await client
-    .from('post_comments')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', commentId)
-    .eq('author_id', userId)
-    .is('deleted_at', null)
-    .select('id')
-    .maybeSingle();
+  const { data, error } = await client.rpc('delete_circle_comment', {
+    p_comment_id: commentId,
+  });
   if (error) throwCircleError(error, 'Failed to delete comment.');
-  if (!data) {
-    throw new CircleDataError(
-      'NOT_FOUND',
-      'Comment not found or already deleted.',
-    );
+  if (typeof data !== 'string') {
+    throw new Error('delete_circle_comment did not return a comment id');
   }
-  return (data as { id: string }).id;
+  return data;
 }
 
 // ---------------------------------------------------------------------------

@@ -224,6 +224,49 @@ begin
   perform public.withdraw_goal_invite(v_invite);
 end $$;
 
+-- ------------------------------------------- comment soft-delete (Migration 054)
+-- Stranger C cannot delete a comment they don't own.
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000000c', false);
+do $$
+declare
+  v_comment uuid;
+begin
+  select id into v_comment from public.post_comments limit 1;
+  begin
+    perform public.delete_circle_comment(v_comment);
+    raise exception 'stranger soft-deleted a comment they do not own';
+  exception when sqlstate 'P0002' then null;
+  end;
+  if (select count(*) from public.post_comments where deleted_at is not null) <> 0 then
+    raise exception 'a comment was soft-deleted by a non-author';
+  end if;
+end $$;
+
+-- Author B soft-deletes their own comment via the RPC (the direct UPDATE path
+-- is gone; the RPC bypasses the deleted_at-is-null SELECT policy). Idempotent:
+-- a second delete raises P0002.
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000000b', false);
+do $$
+declare
+  v_comment uuid;
+  v_returned uuid;
+begin
+  select id into v_comment from public.post_comments where author_id = '00000000-0000-4000-8000-00000000000b' limit 1;
+  v_returned := public.delete_circle_comment(v_comment);
+  if v_returned <> v_comment then
+    raise exception 'delete_circle_comment returned the wrong id';
+  end if;
+  if (select comment_count from public.get_circles_feed() limit 1) <> 0 then
+    raise exception 'soft-deleted comment still counted in the feed';
+  end if;
+
+  begin
+    perform public.delete_circle_comment(v_comment);
+    raise exception 'already-deleted comment did not raise not-found';
+  exception when sqlstate 'P0002' then null;
+  end;
+end $$;
+
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000000b', false);
 
 do $$

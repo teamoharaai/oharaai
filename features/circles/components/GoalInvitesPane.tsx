@@ -1,21 +1,31 @@
+import { useEffect } from 'react';
 import { View } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import { Typography } from '@/components/ui/Typography';
 import { RADIUS, SPACE } from '@/constants/design';
+import { FEATURES } from '@/constants/features';
 import { useThemeColors } from '@/store/uiStore';
-import { personById } from '../fixtures';
+import { firstName, formatRelativeTime, toCategory } from '../format';
 import { milestoneLabel, milestoneProgress } from '../progress';
 import { useCirclesStore } from '../store';
 import { CategoryGlyph, PersonAvatar } from './primitives';
 
+/**
+ * Count of pending incoming goal invites, for the avatar-menu badge. Gated on the
+ * flag: with Circles off it returns 0 and never triggers a fetch.
+ */
 export function useGoalInviteCount(): number {
-  return useCirclesStore((state) => state.goalInvites.length);
+  const count = useCirclesStore((state) => state.goalInvites.length);
+  const ensureLoaded = useCirclesStore((state) => state.ensureLoaded);
+  useEffect(() => {
+    if (FEATURES.CIRCLES_ENABLED) void ensureLoaded();
+  }, [ensureLoaded]);
+  return FEATURES.CIRCLES_ENABLED ? count : 0;
 }
 
 /**
  * Goal invitations, shown inside Requests. Accepting adds the Goal to
  * "Shared with You" on Home; declining removes it silently.
- * PROTOTYPE: in-memory only; the inviter is not notified.
  */
 export function GoalInvitesPane() {
   const colors = useThemeColors();
@@ -23,7 +33,7 @@ export function GoalInvitesPane() {
   const acceptInvite = useCirclesStore((state) => state.acceptInvite);
   const declineInvite = useCirclesStore((state) => state.declineInvite);
 
-  if (invites.length === 0) return null;
+  if (!FEATURES.CIRCLES_ENABLED || invites.length === 0) return null;
 
   return (
     <View style={{ gap: SPACE.md, paddingHorizontal: 12, paddingTop: 14 }}>
@@ -31,10 +41,10 @@ export function GoalInvitesPane() {
         Goal invitations
       </Typography>
       {invites.map((invite) => {
-        const owner = personById(invite.goal.ownerId);
+        const owner = invite.goal.owner;
         return (
           <View
-            key={invite.id}
+            key={invite.inviteId}
             style={{
               backgroundColor: colors.background.subtle,
               borderColor: colors.border.warmSubtle,
@@ -45,13 +55,13 @@ export function GoalInvitesPane() {
             }}
           >
             <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}>
-              <PersonAvatar person={owner} size={24} />
+              <PersonAvatar person={owner ?? { displayName: 'Someone', username: '', avatarUrl: null }} size={24} />
               <Typography numberOfLines={1} variant="caption" style={{ color: colors.text.secondary, flex: 1 }}>
-                {owner.firstName} invited you to view a Goal · {invite.sentLabel}
+                {firstName(owner) || 'A friend'} invited you to view a Goal · {formatRelativeTime(invite.createdAt)}
               </Typography>
             </View>
             <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.lg }}>
-              <CategoryGlyph category={invite.goal.category} size={36} />
+              <CategoryGlyph category={toCategory(invite.goal.category)} size={36} />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Typography numberOfLines={1} variant="emphasis-sm" style={{ fontSize: 15 }}>{invite.goal.title}</Typography>
                 <Typography variant="meta" style={{ color: colors.text.secondary }}>
@@ -61,14 +71,14 @@ export function GoalInvitesPane() {
             </View>
             <View style={{ flexDirection: 'row', gap: SPACE.sm }}>
               <Button
-                onPress={() => acceptInvite(invite.id)}
+                onPress={() => void acceptInvite(invite.inviteId)}
                 size="compact"
                 style={{ minHeight: 38, paddingHorizontal: 14 }}
               >
                 Accept
               </Button>
               <Button
-                onPress={() => declineInvite(invite.id)}
+                onPress={() => void declineInvite(invite.inviteId)}
                 size="compact"
                 style={{ minHeight: 38, paddingHorizontal: 14 }}
                 textStyle={{ color: colors.text.primary }}

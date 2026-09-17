@@ -2807,6 +2807,7 @@ export type Database = {
         }
         Returns: string
       }
+      delete_circle_comment: { Args: { p_comment_id: string }; Returns: string }
       delete_circle_post: { Args: { p_post_id: string }; Returns: string }
       delete_folder_reassign: {
         Args: { p_folder_id: string; p_general_folder_id: string }
@@ -3509,4 +3510,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

@@ -8,7 +8,7 @@ import { createAuthedClient } from '@/lib/db/client';
 import { deletePostComment } from '@/lib/db/circles';
 import { validateUuid } from '@/lib/db/circles-core';
 
-// Author soft-delete (sets deleted_at via the column-scoped update grant).
+// Author soft-delete via the delete_circle_comment RPC (migration 054).
 export async function DELETE(
   request: Request,
   params: Record<string, string>,
@@ -26,7 +26,6 @@ async function handleDelete(
   try {
     const id = await deletePostComment(
       validateUuid(params.id, 'comment id'),
-      auth.userId,
       createAuthedClient(auth.accessToken),
     );
     return circlesSuccessResponse({ id });

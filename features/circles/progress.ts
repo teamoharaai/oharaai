@@ -1,4 +1,10 @@
-import type { SharedGoal, SharedMilestone } from './types';
+import type { CircleGoalSummary } from '@/lib/db/circles-core';
+
+/** A milestone as a viewer sees it: title + done only (whitelisted, CD-004). */
+export interface ViewMilestone {
+  title: string;
+  done: boolean;
+}
 
 export interface MilestoneProgress {
   done: number;
@@ -7,8 +13,8 @@ export interface MilestoneProgress {
   ratio: number | null;
 }
 
-/** Progress rule (option 2): completed milestones / total milestones. */
-export function milestoneProgress(milestones: readonly SharedMilestone[]): MilestoneProgress {
+/** Progress rule (option 2, CD-003): completed milestones / total milestones. */
+export function milestoneProgress(milestones: readonly ViewMilestone[]): MilestoneProgress {
   const done = milestones.filter((milestone) => milestone.done).length;
   return {
     done,
@@ -23,7 +29,8 @@ export function milestoneLabel(progress: MilestoneProgress): string {
 }
 
 /** Shown beside milestone progress: this week's Task count, when the Goal has one. */
-export function weeklyTaskLabel(goal: Pick<SharedGoal, 'weeklyTask'>): string | null {
+export function weeklyTaskLabel(goal: Pick<CircleGoalSummary, 'weeklyTask'>): string | null {
   const task = goal.weeklyTask;
-  return task ? `${task.done} / ${task.target} ${task.label}` : null;
+  if (!task || task.target <= 0) return null;
+  return `${task.done} / ${task.target} this week`;
 }

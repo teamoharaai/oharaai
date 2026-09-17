@@ -4,11 +4,19 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Button } from '@/components/ui/Button';
 import { Typography } from '@/components/ui/Typography';
 import { RADIUS, SPACE } from '@/constants/design';
+import { FEATURES } from '@/constants/features';
 import { useThemeColors } from '@/store/uiStore';
+import { firstName, toCategory } from '../format';
 import { useCircles } from '../hooks/useCircles';
-import { milestoneLabel, milestoneProgress } from '../progress';
-import type { MyGoal } from '../types';
+import type { CirclesAuthor, LinkableItem } from '../types';
 import { CategoryGlyph, PersonAvatar, PressableRow } from './primitives';
+
+type LinkableGoal = Extract<LinkableItem, { kind: 'goal' }>;
+
+function categoryLabel(category: string): string {
+  const value = toCategory(category);
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
 
 function SectionTitle({ title, copy }: { title: string; copy: string }) {
   const colors = useThemeColors();
@@ -43,16 +51,15 @@ function ViewOnlyNote() {
   );
 }
 
-function GoalOption({ goal, selected, onPress }: { goal: MyGoal; selected: boolean; onPress: () => void }) {
+function GoalOption({ goal, selected, onPress }: { goal: LinkableGoal; selected: boolean; onPress: () => void }) {
   const colors = useThemeColors();
+  const category = toCategory(goal.category);
   return (
     <PressableRow accessibilityLabel={goal.title} onPress={onPress} selected={selected}>
-      <CategoryGlyph category={goal.category} size={36} />
+      <CategoryGlyph category={category} size={36} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Typography numberOfLines={1} variant="emphasis-sm">{goal.title}</Typography>
-        <Typography variant="meta" style={{ color: colors.text.secondary }}>
-          {milestoneLabel(milestoneProgress(goal.milestones))}
-        </Typography>
+        <Typography variant="meta" style={{ color: colors.text.secondary }}>{categoryLabel(goal.category)}</Typography>
       </View>
       <Ionicons
         color={selected ? colors.text.accent : colors.text.muted}
@@ -66,13 +73,13 @@ function GoalOption({ goal, selected, onPress }: { goal: MyGoal; selected: boole
 /** Optional: make exactly one Goal visible to all friends. Click → list → pick → Confirm. */
 function PublicGoalSection() {
   const colors = useThemeColors();
-  const { myGoals, myPublicGoalId, setMyPublicGoal } = useCircles();
+  const { myGoals, myPublicGoal, setMyPublicGoal } = useCircles();
   const [picking, setPicking] = useState(false);
-  const [pendingId, setPendingId] = useState<string | null>(myPublicGoalId);
-  const current = myGoals.find((goal) => goal.id === myPublicGoalId) ?? null;
+  const [pendingId, setPendingId] = useState<string | null>(myPublicGoal?.id ?? null);
+  const currentId = myPublicGoal?.id ?? null;
 
   function startPicking() {
-    setPendingId(myPublicGoalId);
+    setPendingId(currentId);
     setPicking(true);
   }
 
@@ -87,9 +94,9 @@ function PublicGoalSection() {
         ))}
         <View style={{ flexDirection: 'row', gap: SPACE.md, marginTop: SPACE.xl }}>
           <Button
-            disabled={!pendingId || pendingId === myPublicGoalId}
+            disabled={!pendingId || pendingId === currentId}
             onPress={() => {
-              setMyPublicGoal(pendingId);
+              void setMyPublicGoal(pendingId);
               setPicking(false);
             }}
             size="compact"
@@ -106,7 +113,7 @@ function PublicGoalSection() {
 
   return (
     <View>
-      {current ? (
+      {myPublicGoal ? (
         <View
           style={{
             alignItems: 'center',
@@ -118,13 +125,13 @@ function PublicGoalSection() {
             padding: SPACE.lg,
           }}
         >
-          <CategoryGlyph category={current.category} size={40} />
+          <CategoryGlyph category={toCategory(myPublicGoal.category)} size={40} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.xs }}>
               <Ionicons color={colors.text.accent} name="globe-outline" size={13} />
               <Typography variant="meta" style={{ color: colors.text.accent }}>Public to all friends</Typography>
             </View>
-            <Typography numberOfLines={1} variant="emphasis-sm" style={{ fontSize: 15 }}>{current.title}</Typography>
+            <Typography numberOfLines={1} variant="emphasis-sm" style={{ fontSize: 15 }}>{myPublicGoal.title}</Typography>
           </View>
         </View>
       ) : (
@@ -134,11 +141,11 @@ function PublicGoalSection() {
         </View>
       )}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md, marginTop: SPACE.lg }}>
-        <Button onPress={startPicking} size="compact" variant={current ? 'outline' : 'primary'} textStyle={current ? { color: colors.text.primary } : undefined}>
-          {current ? 'Change' : 'Choose a public goal'}
+        <Button onPress={startPicking} size="compact" variant={myPublicGoal ? 'outline' : 'primary'} textStyle={myPublicGoal ? { color: colors.text.primary } : undefined}>
+          {myPublicGoal ? 'Change' : 'Choose a public goal'}
         </Button>
-        {current ? (
-          <Button onPress={() => setMyPublicGoal(null)} size="compact" textStyle={{ color: colors.text.primary }} variant="outline">
+        {myPublicGoal ? (
+          <Button onPress={() => void setMyPublicGoal(null)} size="compact" textStyle={{ color: colors.text.primary }} variant="outline">
             Make private
           </Button>
         ) : null}
@@ -150,20 +157,33 @@ function PublicGoalSection() {
 /** Invite specific friends to one Goal; they accept or decline in Requests. */
 function InviteToGoalSection() {
   const colors = useThemeColors();
-  const { myGoals, people, sentInvites, sendInvite, withdrawInvite } = useCircles();
+  const { myGoals, friends, sentInvites, sendInviteToGoal, withdrawInvitesForGoal } = useCircles();
   const [goalId, setGoalId] = useState<string | null>(null);
   const [invitees, setInvitees] = useState<string[]>([]);
   const goal = myGoals.find((item) => item.id === goalId);
 
+  const goalTitleById = (id: string) => myGoals.find((item) => item.id === id)?.title ?? 'A goal';
+  const sentByGoal = sentInvites.reduce<Record<string, CirclesAuthor[]>>((acc, invite) => {
+    if (!invite.invitee) return acc;
+    (acc[invite.goalId] ??= []).push(invite.invitee);
+    return acc;
+  }, {});
+
   return (
     <View>
       <Typography variant="meta" style={{ color: colors.text.muted, marginBottom: SPACE.xs }}>Goal</Typography>
+      {myGoals.length === 0 ? (
+        <Typography variant="caption" style={{ color: colors.text.secondary }}>No shareable Goals yet.</Typography>
+      ) : null}
       {myGoals.map((item) => (
         <GoalOption goal={item} key={item.id} onPress={() => setGoalId(item.id)} selected={goalId === item.id} />
       ))}
       <Typography variant="meta" style={{ color: colors.text.muted, marginBottom: SPACE.md, marginTop: SPACE.xl }}>Invite</Typography>
+      {friends.length === 0 ? (
+        <Typography variant="caption" style={{ color: colors.text.secondary }}>Add friends to invite them to a Goal.</Typography>
+      ) : null}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>
-        {people.map((person) => {
+        {friends.map((person) => {
           const selected = invitees.includes(person.id);
           return (
             <Pressable
@@ -189,7 +209,7 @@ function InviteToGoalSection() {
             >
               <PersonAvatar person={person} size={26} />
               <Typography variant="label" style={{ color: selected ? colors.text.primary : colors.text.secondary }}>
-                {person.firstName}
+                {firstName(person)}
               </Typography>
             </Pressable>
           );
@@ -199,7 +219,8 @@ function InviteToGoalSection() {
         disabled={!goal || invitees.length === 0}
         onPress={() => {
           if (!goal) return;
-          sendInvite({ goalId: goal.id, goalTitle: goal.title, inviteeIds: invitees });
+          const selected = friends.filter((person) => invitees.includes(person.id));
+          void sendInviteToGoal(goal.id, selected);
           setGoalId(null);
           setInvitees([]);
         }}
@@ -208,22 +229,19 @@ function InviteToGoalSection() {
         Send invitation
       </Button>
 
-      {sentInvites.length > 0 ? (
+      {Object.keys(sentByGoal).length > 0 ? (
         <View style={{ marginTop: SPACE['2xl'] }}>
           <Typography variant="meta" style={{ color: colors.text.muted, marginBottom: SPACE.sm }}>Invitations sent</Typography>
-          {sentInvites.map((invite) => (
-            <View key={invite.goalId} style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md, minHeight: 48 }}>
+          {Object.entries(sentByGoal).map(([sentGoalId, people]) => (
+            <View key={sentGoalId} style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md, minHeight: 48 }}>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Typography numberOfLines={1} variant="emphasis-sm">{invite.goalTitle}</Typography>
+                <Typography numberOfLines={1} variant="emphasis-sm">{goalTitleById(sentGoalId)}</Typography>
                 <Typography numberOfLines={1} variant="meta" style={{ color: colors.text.secondary }}>
-                  Pending · {invite.inviteeIds
-                    .map((id) => people.find((person) => person.id === id)?.firstName)
-                    .filter(Boolean)
-                    .join(', ')}
+                  Pending · {people.map((person) => firstName(person)).filter(Boolean).join(', ')}
                 </Typography>
               </View>
               <Button
-                onPress={() => withdrawInvite(invite.goalId)}
+                onPress={() => void withdrawInvitesForGoal(sentGoalId)}
                 size="compact"
                 textStyle={{ color: colors.text.primary }}
                 variant="outline"
@@ -240,10 +258,21 @@ function InviteToGoalSection() {
 
 /**
  * "Circles" — the user's sharing boundaries, shown from the profile panel.
- * Everything is private by default. PROTOTYPE: fixture-backed; nothing persists.
+ * Everything is private by default.
  */
 export function CirclesPane() {
   const colors = useThemeColors();
+
+  if (!FEATURES.CIRCLES_ENABLED) {
+    return (
+      <View style={{ padding: SPACE['3xl'] }}>
+        <Typography variant="caption" style={{ color: colors.text.secondary }}>
+          Circles isn’t available yet.
+        </Typography>
+      </View>
+    );
+  }
+
   return (
     <View style={{ gap: SPACE['3xl'], padding: SPACE['3xl'] }}>
       <View>
