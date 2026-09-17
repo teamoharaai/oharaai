@@ -13,7 +13,15 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import supabase from './client';
 import type { GoalActivityEvent, GoalActivityKind } from '@/lib/activity/goal-activity';
-import { localDateForInstant, normalizeTimezone } from '@/lib/time/zoned-calendar';
+import {
+  taskOccurrenceRowsToEvents,
+  entryLinkRowsToEvents,
+  milestoneRowsToEvents,
+  type EntryLinkRow,
+  type MilestoneRow,
+  type TaskOccurrenceRow,
+} from '@/lib/activity/goal-activity-sources';
+import { normalizeTimezone } from '@/lib/time/zoned-calendar';
 
 type Row = Record<string, any>;
 
@@ -43,8 +51,6 @@ async function fetchTaskCompletedEvents(
   goalId: string,
   query: GoalActivityQuery,
 ): Promise<GoalActivityEvent[]> {
-  const tz = normalizeTimezone(query.profileTimezone);
-
   // Scope to the goal's own tasks (owner-checked), then read their completed
   // occurrences. Never selects from trackers / tracker_logs.
   const { data: taskRows, error: taskError } = await db
@@ -65,21 +71,66 @@ async function fetchTaskCompletedEvents(
     .not('completed_at', 'is', null);
   if (occurrenceError) throw occurrenceError;
 
-  const events: GoalActivityEvent[] = [];
-  for (const row of (occurrenceRows ?? []) as Row[]) {
-    if (!row.completed_at) continue;
-    // The engagement day is when the occurrence was actually completed, not its
-    // scheduled_local_date.
-    const localDate = localDateForInstant(row.completed_at, tz);
-    if (localDate < query.sinceLocalDate) continue;
-    events.push({ goalId, kind: 'task_completed', localDate });
-  }
-  return events;
+  return taskOccurrenceRowsToEvents((occurrenceRows ?? []) as TaskOccurrenceRow[], {
+    goalId,
+    profileTimezone: query.profileTimezone,
+    sinceLocalDate: query.sinceLocalDate,
+  });
+}
+
+async function fetchEntryCreatedEvents(
+  db: SupabaseClient,
+  goalId: string,
+  query: GoalActivityQuery,
+): Promise<GoalActivityEvent[]> {
+  // Goal-linked Entries: the confirmed container rows for this goal joined to
+  // their Entry's created_at (the engagement day). Mirrors the confirmed-link
+  // scoping used by fetchLatestReflectionTimestamps / the Constellation Entry
+  // count — unconfirmed ai_suggested links are advisory, not engagement.
+  const { data, error } = await db
+    .from('echo_entry_links')
+    .select('echo_entries!inner(created_at)')
+    .eq('goal_id', goalId)
+    .eq('container_type', 'goal')
+    .eq('confirmed', true);
+  if (error) throw error;
+
+  return entryLinkRowsToEvents((data ?? []) as unknown as EntryLinkRow[], {
+    goalId,
+    profileTimezone: query.profileTimezone,
+    sinceLocalDate: query.sinceLocalDate,
+  });
+}
+
+async function fetchMilestoneCompletedEvents(
+  db: SupabaseClient,
+  userId: string,
+  goalId: string,
+  query: GoalActivityQuery,
+): Promise<GoalActivityEvent[]> {
+  // Completed milestones for this goal; completed_at NULL = pending (skipped by
+  // the mapper). Goal + owner scoped.
+  const { data, error } = await db
+    .from('milestones')
+    .select('completed_at')
+    .eq('user_id', userId)
+    .eq('goal_id', goalId)
+    .not('completed_at', 'is', null);
+  if (error) throw error;
+
+  return milestoneRowsToEvents((data ?? []) as unknown as MilestoneRow[], {
+    goalId,
+    profileTimezone: query.profileTimezone,
+    sinceLocalDate: query.sinceLocalDate,
+  });
 }
 
 /**
  * Reads goal-activity events for one goal across the requested sources, each
- * resolved to a local calendar date. Feed the result to buildActivityWindow.
+ * resolved to a local calendar date. This is the cross-feature engagement union
+ * (Phase C: task_completed + entry_created + milestone_completed), composed in
+ * lib/ so no features/* module is imported. Feed the result to
+ * buildActivityWindow.
  */
 export async function fetchGoalActivityEvents(
   db: SupabaseClient = supabase,
@@ -91,6 +142,11 @@ export async function fetchGoalActivityEvents(
   if (query.sources.includes('task_completed')) {
     events.push(...await fetchTaskCompletedEvents(db, userId, goalId, query));
   }
-  // Phase C sources (entry_created, milestone_completed) attach here — same shape.
+  if (query.sources.includes('entry_created')) {
+    events.push(...await fetchEntryCreatedEvents(db, goalId, query));
+  }
+  if (query.sources.includes('milestone_completed')) {
+    events.push(...await fetchMilestoneCompletedEvents(db, userId, goalId, query));
+  }
   return events;
 }

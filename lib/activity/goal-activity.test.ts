@@ -83,3 +83,15 @@ test('a longer heatmap window keeps the same shape and ordering', () => {
 test('days < 1 yields an empty window', () => {
   assert.deepEqual(buildActivityWindow([event()], { asOfLocalDate: '2026-09-16', days: 0 }), []);
 });
+
+test('Phase C union: all three kinds on one day → distinct kinds in declaration order, count 3', () => {
+  const window = buildActivityWindow([
+    event({ localDate: '2026-09-14', kind: 'milestone_completed' }),
+    event({ localDate: '2026-09-14', kind: 'entry_created' }),
+    event({ localDate: '2026-09-14', kind: 'task_completed' }),
+  ], { asOfLocalDate: '2026-09-16', days: 7 });
+  const day = window.find((bucket) => bucket.date === '2026-09-14');
+  assert.ok(day);
+  assert.deepEqual(day.kinds, ['task_completed', 'entry_created', 'milestone_completed']);
+  assert.equal(day.count, 3);
+});

@@ -17,7 +17,7 @@
     "test:entries:db": "bash scripts/test-notes-editor-security.sh",
     "test:auth": "node --experimental-strip-types --test features/auth/internal-release.test.ts features/auth/internal-release-ui.test.ts",
     "test:momentum": "node --experimental-strip-types --test features/momentum/engine.test.ts features/momentum/time.test.ts features/momentum/normalization.test.ts features/momentum/service.test.ts features/momentum/security.test.ts features/momentum/trust-boundary.test.ts features/momentum/refresh.test.ts features/momentum/local-target.test.ts features/momentum/task-adapter.test.ts",
-    "test:tasks": "node --experimental-strip-types --test features/tasks/utils.test.ts features/tasks/architecture.test.ts features/tasks/task-optimism.test.ts features/tasks/task-boundary.test.ts lib/activity/goal-activity.test.ts",
+    "test:tasks": "node --experimental-strip-types --test features/tasks/utils.test.ts features/tasks/architecture.test.ts features/tasks/task-optimism.test.ts features/tasks/task-boundary.test.ts lib/activity/goal-activity.test.ts lib/activity/goal-activity-sources.test.ts lib/activity/activity-heatmap.test.ts",
     "test:tasks:db": "bash scripts/test-tasks-security.sh",
     "test:momentum:db": "bash scripts/test-momentum-security.sh",
     "test:momentum:local": "node --experimental-strip-types scripts/momentum-local.integration.mjs",
