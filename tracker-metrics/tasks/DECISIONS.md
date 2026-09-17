@@ -9,6 +9,189 @@ decision → consequence.
 
 ---
 
+## TD-026 · 2026-09-17 · accepted — P1 committed directly to `main` on user direction; TD-005 PR/sign-off flow waived for this landing
+
+**Context:** TD-005 lands `features/tasks/*` changes via teammate sign-off → reviewed
+PR. The user directed "commit to main" for the Phase-1 work (cadence axis, due-date
+drop, placeholders, Daily∉Upcoming reclassify, Completions lane, Add Task form
+copy/milestone toggle).
+
+**Decision:** Commit P1 directly to `main` per the user's explicit instruction,
+**waiving** the TD-005 PR + teammate-sign-off flow for this landing (same one-off
+pattern as TD-015 for PR #22). Commit is local; **not pushed** unless the user asks.
+Does not supersede TD-005 as standing policy — future `features/tasks/*` work still
+expects the PR/sign-off flow unless waived again.
+
+**Consequence:** The `features/tasks` slice owner did not review this before it hit
+`main`; notify post-hoc. All changes are pure L1 UI, tsc-clean, and `test:tasks`
+66/66. A live GUI drive was not performed (auth/extension blocker), so runtime UI
+confirmation is outstanding.
+
+## TD-025 · 2026-09-17 · accepted — Add Task form: keep Completion/Cadence headers; collapse milestone link behind "More options"
+
+**Context:** User reviewed the Add Task form copy. Considered renaming the
+**Completion** (Check off / Quantity) and **Cadence** (Once / Daily / On set days)
+section headers, and flagged the optional milestone link as feeling pointless
+("could serve as something" later, e.g. driving milestone progress from tasks).
+
+**Decision:** After reviewing alternatives, **keep "Completion" and "Cadence"**
+headers unchanged and keep all chip labels. **Collapse the milestone picker behind
+a "More options" toggle** (chevron + caption) instead of removing it — it stays
+available but off the common path. Within "More options", the milestone list is
+itself a **second click-to-reveal** ("Link a milestone (optional)") that expands
+**this goal's milestones only** (None + the goal's incomplete milestones). Both
+toggles auto-expand on edit when the Task already has a linked milestone, so an
+existing tie stays visible. Pure L1 copy/layout; no mechanics change; milestone
+association still writes `tasks.milestone_id` as before.
+
+**Consequence:** The form's default view is shorter (title · Completion · Cadence),
+milestone linking is two taps away, and the picker is scoped to the goal. The link
+is preserved for a future feature (task→milestone progress) rather than dropped;
+"for now" it is deliberately minimal.
+
+## TD-024 · 2026-09-16 · accepted — The cadence-axis form migration is non-destructive for legacy schedules
+
+**Context:** Collapsing the five recurrence chips to the cadence axis (TD-016)
+means the form can no longer author two things it used to: an `intervalCount` of 2
+(the retired "Every 2 weeks" chip) and the `none`-recurrence Optional Due Date
+(TD-016 / §6 drop it). Editing a pre-existing Task through the new form must not
+silently destroy data the UI can't re-express.
+
+**Decision:** `TaskForm` preserves both on save without offering an input:
+- `preservedIntervalCount = activeSchedule?.intervalCount ?? 1` — an existing
+  every-2-weeks schedule keeps `intervalCount: 2` when re-saved as **On set days**;
+  new Tasks are always `1`. (Any weekly schedule — former Weekly/Custom/biweekly —
+  maps to the single **On set days** chip on load.)
+- `preservedDueDate = task?.dueDate ?? null` — the dropped due-date **input** no
+  longer writes, but an existing `dueDate` is passed through unchanged rather than
+  nulled. The `Task.dueDate` column stays (later cleanup, per §6).
+
+**Consequence:** No data loss on edit. Re-authoring an every-2-weeks interval or a
+due date is intentionally not possible in v1 (interval → future advanced toggle;
+dated one-shots → Milestones per CLAUDE.md).
+
+## TD-023 · 2026-09-16 · accepted — Category starter chips (TD-022) deferred out of Phase 1
+
+**Context:** Phase 1 shipped TD-022 as built — a static `Record<GoalCategory,
+TaskSuggestion[]>` rendering 2-3 bare-title chips on the zero-task empty state.
+On review the user found it flat: it reads as a dead-end (title only, hides the
+measure/cadence it prefills; appears in one place then vanishes), the hardcoded
+set feels arbitrary, and there is no skip/dismiss or anything that makes the
+surface inviting.
+
+**Decision:** **Remove the starter-chip surface from Phase 1 entirely** — the
+`suggestions.ts` map, the `TaskSuggestion` type, the `category` prop, and the
+`TaskForm` prefill plumbing that only served the chips. TD-022's underlying call
+(static map over a full template system; the chip surface is the seam AI plugs
+into later) is **not reversed** — only its Phase-1 shipment is withdrawn. A
+starter-chip surface returns via its **own design pass**, which must decide: chip
+content shows measure·cadence (not a bare label), a **session-level Skip** (free,
+pure-UI) vs a **persisted dismiss** (needs storage → CTO/L3), and whether it
+persists beyond the empty state. Enriched-static and AI-generated (Appendix A) are
+both candidate sources for that pass.
+
+**Consequence:** Phase 1 = cadence axis (Once/Daily/On set days), drop Optional Due
+Date, `Quantity`/`Units` placeholders, **Daily ∉ Upcoming** reclassify, and the
+Completions lane. No `category` dependency; the `GoalCategory` import is dropped
+from `TasksPanel`. TD-022 moves to a follow-up on the UX board.
+
+## TD-022 · 2026-09-16 · accepted — Category task suggestions ship as static starter chips; template system rejected
+
+**Context:** Should Tasks vary by goal `category` (~12 `GoalCategory` values)?
+A full template system (curated/editable sets × 12 + picker + maintenance) is
+costly and prescriptive.
+
+**Decision:** Ship **static starter chips** on the zero-task empty state
+(`TasksPanel.tsx:414`): 2-3 per category from a `Record<GoalCategory,
+TaskSuggestion[]>` (title + suggested measure + cadence), one tap prefills
+`TaskForm`. No schema, no new screen. **Reject** the full template system. The
+chip surface is intentionally the seam AI suggestions later plug into (design 003
+Appendix A). Ships in Phase 1.
+
+**Consequence:** Cheap on-ramp for fresh goals; upgradeable to model-generated
+chips without new UI.
+
+## TD-021 · 2026-09-16 · accepted — View home = per-goal TasksPanel (Today + Week); Daily never enters Upcoming
+
+**Context:** User wants a "map" / Today + Weekly view and the daily-Upcoming spam
+gone. Options were a new cross-goal route, the dashboard zone, or the per-goal
+panel.
+
+**Decision:** Enrich **`features/tasks/components/TasksPanel.tsx`** with **Today**
++ **Week** (Mon→Sun grid via `startOfIsoWeekYmd`/`ActivityDayBucket`). The real
+spam fix is a **classification rule in `buildTaskSections` (`utils.ts:57`):
+Daily never enters Upcoming** — Upcoming is fed only by On-set-days next
+occurrences and rolled Completions. TD-002 collapse stays as a net.
+
+**Consequence:** Per-goal scope, reuses the component; no new route/dashboard grid.
+
+## TD-020 · 2026-09-16 · accepted — Completions absorb the retroactive Log-completed flow
+
+**Context:** "One time" is being reframed as **Completions** (ad-hoc, day-anchored
+checklist). A separate `LogCompletedForm` (`TasksPanel.tsx:267`) already records
+retroactive completions via `log_completed_task_v1`.
+
+**Decision:** One ad-hoc lane. Completions covers both forward ("do today") and
+retroactive ("already did"), reusing the existing RPC. The current **Anytime**
+(no-schedule) section is Completions' backlog tail.
+
+**Consequence:** Simpler mental model; retroactive path reused, not rebuilt.
+
+## TD-019 · 2026-09-16 · accepted — Promotion loop: 3-day rolled streak → offer Daily; Skip is counted
+
+**Context:** Graduation path from ad-hoc → committed rhythm.
+
+**Decision:** After a Completion is **done 3 days running** via Roll, prompt
+"make it Daily?" with **Promote** or **Skip**. Persist a **promotion skip count**
+per candidate (behavioral signal; feeds the TD-007 seam, which stays OFF — no
+`character_profile` writes here). Re-offer on the next qualifying streak.
+
+**Consequence:** Net-new persisted state (a `tasks` column or side table) — **L3
+schema, CTO + team**. Closes the behavior→structure loop.
+
+## TD-018 · 2026-09-16 · accepted — Roll is Completion-only; inserts a pending future occurrence
+
+**Context:** User wants to "roll" a task forward one day at a time (stock-roll
+metaphor) without committing to a schedule.
+
+**Decision:** **Roll applies only to Completions.** It inserts a **pending
+occurrence** for a future day (appears in Upcoming/Week). Daily and On-set-days
+are not rollable (their future is already defined).
+
+**Consequence:** Backend work (**L3**): occurrence creation is RPC-only today
+(`log_completed_task_v1`) with no "create one occurrence for date X"; Roll needs a
+new RPC + `source='rolled'` added to the `task_occurrences.source` CHECK
+(migration `048_…:114`). Never writes `trackers`/`tracker_logs`.
+
+## TD-017 · 2026-09-16 · accepted — Streak and Quantity are separate counts and never merge
+
+**Context:** User's core conflict — rolling a task repeatedly "just becomes a
+counter," colliding with the Quantity counter.
+
+**Decision:** Two distinct counts. **Streak** (cadence: how many days/times you
+showed up) is **derived history** from completed occurrences (reuse
+`buildActivityWindow`), applies to any task, feeds the heatmap. **Quantity**
+(measure: amount per occurrence) exists only when the user picks Quantity mode.
+**Rolling builds a Streak, never a Quantity.**
+
+**Consequence:** Rolling never silently converts a task to a counter; the two
+axes stay orthogonal.
+
+## TD-016 · 2026-09-16 · accepted — Tasks modeled on two orthogonal axes (Cadence × Measure)
+
+**Context:** Five recurrence chips (`One time / Daily / Weekly / Every 2 weeks /
+Custom`) mixed two independent questions, causing overlap ("One time"≈"Daily",
+Weekly≈Custom).
+
+**Decision:** Model Tasks on **Cadence** (Completion → On-set-days → Daily) ×
+**Measure** (Check-off | Quantity). "On set days" merges Weekly+Custom (tap
+weekdays; 1 day = once/week). "Every 2 weeks" demoted from top-level. Drop the
+Optional Due Date (one-time dated events are Milestones per CLAUDE.md). Any
+cadence carries either measure.
+
+**Consequence:** Removes every recurrence overlap; the picker becomes honest about
+the two real recurrence kinds (`daily`/`weekly`) plus a no-schedule ad-hoc lane.
+
 ## TD-015 · 2026-09-17 · accepted — T4 (PR #22) merged on user go-ahead; teammate sign-off (TD-005 cond. a) WAIVED, not obtained
 
 **Context:** T4 (Phase C union + heatmap) shipped as PR #22 — tsc clean,

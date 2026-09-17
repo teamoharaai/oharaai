@@ -29,6 +29,15 @@ export function activeTaskSchedule(task: Task) {
   return task.schedules.find((schedule) => schedule.isActive) ?? null;
 }
 
+/**
+ * Daily cadence = an active schedule that recurs every day. Daily Tasks live in
+ * Today only and never enter Upcoming (design 003 / TD-021) — their future is
+ * already defined, so a `next <tomorrow>` row is meaningless spam.
+ */
+export function isDailyCadence(task: Task): boolean {
+  return activeTaskSchedule(task)?.recurrenceKind === 'daily';
+}
+
 export function scheduleLabel(task: Task): string {
   const schedule = activeTaskSchedule(task);
   if (!schedule) return task.dueDate ? `Due ${task.dueDate}` : 'No deadline';
@@ -57,6 +66,7 @@ function occurrenceSortValue(occurrence: TaskOccurrence): string {
 export function buildTaskSections(tasks: readonly Task[], now = new Date()): TaskSections {
   const sections: TaskSections = { today: [], upcoming: [], anytime: [], completed: [] };
   for (const task of tasks) {
+    const dailyCadence = isDailyCadence(task);
     const actionable = task.occurrences.filter((occurrence) =>
       occurrence.status === 'pending' || occurrence.status === 'missed',
     );
@@ -72,7 +82,10 @@ export function buildTaskSections(tasks: readonly Task[], now = new Date()): Tas
         || (occurrence.scheduleId === null && occurrence.scheduledLocalDate < today)
       ) {
         sections.today.push({ task, occurrence });
-      } else if (occurrence.scheduledLocalDate > today) {
+      } else if (occurrence.scheduledLocalDate > today && !dailyCadence) {
+        // Daily Tasks never enter Upcoming (TD-021): their next occurrence is
+        // always tomorrow, which is noise. Upcoming is fed only by On-set-days
+        // next occurrences (and rolled Completions, once Phase 3 lands).
         sections.upcoming.push({ task, occurrence });
       }
     }

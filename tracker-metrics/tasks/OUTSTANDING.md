@@ -7,6 +7,19 @@ Legend: ☐ not started · ◐ in progress · ☑ done · ⚠ blocked · ❓ nee
 
 ## Next action
 
+**► P1 BUILT (session 007), gated on sign-off.** Phase 1 (pure UI) implemented on
+`main` (uncommitted): cadence axis (Once/Daily/On set days), dropped Optional Due
+Date, `Quantity`/`Units` placeholders, **Daily ∉ Upcoming** `buildTaskSections`
+reclassify (the spam fix), and the merged **Completions** lane. tsc clean;
+`test:tasks` **66/66**. `changelog/007`. **Category starter chips (TD-022) were
+built then removed on user feedback (TD-023)** — deferred to their own design pass.
+**Next action: route P1 to the `features/tasks` teammate for TD-005 sign-off, then
+open a PR — do NOT merge without user go-ahead.** Then P2 (Week grid + streak).
+Phases 3–4 (Roll, promotion) remain **blocked on CTO** (new RPC + migration for
+`source='rolled'` and skip-count persistence).
+
+---
+
 **T4 MERGED to main (session 005).** PR #22 squash-merged as `a73ffde`; branch
 `feat/goal-activity-union-heatmap` deleted. Phase C union + heatmap; L1 output
 shape UNCHANGED. tsc clean + test:tasks **63/63** re-verified on `main`
@@ -54,6 +67,20 @@ PR #21 (session 004). Sessions 000/001 were audit + design only.
 | T5 | Pagination / date-bound helper (if needed) | ☐ | Low priority. Only if the union reads (now incl. the routine 70-day heatmap) exceed the row ceiling. Bound via `localDateToUtcStart(...).gte`. |
 | — | L2 correlation seam | ⏸ OFF | TD-007. Design seam only; recap pipeline (teammate) owns it. Do not build. |
 | — | Initiative #2: Vaults↔Notes↔Intelligence | ⏸ separate | TD-008. `design/002`. Hand to Entries owner; consumes L1. Not built here. |
+
+## UX optimization task board (design/003, TD-016…022)
+
+Ordered by phase. P1–P2 are pure UI (VP Product, no schema). P3–P4 need CTO
+schema/RPC work. All `features/tasks/*` PRs gated on TD-005 teammate sign-off.
+
+| # | Task | Layer | Status | Notes |
+|---|---|---|---|---|
+| P1 | Model + polish: two-axis chips (`Once/Daily/On set days`), drop Optional Due Date, placeholders `Quantity`/`Units`, `buildTaskSections` reclassify (**Daily ∉ Upcoming** — the spam fix), Completions lane (merge Log-completed entry points), Add Task form copy + milestone "More options" reveal | L1 pure UI | ☑ committed to `main` | Session 007. TD-016/017/020/021/024/025. Committed direct to `main` on user direction (TD-026, TD-005 waived, not pushed). tsc clean; test:tasks 66/66. `changelog/007`. **Chips descoped (TD-023).** Live GUI drive still outstanding (auth/extension blocker). |
+| P1.1 | Category starter-chip surface redesign (enriched measure·cadence chips + Skip: session vs persisted; or AI per Appendix A) | L1 pure UI (+L3 if persisted dismiss) | ☐ deferred | TD-023. TD-022's static map stands; needs its own design pass before rebuild. |
+| P2 | Week grid in `TasksPanel` (Mon→Sun via `startOfIsoWeekYmd`/`ActivityDayBucket`); streak display from existing completed occurrences | L1 pure UI | ☐ | TD-021. Reuses `lib/activity`. |
+| P3 | **Roll** (Completion-only): `roll_completion_v1` RPC + `source='rolled'` migration → rolled Completions in Upcoming/Week | L3 schema/API (CTO) | ⚠ blocked on CTO | TD-018. |
+| P4 | **Promotion loop**: 3-day rolled streak → offer Daily; persist `promotion_skip_count`; behavioral-signal seam (OFF) | L3 schema (CTO+team) | ⚠ blocked on CTO | TD-019 / TD-007 (OFF). |
+| — | AI suggestions ①/② (Appendix A) | future | ⏸ exploratory | Not canon; own design pass + TDs first. |
 
 ## Resolved questions (audit 000 §5)
 

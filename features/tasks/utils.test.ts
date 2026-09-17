@@ -101,6 +101,37 @@ test('A weekly task collapses to its earliest future weekday occurrence', () => 
   assert.equal(sections.upcoming[0].occurrence.scheduledLocalDate, '2026-09-14');
 });
 
+function schedule(overrides: Partial<Task['schedules'][number]> = {}): Task['schedules'][number] {
+  return {
+    id: 's', taskId: 'task', version: 1, recurrenceKind: 'weekly', intervalCount: 1,
+    weekdays: [1], startDate: '2026-09-01', endDate: null, localTime: null,
+    timezone: 'America/New_York', isActive: true, source: 'user', ...overrides,
+  };
+}
+
+test('A daily-cadence task never enters Upcoming (TD-021 spam fix)', () => {
+  const now = new Date('2026-09-11T16:00:00.000Z'); // noon America/New_York → today 2026-09-11
+  const daily = task({ id: 'daily', schedules: [schedule({ taskId: 'daily', recurrenceKind: 'daily', weekdays: [] })], occurrences: [
+    occurrence({ id: 'd-today', taskId: 'daily', scheduleId: 's', scheduledLocalDate: '2026-09-11' }),
+    occurrence({ id: 'd-next', taskId: 'daily', scheduleId: 's', scheduledLocalDate: '2026-09-12' }),
+    occurrence({ id: 'd-later', taskId: 'daily', scheduleId: 's', scheduledLocalDate: '2026-09-13' }),
+  ] });
+  const sections = buildTaskSections([daily], now);
+  assert.equal(sections.upcoming.length, 0);
+  assert.deepEqual(sections.today.map(({ occurrence: item }) => item.id), ['d-today']);
+});
+
+test('An on-set-days task keeps exactly one next-occurrence Upcoming row', () => {
+  const now = new Date('2026-09-11T16:00:00.000Z'); // Fri 2026-09-11
+  const setdays = task({ id: 'setdays', schedules: [schedule({ taskId: 'setdays', recurrenceKind: 'weekly', weekdays: [1, 3] })], occurrences: [
+    occurrence({ id: 's-mon', taskId: 'setdays', scheduleId: 's', scheduledLocalDate: '2026-09-14' }), // Mon
+    occurrence({ id: 's-wed', taskId: 'setdays', scheduleId: 's', scheduledLocalDate: '2026-09-16' }), // Wed
+  ] });
+  const sections = buildTaskSections([setdays], now);
+  assert.equal(sections.upcoming.length, 1);
+  assert.equal(sections.upcoming[0].occurrence.scheduledLocalDate, '2026-09-14');
+});
+
 test('A task with only completed occurrences has no Upcoming row', () => {
   const now = new Date('2026-09-11T16:00:00.000Z');
   const doneOnly = task({ id: 'done-only', occurrences: [

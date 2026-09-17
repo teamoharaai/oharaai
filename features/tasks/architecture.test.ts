@@ -57,6 +57,24 @@ test('Goal creation persists canonical Tasks and uses Task terminology', () => {
   assert.doesNotMatch(wizard, />TRACKERS</);
 });
 
+test('Task form uses the two-axis cadence chips and drops the due-date input (TD-016)', () => {
+  const panel = read('features/tasks/components/TasksPanel.tsx');
+  assert.match(panel, /label: 'Once'/);
+  assert.match(panel, /label: 'Daily'/);
+  assert.match(panel, /label: 'On set days'/);
+  assert.doesNotMatch(panel, /Every 2 weeks/);
+  assert.doesNotMatch(panel, /Optional due date/);
+  assert.match(panel, /placeholder="Quantity"/);
+  assert.match(panel, /placeholder="Units"/);
+});
+
+test('Completions is one ad-hoc lane that absorbs the Log-completed entry point (TD-020)', () => {
+  const panel = read('features/tasks/components/TasksPanel.tsx');
+  assert.match(panel, />Completions</);
+  assert.doesNotMatch(panel, />Anytime</);
+  assert.match(panel, /\+ Log completed/);
+});
+
 test('Task create and edit forms reset their draft state when they close', () => {
   const panel = read('features/tasks/components/TasksPanel.tsx');
   assert.match(panel, /onClose=\{\(\) => \{ setFormVisible\(false\); setEditing\(null\); \}\}/);

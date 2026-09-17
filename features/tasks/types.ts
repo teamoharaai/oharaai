@@ -5,6 +5,13 @@ export type TaskSource = 'user' | 'legacy_tracker' | 'legacy_action';
 export type TaskOccurrenceSource = 'user' | 'schedule' | 'retroactive' | 'legacy_tracker' | 'legacy_action';
 export type TaskRecurrenceKind = 'daily' | 'weekly';
 
+/**
+ * Cadence axis (design 003 / TD-016): the honest recurrence choice a person
+ * makes. `none` = an ad-hoc Completion (no schedule), `daily` = every day,
+ * `setdays` = pick weekday(s) (merges the retired Weekly + Custom chips).
+ */
+export type TaskCadence = 'none' | 'daily' | 'setdays';
+
 export interface TaskSchedule {
   id: string;
   taskId: string;
