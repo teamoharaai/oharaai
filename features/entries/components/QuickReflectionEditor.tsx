@@ -31,6 +31,7 @@ function reflectionDocument(text: string): RichTextDocument {
 function saveLabel(status: EntrySaveStatus): string {
   if (status === 'saving') return 'Saving…';
   if (status === 'error') return "Couldn't save — Retry";
+  if (status === 'idle') return 'Unsaved changes';
   return 'Saved';
 }
 
@@ -134,8 +135,9 @@ export function QuickReflectionEditor({
     window.localStorage.setItem(localDraftKey(entry.id), JSON.stringify(draft));
   }, [dirtyVersion, draft, entry.id]);
 
-  const persist = useCallback(async (version: number) => {
-    if (savingRef.current || version <= lastSavedVersion.current) return;
+  const persist = useCallback(async (version: number): Promise<boolean> => {
+    if (version <= lastSavedVersion.current) return true;
+    if (savingRef.current) return false;
     savingRef.current = true;
     lastAttemptedVersion.current = version;
     setSaveStatus('saving');
@@ -146,11 +148,16 @@ export function QuickReflectionEditor({
       lastSavedVersion.current = version;
       setSaveStatus('saved');
       if (typeof window !== 'undefined') window.localStorage.removeItem(localDraftKey(entry.id));
+      return true;
     } catch (error) {
       setSaveStatus('error');
+      const localDraftAvailable = typeof window !== 'undefined';
       setSaveError(isPersistenceUnavailable(error)
-        ? 'You appear to be offline. This reflection is kept on this device.'
+        ? localDraftAvailable
+          ? 'You appear to be offline. This reflection is kept on this device.'
+          : 'You appear to be offline. Stay here and retry so your reflection is not lost.'
         : error instanceof Error ? error.message : 'Autosave failed. Your reflection is still here.');
+      return false;
     } finally {
       savingRef.current = false;
     }
@@ -172,7 +179,10 @@ export function QuickReflectionEditor({
   }
 
   async function leave() {
-    if (dirtyVersion > lastSavedVersion.current) await persist(dirtyVersion);
+    if (dirtyVersion > lastSavedVersion.current) {
+      const saved = await persist(dirtyVersion);
+      if (!saved) return;
+    }
     onBack();
   }
 
@@ -215,15 +225,27 @@ export function QuickReflectionEditor({
         }}
       >
         {showBack ? (
-          <Pressable accessibilityLabel="Back to Echo library" accessibilityRole="button" onPress={() => void leave()} hitSlop={8}>
+          <Pressable
+            accessibilityHint="Saves changes before returning"
+            accessibilityLabel="Back to Echo library"
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={() => void leave()}
+            style={{ alignItems: 'center', height: 44, justifyContent: 'center', width: 44 }}
+          >
             <Ionicons name="arrow-back" color={colors.text.primary} size={22} />
           </Pressable>
         ) : null}
         <View style={{ flex: 1, minWidth: 0 }}>
           <Typography variant="nav-title" numberOfLines={1}>Quick Reflection</Typography>
-          <Pressable onPress={() => saveStatus === 'error' && void persist(dirtyVersion)}>
+          <Pressable
+            accessibilityLabel={saveLabel(saveStatus)}
+            accessibilityLiveRegion="polite"
+            accessibilityRole={saveStatus === 'error' ? 'button' : 'text'}
+            disabled={saveStatus !== 'error'}
+            onPress={() => saveStatus === 'error' && void persist(dirtyVersion)}
+          >
             <Typography
-              accessibilityRole={saveStatus === 'error' ? 'button' : undefined}
               variant="caption"
               style={{ color: saveStatus === 'error' ? colors.feedback.danger.text : colors.text.muted }}
             >
@@ -231,19 +253,41 @@ export function QuickReflectionEditor({
             </Typography>
           </Pressable>
         </View>
-        <Pressable accessibilityLabel="Organize reflection" accessibilityRole="button" onPress={() => setLinkPickerOpen(true)} hitSlop={8}>
+        <Pressable
+          accessibilityHint="Links Goals or a Project without sharing your reflection"
+          accessibilityLabel="Organize reflection"
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={() => setLinkPickerOpen(true)}
+          style={{ alignItems: 'center', height: 44, justifyContent: 'center', width: 44 }}
+        >
           <Ionicons name="link-outline" color={colors.text.secondary} size={21} />
         </Pressable>
-        <Pressable accessibilityLabel="Export reflection" accessibilityRole="button" onPress={() => setExportOpen(true)} hitSlop={8}>
+        <Pressable
+          accessibilityHint="Opens explicit PDF, text, and copy options"
+          accessibilityLabel="Export reflection"
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={() => setExportOpen(true)}
+          style={{ alignItems: 'center', height: 44, justifyContent: 'center', width: 44 }}
+        >
           <Ionicons name="share-outline" color={colors.text.secondary} size={21} />
         </Pressable>
-        <Pressable accessibilityLabel="Delete reflection" accessibilityRole="button" onPress={() => setDeleteOpen(true)} hitSlop={8}>
+        <Pressable
+          accessibilityLabel="Delete reflection"
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={() => setDeleteOpen(true)}
+          style={{ alignItems: 'center', height: 44, justifyContent: 'center', width: 44 }}
+        >
           <Ionicons name="trash-outline" color={colors.feedback.danger.text} size={20} />
         </Pressable>
       </View>
 
       {saveError ? (
         <Pressable
+          accessibilityHint="Retries saving this reflection"
+          accessibilityLabel={saveError}
           accessibilityRole="button"
           onPress={() => void persist(dirtyVersion)}
           style={{
@@ -259,6 +303,25 @@ export function QuickReflectionEditor({
           </Typography>
         </Pressable>
       ) : null}
+
+      <View
+        accessibilityLabel="Private reflection"
+        style={{
+          alignItems: 'center',
+          backgroundColor: colors.background.selectedRow,
+          borderBottomColor: colors.border.divider,
+          borderBottomWidth: 1,
+          flexDirection: 'row',
+          gap: SPACE.sm,
+          minHeight: 42,
+          paddingHorizontal: compact ? SPACE.lg : SPACE['2xl'],
+        }}
+      >
+        <Ionicons name="lock-closed-outline" color={colors.text.accent} size={15} />
+        <Typography variant="caption" style={{ flex: 1 }}>
+          Private by default. Goal and Project links only organize this reflection.
+        </Typography>
+      </View>
 
       {(selectedGoals.length || selectedProject) ? (
         <ScrollView
@@ -290,6 +353,7 @@ export function QuickReflectionEditor({
         <View style={{ alignSelf: 'center', maxWidth: 840, width: '100%' }}>
           <TextInput
             accessibilityLabel="Reflection title"
+            maxLength={200}
             onChangeText={(value) => { setTitle(value); markDirty(); }}
             placeholder="Reflection"
             placeholderTextColor={colors.text.muted}
@@ -309,7 +373,9 @@ export function QuickReflectionEditor({
           </Typography>
           <TextInput
             accessibilityLabel="Quick Reflection"
+            accessibilityHint="Write privately in your own words"
             autoFocus={!body}
+            maxLength={100000}
             multiline
             onChangeText={(value) => { setBody(value); markDirty(); }}
             placeholder="Write freely…"

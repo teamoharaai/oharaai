@@ -14,7 +14,7 @@ export default function EchoRoute() {
         : goalId
           ? ({
               pathname: '/(app)/entries',
-              params: { create: 'reflection', goalId },
+              params: { create: 'reflection', view: 'reflection', goalId },
             } as never)
         : ('/(app)/entries' as never)}
     />

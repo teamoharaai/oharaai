@@ -9,6 +9,7 @@ import { RADIUS, SPACE, elevationStyle } from '@/constants/design';
 import { useProjectStore } from '@/features/projects/store';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import type { EntryType } from '../types';
+import { resolveEchoLibraryFilter, type EchoLibraryFilter } from '../utils';
 import { EchoCreationModal } from './EchoCreationModal';
 import { EntriesLibrary } from './EntriesLibrary';
 import { EntryDetailScreen } from './EntryDetailScreen';
@@ -28,9 +29,11 @@ export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string })
     create?: string | string[];
     goalId?: string | string[];
     projectId?: string | string[];
+    view?: string | string[];
   }>();
   const selectedProjectId = param(params.projectId);
   const requestedCreation = param(params.create);
+  const activeFilter = resolveEchoLibraryFilter(params.view, selectedProjectId);
   const projects = useProjectStore((state) => state.projects);
   const [creationOpen, setCreationOpen] = useState(false);
   const [creationType, setCreationType] = useState<EntryType | null>(null);
@@ -52,10 +55,14 @@ export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string })
     setCreationOpen(true);
   }, [requestedCreation]);
 
-  function entriesHref(projectId?: string) {
-    return projectId
-      ? ({ pathname: '/(app)/entries', params: { projectId } } as never)
-      : ('/(app)/entries' as never);
+  function entriesHref(projectId?: string, view: EchoLibraryFilter = activeFilter) {
+    return {
+      pathname: '/(app)/entries',
+      params: {
+        ...(projectId ? { projectId } : {}),
+        view,
+      },
+    } as never;
   }
 
   function selectEntry(entryId: string) {
@@ -64,16 +71,20 @@ export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string })
       params: {
         id: entryId,
         ...(selectedProjectId ? { projectId: selectedProjectId } : {}),
+        view: activeFilter,
       },
     } as never);
   }
 
   function selectMostRecent() {
     if (selectedEntryId) {
-      router.replace({ pathname: '/(app)/entries/[id]', params: { id: selectedEntryId } } as never);
+      router.replace({
+        pathname: '/(app)/entries/[id]',
+        params: { id: selectedEntryId, view: activeFilter },
+      } as never);
       return;
     }
-    router.replace(entriesHref());
+    router.replace(entriesHref(undefined, activeFilter));
   }
 
   function closeCreation() {
@@ -83,10 +94,17 @@ export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string })
       if (selectedEntryId) {
         router.replace({
           pathname: '/(app)/entries/[id]',
-          params: { id: selectedEntryId, ...(selectedProjectId ? { projectId: selectedProjectId } : {}) },
+          params: {
+            id: selectedEntryId,
+            ...(selectedProjectId ? { projectId: selectedProjectId } : {}),
+            view: activeFilter,
+          },
         } as never);
       } else {
-        router.replace(entriesHref(selectedProjectId));
+        router.replace(entriesHref(
+          selectedProjectId,
+          requestedCreation === 'reflection' ? 'reflection' : activeFilter,
+        ));
       }
     }
   }
@@ -104,10 +122,12 @@ export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string })
   const library = (
     <EntriesLibrary
       onCollapse={compact ? undefined : toggleLibrary}
+      filter={activeFilter}
       onNew={() => openCreation()}
+      onFilterChange={(view) => router.setParams({ view })}
       onSelectEntry={selectEntry}
       onSelectMostRecent={selectMostRecent}
-      onSelectProject={(projectId) => router.replace(entriesHref(projectId))}
+      onSelectProject={(projectId) => router.replace(entriesHref(projectId, 'all'))}
       selectedEntryId={selectedEntryId}
       selectedProjectId={selectedProjectId}
     />
@@ -279,10 +299,13 @@ export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string })
         initialProjectId={selectedProjectId}
         initialType={creationType}
         onClose={closeCreation}
-        onCreated={(entryId) => {
+        onCreated={(entryId, entryType) => {
           setCreationOpen(false);
           setCreationType(null);
-          router.replace({ pathname: '/(app)/entries/[id]', params: { id: entryId } } as never);
+          router.replace({
+            pathname: '/(app)/entries/[id]',
+            params: { id: entryId, view: entryType },
+          } as never);
         }}
         visible={creationOpen}
       />

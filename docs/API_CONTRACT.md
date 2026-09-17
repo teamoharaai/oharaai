@@ -543,7 +543,32 @@ the prior phase and are never duplicated as pending events.
 
 ---
 
-### Echo (Journal)
+### Echo (Canonical Notes and Reflections)
+
+The active Echo workspace uses the authenticated `/api/entries/library`
+routes and canonical `public.entries` records. See
+[`ECHO_PIPELINE.md`](ECHO_PIPELINE.md) for the complete Note/Reflection,
+privacy, explicit-sharing, and native-client boundary.
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/entries/library?type=note|reflection` | List the owner's non-archived Entries; omit `type` for both |
+| `POST` | `/api/entries/library` | Create a retry-safe Entry with an optional owner-scoped `clientRequestId` |
+| `GET` | `/api/entries/library/:id` | Read one owned Entry |
+| `PATCH` | `/api/entries/library/:id` | Save a full Entry draft with optional optimistic `expectedContentVersion` |
+| `DELETE` | `/api/entries/library/:id` | Delete one owned Entry and cascading relationships |
+| `GET` | `/api/entries/context` | List active owned Goals and milestones available for organization |
+
+Entry relationships organize content and do not share it. Reflections remain
+owner-private. Any separate social post that references one must contain only
+an author-approved snapshot and must never pre-fill its description from
+Reflection text or takeaways.
+
+### Echo (Legacy Journal API)
+
+The following `/api/v1/echo` section describes the older `echo_entries`
+pipeline retained for compatibility. New web and native Echo work should not
+use it.
 
 #### `GET /api/v1/echo`
 List the authenticated user's journal entries.
