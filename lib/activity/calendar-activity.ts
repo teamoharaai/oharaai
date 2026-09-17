@@ -13,7 +13,8 @@
 //
 // D-004: reached by a node test → relative paths + `import type` only.
 
-import type { ActivityDayBucket } from './goal-activity.ts';
+import type { ActivityDayBucket, GoalActivityKind } from './goal-activity.ts';
+import { GOAL_ACTIVITY_KIND_ORDER } from './goal-activity.ts';
 import { addLocalDays, startOfIsoWeekYmd } from '../time/zoned-calendar.ts';
 
 /** One calendar day, whether or not it carried activity or even lies in the past. */
@@ -22,8 +23,15 @@ export interface CalendarDaySlot {
   isoWeekday: number; // 1..7 (Mon..Sun)
   dayOfMonth: number; // 1..31
   count: number; // events that day (0 when none or still in the future)
+  byKind: Record<GoalActivityKind, number>; // per-kind tallies → hover summary
   isToday: boolean;
   isFuture: boolean; // date > asOf → no data can exist yet (later this week/month)
+}
+
+function zeroByKind(): Record<GoalActivityKind, number> {
+  const tally = {} as Record<GoalActivityKind, number>;
+  for (const kind of GOAL_ACTIVITY_KIND_ORDER) tally[kind] = 0;
+  return tally;
 }
 
 /** The current calendar week, Monday(index 0)→Sunday(index 6) — always 7 slots. */
@@ -50,21 +58,23 @@ function isoWeekdayForYmd(ymd: string): number {
   return dow === 0 ? 7 : dow;
 }
 
-/** date → count lookup over the window's buckets. */
-function countsByDate(buckets: readonly ActivityDayBucket[]): Map<string, number> {
-  const map = new Map<string, number>();
-  for (const bucket of buckets) map.set(bucket.date, bucket.count);
+/** date → bucket lookup over the window's buckets. */
+function bucketsByDate(buckets: readonly ActivityDayBucket[]): Map<string, ActivityDayBucket> {
+  const map = new Map<string, ActivityDayBucket>();
+  for (const bucket of buckets) map.set(bucket.date, bucket);
   return map;
 }
 
-function makeSlot(date: string, asOf: string, counts: Map<string, number>): CalendarDaySlot {
+function makeSlot(date: string, asOf: string, buckets: Map<string, ActivityDayBucket>): CalendarDaySlot {
   const dayOfMonth = Number(date.split('-')[2]);
   const isFuture = date > asOf;
+  const bucket = isFuture ? undefined : buckets.get(date);
   return {
     date,
     isoWeekday: isoWeekdayForYmd(date),
     dayOfMonth,
-    count: isFuture ? 0 : counts.get(date) ?? 0,
+    count: bucket?.count ?? 0,
+    byKind: bucket ? bucket.byKind : zeroByKind(),
     isToday: date === asOf,
     isFuture,
   };
@@ -87,11 +97,11 @@ export function buildCurrentWeek(
   buckets: readonly ActivityDayBucket[],
   asOfLocalDate: string,
 ): CurrentWeek {
-  const counts = countsByDate(buckets);
+  const byDate = bucketsByDate(buckets);
   const monday = startOfIsoWeekYmd(asOfLocalDate);
   const slots: CalendarDaySlot[] = [];
   for (let offset = 0; offset < 7; offset += 1) {
-    slots.push(makeSlot(addLocalDays(monday, offset), asOfLocalDate, counts));
+    slots.push(makeSlot(addLocalDays(monday, offset), asOfLocalDate, byDate));
   }
   return { slots, maxCount: maxOf(slots) };
 }
@@ -105,7 +115,7 @@ export function buildCurrentMonth(
   buckets: readonly ActivityDayBucket[],
   asOfLocalDate: string,
 ): CurrentMonth {
-  const counts = countsByDate(buckets);
+  const byDate = bucketsByDate(buckets);
   const [year, month] = asOfLocalDate.split('-').map(Number);
   const firstOfMonth = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-01`;
   const gridStart = startOfIsoWeekYmd(firstOfMonth);
@@ -118,7 +128,7 @@ export function buildCurrentMonth(
     for (let weekday = 0; weekday < 7; weekday += 1) {
       const [cursorYear, cursorMonth] = cursor.split('-').map(Number);
       const inMonth = cursorYear === year && cursorMonth === month;
-      week.push(inMonth ? makeSlot(cursor, asOfLocalDate, counts) : null);
+      week.push(inMonth ? makeSlot(cursor, asOfLocalDate, byDate) : null);
       cursor = addLocalDays(cursor, 1);
     }
     weeks.push(week);

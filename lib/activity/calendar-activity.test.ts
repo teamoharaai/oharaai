@@ -22,9 +22,13 @@ test('current week is exactly Monday→Sunday, today anchored, later days are fu
   assert.equal(slots[6].isoWeekday, 7);
 
   assert.equal(slots[0].count, 1); // Monday
+  assert.deepEqual(slots[0].byKind, { task_completed: 1, entry_created: 0, milestone_completed: 0 });
   assert.equal(slots[2].isToday, true); // Wednesday = today
   assert.equal(slots[2].count, 2); // two events today
+  assert.deepEqual(slots[2].byKind, { task_completed: 0, entry_created: 1, milestone_completed: 1 });
   assert.equal(maxCount, 2);
+  // Future days report an all-zero per-kind tally.
+  assert.deepEqual(slots[3].byKind, { task_completed: 0, entry_created: 0, milestone_completed: 0 });
 
   // Thu..Sun are later this week → future, no data.
   assert.deepEqual(slots.slice(3).map((s) => s.isFuture), [true, true, true, true]);

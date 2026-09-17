@@ -38,7 +38,15 @@ export interface ActivityDayBucket {
   isoWeekday: number;         // 1..7 (Mon..Sun) — drives the MTWTFSS row
   kinds: GoalActivityKind[];  // DISTINCT kinds active that day → emblem set
   count: number;              // total events that day → heatmap intensity
+  byKind: Record<GoalActivityKind, number>; // per-kind tallies → hover summary
   isToday: boolean;
+}
+
+/** A per-kind tally with every kind present at 0. */
+function emptyByKind(): Record<GoalActivityKind, number> {
+  const tally = {} as Record<GoalActivityKind, number>;
+  for (const kind of GOAL_ACTIVITY_KIND_ORDER) tally[kind] = 0;
+  return tally;
 }
 
 export interface ActivityWindowOptions {
@@ -85,12 +93,14 @@ export function buildActivityWindow(
 
   return dates.map((date) => {
     const dayEvents = eventsByDate.get(date) ?? [];
-    const present = new Set(dayEvents.map((event) => event.kind));
+    const byKind = emptyByKind();
+    for (const event of dayEvents) byKind[event.kind] += 1;
     return {
       date,
       isoWeekday: isoWeekdayForYmd(date),
-      kinds: GOAL_ACTIVITY_KIND_ORDER.filter((kind) => present.has(kind)),
+      kinds: GOAL_ACTIVITY_KIND_ORDER.filter((kind) => byKind[kind] > 0),
       count: dayEvents.length,
+      byKind,
       isToday: date === asOfLocalDate,
     };
   });

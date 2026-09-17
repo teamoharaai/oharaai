@@ -94,4 +94,5 @@ test('Phase C union: all three kinds on one day → distinct kinds in declaratio
   assert.ok(day);
   assert.deepEqual(day.kinds, ['task_completed', 'entry_created', 'milestone_completed']);
   assert.equal(day.count, 3);
+  assert.deepEqual(day.byKind, { task_completed: 1, entry_created: 1, milestone_completed: 1 });
 });
