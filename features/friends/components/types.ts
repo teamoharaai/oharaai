@@ -1,1 +1,1 @@
-export type FriendsTab = 'friends' | 'requests' | 'add' | 'settings';
+export type FriendsTab = 'friends' | 'requests' | 'add' | 'circles' | 'saved' | 'settings';

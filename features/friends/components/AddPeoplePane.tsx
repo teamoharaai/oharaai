@@ -145,16 +145,19 @@ export function AddPeoplePane({
       </View>
 
       {!hasSearchQuery ? (
-        <View style={{ gap: 5, padding: 28 }}>
-          <Typography variant="section-header">Someone in mind?</Typography>
-          <Typography
-            style={{ color: colors.text.secondary, maxWidth: 350 }}
-            variant="meta"
-          >
-            Type at least three characters of their @username. Search only
-            matches the beginning of a username.
-          </Typography>
-        </View>
+        <>
+          <View style={{ gap: 5, padding: 28 }}>
+            <Typography variant="section-header">Someone in mind?</Typography>
+            <Typography
+              style={{ color: colors.text.secondary, maxWidth: 350 }}
+              variant="meta"
+            >
+              Type at least three characters of their @username. Search only
+              matches the beginning of a username.
+            </Typography>
+          </View>
+          <InviteByLink />
+        </>
       ) : searchError ? (
         <View
           accessibilityLiveRegion="polite"
@@ -185,8 +188,9 @@ export function AddPeoplePane({
             style={{ color: colors.text.secondary }}
             variant="meta"
           >
-            No results for @{searchQuery}.
+            No results for @{searchQuery}. Not on OHARA yet? Invite them below.
           </Typography>
+          <InviteByLink />
         </View>
       ) : (
         <View>
@@ -317,6 +321,61 @@ function StatusPill({
       >
         {label}
       </Typography>
+    </View>
+  );
+}
+
+/**
+ * Invite someone who isn't on OHARA yet (merged from the Circles prototype's
+ * "Invite a Friend"). PROTOTYPE: no invite code is generated or sent.
+ */
+function InviteByLink() {
+  const colors = useThemeColors();
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <View
+      style={{
+        borderTopColor: colors.border.warmSubtle,
+        borderTopWidth: 1,
+        gap: 8,
+        marginHorizontal: 12,
+        marginTop: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 20,
+      }}
+    >
+      <Typography variant="emphasis-sm">Invite a friend</Typography>
+      <Typography style={{ color: colors.text.secondary }} variant="meta">
+        Circles are small on purpose. Send a link to someone whose growth you care about.
+      </Typography>
+      <View
+        style={{
+          alignItems: 'center',
+          backgroundColor: colors.background.input,
+          borderColor: colors.border.input,
+          borderRadius: 12,
+          borderWidth: 1,
+          flexDirection: 'row',
+          gap: 8,
+          marginTop: 4,
+          paddingLeft: 13,
+          paddingRight: 4,
+          paddingVertical: 4,
+        }}
+      >
+        <Typography numberOfLines={1} style={{ color: colors.text.secondary, flex: 1 }} variant="caption">
+          ohara.app/invite/[YOUR-INVITE-CODE]
+        </Typography>
+        <Button
+          onPress={() => setCopied(true)}
+          size="compact"
+          style={{ minHeight: 38, paddingHorizontal: 13 }}
+          variant="secondary"
+        >
+          {copied ? 'Copied' : 'Copy link'}
+        </Button>
+      </View>
     </View>
   );
 }

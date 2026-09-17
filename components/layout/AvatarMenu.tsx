@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Modal,
   Pressable,
+  ScrollView,
   Text,
   View,
   useWindowDimensions,
@@ -18,6 +19,11 @@ import {
   type FriendsAnchorRect,
 } from '@/features/friends/components/FriendsPopover';
 import type { FriendsTab } from '@/features/friends/components/types';
+import { CirclesPane } from '@/features/circles/components/CirclesPane';
+import { GoalInvitesPane, useGoalInviteCount } from '@/features/circles/components/GoalInvitesPane';
+import { SavedPostsPane } from '@/features/circles/components/SavedPostsPane';
+import { Modal as OharaModal } from '@/components/ui/Modal';
+import { Typography } from '@/components/ui/Typography';
 import { useAuthStore } from '@/features/auth/store';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { AccountModal } from './AccountModal';
@@ -82,6 +88,10 @@ export function AvatarMenu() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [profile, setProfile] = useState<ProfileSummary | null>(null);
   const [friendsOpen, setFriendsOpen] = useState(false);
+  const [savedOpen, setSavedOpen] = useState(false);
+  const [circlesOpen, setCirclesOpen] = useState(false);
+  const [invitesOpen, setInvitesOpen] = useState(false);
+  const goalInviteCount = useGoalInviteCount();
   const [friendsTab, setFriendsTab] = useState<FriendsTab>('friends');
   const [avatarFocused, setAvatarFocused] = useState(false);
   const [anchorRect, setAnchorRect] =
@@ -342,6 +352,32 @@ export function AvatarMenu() {
             />
 
             <MenuRow
+              label="Circles"
+              onPress={() => {
+                setMenuOpen(false);
+                setCirclesOpen(true);
+              }}
+            />
+
+            {goalInviteCount > 0 ? (
+              <MenuRow
+                label={`Goal invitations (${goalInviteCount})`}
+                onPress={() => {
+                  setMenuOpen(false);
+                  setInvitesOpen(true);
+                }}
+              />
+            ) : null}
+
+            <MenuRow
+              label="Saved"
+              onPress={() => {
+                setMenuOpen(false);
+                setSavedOpen(true);
+              }}
+            />
+
+            <MenuRow
               label="Settings"
               onPress={() => {
                 setMenuOpen(false);
@@ -364,6 +400,48 @@ export function AvatarMenu() {
 
       <SettingsModal visible={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
+      <OharaModal
+        closeOnBackdropPress
+        contentStyle={{ maxHeight: '90%', maxWidth: 520, width: '100%' }}
+        onClose={() => setSavedOpen(false)}
+        visible={savedOpen}
+      >
+        <Typography accessibilityRole="header" variant="section-header">Saved</Typography>
+        <Typography variant="caption" style={{ color: colors.text.secondary, marginTop: 4 }}>
+          Posts you saved from Home. Only you can see this.
+        </Typography>
+        <ScrollView style={{ flexShrink: 1, marginHorizontal: -24 }}>
+          <SavedPostsPane />
+        </ScrollView>
+      </OharaModal>
+
+      <OharaModal
+        closeOnBackdropPress
+        contentStyle={{ maxHeight: '90%', maxWidth: 520, width: '100%' }}
+        onClose={() => setCirclesOpen(false)}
+        visible={circlesOpen}
+      >
+        <Typography accessibilityRole="header" variant="section-header">Circles</Typography>
+        <Typography variant="caption" style={{ color: colors.text.secondary, marginTop: 4 }}>
+          Everything is private by default. Choose what friends can view.
+        </Typography>
+        <ScrollView style={{ flexShrink: 1, marginHorizontal: -24 }}>
+          <CirclesPane />
+        </ScrollView>
+      </OharaModal>
+
+      <OharaModal
+        closeOnBackdropPress
+        contentStyle={{ maxHeight: '90%', maxWidth: 520, width: '100%' }}
+        onClose={() => setInvitesOpen(false)}
+        visible={invitesOpen && goalInviteCount > 0}
+      >
+        <Typography accessibilityRole="header" variant="section-header">Goal invitations</Typography>
+        <ScrollView style={{ flexShrink: 1, marginHorizontal: -12 }}>
+          <GoalInvitesPane />
+        </ScrollView>
+      </OharaModal>
+
       {FEATURES.SOCIAL_ENABLED ? (
         <FriendsPopover
           key={activeUserId ?? 'signed-out'}
@@ -380,6 +458,10 @@ export function AvatarMenu() {
             displayName: avatarDisplayName,
             username,
           }}
+          circlesPane={<CirclesPane />}
+          goalInviteCount={goalInviteCount}
+          goalInvitesPane={<GoalInvitesPane />}
+          savedPane={<SavedPostsPane />}
           tab={friendsTab}
           visible={friendsOpen}
         />

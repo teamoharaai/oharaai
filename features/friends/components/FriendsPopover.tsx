@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -48,6 +48,13 @@ interface FriendsPopoverProps {
     displayName: string;
     username: string;
   };
+  /** Public-goal + goal-invite settings ("Circles"), supplied by the host. */
+  circlesPane?: ReactNode;
+  /** Pending goal invitations shown at the top of Requests, supplied by the host. */
+  goalInvitesPane?: ReactNode;
+  goalInviteCount?: number;
+  /** Private saved-posts collection, supplied by the host (Circles owns it). */
+  savedPane?: ReactNode;
   tab: FriendsTab;
   visible: boolean;
 }
@@ -74,6 +81,10 @@ export function FriendsPopover({
   onClose,
   onLogOut,
   onOpenAccount,
+  circlesPane,
+  goalInviteCount = 0,
+  goalInvitesPane,
+  savedPane,
   profile,
   tab,
   visible,
@@ -93,9 +104,15 @@ export function FriendsPopover({
     POPOVER_WIDTH,
     Math.max(0, viewportWidth - VIEWPORT_MARGIN * 2),
   );
+  // The avatar lives in the top navigation's right edge, so the panel drops
+  // down below it, right-aligned, with the caret pointing up at the avatar.
+  const preferredTop = anchorRect
+    ? anchorRect.bottom + ANCHOR_GAP
+    : (viewportHeight - POPOVER_HEIGHT) / 2;
+  const top = Math.max(VIEWPORT_MARGIN, preferredTop);
   const popoverHeight = Math.min(
     POPOVER_HEIGHT,
-    Math.max(0, viewportHeight - VIEWPORT_MARGIN * 2),
+    Math.max(0, viewportHeight - top - VIEWPORT_MARGIN),
   );
 
   const position = useMemo(() => {
@@ -103,38 +120,24 @@ export function FriendsPopover({
       VIEWPORT_MARGIN,
       viewportWidth - popoverWidth - VIEWPORT_MARGIN,
     );
-    const maxTop = Math.max(
-      VIEWPORT_MARGIN,
-      viewportHeight - popoverHeight - VIEWPORT_MARGIN,
-    );
     const preferredLeft = anchorRect
-      ? anchorRect.right + ANCHOR_GAP
+      ? anchorRect.right - popoverWidth
       : (viewportWidth - popoverWidth) / 2;
-    const preferredTop = anchorRect
-      ? anchorRect.bottom - popoverHeight + 28
-      : (viewportHeight - popoverHeight) / 2;
     const left = clamp(preferredLeft, VIEWPORT_MARGIN, maxLeft);
-    const top = clamp(preferredTop, VIEWPORT_MARGIN, maxTop);
-    const anchorCenterY = anchorRect
-      ? anchorRect.top + anchorRect.height / 2
-      : top + popoverHeight - 54;
+    const anchorCenterX = anchorRect
+      ? anchorRect.left + anchorRect.width / 2
+      : left + popoverWidth - 40;
 
     return {
-      caretTop: clamp(
-        anchorCenterY - top - 8,
-        18,
-        Math.max(18, popoverHeight - 30),
+      caretLeft: clamp(
+        anchorCenterX - left - 8,
+        24,
+        Math.max(24, popoverWidth - 40),
       ),
       left,
       top,
     };
-  }, [
-    anchorRect,
-    popoverHeight,
-    popoverWidth,
-    viewportHeight,
-    viewportWidth,
-  ]);
+  }, [anchorRect, popoverWidth, top, viewportWidth]);
 
   useEffect(() => {
     if (!visible || Platform.OS !== 'web') return;
@@ -212,6 +215,7 @@ export function FriendsPopover({
   }
 
   const requestCount = friendsController.incomingRequests.length;
+  const isFriendsTab = tab === 'friends' || tab === 'requests' || tab === 'add';
   const title =
     tab === 'friends'
       ? 'My friends'
@@ -219,19 +223,29 @@ export function FriendsPopover({
         ? 'Requests'
         : tab === 'add'
           ? 'Add people'
-          : 'Settings';
+          : tab === 'saved'
+            ? 'Saved'
+            : tab === 'circles'
+              ? 'Circles'
+              : 'Settings';
   const subtitle =
     tab === 'friends'
       ? `${friendsController.friendCount} ${
           friendsController.friendCount === 1 ? 'friend' : 'friends'
         } · Only you see this list.`
       : tab === 'requests'
-        ? requestCount === 1
-          ? '1 person wants to connect with you.'
-          : `${requestCount} people want to connect with you.`
+        ? goalInviteCount > 0
+          ? `${requestCount} friend ${requestCount === 1 ? 'request' : 'requests'} · ${goalInviteCount} goal ${goalInviteCount === 1 ? 'invitation' : 'invitations'}`
+          : requestCount === 1
+            ? '1 person wants to connect with you.'
+            : `${requestCount} people want to connect with you.`
         : tab === 'add'
-          ? 'Search by the beginning of an @username.'
-          : 'Manage your app preferences and archived goals.';
+          ? 'Find people by @username, or invite someone new.'
+          : tab === 'saved'
+            ? 'Posts you saved from Home. Only you can see this.'
+            : tab === 'circles'
+              ? 'Everything is private by default. Choose what friends can view.'
+              : 'Manage your app preferences and archived goals.';
   const isUnhydratedError =
     !!friendsController.loadError && !friendsController.hasHydrated;
   const refreshError =
@@ -277,14 +291,14 @@ export function FriendsPopover({
             pointerEvents="none"
             style={{
               backgroundColor: colors.background.goalCard,
-              borderBottomColor: colors.border.warm,
-              borderBottomWidth: 1,
               borderLeftColor: colors.border.warm,
               borderLeftWidth: 1,
+              borderTopColor: colors.border.warm,
+              borderTopWidth: 1,
               height: 16,
-              left: -7,
+              left: position.caretLeft,
               position: 'absolute',
-              top: position.caretTop,
+              top: -7,
               transform: [{ rotate: '45deg' }],
               width: 16,
               zIndex: 2,
@@ -416,7 +430,7 @@ export function FriendsPopover({
                   />
                   <RailButton
                     active={tab === 'requests'}
-                    badgeCount={requestCount}
+                    badgeCount={requestCount + goalInviteCount}
                     buttonRef={requestsTabRef}
                     icon={
                       <Ionicons
@@ -498,6 +512,42 @@ export function FriendsPopover({
                       value={themeMode === 'dark'}
                     />
                   </View>
+                  {circlesPane ? (
+                    <RailButton
+                      active={tab === 'circles'}
+                      icon={
+                        <Ionicons
+                          color={
+                            tab === 'circles'
+                              ? colors.text.accent
+                              : colors.text.muted
+                          }
+                          name="people-circle-outline"
+                          size={17}
+                        />
+                      }
+                      label="Circles"
+                      onPress={() => selectTab('circles')}
+                    />
+                  ) : null}
+                  {savedPane ? (
+                    <RailButton
+                      active={tab === 'saved'}
+                      icon={
+                        <Ionicons
+                          color={
+                            tab === 'saved'
+                              ? colors.text.accent
+                              : colors.text.muted
+                          }
+                          name="bookmark-outline"
+                          size={17}
+                        />
+                      }
+                      label="Saved"
+                      onPress={() => selectTab('saved')}
+                    />
+                  ) : null}
                   <RailButton
                     active={tab === 'settings'}
                     icon={
@@ -565,7 +615,7 @@ export function FriendsPopover({
                     {subtitle}
                   </Typography>
                 </View>
-                {tab !== 'settings' ? (
+                {isFriendsTab ? (
                   <Pressable
                     accessibilityLabel="Refresh friends"
                     accessibilityRole="button"
@@ -649,6 +699,10 @@ export function FriendsPopover({
                   <View style={{ padding: 24 }}>
                     <SettingsPane active onClose={onClose} />
                   </View>
+                ) : tab === 'saved' ? (
+                  savedPane
+                ) : tab === 'circles' ? (
+                  circlesPane
                 ) : refreshError ? (
                   <View
                     accessibilityLiveRegion="polite"
@@ -683,11 +737,11 @@ export function FriendsPopover({
                   </View>
                 ) : null}
 
-                {tab !== 'settings' &&
+                {isFriendsTab &&
                 friendsController.isInitialLoading &&
                 !friendsController.hasHydrated ? (
                   <LoadingPane />
-                ) : tab !== 'settings' && isUnhydratedError ? (
+                ) : isFriendsTab && isUnhydratedError ? (
                   <LoadErrorPane
                     message={getFriendErrorCopy(
                       friendsController.loadError!,
@@ -701,15 +755,18 @@ export function FriendsPopover({
                     sentCount={friendsController.sentRequests.length}
                   />
                 ) : tab === 'requests' ? (
-                  <RequestsPane
-                    connectionMutations={
-                      friendsController.connectionMutations
-                    }
-                    incomingRequests={friendsController.incomingRequests}
-                    onAccept={friendsController.acceptRequest}
-                    onDecline={friendsController.declineRequest}
-                    sentCount={friendsController.sentRequests.length}
-                  />
+                  <>
+                    {goalInvitesPane}
+                    <RequestsPane
+                      connectionMutations={
+                        friendsController.connectionMutations
+                      }
+                      incomingRequests={friendsController.incomingRequests}
+                      onAccept={friendsController.acceptRequest}
+                      onDecline={friendsController.declineRequest}
+                      sentCount={friendsController.sentRequests.length}
+                    />
+                  </>
                 ) : tab === 'add' ? (
                   <AddPeoplePane
                     isSearchLoading={friendsController.isSearchLoading}
