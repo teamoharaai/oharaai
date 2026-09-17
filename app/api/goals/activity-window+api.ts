@@ -6,7 +6,14 @@ import { addLocalDays, localDateForInstant } from '@/lib/time/zoned-calendar';
 
 const DEFAULT_DAYS = 7;
 const MAX_DAYS = 120; // heatmap ceiling; keeps the window bounded (Phase C uses this)
-const PHASE_B_SOURCES: readonly GoalActivityKind[] = ['task_completed'];
+// Phase C (TD-006): the union of all three engagement sources feeds both the
+// 7-day emblem row and the long-window heatmap. The `days` param alone selects
+// the window length; the source set is constant.
+const UNION_SOURCES: readonly GoalActivityKind[] = [
+  'task_completed',
+  'entry_created',
+  'milestone_completed',
+];
 
 export async function GET(request: Request): Promise<Response> {
   if (!isDatabaseConfigured) {
@@ -35,7 +42,7 @@ async function handleGet(request: Request, _params: Record<string, string>, auth
   const events = await fetchGoalActivityEvents(authedDb, auth.userId, goalId, {
     sinceLocalDate,
     profileTimezone: timezone,
-    sources: PHASE_B_SOURCES,
+    sources: UNION_SOURCES,
   });
   const buckets = buildActivityWindow(events, { asOfLocalDate, days });
   return Response.json({ buckets });

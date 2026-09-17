@@ -7,8 +7,8 @@ import type { ActivityDayBucket, GoalActivityKind } from '@/lib/activity/goal-ac
 // Pure render of the L1 goal-activity window (design/001 Part B). Receives the
 // bucketed ActivityDayBucket[] as props — no DB access here (features/CLAUDE.md
 // rule 3). Buckets arrive oldest→newest with today last; this component never
-// re-sorts them. Phase B renders a single filled/hollow emblem per day; the
-// multi-emblem set + heatmap arrive in Phase C (T4) over the same output shape.
+// re-sorts them. Phase C renders the day's `kinds` as a multi-emblem set (one
+// colored glyph per distinct kind), hollow when the day has no activity.
 
 const WEEKDAY_INITIALS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as const; // isoWeekday 1..7
 const WEEKDAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const;
@@ -18,6 +18,18 @@ const KIND_LABELS: Record<GoalActivityKind, string> = {
   entry_created: 'entry',
   milestone_completed: 'milestone',
 };
+
+/** One distinct emblem color per kind, in GOAL_ACTIVITY_KIND_ORDER. */
+function kindColor(kind: GoalActivityKind, colors: ReturnType<typeof useThemeColors>): string {
+  switch (kind) {
+    case 'task_completed':
+      return colors.accent.primary;
+    case 'entry_created':
+      return colors.accent.tealMid;
+    case 'milestone_completed':
+      return colors.brt.rose;
+  }
+}
 
 function accessibilityLabel(bucket: ActivityDayBucket): string {
   const weekday = WEEKDAY_NAMES[bucket.isoWeekday - 1] ?? '';
@@ -44,7 +56,8 @@ export function GoalActivityRow({
   return (
     <View accessibilityLabel="Last 7 days of goal activity" style={{ flexDirection: 'row', gap: SPACE.md }}>
       {cells.map((bucket, index) => {
-        const active = !loading && !!bucket && bucket.count > 0;
+        const kinds = !loading && bucket ? bucket.kinds : [];
+        const active = kinds.length > 0;
         const isToday = bucket?.isToday ?? false;
         const initial = WEEKDAY_INITIALS[(bucket ? bucket.isoWeekday - 1 : index) % 7];
         return (
@@ -56,19 +69,38 @@ export function GoalActivityRow({
             <View
               style={{
                 alignItems: 'center',
-                backgroundColor: active ? colors.accent.primary : 'transparent',
-                borderColor: active
-                  ? colors.accent.primary
-                  : isToday
-                    ? colors.border.accent
+                backgroundColor: 'transparent',
+                // Today always keeps its ring so it stays distinguishable even
+                // when it has activity; other active days drop the outline.
+                borderColor: isToday
+                  ? colors.border.accent
+                  : active
+                    ? 'transparent'
                     : colors.border.input,
                 borderRadius: RADIUS.round,
                 borderWidth: isToday ? 2 : 1.5,
+                flexDirection: 'row',
+                gap: 2,
                 height: 22,
                 justifyContent: 'center',
-                width: 22,
+                minWidth: 22,
+                paddingHorizontal: active ? 4 : 0,
               }}
-            />
+            >
+              {active
+                ? kinds.map((kind) => (
+                    <View
+                      key={kind}
+                      style={{
+                        backgroundColor: kindColor(kind, colors),
+                        borderRadius: RADIUS.round,
+                        height: 8,
+                        width: 8,
+                      }}
+                    />
+                  ))
+                : null}
+            </View>
             <Typography
               variant="caption"
               style={{ color: isToday ? colors.text.accent : colors.text.muted }}

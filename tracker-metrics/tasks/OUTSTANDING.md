@@ -7,17 +7,20 @@ Legend: ☐ not started · ◐ in progress · ☑ done · ⚠ blocked · ❓ nee
 
 ## Next action
 
-**T1+T2+T3 MERGED to main (session 004).** PR #21 squash-merged as `466b44a`
-after teammate sign-off + user go-ahead (TD-005 gate satisfied); branch
-`feat/port-tracker-optimism-boundary` deleted. PR:
-https://github.com/teamoharaai/oharaai/pull/21. tsc clean + test:tasks 47/47
-re-verified on main post-merge. TD-011 records the commit grouping.
+**T4 BUILT — awaiting review/merge (session 005).** Phase C union + heatmap on
+branch `feat/goal-activity-union-heatmap`; PR open vs `main`. L1 output shape
+UNCHANGED. tsc clean; test:tasks **63/63**. **Merge is GATED (TD-005): teammate
+sign-off on the `features/goals` + union-reader slices + user go-ahead.** NOT
+merged. User can trigger `/code-review ultra <PR#>`.
 
-Next: **T4 — L1 cross-feature union + heatmap** (TD-006 Phase C). Add reader
-sources `entry_created` (goal-linked Entries via `echo_entry_links`) +
-`milestone_completed` (`milestones.completed_at`), generalizing
-`features/goals/dashboard-goal-activity.ts` into `lib/`; multi-emblem row +
-GitHub-style heatmap over the same (unchanged) L1 output shape.
+Next after merge: **initiative #1 complete.** **T5** (server-side date-bounding
+the union reads) remains conditional — only if the 70-day heatmap read approaches
+the row ceiling (bound via `localDateToUtcStart(sinceLocalDate, tz).gte`).
+
+Prior: **T1+T2+T3 MERGED to main (session 004).** PR #21 squash-merged as
+`466b44a` after teammate sign-off + user go-ahead (TD-005); branch
+`feat/port-tracker-optimism-boundary` deleted. PR:
+https://github.com/teamoharaai/oharaai/pull/21. Sign-off notes in TD-012.
 
 **T3 (L1 goal-activity, occurrences-only + 7-day row) is built (session 003).**
 New `lib/activity/goal-activity.ts` (pure `buildActivityWindow`, node-tested),
@@ -46,8 +49,8 @@ PR #21 (session 004). Sessions 000/001 were audit + design only.
 | T1 | Optimism + boundary-refresh port | ☑ merged (#21) | `0317484` → main via PR #21 squash `466b44a` (session 004, TD-005 sign-off + go-ahead). tsc clean; test:tasks 32/32. |
 | T2 | Upcoming collapse (one row per task) | ☑ merged (#21) | Session 002, committed `0179197` → main via PR #21 (`466b44a`). `changelog/002`. TD-002. tsc clean; test:tasks 38/38. |
 | T3 | L1 goal-activity, occurrences-only + 7-day row | ☑ merged (#21) | Session 003, committed `0034a5b` → main via PR #21 (`466b44a`). `changelog/003`. TD-006 + TD-010. `lib/activity/goal-activity.ts` (pure, node-tested) + `lib/db/goal-activity.ts` + `GoalActivityRow` in `GoalAnalyticsCard` + `/api/goals/activity-window` + `useGoalActivityWindow`. tsc clean; test:tasks 47/47. |
-| T4 | L1 cross-feature union + heatmap | ☐ | TD-006 Phase C. Add `entry_created` + `milestone_completed`; multi-emblem row + heatmap. |
-| T5 | Pagination helper (if needed) | ☐ | Low priority. Only if activity/occurrence reads exceed the row ceiling. |
+| T4 | L1 cross-feature union + heatmap | ◐ built, PR open | Session 005, branch `feat/goal-activity-union-heatmap`. TD-006 Phase C + TD-013/TD-014. New pure `lib/activity/goal-activity-sources.ts` (union) + `activity-heatmap.ts`; reader `entry_created`+`milestone_completed`; multi-emblem `GoalActivityRow` + new `GoalActivityHeatmap` in `GoalAnalyticsCard`. L1 shape unchanged. tsc clean; test:tasks 63/63. `changelog/004`. Merge GATED (TD-005). |
+| T5 | Pagination / date-bound helper (if needed) | ☐ | Low priority. Only if the union reads (now incl. the routine 70-day heatmap) exceed the row ceiling. Bound via `localDateToUtcStart(...).gte`. |
 | — | L2 correlation seam | ⏸ OFF | TD-007. Design seam only; recap pipeline (teammate) owns it. Do not build. |
 | — | Initiative #2: Vaults↔Notes↔Intelligence | ⏸ separate | TD-008. `design/002`. Hand to Entries owner; consumes L1. Not built here. |
 
