@@ -20,6 +20,7 @@
     "test:tasks": "node --experimental-strip-types --test features/tasks/utils.test.ts features/tasks/architecture.test.ts features/tasks/task-optimism.test.ts features/tasks/task-boundary.test.ts lib/activity/goal-activity.test.ts lib/activity/goal-activity-sources.test.ts lib/activity/activity-heatmap.test.ts lib/activity/calendar-activity.test.ts",
     "test:tasks:db": "bash scripts/test-tasks-security.sh",
   "test:circles:db": "bash scripts/test-circles-security.sh",
+    "test:circles:api": "node scripts/circles-api.smoke.mjs",
     "test:momentum:db": "bash scripts/test-momentum-security.sh",
     "test:momentum:local": "node --experimental-strip-types scripts/momentum-local.integration.mjs",
     "test:momentum:api": "node scripts/momentum-api.smoke.mjs",

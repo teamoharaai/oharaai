@@ -1031,6 +1031,53 @@ Deletes only the authenticated owner's layout rows and returns:
 
 ---
 
+## Circles endpoints (Expo API routes)
+
+The friends-only social layer behind Home. Backed by Migration 053 and
+`lib/db/circles.ts`; design + decisions live in `design/circles/`. These routes
+are intentionally outside `/api/v1` (same convention as Agent-session and
+Constellation routes) and use the `ApiResponse<T>` envelope (`lib/api/contracts.ts`):
+success is `{ ok: true, data, error: null }`, failure is
+`{ ok: false, data: null, error: { code, message } }`.
+
+**Auth:** `withAuth` — `user_id` comes from the JWT only, never the body.
+**Privacy spine (CD-004):** non-owners never read base tables — goal data is only
+ever the whitelisted summary (`title`, `category`, `status`, top-level milestone
+titles + done, this week's Task count). No description/reflection/Task titles.
+**Error status mapping** (Postgres SQLSTATE → HTTP, mirroring friends):
+`42501`→403, `P0002`→404, `22023`→400, `23505`→409; anything else → 500.
+
+| Method + path | Purpose |
+|---|---|
+| `GET /api/circles/feed?before=&limit=` | Feed page, newest first. `data: { posts: CirclesFeedPost[] }`. `before` is an ISO cursor on `created_at`; `limit` 1–50 (default 20). Each post carries `author`, snapshot `link`, `encouragementCount`, `commentCount`, `encouragedByMe`, `savedByMe`. |
+| `POST /api/circles/posts` | Create a post. Body `{ body, image_path?, link_kind?, link_ref_id?, link_description? }` (`link_kind` ∈ goal/milestone/reflection; kind+ref together; description ≤280). Snapshots the linked title server-side (CD-005). → `201 { id }`. |
+| `DELETE /api/circles/posts/:id` | Soft-delete own post. → `200 { id }` (404 if not yours/already gone). |
+| `POST /api/circles/posts/:id/encourage` | Encourage (idempotent). → `{ postId, encouraged: true }`. |
+| `DELETE /api/circles/posts/:id/encourage` | Remove your encouragement. → `{ postId, encouraged: false }`. |
+| `GET /api/circles/posts/:id/encouragements` | CD-013: who encouraged. → `{ encouragers: CirclesAuthor[] }`. |
+| `GET /api/circles/posts/:id/comments` | Live comments (soft-deleted excluded). → `{ comments: PostComment[] }`. |
+| `POST /api/circles/posts/:id/comments` | Add a comment. Body `{ body }` (1–1000). → `201 { id }`. |
+| `DELETE /api/circles/comments/:id` | Author soft-delete (sets `deleted_at`). → `200 { id }` (404 if not yours). |
+| `POST /api/circles/posts/:id/save` | Save (idempotent, private). → `{ postId, saved: true }`. |
+| `DELETE /api/circles/posts/:id/save` | Unsave. → `{ postId, saved: false }`. |
+| `GET /api/circles/saved` | Own saved posts (embeds the live post; unfriended authors drop out). → `{ saved: SavedPost[] }`. |
+| `GET /api/circles/public-goal` | Caller's single public goal or null. → `{ goal: { id, title, category, status } \| null }`. |
+| `PUT /api/circles/public-goal` | Set/clear the public goal. Body `{ goal_id: uuid \| null }`. → `{ id }`. |
+| `GET /api/circles/friends/public-goals` | Every friend's public goal (whitelisted summary + `owner`). → `{ goals: CircleGoalSummary[] }`. |
+| `GET /api/circles/shared-with-me` | Goals shared with me via accepted invites. → `{ goals: CircleGoalSummary[] }`. |
+| `GET /api/circles/invites` | My incoming (pending) goal invites. → `{ invites: IncomingGoalInvite[] }`. |
+| `POST /api/circles/invites` | Send invites for one of my goals. Body `{ goal_id, invitee_ids: uuid[] }` (1–50, friends only). → `201 { inviteIds }`. |
+| `GET /api/circles/invites/sent` | Owner's sent list. CD-014: declined shown as `pending`, withdrawn omitted. → `{ invites: SentGoalInvite[] }`. |
+| `POST /api/circles/invites/:id/respond` | Invitee accepts/declines. Body `{ response: 'accepted' \| 'declined' }`. → `{ id }`. |
+| `POST /api/circles/invites/:id/withdraw` | Owner withdraws/revokes. → `{ id }`. |
+| `GET /api/circles/linkable` | Composer picker: my shareable goals, completed milestones, reflection entries (title + suggested description). → `{ goals, milestones, reflections }`. |
+
+DTO shapes (`CirclesFeedPost`, `CircleGoalSummary`, `PostComment`,
+`SentGoalInvite`, `CirclesAuthor`, …) are defined and mapped in
+`lib/db/circles-core.ts`.
+
+---
+
 ## Phase 2 Extension Points (DO NOT BUILD YET)
 
 These are documented so the Phase 1 schema and endpoints don't block Phase 2 work.

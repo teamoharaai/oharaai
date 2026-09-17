@@ -8,6 +8,22 @@ decision → consequence.
 
 ---
 
+## CD-018 · 2026-09-17 · accepted — Sent-list status mapping lives in the DTO mapper
+
+**Context:** Phase 3. CD-014 requires the owner's sent list to hide declines
+(show them as "Pending"). `goal_share_invites.status` also carries `withdrawn`
+(owner's own revoke) and `accepted`.
+**Decision:** `mapSentInvite` (`lib/db/circles-core.ts`) is the single place the
+status is normalized for the owner: `pending`/`declined`→`pending`,
+`accepted`→`accepted`, and `withdrawn` (or anything unexpected) is **dropped**
+from the list (returns null). The `GET /api/circles/invites/sent` query already
+filters to `pending|accepted|declined`, so withdrawn rows never reach the mapper
+in practice, but the mapper stays defensive. The exposed `SentInviteStatus` union
+is therefore `'pending' | 'accepted' | 'withdrawn'` with `declined` unrepresentable.
+**Consequence:** CD-014 is enforced in one testable pure function (Phase 6). The
+underlying `declined` row is unchanged; a fresh invite after a decline still works
+(053 `live_pair` index). No schema change.
+
 ## CD-017 · 2026-09-17 · accepted — Migration 053 L3 sign-off
 
 **Context:** Phase 1b gate. Draft 053 (tables `goal_share_invites`,

@@ -11,6 +11,33 @@ visible.
 - The user's own dev server usually runs on **:8099** (`expo start --web --port 8099`).
   Avoid starting a second server from the same checkout (duplicate background jobs).
 
+## Phase 3 server layer (2026-09-17)
+
+- **Built (changelog 003), tsc clean.** `lib/db/circles-core.ts` (pure DTOs +
+  mappers + validators + `CircleDataError`/`classifyPgError`/`throwCircleError`),
+  `lib/db/circles.ts` (data access over 053), `lib/api/circles.ts` (envelope +
+  error→HTTP), and 17 route files under `app/api/circles/**`. Contract documented
+  in `docs/API_CONTRACT.md` → "Circles endpoints".
+- **`circles-core.ts` uses type-only `@/` imports only** (no runtime imports),
+  so the node runner strips them — safe for Phase 6 relative-import tests (D-004).
+  Follow the friends pattern: `lib/db/*-core.ts` = pure/testable, `lib/db/*.ts` =
+  Supabase calls.
+- **Error mapping** (SQLSTATE→HTTP): 42501→403, P0002→404, 22023→400, 23505→409,
+  else 500. Lives in `classifyPgError` (db) + `circlesErrorResponse` (api).
+- **CD-013** encouragers endpoint = `GET /api/circles/posts/:id/encouragements`.
+  **CD-014** declined→pending is `mapSentInvite` (see **CD-018**); withdrawn dropped.
+- **supabase-js embedded joins infer as arrays** — `saved_posts.post:circle_posts(*)`
+  and `milestones.goals(...)` needed `as unknown as {...}` casts; rpc `data` for
+  the feed cast to `FeedRow[]`.
+- **Author hydration always via `get_profiles_by_ids`** (030: self + live friend
+  edges only) — every author/invitee/owner Circles surfaces is a friend/self, so
+  it's sufficient; unfriended → profile drops to null.
+- **Smoke `scripts/circles-api.smoke.mjs` + `npm run test:circles:api`** exists
+  but was NOT run (dev server OFF, no session). It always checks the 401 guards
+  and skips the authed create→delete round-trip unless
+  `OHARA_CIRCLES_ACCESS_TOKEN` or `OHARA_CIRCLES_EMAIL`/`PASSWORD` (+`WEB_ORIGIN`)
+  is set.
+
 ## Phase 2 promote + apply (2026-09-17)
 
 - **053 is LIVE.** Applied to `rrgiqemscnyaqkculnmb` via the management API

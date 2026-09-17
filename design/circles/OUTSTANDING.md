@@ -7,15 +7,21 @@ Legend: ☐ not started · ◐ in progress · ☑ done · ⚠ blocked · ❓ nee
 
 ## Next action
 
-**► Phase 3 — server layer.** 053 is live (audit 001). Build `lib/db/circles.ts`
-(+ `lib/db/circles-core.ts` if a pure mapper needs node tests) and
-`app/api/circles/**` per PLAN §4, mirroring friends: `withAuth` +
-`createAuthedClient`, userId from session only, Postgres error mapping
-`42501`→403, `P0002`→404, `22023`→400. Add the routes to root `API_CONTRACT.md`
-and a smoke script like `scripts/momentum-api.smoke.mjs`. Fold in **CD-013**
-(encourager-list endpoint) and **CD-014** (declined→"Pending" in the owner's
-sent list) at the API layer; **CD-016** invite-link redeem contract is Phase 5.
-Read nested `CLAUDE.md` for `lib/db/` and `app/api/` before touching them.
+**► Phase 4 — client services + store swap.** Phase 3 server layer is built
+(changelog 003). Add `FEATURES.CIRCLES_ENABLED`; write
+`features/circles/services/circles-service.ts` (`authedFetch` → the
+`/api/circles/**` routes) and swap `useCirclesStore` actions from fixtures to
+services with optimistic update + revert. Remove `SharedGoal.why` (CD-004 — no
+longer backed by data). Keep `fixtures.ts` for tests only. DTO shapes to consume
+are in `lib/db/circles-core.ts`; the route contract is in `docs/API_CONTRACT.md`
+("Circles endpoints"). Before merging Phase 3, run `npm run test:circles:api`
+against a signed-in dev session (see below).
+
+**Phase 3 acceptance still open:** `npm run test:circles:api` was **not run** this
+session (dev server OFF; no session provided). The script asserts the
+unauthorized guards unconditionally and skips the authed round-trip cleanly
+without a session. To close: start a web server, set `OHARA_CIRCLES_WEB_ORIGIN`
++ `OHARA_CIRCLES_ACCESS_TOKEN` (or `OHARA_CIRCLES_EMAIL`/`PASSWORD`), run it.
 
 ## Phase board
 
@@ -25,8 +31,8 @@ Read nested `CLAUDE.md` for `lib/db/` and `app/api/` before touching them.
 | 1 Draft Migration 053 + local harness | ☑ | `audits/000` — suite passes |
 | 1b L3 sign-off + open questions | ☑ | Sign-off CD-017; Q1–Q4 → CD-013…CD-016 |
 | 2 Promote + apply 053 live | ☑ | Applied + verified live 2026-09-17 (audit 001); latest applied = 053 |
-| 3 `lib/db/circles.ts` + `app/api/circles/**` | ☐ | Next action; contract draft in PLAN §4 |
-| 4 Client services + store swap + `FEATURES.CIRCLES_ENABLED` | ☐ | Remove `SharedGoal.why` |
+| 3 `lib/db/circles.ts` + `app/api/circles/**` | ◐ | Built (changelog 003); tsc clean. Smoke `test:circles:api` not yet run vs a live session |
+| 4 Client services + store swap + `FEATURES.CIRCLES_ENABLED` | ☐ | Next action; consume DTOs from `lib/db/circles-core.ts`. Remove `SharedGoal.why` |
 | 5 Real data (linkable picker, profiles, weekly count on Today's Focus, invite links) | ☐ | |
 | 6 Tests (`test:circles`, `test:circles:db`) | ☐ | |
 | 7 Docs (CLAUDE.md, API_CONTRACT, DECISIONS pointer, CHANGELOGCODEX) | ☐ | |
