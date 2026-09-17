@@ -17,11 +17,11 @@ are in `lib/db/circles-core.ts`; the route contract is in `docs/API_CONTRACT.md`
 ("Circles endpoints"). Before merging Phase 3, run `npm run test:circles:api`
 against a signed-in dev session (see below).
 
-**Phase 3 acceptance still open:** `npm run test:circles:api` was **not run** this
-session (dev server OFF; no session provided). The script asserts the
-unauthorized guards unconditionally and skips the authed round-trip cleanly
-without a session. To close: start a web server, set `OHARA_CIRCLES_WEB_ORIGIN`
-+ `OHARA_CIRCLES_ACCESS_TOKEN` (or `OHARA_CIRCLES_EMAIL`/`PASSWORD`), run it.
+**Phase 3 acceptance MET (2026-09-17):** `npm run test:circles:api` ran green
+against a live signed-in session (owner `e4245ec3…`, expo web on :8099 → live
+project `rrgiqemscnyaqkculnmb`). All 8 reads 200; unauth feed/mutation 401;
+empty body 400; missing delete 404; create post 201 (appeared in feed) → own
+delete 200 (soft-deleted, data clean). Server was stopped after the run.
 
 ## Phase board
 
@@ -31,7 +31,7 @@ without a session. To close: start a web server, set `OHARA_CIRCLES_WEB_ORIGIN`
 | 1 Draft Migration 053 + local harness | ☑ | `audits/000` — suite passes |
 | 1b L3 sign-off + open questions | ☑ | Sign-off CD-017; Q1–Q4 → CD-013…CD-016 |
 | 2 Promote + apply 053 live | ☑ | Applied + verified live 2026-09-17 (audit 001); latest applied = 053 |
-| 3 `lib/db/circles.ts` + `app/api/circles/**` | ◐ | Built (changelog 003); tsc clean. Smoke `test:circles:api` not yet run vs a live session |
+| 3 `lib/db/circles.ts` + `app/api/circles/**` | ☑ | Built (changelog 003); tsc clean; `test:circles:api` green vs live signed-in session 2026-09-17 |
 | 4 Client services + store swap + `FEATURES.CIRCLES_ENABLED` | ☐ | Next action; consume DTOs from `lib/db/circles-core.ts`. Remove `SharedGoal.why` |
 | 5 Real data (linkable picker, profiles, weekly count on Today's Focus, invite links) | ☐ | |
 | 6 Tests (`test:circles`, `test:circles:db`) | ☐ | |

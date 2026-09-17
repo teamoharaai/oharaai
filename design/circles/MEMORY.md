@@ -32,11 +32,13 @@ visible.
 - **Author hydration always via `get_profiles_by_ids`** (030: self + live friend
   edges only) — every author/invitee/owner Circles surfaces is a friend/self, so
   it's sufficient; unfriended → profile drops to null.
-- **Smoke `scripts/circles-api.smoke.mjs` + `npm run test:circles:api`** exists
-  but was NOT run (dev server OFF, no session). It always checks the 401 guards
-  and skips the authed create→delete round-trip unless
+- **Smoke `scripts/circles-api.smoke.mjs` + `npm run test:circles:api`** — **ran
+  green 2026-09-17** vs a live signed-in session (expo web :8099 → live
+  `rrgiqemscnyaqkculnmb`; user pasted their access_token). Checks 401 guards
+  unconditionally; runs the authed create→delete round-trip when
   `OHARA_CIRCLES_ACCESS_TOKEN` or `OHARA_CIRCLES_EMAIL`/`PASSWORD` (+`WEB_ORIGIN`)
-  is set.
+  is set. Config `.env.local` points at the **live** project, so a local expo web
+  server writes to live data — the smoke's one post is soft-deleted immediately.
 
 ## Phase 2 promote + apply (2026-09-17)
 

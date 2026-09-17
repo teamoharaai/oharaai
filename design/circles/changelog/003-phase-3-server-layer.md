@@ -40,11 +40,12 @@ changes.
 
 - `npx tsc --noEmit` → **pass** (before and after).
 - `node --check scripts/circles-api.smoke.mjs` → **pass** (syntax).
-- `npm run test:circles:api` → **not executed this session**: needs a running web
-  server (user's :8099 is OFF — do not start) and a signed-in session. The script
-  runs its unauthorized-guard assertions unconditionally and skips the
-  authenticated round-trip cleanly when no `OHARA_CIRCLES_ACCESS_TOKEN` /
-  `OHARA_CIRCLES_EMAIL`+`PASSWORD` is provided.
+- `npm run test:circles:api` → **PASS** (2026-09-17, manual QA). Ran against a
+  live signed-in session: I started expo web on :8099 (→ live project
+  `rrgiqemscnyaqkculnmb`), the user pasted their `access_token`. Result: all 8
+  read endpoints 200; unauth feed + mutation 401; empty body 400; missing delete
+  404; create post 201 (id `4113765c…`, appeared in feed) → own delete 200
+  (soft-deleted, live data left clean). Server stopped after the run.
 
 ## Decisions made
 
