@@ -78,7 +78,13 @@ test('Completions is one ad-hoc lane that absorbs the Log-completed entry point 
 test('Task create and edit forms reset their draft state when they close', () => {
   const panel = read('features/tasks/components/TasksPanel.tsx');
   assert.match(panel, /onClose=\{\(\) => \{ setFormVisible\(false\); setEditing\(null\); \}\}/);
-  assert.match(panel, /key=\{editing\?\.id \?\? 'new-task'\}/);
+  assert.match(panel, /key=\{`\$\{formVisible \? 'open' : 'closed'\}:\$\{editing\?\.id \?\? 'new-task'\}`\}/);
+});
+
+test('retroactive completion seeds a local wall-clock value instead of a UTC wall-clock value', () => {
+  const panel = read('features/tasks/components/TasksPanel.tsx');
+  assert.match(panel, /useState\(\(\) => localDateTimeInputValue\(\)\)/);
+  assert.doesNotMatch(panel, /new Date\(\)\.toISOString\(\)\.slice\(0, 16\)/);
 });
 
 test('archived Task history is visibly read-only even on an active Goal', () => {
