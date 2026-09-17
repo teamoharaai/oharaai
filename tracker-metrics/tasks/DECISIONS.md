@@ -9,6 +9,31 @@ decision → consequence.
 
 ---
 
+## TD-015 · 2026-09-17 · accepted — T4 (PR #22) merged on user go-ahead; teammate sign-off (TD-005 cond. a) WAIVED, not obtained
+
+**Context:** T4 (Phase C union + heatmap) shipped as PR #22 — tsc clean,
+test:tasks 63/63, pre-commit `/code-review high` triaged. TD-005 gates merge of
+`features/*` slices on **(a)** teammate sign-off **and (b)** user go-ahead. For
+T4, (b) was given explicitly; (a) was NOT obtained. The user also attempted cloud
+`/code-review ultra 22`, which could not start — the Claude GitHub App lacks
+access to `teamoharaai/oharaai` (repo not in the App's selection / connection
+expired), an access issue outside this initiative.
+
+**Decision:** Merge PR #22 to `main` on the user's explicit go-ahead, **waiving**
+the TD-005 teammate-sign-off condition for this PR. Squash-merged as `a73ffde`;
+branch deleted. This does NOT supersede TD-005 as the standing policy — it is a
+one-off waiver the user directed for T4; future `features/*` slices still expect
+teammate sign-off unless the user again waives it.
+
+**Consequence:** The `features/goals` render slice + the `lib/` union reader
+landed on `main` without the teammate's review. The teammate (features/tasks +
+features/goals owner) should be notified post-hoc so they can flag anything in a
+follow-up; the L1 output contract is unchanged and placement is provisional
+(TD-012), so any objection moves only the mount point, not the reader/contract.
+Cloud ultrareview remains available once GitHub App access is restored.
+
+---
+
 ## TD-012 · 2026-09-16 · accepted — Teammate sign-off on PR #21; L1 is the engagement seam (not the whole recap context); placement is provisional
 
 **Context:** The `features/tasks` slice owner (also the weekly-recap + Entries

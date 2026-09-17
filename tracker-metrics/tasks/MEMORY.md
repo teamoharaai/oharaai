@@ -79,11 +79,14 @@ facts in place. Dated so drift is visible. Parent facts live in `../MEMORY.md`.
   (unbounded completed-occurrence read → the documented T5 trigger; tiny
   `isoWeekdayForYmd` duplication constrained by D-004) — left as-is.
 
-## T4 built — Phase C union + heatmap (2026-09-16, session 005)
+## T4 MERGED — Phase C union + heatmap (2026-09-17, session 005)
 
-- **On branch `feat/goal-activity-union-heatmap`** (PR open, NOT merged — TD-005
-  gate: teammate sign-off + user go-ahead still required). tsc clean;
-  `test:tasks` **63/63** (was 47).
+- **PR #22 squash-merged to `main` as `a73ffde`; branch deleted.** tsc clean +
+  `test:tasks` **63/63** re-verified on `main` post-merge (was 47). **Merge gate
+  (TD-005): teammate sign-off (cond. a) was WAIVED on the user's explicit
+  go-ahead — NOT obtained (TD-015).** Cloud `/code-review ultra 22` could not
+  start (Claude GitHub App lacks `teamoharaai/oharaai` access); notify the
+  features/goals owner post-hoc. **Initiative #1 is COMPLETE** (T5 conditional).
 - **L1 output shape UNCHANGED** (honors TD-012 caveat). `buildActivityWindow` was
   already union-capable — no edit. Phase C only added reader **sources**.
 - **New pure module `lib/activity/goal-activity-sources.ts`** — source-agnostic

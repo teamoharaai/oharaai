@@ -7,15 +7,16 @@ Legend: ☐ not started · ◐ in progress · ☑ done · ⚠ blocked · ❓ nee
 
 ## Next action
 
-**T4 BUILT — awaiting review/merge (session 005).** Phase C union + heatmap on
-branch `feat/goal-activity-union-heatmap`; PR open vs `main`. L1 output shape
-UNCHANGED. tsc clean; test:tasks **63/63**. **Merge is GATED (TD-005): teammate
-sign-off on the `features/goals` + union-reader slices + user go-ahead.** NOT
-merged. User can trigger `/code-review ultra <PR#>`.
+**T4 MERGED to main (session 005).** PR #22 squash-merged as `a73ffde`; branch
+`feat/goal-activity-union-heatmap` deleted. Phase C union + heatmap; L1 output
+shape UNCHANGED. tsc clean + test:tasks **63/63** re-verified on `main`
+post-merge. **TD-005 teammate sign-off (cond. a) was WAIVED on the user's explicit
+go-ahead — NOT obtained (TD-015).** Cloud `/code-review ultra 22` could not start
+(Claude GitHub App lacks repo access); pre-commit `/code-review high` stands.
 
-Next after merge: **initiative #1 complete.** **T5** (server-side date-bounding
-the union reads) remains conditional — only if the 70-day heatmap read approaches
-the row ceiling (bound via `localDateToUtcStart(sinceLocalDate, tz).gte`).
+**Initiative #1 is COMPLETE.** **T5** (server-side date-bounding the union reads)
+remains conditional — only if the routine 70-day heatmap read approaches the row
+ceiling (bound via `localDateToUtcStart(sinceLocalDate, tz).gte`).
 
 Prior: **T1+T2+T3 MERGED to main (session 004).** PR #21 squash-merged as
 `466b44a` after teammate sign-off + user go-ahead (TD-005); branch
