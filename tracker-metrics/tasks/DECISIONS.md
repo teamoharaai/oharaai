@@ -45,6 +45,57 @@ without reader/contract changes.
 
 ---
 
+## TD-014 · 2026-09-16 · accepted — `entry_created` = `echo_entries.created_at` on confirmed links; dashboard reducer left in place
+
+**Context:** Phase C adds an `entry_created` source to the L1 reader. The design
+(design/001 Part B) said to "generalize the existing
+`features/goals/dashboard-goal-activity.ts` union, moved to `lib/`." That reducer
+(`resolveGoalActivityByGoalId`) answers "latest activity per goal" and keys off
+`entries.updated_at`. The T4 signal is a per-day engagement union that must key
+off when the Entry was *created*, and the reader lives in `lib/db` which must not
+import from `features/*` (features/CLAUDE.md rule 2). Goal-linked Entries also
+come in confirmed vs unconfirmed (`ai_suggested`) flavors.
+
+**Decision:**
+- `entry_created` resolves the engagement day from **`echo_entries.created_at`**,
+  NOT `updated_at`. `updated_at` answers a different ("latest touch") question.
+- Count only **confirmed** goal links (`echo_entry_links` `container_type='goal'`,
+  `confirmed=true`), matching `fetchLatestReflectionTimestamps` and the
+  Constellation Entry-count scoping — unconfirmed `ai_suggested` links are
+  advisory, not engagement.
+- The union is a **new pure module** (`lib/activity/goal-activity-sources.ts`),
+  not a move of `dashboard-goal-activity.ts`. That reducer stays as-is (it still
+  serves the dashboard "latest activity" question); moving it wholesale would
+  conflate two derivations. The reader composes the new pure mappers, satisfying
+  the "generalized into `lib/`" intent without cross-feature imports.
+
+**Consequence:** The two questions stay separate and independently testable. If a
+future consumer wants unconfirmed-link or `updated_at` semantics, that is an
+explicit new source, not a silent change to this one. Flagged in changelog/004.
+
+---
+
+## TD-013 · 2026-09-16 · accepted — Heatmap window = 70 days; one window feeds both renders
+
+**Context:** Phase C adds a GitHub-style heatmap alongside the 7-day emblem row,
+both on `GoalAnalyticsCard` (TD-010). The heatmap needs a longer window than the
+row; `useGoalActivityWindow(goalId, days)` already takes a `days` param and the
+route clamps [1,120].
+
+**Decision:** Use a **70-day** heatmap window (10 clean Monday-aligned weeks) and
+reuse the **same** `useGoalActivityWindow(goal.id, 70)` call for both renders —
+the 7-day row is the window's **last 7 buckets** (`buckets.slice(-7)`, still
+oldest→newest with today last). No sibling hook, no second request. (Initial
+build used two hook calls; the pre-commit review collapsed them, which also
+halves the full-history DB read — see the T5 note.)
+
+**Consequence:** Goal-detail makes one activity request and one union read, not
+two. The L1 output shape is unchanged; only the mount composition changed. The
+window length is a render-side constant — trivially retunable (63/84/…) without
+touching the reader or pure fn.
+
+---
+
 ## TD-011 · 2026-09-16 · accepted — T1+T2+T3 land as one PR in three coherent commits
 
 **Context:** TD-005 requires `features/tasks` changes land as reviewed PRs after

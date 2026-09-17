@@ -79,6 +79,37 @@ facts in place. Dated so drift is visible. Parent facts live in `../MEMORY.md`.
   (unbounded completed-occurrence read → the documented T5 trigger; tiny
   `isoWeekdayForYmd` duplication constrained by D-004) — left as-is.
 
+## T4 built — Phase C union + heatmap (2026-09-16, session 005)
+
+- **On branch `feat/goal-activity-union-heatmap`** (PR open, NOT merged — TD-005
+  gate: teammate sign-off + user go-ahead still required). tsc clean;
+  `test:tasks` **63/63** (was 47).
+- **L1 output shape UNCHANGED** (honors TD-012 caveat). `buildActivityWindow` was
+  already union-capable — no edit. Phase C only added reader **sources**.
+- **New pure module `lib/activity/goal-activity-sources.ts`** — source-agnostic
+  row→event normalizers (`taskOccurrenceRowsToEvents` / `entryLinkRowsToEvents` /
+  `milestoneRowsToEvents`), relative-import + node-tested (D-004). This is the
+  "cross-feature union generalized into `lib/`"; the `lib/db` reader composes it
+  (no `features/*` import). `features/goals/dashboard-goal-activity.ts` is LEFT
+  intact — it answers "latest activity" off `updated_at`, a different question
+  (**TD-014**).
+- **Reader `lib/db/goal-activity.ts`** — `fetchEntryCreatedEvents`
+  (`echo_entry_links` `container_type='goal'` + `confirmed=true` →
+  `echo_entries.created_at`) + `fetchMilestoneCompletedEvents`
+  (`milestones.completed_at`, goal+owner scoped). All three in generated types;
+  Tasks tables stay untyped (unchanged).
+- **New pure `lib/activity/activity-heatmap.ts`** — `groupBucketsIntoWeeks`
+  (Monday-aligned via `startOfIsoWeekYmd`, null-padded, order-preserving) +
+  `heatmapIntensityLevel`. Node-tested.
+- **Render:** `GoalActivityRow` → multi-emblem set (task green / entry tealMid /
+  milestone rose); new pure `GoalActivityHeatmap`; both mounted in
+  `GoalAnalyticsCard` ("LAST 7 DAYS" row + new "ACTIVITY" heatmap). **One**
+  `useGoalActivityWindow(goal.id, 70)` call feeds both (row = `slice(-7)`) —
+  **TD-013** (window=70, single read). `types/activity.ts` NOT touched.
+- **T5 still not triggered but closer:** union fetchers read full history +
+  in-memory `sinceLocalDate` filter; the routine 70-day heatmap makes this the
+  documented unbounded read. Bound via `localDateToUtcStart(...).gte` when needed.
+
 ## Live DB (verified via mgmt API, 2026-09-15)
 
 - `schema_migrations` tops at **051**. `trackers`/`tracker_logs` readable but
