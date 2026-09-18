@@ -123,9 +123,26 @@ written.
 ## Key Files
 - API_CONTRACT.md, AI_RESPONSE_SCHEMA.md, ARCHITECTURE.md, DECISIONS.md
 - CONTEXT.md (15-line session opener, read first)
-- CHANGELOGCODEX.md (Codex reads/writes each session)
+- CHANGELOGCODEX.md (Codex reads/writes each session) — keep it a RECENT ROLLING
+  WINDOW, not a monolith. Append a short dated entry per session; do not rewrite
+  the whole file. When it grows large, roll the aged-out entries into the archive
+  (see Archive below). It is intentionally not the full history.
 - ohara_vaults_spec.docx (Vaults, Spaces, Constellation, UI spec)
 - ohara_implementation_guide.docx (12 prompt execution plan)
+
+## Archive
+Historical and superseded material lives in a separate repo,
+**`jvillalta1903-cmyk/oharaai-archive`** (pending transfer to the `teamoharaai`
+org), to keep this repo lean and pushes fast. It holds: the full Codex changelog
+(`CHANGELOGCODEX-full.md`), old Constellation design-reference renders
+(`docs/constellation/reference/`), superseded specs (`docs/*.pdf|*.docx`), and the
+changelog/audits/prompts folders for completed initiatives (Tracker Metrics,
+Circles). Paths there mirror their original location here.
+- Agents: if you need history, decisions, or old design references not present in
+  this repo, look in the archive — do NOT copy that content back in-tree; link to it.
+- Only *living guidance* stays here (this file + nested CLAUDE.md, ARCHITECTURE.md,
+  DECISIONS.md, API_CONTRACT.md, AI_RESPONSE_SCHEMA.md, CONTEXT.md). Append-only
+  history and heavy binaries belong in the archive.
 
 ## Validation
 npx tsc --noEmit must pass before and after every change. No exceptions.
