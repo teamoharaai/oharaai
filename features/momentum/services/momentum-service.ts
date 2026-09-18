@@ -1111,8 +1111,20 @@ export async function getMomentumV11Summary(
   goalDiagnostics: GoalMomentumDiagnostic[];
   summary: MomentumHomeSummary;
 }> {
-  const { error: expirationError } = await readDb.rpc('reconcile_goal_expiration_v1');
-  if (expirationError) throw new Error(`Goal expiration reconciliation failed: ${expirationError.message}`);
+  // Best-effort maintenance: flip past-deadline goals to `expired`. This is a
+  // rare, self-healing write — anything it misses this pass is reconciled next
+  // load — so it must NOT gate the momentum read. Awaiting it here previously put
+  // a serial ~1s write (measured) on Home's critical path before any momentum
+  // query could start. Fire-and-forget; log, never throw. Mirrors fetchGoals
+  // (goal-service.ts) and the "Reconcile off the read path" rule in CLAUDE.md.
+  void (async () => {
+    try {
+      const { error } = await readDb.rpc('reconcile_goal_expiration_v1');
+      if (error) console.warn('reconcile_goal_expiration_v1 failed:', error.message);
+    } catch (err: unknown) {
+      console.warn('reconcile_goal_expiration_v1 error:', err);
+    }
+  })();
 
   const { data: profile, error: profileError } = await readDb.from('profiles')
     .select('timezone').eq('id', userId).single();

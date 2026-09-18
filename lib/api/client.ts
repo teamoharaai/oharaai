@@ -27,6 +27,33 @@ export async function signOutAndRedirect(): Promise<void> {
   router.replace('/(auth)/login');
 }
 
+// Seconds of remaining validity below which we stop trusting the in-store token
+// and go through supabase.auth.getSession() so auto-refresh can run. Generous
+// enough that a screen firing several authedFetch calls at once never straddles
+// the boundary mid-batch.
+const TOKEN_REFRESH_SKEW_SECONDS = 60;
+
+// Resolves the current access token WITHOUT touching the Supabase auth lock when
+// possible. onAuthStateChange (app/_layout.tsx) keeps useAuthStore.session in
+// sync with every refresh, so a still-valid token can be read synchronously.
+// We only fall back to getSession() — which acquires the shared navigator lock
+// and can trigger a network refresh — when the cached token is missing or within
+// the refresh skew of expiry. This is what stops the "N hooks each getSession()
+// on one screen" lock stampede that produced the gotrue "lock stolen" errors.
+async function resolveAccessToken(): Promise<string | null> {
+  const cached = useAuthStore.getState().session;
+  if (cached?.access_token && cached.expires_at) {
+    const secondsUntilExpiry = cached.expires_at - Math.floor(Date.now() / 1000);
+    if (secondsUntilExpiry > TOKEN_REFRESH_SKEW_SECONDS) {
+      return cached.access_token;
+    }
+  }
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}
+
 // Fetch wrapper for calling this app's own /api/* routes as the current user.
 // Attaches the session's access token as a Bearer header and, on a 401 (no
 // session, or the server rejected the token), clears local state and redirects
@@ -38,17 +65,15 @@ export async function signOutAndRedirect(): Promise<void> {
 // interpret — this wrapper only owns the "is this request authenticated"
 // concern, not feature-specific error handling.
 export async function authedFetch(path: string, init: RequestInit = {}): Promise<Response> {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const accessToken = await resolveAccessToken();
 
-  if (!session?.access_token) {
+  if (!accessToken) {
     await signOutAndRedirect();
     throw new UnauthorizedError();
   }
 
   const headers = new Headers(init.headers);
-  headers.set('Authorization', `Bearer ${session.access_token}`);
+  headers.set('Authorization', `Bearer ${accessToken}`);
 
   const response = await fetch(path, { ...init, headers });
 

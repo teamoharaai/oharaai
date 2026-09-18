@@ -9,12 +9,15 @@ const read = (path: string) => readFileSync(
 
 test('Goal and Home completion writes request a best-effort Momentum refresh', () => {
   const goalDetail = read('../goals/hooks/useGoalDetail.ts');
-  const dashboard = read('../../app/(app)/dashboard.tsx');
+  const goalTasks = read('../tasks/hooks/useGoalTasks.ts');
 
+  // Goal-detail completions (milestone, tracker, and goal status) refresh Momentum.
   assert.match(goalDetail, /onCompleteTracker[\s\S]*refreshMomentumAfterMeaningfulMutation\(\)/);
   assert.match(goalDetail, /onCompleteMilestone[\s\S]*refreshMomentumAfterMeaningfulMutation\(\)/);
-  assert.match(dashboard, /handleComplete[\s\S]*refreshMomentumAfterMeaningfulMutation\(\)/);
-  assert.match(dashboard, /status === 'complete'[\s\S]*refreshMomentumAfterMeaningfulMutation\(\)/);
+  assert.match(goalDetail, /updates\.status !== undefined[\s\S]*refreshMomentumAfterMeaningfulMutation\(\)/);
+  // Home completes Tasks through useGoalTasks (the dashboard is now Circles, with
+  // no completion handler of its own); an occurrence completion refreshes Momentum.
+  assert.match(goalTasks, /runOccurrence[\s\S]*refreshMomentumAfterMeaningfulMutation\(\)/);
 });
 
 test('only qualified linked Reflections or newly completed progress anchors refresh Momentum', () => {

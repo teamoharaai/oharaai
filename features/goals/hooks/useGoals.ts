@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useAuthStore } from '@/features/auth/store';
 import { useGoalStore } from '../store';
 import { fetchGoals } from '../services/goal-service';
-import supabase from '@/lib/db/client';
 import { startPerformanceTimer, type LoadPhase } from '@/lib/diagnostics/performance';
 import type { GoalStatus } from '../types';
 
@@ -68,21 +67,24 @@ export function useGoals(options?: { status?: GoalStatus }) {
           useGoalStore.getState().goals.length === 0 ? 'initial-load' : 'refresh';
         const timing = startPerformanceTimer('goals.load', { phase });
         try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) {
-            timing.end({ success: true, resultCount: 0, requestCount: 1 });
+          // userId comes from the auth store (kept in sync by onAuthStateChange),
+          // not a supabase.auth.getUser() network call. That call held the shared
+          // auth lock for a round-trip and, with several goal-screen hooks firing
+          // at once, was a primary source of the "lock stolen" load failures.
+          if (!userId) {
+            timing.end({ success: true, resultCount: 0, requestCount: 0 });
             return;
           }
           const data = await fetchGoals(
-            user.id,
+            userId,
             requestedStatus ? { status: requestedStatus } : undefined,
           );
           setGoals(data);
           lastCacheKey = cacheKey;
           lastLoadedAt = Date.now();
-          timing.end({ success: true, resultCount: data.length, requestCount: 2 });
+          timing.end({ success: true, resultCount: data.length, requestCount: 1 });
         } catch (error) {
-          timing.end({ success: false, requestCount: 2 });
+          timing.end({ success: false, requestCount: 1 });
           throw error;
         }
       })();

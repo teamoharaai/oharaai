@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { authedFetch, UnauthorizedError } from '@/lib/api/client';
+import { useAuthStore } from '@/features/auth/store';
 import { refreshMomentumAfterMeaningfulMutation } from '@/features/momentum/hooks/useMomentumHomeSummary';
-import supabase from '@/lib/db/client';
 import {
   createSignedMilestonePhotoUrl,
   removeMilestonePhoto,
@@ -72,17 +72,19 @@ function mergeServerGoal(current: GoalWithDetails, saved: GoalWithDetails): Goal
 }
 
 export function useGoalDetail(goalId: string): UseGoalDetailResult {
-  const {
-    goals,
-    isLoading,
-    setGoals,
-    setIsLoading,
-    upsertGoal,
-    upsertTracker,
-    removeTracker,
-    upsertMilestone,
-    removeMilestone,
-  } = useGoalStore();
+  // Per-slice selectors instead of a bare useGoalStore(): this hook no longer
+  // re-renders on every unrelated store write (isLoading toggles, selectedGoalId,
+  // other goals' mutations), which is part of what let the hydration effect below
+  // thrash into a React #185 "maximum update depth" loop.
+  const goals = useGoalStore((state) => state.goals);
+  const isLoading = useGoalStore((state) => state.isLoading);
+  const setGoals = useGoalStore((state) => state.setGoals);
+  const setIsLoading = useGoalStore((state) => state.setIsLoading);
+  const upsertGoal = useGoalStore((state) => state.upsertGoal);
+  const upsertTracker = useGoalStore((state) => state.upsertTracker);
+  const removeTracker = useGoalStore((state) => state.removeTracker);
+  const upsertMilestone = useGoalStore((state) => state.upsertMilestone);
+  const removeMilestone = useGoalStore((state) => state.removeMilestone);
   const [trackerError, setTrackerError] = useState<string | null>(null);
   const [milestoneError, setMilestoneError] = useState<string | null>(null);
   const [goalError, setGoalError] = useState<string | null>(null);
@@ -98,39 +100,57 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
     setGoalError(null);
   }, [goalId]);
 
-  useEffect(() => {
-    if (!goalId || isLoading) return;
-    if (goal && (!goal.has_successor || goal.successor !== null)) return;
+  // We hydrate the full goal detail (which resolves the `successor` a list load
+  // leaves null) when the goal is missing, or it advertises a successor we have
+  // not loaded yet.
+  const needsHydration = !goal || (goal.has_successor && goal.successor === null);
+  // Tracks the goalId we have already fired a hydration fetch for. Because the
+  // effect below no longer depends on the `goals` array, and this ref bounds it
+  // to one fetch per goalId, `setGoals` replacing the array can never re-trigger
+  // the fetch — closing the infinite-loop path that black-screened the workspace.
+  const hydrationAttemptedForRef = useRef<string | null>(null);
 
+  useEffect(() => {
+    if (!goalId || !needsHydration) return;
+    if (hydrationAttemptedForRef.current === goalId) return;
+    hydrationAttemptedForRef.current = goalId;
+
+    const userId = useAuthStore.getState().session?.user.id ?? null;
+    if (!userId) return;
+
+    let cancelled = false;
     async function load() {
       setIsLoading(true);
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) return;
-
-        if (goals.length === 0) {
-          const list = await fetchGoals(user.id);
+        // Read the current list from the store at call time rather than closing
+        // over a `goals` dependency, so array-identity churn can't re-run us.
+        if (useGoalStore.getState().goals.length === 0) {
+          const list = await fetchGoals(userId!);
           const listedGoal = list.find((item) => item.id === goalId);
           const detail = listedGoal ?? await fetchGoalById(goalId);
-          setGoals(detail
-            ? [detail, ...list.filter((item) => item.id !== detail.id)]
-            : list);
+          if (!cancelled) {
+            setGoals(detail
+              ? [detail, ...list.filter((item) => item.id !== detail.id)]
+              : list);
+          }
           return;
         }
 
         const detail = await fetchGoalById(goalId);
-        if (detail) {
-          setGoals([detail, ...goals.filter((item) => item.id !== detail.id)]);
+        if (detail && !cancelled) {
+          const rest = useGoalStore.getState().goals.filter((item) => item.id !== detail.id);
+          setGoals([detail, ...rest]);
         }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     }
 
     void load();
-  }, [goal, goalId, goals, isLoading, setGoals, setIsLoading]);
+    return () => {
+      cancelled = true;
+    };
+  }, [goalId, needsHydration, setGoals, setIsLoading]);
 
   const readOnlyGoal = useCallback(() => {
     const current = goals.find((item) => item.id === goalId);
@@ -258,15 +278,13 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
   const onAddMilestone = useCallback(async (input: GoalMilestoneInput) => {
     const currentGoal = readOnlyGoal();
     if (!currentGoal) return;
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    const userId = useAuthStore.getState().session?.user.id ?? null;
+    if (!userId) {
       setMilestoneError('You need to be signed in to add a milestone.');
       return;
     }
 
-    const saved = await createMilestone(goalId, user.id, {
+    const saved = await createMilestone(goalId, userId, {
       ...input,
       sortOrder: currentGoal.milestones.length,
     });
