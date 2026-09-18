@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { Task, TaskOccurrence } from './types.ts';
-import { buildTaskSections, scheduleLabel, shortDate } from './utils.ts';
+import { buildTaskSections, localDateTimeInputValue, parseRetroactiveCompletionTime, scheduleLabel, shortDate } from './utils.ts';
 import { scheduleInput, validateQuantityConfiguration } from './validation.ts';
 
 function occurrence(overrides: Partial<TaskOccurrence> = {}): TaskOccurrence {
@@ -147,6 +147,24 @@ test('shortDate renders a local calendar date without timezone drift', () => {
   assert.equal(shortDate('2026-09-12'), 'Sep 12');
   assert.equal(shortDate('2026-01-01'), 'Jan 1');
   assert.equal(shortDate(null), '');
+});
+
+test('retroactive completion defaults use local wall-clock fields', () => {
+  const localInstant = new Date(2026, 8, 17, 9, 7, 42);
+  assert.equal(localDateTimeInputValue(localInstant), '2026-09-17T09:07');
+});
+
+test('retroactive completion accepts current and historical local times but rejects future values', () => {
+  const current = new Date(2026, 8, 17, 9, 7);
+  const historical = new Date(2026, 8, 16, 8, 30);
+  const currentParsed = parseRetroactiveCompletionTime(localDateTimeInputValue(current), current.getTime());
+  const historicalParsed = parseRetroactiveCompletionTime(localDateTimeInputValue(historical), current.getTime());
+
+  assert.equal(currentParsed?.getTime(), current.getTime());
+  assert.equal(currentParsed?.toISOString(), current.toISOString());
+  assert.equal(historicalParsed?.getTime(), historical.getTime());
+  assert.equal(parseRetroactiveCompletionTime('2026-09-17T09:13', current.getTime()), null);
+  assert.equal(parseRetroactiveCompletionTime('not-a-date', current.getTime()), null);
 });
 
 test('schedule and quantity validation reject ambiguous native configuration', () => {

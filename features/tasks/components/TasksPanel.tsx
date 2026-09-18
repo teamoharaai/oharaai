@@ -9,7 +9,7 @@ import type { GoalMilestone, GoalStatus } from '@/features/goals/types';
 import { useThemeColors } from '@/store/uiStore';
 import { useGoalTasks } from '../hooks/useGoalTasks';
 import type { Task, TaskCadence, TaskCompletionMode, TaskScheduleInput } from '../types';
-import { activeTaskSchedule, buildTaskSections, newTaskIdempotencyKey, scheduleLabel, shortDate, TASK_WEEKDAYS } from '../utils';
+import { activeTaskSchedule, buildTaskSections, localDateTimeInputValue, newTaskIdempotencyKey, parseRetroactiveCompletionTime, scheduleLabel, shortDate, TASK_WEEKDAYS } from '../utils';
 
 const CADENCE_CHIPS: { value: TaskCadence; label: string }[] = [
   { value: 'none', label: 'Once' },
@@ -316,7 +316,7 @@ function LogCompletedForm({
   const [target, setTarget] = useState('');
   const [actual, setActual] = useState('');
   const [unit, setUnit] = useState('');
-  const [completedAt, setCompletedAt] = useState(new Date().toISOString().slice(0, 16));
+  const [completedAt, setCompletedAt] = useState(() => localDateTimeInputValue());
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const inputStyle = { ...TYPE.bodySmall, backgroundColor: colors.background.input, borderColor: colors.border.input, borderRadius: RADIUS.sm, borderWidth: 1, color: colors.text.primary, padding: SPACE.lg };
@@ -327,8 +327,8 @@ function LogCompletedForm({
     if (mode === 'quantity' && (!targetQuantity || targetQuantity <= 0 || actualQuantity === null || actualQuantity < 0 || !unit.trim())) {
       return setError('Quantity entries need a positive target, unit, and completed amount.');
     }
-    const instant = new Date(completedAt);
-    if (Number.isNaN(instant.getTime()) || instant.getTime() > Date.now() + 300_000) return setError('Choose a valid completion time.');
+    const instant = parseRetroactiveCompletionTime(completedAt);
+    if (!instant) return setError('Choose a valid completion time.');
     setSaving(true);
     const ok = await onLog({
       goalId,
@@ -497,7 +497,7 @@ export function TasksPanel({
       ) : null}
       {!full && onSeeAll ? <Pressable onPress={onSeeAll} style={{ alignSelf: 'flex-end', justifyContent: 'center', minHeight: 44 }}><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>See all →</Typography></Pressable> : null}
       <TaskForm
-        key={editing?.id ?? 'new-task'}
+        key={`${formVisible ? 'open' : 'closed'}:${editing?.id ?? 'new-task'}`}
         goalId={goalId}
         milestones={milestones}
         onArchive={taskState.archive}

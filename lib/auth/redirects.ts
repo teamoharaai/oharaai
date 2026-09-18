@@ -1,4 +1,4 @@
-const PRODUCTION_SITE_URL = 'https://oharaai.vercel.app';
+const PRODUCTION_SITE_URL = 'https://www.oharaai.com';
 
 /**
  * Resolve the public base URL used in links sent by Supabase Auth.

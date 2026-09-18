@@ -18,8 +18,11 @@ test('Goal workspace uses one canonical Task surface below Intelligence', () => 
 
 test('Today’s Focus reads canonical Task occurrences', () => {
   const dashboard = read('app/(app)/dashboard.tsx');
-  assert.match(dashboard, /\/api\/tasks\/today/);
-  assert.match(dashboard, /\/api\/task-occurrences\//);
+  // Home is now Circles: Today's Focus surfaces this week's canonical Task
+  // count (task_occurrences via the weekly-task-count service), and the
+  // interactive today-task check-off moved to the Goals workspace (TasksPanel,
+  // asserted above). Home must still never read legacy trackers.
+  assert.match(dashboard, /weekly-task-count-service/);
   assert.doesNotMatch(dashboard, /\/api\/trackers\/due-today/);
   assert.doesNotMatch(dashboard, /nextTracker/);
 });
@@ -78,7 +81,13 @@ test('Completions is one ad-hoc lane that absorbs the Log-completed entry point 
 test('Task create and edit forms reset their draft state when they close', () => {
   const panel = read('features/tasks/components/TasksPanel.tsx');
   assert.match(panel, /onClose=\{\(\) => \{ setFormVisible\(false\); setEditing\(null\); \}\}/);
-  assert.match(panel, /key=\{editing\?\.id \?\? 'new-task'\}/);
+  assert.match(panel, /key=\{`\$\{formVisible \? 'open' : 'closed'\}:\$\{editing\?\.id \?\? 'new-task'\}`\}/);
+});
+
+test('retroactive completion seeds a local wall-clock value instead of a UTC wall-clock value', () => {
+  const panel = read('features/tasks/components/TasksPanel.tsx');
+  assert.match(panel, /useState\(\(\) => localDateTimeInputValue\(\)\)/);
+  assert.doesNotMatch(panel, /new Date\(\)\.toISOString\(\)\.slice\(0, 16\)/);
 });
 
 test('archived Task history is visibly read-only even on an active Goal', () => {

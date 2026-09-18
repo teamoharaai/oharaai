@@ -25,6 +25,21 @@ export function dateInTimeZone(timezone: string, instant = new Date()): string {
   }
 }
 
+export function localDateTimeInputValue(instant = new Date()): string {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${instant.getFullYear()}-${pad(instant.getMonth() + 1)}-${pad(instant.getDate())}`
+    + `T${pad(instant.getHours())}:${pad(instant.getMinutes())}`;
+}
+
+export function parseRetroactiveCompletionTime(
+  value: string,
+  nowEpoch = Date.now(),
+): Date | null {
+  const instant = new Date(value);
+  if (Number.isNaN(instant.getTime()) || instant.getTime() > nowEpoch + 300_000) return null;
+  return instant;
+}
+
 export function activeTaskSchedule(task: Task) {
   return task.schedules.find((schedule) => schedule.isActive) ?? null;
 }
