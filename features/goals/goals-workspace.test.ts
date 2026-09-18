@@ -6,6 +6,7 @@ import {
   getGoalCategoryLabel,
   getGoalStatusLabel,
   getNextGoalMilestone,
+  getUpcomingGoalSteps,
 } from './goals-workspace.ts';
 
 function goal(overrides: Partial<GoalWithDetails> = {}): GoalWithDetails {
@@ -87,6 +88,53 @@ test('returns the first incomplete milestone by canonical sort order', () => {
   ]);
 
   assert.equal(selected?.id, 'next');
+});
+
+test('does not promote evidence children into the next-step feature', () => {
+  const selected = getNextGoalMilestone([
+    milestone({ id: 'completed-parent', completedAt: new Date('2026-08-10T12:00:00.000Z') }),
+    milestone({ id: 'evidence-child', parentId: 'completed-parent', sortOrder: 0 }),
+    milestone({ id: 'next-achievement', sortOrder: 1 }),
+  ]);
+
+  assert.equal(selected?.id, 'next-achievement');
+});
+
+test('builds dated Home reminders from each active Goals next top-level milestone', () => {
+  const steps = getUpcomingGoalSteps([
+    goal({
+      id: 'goal-later',
+      title: 'Later goal',
+      deadline: new Date('2026-09-30T12:00:00.000Z'),
+      milestones: [milestone({ goalId: 'goal-later', id: 'later-step', sortOrder: 0 })],
+    }),
+    goal({
+      id: 'goal-sooner',
+      title: 'Sooner goal',
+      milestones: [
+        milestone({
+          dueDate: new Date('2026-08-15T12:00:00.000Z'),
+          goalId: 'goal-sooner',
+          id: 'sooner-step',
+          sortOrder: 1,
+        }),
+        milestone({
+          dueDate: new Date('2026-08-12T12:00:00.000Z'),
+          goalId: 'goal-sooner',
+          id: 'later-in-sequence',
+          sortOrder: 2,
+        }),
+      ],
+    }),
+    goal({
+      id: 'goal-undated',
+      title: 'Undated goal',
+      milestones: [milestone({ goalId: 'goal-undated', id: 'undated-step' })],
+    }),
+  ]);
+
+  assert.deepEqual(steps.map((step) => step.milestone.id), ['sooner-step', 'later-step']);
+  assert.equal(steps[1]?.dueDate.toISOString(), '2026-09-30T12:00:00.000Z');
 });
 
 test('formats stored category and status identities without relabeling legacy values', () => {

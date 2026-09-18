@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Pressable,
   View,
@@ -26,10 +26,15 @@ export interface DatePickerProps {
   compact?: boolean;
   disabled?: boolean;
   error?: string | null;
+  /** Hide the field trigger when another control owns opening the calendar. */
+  hideTrigger?: boolean;
   maximumDate?: string;
   minimumDate?: string;
   onBlur?: (value: string) => void;
   onChange: (value: string) => void;
+  onOpenChange?: (open: boolean) => void;
+  /** Controls the calendar modal from an external trigger. */
+  open?: boolean;
   placeholder?: string;
   style?: StyleProp<ViewStyle>;
   value: string;
@@ -131,10 +136,13 @@ export function DatePicker({
   compact = false,
   disabled = false,
   error = null,
+  hideTrigger = false,
   maximumDate,
   minimumDate,
   onBlur,
   onChange,
+  onOpenChange,
+  open,
   placeholder = 'Choose a date',
   style,
   value,
@@ -143,13 +151,21 @@ export function DatePicker({
   const minimum = useMemo(() => parseCalendarDate(minimumDate), [minimumDate]);
   const maximum = useMemo(() => parseCalendarDate(maximumDate), [maximumDate]);
   const committed = useMemo(() => parseCalendarDate(value), [value]);
-  const [visible, setVisible] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [draft, setDraft] = useState<Date>(() => initialSelection(value, minimum, maximum));
   const [visibleMonth, setVisibleMonth] = useState<Date>(() => {
     const selection = initialSelection(value, minimum, maximum);
     return new Date(selection.getFullYear(), selection.getMonth(), 1);
   });
+  const visible = open ?? internalOpen;
+
+  useEffect(() => {
+    if (open !== true) return;
+    const selection = initialSelection(value, minimum, maximum);
+    setDraft(selection);
+    setVisibleMonth(new Date(selection.getFullYear(), selection.getMonth(), 1));
+  }, [maximum, minimum, open, value]);
 
   const days = useMemo(() => {
     const firstOfMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
@@ -165,29 +181,34 @@ export function DatePicker({
   const canGoPrevious = canNavigateToMonth(visibleMonth, -1, minimum, maximum);
   const canGoNext = canNavigateToMonth(visibleMonth, 1, minimum, maximum);
 
+  function setPickerOpen(next: boolean) {
+    if (open === undefined) setInternalOpen(next);
+    onOpenChange?.(next);
+  }
+
   function openPicker() {
     if (disabled) return;
     const selection = initialSelection(value, minimum, maximum);
     setDraft(selection);
     setVisibleMonth(new Date(selection.getFullYear(), selection.getMonth(), 1));
-    setVisible(true);
+    setPickerOpen(true);
   }
 
   function cancel() {
-    setVisible(false);
+    setPickerOpen(false);
     onBlur?.(value);
   }
 
   function apply() {
     const nextValue = formatCalendarDate(draft);
     onChange(nextValue);
-    setVisible(false);
+    setPickerOpen(false);
     onBlur?.(nextValue);
   }
 
   function clear() {
     onChange('');
-    setVisible(false);
+    setPickerOpen(false);
     onBlur?.('');
   }
 
@@ -206,7 +227,7 @@ export function DatePicker({
 
   return (
     <>
-      {compact ? (
+      {!hideTrigger && compact ? (
         <Pressable
           accessibilityHint={error ?? 'Opens a calendar'}
           accessibilityLabel={accessibilityLabel}
@@ -253,7 +274,7 @@ export function DatePicker({
             </Typography>
           ) : null}
         </Pressable>
-      ) : (
+      ) : !hideTrigger ? (
         <Pressable
           accessibilityHint={error ?? 'Opens a calendar'}
           accessibilityLabel={accessibilityLabel}
@@ -303,7 +324,7 @@ export function DatePicker({
             ▾
           </Typography>
         </Pressable>
-      )}
+      ) : null}
 
       <Modal
         closeOnBackdropPress

@@ -85,7 +85,7 @@ function NavigationItem({
         style={{
           ...(compact ? TYPE.meta : TYPE.control),
           color: active || hovered ? colors.text.accent : colors.text.primary,
-          fontFamily: FONT.ui.medium,
+          fontFamily: FONT.editorial.medium,
           letterSpacing: compact ? 0 : -0.1,
         }}
       >

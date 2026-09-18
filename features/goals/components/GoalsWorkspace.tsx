@@ -610,15 +610,6 @@ function GoalListCard({
         </View>
         <ProgressRing color={accent.color} progress={goal.progress} size={58} strokeWidth={4} variant="warm" />
       </View>
-      {goal.description ? (
-        <Typography
-          numberOfLines={2}
-          variant="description"
-          style={{ marginLeft: 58, marginTop: SPACE.md }}
-        >
-          {goal.description}
-        </Typography>
-      ) : null}
       <View
         style={{
           alignItems: 'center',
@@ -1148,16 +1139,6 @@ function GoalTabContent({
     return (
       <View>
         <WorkspaceSection>
-          <CountdownTimer
-            createdAt={goal.createdAt}
-            deadline={goal.deadline}
-            disabled={goal.has_successor || goal.status === 'archived' || goal.status === 'complete'}
-            embedded
-            onUpdateDeadline={goalDetail.onUpdateDeadline}
-          />
-        </WorkspaceSection>
-        <View style={{ backgroundColor: colors.border.divider, height: 1 }} />
-        <WorkspaceSection>
           <NextStepCard goal={goal} milestone={next} onOpen={() => onTabChange('milestones')} />
         </WorkspaceSection>
         <View style={{ backgroundColor: colors.border.divider, height: 1 }} />
@@ -1536,6 +1517,15 @@ function SelectedGoalWorkspace({
             </View>
           </View>
         ) : null}
+        </Surface>
+        <Surface style={{ minWidth: 0, overflow: 'hidden', padding: SPACE.lg }}>
+          <CountdownTimer
+            createdAt={goal.createdAt}
+            deadline={goal.deadline}
+            disabled={goal.has_successor || goal.status === 'archived' || goal.status === 'complete'}
+            embedded
+            onUpdateDeadline={goalDetail.onUpdateDeadline}
+          />
         </Surface>
         <Surface style={{ minWidth: 0, overflow: 'hidden' }}>
           <InsightContextCard goal={goal} items={activityItems} />

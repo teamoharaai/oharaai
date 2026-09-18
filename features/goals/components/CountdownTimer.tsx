@@ -1,13 +1,21 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  Text,
+  View,
+  type GestureResponderEvent,
+} from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { AnchoredPopover, type AnchorRect } from '@/components/ui/AnchoredPopover';
 import {
   DatePicker,
   formatCalendarDate,
   parseCalendarDate,
 } from '@/components/ui/DatePicker';
 import { Typography } from '@/components/ui/Typography';
-import { FONT, TYPE } from '@/constants/design';
+import { FONT, RADIUS, SPACE, TYPE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
 
 interface CountdownTimerProps {
@@ -99,10 +107,13 @@ export function CountdownTimer({
 }: CountdownTimerProps) {
   const colors = useThemeColors();
   const [now, setNow] = useState(() => Date.now());
-  const [editing, setEditing] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [anchorRect, setAnchorRect] = useState<AnchorRect | null>(null);
   const [dateInput, setDateInput] = useState(() => formatDateInput(deadline));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const menuButtonRef = useRef<View>(null);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), MINUTE_MS);
@@ -110,14 +121,14 @@ export function CountdownTimer({
   }, []);
 
   useEffect(() => {
-    if (!editing) setDateInput(formatDateInput(deadline));
-  }, [deadline, editing]);
+    if (!calendarOpen) setDateInput(formatDateInput(deadline));
+  }, [calendarOpen, deadline]);
 
   const timeLeft = useMemo(() => getTimeLeft(deadline, now), [deadline, now]);
   const elapsed = useMemo(() => getElapsed(createdAt, deadline, now), [createdAt, deadline, now]);
 
-  async function saveDeadline() {
-    const parsed = parseDateInput(dateInput);
+  async function saveDeadline(value: string) {
+    const parsed = parseDateInput(value);
     if (parsed === undefined) {
       setError('Choose a valid end date.');
       return;
@@ -130,7 +141,51 @@ export function CountdownTimer({
       setError('Could not update the end date. Try again.');
       return;
     }
-    setEditing(false);
+  }
+
+  function openMenu(event: GestureResponderEvent) {
+    const node = menuButtonRef.current as
+      | (View & {
+          measureInWindow?: (
+            callback: (x: number, y: number, width: number, height: number) => void,
+          ) => void;
+        })
+      | null;
+
+    if (node?.measureInWindow) {
+      node.measureInWindow((x, y, width, height) => {
+        setAnchorRect({ x, y, width, height, top: y, left: x, right: x + width, bottom: y + height });
+        setMenuOpen(true);
+      });
+      return;
+    }
+
+    const currentTarget = (
+      event as GestureResponderEvent & {
+        currentTarget?: { getBoundingClientRect?: () => DOMRect };
+      }
+    ).currentTarget;
+    const rect = currentTarget?.getBoundingClientRect?.();
+    if (rect) {
+      setAnchorRect({
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height,
+        top: rect.top,
+        left: rect.left,
+        right: rect.right,
+        bottom: rect.bottom,
+      });
+    }
+    setMenuOpen(true);
+  }
+
+  function editDate() {
+    setMenuOpen(false);
+    setDateInput(formatDateInput(deadline));
+    setError(null);
+    setCalendarOpen(true);
   }
 
   const caption = !deadline
@@ -204,91 +259,81 @@ export function CountdownTimer({
           </Text>
         </View>
 
-        <Pressable
-          accessibilityLabel="Edit goal end date"
-          accessibilityRole="button"
-          disabled={disabled}
-          onPress={() => {
-            setDateInput(formatDateInput(deadline));
-            setError(null);
-            setEditing((value) => !value);
-          }}
-          style={({ pressed }) => ({
-            alignItems: 'center',
-            backgroundColor: colors.background.input,
-            borderColor: colors.border.divider,
-            borderWidth: 1,
-            borderRadius: 8,
-            height: 28,
-            justifyContent: 'center',
-            opacity: disabled ? 0.45 : pressed ? 0.7 : 1,
-            width: 28,
-          })}
-        >
+        <View collapsable={false} ref={menuButtonRef}>
+          <Pressable
+            accessibilityLabel="More end date actions"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: disabled || saving, expanded: menuOpen }}
+            disabled={disabled || saving}
+            onPress={openMenu}
+            style={({ pressed }) => ({
+              alignItems: 'center',
+              backgroundColor: colors.background.input,
+              borderColor: colors.border.divider,
+              borderWidth: 1,
+              borderRadius: 8,
+              height: 28,
+              justifyContent: 'center',
+              opacity: disabled ? 0.45 : pressed ? 0.7 : 1,
+              width: 28,
+            })}
+          >
+            {saving ? (
+              <ActivityIndicator color={colors.text.accent} size="small" />
+            ) : (
               <Text style={{ color: colors.text.accent, fontFamily: 'Inter-Regular', fontSize: 16, letterSpacing: 1 }}>⋯</Text>
-        </Pressable>
+            )}
+          </Pressable>
+        </View>
       </View>
 
-      {editing ? (
-        <View
-          style={{
-            alignSelf: 'flex-end',
-            backgroundColor: colors.background.card,
-            borderColor: colors.border.warm,
-            borderRadius: 14,
-            borderWidth: 1,
-            gap: 10,
-            marginTop: 8,
-            maxWidth: 340,
-            padding: 14,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.14,
-            shadowRadius: 24,
-            width: '100%',
-          }}
-        >
-          <Typography variant="micro-label">END DATE</Typography>
-          <DatePicker
-            accessibilityLabel="Goal end date"
-            allowClear
-            disabled={saving}
-            error={error}
-            onChange={(value) => {
-              setDateInput(value);
-              if (error) setError(null);
-            }}
-            placeholder="Choose an end date"
-            style={{ width: '100%' }}
-            value={dateInput}
-          />
-          {error ? (
-            <Typography variant="hint" style={{ color: colors.feedback.danger.text }}>
-              {error}
-            </Typography>
-          ) : null}
-          <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'flex-end', gap: 14 }}>
-            <Pressable
-              disabled={saving}
-              onPress={() => {
-                setEditing(false);
-                setError(null);
-              }}
-            >
-              <Typography variant="caption">Cancel</Typography>
-            </Pressable>
-            <Pressable accessibilityRole="button" disabled={saving} onPress={saveDeadline}>
-              {saving ? (
-                <ActivityIndicator color={colors.accent.primary} size="small" />
-              ) : (
-                <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>
-                  Save date
-                </Typography>
-              )}
-            </Pressable>
-          </View>
-        </View>
+      {error ? (
+        <Typography variant="hint" style={{ color: colors.feedback.danger.text, marginTop: SPACE.sm }}>
+          {error}
+        </Typography>
       ) : null}
+
+      <AnchoredPopover
+        anchorRect={anchorRect}
+        contentStyle={{ minWidth: 164, padding: SPACE.sm }}
+        onDismiss={() => setMenuOpen(false)}
+        visible={menuOpen}
+      >
+        <Pressable
+          accessibilityLabel="Edit goal end date"
+          accessibilityRole="menuitem"
+          onPress={editDate}
+          style={({ pressed }) => ({
+            alignItems: 'center',
+            backgroundColor: pressed ? colors.background.selectedRow : 'transparent',
+            borderRadius: RADIUS.sm,
+            flexDirection: 'row',
+            gap: SPACE.md,
+            minHeight: 44,
+            paddingHorizontal: SPACE.lg,
+          })}
+        >
+          <Ionicons color={colors.text.accent} name="calendar-outline" size={17} />
+          <Typography variant="control">Edit date</Typography>
+        </Pressable>
+      </AnchoredPopover>
+
+      <DatePicker
+        accessibilityLabel="Goal end date"
+        allowClear
+        disabled={saving}
+        error={error}
+        hideTrigger
+        onChange={(value) => {
+          setDateInput(value);
+          setError(null);
+          void saveDeadline(value);
+        }}
+        onOpenChange={setCalendarOpen}
+        open={calendarOpen}
+        placeholder="Choose an end date"
+        value={dateInput}
+      />
     </View>
   );
 }

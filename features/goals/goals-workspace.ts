@@ -37,7 +37,10 @@ export function getNextGoalMilestone(
   milestones: readonly GoalMilestone[],
 ): GoalMilestone | null {
   return [...milestones]
-    .filter((milestone) => milestone.completedAt === null)
+    .filter((milestone) => (
+      milestone.completedAt === null
+      && milestone.parentId === null
+    ))
     .sort((left, right) => {
       const orderDifference = left.sortOrder - right.sortOrder;
       if (orderDifference !== 0) return orderDifference;
@@ -45,6 +48,36 @@ export function getNextGoalMilestone(
       const rightDue = right.dueDate?.getTime() ?? Number.POSITIVE_INFINITY;
       return leftDue - rightDue;
     })[0] ?? null;
+}
+
+export type UpcomingGoalStep = {
+  dueDate: Date;
+  goalId: string;
+  goalTitle: string;
+  milestone: GoalMilestone;
+};
+
+/**
+ * Returns one dated reminder per Goal: its next incomplete, top-level
+ * milestone. Evidence children intentionally never become reminders.
+ */
+export function getUpcomingGoalSteps(
+  goals: readonly Pick<GoalWithDetails, 'deadline' | 'id' | 'milestones' | 'title'>[],
+): UpcomingGoalStep[] {
+  return goals
+    .flatMap((goal) => {
+      const milestone = getNextGoalMilestone(goal.milestones);
+      const dueDate = milestone?.dueDate ?? goal.deadline;
+      return milestone && dueDate
+        ? [{ dueDate, goalId: goal.id, goalTitle: goal.title, milestone }]
+        : [];
+    })
+    .sort((left, right) => (
+      left.dueDate.getTime() - right.dueDate.getTime()
+      || left.goalTitle.localeCompare(right.goalTitle)
+      || left.milestone.sortOrder - right.milestone.sortOrder
+      || left.milestone.id.localeCompare(right.milestone.id)
+    ));
 }
 
 export function getGoalStatusLabel(status: GoalWithDetails['status']): string {
