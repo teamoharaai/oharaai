@@ -26,6 +26,21 @@ function resilientAuthLock<R>(name: string, acquireTimeout: number, fn: () => Pr
   return processLock(name, acquireTimeout, fn);
 }
 
+// `fetch-nodeshim` (the fetch used inside Expo API routes server-side) defaults
+// its per-request timeout to 5s. Supabase round-trips — especially auth
+// validation (getUser) and token refresh — were measured at 2–6s, so they
+// routinely EXCEEDED 5s and threw "Request timed out". A timed-out auth
+// validation used to be misreported to the client as a 401 and silently signed
+// the user out (see lib/api/auth.ts). Raise the server request timeout well
+// above p99 by injecting nodeshim's `connectTimeout` option. The option is
+// unknown to the browser's fetch and simply ignored there (Layer 1 — this
+// wrapper runs in both runtimes), so it only changes the server path. Kept below
+// AUTH_LOCK_ACQUIRE_TIMEOUT_MS so a hung request aborts before the lock steals.
+const SERVER_FETCH_TIMEOUT_MS = 20_000;
+
+const timeoutTolerantFetch = ((input: any, init?: any) =>
+  globalThis.fetch(input, { ...init, connectTimeout: SERVER_FETCH_TIMEOUT_MS })) as typeof fetch;
+
 export const supabase: SupabaseClient = isDatabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
@@ -39,6 +54,7 @@ export const supabase: SupabaseClient = isDatabaseConfigured
         flowType: 'pkce',
         lock: resilientAuthLock,
       },
+      global: { fetch: timeoutTolerantFetch },
     })
   : (null as any);
 
@@ -49,6 +65,7 @@ export function createAuthedClient(accessToken: string): SupabaseClient {
       persistSession: false,
     },
     global: {
+      fetch: timeoutTolerantFetch,
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },

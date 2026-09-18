@@ -77,6 +77,11 @@ export async function authedFetch(path: string, init: RequestInit = {}): Promise
 
   const response = await fetch(path, { ...init, headers });
 
+  // ONLY a 401 signs the user out: the server returns 401 exclusively when the
+  // token is genuinely rejected. A transient failure to VALIDATE the token (auth
+  // backend timeout / 5xx) comes back as 503 (see lib/api/auth.ts withAuth) and
+  // must be treated as retryable, NOT a dead session — it is returned as-is like
+  // any other non-401 status so a slow auth round-trip never logs the user out.
   if (response.status === 401) {
     await signOutAndRedirect();
     throw new UnauthorizedError();
