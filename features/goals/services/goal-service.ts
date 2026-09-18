@@ -427,8 +427,19 @@ export async function fetchGoals(
   userId: string,
   options?: { status?: GoalStatus },
 ): Promise<GoalWithDetails[]> {
-  const { error: reconciliationError } = await supabase.rpc('reconcile_goal_expiration_v1');
-  if (reconciliationError) throw reconciliationError;
+  // Best-effort maintenance: flip past-deadline goals (with no successor) to
+  // `expired`. This is a rare, self-healing write — anything it misses on this
+  // pass is reconciled on the next load — so it must NOT gate the read. Awaiting
+  // it here previously put a serial write on Home's critical path before the
+  // goals SELECT could even start. Fire-and-forget; log, never throw.
+  void (async () => {
+    try {
+      const { error } = await supabase.rpc('reconcile_goal_expiration_v1');
+      if (error) console.warn('reconcile_goal_expiration_v1 failed:', error.message);
+    } catch (err: unknown) {
+      console.warn('reconcile_goal_expiration_v1 error:', err);
+    }
+  })();
 
   let query = supabase
     .from('goals')

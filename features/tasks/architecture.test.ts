@@ -18,11 +18,15 @@ test('Goal workspace uses one canonical Task surface below Intelligence', () => 
 
 test('Today’s Focus reads canonical Task occurrences', () => {
   const dashboard = read('app/(app)/dashboard.tsx');
+  const homeSummaryRoute = read('app/api/home/summary+api.ts');
   // Home is now Circles: Today's Focus surfaces this week's canonical Task
-  // count (task_occurrences via the weekly-task-count service), and the
-  // interactive today-task check-off moved to the Goals workspace (TasksPanel,
-  // asserted above). Home must still never read legacy trackers.
-  assert.match(dashboard, /weekly-task-count-service/);
+  // count (task_occurrences), and the interactive today-task check-off moved to
+  // the Goals workspace (TasksPanel, asserted above). Since Stage 2 the count
+  // arrives via the Home aggregator (`useHomeSummary` → `/api/home/summary`),
+  // which reads canonical occurrences through `fetchWeeklyTaskCountsByGoal`.
+  // Home must still never read legacy trackers.
+  assert.match(dashboard, /useHomeSummary/);
+  assert.match(homeSummaryRoute, /fetchWeeklyTaskCountsByGoal/);
   assert.doesNotMatch(dashboard, /\/api\/trackers\/due-today/);
   assert.doesNotMatch(dashboard, /nextTracker/);
 });
