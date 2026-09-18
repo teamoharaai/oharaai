@@ -1101,21 +1101,36 @@ DTO shapes (`CirclesFeedPost`, `CircleGoalSummary`, `PostComment`,
 `SentGoalInvite`, `CirclesAuthor`, …) are defined and mapped in
 `lib/db/circles-core.ts`.
 
-### `GET /api/goals/weekly-task-counts` (goals lane — feeds Circles' Today's Focus)
+### `GET /api/home/summary` (goals lane — feeds Home's Today's Focus)
 
-This week's Task count per goal for the signed-in user. **Deliberately a
-`/api/goals/*` route, not `/api/circles/**`** (CTO/goals lane; the Home dashboard
-is the slot owner). `withAuth`; own goals only (RLS scopes `tasks`/
-`task_occurrences` to the caller). Owner-timezone, Monday-start week (canonical
-Circles progress rule CD-003): `target` = non-cancelled occurrences of `active`
-Tasks in the current local week, `done` = completed ones. Goals with no
-materialized occurrences are **absent** from the map (graceful degradation —
-Today's Focus shows only the milestone fraction for them). Unlike the Circles
-routes this returns the raw JSON directly, not the `ApiResponse<T>` envelope:
+The Home aggregator: the goal-derived signals Today's Focus needs, in **one
+authenticated round-trip** computed server-side in parallel. **Deliberately a
+goals-lane route, not `/api/circles/**`** (the Home dashboard is the slot owner).
+`withAuth`; own goals only (RLS scopes `tasks`/`task_occurrences`/entries to the
+caller, and the route resolves the caller's own active Goals). Returns raw JSON,
+not the `ApiResponse<T>` envelope. Superseded the former
+`GET /api/goals/weekly-task-counts` route and the separate reflection-timestamp
+client read (folded in here so neither waits on the client goal load).
+
+- `weeklyTaskCounts` — this week's Task count per goal. Owner-timezone,
+  Monday-start week (canonical progress rule CD-003): `target` = non-cancelled
+  occurrences of `active` Tasks in the current local week, `done` = completed
+  ones. Goals with no materialized occurrences are **absent** from the map
+  (graceful degradation — Today's Focus shows only the milestone fraction).
+- `reflectionTimestamps` — latest reflection-entry `updated_at` per active goal
+  (ISO string), or `null` when the goal has no reflection. Used to order Today's
+  Focus. Goals absent from the map fall back to default ordering.
 
 ```
-200 { counts: { [goalId: string]: { done: number, target: number } } }
+200 {
+  weeklyTaskCounts: { [goalId: string]: { done: number, target: number } },
+  reflectionTimestamps: { [goalId: string]: string | null }
+}
 ```
+
+A new Home signal should be added as another field on this response, not as a
+new client round-trip. Server: `lib/db/home-summary.ts` + `lib/db/tasks.ts`;
+client access via the SWR-cached `useHomeSummary` hook.
 
 ---
 
