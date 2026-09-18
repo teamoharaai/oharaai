@@ -23,6 +23,18 @@ Theme (current accent correction): neutral/off-white page and card surfaces, vib
   hubs form the primary structure; categorized Entries appear as sparse
   goal-specific BRT moons. Web nodes are movable, goal moons follow their
   parent, and owner layouts persist through migration 034.
+- **Circles**: the friends-only social layer that is Home (`/dashboard`, nav
+  label "Home"). Private by default; each user may make one Goal public and send
+  per-Goal invitations to friends. Tables (migrations 053–054): `circle_posts`
+  (reflection/milestone posts with a server-snapshotted link title + author
+  description), `post_encouragements`, `post_comments`, `saved_posts`,
+  `goal_share_invites`, plus the `goals_one_public_per_user` partial unique index.
+  Privacy spine (CD-004): non-owners never read base tables — shared Goal data is
+  only ever the whitelisted `circles_goal_summary` (title, category, status,
+  top-level milestone titles + done, this week's Task count). Built behind
+  `FEATURES.CIRCLES_ENABLED` (`constants/features.ts`); design + decisions live in
+  `design/circles/`. Server: `lib/db/circles.ts` + `lib/db/circles-core.ts` +
+  `app/api/circles/**`. Client: `features/circles/`.
 
 ## Core Architecture Rules
 
@@ -74,6 +86,8 @@ Modules imported at _layout.tsx top level must NEVER throw at module load time.
   legacy predecessor — read-only, not for new work.
 - Vault (goal-bound workspace)
 - Constellation (personal visual graph), Atlas (B2B aggregate view)
+- Circles (the friends-only social layer; it is Home / `/dashboard`, nav label
+  "Home"). A shared post is a "post"; the tables keep the `circle_*` prefix.
 
 ### Cascade Levels
 - L1: visual files — change freely
@@ -81,7 +95,9 @@ Modules imported at _layout.tsx top level must NEVER throw at module load time.
 - L3: team decision required — types, schema, AI output contracts
 
 ### What NOT To Build
-- No feed, no profile pages, no social push notifications (Phase 2)
+- The friends-only **Circles** feed (Home) is the one shipped social surface —
+  built behind `FEATURES.CIRCLES_ENABLED`; see Data Model. Still not built: a
+  public/discovery feed, profile pages, and social push notifications (Phase 2).
 - No Obsidian-style free-form node linking (Ohara uses AI-assisted extraction)
 - No free-floating notes (everything tied to a goal or Echo stream)
 - No document upload UI yet (Phase 1.5)

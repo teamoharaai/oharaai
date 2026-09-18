@@ -276,5 +276,72 @@ begin
   end if;
 end $$;
 
+-- ------------------------------------------------- feed pagination (get_circles_feed)
+-- Seed a deterministic run of the author's own posts with stamped timestamps
+-- (direct inserts as the superuser — 053 grants authenticated SELECT only, so
+-- writes normally go through create_circle_post). created_at ascends by minute,
+-- so BULK PAGE POST 55 is the newest. The author already has one live post from
+-- the section above; the pagination assertions below use created_at aggregates
+-- (order-independent) so that pre-existing post never skews them.
+reset role;
+insert into public.circle_posts (author_id, body, created_at)
+select '00000000-0000-4000-8000-00000000000a',
+       'BULK PAGE POST ' || i,
+       timestamptz '2027-01-01 00:00:00+00' + make_interval(mins => i)
+from generate_series(1, 55) i;
+
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000000a', false);
+
+do $$
+declare
+  v_cursor timestamptz := '2027-01-01 00:50:00+00';
+  v_newest timestamptz;
+  v_cnt int;
+  v_min timestamptz;
+  v_max timestamptz;
+begin
+  select max(created_at) into v_newest from public.circle_posts
+    where author_id = '00000000-0000-4000-8000-00000000000a' and deleted_at is null;
+
+  -- Default page size is 20 (p_limit defaults to 20).
+  if (select count(*) from public.get_circles_feed()) <> 20 then
+    raise exception 'default feed page was not 20 rows';
+  end if;
+
+  -- Upper clamp: a larger requested limit is capped at 50.
+  if (select count(*) from public.get_circles_feed(p_limit => 1000)) <> 50 then
+    raise exception 'feed limit was not clamped down to 50';
+  end if;
+
+  -- Lower clamp: p_limit 0 clamps to 1, returning just the newest row.
+  select count(*), min(created_at) into v_cnt, v_min
+    from public.get_circles_feed(p_limit => 0);
+  if v_cnt <> 1 or v_min <> v_newest then
+    raise exception 'p_limit 0 did not return exactly the newest row: cnt=%, ts=%', v_cnt, v_min;
+  end if;
+
+  -- Newest-first: the top 3 rows are the three most recent posts (00:55/54/53).
+  select count(*), min(created_at) into v_cnt, v_min from public.get_circles_feed(p_limit => 3);
+  if v_cnt <> 3 or v_min <> timestamptz '2027-01-01 00:53:00+00' then
+    raise exception 'top-3 page was not the three newest posts: cnt=%, min=%', v_cnt, v_min;
+  end if;
+
+  -- p_before returns only rows strictly older than the cursor.
+  select max(created_at) into v_max from public.get_circles_feed(p_before => v_cursor, p_limit => 1000);
+  if v_max >= v_cursor then
+    raise exception 'p_before returned a row at or after the cursor: %', v_max;
+  end if;
+
+  -- p_before + p_limit returns the newest rows below the cursor (00:49 then 00:48).
+  select count(*), max(created_at), min(created_at) into v_cnt, v_max, v_min
+    from public.get_circles_feed(p_before => v_cursor, p_limit => 2);
+  if v_cnt <> 2
+     or v_max <> timestamptz '2027-01-01 00:49:00+00'
+     or v_min <> timestamptz '2027-01-01 00:48:00+00' then
+    raise exception 'p_before + limit did not return the two newest older rows: cnt=%, max=%, min=%', v_cnt, v_max, v_min;
+  end if;
+end $$;
+
 reset role;
 select 'circles security: all assertions passed' as result;

@@ -11,6 +11,43 @@ visible.
 - The user's own dev server usually runs on **:8099** (`expo start --web --port 8099`).
   Avoid starting a second server from the same checkout (duplicate background jobs).
 
+## Phase 7 docs (2026-09-17)
+
+- Root constitution is **`docs/CLAUDE.md`**; repo-root **`CLAUDE.md` is a symlink
+  to it** — edit `docs/CLAUDE.md` and both update. Phase 7 lifted the "No feed"
+  prohibition (Circles/Home is now the one shipped social surface, behind the
+  flag) and added Circles to the Data Model + Naming sections.
+- Root decision log is **`docs/DECISIONS.md`** (append-only; note the stray
+  double `# Decision Log` header at the top — leave it). It now carries a dated
+  pointer to `design/circles/DECISIONS.md` as the authoritative CD-001…CD-022 log.
+- `docs/API_CONTRACT.md` already had a "## Circles endpoints" section (Phase 3);
+  Phase 7 added `GET /api/goals/weekly-task-counts` right after it, flagged as the
+  **goals lane, not `/api/circles/**`**, returning raw `{ counts: { [goalId]:
+  {done,target} } }` (no `ApiResponse` envelope).
+- Only Phase 8 (signed-in QA + PR; flip `CIRCLES_ENABLED`) remains.
+
+## Phase 6 tests (2026-09-17)
+
+- **`npm run test:circles`** (new script) runs `lib/db/circles-core.test.ts` +
+  `features/circles/progress.test.ts` under `node --experimental-strip-types
+  --test` — 28 tests, relative runtime imports (D-004; both modules' `@/` imports
+  are type-only, stripped). Covers `classifyPgError`, the author/feed/post/goal-
+  summary/sent-invite mappers, all validators, and the CD-003 progress rules.
+- **Contract clarified (not a bug):** the "weekly count null when target 0" rule
+  is enforced in SQL (`circles_goal_summary`, 053 L321–326 emits `weekly_task:
+  null`) and in `weeklyTaskLabel` (returns null at target ≤ 0). `mapGoalSummary`
+  just passes the SQL's null through — tests assert that real contract.
+- **`test:circles:db` now also covers `get_circles_feed` pagination.** The harness
+  seeds 55 stamped author posts via **direct superuser inserts** (053 grants
+  `authenticated` SELECT only, so `set role authenticated` cannot INSERT — writes
+  normally go through `create_circle_post`, which stamps `created_at = now()` and
+  ties timestamps within one transaction; direct inserts give deterministic,
+  distinct stamps). Assertions use created_at aggregates (order-independent):
+  default page 20, `p_limit=>1000`→50, `p_limit=>0`→1 (newest), top-3 newest-first,
+  `p_before` older-only, `p_before`+`p_limit` = two newest below cursor. Call
+  `get_circles_feed` with **named args** (`p_limit =>`, `p_before =>`) to avoid
+  null-type ambiguity on the positional `p_before`.
+
 ## Fix 0 + Phase 5a (2026-09-17)
 
 - **Migration 054 is LIVE.** `054_circle_comment_soft_delete_rpc.sql` added

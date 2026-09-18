@@ -1101,6 +1101,22 @@ DTO shapes (`CirclesFeedPost`, `CircleGoalSummary`, `PostComment`,
 `SentGoalInvite`, `CirclesAuthor`, …) are defined and mapped in
 `lib/db/circles-core.ts`.
 
+### `GET /api/goals/weekly-task-counts` (goals lane — feeds Circles' Today's Focus)
+
+This week's Task count per goal for the signed-in user. **Deliberately a
+`/api/goals/*` route, not `/api/circles/**`** (CTO/goals lane; the Home dashboard
+is the slot owner). `withAuth`; own goals only (RLS scopes `tasks`/
+`task_occurrences` to the caller). Owner-timezone, Monday-start week (canonical
+Circles progress rule CD-003): `target` = non-cancelled occurrences of `active`
+Tasks in the current local week, `done` = completed ones. Goals with no
+materialized occurrences are **absent** from the map (graceful degradation —
+Today's Focus shows only the milestone fraction for them). Unlike the Circles
+routes this returns the raw JSON directly, not the `ApiResponse<T>` envelope:
+
+```
+200 { counts: { [goalId: string]: { done: number, target: number } } }
+```
+
 ---
 
 ## Phase 2 Extension Points (DO NOT BUILD YET)

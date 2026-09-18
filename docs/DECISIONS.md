@@ -505,3 +505,22 @@ granting speculative access today.
 visibility, and mobile presentation remain dedicated follow-up designs. The
 desktop implementation will preserve the handoff's anchored account surface
 and its light/dark toggle behind the social feature flag.
+
+### 2026-09-17 — Circles: the friends-only social layer (Home)
+
+**Decision:** Home (`/dashboard`) is **Circles**, a friends-only social layer
+built on the migration-028 friend graph. Private by default; each user may make
+one Goal public and send per-Goal invitations to friends. Feed posts are
+reflections/milestones carrying a server-snapshotted link title + author
+description. Migrations 053 (tables + RLS + 13 RPCs) and 054 (comment soft-delete
+RPC) are live. Built behind `FEATURES.CIRCLES_ENABLED` (still off until Phase 8 QA).
+**Reason:** Ships the "social operating system" pillar without exposing private
+Goal data — the privacy spine (**CD-004**) means non-owners never read base
+tables, only the whitelisted `circles_goal_summary`.
+**Impact:** This is the first product feature to consume a friend edge as an
+authorization primitive (per the migration-030 note above). The full,
+authoritative decision log — CD-001…CD-022, incl. CD-004 (privacy spine),
+CD-005 (link = title snapshot + author description), CD-013/CD-014/CD-018
+(encourage/sent-invite mapping), CD-021 (comment soft-delete), CD-022 (Phase 5b
+invite links deferred) — lives in **`design/circles/DECISIONS.md`**. Design,
+plan, and per-session changelog: `design/circles/`.

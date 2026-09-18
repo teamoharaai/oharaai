@@ -7,11 +7,26 @@ Legend: ☐ not started · ◐ in progress · ☑ done · ⚠ blocked · ❓ nee
 
 ## Next action
 
-**► Phase 6 (tests) / Phase 7 (docs), then Phase 8 (signed-in QA + PR).** Fix 0
-and Phase 5a are done (changelog 005). `CIRCLES_ENABLED` still **false** (flip in
-Phase 8 QA). Phase 5b (invite links) is **deferred** (CD-022 — `redeem_invite_link`
-diverges from CD-016). The Fix-0 HTTP token pass is **done** (comment delete →
-200; live token pass now 20/20; audit 003).
+**► SHIPPED (2026-09-17).** Circles is **live on `main`**: `CIRCLES_ENABLED` flipped
+to **true** and `feat/circles-home` merged/pushed to `main` directly on the user's
+explicit go-ahead (Phase 8 QA signed off by the user rather than run step-by-step;
+the deferred browser checks — popover CD-010, light/dark, width breakpoints, mobile
+avatar menu, Phase 5a render — fold into post-ship watch). Phase 6 (tests, changelog
+006) and Phase 7 (docs, changelog 007) done. Phase 5b (invite links) remains
+**deferred** (CD-022). Live token pass 20/20 (audit 003). A feature brief PDF for
+the team lives at `design/circles/Circles-Feature-Brief.pdf` (untracked handoff doc).
+
+**Phase 7 DONE (2026-09-17):** docs brought in line with a shipped Circles layer —
+`docs/CLAUDE.md` (root, via symlink) lifted "No feed" and added Circles to Data
+Model + Naming; `docs/API_CONTRACT.md` documents `GET /api/goals/weekly-task-counts`
+(flagged goals-lane, not a Circles route); `docs/DECISIONS.md` gained a pointer to
+`design/circles/DECISIONS.md`. `tsc` clean; docs only. Changelog 007.
+
+**Phase 6 DONE (2026-09-17):** `npm run test:circles` (new) — 28 node tests over
+the pure core (`lib/db/circles-core.test.ts`) + progress rules
+(`features/circles/progress.test.ts`), relative imports (D-004). `test:circles:db`
+now also covers `get_circles_feed` pagination (order / cursor / limit clamping to
+20/50/1). `tsc` clean; no product/schema/DB change; no bug surfaced. Changelog 006.
 
 **Fix 0 DONE (2026-09-17):** migration `054` (`delete_circle_comment` SECURITY
 DEFINER RPC, CD-021) **applied + verified live** (audit 003); `lib/db/circles.ts`
@@ -54,9 +69,9 @@ delete 200 (soft-deleted, data clean). Server was stopped after the run.
 | 4 Client services + store swap + `FEATURES.CIRCLES_ENABLED` | ☑ | Built (changelog 004); tsc clean; flag off; CD-004/005/013 done; CD-019/020 recorded; fixtures test-only |
 | 5 Real data (linkable picker, profiles, weekly count on Today's Focus, invite links) | ◐ | 5a weekly count DONE (changelog 005); picker/profiles done in Phase 4; **5b invite links deferred (CD-022)** |
 | Fix 0 Comment soft-delete (migration 054) | ☑ | Applied + verified live 2026-09-17 (audit 003, CD-021); harness 053+054 green |
-| 6 Tests (`test:circles`, `test:circles:db`) | ☐ | `test:circles:db` now covers 053+054; node mapper tests still to add |
-| 7 Docs (CLAUDE.md, API_CONTRACT, DECISIONS pointer, CHANGELOGCODEX) | ☐ | API_CONTRACT needs the `GET /api/goals/weekly-task-counts` note (CTO lane, not a Circles route) |
-| 8 Signed-in QA + PR | ☐ | Popover position unverified (CD-010); Phase 5a browser render + optional Fix-0 HTTP token pass |
+| 6 Tests (`test:circles`, `test:circles:db`) | ☑ | `test:circles` (28 node tests) added; `test:circles:db` now also covers `get_circles_feed` pagination; changelog 006 |
+| 7 Docs (CLAUDE.md, API_CONTRACT, DECISIONS pointer, CHANGELOGCODEX) | ☑ | Done (changelog 007): "No feed" lifted; Circles in Data Model/Naming; `GET /api/goals/weekly-task-counts` documented (goals lane); root DECISIONS pointer |
+| 8 Signed-in QA + go-live | ☑ | User signed off QA; `CIRCLES_ENABLED`=true; merged + pushed to `main` directly 2026-09-17. Post-ship watch: popover CD-010, light/dark, width breakpoints, mobile avatar menu, Phase 5a render |
 
 ## Open questions — RESOLVED (2026-09-17, Phase 1b)
 
@@ -81,8 +96,9 @@ None changed 053's schema — implementations land in Phase 3 (Q1 endpoint, Q2 m
   auto-accepts (creates an `accepted` edge, not a pending request) and there is no
   get-or-create "my invite link" RPC — both contradict CD-016. Reconciliation is a
   future L3 decision (reconcile 028→CD-016, or supersede CD-016 to auto-accept).
-- **API_CONTRACT** should note `GET /api/goals/weekly-task-counts` (CTO/goals lane,
-  not a `/api/circles/**` route) added for the Today's Focus weekly count.
+- ~~**API_CONTRACT** should note `GET /api/goals/weekly-task-counts`~~ **DONE
+  (Phase 7)** — documented in `docs/API_CONTRACT.md`, flagged as the goals lane
+  (not a `/api/circles/**` route).
 
 - Weekly Task count uses materialized `task_occurrences` for the current week.
   **Phase 2 live read (2026-09-17):** horizon is healthy overall (global max
