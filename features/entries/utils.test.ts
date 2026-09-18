@@ -20,6 +20,8 @@ test('resolves Echo library filters from stable route state', () => {
   assert.equal(resolveEchoLibraryFilter(['all', 'note']), 'all');
   assert.equal(resolveEchoLibraryFilter('unknown'), 'note');
   assert.equal(resolveEchoLibraryFilter(undefined, 'project-1'), 'all');
+  assert.equal(resolveEchoLibraryFilter(undefined, undefined, 'reflection'), 'reflection');
+  assert.equal(resolveEchoLibraryFilter('note', undefined, 'reflection'), 'note');
 });
 
 test('creates native-safe UUID v4 Entry request IDs', () => {
@@ -233,13 +235,32 @@ test('uses one canonical entry inside Most Recent and its optional Project folde
   );
   assert.equal(isQuickReflection(laterReflection), true);
   assert.equal(isQuickReflection(entry({
+    id: 'legacy-manual-reflection',
     entryType: 'reflection',
     reflectionType: 'open',
     conversationTurns: [{
-      id: 'old',
+      id: 'legacy-manual-reflection-response',
       role: 'user',
-      content: 'Legacy guided response',
+      content: 'A manual reflection preserved by the Entries migration.',
       createdAt: '2026-01-01T00:00:00Z',
     }],
+  })), true);
+  assert.equal(isQuickReflection(entry({
+    entryType: 'reflection',
+    reflectionType: 'open',
+    conversationTurns: [
+      {
+        id: 'prompt',
+        role: 'ohara',
+        content: 'What has been taking up space in your mind?',
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+      {
+        id: 'response',
+        role: 'user',
+        content: 'A guided response.',
+        createdAt: '2026-01-01T00:01:00Z',
+      },
+    ],
   })), false);
 });

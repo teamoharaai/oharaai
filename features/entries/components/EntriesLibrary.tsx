@@ -162,7 +162,7 @@ export function EntriesLibrary({
 }: {
   selectedEntryId?: string;
   selectedProjectId?: string;
-  onSelectEntry: (entryId: string) => void;
+  onSelectEntry: (entryId: string, entryType: EntryRecord['entryType']) => void;
   onSelectMostRecent: () => void;
   onSelectProject: (projectId: string) => void;
   onNew: () => void;
@@ -386,7 +386,7 @@ export function EntriesLibrary({
               <EntryRow
                 entry={entry}
                 key={entry.id}
-                onPress={() => onSelectEntry(entry.id)}
+                onPress={() => onSelectEntry(entry.id, entry.entryType)}
                 selected={entry.id === selectedEntryId}
               />
             ))}

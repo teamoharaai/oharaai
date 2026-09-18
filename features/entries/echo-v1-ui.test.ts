@@ -10,6 +10,7 @@ function source(path: string): string {
 const library = source('features/entries/components/EntriesLibrary.tsx');
 const workspace = source('features/entries/components/EntriesScreen.tsx');
 const creation = source('features/entries/components/EchoCreationModal.tsx');
+const newMenu = source('features/entries/components/EchoNewMenu.tsx');
 const quick = source('features/entries/components/QuickReflectionEditor.tsx');
 const noteEditor = source('features/entries/components/NoteEditor.tsx');
 const linkPicker = source('features/entries/components/EntryLinkPicker.tsx');
@@ -24,7 +25,7 @@ const circlesData = source('lib/db/circles.ts');
 test('Echo library is organized by Most Recent and Projects without date buckets or categories', () => {
   assert.match(library, /Most Recent/);
   assert.match(library, /PROJECTS/);
-  assert.match(workspace, /resolveEchoLibraryFilter\(params\.view, selectedProjectId\)/);
+  assert.match(workspace, /resolveEchoLibraryFilter\([\s\S]*params\.view,[\s\S]*selectedProjectId,[\s\S]*selectedEntryType/);
   assert.match(library, /filter: EchoLibraryFilter/);
   assert.match(library, /onFilterChange: \(filter: EchoLibraryFilter\) => void/);
   assert.match(library, /entriesForProject/);
@@ -38,13 +39,14 @@ test('Echo exposes one New flow and a persistent collapsible library', () => {
   assert.match(library, /Collapse Echo library/);
   assert.match(workspace, /Expand Echo library/);
   assert.match(workspace, /<EchoCreationModal/);
+  assert.match(workspace, /<EchoNewMenu/);
 });
 
 test('Echo polish uses a compact header, in-library collapse, and explicit Project exit', () => {
   assert.doesNotMatch(workspace, /<FeaturePageHeader/);
   assert.match(workspace, /<BrandIcon name="echo"/);
   assert.match(workspace, /accessibilityRole="header"[\s\S]*Echo/);
-  assert.match(workspace, /\+ New/);
+  assert.match(newMenu, /\+ New/);
   assert.match(library, /Return to Most Recent Echo content/);
   assert.match(library, /onCollapse/);
   assert.doesNotMatch(workspace, /width: 42/);
@@ -108,6 +110,12 @@ test('Quick Reflection is freeform while Guided Reflection is intentionally unav
   assert.doesNotMatch(quick, /FocusedChatMessageList|ChatMessage|send\(/);
 });
 
+test('legacy manual Reflections are not mistaken for guided conversations', () => {
+  const utilities = source('features/entries/utils.ts');
+  assert.match(utilities, /!entry\.conversationTurns\.some\(\(turn\) => turn\.role === 'ohara'\)/);
+  assert.doesNotMatch(utilities, /conversationTurns\.length === 0/);
+});
+
 test('the old guided Reflection route can no longer expose the legacy chatbot', () => {
   assert.match(legacyRoute, /create: 'reflection'/);
   assert.match(legacyRoute, /view: 'reflection'/);
@@ -117,7 +125,19 @@ test('the old guided Reflection route can no longer expose the legacy chatbot', 
 test('Reflection selection is route-backed and survives library remounts', () => {
   assert.match(workspace, /router\.setParams\(\{ view \}\)/);
   assert.match(workspace, /params: \{ id: entryId, view: entryType \}/);
+  assert.match(workspace, /selectedEntryType/);
+  assert.match(workspace, /router\.setParams\(\{ view: selectedEntryType \}\)/);
+  assert.match(library, /onSelectEntry\(entry\.id, entry\.entryType\)/);
   assert.doesNotMatch(library, /setFilter\(selectedProjectId \? 'all' : 'note'\)/);
+});
+
+test('the Echo New control opens an anchored, accessible creation menu', () => {
+  assert.match(newMenu, /<AnchoredPopover/);
+  assert.match(newMenu, /accessibilityRole="menu"/);
+  assert.match(newMenu, /accessibilityRole="menuitem"/);
+  assert.match(newMenu, /New Note/);
+  assert.match(newMenu, /New Reflection/);
+  assert.match(newMenu, /onSelectType\(item\.type\)/);
 });
 
 test('new Entries use stable retry keys and explain private organization', () => {

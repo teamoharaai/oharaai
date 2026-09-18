@@ -7,14 +7,20 @@ import type {
 
 export type EchoLibraryFilter = 'all' | EntryType;
 
+export function isEchoLibraryFilter(value: unknown): value is EchoLibraryFilter {
+  return value === 'all' || value === 'note' || value === 'reflection';
+}
+
 export function resolveEchoLibraryFilter(
   value: string | string[] | undefined,
   projectId?: string,
+  selectedEntryType?: EntryType,
 ): EchoLibraryFilter {
   const candidate = Array.isArray(value) ? value[0] : value;
-  if (candidate === 'all' || candidate === 'note' || candidate === 'reflection') {
+  if (isEchoLibraryFilter(candidate)) {
     return candidate;
   }
+  if (selectedEntryType) return selectedEntryType;
   return projectId ? 'all' : 'note';
 }
 
@@ -147,7 +153,9 @@ export function entriesForProject(
 export function isQuickReflection(entry: EntryRecord): boolean {
   return entry.entryType === 'reflection'
     && entry.reflectionType === 'open'
-    && entry.conversationTurns.length === 0;
+    // Migration 036 preserved old manual Echo entries with one synthetic user
+    // turn. Only an actual OHARA turn proves that a Reflection was guided.
+    && !entry.conversationTurns.some((turn) => turn.role === 'ohara');
 }
 
 export function buildRetrievalDocument(

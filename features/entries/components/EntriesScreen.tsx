@@ -3,14 +3,19 @@ import { Animated, Pressable, View, useWindowDimensions } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BrandIcon } from '@/components/ui/BrandIcon';
-import { Button } from '@/components/ui/Button';
 import { Typography } from '@/components/ui/Typography';
 import { RADIUS, SPACE, elevationStyle } from '@/constants/design';
 import { useProjectStore } from '@/features/projects/store';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import type { EntryType } from '../types';
-import { resolveEchoLibraryFilter, type EchoLibraryFilter } from '../utils';
+import { useEntriesStore } from '../store';
+import {
+  isEchoLibraryFilter,
+  resolveEchoLibraryFilter,
+  type EchoLibraryFilter,
+} from '../utils';
 import { EchoCreationModal } from './EchoCreationModal';
+import { EchoNewMenu } from './EchoNewMenu';
 import { EntriesLibrary } from './EntriesLibrary';
 import { EntryDetailScreen } from './EntryDetailScreen';
 
@@ -33,7 +38,17 @@ export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string })
   }>();
   const selectedProjectId = param(params.projectId);
   const requestedCreation = param(params.create);
-  const activeFilter = resolveEchoLibraryFilter(params.view, selectedProjectId);
+  const requestedView = param(params.view);
+  const selectedEntryType = useEntriesStore((state) => (
+    selectedEntryId
+      ? state.entries.find((entry) => entry.id === selectedEntryId)?.entryType
+      : undefined
+  ));
+  const activeFilter = resolveEchoLibraryFilter(
+    params.view,
+    selectedProjectId,
+    selectedEntryType,
+  );
   const projects = useProjectStore((state) => state.projects);
   const [creationOpen, setCreationOpen] = useState(false);
   const [creationType, setCreationType] = useState<EntryType | null>(null);
@@ -55,6 +70,11 @@ export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string })
     setCreationOpen(true);
   }, [requestedCreation]);
 
+  useEffect(() => {
+    if (!selectedEntryId || !selectedEntryType || isEchoLibraryFilter(requestedView)) return;
+    router.setParams({ view: selectedEntryType });
+  }, [requestedView, selectedEntryId, selectedEntryType]);
+
   function entriesHref(projectId?: string, view: EchoLibraryFilter = activeFilter) {
     return {
       pathname: '/(app)/entries',
@@ -65,13 +85,13 @@ export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string })
     } as never;
   }
 
-  function selectEntry(entryId: string) {
+  function selectEntry(entryId: string, entryType: EntryType) {
     router.push({
       pathname: '/(app)/entries/[id]',
       params: {
         id: entryId,
         ...(selectedProjectId ? { projectId: selectedProjectId } : {}),
-        view: activeFilter,
+        view: entryType,
       },
     } as never);
   }
@@ -222,9 +242,7 @@ export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string })
             Echo
           </Typography>
         </View>
-        <Button onPress={() => openCreation()} style={{ minWidth: compact ? 98 : 112 }}>
-          + New
-        </Button>
+        <EchoNewMenu compact={compact} onSelectType={(type) => openCreation(type)} />
       </View>
 
       <View style={{ flex: 1, flexDirection: 'row', minHeight: 0, minWidth: 0 }}>

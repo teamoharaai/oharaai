@@ -17,9 +17,13 @@ The current UI flow is:
 3. `EchoCreationModal` creates a Note or Quick Reflection with
    `POST /api/entries/library`. Each open creation flow holds a stable UUID
    `clientRequestId`, making an ambiguous retry idempotent for that owner.
+   The header `+ New` control first opens an anchored Note/Reflection menu,
+   then hands the chosen type to this existing builder.
 4. Notes open `NoteEditor`; freeform Reflections open
    `QuickReflectionEditor`; historical completed guided Reflections remain
-   readable in `CompletedReflection`.
+   readable in `CompletedReflection`. Migration 036 represented imported manual
+   Echo text as a synthetic user-only turn, so the compatibility classifier
+   requires a real OHARA turn before treating a record as guided.
 5. Updates use `PATCH /api/entries/library/:id` with `expectedContentVersion`.
    The database saves the Entry and its Goal, category, milestone, and optional
    Project relationships transactionally through `save_entry_v4`.
