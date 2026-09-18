@@ -75,6 +75,31 @@ Modules imported at _layout.tsx top level must NEVER throw at module load time.
 - Goal completion is one-way and may only be initiated from goal detail; do not
   expose a reversible completion toggle.
 
+### Home Data Flow (Today's Focus / Next Step)
+Home (`/dashboard`) is Circles, but its greeting + Today's Focus + Next Step are
+goal-derived and load on a deliberately de-waterfalled, cached path. Preserve
+these seams:
+- **Goals**: `useGoals` is stale-while-revalidate over the goal Zustand store —
+  cached goals paint instantly on return-nav (no spinner), revalidate in the
+  background, dedupe in-flight loads, and key freshness by `userId` (the store
+  isn't cleared on logout). Do not reintroduce a blanket refetch-on-every-mount.
+- **Reconcile off the read path**: `fetchGoals` runs
+  `reconcile_goal_expiration_v1` fire-and-forget (it's self-healing), never
+  awaiting a maintenance write before the goals SELECT. Keep it non-blocking.
+- **One Home aggregator, not N client fetches**: the goal-derived Today's Focus
+  signals (this week's canonical Task counts + reflection-ordering timestamps)
+  come from a single `GET /api/home/summary`, computed server-side in parallel,
+  resolving the caller's active goals itself. Client access is the SWR-cached
+  `useHomeSummary` hook (mirrors `useMomentumHomeSummary`). Server:
+  `lib/db/home-summary.ts` + `lib/db/tasks.ts`. **A new Home signal is a field on
+  this aggregator, not a new client round-trip.** Task counts read canonical
+  `task_occurrences` only — never legacy trackers (asserted in
+  `features/tasks/architecture.test.ts`).
+- **Presentation**: `TodayFocusSummary` / `NextStepPanel` / the loading state
+  live in `features/goals/components/home/` (`TodayFocus` composer). `dashboard.tsx`
+  stays thin composition. Kept in `features/goals` (not a `features/home` slice)
+  to respect the no-cross-feature-import rule (features/CLAUDE.md).
+
 ### Naming (Current, Do Not Reference Old Names)
 - Echo (not Starlog)
 - Entry/Entries is the canonical user-facing record term; existing Echo route,
