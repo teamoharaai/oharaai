@@ -5,9 +5,11 @@ import supabase from '@/lib/db/client';
 import { authedFetch } from '@/lib/api/client';
 import type { ApiResponse } from '@/lib/api/contracts';
 import { Modal } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Avatar } from '@/components/ui/Avatar';
 import { Typography } from '@/components/ui/Typography';
+import { useThemeColors } from '@/store/uiStore';
 
 interface AccountProfileData {
   display_name: string;
@@ -44,7 +46,20 @@ interface AccountModalProps {
   }) => void;
 }
 
-export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
+interface AccountPaneProps {
+  active: boolean;
+  onClose: () => void;
+  onSaved: AccountModalProps['onSaved'];
+  showTitle?: boolean;
+}
+
+export function AccountPane({
+  active,
+  onClose,
+  onSaved,
+  showTitle = false,
+}: AccountPaneProps) {
+  const colors = useThemeColors();
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [displayName, setDisplayName] = useState('');
@@ -63,8 +78,8 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!visible) return;
-    let active = true;
+    if (!active) return;
+    let requestActive = true;
     setIsLoading(true);
     setLoadError(false);
     setError(null);
@@ -72,9 +87,9 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
     async function load() {
       try {
         const res = await authedFetch('/api/profile');
-        if (!active) return;
+        if (!requestActive) return;
         const body = (await res.json()) as ApiResponse<AccountProfileData>;
-        if (!active) return;
+        if (!requestActive) return;
 
         if (body.ok) {
           setDisplayName(body.data.display_name);
@@ -93,17 +108,17 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
           setLoadError(true);
         }
       } catch {
-        if (active) setLoadError(true);
+        if (requestActive) setLoadError(true);
       } finally {
-        if (active) setIsLoading(false);
+        if (requestActive) setIsLoading(false);
       }
     }
 
     void load();
     return () => {
-      active = false;
+      requestActive = false;
     };
-  }, [visible]);
+  }, [active]);
 
   const usernameCheckTokenRef = useRef(0);
   const usernameChanged = username !== originalUsername;
@@ -111,7 +126,7 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
 
   useEffect(() => {
     const token = ++usernameCheckTokenRef.current;
-    if (!visible || !usernameChanged || !usernameValid) {
+    if (!active || !usernameChanged || !usernameValid) {
       setUsernameStatus('idle');
       return;
     }
@@ -134,7 +149,7 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
     return () => {
       clearTimeout(handle);
     };
-  }, [username, usernameChanged, usernameValid, visible]);
+  }, [active, username, usernameChanged, usernameValid]);
 
   function handleUsernameChange(text: string) {
     setUsername(text.trimStart().toLowerCase());
@@ -176,14 +191,17 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
         .upload(path, blob, { contentType: 'image/jpeg', upsert: true });
       if (uploadError) throw new Error(uploadError.message);
 
-      const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(path);
+      const { data: publicUrlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(path);
 
       const patchRes = await authedFetch('/api/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ avatar_url: publicUrlData.publicUrl }),
       });
-      const patchBody = (await patchRes.json()) as ApiResponse<AccountProfileData>;
+      const patchBody =
+        (await patchRes.json()) as ApiResponse<AccountProfileData>;
       if (!patchBody.ok) throw new Error(patchBody.error.message);
 
       setAvatarUrl(patchBody.data.avatar_url);
@@ -257,14 +275,155 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
   }
 
   return (
+    <View>
+      {showTitle ? (
+        <Text
+          className="mb-5 text-xl"
+          style={{ color: colors.text.primary, fontFamily: 'Inter-SemiBold' }}
+        >
+          Account
+        </Text>
+      ) : null}
+
+      {isLoading ? (
+        <ActivityIndicator size="small" color={colors.text.muted} />
+      ) : loadError ? (
+        <Typography variant="subtitle">
+          Couldn't load your profile. Please try again.
+        </Typography>
+      ) : (
+        <View>
+          <View className="items-center mb-5">
+            <View>
+              <Avatar avatarUrl={avatarUrl} displayName={displayName} size={72} />
+              <Pressable
+                accessibilityLabel="Change profile picture"
+                accessibilityRole="button"
+                onPress={handlePickAvatar}
+                disabled={isUploadingAvatar}
+                style={{
+                  position: 'absolute',
+                  bottom: -2,
+                  right: -2,
+                  width: 26,
+                  height: 26,
+                  borderRadius: 13,
+                  backgroundColor: colors.accent.primary,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 2,
+                  borderColor: colors.background.card,
+                }}
+              >
+                {isUploadingAvatar ? (
+                  <ActivityIndicator size="small" color={colors.text.onAccent} />
+                ) : (
+                  <Text style={{ fontSize: 12 }}>📷</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+
+          <View className="mb-4">
+            <Input
+              label="Username"
+              value={username}
+              onChangeText={handleUsernameChange}
+              placeholder="your_username"
+              autoCapitalize="none"
+              autoComplete="username"
+              autoCorrect={false}
+              maxLength={20}
+              error={
+                username.length > 0 && !usernameValid
+                  ? 'Use 3–20 lowercase letters, numbers, or underscores.'
+                  : usernameStatus === 'taken'
+                    ? 'That username is already taken.'
+                    : null
+              }
+            />
+            <Typography variant="hint" className="mt-1.5">
+              {usernameChanged && usernameStatus === 'checking'
+                ? 'Checking availability…'
+                : usernameChanged && usernameStatus === 'available'
+                  ? 'Username available. '
+                  : ''}
+              {usernameChangesRemaining > 0
+                ? `${usernameChangesRemaining} of 3 changes remaining in the current 7-day period.`
+                : usernameChangeNextAvailableAt
+                  ? `Next change available ${new Date(
+                      usernameChangeNextAvailableAt,
+                    ).toLocaleString()}.`
+                  : 'All 3 changes have been used in the current 7-day period.'}
+            </Typography>
+          </View>
+
+          <View className="mb-4">
+            <Input
+              label="Bio"
+              value={bio}
+              onChangeText={setBio}
+              placeholder="A short bio"
+              multiline
+            />
+          </View>
+
+          <View className="mb-4">
+            <Input
+              label="Timezone"
+              value={timezone}
+              onChangeText={setTimezone}
+              placeholder="e.g. America/New_York"
+              autoCapitalize="none"
+            />
+          </View>
+
+          <View className="mb-2">
+            <Input
+              label="Interests"
+              value={interestsText}
+              onChangeText={setInterestsText}
+              placeholder="e.g. hiking, painting, jazz"
+              autoCapitalize="none"
+            />
+          </View>
+
+          {error ? (
+            <Text
+              className="mt-2 text-sm"
+              style={{
+                color: colors.feedback.danger.text,
+                fontFamily: 'Inter-Regular',
+              }}
+            >
+              {error}
+            </Text>
+          ) : null}
+        </View>
+      )}
+
+      <View className="mt-5 flex-row justify-end gap-3">
+        <Button onPress={onClose} size="compact" variant="secondary">
+          Cancel
+        </Button>
+        <Button
+          disabled={isLoading || !!loadError}
+          loading={isSaving}
+          onPress={() => void handleSave()}
+          size="compact"
+        >
+          Save
+        </Button>
+      </View>
+    </View>
+  );
+}
+
+export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
+  return (
     <Modal
       visible={visible}
       onClose={onClose}
-      cancelText="Cancel"
-      onCancel={onClose}
-      confirmText="Save"
-      onConfirm={handleSave}
-      confirmDisabled={isSaving || isLoading || !!loadError}
       showCloseButton={false}
       contentStyle={{ maxHeight: '90%' }}
     >
@@ -274,112 +433,12 @@ export function AccountModal({ visible, onClose, onSaved }: AccountModalProps) {
         showsVerticalScrollIndicator
         style={{ flexShrink: 1, minHeight: 0 }}
       >
-        <Text className="text-xl text-near-black mb-5" style={{ fontFamily: 'Inter-SemiBold' }}>
-          Account
-        </Text>
-
-        {isLoading ? (
-          <ActivityIndicator size="small" color="#A79E8E" />
-        ) : loadError ? (
-          <Typography variant="subtitle">
-            Couldn't load your profile. Please try again.
-          </Typography>
-        ) : (
-          <View>
-            <View className="items-center mb-5">
-              <View>
-                <Avatar avatarUrl={avatarUrl} displayName={displayName} size={72} />
-                <Pressable
-                  onPress={handlePickAvatar}
-                  disabled={isUploadingAvatar}
-                  style={{
-                    position: 'absolute',
-                    bottom: -2,
-                    right: -2,
-                    width: 26,
-                    height: 26,
-                    borderRadius: 13,
-                    backgroundColor: '#1E3226',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderWidth: 2,
-                    borderColor: '#FAF9F6',
-                  }}
-                >
-                  {isUploadingAvatar ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <Text style={{ fontSize: 12 }}>📷</Text>
-                  )}
-                </Pressable>
-              </View>
-            </View>
-
-            <View className="mb-4">
-              <Input
-                label="Username"
-                value={username}
-                onChangeText={handleUsernameChange}
-                placeholder="your_username"
-                autoCapitalize="none"
-                autoComplete="username"
-                autoCorrect={false}
-                maxLength={20}
-                error={
-                  username.length > 0 && !usernameValid
-                    ? 'Use 3–20 lowercase letters, numbers, or underscores.'
-                    : usernameStatus === 'taken'
-                      ? 'That username is already taken.'
-                      : null
-                }
-              />
-              <Typography variant="hint" className="mt-1.5">
-                {usernameChanged && usernameStatus === 'checking'
-                  ? 'Checking availability…'
-                  : usernameChanged && usernameStatus === 'available'
-                    ? 'Username available. '
-                    : ''}
-                {usernameChangesRemaining > 0
-                  ? `${usernameChangesRemaining} of 3 changes remaining in the current 7-day period.`
-                  : usernameChangeNextAvailableAt
-                    ? `Next change available ${new Date(
-                        usernameChangeNextAvailableAt,
-                      ).toLocaleString()}.`
-                    : 'All 3 changes have been used in the current 7-day period.'}
-              </Typography>
-            </View>
-
-            <View className="mb-4">
-              <Input label="Bio" value={bio} onChangeText={setBio} placeholder="A short bio" multiline />
-            </View>
-
-            <View className="mb-4">
-              <Input
-                label="Timezone"
-                value={timezone}
-                onChangeText={setTimezone}
-                placeholder="e.g. America/New_York"
-                autoCapitalize="none"
-              />
-            </View>
-
-            <View className="mb-2">
-              <Input
-                label="Interests"
-                value={interestsText}
-                onChangeText={setInterestsText}
-                placeholder="e.g. hiking, painting, jazz"
-                autoCapitalize="none"
-              />
-            </View>
-
-            {error ? (
-              <Text className="text-sm text-[#EF4444] mt-2" style={{ fontFamily: 'Inter-Regular' }}>
-                {error}
-              </Text>
-            ) : null}
-          </View>
-        )}
+        <AccountPane
+          active={visible}
+          onClose={onClose}
+          onSaved={onSaved}
+          showTitle
+        />
       </ScrollView>
     </Modal>
   );

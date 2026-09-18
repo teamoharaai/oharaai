@@ -15,6 +15,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Toggle } from '@/components/ui/Toggle';
 import { Typography } from '@/components/ui/Typography';
+import { AccountPane } from '@/components/layout/AccountModal';
 import { SettingsPane } from '@/components/layout/SettingsModal';
 import { useFriends } from '@/features/friends/hooks/useFriends';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
@@ -42,7 +43,11 @@ interface FriendsPopoverProps {
   onChangeTab: (tab: FriendsTab) => void;
   onClose: () => void;
   onLogOut: () => void;
-  onOpenAccount: () => void;
+  onProfileSaved: (profile: {
+    display_name: string;
+    username: string;
+    avatar_url: string | null;
+  }) => void;
   profile: {
     avatarUrl: string | null;
     displayName: string;
@@ -64,7 +69,7 @@ const POPOVER_HEIGHT = 600;
 const RAIL_WIDTH = 240;
 const VIEWPORT_MARGIN = 8;
 const ANCHOR_GAP = 12;
-const TABS: FriendsTab[] = ['friends', 'requests', 'add'];
+const TABS: FriendsTab[] = ['requests', 'add'];
 
 function clamp(value: number, min: number, max: number): number {
   if (max < min) return min;
@@ -80,7 +85,7 @@ export function FriendsPopover({
   onChangeTab,
   onClose,
   onLogOut,
-  onOpenAccount,
+  onProfileSaved,
   circlesPane,
   goalInviteCount = 0,
   goalInvitesPane,
@@ -95,7 +100,6 @@ export function FriendsPopover({
   const { height: viewportHeight, width: viewportWidth } =
     useWindowDimensions();
   const friendsController = useFriends();
-  const friendsTabRef = useRef<NativeView | null>(null);
   const requestsTabRef = useRef<NativeView | null>(null);
   const addTabRef = useRef<NativeView | null>(null);
   const canUseDesktop = shouldUseDesktopFriendsPopover(viewportWidth);
@@ -160,11 +164,7 @@ export function FriendsPopover({
 
   function focusTab(nextTab: FriendsTab): void {
     const ref =
-      nextTab === 'friends'
-        ? friendsTabRef
-        : nextTab === 'requests'
-          ? requestsTabRef
-          : addTabRef;
+      nextTab === 'requests' ? requestsTabRef : addTabRef;
     const focus = () => {
       const node = ref.current as (NativeView & { focus?: () => void }) | null;
       node?.focus?.();
@@ -217,35 +217,39 @@ export function FriendsPopover({
   const requestCount = friendsController.incomingRequests.length;
   const isFriendsTab = tab === 'friends' || tab === 'requests' || tab === 'add';
   const title =
-    tab === 'friends'
-      ? 'My friends'
-      : tab === 'requests'
-        ? 'Requests'
-        : tab === 'add'
-          ? 'Add people'
-          : tab === 'saved'
-            ? 'Saved'
-            : tab === 'circles'
-              ? 'Circles'
-              : 'Settings';
+    tab === 'profile'
+      ? 'Profile'
+      : tab === 'friends'
+        ? 'My friends'
+        : tab === 'requests'
+          ? 'Requests'
+          : tab === 'add'
+            ? 'Add people'
+            : tab === 'saved'
+              ? 'Saved'
+              : tab === 'circles'
+                ? 'Circles'
+                : 'Settings';
   const subtitle =
-    tab === 'friends'
-      ? `${friendsController.friendCount} ${
-          friendsController.friendCount === 1 ? 'friend' : 'friends'
-        } · Only you see this list.`
-      : tab === 'requests'
-        ? goalInviteCount > 0
-          ? `${requestCount} friend ${requestCount === 1 ? 'request' : 'requests'} · ${goalInviteCount} goal ${goalInviteCount === 1 ? 'invitation' : 'invitations'}`
-          : requestCount === 1
-            ? '1 person wants to connect with you.'
-            : `${requestCount} people want to connect with you.`
-        : tab === 'add'
-          ? 'Find people by @username, or invite someone new.'
-          : tab === 'saved'
-            ? 'Posts you saved from Home. Only you can see this.'
-            : tab === 'circles'
-              ? 'Everything is private by default. Choose what friends can view.'
-              : 'Manage your app preferences and archived goals.';
+    tab === 'profile'
+      ? 'Update your username, bio, timezone, interests, and profile picture.'
+      : tab === 'friends'
+        ? `${friendsController.friendCount} ${
+            friendsController.friendCount === 1 ? 'friend' : 'friends'
+          } · Only you see this list.`
+        : tab === 'requests'
+          ? goalInviteCount > 0
+            ? `${requestCount} friend ${requestCount === 1 ? 'request' : 'requests'} · ${goalInviteCount} goal ${goalInviteCount === 1 ? 'invitation' : 'invitations'}`
+            : requestCount === 1
+              ? '1 person wants to connect with you.'
+              : `${requestCount} people want to connect with you.`
+          : tab === 'add'
+            ? 'Find people by @username, or invite someone new.'
+            : tab === 'saved'
+              ? 'Posts you saved from Home. Only you can see this.'
+              : tab === 'circles'
+                ? 'Everything is private by default. Choose what friends can view.'
+                : 'Manage your app preferences and archived goals.';
   const isUnhydratedError =
     !!friendsController.loadError && !friendsController.hasHydrated;
   const refreshError =
@@ -340,13 +344,21 @@ export function FriendsPopover({
                 <Pressable
                   accessibilityLabel="Edit account profile"
                   accessibilityRole="button"
-                  onPress={onOpenAccount}
+                  accessibilityState={{ selected: tab === 'profile' }}
+                  onPress={() => selectTab('profile')}
                   style={({ pressed }) => ({
                     alignItems: 'center',
+                    backgroundColor:
+                      tab === 'profile'
+                        ? colors.background.selectedRow
+                        : 'transparent',
+                    borderRadius: 11,
                     flexDirection: 'row',
                     gap: 11,
                     opacity: pressed ? 0.72 : 1,
-                    paddingBottom: 15,
+                    marginBottom: 7,
+                    paddingHorizontal: 7,
+                    paddingVertical: 8,
                   })}
                 >
                   <Avatar
@@ -377,12 +389,14 @@ export function FriendsPopover({
                     borderTopColor: colors.border.warmSubtle,
                     borderTopWidth: 1,
                     flexDirection: 'row',
-                    gap: 18,
-                    paddingVertical: 13,
+                    gap: 4,
+                    paddingVertical: 8,
                   }}
                 >
                   <StatCell
+                    active={tab === 'friends'}
                     label="Friends"
+                    onPress={() => selectTab('friends')}
                     value={friendsController.friendCount}
                   />
                   <StatCell
@@ -392,42 +406,10 @@ export function FriendsPopover({
                 </View>
 
                 <View
-                  accessibilityLabel="Friends views"
+                  accessibilityLabel="People views"
                   accessibilityRole="tablist"
                   style={{ paddingVertical: 13 }}
                 >
-                  <Typography
-                    style={{
-                      color: colors.text.muted,
-                      paddingBottom: 7,
-                      paddingHorizontal: 7,
-                    }}
-                    variant="section-eyebrow"
-                  >
-                    Friends
-                  </Typography>
-                  <RailButton
-                    active={tab === 'friends'}
-                    buttonRef={friendsTabRef}
-                    count={friendsController.friendCount}
-                    icon={
-                      <Ionicons
-                        color={
-                          tab === 'friends'
-                            ? colors.text.accent
-                            : colors.text.muted
-                        }
-                        name="people-outline"
-                        size={17}
-                      />
-                    }
-                    isTab
-                    label="Friends"
-                    onPress={() => selectTab('friends')}
-                    onWebKeyDown={(event) =>
-                      handleTabKeyDown(event, 'friends')
-                    }
-                  />
                   <RailButton
                     active={tab === 'requests'}
                     badgeCount={requestCount + goalInviteCount}
@@ -695,7 +677,15 @@ export function FriendsPopover({
                 showsVerticalScrollIndicator
                 style={{ flex: 1 }}
               >
-                {tab === 'settings' ? (
+                {tab === 'profile' ? (
+                  <View style={{ padding: 24 }}>
+                    <AccountPane
+                      active
+                      onClose={onClose}
+                      onSaved={onProfileSaved}
+                    />
+                  </View>
+                ) : tab === 'settings' ? (
                   <View style={{ padding: 24 }}>
                     <SettingsPane active onClose={onClose} />
                   </View>

@@ -7,7 +7,7 @@ import supabase from '@/lib/db/client';
 import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
 import { Toggle } from '@/components/ui/Toggle';
-import { useThemeColors, useUIStore } from '@/store/uiStore';
+import { useThemeColors } from '@/store/uiStore';
 import { goalWorkspaceHref } from '@/features/goals/navigation';
 
 interface SettingsProfileData {
@@ -32,8 +32,6 @@ interface ArchivedGoalSummary {
 
 export function SettingsPane({ active, onClose }: SettingsPaneProps) {
   const colors = useThemeColors();
-  const themeMode = useUIStore((state) => state.themeMode);
-  const toggleTheme = useUIStore((state) => state.toggleTheme);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [intelligenceEnabled, setIntelligenceEnabled] = useState(true);
@@ -121,36 +119,6 @@ export function SettingsPane({ active, onClose }: SettingsPaneProps) {
 
   return (
     <>
-      <View className="mb-6">
-        <Typography
-          variant="eyebrow"
-          className="mb-3"
-          style={{ color: colors.text.secondary }}
-        >
-          Appearance
-        </Typography>
-        <View className="flex-row items-center justify-between">
-          <Text
-            className="text-base"
-            style={{ color: colors.text.primary, fontFamily: 'Inter-Medium' }}
-          >
-            Dark mode
-          </Text>
-          <Toggle
-            accessibilityLabel="Dark mode"
-            value={themeMode === 'dark'}
-            onValueChange={toggleTheme}
-          />
-        </View>
-        <Typography
-          variant="hint"
-          className="mt-2"
-          style={{ color: colors.text.secondary }}
-        >
-          Choose the app appearance manually.
-        </Typography>
-      </View>
-
       {isLoading ? (
         <ActivityIndicator size="small" color={colors.text.muted} />
       ) : loadError ? (

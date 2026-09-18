@@ -449,10 +449,7 @@ export function AvatarMenu() {
           onChangeTab={setFriendsTab}
           onClose={closeFriends}
           onLogOut={() => void handleSignOut()}
-          onOpenAccount={() => {
-            setFriendsOpen(false);
-            setAccountOpen(true);
-          }}
+          onProfileSaved={setProfile}
           profile={{
             avatarUrl,
             displayName: avatarDisplayName,
