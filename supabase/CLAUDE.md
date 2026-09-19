@@ -5,7 +5,7 @@ Owner: CTO. Cascade Level 3.
 ## Migration Conventions
 - supabase/migrations/ holds 6 narrative baseline files (001-006), squashed
   2026-06-24 from the original 26 incremental migrations. 007-039 were added
-  after the squash (see below). Next new migration: 040.
+  after the squash (see below). Next new migration: 060.
 - The pre-squash files (original 001-026) are archived, untouched, in
   supabase/migrations_archive_pre_squash_2026-06-24/ for historical reference.
   Do not re-run or restore them — supabase_migrations.schema_migrations tracks
@@ -241,6 +241,28 @@ Owner: CTO. Cascade Level 3.
   txn (null-target quantity insert accepted), then applied + verified live via the
   management API 2026-09-18 (constraint def confirmed relaxed, ledger latest=056).
   Owned by the Goal Detail Redesign. Latest applied migration is now 056.
+- 057_todo_due_time.sql and 058_goal_sticky_notes.sql: applied live (present in the
+  repo + ledger); not separately narrated in this changelog. Their features own the
+  detail. Noted here only so the numbering below is unambiguous.
+- 059_tasks_weekly_count_frequency.sql: To-Do × Metric Unification Phase 3 (TM-6).
+  Adds flexible "N times a week" Task frequency: `task_schedules.target_count` +
+  the `weekly_count` recurrence kind (weekdays empty, target_count 1..7), a
+  `weekly_count` arm in `reconcile_task_occurrences_v1` (one ISO-week-anchored
+  occurrence per week — anchored at greatest(week-Monday, start_date) — marked
+  missed only once the whole week has elapsed, never mid-week), and
+  `create_task_v1` (dropped/recreated at 18 args with `p_schedule_target_count`)
+  forcing weekly_count Tasks to completion_mode='quantity' with target_quantity
+  mirrored from target_count so the existing counter/adjust-quantity/progress
+  mechanic drives per-week completion (1/3 → done). `update_task_v1` /
+  `replace_task_schedule_v1` intentionally unchanged (daily/weekly-only); editing a
+  weekly_count frequency in place is deferred (TaskForm shows it read-only). All
+  additive — widened CHECKs + a nullable column never invalidate existing rows, no
+  backfill. Weekly-count only (no monthly). Dry-run-verified in a rolled-back txn
+  (5 correct one-per-week occurrences, all pending, no mid-week miss; rollback left
+  nothing behind), then applied + verified live via the management API 2026-09-19
+  (ledger latest=059, target_count column present, single create_task_v1 overload).
+  Owned by the Goal Detail Redesign (`design/goal-detail-redesign/`). Latest applied
+  migration is now 059.
 - goals.mode column was dropped in the 2026-06-24 squash (was a single-value
   CHECK column, no longer carried). lib/db/goals.ts no longer inserts it.
 

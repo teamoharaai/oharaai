@@ -3,7 +3,7 @@ export type TaskStatus = 'active' | 'complete' | 'archived';
 export type TaskOccurrenceStatus = 'pending' | 'completed' | 'skipped' | 'missed' | 'cancelled';
 export type TaskSource = 'user' | 'legacy_tracker' | 'legacy_action';
 export type TaskOccurrenceSource = 'user' | 'schedule' | 'retroactive' | 'legacy_tracker' | 'legacy_action';
-export type TaskRecurrenceKind = 'daily' | 'weekly';
+export type TaskRecurrenceKind = 'daily' | 'weekly' | 'weekly_count';
 
 /**
  * Cadence axis (design 003 / TD-016): the honest recurrence choice a person
@@ -19,6 +19,8 @@ export interface TaskSchedule {
   recurrenceKind: TaskRecurrenceKind;
   intervalCount: number;
   weekdays: number[];
+  /** weekly_count only: the N in "N times a week"; null for daily/weekly. */
+  targetCount: number | null;
   startDate: string;
   endDate: string | null;
   localTime: string | null;
@@ -86,6 +88,8 @@ export interface TaskScheduleInput {
   recurrenceKind: TaskRecurrenceKind;
   intervalCount?: number;
   weekdays?: number[];
+  /** weekly_count only: 1–7 times per week. */
+  targetCount?: number | null;
   startDate?: string | null;
   endDate?: string | null;
   localTime?: string | null;

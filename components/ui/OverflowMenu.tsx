@@ -88,7 +88,7 @@ export function OverflowMenu({
         onPress={open}
         style={{ alignItems: 'center', height: size, justifyContent: 'center', width: size }}
       >
-        <Text style={{ color: colors.text.muted, fontFamily: 'Inter-SemiBold', fontSize: 18, lineHeight: 18 }}>
+        <Text style={{ color: colors.text.secondary, fontFamily: 'Inter-Regular', fontSize: 18, lineHeight: 18 }}>
           ⋯
         </Text>
       </Pressable>

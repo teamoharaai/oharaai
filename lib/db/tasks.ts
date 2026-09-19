@@ -29,6 +29,7 @@ export function mapTaskSchedule(row: Row): TaskSchedule {
     recurrenceKind: row.recurrence_kind,
     intervalCount: row.interval_count,
     weekdays: row.weekdays ?? [],
+    targetCount: numberOrNull(row.target_count),
     startDate: row.start_date,
     endDate: row.end_date ?? null,
     localTime: row.local_time ?? null,

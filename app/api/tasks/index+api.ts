@@ -66,6 +66,7 @@ async function handlePost(request: Request, _params: Record<string,string>, auth
       p_schedule_end: schedule?.endDate ?? null,
       p_schedule_local_time: schedule?.localTime ?? null,
       p_schedule_timezone: schedule?.timezone ?? null,
+      p_schedule_target_count: schedule?.targetCount ?? null,
     });
     if (error) throw error;
     const task = await fetchTaskById(db, auth.userId, taskId as string);

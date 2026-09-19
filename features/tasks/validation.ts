@@ -40,8 +40,8 @@ export function optionalNumber(value: unknown, field: string): number | null {
 export function scheduleInput(value: unknown): TaskScheduleInput | null {
   if (value === undefined || value === null) return null;
   const input = recordValue(value);
-  if (input.recurrenceKind !== 'daily' && input.recurrenceKind !== 'weekly') {
-    throw new Error('schedule.recurrenceKind must be daily or weekly');
+  if (input.recurrenceKind !== 'daily' && input.recurrenceKind !== 'weekly' && input.recurrenceKind !== 'weekly_count') {
+    throw new Error('schedule.recurrenceKind must be daily, weekly, or weekly_count');
   }
   const intervalCount = input.intervalCount === undefined ? 1 : optionalNumber(input.intervalCount, 'schedule.intervalCount');
   if (!intervalCount || !Number.isInteger(intervalCount) || intervalCount < 1 || intervalCount > 52) {
@@ -55,6 +55,23 @@ export function scheduleInput(value: unknown): TaskScheduleInput | null {
   if (input.recurrenceKind === 'weekly' && uniqueWeekdays.length === 0) {
     throw new Error('Weekly schedules require at least one weekday');
   }
+  if (input.recurrenceKind === 'weekly_count' && uniqueWeekdays.length > 0) {
+    throw new Error('A weekly-count schedule uses no specific weekdays');
+  }
+  // weekly_count carries a per-week target (the N in "N times a week"); other
+  // kinds must not. Mirrors migration 057's target_count CHECK + create RPC guard.
+  const rawTargetCount = input.targetCount === undefined || input.targetCount === null
+    ? null
+    : optionalNumber(input.targetCount, 'schedule.targetCount');
+  let targetCount: number | null = null;
+  if (input.recurrenceKind === 'weekly_count') {
+    if (rawTargetCount === null || !Number.isInteger(rawTargetCount) || rawTargetCount < 1 || rawTargetCount > 7) {
+      throw new Error('A weekly-count schedule needs a target of 1 to 7 times per week');
+    }
+    targetCount = rawTargetCount;
+  } else if (rawTargetCount !== null) {
+    throw new Error('schedule.targetCount only applies to a weekly-count schedule');
+  }
   const localTime = optionalString(input.localTime, 'schedule.localTime', 8);
   if (localTime && !/^\d{2}:\d{2}(:\d{2})?$/.test(localTime)) {
     throw new Error('schedule.localTime must use HH:MM');
@@ -63,6 +80,7 @@ export function scheduleInput(value: unknown): TaskScheduleInput | null {
     recurrenceKind: input.recurrenceKind,
     intervalCount,
     weekdays: uniqueWeekdays,
+    targetCount,
     startDate: optionalDate(input.startDate, 'schedule.startDate'),
     endDate: optionalDate(input.endDate, 'schedule.endDate'),
     localTime,

@@ -81,9 +81,19 @@ test('Task form drives scheduling from the weekday strip, with inferred completi
   assert.match(panel, /placeholder="Units"/);
 });
 
-test('Completions stays one ad-hoc lane; the dead Log-completed form is removed', () => {
+test('the scope organizer is the sole plan filter; the Later/Someday lanes were removed', () => {
   const panel = read('features/tasks/components/TasksPanel.tsx');
-  assert.match(panel, />Completions</);
+  // Phase 2 (To-Do × Metric unification): one time-scope selector over the unified
+  // plan, not the old Today/Upcoming/Completions/Anytime lanes. Overdue is pinned;
+  // Upcoming is scope-relative. The Later/Someday collapsibles were later removed —
+  // the scope selector alone governs what's in view (out-of-scope work is not
+  // re-surfaced in a separate lane).
+  assert.match(panel, /PLAN_SCOPES\.map/);
+  assert.match(panel, />Overdue</);
+  assert.match(panel, /Upcoming · \$\{scopeMeta\.upcomingLabel\}/);
+  assert.doesNotMatch(panel, /Someday \(/);
+  assert.doesNotMatch(panel, /Later \(/);
+  assert.doesNotMatch(panel, />Completions</);
   assert.doesNotMatch(panel, />Anytime</);
   // The retroactive "Log completed" form was dead code and has been deleted.
   assert.doesNotMatch(panel, /\+ Log completed/);
@@ -102,12 +112,13 @@ test('archived Task history is visibly read-only even on an active Goal', () => 
   assert.match(panel, /disabled=\{mutationDisabled \|\| !binary\}/);
 });
 
-test('unscheduled legacy definitions remain visible without fabricated occurrences', () => {
+test('the imported legacy-definition row was removed with the Someday section', () => {
   const panel = read('features/tasks/components/TasksPanel.tsx');
   const backfill = read('supabase/migrations/049_tasks_legacy_backfill.sql');
-  assert.match(panel, /ImportedTaskDefinitionRow/);
-  assert.match(panel, /Imported baseline:/);
-  assert.match(panel, /timing needs confirmation/);
+  // Removing the Later/Someday collapsibles also removed ImportedTaskDefinitionRow,
+  // the only surface for untimed legacy definitions — untimed imports no longer
+  // render in the panel. The backfill still never fabricates a current value.
+  assert.doesNotMatch(panel, /ImportedTaskDefinitionRow/);
   assert.doesNotMatch(backfill, /legacy-current-value:/);
 });
 

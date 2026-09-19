@@ -25,7 +25,7 @@ function task(occurrences: TaskOccurrence[], timezone = 'UTC'): Task {
     sortOrder: 0, createdAt: '', updatedAt: '', completedAt: null, archivedAt: null,
     schedules: [{
       id: 's', taskId: 't', version: 1, recurrenceKind: 'daily', intervalCount: 1,
-      weekdays: [], startDate: '2026-01-01', endDate: null, localTime: null,
+      weekdays: [], targetCount: null, startDate: '2026-01-01', endDate: null, localTime: null,
       timezone, isActive: true, source: 'user',
     }],
     occurrences,

@@ -524,3 +524,31 @@ CD-005 (link = title snapshot + author description), CD-013/CD-014/CD-018
 (encourage/sent-invite mapping), CD-021 (comment soft-delete), CD-022 (Phase 5b
 invite links deferred) — lives in **`design/circles/DECISIONS.md`**. Design,
 plan, and per-session changelog: `design/circles/`.
+
+### 2026-09-19 — To-Do × Metric Unification: sign-off + labels (TM-1…TM-9)
+
+**Decision:** Sign off the goal-detail Tasks-panel To-Do × Metric unification
+(`design/goal-detail-redesign/todo-metrics-unification.md`). A To-Do and a Metric
+are one entity — a projection of `Task` (To-Do = no active schedule + no counter;
+Metric = schedule and/or counter) — so the merge is a shared projection +
+organizer over the existing occurrence engine, **no parallel scheduling
+machinery**. Locked: **TM-8** keep two add entry points for now, defer the
+one-composer merge to Phase 4 (with TM-9); **TM-6b** flexible "N×/week" frequency
+uses **materialized period-occurrences** (reuse `task_occurrences` +
+`adjust_quantity` + reconcile job), Phase 3 / L3; **period units = weekly-count
+only** (no monthly — upholds the standing "daily \| weekly, no monthly" rule and
+Design 003 TD-004); **Someday bucket always visible but collapsed** (preserves the
+"never strand an undated To-Do" invariant); **TM-9** To-Do↔Metric instance link is
+**out of scope** for the core merge (optional Phase 4).
+**Naming:** UI labels are **To-Do** (one-time) and **Metric** (recurring); the
+persisted entity stays `Task`. **Reminder** remains a *preset within* Metric (per
+the Goal Detail Redesign D1/D5), not a separate concept, and the stray "Habit"
+wording in `InlineTaskComposer` is retired — one name per thing.
+**Reason:** Evolves Design 003's fixed Today/Upcoming lanes into a scope organizer
+without a schema fork; every phase ends `npx tsc --noEmit` + `npm run test:tasks`
+green and is verified live and independently reversible.
+**Impact:** Phase 1 (due-date-at-creation on the To-Do quick-add) is pure UI +
+reuse of the existing create RPC (which already accepts `dueDate`) — it *removes* a
+create-then-edit second write. Phase 3 is the only L3 (one additive migration:
+`weekly_count` recurrence + `target_count`); legacy `trackers`/`tracker_logs` stay
+frozen and Task counts keep reading canonical `task_occurrences` only.
