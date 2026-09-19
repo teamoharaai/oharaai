@@ -222,7 +222,9 @@ function mapMilestone(row: DbMilestone): GoalMilestone {
     completedAt: toDate(row.completed_at),
     sortOrder: row.sort_order,
     isAiSuggested: row.is_ai_suggested,
-    kind: row.kind === 'prep' ? 'prep' : 'achievement',
+    // Prep was retired (Goal Detail Redesign); any surviving legacy prep row is
+    // surfaced as an achievement. Migration 055 deletes them at the DB layer.
+    kind: 'achievement',
     parentId: row.parent_id,
     targetCount: row.target_count,
     photoUrl: row.photo_url,

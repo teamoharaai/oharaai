@@ -43,12 +43,15 @@ export interface Goal {
 }
 
 /**
- * Milestone variants. `prep` is a lightweight enabling step (buy running shoes);
- * `achievement` is a story-bearing accomplishment that can carry a hero photo,
- * a surfaced reflection, and sub-milestones. Achievements are the substrate the
- * Phase 2 social layer will surface.
+ * Milestone kind. Milestones are one-time, story-bearing achievements that can
+ * carry a hero photo, a surfaced reflection, and sub-milestones — the substrate
+ * the Phase 2 social layer surfaces. The `prep` variant (a lightweight enabling
+ * checklist) was retired in the Goal Detail Redesign: recurring/enabling work now
+ * lives in Tasks, so `achievement` is the only kind. The DB `kind` column + CHECK
+ * still permit `prep` historically, but nothing authors it and migration 055
+ * deletes the surviving prep rows.
  */
-export type MilestoneKind = 'prep' | 'achievement';
+export type MilestoneKind = 'achievement';
 
 export interface GoalMilestone {
   id: string;

@@ -13,6 +13,7 @@ import {
   DatePicker,
   formatCalendarDate,
   parseCalendarDate,
+  type DatePickerDensity,
 } from '@/components/ui/DatePicker';
 import { Typography } from '@/components/ui/Typography';
 import { FONT, RADIUS, SPACE, TYPE } from '@/constants/design';
@@ -21,6 +22,8 @@ import { useThemeColors } from '@/store/uiStore';
 interface CountdownTimerProps {
   createdAt: Date;
   deadline: Date | null;
+  /** Cross-goal deadline density for the end-date picker's amber ramp. */
+  deadlineDensity?: DatePickerDensity;
   disabled?: boolean;
   embedded?: boolean;
   onUpdateDeadline: (deadline: Date | null) => Promise<boolean>;
@@ -101,6 +104,7 @@ function TimeValue({ value, unit }: { value: number; unit: string }) {
 export function CountdownTimer({
   createdAt,
   deadline,
+  deadlineDensity,
   disabled = false,
   embedded = false,
   onUpdateDeadline,
@@ -321,6 +325,7 @@ export function CountdownTimer({
       <DatePicker
         accessibilityLabel="Goal end date"
         allowClear
+        density={deadlineDensity}
         disabled={saving}
         error={error}
         hideTrigger

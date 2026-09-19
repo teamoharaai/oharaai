@@ -28,6 +28,7 @@ module.exports = {
         "teal-bright": "#6FDFB8",
         "teal-mid": "#2F8F6D",
         "teal-soft": "#9FD9C4",
+        "deadline-amber": "#E08A2E", // mirror of LIGHT_THEME.accent.deadline (deadline density ramp)
         "goal-card": "#FCFAF4",
         "border-warm": "#EDE6D8",
         "border-warm-subtle": "#EFE9DC",

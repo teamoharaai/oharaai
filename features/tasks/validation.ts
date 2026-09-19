@@ -78,7 +78,10 @@ export function validateQuantityConfiguration(
   if (mode === 'binary' && (targetQuantity !== null || quantityUnit !== null)) {
     throw new Error('Binary Tasks cannot have quantity configuration');
   }
-  if (mode === 'quantity' && (!targetQuantity || targetQuantity <= 0 || !quantityUnit)) {
-    throw new Error('Quantity Tasks require a positive target and unit');
+  // The counter target + unit are optional (a bare counter just counts up); only
+  // a provided target must be a positive number. Mirrors the relaxed DB CHECK and
+  // create/update/log RPC guards (migration 056, Goal Detail Redesign Phase 2).
+  if (mode === 'quantity' && targetQuantity !== null && (!Number.isFinite(targetQuantity) || targetQuantity <= 0)) {
+    throw new Error('A Task target must be a positive number');
   }
 }

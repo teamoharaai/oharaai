@@ -6,6 +6,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { OHARA_DEADLINE_AMBER_RGB } from '@/constants/colors';
 import { useThemeColors } from '@/store/uiStore';
 import { Button } from './Button';
 import { Modal } from './Modal';
@@ -13,6 +14,38 @@ import { Typography } from './Typography';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 const CALENDAR_CELL_COUNT = 42;
+const DEADLINE_RAMP_ALPHAS = [0.22, 0.42, 0.66, 0.9] as const;
+
+/** One day's deadline load, keyed by `YYYY-MM-DD` in {@link DatePickerDensity}. */
+export interface DatePickerDensityDay {
+  count: number;
+  byKind?: Record<string, number>;
+}
+/**
+ * Optional density overlay for the calendar: `YYYY-MM-DD` → deadline load. Days
+ * with a positive count get an amber background that ramps with how many
+ * deadlines already fall there, so picking an end date can space work out
+ * (Goal Detail Redesign Phase 4). Structurally matches `DeadlineDensity` from
+ * `lib/db/deadlines`, but this component stays decoupled from that domain type.
+ */
+export type DatePickerDensity = Record<string, DatePickerDensityDay>;
+
+/** Amber ramp for a day's deadline count against the visible month's max. */
+function deadlineBackground(count: number, max: number): string {
+  if (count <= 0 || max <= 0) return 'transparent';
+  const level = Math.min(DEADLINE_RAMP_ALPHAS.length, Math.max(1, Math.ceil((count / max) * DEADLINE_RAMP_ALPHAS.length)));
+  return `rgba(${OHARA_DEADLINE_AMBER_RGB},${DEADLINE_RAMP_ALPHAS[level - 1]})`;
+}
+
+/** "2 deadlines · 1 milestone, 1 task" for the focused day's density, or null. */
+function describeDensity(day: DatePickerDensityDay | undefined): string | null {
+  if (!day || day.count <= 0) return null;
+  const plural = day.count === 1 ? 'deadline' : 'deadlines';
+  const parts = Object.entries(day.byKind ?? {})
+    .filter(([, value]) => value > 0)
+    .map(([kind, value]) => `${value} ${kind}${value === 1 ? '' : 's'}`);
+  return parts.length ? `${day.count} ${plural} · ${parts.join(', ')}` : `${day.count} ${plural}`;
+}
 
 export interface DatePickerProps {
   accessibilityLabel?: string;
@@ -24,6 +57,12 @@ export interface DatePickerProps {
    * unchanged. Handy for optional dates tucked behind a "More options" reveal.
    */
   compact?: boolean;
+  /**
+   * Optional deadline density behind the calendar days (amber ramp). Feed it the
+   * cross-goal `DeadlineDensity` so the user can see which days are already busy
+   * while choosing an end date. Purely presentational — never blocks selection.
+   */
+  density?: DatePickerDensity;
   disabled?: boolean;
   error?: string | null;
   /** Hide the field trigger when another control owns opening the calendar. */
@@ -134,6 +173,7 @@ export function DatePicker({
   allowClear = false,
   clearLabel = 'Clear date',
   compact = false,
+  density,
   disabled = false,
   error = null,
   hideTrigger = false,
@@ -177,6 +217,19 @@ export function DatePicker({
     return Array.from({ length: CALENDAR_CELL_COUNT }, (_, index) =>
       new Date(firstCell.getFullYear(), firstCell.getMonth(), firstCell.getDate() + index));
   }, [visibleMonth]);
+
+  // Ramp each day's amber fill against the busiest visible day, so intensity is
+  // readable within the month on screen rather than washed out by a distant peak.
+  const maxDensity = useMemo(() => {
+    if (!density) return 0;
+    let max = 0;
+    for (const date of days) {
+      const day = density[formatCalendarDate(date)];
+      if (day && day.count > max) max = day.count;
+    }
+    return max;
+  }, [days, density]);
+  const draftDensityLabel = density ? describeDensity(density[formatCalendarDate(draft)]) : null;
 
   const canGoPrevious = canNavigateToMonth(visibleMonth, -1, minimum, maximum);
   const canGoNext = canNavigateToMonth(visibleMonth, 1, minimum, maximum);
@@ -404,17 +457,24 @@ export function DatePicker({
                 const today = sameDay(startOfDay(new Date()), date);
                 const outsideMonth = date.getMonth() !== visibleMonth.getMonth();
                 const unavailable = isUnavailable(date, minimum, maximum);
+                const dayDensity = density?.[isoDate];
+                const densityCount = dayDensity?.count ?? 0;
+                const densityFill = deadlineBackground(densityCount, maxDensity);
                 return (
                   <View key={isoDate} style={{ alignItems: 'center', width: `${100 / 7}%` }}>
                     <Pressable
-                      accessibilityLabel={formatAccessibleDate(date)}
+                      accessibilityLabel={
+                        densityCount > 0
+                          ? `${formatAccessibleDate(date)}, ${describeDensity(dayDensity)}`
+                          : formatAccessibleDate(date)
+                      }
                       accessibilityRole="button"
                       accessibilityState={{ disabled: unavailable, selected }}
                       disabled={unavailable}
                       onPress={() => selectDate(date)}
                       style={({ pressed }) => ({
                         alignItems: 'center',
-                        backgroundColor: selected ? colors.accent.primary : 'transparent',
+                        backgroundColor: selected ? colors.accent.primary : densityFill,
                         borderColor: today && !selected ? colors.border.accent : 'transparent',
                         borderRadius: 12,
                         borderWidth: 1,
@@ -436,6 +496,22 @@ export function DatePicker({
               })}
             </View>
           </View>
+
+          {density ? (
+            <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
+              <View
+                style={{
+                  backgroundColor: `rgba(${OHARA_DEADLINE_AMBER_RGB},0.66)`,
+                  borderRadius: 3,
+                  height: 12,
+                  width: 12,
+                }}
+              />
+              <Typography variant="caption" style={{ color: colors.text.muted, flex: 1 }}>
+                {draftDensityLabel ?? 'Amber marks days that already have deadlines'}
+              </Typography>
+            </View>
+          ) : null}
 
           <View
             style={{

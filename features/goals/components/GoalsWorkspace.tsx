@@ -27,6 +27,7 @@ import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { useGoalMomentumSummary } from '@/features/momentum/hooks/useMomentumHomeSummary';
 import { MomentumTrendChart } from '@/features/momentum/components/MomentumTrendChart';
 import { TasksPanel } from '@/features/tasks/components/TasksPanel';
+import { useDeadlineDensity } from '../hooks/useDeadlineDensity';
 import type { ActivityItem } from '@/types/activity';
 import {
   filterGoalsForWorkspace,
@@ -1127,6 +1128,7 @@ function GoalTabContent({
   tab: WorkspaceTab;
 }) {
   const colors = useThemeColors();
+  const { density: deadlineDensity } = useDeadlineDensity();
   const next = getNextGoalMilestone(goal.milestones);
   const notes = linkedEntries.filter((entry) => entry.entryType === 'note');
   const reflections = linkedEntries.filter((entry) => entry.entryType === 'reflection');
@@ -1146,6 +1148,7 @@ function GoalTabContent({
           <MilestonesPanel
             archived={goal.status === 'archived'}
             completingIds={goalDetail.completingMilestoneIds}
+            deadlineDensity={deadlineDensity}
             embedded
             ended={mutationsDisabled}
             error={goalDetail.milestoneError}
@@ -1194,6 +1197,7 @@ function GoalTabContent({
           <MilestonesPanel
             archived={goal.status === 'archived'}
             completingIds={goalDetail.completingMilestoneIds}
+            deadlineDensity={deadlineDensity}
             embedded
             ended={goal.status === 'complete'}
             error={goalDetail.milestoneError}
@@ -1450,6 +1454,7 @@ function SelectedGoalWorkspace({
   tab: WorkspaceTab;
 }) {
   const colors = useThemeColors();
+  const { density: deadlineDensity } = useDeadlineDensity();
   const [projectPickerVisible, setProjectPickerVisible] = useState(false);
   const [projectSaving, setProjectSaving] = useState(false);
   const [projectError, setProjectError] = useState<string | null>(null);
@@ -1522,6 +1527,7 @@ function SelectedGoalWorkspace({
           <CountdownTimer
             createdAt={goal.createdAt}
             deadline={goal.deadline}
+            deadlineDensity={deadlineDensity}
             disabled={goal.has_successor || goal.status === 'archived' || goal.status === 'complete'}
             embedded
             onUpdateDeadline={goalDetail.onUpdateDeadline}
@@ -1532,6 +1538,7 @@ function SelectedGoalWorkspace({
         </Surface>
         <Surface style={{ minWidth: 0, overflow: 'hidden' }}>
           <TasksPanel
+            deadlineDensity={deadlineDensity}
             full={tab === 'tasks'}
             goalId={goal.id}
             goalStatus={goal.status}

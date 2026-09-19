@@ -64,34 +64,36 @@ test('Goal creation persists canonical Tasks and uses Task terminology', () => {
   assert.doesNotMatch(wizard, />TRACKERS</);
 });
 
-test('Task form uses the two-axis cadence chips and drops the due-date input (TD-016)', () => {
+test('Task form drives scheduling from the weekday strip, with inferred completion (Goal Detail Redesign)', () => {
   const panel = read('features/tasks/components/TasksPanel.tsx');
-  assert.match(panel, /label: 'Once'/);
-  assert.match(panel, /label: 'Daily'/);
-  assert.match(panel, /label: 'On set days'/);
+  // The weekday strip is the schedule (no days = Once, all seven = Every day);
+  // the retired Once/Daily/On-set-days cadence chips and the Completion toggle are gone.
+  assert.match(panel, /TASK_WEEKDAYS\.map/);
+  assert.match(panel, />Every day</);
+  assert.doesNotMatch(panel, /label: 'On set days'/);
   assert.doesNotMatch(panel, /Every 2 weeks/);
   assert.doesNotMatch(panel, /Optional due date/);
+  assert.doesNotMatch(panel, /Optional time · HH:MM/);
+  // Completion mode is inferred from an optional count — the Add-Task form no longer
+  // renders a "Completion" field label or a Check off / Quantity toggle.
+  assert.doesNotMatch(panel, /<Typography variant="field-label">Completion<\/Typography>/);
   assert.match(panel, /placeholder="Quantity"/);
   assert.match(panel, /placeholder="Units"/);
 });
 
-test('Completions is one ad-hoc lane that absorbs the Log-completed entry point (TD-020)', () => {
+test('Completions stays one ad-hoc lane; the dead Log-completed form is removed', () => {
   const panel = read('features/tasks/components/TasksPanel.tsx');
   assert.match(panel, />Completions</);
   assert.doesNotMatch(panel, />Anytime</);
-  assert.match(panel, /\+ Log completed/);
+  // The retroactive "Log completed" form was dead code and has been deleted.
+  assert.doesNotMatch(panel, /\+ Log completed/);
+  assert.doesNotMatch(panel, /LogCompletedForm/);
 });
 
 test('Task create and edit forms reset their draft state when they close', () => {
   const panel = read('features/tasks/components/TasksPanel.tsx');
   assert.match(panel, /onClose=\{\(\) => \{ setFormVisible\(false\); setEditing\(null\); \}\}/);
   assert.match(panel, /key=\{`\$\{formVisible \? 'open' : 'closed'\}:\$\{editing\?\.id \?\? 'new-task'\}`\}/);
-});
-
-test('retroactive completion seeds a local wall-clock value instead of a UTC wall-clock value', () => {
-  const panel = read('features/tasks/components/TasksPanel.tsx');
-  assert.match(panel, /useState\(\(\) => localDateTimeInputValue\(\)\)/);
-  assert.doesNotMatch(panel, /new Date\(\)\.toISOString\(\)\.slice\(0, 16\)/);
 });
 
 test('archived Task history is visibly read-only even on an active Goal', () => {

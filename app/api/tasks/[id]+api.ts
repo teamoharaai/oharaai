@@ -26,6 +26,7 @@ async function handlePatch(request: Request, params: Record<string,string>, auth
       p_quantity_unit: unit,
       p_due_date: optionalDate(body.dueDate, 'dueDate'),
       p_milestone_id: optionalString(body.milestoneId, 'milestoneId', 100),
+      p_due_time: optionalString(body.dueTime, 'dueTime', 8),
     });
     if (error) throw error;
     return Response.json({ data: await fetchTaskById(db, auth.userId, taskId) });

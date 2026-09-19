@@ -13,7 +13,9 @@ import {
   DatePicker,
   formatCalendarDate,
   parseCalendarDate,
+  type DatePickerDensity,
 } from '@/components/ui/DatePicker';
+import { OverflowMenu, type OverflowAction } from '@/components/ui/OverflowMenu';
 import { useThemeColors } from '@/store/uiStore';
 import { FONT, TYPE } from '@/constants/design';
 import type {
@@ -33,6 +35,8 @@ export interface MilestonesPanelProps {
   archived?: boolean;
   subtitle?: string;
   completingIds?: ReadonlySet<string>;
+  /** Cross-goal deadline density, shown as an amber ramp on the target-date picker. */
+  deadlineDensity?: DatePickerDensity;
   onAdd?: (input: GoalMilestoneInput) => Promise<void>;
   onSave?: (milestoneId: string, updates: EditableMilestoneUpdates) => Promise<void>;
   onDelete?: (milestoneId: string) => Promise<void>;
@@ -52,6 +56,8 @@ interface MilestoneEditorProps {
   captionMode?: boolean;
   /** Set on child editors so the new row links to its parent. */
   parentId?: string | null;
+  /** Cross-goal deadline density for the target-date picker's amber ramp. */
+  density?: DatePickerDensity;
   onCancel: () => void;
   onSubmit: (input: GoalMilestoneInput) => Promise<void>;
 }
@@ -220,15 +226,15 @@ function MilestoneEditor({
   showTargetCount = false,
   captionMode = false,
   parentId = null,
+  density,
   onCancel,
   onSubmit,
 }: MilestoneEditorProps) {
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
   const compact = width < 480;
-  // Kind is fixed by context (prep rows author inline; everything through this
-  // editor is an achievement or a child of one). Preserving the initial kind
-  // stops an edit from silently flipping a prep step into an achievement.
+  // Milestones are always achievements now (prep was retired). Kept explicit so
+  // the input contract still carries a kind for the service layer.
   const kind: MilestoneKind = initial?.kind ?? 'achievement';
   const [title, setTitle] = useState(initial?.title ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
@@ -360,6 +366,7 @@ function MilestoneEditor({
                   accessibilityLabel="Target Date"
                   allowClear
                   compact
+                  density={density}
                   onChange={setDueDate}
                   placeholder="Target Date"
                   value={dueDate}
@@ -375,6 +382,7 @@ function MilestoneEditor({
         <DatePicker
           accessibilityLabel="Milestone target date"
           allowClear
+          density={density}
           onChange={setDueDate}
           placeholder="Choose a target date"
           style={{ width: '100%' }}
@@ -440,9 +448,9 @@ function MilestoneEditor({
 }
 
 /**
- * Small circular completion control shared by prep rows and counting sub-steps.
- * A filled green check is the ONLY "done" signal in this panel — there is no
- * strike-through on any type of milestone.
+ * Small circular completion control for achievement completion and counting
+ * sub-steps. A filled green check is the ONLY "done" signal in this panel —
+ * there is no strike-through on any type of milestone.
  */
 function CompletionDot({
   completed,
@@ -497,6 +505,7 @@ export function MilestonesPanel({
   archived = false,
   subtitle = 'The critical moments along the way',
   completingIds = new Set<string>(),
+  deadlineDensity,
   onAdd,
   onSave,
   onDelete,
@@ -514,15 +523,13 @@ export function MilestonesPanel({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [addingChildFor, setAddingChildFor] = useState<string | null>(null);
   const [photoBusyId, setPhotoBusyId] = useState<string | null>(null);
-  const [prepDraft, setPrepDraft] = useState('');
-  const [prepSubmitting, setPrepSubmitting] = useState(false);
 
   const readOnly = hasSuccessor || ended || archived;
 
   const sorted = [...milestones].sort((left, right) => left.sortOrder - right.sortOrder);
-  const topLevel = sorted.filter((item) => item.parentId === null);
-  const prepItems = topLevel.filter((item) => item.kind === 'prep');
-  const achievements = topLevel.filter((item) => item.kind !== 'prep');
+  // Milestones are one-time achievements only — the legacy `prep` checklist was
+  // retired (Goal Detail Redesign); enabling/recurring work lives in Tasks now.
+  const achievements = sorted.filter((item) => item.parentId === null);
   const childrenByParent = new Map<string, GoalMilestone[]>();
   for (const item of sorted) {
     if (item.parentId === null) continue;
@@ -549,134 +556,30 @@ export function MilestonesPanel({
     }
   }
 
-  async function handleAddPrep() {
-    const trimmed = prepDraft.trim();
-    if (!trimmed || prepSubmitting || !onAdd) return;
-    setPrepSubmitting(true);
-    try {
-      await onAdd({ title: trimmed, kind: 'prep', parentId: null });
-      setPrepDraft('');
-    } finally {
-      setPrepSubmitting(false);
-    }
-  }
-
-  function renderPrepRow(milestone: GoalMilestone) {
-    if (editingId === milestone.id) {
-      return (
-        <View key={milestone.id}>
-          <MilestoneEditor
-            initial={milestone}
-            onCancel={() => setEditingId(null)}
-            onSubmit={async (input) => {
-              await onSave?.(milestone.id, {
-                title: input.title,
-                description: input.description,
-                dueDate: input.dueDate,
-                kind: input.kind,
-              });
-            }}
-            submitLabel="Save step"
-          />
-        </View>
-      );
-    }
-
-    const completed = milestone.completedAt !== null;
-    const completing = completingIds.has(milestone.id);
-    const deleting = deletingId === milestone.id;
-    const dateText = completed
-      ? `Done · ${formatDate(milestone.completedAt!)}`
-      : milestone.dueDate
-        ? `Due · ${formatDate(milestone.dueDate)}`
-        : null;
-
-    return (
-      <View
-        key={milestone.id}
-        style={{
-          alignItems: 'center',
-          backgroundColor: colors.background.card,
-          borderColor: colors.border.divider,
-          borderRadius: 12,
-          borderWidth: 1,
-          flexDirection: 'row',
-          gap: 12,
-          paddingHorizontal: compact ? 12 : 14,
-          paddingVertical: 10,
-        }}
-      >
-        <CompletionDot
-          busy={completing}
-          completed={completed}
-          disabled={completed || readOnly || !onComplete || completing}
-          label={completed ? `${milestone.title}, done` : `Mark ${milestone.title} done`}
-          onPress={() => void onComplete?.(milestone.id)}
-          size={20}
-        />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          {/* No strike-through: a completed prep step reads as a positive record. */}
-          <Text
-            style={{
-              color: completed ? colors.text.secondary : colors.text.primary,
-              fontFamily: 'Inter-Medium',
-              fontSize: 13.5,
-              lineHeight: 19,
-            }}
-          >
-            {milestone.title}
-          </Text>
-          {dateText ? (
-            <Text
-              style={{
-                color: colors.text.muted,
-                fontFamily: 'Inter-Regular',
-                fontSize: 12,
-                lineHeight: 16,
-                marginTop: 1,
-              }}
-            >
-              {dateText}
-            </Text>
-          ) : null}
-          {deleting ? renderDeleteConfirm(milestone) : null}
-        </View>
-        {!readOnly && !deleting ? renderRowActions(milestone, completed) : null}
-      </View>
-    );
-  }
-
   function renderRowActions(milestone: GoalMilestone, completed: boolean) {
-    return (
-      <View style={{ flexDirection: compact ? 'column' : 'row', gap: 2 }}>
-        {onSave && !completed ? (
-          <Pressable
-            accessibilityLabel={`Edit ${milestone.title}`}
-            accessibilityRole="button"
-            onPress={() => {
-              setDeletingId(null);
-              setEditingId(milestone.id);
-            }}
-            style={{ alignItems: 'center', height: 30, justifyContent: 'center', width: 30 }}
-          >
-            <Text style={{ color: colors.text.muted, fontFamily: 'Inter-Regular', fontSize: 14 }}>✎</Text>
-          </Pressable>
-        ) : null}
-        {onDelete ? (
-          <Pressable
-            accessibilityLabel={`Delete ${milestone.title}`}
-            accessibilityRole="button"
-            onPress={() => {
-              setEditingId(null);
-              setDeletingId(milestone.id);
-            }}
-            style={{ alignItems: 'center', height: 30, justifyContent: 'center', width: 30 }}
-          >
-            <Text style={{ color: colors.text.muted, fontFamily: 'Inter-Regular', fontSize: 14 }}>⌫</Text>
-          </Pressable>
-        ) : null}
-      </View>
-    );
+    const actions: OverflowAction[] = [];
+    if (onSave && !completed) {
+      actions.push({
+        key: 'edit',
+        label: 'Edit',
+        onPress: () => {
+          setDeletingId(null);
+          setEditingId(milestone.id);
+        },
+      });
+    }
+    if (onDelete) {
+      actions.push({
+        key: 'delete',
+        label: 'Delete',
+        destructive: true,
+        onPress: () => {
+          setEditingId(null);
+          setDeletingId(milestone.id);
+        },
+      });
+    }
+    return <OverflowMenu accessibilityLabel={`Actions for ${milestone.title}`} actions={actions} />;
   }
 
   function renderDeleteConfirm(milestone: GoalMilestone) {
@@ -729,54 +632,40 @@ export function MilestonesPanel({
     );
   }
 
-  /** Photo + delete + edit actions shared by both child modes. */
+  /** Photo + delete + edit actions shared by both child modes, in a `⋯` menu. */
   function renderChildActions(child: GoalMilestone) {
     if (readOnly || deletingId === child.id) return null;
-    return (
-      <View style={{ flexDirection: 'row', gap: 2 }}>
-        {onSave ? (
-          <Pressable
-            accessibilityLabel={`Edit ${child.title}`}
-            accessibilityRole="button"
-            onPress={() => {
-              setDeletingId(null);
-              setEditingId(child.id);
-            }}
-            style={{ alignItems: 'center', height: 28, justifyContent: 'center', width: 28 }}
-          >
-            <Text style={{ color: colors.text.muted, fontSize: 14 }}>✎</Text>
-          </Pressable>
-        ) : null}
-        {onAttachPhoto ? (
-          <Pressable
-            accessibilityLabel={`${child.photoUrl ? 'Replace' : 'Add'} photo for ${child.title}`}
-            accessibilityRole="button"
-            disabled={photoBusyId === child.id}
-            onPress={() => void handleAttachPhoto(child.id)}
-            style={{ alignItems: 'center', height: 28, justifyContent: 'center', width: 28 }}
-          >
-            {photoBusyId === child.id ? (
-              <ActivityIndicator color={colors.accent.primary} size="small" />
-            ) : (
-              <Text style={{ color: colors.text.muted, fontSize: 14 }}>📷</Text>
-            )}
-          </Pressable>
-        ) : null}
-        {onDelete ? (
-          <Pressable
-            accessibilityLabel={`Delete ${child.title}`}
-            accessibilityRole="button"
-            onPress={() => {
-              setEditingId(null);
-              setDeletingId(child.id);
-            }}
-            style={{ alignItems: 'center', height: 28, justifyContent: 'center', width: 28 }}
-          >
-            <Text style={{ color: colors.text.muted, fontSize: 14 }}>⌫</Text>
-          </Pressable>
-        ) : null}
-      </View>
-    );
+    const actions: OverflowAction[] = [];
+    if (onSave) {
+      actions.push({
+        key: 'edit',
+        label: 'Edit',
+        onPress: () => {
+          setDeletingId(null);
+          setEditingId(child.id);
+        },
+      });
+    }
+    if (onAttachPhoto) {
+      actions.push({
+        key: 'photo',
+        label: child.photoUrl ? 'Replace photo' : 'Add photo',
+        busy: photoBusyId === child.id,
+        onPress: () => void handleAttachPhoto(child.id),
+      });
+    }
+    if (onDelete) {
+      actions.push({
+        key: 'delete',
+        label: 'Delete',
+        destructive: true,
+        onPress: () => {
+          setEditingId(null);
+          setDeletingId(child.id);
+        },
+      });
+    }
+    return <OverflowMenu accessibilityLabel={`Actions for ${child.title}`} actions={actions} size={28} />;
   }
 
   function renderChildEditor(child: GoalMilestone, captionMode: boolean) {
@@ -1140,28 +1029,12 @@ export function MilestonesPanel({
     );
   }
 
-  function renderZoneLabel(label: string) {
-    return (
-      <Text
-        style={{
-          color: colors.text.secondary,
-          ...TYPE.overline,
-          fontFamily: FONT.ui.semibold,
-          letterSpacing: 1.2,
-          marginBottom: 10,
-          textTransform: 'uppercase',
-        }}
-      >
-        {label}
-      </Text>
-    );
-  }
-
   function renderTopLevelAchievement(milestone: GoalMilestone) {
     if (editingId === milestone.id) {
       return (
         <View key={milestone.id}>
           <MilestoneEditor
+            density={deadlineDensity}
             initial={milestone}
             onCancel={() => setEditingId(null)}
             onSubmit={async (input) => {
@@ -1264,67 +1137,8 @@ export function MilestonesPanel({
         </View>
       ) : null}
 
-      {/* Zone 1 — Prep: an always-present lightweight checklist. The ghost row at
-          the bottom is the "empty template that's always available". */}
-      {!readOnly || prepItems.length > 0 ? (
-        <View style={{ marginBottom: achievements.length > 0 || showAddForm ? 24 : 0 }}>
-          {renderZoneLabel('Prep')}
-          <View style={{ gap: 8 }}>
-            {prepItems.map((item) => renderPrepRow(item))}
-            {!readOnly && onAdd ? (
-              <View
-                style={{
-                  alignItems: 'center',
-                  borderColor: colors.border.divider,
-                  borderRadius: 12,
-                  borderStyle: 'dashed',
-                  borderWidth: 1,
-                  flexDirection: 'row',
-                  gap: 12,
-                  paddingHorizontal: compact ? 12 : 14,
-                  paddingVertical: 6,
-                }}
-              >
-                <TextInput
-                  accessibilityLabel="Add a prep step"
-                  blurOnSubmit={false}
-                  onChangeText={setPrepDraft}
-                  onSubmitEditing={() => void handleAddPrep()}
-                  placeholder="＋ Add a prep step…"
-                  placeholderTextColor={colors.text.muted}
-                  returnKeyType="done"
-                  style={{
-                    color: colors.text.primary,
-                    flex: 1,
-                    fontFamily: 'Inter-Regular',
-                    fontSize: 13.5,
-                    paddingVertical: 8,
-                  }}
-                  value={prepDraft}
-                />
-                {prepSubmitting ? (
-                  <ActivityIndicator color={colors.accent.primary} size="small" />
-                ) : prepDraft.trim() ? (
-                  <Pressable
-                    accessibilityLabel="Save prep step"
-                    accessibilityRole="button"
-                    onPress={() => void handleAddPrep()}
-                    style={{ paddingHorizontal: 8, paddingVertical: 4 }}
-                  >
-                    <Text style={{ color: colors.text.accent, fontFamily: 'Inter-SemiBold', fontSize: 13 }}>
-                      Add
-                    </Text>
-                  </Pressable>
-                ) : null}
-              </View>
-            ) : null}
-          </View>
-        </View>
-      ) : null}
-
-      {/* Zone 2 — Milestones: the achievement story cards. */}
-      {achievements.length > 0 || !readOnly ? renderZoneLabel('Milestones') : null}
-
+      {/* Milestones are one-time achievement story cards — the Prep checklist
+          zone was retired (Goal Detail Redesign); enabling work lives in Tasks. */}
       {achievements.length > 0 ? (
         <View style={{ gap: 12 }}>
           {achievements.map((milestone) => renderTopLevelAchievement(milestone))}
@@ -1341,6 +1155,7 @@ export function MilestonesPanel({
       {showAddForm && !readOnly ? (
         <View style={{ marginTop: achievements.length > 0 ? 12 : 4 }}>
           <MilestoneEditor
+            density={deadlineDensity}
             onCancel={() => setShowAddForm(false)}
             onSubmit={async (input) => {
               await onAdd?.(input);

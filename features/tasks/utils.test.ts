@@ -169,7 +169,11 @@ test('retroactive completion accepts current and historical local times but reje
 
 test('schedule and quantity validation reject ambiguous native configuration', () => {
   assert.throws(() => scheduleInput({ recurrenceKind: 'weekly', weekdays: [] }), /require at least one weekday/);
-  assert.throws(() => validateQuantityConfiguration('quantity', 0, 'pages'), /positive target/);
+  // A provided target must be positive, but the target + unit are optional (a bare
+  // counter just counts up) — migration 056, Goal Detail Redesign Phase 2.
+  assert.throws(() => validateQuantityConfiguration('quantity', 0, 'pages'), /positive number/);
+  assert.doesNotThrow(() => validateQuantityConfiguration('quantity', null, null));
+  assert.doesNotThrow(() => validateQuantityConfiguration('quantity', 30, 'pages'));
   assert.throws(() => validateQuantityConfiguration('binary', 1, null), /cannot have quantity/);
   assert.deepEqual(scheduleInput({
     recurrenceKind: 'weekly', intervalCount: 2, weekdays: [5, 1, 5],

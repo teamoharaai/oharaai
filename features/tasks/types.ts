@@ -99,6 +99,8 @@ export interface TaskUpdateInput {
   targetQuantity?: number | null;
   quantityUnit?: string | null;
   dueDate?: string | null;
+  /** `HH:MM` time-of-day for a one-time Task's occurrence, or null to clear it. */
+  dueTime?: string | null;
   milestoneId?: string | null;
 }
 

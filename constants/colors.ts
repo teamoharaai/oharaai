@@ -40,6 +40,7 @@ export interface ThemeColors {
     readonly tealSubtle: string;
     readonly tealMid: string;
     readonly tealSoft: string;
+    readonly deadline: string;
   };
   readonly feedback: {
     readonly danger: FeedbackColors;
@@ -62,6 +63,13 @@ export type ThemeTextColor = keyof ThemeColors['text'];
 
 export const OHARA_ACCENT_PRIMARY = '#63C174';
 export const OHARA_ACCENT_PRIMARY_HOVER = '#4EAA60';
+
+// Deadline amber — the density ramp for the cross-goal deadline calendar
+// (future-facing), deliberately distinct from the green engagement heatmap
+// (past-facing) and from BRT rose. Consumers ramp it by alpha over the base RGB;
+// `OHARA_DEADLINE_AMBER_RGB` is the same colour as an `r,g,b` triple for rgba().
+export const OHARA_DEADLINE_AMBER = '#E08A2E';
+export const OHARA_DEADLINE_AMBER_RGB = '224,138,46';
 
 export const LIGHT_THEME = {
   background: {
@@ -105,6 +113,7 @@ export const LIGHT_THEME = {
     tealSubtle: '#E8F5EF',
     tealMid: '#2F8F6D', // new: mid teal (today-ring, project dot, streak number)
     tealSoft: '#9FD9C4', // new: soft teal (mint labels on dark, filled streak ring)
+    deadline: OHARA_DEADLINE_AMBER, // amber density ramp for the deadline calendar
   },
   feedback: {
     danger: {
@@ -171,6 +180,7 @@ export const DARK_THEME = {
     tealSubtle: '#FAFDFB', // derived, no Figma dark token
     tealMid: '#55C983',
     tealSoft: '#A6DFB5',
+    deadline: OHARA_DEADLINE_AMBER, // amber density ramp for the deadline calendar
   },
   feedback: {
     danger: {

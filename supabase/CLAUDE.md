@@ -218,6 +218,29 @@ Owner: CTO. Cascade Level 3.
   CD-021). Applied + verified live via the management API 2026-09-17 (rolled-back
   `set local role authenticated` sim + harness 053+054); types regenerated, tsc
   clean. Latest applied migration is now 054. Design: `design/circles/`.
+- 055_retire_prep_milestones.sql: Goal Detail Redesign Phase 1. Deletes the
+  legacy `prep` milestone rows (`delete from public.milestones where kind =
+  'prep'`) — milestones become one-time achievements only; enabling/recurring
+  work lives in Tasks. Scoped strictly to `kind = 'prep'`; the `kind` column +
+  CHECK are intentionally left in place (pure data cleanup, no product path
+  authors prep anymore). Deletes were FK-safe (tasks.milestone_id SET NULL,
+  reflection_milestone_links + parent_id CASCADE). Applied + verified live via
+  the management API 2026-09-18 (1 prep row removed, remaining_prep=0, ledger
+  latest=055). `MilestoneKind` narrowed to `'achievement'`. Owned by the Goal
+  Detail Redesign (`memory/project_goal_detail_redesign.md`,
+  `design/goal-detail-redesign/`). Latest applied migration is now 055.
+- 056_tasks_optional_counter_target.sql: Goal Detail Redesign Phase 2. Makes a
+  quantity Task a true count-up counter — its target is now OPTIONAL (null target
+  = just counts up), mirroring the optional `target_count` on milestone
+  achievements. Relaxes the `source='user'` `tasks_check` constraint (quantity no
+  longer requires target+unit; binary still forbids both; positivity stays on the
+  separate `tasks_target_quantity_check`) and the matching guards in
+  `create_task_v1` / `update_task_v1` / `log_completed_task_v1` (retroactive
+  quantity completions still require a valid actual amount). Loosening a CHECK
+  never invalidates existing rows — no backfill. Dry-run-verified in a rolled-back
+  txn (null-target quantity insert accepted), then applied + verified live via the
+  management API 2026-09-18 (constraint def confirmed relaxed, ledger latest=056).
+  Owned by the Goal Detail Redesign. Latest applied migration is now 056.
 - goals.mode column was dropped in the 2026-06-24 squash (was a single-value
   CHECK column, no longer carried). lib/db/goals.ts no longer inserts it.
 

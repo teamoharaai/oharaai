@@ -55,7 +55,7 @@ export function isDailyCadence(task: Task): boolean {
 
 export function scheduleLabel(task: Task): string {
   const schedule = activeTaskSchedule(task);
-  if (!schedule) return task.dueDate ? `Due ${task.dueDate}` : 'No deadline';
+  if (!schedule) return task.dueDate ? `Expire ${shortDate(task.dueDate)}` : 'No deadline';
   if (schedule.recurrenceKind === 'daily') {
     return schedule.intervalCount === 1 ? 'Daily' : `Every ${schedule.intervalCount} days`;
   }
