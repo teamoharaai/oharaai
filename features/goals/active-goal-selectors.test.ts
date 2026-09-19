@@ -41,6 +41,7 @@ function createGoal(
     reflection: null,
     reflected_at: null,
     milestones: [],
+    notes: [],
     trackers: [],
     vaultItemCount: 0,
     echoLinkCount: 0,

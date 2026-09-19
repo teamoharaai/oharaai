@@ -51,6 +51,7 @@ import { CountdownTimer } from './CountdownTimer';
 import { GoalDetailHeader } from './GoalDetailHeader';
 import { GoalProjectPickerModal } from './GoalProjectPickerModal';
 import { MilestonesPanel } from './MilestonesPanel';
+import { StickyNotesPanel } from './StickyNotesPanel';
 
 type WorkspaceTab = 'overview' | 'milestones' | 'tasks' | 'reflections' | 'notes' | 'insights';
 
@@ -1130,7 +1131,6 @@ function GoalTabContent({
   const colors = useThemeColors();
   const { density: deadlineDensity } = useDeadlineDensity();
   const next = getNextGoalMilestone(goal.milestones);
-  const notes = linkedEntries.filter((entry) => entry.entryType === 'note');
   const reflections = linkedEntries.filter((entry) => entry.entryType === 'reflection');
   const insights = activityItems.filter((item) => item.kind === 'insight_confirmed');
 
@@ -1177,11 +1177,7 @@ function GoalTabContent({
   return (
     <WorkspaceSection>
       <SectionHeading
-        action={tab === 'notes' ? (
-          <Pressable onPress={() => router.push('/(app)/entries?create=note')} style={{ minHeight: 44, justifyContent: 'center' }}>
-            <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>+ New note</Typography>
-          </Pressable>
-        ) : tab === 'reflections' ? (
+        action={tab === 'reflections' ? (
           <Pressable
             onPress={() => router.push({ pathname: '/(app)/entries/reflection', params: { goalId: goal.id, type: 'goal' } })}
             style={{ minHeight: 44, justifyContent: 'center' }}
@@ -1217,8 +1213,18 @@ function GoalTabContent({
           <EntriesList entries={reflections} emptyCopy="No reflections are linked to this goal yet." />
         ) : null}
         {tab === 'notes' ? (
-          entriesError ? <Typography variant="body">Linked notes could not be loaded right now.</Typography> :
-          <EntriesList entries={notes} emptyCopy="No notes are linked to this goal yet." />
+          <StickyNotesPanel
+            embedded
+            error={goalDetail.noteError}
+            notes={goal.notes}
+            onAdd={goalDetail.onAddNote}
+            onAttachPhoto={goalDetail.onAttachNotePhoto}
+            onDelete={goalDetail.onDeleteNote}
+            onDismissError={goalDetail.clearNoteError}
+            onSave={goalDetail.onSaveNote}
+            readOnly={goal.has_successor || goal.status === 'complete' || goal.status === 'archived'}
+            resolvePhotoUrl={goalDetail.resolveNotePhotoUrl}
+          />
         ) : null}
         {tab === 'insights' ? (
           insights.length ? (

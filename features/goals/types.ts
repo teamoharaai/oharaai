@@ -74,6 +74,35 @@ export interface GoalMilestone {
   updatedAt: Date;
 }
 
+/**
+ * Sticky note: an owner-private, goal-bound freeform note authored inline on the
+ * goal detail "Notes" tab. Modeled on milestones (own table, hero photo via the
+ * goal-note-photos bucket) but with no completion/hierarchy — just a title, body,
+ * and optional photo. Not a Momentum signal and not surfaced in Circles.
+ */
+export interface GoalNote {
+  id: string;
+  goalId: string;
+  userId: string;
+  title: string;
+  body: string | null;
+  /** Storage path of the hero photo (goal-note-photos bucket). */
+  photoUrl: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface GoalNoteInput {
+  title: string;
+  body?: string | null;
+}
+
+export interface GoalNoteUpdates {
+  title?: string;
+  body?: string | null;
+  photoUrl?: string | null;
+}
+
 export interface Tracker {
   id: string;
   goalId: string;
@@ -122,6 +151,7 @@ export interface GoalWithDetails extends Goal {
   reflection: string | null;
   reflected_at: Date | null;
   milestones: GoalMilestone[];
+  notes: GoalNote[];
   trackers: Tracker[];
   vaultItemCount: number;
   echoLinkCount: number;

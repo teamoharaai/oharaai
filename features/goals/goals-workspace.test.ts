@@ -38,6 +38,7 @@ function goal(overrides: Partial<GoalWithDetails> = {}): GoalWithDetails {
     reflection: null,
     reflected_at: null,
     milestones: [],
+    notes: [],
     trackers: [],
     vaultItemCount: 0,
     echoLinkCount: 0,

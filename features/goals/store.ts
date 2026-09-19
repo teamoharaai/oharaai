@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { deleteGoal as deleteGoalRecord } from './services/goal-service';
-import type { GoalMilestone, GoalWithDetails, Tracker } from './types';
+import type { GoalMilestone, GoalNote, GoalWithDetails, Tracker } from './types';
 
 interface GoalStore {
   goals: GoalWithDetails[];
@@ -16,6 +16,8 @@ interface GoalStore {
   removeTracker: (goalId: string, trackerId: string) => void;
   upsertMilestone: (goalId: string, milestone: GoalMilestone) => void;
   removeMilestone: (goalId: string, milestoneId: string) => void;
+  upsertNote: (goalId: string, note: GoalNote) => void;
+  removeNote: (goalId: string, noteId: string) => void;
 }
 
 export const useGoalStore = create<GoalStore>((set) => ({
@@ -88,6 +90,25 @@ export const useGoalStore = create<GoalStore>((set) => ({
           ...goal,
           milestones: goal.milestones.filter((milestone) => milestone.id !== milestoneId),
         };
+      }),
+    })),
+  upsertNote: (goalId, note) =>
+    set((state) => ({
+      goals: state.goals.map((goal) => {
+        if (goal.id !== goalId) return goal;
+        const exists = goal.notes.some((item) => item.id === note.id);
+        const notes = (exists
+          ? goal.notes.map((item) => (item.id === note.id ? note : item))
+          : [note, ...goal.notes]
+        ).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        return { ...goal, notes };
+      }),
+    })),
+  removeNote: (goalId, noteId) =>
+    set((state) => ({
+      goals: state.goals.map((goal) => {
+        if (goal.id !== goalId) return goal;
+        return { ...goal, notes: goal.notes.filter((note) => note.id !== noteId) };
       }),
     })),
 }));

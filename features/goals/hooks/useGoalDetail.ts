@@ -9,15 +9,23 @@ import {
   uploadMilestonePhoto,
 } from '../services/milestone-image-service';
 import {
+  createSignedGoalNotePhotoUrl,
+  removeGoalNotePhoto,
+  uploadGoalNotePhoto,
+} from '../services/goal-note-image-service';
+import {
   completeMilestone,
+  createGoalNote,
   createMilestone,
   createTracker,
+  deleteGoalNote,
   deleteMilestone,
   deleteTracker,
   extendGoalDeadline,
   fetchGoalById,
   fetchGoals,
   updateGoal,
+  updateGoalNote,
   updateMilestone,
   updateTracker,
 } from '../services/goal-service';
@@ -25,6 +33,8 @@ import { useGoalStore } from '../store';
 import type {
   GoalMilestoneInput,
   GoalMilestoneUpdates,
+  GoalNoteInput,
+  GoalNoteUpdates,
   GoalWithDetails,
   TrackerInput,
   TrackerUpdates,
@@ -45,6 +55,11 @@ export interface UseGoalDetailResult {
   onCompleteMilestone: (milestoneId: string) => Promise<void>;
   onAttachMilestonePhoto: (milestoneId: string) => Promise<void>;
   resolveMilestonePhotoUrl: (storagePath: string) => Promise<string>;
+  onAddNote: (input: GoalNoteInput) => Promise<void>;
+  onSaveNote: (noteId: string, updates: GoalNoteUpdates) => Promise<void>;
+  onDeleteNote: (noteId: string) => Promise<void>;
+  onAttachNotePhoto: (noteId: string) => Promise<void>;
+  resolveNotePhotoUrl: (storagePath: string) => Promise<string>;
   onUpdateDeadline: (deadline: Date | null) => Promise<boolean>;
   onUpdateProject: (projectId: string | null) => Promise<boolean>;
   onUpdateDescription: (description: string | null) => Promise<boolean>;
@@ -54,9 +69,11 @@ export interface UseGoalDetailResult {
   completingMilestoneIds: Set<string>;
   trackerError: string | null;
   milestoneError: string | null;
+  noteError: string | null;
   goalError: string | null;
   clearTrackerError: () => void;
   clearMilestoneError: () => void;
+  clearNoteError: () => void;
   clearGoalError: () => void;
 }
 
@@ -85,8 +102,11 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
   const removeTracker = useGoalStore((state) => state.removeTracker);
   const upsertMilestone = useGoalStore((state) => state.upsertMilestone);
   const removeMilestone = useGoalStore((state) => state.removeMilestone);
+  const upsertNote = useGoalStore((state) => state.upsertNote);
+  const removeNote = useGoalStore((state) => state.removeNote);
   const [trackerError, setTrackerError] = useState<string | null>(null);
   const [milestoneError, setMilestoneError] = useState<string | null>(null);
+  const [noteError, setNoteError] = useState<string | null>(null);
   const [goalError, setGoalError] = useState<string | null>(null);
   const [completedTrackerIds, setCompletedTrackerIds] = useState<Set<string>>(new Set());
   const [completingMilestoneIds, setCompletingMilestoneIds] = useState<Set<string>>(new Set());
@@ -97,6 +117,7 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
     setCompletingMilestoneIds(new Set());
     setTrackerError(null);
     setMilestoneError(null);
+    setNoteError(null);
     setGoalError(null);
   }, [goalId]);
 
@@ -161,6 +182,7 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
 
   const clearTrackerError = useCallback(() => setTrackerError(null), []);
   const clearMilestoneError = useCallback(() => setMilestoneError(null), []);
+  const clearNoteError = useCallback(() => setNoteError(null), []);
   const clearGoalError = useCallback(() => setGoalError(null), []);
 
   const onSaveTracker = useCallback(async (trackerId: string, updates: TrackerUpdates) => {
@@ -357,6 +379,85 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
     }
   }, [goalId, readOnlyGoal, upsertMilestone]);
 
+  const onAddNote = useCallback(async (input: GoalNoteInput) => {
+    const currentGoal = readOnlyGoal();
+    if (!currentGoal) return;
+    const userId = useAuthStore.getState().session?.user.id ?? null;
+    if (!userId) {
+      setNoteError('You need to be signed in to add a note.');
+      return;
+    }
+
+    const saved = await createGoalNote(goalId, userId, input);
+    if (!saved) {
+      setNoteError('Failed to add note. Please try again.');
+      return;
+    }
+    upsertNote(goalId, saved);
+  }, [goalId, readOnlyGoal, upsertNote]);
+
+  const onSaveNote = useCallback(async (noteId: string, updates: GoalNoteUpdates) => {
+    const currentGoal = readOnlyGoal();
+    const current = currentGoal?.notes.find((item) => item.id === noteId);
+    if (!current) return;
+
+    upsertNote(goalId, { ...current, ...updates });
+    const saved = await updateGoalNote(goalId, noteId, updates);
+    if (!saved) {
+      upsertNote(goalId, current);
+      setNoteError('Failed to save note changes. Please try again.');
+      return;
+    }
+    upsertNote(goalId, saved);
+  }, [goalId, readOnlyGoal, upsertNote]);
+
+  const onDeleteNote = useCallback(async (noteId: string) => {
+    const currentGoal = readOnlyGoal();
+    const current = currentGoal?.notes.find((item) => item.id === noteId);
+    if (!current) return;
+
+    removeNote(goalId, noteId);
+    if (!await deleteGoalNote(goalId, noteId)) {
+      upsertNote(goalId, current);
+      setNoteError('Failed to delete note. Please try again.');
+    }
+  }, [goalId, readOnlyGoal, removeNote, upsertNote]);
+
+  // Photo evidence lives on the note card (the id already exists), mirroring the
+  // milestone photo flow: picking + upload are side effects, so they live here;
+  // the panel receives this as a prop and stays free of services.
+  const onAttachNotePhoto = useCallback(async (noteId: string) => {
+    const currentGoal = readOnlyGoal();
+    const current = currentGoal?.notes.find((item) => item.id === noteId);
+    if (!current) return;
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setNoteError('Photo library permission is required to add a photo.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+
+    setNoteError(null);
+    try {
+      const blob = await (await fetch(result.assets[0].uri)).blob();
+      const { storagePath } = await uploadGoalNotePhoto(noteId, blob);
+      const saved = await updateGoalNote(goalId, noteId, { photoUrl: storagePath });
+      if (!saved) {
+        setNoteError('Failed to save the photo. Please try again.');
+        return;
+      }
+      if (current.photoUrl) void removeGoalNotePhoto(current.photoUrl);
+      upsertNote(goalId, saved);
+    } catch {
+      setNoteError('Failed to upload the photo. Please try again.');
+    }
+  }, [goalId, readOnlyGoal, upsertNote]);
+
   const persistGoalUpdate = useCallback(async (
     optimistic: GoalWithDetails,
     updates: Parameters<typeof updateGoal>[1],
@@ -449,6 +550,11 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
     onCompleteMilestone,
     onAttachMilestonePhoto,
     resolveMilestonePhotoUrl: createSignedMilestonePhotoUrl,
+    onAddNote,
+    onSaveNote,
+    onDeleteNote,
+    onAttachNotePhoto,
+    resolveNotePhotoUrl: createSignedGoalNotePhotoUrl,
     onUpdateDeadline,
     onUpdateProject,
     onUpdateDescription,
@@ -458,9 +564,11 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
     completingMilestoneIds,
     trackerError,
     milestoneError,
+    noteError,
     goalError,
     clearTrackerError,
     clearMilestoneError,
+    clearNoteError,
     clearGoalError,
   };
 }

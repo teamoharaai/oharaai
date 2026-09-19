@@ -9,6 +9,9 @@ import type {
   GoalMilestone,
   GoalMilestoneInput,
   GoalMilestoneUpdates,
+  GoalNote,
+  GoalNoteInput,
+  GoalNoteUpdates,
   GoalStatus,
   GoalTargetFrequency,
   GoalWithDetails,
@@ -65,6 +68,17 @@ type DbMilestone = {
   updated_at: string;
 };
 
+type DbGoalNote = {
+  id: string;
+  goal_id: string;
+  user_id: string;
+  title: string;
+  body: string | null;
+  photo_url: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type DbGoal = {
   id: string;
   user_id: string;
@@ -90,6 +104,7 @@ export type DbGoal = {
   created_at: string;
   updated_at: string;
   milestones: DbMilestone[];
+  goal_notes: DbGoalNote[];
   trackers: DbTracker[];
 };
 
@@ -233,6 +248,19 @@ function mapMilestone(row: DbMilestone): GoalMilestone {
   };
 }
 
+function mapGoalNote(row: DbGoalNote): GoalNote {
+  return {
+    id: row.id,
+    goalId: row.goal_id,
+    userId: row.user_id,
+    title: row.title,
+    body: row.body,
+    photoUrl: row.photo_url,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+  };
+}
+
 export function mapGoal(row: DbGoal): GoalWithDetails {
   return {
     id: row.id,
@@ -261,6 +289,9 @@ export function mapGoal(row: DbGoal): GoalWithDetails {
     has_successor: false,
     successor: null,
     milestones: (row.milestones ?? []).map(mapMilestone).sort((a, b) => a.sortOrder - b.sortOrder),
+    notes: (row.goal_notes ?? [])
+      .map(mapGoalNote)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
     trackers: (row.trackers ?? []).map(mapTracker).sort((a, b) => a.sortOrder - b.sortOrder),
     vaultItemCount: 0,
     echoLinkCount: 0,
@@ -383,6 +414,9 @@ export const GOAL_SELECT = `
     id, goal_id, user_id, title, description, due_date, completed_at,
     sort_order, is_ai_suggested, kind, parent_id, target_count, photo_url,
     created_at, updated_at
+  ),
+  goal_notes (
+    id, goal_id, user_id, title, body, photo_url, created_at, updated_at
   ),
   trackers (
     id, goal_id, title, type, target_value, target_unit, frequency,
@@ -680,5 +714,62 @@ export async function deleteMilestone(goalId: string, milestoneId: string): Prom
     .from('milestones')
     .delete()
     .eq('id', milestoneId);
+  return !error;
+}
+
+export async function createGoalNote(
+  goalId: string,
+  userId: string,
+  input: GoalNoteInput,
+): Promise<GoalNote | null> {
+  if (!await canWriteGoal(goalId)) return null;
+
+  const { data, error } = await supabase
+    .from('goal_notes')
+    .insert({
+      goal_id: goalId,
+      user_id: userId,
+      title: input.title.trim(),
+      body: input.body?.trim() || null,
+    })
+    .select()
+    .single();
+
+  if (error || !data) return null;
+  return mapGoalNote(data as unknown as DbGoalNote);
+}
+
+export async function updateGoalNote(
+  goalId: string,
+  noteId: string,
+  updates: GoalNoteUpdates,
+): Promise<GoalNote | null> {
+  if (!await canWriteGoal(goalId)) return null;
+
+  const patch: Record<string, unknown> = {};
+  if (updates.title !== undefined) patch.title = updates.title.trim();
+  if ('body' in updates) patch.body = updates.body?.trim() || null;
+  if ('photoUrl' in updates) patch.photo_url = updates.photoUrl ?? null;
+
+  if (Object.keys(patch).length === 0) return null;
+
+  const { data, error } = await supabase
+    .from('goal_notes')
+    .update(patch)
+    .eq('id', noteId)
+    .select()
+    .single();
+
+  if (error || !data) return null;
+  return mapGoalNote(data as unknown as DbGoalNote);
+}
+
+export async function deleteGoalNote(goalId: string, noteId: string): Promise<boolean> {
+  if (!await canWriteGoal(goalId)) return false;
+
+  const { error } = await supabase
+    .from('goal_notes')
+    .delete()
+    .eq('id', noteId);
   return !error;
 }
