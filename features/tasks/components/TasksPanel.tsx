@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Button } from '@/components/ui/Button';
 import { DatePicker, type DatePickerDensity } from '@/components/ui/DatePicker';
@@ -11,7 +11,20 @@ import type { GoalMilestone, GoalStatus } from '@/features/goals/types';
 import { useThemeColors } from '@/store/uiStore';
 import { useGoalTasks } from '../hooks/useGoalTasks';
 import type { Task, TaskCompletionMode, TaskOccurrence, TaskScheduleInput } from '../types';
-import { activeTaskSchedule, buildTaskSections, newTaskIdempotencyKey, scheduleLabel, shortDate, TASK_WEEKDAYS } from '../utils';
+import {
+  activeTaskSchedule,
+  bucketPlanItems,
+  buildPlanItems,
+  dateInTimeZone,
+  newTaskIdempotencyKey,
+  PLAN_SCOPES,
+  scheduleLabel,
+  shortDate,
+  TASK_WEEKDAYS,
+  type PlanItem,
+  type PlanScope,
+  type WeekdayCell,
+} from '../utils';
 
 function TaskRow({
   task,
@@ -112,28 +125,6 @@ function Choice({ active, children, onPress }: { active: boolean; children: stri
   );
 }
 
-function ImportedTaskDefinitionRow({ task, readOnly, onEdit }: { task: Task; readOnly: boolean; onEdit: () => void }) {
-  const colors = useThemeColors();
-  const baseline = task.legacyCurrentValue !== null
-    ? `Imported baseline: ${task.legacyCurrentValue}${task.quantityUnit ? ` ${task.quantityUnit}` : ''}`
-    : null;
-  const cadence = task.legacyFrequency
-    ? `${task.legacyFrequency[0].toUpperCase()}${task.legacyFrequency.slice(1)} timing needs confirmation`
-    : 'Choose timing to continue this imported Task';
-  return (
-    <Pressable
-      accessibilityLabel={`Review timing for ${task.title}`}
-      accessibilityRole="button"
-      disabled={readOnly}
-      onPress={onEdit}
-      style={{ borderBottomColor: colors.border.divider, borderBottomWidth: 1, paddingVertical: SPACE.lg }}
-    >
-      <Typography variant="emphasis-sm">{task.title}</Typography>
-      <Typography variant="caption" style={{ marginTop: 2 }}>{cadence}{baseline ? ` · ${baseline}` : ''}</Typography>
-    </Pressable>
-  );
-}
-
 const ALL_WEEKDAYS = TASK_WEEKDAYS.map((day) => day.value);
 
 /** Header summary for the collapsed Schedule section. */
@@ -173,6 +164,11 @@ function TaskForm({
   const colors = useThemeColors();
   const isReminder = !task && initialPreset === 'reminder';
   const activeSchedule = task ? activeTaskSchedule(task) : null;
+  // A weekly_count ("N×/week") Task can't be re-authored through the weekday strip
+  // (its empty weekdays read as "Once"), so the form treats it read-only: title +
+  // milestone editable, frequency shown as a note, and save never touches the
+  // schedule. Editing the frequency itself is deferred (TM-6 Phase 3 scope).
+  const isWeeklyCount = activeSchedule?.recurrenceKind === 'weekly_count';
   // Preserve an existing `intervalCount` (e.g. a legacy every-2-weeks schedule) —
   // the form no longer authors it, but saving must not silently reset it.
   const preservedIntervalCount = activeSchedule?.intervalCount ?? 1;
@@ -211,6 +207,23 @@ function TaskForm({
   async function save() {
     const parsedTarget = target.trim() ? Number(target) : null;
     if (!title.trim()) return setError('Give this Task a short name.');
+    if (task && isWeeklyCount) {
+      // Frequency is read-only here: preserve the weekly_count schedule + counter
+      // target untouched and save only title/milestone. Never call
+      // onReplaceSchedule — that would drop the schedule (empty weekdays = "Once").
+      setSaving(true);
+      const ok = await onUpdate(task.id, {
+        title: title.trim(),
+        completionMode: 'quantity',
+        targetQuantity: task.targetQuantity,
+        quantityUnit: task.quantityUnit,
+        dueDate: null,
+        milestoneId: milestoneId || null,
+      });
+      setSaving(false);
+      if (ok) onClose();
+      return;
+    }
     if (parsedTarget !== null && (!Number.isFinite(parsedTarget) || parsedTarget <= 0)) {
       return setError('A count must be a positive number, or leave it blank.');
     }
@@ -272,33 +285,48 @@ function TaskForm({
         <Typography variant="heading" style={{ fontSize: 24 }}>{heading}</Typography>
         <TextInput accessibilityLabel="Task title" onChangeText={setTitle} placeholder={isReminder ? 'What do you want to be reminded of?' : 'What do you want to do?'} placeholderTextColor={colors.text.muted} style={inputStyle} value={title} />
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ expanded: showSchedule }}
-          onPress={() => setShowSchedule((value) => !value)}
-          style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm, justifyContent: 'space-between', minHeight: 40 }}
-        >
-          <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.xs }}>
-            <Ionicons color={colors.text.accent} name={showSchedule ? 'chevron-down' : 'chevron-forward'} size={16} />
+        {isWeeklyCount ? (
+          <View style={{ gap: SPACE.xs }}>
             <Typography variant="field-label">Schedule</Typography>
-          </View>
-          <Typography variant="caption" style={{ color: colors.text.secondary }}>{scheduleSummary(weekdays)}</Typography>
-        </Pressable>
-        {showSchedule ? (
-          <View style={{ gap: SPACE.sm }}>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>
-              {TASK_WEEKDAYS.map((day) => (
-                <Choice key={day.value} active={weekdays.includes(day.value)} onPress={() => toggleDay(day.value)}>
-                  {day.short}
-                </Choice>
-              ))}
-              <Choice active={everyDayActive} onPress={toggleEveryDay}>Every day</Choice>
-            </View>
-            <Typography variant="caption" style={{ color: colors.text.muted }}>
-              No days = a one-time task. Pick one day to repeat weekly on it; pick several for that many times a week. Add a deadline below to set how long it runs.
+            <Typography variant="caption" style={{ color: colors.text.secondary }}>
+              Repeats {activeSchedule?.targetCount ?? 0}×/week. Changing the frequency here is coming soon — for now, archive and re-add to adjust it.
             </Typography>
           </View>
-        ) : null}
+        ) : (
+          <>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: showSchedule }}
+              onPress={() => setShowSchedule((value) => !value)}
+              style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm, justifyContent: 'space-between', minHeight: 40 }}
+            >
+              <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.xs }}>
+                <Ionicons color={colors.text.accent} name={showSchedule ? 'chevron-down' : 'chevron-forward'} size={16} />
+                <Typography variant="field-label">Schedule</Typography>
+              </View>
+              <Typography variant="caption" style={{ color: colors.text.secondary }}>{scheduleSummary(weekdays)}</Typography>
+            </Pressable>
+            {showSchedule ? (
+              <View style={{ gap: SPACE.sm }}>
+                <ScrollView
+                  contentContainerStyle={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                >
+                  {TASK_WEEKDAYS.map((day) => (
+                    <Choice key={day.value} active={weekdays.includes(day.value)} onPress={() => toggleDay(day.value)}>
+                      {day.short}
+                    </Choice>
+                  ))}
+                  <Choice active={everyDayActive} onPress={toggleEveryDay}>Every day</Choice>
+                </ScrollView>
+                <Typography variant="caption" style={{ color: colors.text.muted }}>
+                  No days = a one-time task. Pick one day to repeat weekly on it; pick several for that many times a week. Add a deadline below to set how long it runs.
+                </Typography>
+              </View>
+            ) : null}
+          </>
+        )}
 
         <Pressable
           accessibilityRole="button"
@@ -311,19 +339,23 @@ function TaskForm({
         </Pressable>
         {showMore ? (
           <View style={{ gap: SPACE.lg }}>
-            <View style={{ gap: SPACE.xs }}>
-              <View style={{ flexDirection: 'row', gap: SPACE.md }}>
-                <TextInput accessibilityLabel="Count" keyboardType="numeric" onChangeText={setTarget} placeholder="Quantity" placeholderTextColor={colors.text.muted} style={[inputStyle, { flex: 1 }]} value={target} />
-                <TextInput accessibilityLabel="Units" onChangeText={setUnit} placeholder="Units" placeholderTextColor={colors.text.muted} style={[inputStyle, { flex: 1 }]} value={unit} />
-              </View>
-              <Typography variant="caption">Optional — add a count and units to track a number; leave blank for a simple check-off.</Typography>
-            </View>
-            <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md }}>
-              {weekdays.length > 0 ? (
-                <DatePicker accessibilityLabel="Start date" allowClear compact onChange={setStartDate} placeholder="Start date" value={startDate} />
-              ) : null}
-              <DatePicker accessibilityLabel="Deadline" allowClear compact density={deadlineDensity} minimumDate={startDate || undefined} onChange={setDeadline} placeholder="Deadline" value={deadline} />
-            </View>
+            {!isWeeklyCount ? (
+              <>
+                <View style={{ gap: SPACE.xs }}>
+                  <View style={{ flexDirection: 'row', gap: SPACE.md }}>
+                    <TextInput accessibilityLabel="Count" keyboardType="numeric" onChangeText={setTarget} placeholder="Quantity" placeholderTextColor={colors.text.muted} style={[inputStyle, { flex: 1 }]} value={target} />
+                    <TextInput accessibilityLabel="Units" onChangeText={setUnit} placeholder="Units" placeholderTextColor={colors.text.muted} style={[inputStyle, { flex: 1 }]} value={unit} />
+                  </View>
+                  <Typography variant="caption">Optional — add a count and units to track a number; leave blank for a simple check-off.</Typography>
+                </View>
+                <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md }}>
+                  {weekdays.length > 0 ? (
+                    <DatePicker accessibilityLabel="Start date" allowClear compact onChange={setStartDate} placeholder="Start date" value={startDate} />
+                  ) : null}
+                  <DatePicker accessibilityLabel="Deadline" allowClear compact density={deadlineDensity} minimumDate={startDate || undefined} onChange={setDeadline} placeholder="Deadline" value={deadline} />
+                </View>
+              </>
+            ) : null}
             {milestones.length ? (
               <>
                 <Pressable
@@ -353,26 +385,6 @@ function TaskForm({
       </ScrollView>
     </Modal>
   );
-}
-
-// A To-Do is a one-time check-off (a user, binary Task with no repeating
-// schedule) — the lightweight checklist that replaced Reminders. Recurring Tasks
-// and counters live in the lanes below; legacy imports keep their own path.
-function isToDoTask(task: Task): boolean {
-  return task.source === 'user'
-    && task.completionMode === 'binary'
-    && task.status !== 'archived'
-    && !activeTaskSchedule(task);
-}
-
-/** The occurrence a To-Do row acts on: its open one, else its latest completed. */
-function todoDisplayOccurrence(task: Task): TaskOccurrence | null {
-  const open = task.occurrences.find((item) => item.status === 'pending' || item.status === 'missed');
-  if (open) return open;
-  const done = task.occurrences
-    .filter((item) => item.status === 'completed')
-    .sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''));
-  return done[0] ?? task.occurrences[0] ?? null;
 }
 
 const TIME_PATTERN = /^([01]?\d|2[0-3]):[0-5]\d$/;
@@ -405,8 +417,12 @@ function ToDoRow({
   const [dateDraft, setDateDraft] = useState(task.dueDate ?? '');
   const [timeDraft, setTimeDraft] = useState(currentTime);
   const [whenError, setWhenError] = useState<string | null>(null);
+  // Web hover preview: hovering a To-Do strikes it through as an affordance for
+  // "click to complete" (there is no checkbox). On touch there is no hover, so a
+  // tap toggles completion directly.
+  const [hovered, setHovered] = useState(false);
   const completed = occurrence?.status === 'completed';
-  const meta = [task.dueDate ? shortDate(task.dueDate) : null, currentTime || null].filter(Boolean).join(' · ');
+  const meta = [task.dueDate ? `By ${shortDate(task.dueDate)}` : null, currentTime || null].filter(Boolean).join(' · ');
   const inputStyle = { ...TYPE.bodySmall, backgroundColor: colors.background.input, borderColor: colors.border.input, borderRadius: RADIUS.sm, borderWidth: 1, color: colors.text.primary, padding: SPACE.md };
 
   const commitRename = () => {
@@ -460,32 +476,32 @@ function ToDoRow({
       <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
         <Pressable
           accessibilityLabel={completed ? `Mark ${task.title} not done` : `Complete ${task.title}`}
-          accessibilityRole="checkbox"
+          accessibilityRole="button"
           accessibilityState={{ checked: completed, disabled: readOnly || !occurrence }}
           disabled={readOnly || !occurrence}
+          onHoverIn={() => setHovered(true)}
+          onHoverOut={() => setHovered(false)}
           onPress={() => onToggle(!completed)}
-          style={{
-            alignItems: 'center',
-            backgroundColor: completed ? colors.accent.primary : 'transparent',
-            borderColor: completed ? colors.accent.primary : colors.border.input,
-            borderRadius: RADIUS.round,
-            borderWidth: 1.5,
-            height: 24,
-            justifyContent: 'center',
-            width: 24,
-          }}
+          style={{ flex: 1 }}
         >
-          {completed ? <Ionicons color={colors.text.inverse} name="checkmark" size={15} /> : null}
+          {({ pressed }) => {
+            const strike = completed || ((hovered || pressed) && !readOnly && !!occurrence);
+            return (
+              <>
+                <Typography
+                  variant="emphasis-sm"
+                  style={{
+                    color: completed ? colors.text.muted : strike ? colors.text.secondary : colors.text.primary,
+                    textDecorationLine: strike ? 'line-through' : 'none',
+                  }}
+                >
+                  {task.title}
+                </Typography>
+                {meta ? <Typography variant="caption" style={{ marginTop: 2 }}>{meta}</Typography> : null}
+              </>
+            );
+          }}
         </Pressable>
-        <View style={{ flex: 1 }}>
-          <Typography
-            variant="emphasis-sm"
-            style={{ color: completed ? colors.text.muted : colors.text.primary, textDecorationLine: completed ? 'line-through' : 'none' }}
-          >
-            {task.title}
-          </Typography>
-          {meta ? <Typography variant="caption" style={{ marginTop: 2 }}>{meta}</Typography> : null}
-        </View>
         {actions.length ? <OverflowMenu accessibilityLabel={`Actions for ${task.title}`} actions={actions} size={28} /> : null}
       </View>
       {editingWhen ? (
@@ -507,177 +523,316 @@ function ToDoRow({
   );
 }
 
-/** Ghost row at the bottom of the To-Do list to add a new one-time check-off. */
-function ToDoAddRow({ onAdd }: { onAdd: (title: string) => Promise<void> }) {
+/** What the unified add-row hands up on submit. The parent maps it to a single
+ *  create write: a one-time To-Do (`weekdays` empty — `date` is its due date,
+ *  defaulting to today when unset) or a recurring Task (`weekdays` chosen — `date`
+ *  is the optional end date). `quantity`/`unit` promote either to a measured Task. */
+export interface TodoDraft {
+  title: string;
+  weekdays: number[];
+  everyDay: boolean;
+  /** Due date when one-time; recurrence end date when repeating. */
+  date: string | null;
+  quantity: number | null;
+  unit: string | null;
+}
+
+/** The single inline add composer (merges the old quick To-Do row and the
+ *  recurring-task "+" composer). Type a title, then optionally reveal:
+ *  a repeat strip (M T W T F S S — makes it a recurring weekly/daily Task) and a
+ *  units toggle (Qty + Units — makes it a measured Task). One calendar picker
+ *  doubles as the due date (one-time) or the optional end date (repeating). All
+ *  choices commit in one create write. Always open under the Tasks header (no
+ *  reveal button); the whole composer resets after each add (title, date, repeat,
+ *  and units) so it never leaves prefilled data behind. */
+function ToDoAddRow({
+  onAdd,
+  autoFocus = false,
+  deadlineDensity,
+  onClose,
+}: {
+  onAdd: (draft: TodoDraft) => Promise<void>;
+  autoFocus?: boolean;
+  deadlineDensity?: DatePickerDensity;
+  onClose?: () => void;
+}) {
   const colors = useThemeColors();
   const [draft, setDraft] = useState('');
+  const [date, setDate] = useState('');
+  const [showRepeat, setShowRepeat] = useState(false);
+  const [weekdays, setWeekdays] = useState<number[]>([]);
+  const [showUnits, setShowUnits] = useState(false);
+  const [qty, setQty] = useState('');
+  const [unit, setUnit] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const recurring = weekdays.length > 0;
+  const everyDay = weekdays.length === TASK_WEEKDAYS.length;
+  const toggleDay = (value: number) =>
+    setWeekdays((current) => (current.includes(value) ? current.filter((day) => day !== value) : [...current, value]));
+  const toggleEveryDay = () => setWeekdays(everyDay ? [] : TASK_WEEKDAYS.map((day) => day.value));
+  const iconButton = (active: boolean) => ({
+    alignItems: 'center' as const,
+    borderColor: active ? colors.accent.primary : colors.border.input,
+    borderRadius: RADIUS.sm,
+    borderWidth: 1,
+    height: 34,
+    justifyContent: 'center' as const,
+    width: 34,
+  });
+  const inputStyle = { ...TYPE.bodySmall, backgroundColor: colors.background.input, borderColor: colors.border.input, borderRadius: RADIUS.sm, borderWidth: 1, color: colors.text.primary, padding: SPACE.md };
+  // Suppress the app-wide green :focus-visible outline for this always-open
+  // composer's fields (inline outline:none beats the global.css rule on web).
+  const noFocusRing = (Platform.OS === 'web' ? { outlineStyle: 'none' } : null) as object | null;
   const submit = async () => {
     const title = draft.trim();
     if (!title || submitting) return;
+    let quantity: number | null = null;
+    if (showUnits && qty.trim()) {
+      const parsed = Number(qty);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        setError('A count must be a positive number.');
+        return;
+      }
+      quantity = parsed;
+    }
+    setError(null);
     setSubmitting(true);
     try {
-      await onAdd(title);
+      await onAdd({
+        title,
+        weekdays,
+        everyDay,
+        date: date || null,
+        quantity,
+        unit: showUnits ? (unit.trim() || null) : null,
+      });
+      // Full reset after each add so the inline editor never leaves prefilled
+      // data behind — title, date, repeat, and units all clear.
       setDraft('');
+      setDate('');
+      setWeekdays([]);
+      setShowRepeat(false);
+      setQty('');
+      setUnit('');
+      setShowUnits(false);
+      setError(null);
     } finally {
       setSubmitting(false);
     }
   };
   return (
-    <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md, paddingVertical: SPACE.sm }}>
-      <TextInput
-        accessibilityLabel="Add a to-do"
-        blurOnSubmit={false}
-        onChangeText={setDraft}
-        onSubmitEditing={() => void submit()}
-        placeholder="＋ Add a to-do…"
-        placeholderTextColor={colors.text.muted}
-        returnKeyType="done"
-        style={{ ...TYPE.bodySmall, color: colors.text.primary, flex: 1, paddingVertical: SPACE.sm }}
-        value={draft}
-      />
-      {submitting ? (
-        <ActivityIndicator color={colors.accent.primary} size="small" />
-      ) : draft.trim() ? (
-        <Pressable accessibilityLabel="Save to-do" onPress={() => void submit()} style={{ minHeight: 36, justifyContent: 'center', paddingHorizontal: SPACE.sm }}>
-          <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>Add</Typography>
+    <View style={{ gap: SPACE.sm, paddingVertical: SPACE.sm }}>
+      <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
+        <TextInput
+          accessibilityLabel="Add a to-do"
+          autoFocus={autoFocus}
+          blurOnSubmit={false}
+          onChangeText={setDraft}
+          onSubmitEditing={() => void submit()}
+          placeholder="＋ Add a to-do…"
+          placeholderTextColor={colors.text.muted}
+          returnKeyType="done"
+          style={[{ ...TYPE.bodySmall, color: colors.text.primary, flex: 1, paddingVertical: SPACE.sm }, noFocusRing]}
+          value={draft}
+        />
+        {submitting ? (
+          <ActivityIndicator color={colors.accent.primary} size="small" />
+        ) : draft.trim() ? (
+          <Pressable accessibilityLabel="Save to-do" onPress={() => void submit()} style={{ minHeight: 36, justifyContent: 'center', paddingHorizontal: SPACE.sm }}>
+            <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>Add</Typography>
+          </Pressable>
+        ) : onClose ? (
+          <Pressable accessibilityLabel="Done adding to-dos" onPress={onClose} style={{ minHeight: 36, justifyContent: 'center', paddingHorizontal: SPACE.sm }}>
+            <Typography variant="caption" style={{ color: colors.text.secondary }}>Done</Typography>
+          </Pressable>
+        ) : null}
+      </View>
+      {/* Control row: due/end date, a repeat toggle (reveals the weekday strip),
+          and a units toggle (reveals Qty + Units). */}
+      <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>
+        <DatePicker
+          accessibilityLabel={recurring ? 'End date' : 'Due date'}
+          allowClear
+          compact
+          density={deadlineDensity}
+          onChange={setDate}
+          placeholder={recurring ? 'Ends (optional)' : 'Pick a date'}
+          value={date}
+        />
+        <Pressable
+          accessibilityLabel="Repeat on days"
+          accessibilityRole="button"
+          onPress={() => setShowRepeat((current) => !current)}
+          style={iconButton(showRepeat || recurring)}
+        >
+          <Ionicons color={showRepeat || recurring ? colors.text.accent : colors.text.secondary} name="repeat" size={18} />
         </Pressable>
+        <Pressable
+          accessibilityLabel="Units"
+          accessibilityRole="button"
+          onPress={() => setShowUnits((current) => !current)}
+          style={iconButton(showUnits)}
+        >
+          <Ionicons color={showUnits ? colors.text.accent : colors.text.secondary} name="calculator-outline" size={18} />
+        </Pressable>
+      </View>
+      {showRepeat ? (
+        <ScrollView
+          contentContainerStyle={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+        >
+          {TASK_WEEKDAYS.map((day) => (
+            <Choice key={day.value} active={weekdays.includes(day.value)} onPress={() => toggleDay(day.value)}>{day.short}</Choice>
+          ))}
+          <Choice active={everyDay} onPress={toggleEveryDay}>Every day</Choice>
+        </ScrollView>
       ) : null}
+      {showUnits ? (
+        <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>
+          <TextInput accessibilityLabel="Count" keyboardType="numeric" maxLength={10} onChangeText={setQty} placeholder="Qty" placeholderTextColor={colors.text.muted} style={[inputStyle, { flexGrow: 0, width: 72 }, noFocusRing]} value={qty} />
+          <TextInput accessibilityLabel="Unit label" maxLength={10} onChangeText={setUnit} placeholder="Units" placeholderTextColor={colors.text.muted} style={[inputStyle, { flexGrow: 0, width: 84 }, noFocusRing]} value={unit} />
+        </View>
+      ) : null}
+      {error ? <Typography variant="caption" style={{ color: colors.feedback.danger.text }}>{error}</Typography> : null}
     </View>
   );
 }
 
-/** Inline "Add Task" composer: title + optional count/units, the weekday strip,
- *  and a single deadline. Recurs on the chosen day(s) until the deadline week. */
-function InlineTaskComposer({
-  goalId,
-  deadlineDensity,
-  onCreate,
+/** A set-days weekly Metric shown as one weekly strip: the chosen weekdays, each
+ *  struck through as its day is completed, plus a derived "done / chosen days"
+ *  counter (distinct from the quantity counter). A check-off (binary) Task
+ *  toggles a day on tap; a measured (quantity) Task discloses a per-day `+/-`
+ *  stepper below the strip so each day logs its own number — the day completes
+ *  when its target is met. */
+function WeekAggregateRow({
+  task,
+  cells,
+  progress,
+  quantity,
+  readOnly,
+  onEdit,
+  onToggleDay,
+  onAdjustDay,
 }: {
-  goalId: string;
-  deadlineDensity?: DatePickerDensity;
-  onCreate: ReturnType<typeof useGoalTasks>['create'];
+  task: Task;
+  cells: readonly WeekdayCell[];
+  progress: { done: number; target: number };
+  /** Present for a measured set-days Task; null for a plain check-off. */
+  quantity: { target: number | null; unit: string | null } | null;
+  readOnly: boolean;
+  onEdit: () => void;
+  onToggleDay: (occurrenceId: string, complete: boolean) => void;
+  onAdjustDay: (occurrenceId: string, delta: number) => void;
 }) {
   const colors = useThemeColors();
-  const [title, setTitle] = useState('');
-  const [qty, setQty] = useState('');
-  const [unit, setUnit] = useState('');
-  const [weekdays, setWeekdays] = useState<number[]>([]);
-  const [deadline, setDeadline] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  // Collapsed by default so it stays visually separate from the always-open
-  // To-Do list — a bare "＋ Add a task" pill that reveals the full fields on tap.
-  const [expanded, setExpanded] = useState(false);
-  const inputStyle = { ...TYPE.bodySmall, backgroundColor: colors.background.input, borderColor: colors.border.input, borderRadius: RADIUS.sm, borderWidth: 1, color: colors.text.primary, padding: SPACE.md };
-  const collapse = () => {
-    setTitle('');
-    setQty('');
-    setUnit('');
-    setWeekdays([]);
-    setDeadline('');
-    setError(null);
-    setExpanded(false);
-  };
-  const everyDay = weekdays.length === TASK_WEEKDAYS.length;
-  const toggleDay = (value: number) =>
-    setWeekdays((current) => (current.includes(value) ? current.filter((day) => day !== value) : [...current, value]));
-
-  async function submit() {
-    if (!title.trim() || saving) return;
-    const parsedTarget = qty.trim() ? Number(qty) : null;
-    if (parsedTarget !== null && (!Number.isFinite(parsedTarget) || parsedTarget <= 0)) {
-      return setError('A count must be a positive number.');
-    }
-    const mode: TaskCompletionMode = qty.trim() !== '' || unit.trim() !== '' ? 'quantity' : 'binary';
-    const isRecurring = weekdays.length > 0;
-    const deadlineValue = deadline.trim() ? deadline.trim() : null;
-    const schedule: TaskScheduleInput | null = isRecurring
-      ? {
-          recurrenceKind: everyDay ? 'daily' : 'weekly',
-          intervalCount: 1,
-          weekdays: everyDay ? [] : weekdays,
-          startDate: null,
-          endDate: deadlineValue,
-          localTime: null,
-        }
-      : null;
-    setSaving(true);
-    const ok = await onCreate({
-      goalId,
-      title: title.trim(),
-      completionMode: mode,
-      targetQuantity: mode === 'quantity' ? parsedTarget : null,
-      quantityUnit: mode === 'quantity' ? (unit.trim() || null) : null,
-      dueDate: isRecurring ? null : deadlineValue,
-      idempotencyKey: newTaskIdempotencyKey('create'),
-      schedule,
-    });
-    setSaving(false);
-    if (ok) collapse();
-  }
-
-  if (!expanded) {
-    return (
-      <Pressable
-        accessibilityLabel="Add a task"
-        accessibilityRole="button"
-        onPress={() => setExpanded(true)}
-        style={({ pressed }) => ({
-          alignSelf: 'flex-start',
-          borderColor: colors.border.divider,
-          borderRadius: RADIUS.md,
-          borderStyle: 'dashed',
-          borderWidth: 1,
-          marginBottom: SPACE.xl,
-          opacity: pressed ? 0.7 : 1,
-          paddingHorizontal: SPACE.lg,
-          paddingVertical: SPACE.md,
-        })}
-      >
-        <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>＋ Add a task</Typography>
-      </Pressable>
-    );
-  }
-
+  const measured = quantity != null;
+  const [selectedWeekday, setSelectedWeekday] = useState<number | null>(null);
+  const rowActions: OverflowAction[] = [];
+  if (!readOnly && task.status === 'active') rowActions.push({ key: 'edit', label: 'Edit', onPress: onEdit });
+  const selectedCell = measured && selectedWeekday != null ? cells.find((cell) => cell.weekday === selectedWeekday) ?? null : null;
   return (
-    <View
-      style={{
-        borderColor: colors.border.divider,
-        borderRadius: RADIUS.md,
-        borderStyle: 'dashed',
-        borderWidth: 1,
-        gap: SPACE.md,
-        marginBottom: SPACE.xl,
-        padding: SPACE.lg,
-      }}
-    >
-      <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md }}>
-        <TextInput accessibilityLabel="Add a task" autoFocus onChangeText={setTitle} onSubmitEditing={() => void submit()} placeholder="＋ Add a task…" placeholderTextColor={colors.text.muted} style={[inputStyle, { flexBasis: 180, flexGrow: 3 }]} value={title} />
-        <TextInput accessibilityLabel="Count" keyboardType="numeric" onChangeText={setQty} placeholder="Quantity" placeholderTextColor={colors.text.muted} style={[inputStyle, { flexBasis: 84, flexGrow: 1 }]} value={qty} />
-        <TextInput accessibilityLabel="Units" onChangeText={setUnit} placeholder="Units" placeholderTextColor={colors.text.muted} style={[inputStyle, { flexBasis: 84, flexGrow: 1 }]} value={unit} />
+    <View style={{ borderBottomColor: colors.border.divider, borderBottomWidth: 1, gap: SPACE.md, paddingVertical: SPACE.lg }}>
+      <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
+        <Pressable accessibilityRole="button" disabled={readOnly || task.status !== 'active'} onPress={onEdit} style={{ flex: 1 }}>
+          <Typography variant="emphasis-sm">{task.title}</Typography>
+          <Typography variant="caption" style={{ marginTop: 2 }}>
+            {scheduleLabel(task)}{measured && quantity?.unit ? ` · ${quantity.unit} each` : ''}{task.milestoneId ? ' · Linked milestone' : ''}
+          </Typography>
+        </Pressable>
+        <Typography variant="emphasis-sm" style={{ color: progress.done >= progress.target ? colors.text.accent : colors.text.primary }}>
+          {progress.done} / {progress.target} days
+        </Typography>
+        {rowActions.length ? <OverflowMenu accessibilityLabel={`Actions for ${task.title}`} actions={rowActions} size={28} /> : null}
       </View>
-      <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md, justifyContent: 'space-between' }}>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>
-          {TASK_WEEKDAYS.map((day) => (
-            <Choice key={day.value} active={weekdays.includes(day.value)} onPress={() => toggleDay(day.value)}>{day.short}</Choice>
-          ))}
-          <Choice active={everyDay} onPress={() => setWeekdays(everyDay ? [] : TASK_WEEKDAYS.map((day) => day.value))}>Every day</Choice>
-        </View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>
+        {cells.map((cell) => {
+          const letter = TASK_WEEKDAYS[cell.weekday - 1].short.slice(0, 1);
+          const completed = cell.status === 'completed';
+          const missed = cell.status === 'missed';
+          const partial = measured && !completed && (cell.quantity ?? 0) > 0; // logged but not yet at target
+          const isSelected = measured && selectedWeekday === cell.weekday;
+          const interactive = cell.scheduled && !!cell.occurrenceId && !readOnly;
+          const border = !cell.scheduled
+            ? colors.border.divider
+            : completed
+              ? colors.accent.primary
+              : isSelected || partial
+                ? colors.border.accent
+                : missed
+                  ? colors.feedback.danger.text
+                  : colors.border.input;
+          const textColor = !cell.scheduled
+            ? colors.text.muted
+            : completed
+              ? colors.text.muted
+              : missed
+                ? colors.feedback.danger.text
+                : colors.text.primary;
+          return (
+            <Pressable
+              accessibilityLabel={`${TASK_WEEKDAYS[cell.weekday - 1].short}${completed ? ' done' : measured ? ' log' : ''}`}
+              accessibilityRole="button"
+              accessibilityState={{ checked: completed, disabled: !interactive, expanded: isSelected }}
+              disabled={!interactive}
+              key={cell.weekday}
+              onPress={() => {
+                if (!cell.occurrenceId) return;
+                if (measured) setSelectedWeekday((current) => (current === cell.weekday ? null : cell.weekday));
+                else onToggleDay(cell.occurrenceId, !completed);
+              }}
+              style={{
+                alignItems: 'center',
+                backgroundColor: completed ? colors.accent.primary : isSelected ? colors.background.selectedRow : 'transparent',
+                borderColor: border,
+                borderRadius: RADIUS.round,
+                borderWidth: 1.5,
+                height: 34,
+                justifyContent: 'center',
+                opacity: cell.scheduled ? 1 : 0.5,
+                width: 34,
+              }}
+            >
+              <Typography
+                variant="caption"
+                style={{
+                  color: completed ? colors.text.inverse : textColor,
+                  textDecorationLine: completed ? 'line-through' : 'none',
+                }}
+              >
+                {letter}
+              </Typography>
+            </Pressable>
+          );
+        })}
+      </View>
+      {selectedCell && selectedCell.occurrenceId ? (
         <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
-          <DatePicker accessibilityLabel="Deadline" allowClear compact density={deadlineDensity} onChange={setDeadline} placeholder="Deadline" value={deadline} />
-          <Pressable accessibilityLabel="Cancel adding a task" onPress={collapse} style={{ justifyContent: 'center', minHeight: 36, paddingHorizontal: SPACE.sm }}>
-            <Typography variant="caption" style={{ color: colors.text.secondary }}>Cancel</Typography>
-          </Pressable>
-          {title.trim() ? (
-            <Button disabled={saving} onPress={() => void submit()} size="compact">{saving ? 'Adding…' : 'Add'}</Button>
-          ) : null}
+          <Typography variant="caption" style={{ color: colors.text.secondary }}>{TASK_WEEKDAYS[selectedCell.weekday - 1].short}</Typography>
+          <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
+            <Pressable
+              accessibilityLabel={`Log one fewer for ${TASK_WEEKDAYS[selectedCell.weekday - 1].short}`}
+              disabled={readOnly || (selectedCell.quantity ?? 0) <= 0}
+              onPress={() => onAdjustDay(selectedCell.occurrenceId!, -1)}
+              style={{ padding: SPACE.md }}
+            >
+              <Ionicons color={colors.text.secondary} name="remove" size={18} />
+            </Pressable>
+            <Typography variant="emphasis-sm">
+              {selectedCell.quantity ?? 0}{quantity?.target ? ` / ${quantity.target}` : ''}{quantity?.unit ? ` ${quantity.unit}` : ''}
+            </Typography>
+            <Pressable
+              accessibilityLabel={`Log one more for ${TASK_WEEKDAYS[selectedCell.weekday - 1].short}`}
+              disabled={readOnly}
+              onPress={() => onAdjustDay(selectedCell.occurrenceId!, 1)}
+              style={{ padding: SPACE.md }}
+            >
+              <Ionicons color={colors.text.accent} name="add" size={18} />
+            </Pressable>
+          </View>
         </View>
-      </View>
-      {error ? <Typography variant="caption" style={{ color: colors.feedback.danger.text }}>{error}</Typography> : null}
-      <Typography variant="caption" style={{ color: colors.text.muted }}>
-        No days = a one-time to-do above. Pick day(s) to repeat weekly until the deadline; add a count + units to track a number.
-      </Typography>
+      ) : null}
     </View>
   );
 }
@@ -709,25 +864,47 @@ export function TasksPanel({
   const [formVisible, setFormVisible] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
-  // To-Dos (one-time check-offs) render as their own checklist; recurring Tasks
-  // and counters go through the lanes. Partition before building sections so a
-  // completed To-Do never also shows in the lanes' "completed" collapse.
-  const todoTasks = useMemo(
-    () => taskState.tasks.filter(isToDoTask).sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt.localeCompare(b.createdAt)),
-    [taskState.tasks],
-  );
-  const laneTasks = useMemo(() => taskState.tasks.filter((task) => !isToDoTask(task)), [taskState.tasks]);
-  const sections = useMemo(() => buildTaskSections(laneTasks), [laneTasks]);
-  const importedNeedsTiming = useMemo(() => laneTasks.filter((task) => (
-    task.status === 'active'
-    && task.source === 'legacy_tracker'
-    && !activeTaskSchedule(task)
-    && !task.occurrences.some((occurrence) => occurrence.status === 'pending' || occurrence.status === 'missed')
-  )), [laneTasks]);
+  // The scope organizer (TM-4): one time-scope selector over the whole panel. Its
+  // sections — Overdue (pinned) · In-scope · Upcoming (the next period, TM-5) ·
+  // Later · Someday · Completed — are a pure bucketing of the unified To-Do +
+  // Metric plan. Switching scope re-runs the bucketer in memory (no fetch).
+  const [scope, setScope] = useState<PlanScope>('today');
   const readOnly = goalStatus !== 'active';
+
+  // Unified projection + lookups so the original row components (which take the
+  // real Task/occurrence) still render each PlanItem.
+  const planItems = useMemo(() => buildPlanItems(taskState.tasks, scope), [taskState.tasks, scope]);
+  const buckets = useMemo(() => bucketPlanItems(planItems, scope), [planItems, scope]);
+  const taskById = useMemo(() => new Map(taskState.tasks.map((task) => [task.id, task])), [taskState.tasks]);
+  const occurrenceById = useMemo(() => {
+    const map = new Map<string, TaskOccurrence>();
+    for (const task of taskState.tasks) for (const occurrence of task.occurrences) map.set(occurrence.id, occurrence);
+    return map;
+  }, [taskState.tasks]);
+
   const openEditForm = (task: Task) => { setEditing(task); setFormVisible(true); };
-  const addTodo = async (title: string) => {
-    await taskState.create({ goalId, title, completionMode: 'binary', idempotencyKey: newTaskIdempotencyKey('create'), schedule: null });
+  // The one create write for the unified add row: repeating (weekdays chosen) →
+  // a daily/weekly schedule with the date as an optional end; otherwise a
+  // one-time To-Do whose due date defaults to today when left blank. Qty/units
+  // promote either to a measured (quantity) Task.
+  const addTodo = async (input: TodoDraft) => {
+    const mode: TaskCompletionMode = input.quantity !== null || input.unit ? 'quantity' : 'binary';
+    const targetQuantity = mode === 'quantity' ? input.quantity : null;
+    const quantityUnit = mode === 'quantity' ? input.unit : null;
+    if (input.weekdays.length > 0) {
+      const schedule: TaskScheduleInput = {
+        recurrenceKind: input.everyDay ? 'daily' : 'weekly',
+        intervalCount: 1,
+        weekdays: input.everyDay ? [] : input.weekdays,
+        startDate: null,
+        endDate: input.date,
+        localTime: null,
+      };
+      await taskState.create({ goalId, title: input.title, completionMode: mode, targetQuantity, quantityUnit, dueDate: null, idempotencyKey: newTaskIdempotencyKey('create'), schedule });
+      return;
+    }
+    const dueDate = input.date ?? dateInTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+    await taskState.create({ goalId, title: input.title, completionMode: mode, targetQuantity, quantityUnit, dueDate, idempotencyKey: newTaskIdempotencyKey('create'), schedule: null });
   };
   const updateTodo = (task: Task, occurrence: TaskOccurrence | null, patch: { title?: string; dueDate?: string | null; dueTime?: string | null }) =>
     void taskState.update(task.id, {
@@ -750,74 +927,121 @@ export function TasksPanel({
     }
     await taskState.archive(task.id);
   };
-  // Today / Upcoming lanes (empty lanes are hidden). Daily Tasks never reach
-  // Upcoming (TD-021, enforced in buildTaskSections).
-  const laneSections = [
-    { label: 'Today', rows: sections.today, showNextDate: false },
-    { label: 'Upcoming', rows: sections.upcoming.slice(0, full ? 30 : 4), showNextDate: true },
-  ].filter((section) => section.rows.length);
-  // Completions = the single ad-hoc, day-anchored lane (TD-020). Its backlog tail
-  // is the no-schedule (Once) occurrences; imported legacy definitions awaiting
-  // timing live here too. Retroactive logging (log_completed_task_v1) is folded
-  // into this lane as one entry point, not a separate top-level action.
-  const completionRows = sections.anytime.slice(0, full ? 30 : 4);
-  const completionDefs = importedNeedsTiming.slice(0, full ? 30 : 4);
-  const showCompletionsLane = !readOnly || completionRows.length > 0 || completionDefs.length > 0;
-  const hasVisibleWork = laneSections.length > 0 || completionRows.length > 0 || completionDefs.length > 0;
+
+  const scopeMeta = PLAN_SCOPES.find((option) => option.value === scope) ?? PLAN_SCOPES[0];
+  const cap = full ? 50 : 6;
+
+  // One unified leaf renderer: a To-Do keeps the strikethrough checklist row, a
+  // Metric keeps the counter/check row. The organizer never branches on kind —
+  // only this row does. `adjustable` is false for the Completed history collapse.
+  const renderPlanRow = (item: PlanItem, showNextDate = false, adjustable = true) => {
+    const task = taskById.get(item.taskId);
+    if (!task) return null;
+    if (item.weekdayCells) {
+      return (
+        <WeekAggregateRow
+          cells={item.weekdayCells}
+          key={`week:${item.taskId}`}
+          onAdjustDay={(occurrenceId, delta) => void taskState.adjustQuantity(occurrenceId, delta, newTaskIdempotencyKey('quantity'))}
+          onEdit={() => openEditForm(task)}
+          onToggleDay={(occurrenceId, complete) => void taskState.complete(occurrenceId, complete, newTaskIdempotencyKey('status'))}
+          progress={item.progress ?? { done: 0, target: 0 }}
+          quantity={task.completionMode === 'quantity' ? { target: task.targetQuantity, unit: task.quantityUnit } : null}
+          readOnly={readOnly}
+          task={task}
+        />
+      );
+    }
+    const occurrence = item.occurrenceId ? occurrenceById.get(item.occurrenceId) ?? null : null;
+    if (item.kind === 'todo') {
+      return (
+        <ToDoRow
+          deadlineDensity={deadlineDensity}
+          key={item.occurrenceId ?? item.taskId}
+          occurrence={occurrence}
+          onChangeSchedule={(date, time) => updateTodo(task, occurrence, { dueDate: date, dueTime: time })}
+          onDelete={() => void deleteTodo(task, occurrence)}
+          onRename={(title) => updateTodo(task, occurrence, { title })}
+          onToggle={(complete) => { if (occurrence) void taskState.complete(occurrence.id, complete, newTaskIdempotencyKey('status')); }}
+          readOnly={readOnly}
+          task={task}
+        />
+      );
+    }
+    if (!occurrence) return null;
+    return (
+      <TaskRow
+        key={occurrence.id}
+        onAdjust={adjustable ? (delta) => void taskState.adjustQuantity(occurrence.id, delta, newTaskIdempotencyKey('quantity')) : () => {}}
+        onArchive={() => void taskState.archive(task.id)}
+        onComplete={(complete) => void taskState.complete(occurrence.id, complete, newTaskIdempotencyKey('status'))}
+        onEdit={() => openEditForm(task)}
+        occurrence={occurrence}
+        readOnly={readOnly}
+        showNextDate={showNextDate}
+        task={task}
+      />
+    );
+  };
+
+  const activeCount = buckets.overdue.length + buckets.inScope.length + buckets.upcoming.length + buckets.later.length + buckets.someday.length;
+  const hasVisibleWork = activeCount > 0 || buckets.completed.length > 0;
+  const nearTermTodos = buckets.overdue.length + buckets.inScope.length + buckets.upcoming.length;
 
   return (
     <View style={{ padding: compact ? SPACE.xl : SPACE['3xl'] }}>
-      <View style={{ flex: 1 }}>
-        <Typography variant="section-eyebrow">Tasks</Typography>
-        <Typography variant="title" style={{ marginTop: SPACE.xs }}>Your next meaningful actions</Typography>
+      <View style={{ alignItems: 'flex-start', flexDirection: 'row', gap: SPACE.md }}>
+        <View style={{ flex: 1 }}>
+          <Typography variant="section-eyebrow">Tasks</Typography>
+          <Typography variant="title" style={{ marginTop: SPACE.xs }}>Your next meaningful actions</Typography>
+        </View>
       </View>
       {readOnly ? <Typography variant="caption" style={{ marginTop: SPACE.md }}>This Goal is historical. Its Tasks remain available as read-only context.</Typography> : null}
       {taskState.error ? <Typography variant="caption" style={{ color: colors.feedback.danger.text, marginTop: SPACE.lg }}>{taskState.error}</Typography> : null}
       {taskState.isLoading ? <ActivityIndicator color={colors.accent.primary} style={{ marginVertical: SPACE['3xl'] }} /> : (
         <View style={{ marginTop: SPACE.xl }}>
-          {todoTasks.length > 0 || !readOnly ? (
-            <View style={{ marginBottom: SPACE.xl }}>
-              <Typography variant="eyebrow">To-Do</Typography>
-              {todoTasks.map((task) => {
-                const occurrence = todoDisplayOccurrence(task);
-                return (
-                  <ToDoRow
-                    deadlineDensity={deadlineDensity}
-                    key={task.id}
-                    occurrence={occurrence}
-                    onChangeSchedule={(date, time) => updateTodo(task, occurrence, { dueDate: date, dueTime: time })}
-                    onDelete={() => void deleteTodo(task, occurrence)}
-                    onRename={(title) => updateTodo(task, occurrence, { title })}
-                    onToggle={(complete) => { if (occurrence) void taskState.complete(occurrence.id, complete, newTaskIdempotencyKey('status')); }}
-                    readOnly={readOnly}
-                    task={task}
-                  />
-                );
-              })}
-              {!readOnly ? <ToDoAddRow onAdd={addTodo} /> : null}
-            </View>
-          ) : null}
+          {/* Scope selector — one control over the whole plan (To-Dos + Metrics). */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>
+            {PLAN_SCOPES.map((option) => (
+              <Choice key={option.value} active={scope === option.value} onPress={() => setScope(option.value)}>{option.label}</Choice>
+            ))}
+          </View>
+
+          {/* One unified, always-open add row: a quick To-Do that can become a
+              recurring and/or measured Task inline (repeat + units toggles). */}
           {!readOnly ? (
-            <InlineTaskComposer deadlineDensity={deadlineDensity} goalId={goalId} onCreate={taskState.create} />
-          ) : null}
-          {laneSections.map((section) => (
-            <View key={section.label} style={{ marginBottom: SPACE.xl }}>
-              <Typography variant="eyebrow">{section.label}</Typography>
-              {section.rows.map(({ task, occurrence }) => (
-                <TaskRow
-                  key={occurrence.id}
-                  onAdjust={(delta) => void taskState.adjustQuantity(occurrence.id, delta, newTaskIdempotencyKey('quantity'))}
-                  onComplete={(complete) => void taskState.complete(occurrence.id, complete, newTaskIdempotencyKey('status'))}
-                  onArchive={() => void taskState.archive(task.id)}
-                  onEdit={() => openEditForm(task)}
-                  occurrence={occurrence}
-                  readOnly={readOnly}
-                  showNextDate={section.showNextDate}
-                  task={task}
-                />
-              ))}
+            <View style={{ marginTop: SPACE.lg }}>
+              <ToDoAddRow deadlineDensity={deadlineDensity} onAdd={addTodo} />
             </View>
-          ))}
+          ) : null}
+          {Platform.OS !== 'web' && !readOnly && nearTermTodos > 0 ? (
+            <Typography variant="caption" style={{ color: colors.text.muted, marginTop: SPACE.md }}>Tap a to-do to mark it done.</Typography>
+          ) : null}
+
+          {/* Overdue — pinned, always shown regardless of scope (must surface). */}
+          {buckets.overdue.length ? (
+            <View style={{ marginTop: SPACE.xl, marginBottom: SPACE.xl }}>
+              <Typography variant="eyebrow" style={{ color: colors.feedback.danger.text }}>Overdue</Typography>
+              {buckets.overdue.map((item) => renderPlanRow(item))}
+            </View>
+          ) : null}
+
+          {/* In-scope — the plan for the chosen window. */}
+          {buckets.inScope.length ? (
+            <View style={{ marginTop: buckets.overdue.length ? 0 : SPACE.xl, marginBottom: SPACE.xl }}>
+              <Typography variant="eyebrow">{scopeMeta.inScopeLabel}</Typography>
+              {buckets.inScope.slice(0, cap).map((item) => renderPlanRow(item))}
+            </View>
+          ) : null}
+
+          {/* Upcoming — the next period after the scope (TM-5). */}
+          {buckets.upcoming.length ? (
+            <View style={{ marginBottom: SPACE.xl }}>
+              <Typography variant="eyebrow">{`Upcoming · ${scopeMeta.upcomingLabel}`}</Typography>
+              {buckets.upcoming.slice(0, cap).map((item) => renderPlanRow(item, true))}
+            </View>
+          ) : null}
+
           {!hasVisibleWork ? (
             <View style={{ alignItems: 'center', paddingVertical: SPACE['4xl'] }}>
               <Ionicons color={colors.text.accent} name="checkmark-circle-outline" size={30} />
@@ -825,42 +1049,15 @@ export function TasksPanel({
               <Typography variant="caption" style={{ marginTop: SPACE.xs, textAlign: 'center' }}>Add one clear next action to get started.</Typography>
             </View>
           ) : null}
-          {showCompletionsLane ? (
-            <View style={{ marginBottom: SPACE.xl }}>
-              <Typography variant="eyebrow">Completions</Typography>
-              {completionRows.map(({ task, occurrence }) => (
-                <TaskRow
-                  key={occurrence.id}
-                  onAdjust={(delta) => void taskState.adjustQuantity(occurrence.id, delta, newTaskIdempotencyKey('quantity'))}
-                  onComplete={(complete) => void taskState.complete(occurrence.id, complete, newTaskIdempotencyKey('status'))}
-                  onArchive={() => void taskState.archive(task.id)}
-                  onEdit={() => openEditForm(task)}
-                  occurrence={occurrence}
-                  readOnly={readOnly}
-                  showNextDate={false}
-                  task={task}
-                />
-              ))}
-              {completionDefs.map((task) => (
-                <ImportedTaskDefinitionRow
-                  key={`definition:${task.id}`}
-                  onEdit={() => openEditForm(task)}
-                  readOnly={readOnly}
-                  task={task}
-                />
-              ))}
-            </View>
-          ) : null}
+
         </View>
       )}
-      {sections.completed.length ? (
+      {buckets.completed.length ? (
         <View style={{ marginTop: SPACE.md }}>
           <Pressable onPress={() => setShowCompleted((value) => !value)} style={{ minHeight: 44, justifyContent: 'center' }}>
-            <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>{showCompleted ? 'Hide completed' : `View completed (${sections.completed.length})`}</Typography>
+            <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>{showCompleted ? 'Hide completed' : `View completed (${buckets.completed.length})`}</Typography>
           </Pressable>
-          {showCompleted ? sections.completed.slice(0, full ? 50 : 2).map(({ task, occurrence }) => (
-            <TaskRow key={occurrence.id} onAdjust={() => {}} onArchive={() => void taskState.archive(task.id)} onComplete={(complete) => void taskState.complete(occurrence.id, complete, newTaskIdempotencyKey('status'))} onEdit={() => openEditForm(task)} occurrence={occurrence} readOnly={readOnly} task={task} />
-          )) : null}
+          {showCompleted ? buckets.completed.slice(0, full ? 50 : 2).map((item) => renderPlanRow(item, false, false)) : null}
         </View>
       ) : null}
       {!full && onSeeAll ? <Pressable onPress={onSeeAll} style={{ alignSelf: 'flex-end', justifyContent: 'center', minHeight: 44 }}><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>See all →</Typography></Pressable> : null}
