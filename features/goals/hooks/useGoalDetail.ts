@@ -24,6 +24,7 @@ import {
   extendGoalDeadline,
   fetchGoalById,
   fetchGoals,
+  fetchGoalVaultNotes,
   updateGoal,
   updateGoalNote,
   updateMilestone,
@@ -85,7 +86,19 @@ function mergeServerGoal(current: GoalWithDetails, saved: GoalWithDetails): Goal
     vaultItemCount: current.vaultItemCount,
     echoLinkCount: current.echoLinkCount,
     latestBrtTags: current.latestBrtTags,
+    // Notes load on a separate Vault fetch, not with the goal — carry any
+    // already-loaded notes forward so a server reload doesn't blank them.
+    notes: current.notes.length > 0 ? current.notes : saved.notes,
   };
+}
+
+// A goal fetched via GOAL_SELECT carries notes: [] (notes come from the Vault
+// on the detail path). When a server fetch replaces a goal already in the
+// store, preserve the notes we loaded so they don't flash away.
+function withPreservedNotes(detail: GoalWithDetails): GoalWithDetails {
+  const prev = useGoalStore.getState().goals.find((item) => item.id === detail.id);
+  if (prev && prev.notes.length > 0) return { ...detail, notes: prev.notes };
+  return detail;
 }
 
 export function useGoalDetail(goalId: string): UseGoalDetailResult {
@@ -104,6 +117,7 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
   const removeMilestone = useGoalStore((state) => state.removeMilestone);
   const upsertNote = useGoalStore((state) => state.upsertNote);
   const removeNote = useGoalStore((state) => state.removeNote);
+  const setGoalNotes = useGoalStore((state) => state.setGoalNotes);
   const [trackerError, setTrackerError] = useState<string | null>(null);
   const [milestoneError, setMilestoneError] = useState<string | null>(null);
   const [noteError, setNoteError] = useState<string | null>(null);
@@ -130,6 +144,9 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
   // to one fetch per goalId, `setGoals` replacing the array can never re-trigger
   // the fetch — closing the infinite-loop path that black-screened the workspace.
   const hydrationAttemptedForRef = useRef<string | null>(null);
+  // Bounds the goal-notes Vault load to one fetch per goalId per mount, the
+  // same way hydration is bounded, so store writes can't re-trigger it.
+  const notesLoadedForRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!goalId || !needsHydration) return;
@@ -151,7 +168,7 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
           const detail = listedGoal ?? await fetchGoalById(goalId);
           if (!cancelled) {
             setGoals(detail
-              ? [detail, ...list.filter((item) => item.id !== detail.id)]
+              ? [withPreservedNotes(detail), ...list.filter((item) => item.id !== detail.id)]
               : list);
           }
           return;
@@ -160,7 +177,7 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
         const detail = await fetchGoalById(goalId);
         if (detail && !cancelled) {
           const rest = useGoalStore.getState().goals.filter((item) => item.id !== detail.id);
-          setGoals([detail, ...rest]);
+          setGoals([withPreservedNotes(detail), ...rest]);
         }
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -172,6 +189,25 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
       cancelled = true;
     };
   }, [goalId, needsHydration, setGoals, setIsLoading]);
+
+  // Load the goal's notes from its Vault once the goal is present. Notes are no
+  // longer embedded in the goal payload (they live in vault_items since
+  // migration 061), so this is the detail-path fetch that populates goal.notes.
+  const hasGoal = goal !== null;
+  useEffect(() => {
+    if (!goalId || !hasGoal) return;
+    if (notesLoadedForRef.current === goalId) return;
+    notesLoadedForRef.current = goalId;
+
+    let cancelled = false;
+    void (async () => {
+      const notes = await fetchGoalVaultNotes(goalId);
+      if (!cancelled) setGoalNotes(goalId, notes);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [goalId, hasGoal, setGoalNotes]);
 
   const readOnlyGoal = useCallback(() => {
     const current = goals.find((item) => item.id === goalId);

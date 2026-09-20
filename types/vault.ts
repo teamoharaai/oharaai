@@ -23,6 +23,12 @@ export interface VaultItem {
     aiConfidence?: number;
     confirmed?: boolean;
     tags?: string[];
+    /** Storage path of an attached photo (goal-note-photos bucket). Set on
+     *  note items migrated from / created as sticky notes (migration 061). */
+    photoUrl?: string;
+    /** Provenance for the goal_notes -> vault_items unification (migration 061). */
+    migratedFrom?: string;
+    legacyId?: string;
   };
   visibility: 'private' | 'vault_members' | 'public';
   createdBy: string;

@@ -18,6 +18,7 @@ interface GoalStore {
   removeMilestone: (goalId: string, milestoneId: string) => void;
   upsertNote: (goalId: string, note: GoalNote) => void;
   removeNote: (goalId: string, noteId: string) => void;
+  setGoalNotes: (goalId: string, notes: GoalNote[]) => void;
 }
 
 export const useGoalStore = create<GoalStore>((set) => ({
@@ -109,6 +110,18 @@ export const useGoalStore = create<GoalStore>((set) => ({
       goals: state.goals.map((goal) => {
         if (goal.id !== goalId) return goal;
         return { ...goal, notes: goal.notes.filter((note) => note.id !== noteId) };
+      }),
+    })),
+  // Notes are loaded on the goal-detail path (from the goal's Vault), not with
+  // the goal list — this replaces the whole notes array once that fetch lands.
+  setGoalNotes: (goalId, notes) =>
+    set((state) => ({
+      goals: state.goals.map((goal) => {
+        if (goal.id !== goalId) return goal;
+        const sorted = [...notes].sort(
+          (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+        );
+        return { ...goal, notes: sorted };
       }),
     })),
 }));

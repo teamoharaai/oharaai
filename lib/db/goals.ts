@@ -380,27 +380,31 @@ export async function createGoalWithMilestonesAndTrackers(
       }));
     });
 
+  // Every goal gets a vault — it is the goal's knowledge stronghold, so the
+  // "one vault per goal" contract must hold from creation, not only when a
+  // caller happens to pass a vaultContext. A caller may still specify the
+  // space/type; otherwise we default to a personal vault. Non-blocking: a
+  // vault failure never fails goal creation (the read path self-heals via
+  // getOrCreateVaultForUser), and unique(goal_id) makes a duplicate insert a
+  // no-op we can safely ignore.
   const vaultContext = options?.vaultContext;
-  if (vaultContext) {
-    // Optional and non-blocking: manual creation does not request a vault.
-    const { error: vaultError } = await db
-      .from('vaults')
-      .insert({
-        user_id: userId,
-        goal_id: goalId,
-        space_id: vaultContext.spaceId,
-        vault_type: vaultContext.vaultType,
-      });
+  const { error: vaultError } = await db
+    .from('vaults')
+    .insert({
+      user_id: userId,
+      goal_id: goalId,
+      space_id: vaultContext?.spaceId ?? null,
+      vault_type: vaultContext?.vaultType ?? 'personal',
+    });
 
-    if (vaultError) {
-      console.error('[vault] Failed to auto-create vault for goal', goalId, {
-        requestId,
-        stage: 'persistence',
-        error: vaultError.message,
-        code: vaultError.code,
-      });
-      // Non-blocking: goal creation still succeeds
-    }
+  if (vaultError && vaultError.code !== '23505') {
+    console.error('[vault] Failed to auto-create vault for goal', goalId, {
+      requestId,
+      stage: 'persistence',
+      error: vaultError.message,
+      code: vaultError.code,
+    });
+    // Non-blocking: goal creation still succeeds
   }
 
   console.info('[goal-create] persistence succeeded', {

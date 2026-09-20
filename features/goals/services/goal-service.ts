@@ -1,4 +1,5 @@
 import supabase from '@/lib/db/client';
+import { authedFetch } from '@/lib/api/client';
 import { fetchLatestReflectionTimestamps } from '@/lib/db/echo-entry-links';
 import { getSuccessorGoalId, getSuccessorGoalIds } from '@/lib/db/goals';
 import { resolveBrt } from '@/lib/utils/resolveBrt';
@@ -68,15 +69,19 @@ type DbMilestone = {
   updated_at: string;
 };
 
-type DbGoalNote = {
+// Notes are Vault items (item_type='note') since migration 061; a goal's
+// "notes" are the note-type items in its Vault. This is the JSON shape the
+// /api/vaults endpoints return for an item (camelCase, dates as ISO strings).
+type VaultItemJson = {
   id: string;
-  goal_id: string;
-  user_id: string;
-  title: string;
-  body: string | null;
-  photo_url: string | null;
-  created_at: string;
-  updated_at: string;
+  vaultId: string;
+  itemType: string;
+  title: string | null;
+  content: string | null;
+  metadata: { photoUrl?: string } & Record<string, unknown>;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type DbGoal = {
@@ -104,7 +109,6 @@ export type DbGoal = {
   created_at: string;
   updated_at: string;
   milestones: DbMilestone[];
-  goal_notes: DbGoalNote[];
   trackers: DbTracker[];
 };
 
@@ -248,16 +252,16 @@ function mapMilestone(row: DbMilestone): GoalMilestone {
   };
 }
 
-function mapGoalNote(row: DbGoalNote): GoalNote {
+function mapVaultNoteToGoalNote(item: VaultItemJson, goalId: string): GoalNote {
   return {
-    id: row.id,
-    goalId: row.goal_id,
-    userId: row.user_id,
-    title: row.title,
-    body: row.body,
-    photoUrl: row.photo_url,
-    createdAt: new Date(row.created_at),
-    updatedAt: new Date(row.updated_at),
+    id: item.id,
+    goalId,
+    userId: item.createdBy,
+    title: item.title ?? '',
+    body: item.content,
+    photoUrl: item.metadata?.photoUrl ?? null,
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
   };
 }
 
@@ -289,9 +293,9 @@ export function mapGoal(row: DbGoal): GoalWithDetails {
     has_successor: false,
     successor: null,
     milestones: (row.milestones ?? []).map(mapMilestone).sort((a, b) => a.sortOrder - b.sortOrder),
-    notes: (row.goal_notes ?? [])
-      .map(mapGoalNote)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+    // Notes are loaded separately from the goal's Vault on the detail path
+    // (fetchGoalVaultNotes) — they are no longer embedded in GOAL_SELECT.
+    notes: [],
     trackers: (row.trackers ?? []).map(mapTracker).sort((a, b) => a.sortOrder - b.sortOrder),
     vaultItemCount: 0,
     echoLinkCount: 0,
@@ -414,9 +418,6 @@ export const GOAL_SELECT = `
     id, goal_id, user_id, title, description, due_date, completed_at,
     sort_order, is_ai_suggested, kind, parent_id, target_count, photo_url,
     created_at, updated_at
-  ),
-  goal_notes (
-    id, goal_id, user_id, title, body, photo_url, created_at, updated_at
   ),
   trackers (
     id, goal_id, title, type, target_value, target_unit, frequency,
@@ -717,26 +718,52 @@ export async function deleteMilestone(goalId: string, milestoneId: string): Prom
   return !error;
 }
 
+// ── Goal notes = Vault note-items (migration 061) ──────────────────────────────
+// A goal's notes are the note-type items in its Vault. All reads/writes go
+// through the /api/vaults chokepoint so the vault is get-or-created and item
+// embeddings are generated server-side (never on the client). The GoalNote
+// domain shape and these signatures are unchanged, so the hook/store/panel that
+// consume them did not have to move off the sticky-note API.
+
+/** Loads a goal's notes from its Vault (note-type items only). */
+export async function fetchGoalVaultNotes(goalId: string): Promise<GoalNote[]> {
+  try {
+    const res = await authedFetch(`/api/vaults/${goalId}`);
+    if (!res.ok) return [];
+    const data = (await res.json()) as { items?: VaultItemJson[] };
+    return (data.items ?? [])
+      .filter((item) => item.itemType === 'note')
+      .map((item) => mapVaultNoteToGoalNote(item, goalId))
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  } catch {
+    return [];
+  }
+}
+
 export async function createGoalNote(
   goalId: string,
   userId: string,
   input: GoalNoteInput,
 ): Promise<GoalNote | null> {
+  void userId; // server derives the owner from the session
   if (!await canWriteGoal(goalId)) return null;
 
-  const { data, error } = await supabase
-    .from('goal_notes')
-    .insert({
-      goal_id: goalId,
-      user_id: userId,
-      title: input.title.trim(),
-      body: input.body?.trim() || null,
-    })
-    .select()
-    .single();
-
-  if (error || !data) return null;
-  return mapGoalNote(data as unknown as DbGoalNote);
+  try {
+    const res = await authedFetch(`/api/vaults/${goalId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        itemType: 'note',
+        title: input.title.trim() || null,
+        content: input.body?.trim() || null,
+      }),
+    });
+    if (!res.ok) return null;
+    const { item } = (await res.json()) as { item: VaultItemJson };
+    return mapVaultNoteToGoalNote(item, goalId);
+  } catch {
+    return null;
+  }
 }
 
 export async function updateGoalNote(
@@ -746,30 +773,38 @@ export async function updateGoalNote(
 ): Promise<GoalNote | null> {
   if (!await canWriteGoal(goalId)) return null;
 
-  const patch: Record<string, unknown> = {};
-  if (updates.title !== undefined) patch.title = updates.title.trim();
-  if ('body' in updates) patch.body = updates.body?.trim() || null;
-  if ('photoUrl' in updates) patch.photo_url = updates.photoUrl ?? null;
+  const body: Record<string, unknown> = {};
+  if (updates.title !== undefined) body.title = updates.title.trim() || null;
+  if ('body' in updates) body.content = updates.body?.trim() || null;
+  // Photo lives in item metadata; a photo change replaces metadata wholesale,
+  // which only drops migration provenance keys (harmless). Title/body edits
+  // never send metadata, so an existing photo is preserved.
+  if ('photoUrl' in updates) {
+    body.metadata = updates.photoUrl ? { photoUrl: updates.photoUrl } : {};
+  }
+  if (Object.keys(body).length === 0) return null;
 
-  if (Object.keys(patch).length === 0) return null;
-
-  const { data, error } = await supabase
-    .from('goal_notes')
-    .update(patch)
-    .eq('id', noteId)
-    .select()
-    .single();
-
-  if (error || !data) return null;
-  return mapGoalNote(data as unknown as DbGoalNote);
+  try {
+    const res = await authedFetch(`/api/vaults/items/${noteId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) return null;
+    const { item } = (await res.json()) as { item: VaultItemJson };
+    return mapVaultNoteToGoalNote(item, goalId);
+  } catch {
+    return null;
+  }
 }
 
 export async function deleteGoalNote(goalId: string, noteId: string): Promise<boolean> {
   if (!await canWriteGoal(goalId)) return false;
 
-  const { error } = await supabase
-    .from('goal_notes')
-    .delete()
-    .eq('id', noteId);
-  return !error;
+  try {
+    const res = await authedFetch(`/api/vaults/items/${noteId}`, { method: 'DELETE' });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }

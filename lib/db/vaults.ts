@@ -111,6 +111,56 @@ export async function getVaultByGoalIdForUser(
   return mapVault(data as unknown as DbVaultRow);
 }
 
+/**
+ * Returns the user's vault for a goal, creating it on first access if missing.
+ *
+ * Vaults are auto-created at goal creation only when a `vaultContext` is
+ * supplied (see lib/db/goals.ts), so goals created through the normal flow —
+ * and every goal predating the Vault feature — have no vault row. This lazily
+ * mints the singleton vault so the "one vault per goal" contract holds on read.
+ *
+ * Returns `null` only when the goal does not belong to the user (a genuine
+ * 404), never merely because the vault row was absent.
+ */
+export async function getOrCreateVaultForUser(
+  goalId: string,
+  userId: string,
+  client: DbClient = supabase,
+): Promise<Vault | null> {
+  const existing = await getVaultByGoalIdForUser(goalId, userId, client);
+  if (existing) return existing;
+
+  // No vault yet — confirm the goal is the user's before minting one, so a
+  // caller can't create a vault against a goal they don't own.
+  const { data: goal, error: goalError } = await client
+    .from('goals')
+    .select('id')
+    .eq('id', goalId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (goalError) throw goalError;
+  if (!goal) return null;
+
+  const { data: created, error } = await client
+    .from('vaults')
+    .insert({ goal_id: goalId, user_id: userId, vault_type: 'personal' })
+    .select('id, user_id, goal_id, space_id, vault_type, created_at, updated_at')
+    .single();
+
+  if (created) return mapVault(created as unknown as DbVaultRow);
+
+  // A concurrent request (e.g. two focus-effect refreshes) may have inserted
+  // first — unique(goal_id) rejects the loser with 23505. That's not an error
+  // for us: re-read the row the winner created.
+  if (error?.code === '23505') {
+    const raced = await getVaultByGoalIdForUser(goalId, userId, client);
+    if (raced) return raced;
+  }
+
+  throw new Error(error?.message ?? 'Failed to create vault');
+}
+
 export async function getVaultItems(
   vaultId: string,
   client: DbClient = supabase,

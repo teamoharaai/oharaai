@@ -1,7 +1,7 @@
 import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 import { withAuth, type AuthContext } from '@/lib/api/auth';
 import {
-  getVaultByGoalIdForUser,
+  getOrCreateVaultForUser,
   getVaultItems,
   createVaultItem,
 } from '@/lib/db/vaults';
@@ -87,8 +87,9 @@ async function handleGet(
 
   try {
     const authedDb = createAuthedClient(auth.accessToken);
-    const vault = await getVaultByGoalIdForUser(goalId, auth.userId, authedDb);
+    const vault = await getOrCreateVaultForUser(goalId, auth.userId, authedDb);
     if (!vault) {
+      // Only reached when the goal doesn't belong to the user.
       return Response.json({ error: 'Not found' }, { status: 404 });
     }
     const items = await getVaultItems(vault.id, authedDb);
@@ -159,8 +160,9 @@ async function handlePost(
 
   try {
     const authedDb = createAuthedClient(auth.accessToken);
-    const vault = await getVaultByGoalIdForUser(goalId, auth.userId, authedDb);
+    const vault = await getOrCreateVaultForUser(goalId, auth.userId, authedDb);
     if (!vault) {
+      // Only reached when the goal doesn't belong to the user.
       return Response.json({ error: 'Not found' }, { status: 404 });
     }
 
