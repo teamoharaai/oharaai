@@ -1,4 +1,4 @@
--- Migration 060: backfill vaults for existing vault-less goals.
+-- Migration 061: backfill vaults for existing vault-less goals.
 --
 -- The "one vault per goal" contract (unique(goal_id) on vaults, migration 004)
 -- was only honored when goal creation passed a vaultContext, so goals created

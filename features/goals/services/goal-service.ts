@@ -69,7 +69,7 @@ type DbMilestone = {
   updated_at: string;
 };
 
-// Notes are Vault items (item_type='note') since migration 061; a goal's
+// Notes are Vault items (item_type='note') since migration 062; a goal's
 // "notes" are the note-type items in its Vault. This is the JSON shape the
 // /api/vaults endpoints return for an item (camelCase, dates as ISO strings).
 type VaultItemJson = {
@@ -718,7 +718,7 @@ export async function deleteMilestone(goalId: string, milestoneId: string): Prom
   return !error;
 }
 
-// ── Goal notes = Vault note-items (migration 061) ──────────────────────────────
+// ── Goal notes = Vault note-items (migration 062) ──────────────────────────────
 // A goal's notes are the note-type items in its Vault. All reads/writes go
 // through the /api/vaults chokepoint so the vault is get-or-created and item
 // embeddings are generated server-side (never on the client). The GoalNote
