@@ -1,4 +1,4 @@
--- Migration 061: unify goal Sticky Notes (goal_notes, migration 058) into the
+-- Migration 062: unify goal Sticky Notes (goal_notes, migration 058) into the
 -- Vault (vault_items, migration 004).
 --
 -- Rationale: the Vault is the goal's knowledge stronghold — its items are
@@ -15,7 +15,7 @@
 -- mirroring the trackers cutover (migration 051). The table + rows are kept
 -- read-only as a rollback window; a later migration drops them once verified.
 --
--- Ordering: migration 060 backfills vaults for all goals, so every goal_note
+-- Ordering: migration 061 backfills vaults for all goals, so every goal_note
 -- has a vault to land in. A defensive backfill is repeated here so 061 is
 -- self-sufficient if replayed independently.
 --
@@ -78,6 +78,6 @@ where not exists (
 revoke insert, update, delete on table public.goal_notes from authenticated;
 
 comment on table public.goal_notes is
-  'FROZEN 2026-09-19 (migration 061): sticky notes unified into vault_items '
+  'FROZEN 2026-09-19 (migration 062): sticky notes unified into vault_items '
   '(item_type=note, photo in metadata.photoUrl). Read-only rollback window; '
   'authenticated writes revoked. Slated for drop after live verification.';

@@ -23,7 +23,7 @@ function randomId(): string {
 
 /**
  * Uploads a sticky-note hero photo and returns its storage path. Since migration
- * 061 the path is stored on the note's Vault item (vault_items.metadata.photoUrl,
+ * 062 the path is stored on the note's Vault item (vault_items.metadata.photoUrl,
  * via updateGoalNote); resolve it to a viewable URL with
  * createSignedGoalNotePhotoUrl. The bucket is unchanged (owner-scoped).
  */

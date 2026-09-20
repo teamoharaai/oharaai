@@ -192,7 +192,7 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
 
   // Load the goal's notes from its Vault once the goal is present. Notes are no
   // longer embedded in the goal payload (they live in vault_items since
-  // migration 061), so this is the detail-path fetch that populates goal.notes.
+  // migration 062), so this is the detail-path fetch that populates goal.notes.
   const hasGoal = goal !== null;
   useEffect(() => {
     if (!goalId || !hasGoal) return;
