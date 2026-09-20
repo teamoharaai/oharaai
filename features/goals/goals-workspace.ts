@@ -2,6 +2,26 @@ import type { GoalMilestone, GoalStatus, GoalWithDetails } from './types';
 
 export type GoalWorkspaceStatusFilter = 'active' | 'paused' | 'completed' | 'expired' | 'archived';
 
+/** Recent visits are UI context; persisted edits/reflections/milestones provide the fallback. */
+export function recentWorkspaceGoals(
+  goals: readonly GoalWithDetails[],
+  visits: Readonly<Record<string, number>>,
+  selectedId: string | null,
+): GoalWithDetails[] {
+  const touched = (goal: GoalWithDetails) => Math.max(
+    visits[goal.id] ?? 0,
+    goal.updatedAt.getTime(),
+    goal.reflected_at?.getTime() ?? 0,
+    ...goal.milestones.map((milestone) => milestone.updatedAt.getTime()),
+  );
+  return [...goals].sort((a, b) => {
+    if (a.id === b.id) return 0;
+    if (a.id === selectedId) return -1;
+    if (b.id === selectedId) return 1;
+    return touched(b) - touched(a) || b.createdAt.getTime() - a.createdAt.getTime();
+  }).slice(0, 3);
+}
+
 export function workspaceStatusToGoalStatus(status: GoalWorkspaceStatusFilter): GoalStatus {
   if (status === 'paused') return 'stagnant';
   if (status === 'completed') return 'complete';

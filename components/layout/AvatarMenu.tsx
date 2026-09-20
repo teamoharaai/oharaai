@@ -239,7 +239,7 @@ export function AvatarMenu() {
     <>
       <Pressable
         ref={triggerRef}
-        accessibilityLabel="Open account and friends"
+        accessibilityLabel="Open account and Circles"
         accessibilityRole="button"
         accessibilityState={{ expanded: menuOpen || friendsOpen }}
         onBlur={() => setAvatarFocused(false)}

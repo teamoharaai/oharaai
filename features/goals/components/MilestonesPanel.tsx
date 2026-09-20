@@ -17,7 +17,10 @@ import {
 } from '@/components/ui/DatePicker';
 import { OverflowMenu, type OverflowAction } from '@/components/ui/OverflowMenu';
 import { useThemeColors } from '@/store/uiStore';
-import { FONT, TYPE } from '@/constants/design';
+import { FONT, SPACE, TYPE } from '@/constants/design';
+import { Typography } from '@/components/ui/Typography';
+import { GoalSectionHeading } from '@/components/ui/GoalSectionHeading';
+import { Button } from '@/components/ui/Button';
 import type {
   GoalMilestone,
   GoalMilestoneInput,
@@ -1074,30 +1077,18 @@ export function MilestonesPanel({
     >
       <View
         style={{
-          alignItems: compact ? 'flex-start' : 'center',
-          flexDirection: compact ? 'column' : 'row',
+          alignItems: 'center',
+          flexDirection: 'row',
           gap: 8,
           justifyContent: 'space-between',
-          marginBottom: 20,
+          marginBottom: SPACE['3xl'],
         }}
       >
         <View style={{ flexShrink: 1 }}>
-          <Text
-            style={{
-              color: colors.text.secondary,
-              ...TYPE.overline,
-              fontFamily: FONT.ui.semibold,
-              letterSpacing: 1.5,
-              textTransform: 'uppercase',
-            }}
-          >
-            Milestones
-          </Text>
-          <Text style={{ color: colors.text.primary, ...TYPE.sectionTitle, marginTop: 3 }}>
-            {subtitle}
-          </Text>
+          <GoalSectionHeading>Milestones</GoalSectionHeading>
+          <Typography variant="body" style={{ marginTop: SPACE.xs }}>{subtitle}</Typography>
         </View>
-        <Text style={{ color: colors.text.accent, ...TYPE.caption, fontFamily: FONT.ui.medium }}>
+        <Text style={{ color: colors.text.secondary, ...TYPE.caption, fontFamily: FONT.ui.medium, flexShrink: 0 }}>
           {completedCount} of {achievements.length} reached
         </Text>
       </View>
@@ -1139,16 +1130,20 @@ export function MilestonesPanel({
 
       {/* Milestones are one-time achievement story cards — the Prep checklist
           zone was retired (Goal Detail Redesign); enabling work lives in Tasks. */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: SPACE.md, marginBottom: SPACE.lg }}>
+        {!readOnly && onAdd && !showAddForm ? <Button size="compact" onPress={() => {
+          setDeletingId(null);
+          setEditingId(null);
+          setAddingChildFor(null);
+          setShowAddForm(true);
+        }}>+ New Milestone</Button> : null}
+      </View>
+      <Typography variant="body" style={{ marginBottom: SPACE.lg }}>
+        Milestones capture proof of progress — a photo and a story for each real accomplishment along the way.
+      </Typography>
       {achievements.length > 0 ? (
         <View style={{ gap: 12 }}>
           {achievements.map((milestone) => renderTopLevelAchievement(milestone))}
-        </View>
-      ) : !showAddForm ? (
-        <View style={{ paddingHorizontal: 2, paddingVertical: 6 }}>
-          <Text style={{ color: colors.text.muted, fontFamily: 'Inter-Regular', fontSize: 14, lineHeight: 21 }}>
-            Milestones capture proof of progress — a photo and a story for each real accomplishment
-            along the way.
-          </Text>
         </View>
       ) : null}
 
@@ -1164,34 +1159,6 @@ export function MilestonesPanel({
             submitLabel="Add milestone"
           />
         </View>
-      ) : !readOnly && onAdd ? (
-        <Pressable
-          accessibilityLabel="Add a milestone"
-          accessibilityRole="button"
-          onPress={() => {
-            setDeletingId(null);
-            setEditingId(null);
-            setAddingChildFor(null);
-            setShowAddForm(true);
-          }}
-          style={({ pressed }) => ({
-            alignItems: 'center',
-            alignSelf: 'flex-start',
-            borderColor: colors.border.divider,
-            borderRadius: 10,
-            borderStyle: 'dashed',
-            borderWidth: 1,
-            flexDirection: 'row',
-            marginTop: 12,
-            opacity: pressed ? 0.72 : 1,
-            paddingHorizontal: 14,
-            paddingVertical: 9,
-          })}
-        >
-          <Text style={{ color: colors.text.muted, fontFamily: 'Inter-Regular', fontSize: 13 }}>
-            ＋ Add milestone
-          </Text>
-        </Pressable>
       ) : null}
     </View>
   );

@@ -49,6 +49,20 @@ test('recurrence labels keep database concepts secondary', () => {
   assert.equal(scheduleLabel(recurring), 'Every 2 weeks · Mon · Wed · Fri');
 });
 
+test('weekly-count commitments remain in Today throughout their ISO week, including partial weeks', () => {
+  const weekly = task({ completionMode: 'quantity', targetQuantity: 3,
+    schedules: [{ id: 'schedule', taskId: 'task', version: 1, recurrenceKind: 'weekly_count',
+      targetCount: 3, intervalCount: 1, weekdays: [], startDate: '2026-09-09', endDate: null,
+      localTime: null, timezone: 'America/New_York', isActive: true, source: 'user' }],
+    occurrences: [occurrence({ scheduleId: 'schedule', scheduledLocalDate: '2026-09-09', actualQuantity: 1 })],
+  });
+  for (const day of ['09', '10', '13']) {
+    assert.equal(buildTaskSections([weekly], new Date(`2026-09-${day}T16:00:00Z`)).today.length, 1);
+  }
+  assert.equal(buildTaskSections([weekly], new Date('2026-09-14T16:00:00Z')).today.length, 0);
+  assert.equal(scheduleLabel(weekly), '3×/week');
+});
+
 test('Upcoming collapses a daily task with a full horizon to one row', () => {
   const now = new Date('2026-09-11T16:00:00.000Z'); // noon America/New_York → today 2026-09-11
   const occurrences = Array.from({ length: 28 }, (_, index) => {

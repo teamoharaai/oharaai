@@ -6,6 +6,7 @@ import { useFriendsStore } from '@/features/friends/store';
 import { useProjectStore } from '@/features/projects/store';
 import { useEntriesStore } from '@/features/entries/store';
 import { useUIStore } from '@/store/uiStore';
+import { useCirclesStore } from '@/features/circles/store';
 
 /**
  * Reset every Zustand store to its initial data state.
@@ -16,9 +17,10 @@ import { useUIStore } from '@/store/uiStore';
  * the next user does not inherit draft text from the previous session.
  */
 export function clearAllStores(): void {
+  useCirclesStore.setState(useCirclesStore.getInitialState());
   useFriendsStore.getState().reset();
 
-  useGoalStore.setState({ goals: [], selectedGoalId: null, isLoading: false });
+  useGoalStore.setState({ goals: [], selectedGoalId: null, recentGoalVisits: {}, isLoading: false });
 
   useProfileStore.setState({
     profile: null,

@@ -84,7 +84,7 @@ export function ConstellationHeaderMetadata({
             <BrandIcon name="constellation" size={24} color={colors.accent.primary} />
           }
           style={{ flex: 1 }}
-          title={focusLabel ? 'Constellation · Focus' : 'Constellation'}
+          title={focusLabel ? 'Roots · Focus' : 'Roots'}
         />
         <View
           style={{

@@ -12,11 +12,10 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 
-import { AuthenticatedPageShell } from '@/components/layout/AuthenticatedPageShell';
+import { AuthenticatedPageShell, useScrollToPageContent } from '@/components/layout/AuthenticatedPageShell';
 import { AnchoredPopover, type AnchorRect } from '@/components/ui/AnchoredPopover';
 import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Button } from '@/components/ui/Button';
-import { ProgressRing } from '@/components/ui/ProgressRing';
 import { Typography } from '@/components/ui/Typography';
 import { elevationStyle, RADIUS, SPACE, TYPE } from '@/constants/design';
 import { getCategoryAccentTheme } from '@/constants/themes';
@@ -28,9 +27,13 @@ import { useGoalMomentumSummary } from '@/features/momentum/hooks/useMomentumHom
 import { MomentumTrendChart } from '@/features/momentum/components/MomentumTrendChart';
 import { TasksPanel } from '@/features/tasks/components/TasksPanel';
 import { useDeadlineDensity } from '../hooks/useDeadlineDensity';
+import { SharedGoalsPreview } from './SharedGoalsPreview';
+import { GoalActivityPanel } from './GoalActivityPanel';
+import { useGoalActivityWindow } from '../hooks/useGoalActivityWindow';
 import type { ActivityItem } from '@/types/activity';
 import {
   filterGoalsForWorkspace,
+  recentWorkspaceGoals,
   getGoalCategoryLabel,
   getGoalStatusLabel,
   getNextGoalMilestone,
@@ -40,20 +43,18 @@ import {
 } from '../goals-workspace';
 import { getGoalWorkspaceSelection } from '../navigation';
 import { useActivity } from '../hooks/useActivity';
-import { useGoalActivityWindow } from '../hooks/useGoalActivityWindow';
-import { GoalActivityPanel } from './GoalActivityPanel';
 import { useGoalDetail, type UseGoalDetailResult } from '../hooks/useGoalDetail';
 import { useGoals } from '../hooks/useGoals';
 import { useGoalStore } from '../store';
-import type { GoalMilestone, GoalWithDetails, Tracker } from '../types';
+import type { GoalMilestone, GoalWithDetails } from '../types';
 import { getGoalRingProgress } from '../utils/ringProgress';
-import { CountdownTimer } from './CountdownTimer';
+import { GoalVault } from './GoalVault';
 import { GoalDetailHeader } from './GoalDetailHeader';
 import { GoalProjectPickerModal } from './GoalProjectPickerModal';
 import { MilestonesPanel } from './MilestonesPanel';
 import { StickyNotesPanel } from './StickyNotesPanel';
 
-type WorkspaceTab = 'overview' | 'milestones' | 'tasks' | 'reflections' | 'notes' | 'insights';
+type WorkspaceTab = 'overview' | 'vault';
 
 const STATUS_OPTIONS: ReadonlyArray<{ label: string; value: GoalWorkspaceStatusFilter }> = [
   { label: 'Active', value: 'active' },
@@ -70,15 +71,9 @@ const STATUS_OPTIONS: ReadonlyArray<{ label: string; value: GoalWorkspaceStatusF
 const PRIMARY_STATUS_OPTIONS = STATUS_OPTIONS.slice(0, 2);
 const OVERFLOW_STATUS_OPTIONS = STATUS_OPTIONS.slice(2);
 
-// 'tasks' stays a valid WorkspaceTab (used by TasksPanel's "See all" full-view
-// expansion) but is intentionally not listed here: the Tasks panel is always
-// mounted above the tab bar, so it needs no chip of its own.
 const DETAIL_TABS: ReadonlyArray<{ label: string; value: WorkspaceTab }> = [
   { label: 'Overview', value: 'overview' },
-  { label: 'Milestones', value: 'milestones' },
-  { label: 'Reflections', value: 'reflections' },
-  { label: 'Notes', value: 'notes' },
-  { label: 'Insights', value: 'insights' },
+  { label: 'Vault', value: 'vault' },
 ];
 
 function formatDate(date: Date | null, fallback = 'Not set'): string {
@@ -88,17 +83,6 @@ function formatDate(date: Date | null, fallback = 'Not set'): string {
     month: 'short',
     year: 'numeric',
   }).format(date);
-}
-
-function formatRelativeDate(value: Date | string): string {
-  const date = typeof value === 'string' ? new Date(value) : value;
-  if (Number.isNaN(date.getTime())) return '';
-  const difference = Date.now() - date.getTime();
-  const days = Math.floor(difference / 86_400_000);
-  if (days <= 0) return 'Today';
-  if (days === 1) return 'Yesterday';
-  if (days < 7) return `${days} days ago`;
-  return formatDate(date);
 }
 
 function dueLabel(date: Date | null): string {
@@ -114,31 +98,6 @@ function dueLabel(date: Date | null): string {
   if (days === -1) return 'Yesterday';
   if (days < 0) return `${Math.abs(days)} days overdue`;
   return formatDate(date);
-}
-
-function activityPresentation(item: ActivityItem): { detail?: string; icon: keyof typeof Ionicons.glyphMap; title: string } {
-  switch (item.kind) {
-    case 'milestone_completed':
-      return { icon: 'checkmark-circle-outline', title: `Reached ${item.label}` };
-    case 'tracker_logged':
-      return {
-        detail: `${item.value}${item.note ? ` · ${item.note}` : ''}`,
-        icon: 'trending-up-outline',
-        title: `Logged ${item.label}`,
-      };
-    case 'task_completed':
-      return { icon: 'checkbox-outline', title: `Completed ${item.label}` };
-    case 'goal_created':
-      return { icon: 'flag-outline', title: 'Goal created' };
-    case 'vault_item_added':
-      return { icon: 'bookmark-outline', title: `Added ${item.title}` };
-    case 'insight_confirmed':
-      return { detail: item.content, icon: 'sparkles-outline', title: 'Confirmed an insight' };
-    case 'echo_linked':
-      return { detail: item.preview, icon: 'link-outline', title: 'Linked a reflection' };
-    case 'echo_entry':
-      return { detail: item.preview, icon: 'chatbubble-ellipses-outline', title: 'Reflected on this goal' };
-  }
 }
 
 function Surface({
@@ -206,24 +165,6 @@ function CategoryGlyph({ goal, size = 48 }: { goal: GoalWithDetails; size?: numb
       }}
     >
       <Ionicons color={accent.color} name={iconByCategory[goal.category] ?? 'flag-outline'} size={size * 0.48} />
-    </View>
-  );
-}
-
-function QuietPill({ children, accent = false }: { children: ReactNode; accent?: boolean }) {
-  const colors = useThemeColors();
-  return (
-    <View
-      style={{
-        backgroundColor: accent ? colors.background.selectedRow : colors.background.input,
-        borderRadius: RADIUS.round,
-        paddingHorizontal: SPACE.lg,
-        paddingVertical: SPACE.sm,
-      }}
-    >
-      <Typography variant="caption" style={{ color: accent ? colors.text.accent : colors.text.secondary }}>
-        {children}
-      </Typography>
     </View>
   );
 }
@@ -523,7 +464,7 @@ function CategoryFilters({
     <View
       style={{
         borderTopColor: colors.border.divider,
-        borderTopWidth: 1,
+        borderTopWidth: 0,
         marginTop: SPACE.lg,
         paddingTop: SPACE.lg,
       }}
@@ -568,69 +509,25 @@ function CategoryFilters({
   );
 }
 
-function GoalListCard({
-  goal,
-  onSelect,
-  selected,
-}: {
-  goal: GoalWithDetails;
-  onSelect: () => void;
-  selected: boolean;
+function GoalListCard({ goal, onSelect, selected }: {
+  goal: GoalWithDetails; onSelect: () => void; selected: boolean;
 }) {
   const colors = useThemeColors();
-  const accent = getCategoryAccentTheme(goal.category);
-  const next = getNextGoalMilestone(goal.milestones);
-
   return (
-    <Pressable
-      accessibilityHint="Shows this goal in the workspace"
-      accessibilityLabel={`Select ${goal.title}`}
-      accessibilityRole="button"
-      onPress={onSelect}
-      style={({ hovered, pressed }) => ({
-        backgroundColor: selected
-          ? colors.background.selectedRow
-          : hovered ? colors.background.subtle : colors.background.card,
-        borderLeftColor: selected ? colors.border.accent : 'transparent',
-        borderLeftWidth: 3,
-        borderTopColor: colors.border.divider,
-        borderTopWidth: 1,
-        opacity: pressed ? 0.76 : 1,
-        overflow: 'hidden',
-        padding: SPACE.xl,
-      })}
-    >
-      <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.lg }}>
-        <CategoryGlyph goal={goal} size={46} />
+    <Pressable accessibilityLabel={`Select ${goal.title}`} accessibilityRole="button"
+      accessibilityState={{ selected }} onPress={onSelect}
+      style={({ pressed }) => ({
+        backgroundColor: selected ? colors.background.selectedRow : 'transparent',
+        borderLeftColor: selected ? colors.accent.primary : 'transparent',
+        borderLeftWidth: 3, padding: SPACE.lg, opacity: pressed ? 0.7 : 1,
+      })}>
+      <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
+        <CategoryGlyph goal={goal} size={32} />
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Typography numberOfLines={1} variant="goal-title">
-            {goal.title}
+          <Typography numberOfLines={2} variant="emphasis-sm">{goal.title}</Typography>
+          <Typography variant="caption" style={{ marginTop: 3 }}>
+            {getGoalCategoryLabel(goal.category)} · {getGoalStatusLabel(goal.status)}
           </Typography>
-          <Typography variant="caption" style={{ color: colors.text.secondary, marginTop: 2 }}>
-            {getGoalCategoryLabel(goal.category)}
-          </Typography>
-        </View>
-        <ProgressRing color={accent.color} progress={goal.progress} size={58} strokeWidth={4} variant="warm" />
-      </View>
-      <View
-        style={{
-          alignItems: 'center',
-          borderTopColor: colors.border.divider,
-          borderTopWidth: 1,
-          flexDirection: 'row',
-          gap: SPACE.md,
-          justifyContent: 'space-between',
-          marginTop: SPACE.xl,
-          paddingTop: SPACE.lg,
-        }}
-      >
-        <Typography numberOfLines={1} variant="caption" style={{ flex: 1 }}>
-          <Typography variant="caption" style={{ color: colors.text.accent }}>Next: </Typography>
-          {next?.title ?? 'No next milestone'}
-        </Typography>
-        <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}>
-          <Ionicons color={colors.text.secondary} name="calendar-clear-outline" size={14} />
-          <Typography variant="caption">{dueLabel(next?.dueDate ?? goal.deadline)}</Typography>
         </View>
       </View>
     </Pressable>
@@ -659,16 +556,31 @@ function GoalList({
   status: GoalWorkspaceStatusFilter;
 }) {
   const colors = useThemeColors();
+  const { width } = useWindowDimensions();
+  const [expanded, setExpanded] = useState(false);
+  const [compactOpen, setCompactOpen] = useState(false);
+  const browsing = expanded || filterOpen;
+  const visits = useGoalStore((state) => state.recentGoalVisits);
+  const recent = recentWorkspaceGoals(goals, visits, selectedGoalId);
+  const visible = browsing ? goals : recent;
+  const collapsed = width < 1000 && !compactOpen && !browsing;
   return (
+    <View style={{ gap: SPACE.xl }}>
     <Surface style={{ minWidth: 0, overflow: 'hidden' }}>
-      <View style={{ padding: SPACE.xl }}>
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded: !collapsed }}
+        onPress={() => setCompactOpen((value) => !value)}
+        disabled={width >= 1000} style={{ padding: SPACE.xl }}>
+        <Typography variant="title">{browsing ? 'All Goals' : 'Recent Goals'}</Typography>
+        {collapsed ? <Typography variant="caption" style={{ marginTop: SPACE.sm }}>Switch Goal ↓</Typography> : null}
+      </Pressable>
+      {browsing ? <View style={{ padding: SPACE.xl, paddingTop: 0 }}>
         <GoalStatusTabs onChange={onStatusChange} value={status} />
         {filterOpen ? (
           <CategoryFilters categories={categories} onChange={onCategoryChange} value={category} />
         ) : null}
-      </View>
+      </View> : null}
 
-      {goals.length ? goals.map((goal) => (
+      {!collapsed ? visible.length ? visible.map((goal) => (
         <GoalListCard
           goal={goal}
           key={goal.id}
@@ -696,93 +608,16 @@ function GoalList({
             New Goal
           </Button>
         </View>
-      )}
-    </Surface>
-  );
-}
-
-function GoalMeta({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
-  const colors = useThemeColors();
-  return (
-    <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md, minWidth: 128 }}>
-      <View
-        style={{
-          alignItems: 'center',
-          backgroundColor: colors.background.selectedRow,
-          borderRadius: RADIUS.round,
-          height: 34,
-          justifyContent: 'center',
-          width: 34,
-        }}
-      >
-        <Ionicons color={colors.text.accent} name={icon} size={17} />
-      </View>
-      <View style={{ minWidth: 0 }}>
-        <Typography variant="caption">{label}</Typography>
-        <Typography numberOfLines={1} variant="emphasis-sm" style={{ marginTop: 1 }}>
-          {value}
+      ) : null}
+      {!collapsed ? <Pressable accessibilityRole="button" onPress={() => setExpanded((value) => !value)}
+        style={{ padding: SPACE.xl, minHeight: 44 }}>
+        <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>
+          {expanded ? 'Show recent Goals ↑' : 'View all Goals →'}
         </Typography>
-      </View>
-    </View>
-  );
-}
-
-function SelectedGoalHero({ goal }: { goal: GoalWithDetails }) {
-  const colors = useThemeColors();
-  const dark = useUIStore((state) => state.themeMode) === 'dark';
-  const accent = getCategoryAccentTheme(goal.category);
-  return (
-    <Surface style={{ overflow: 'hidden' }}>
-      <View
-        style={{
-          backgroundColor: dark ? colors.background.subtle : `${accent.tint}88`,
-          padding: SPACE['3xl'],
-        }}
-      >
-        <View style={{ alignItems: 'flex-start', flexDirection: 'row', gap: SPACE.xl }}>
-          <CategoryGlyph goal={goal} size={66} />
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md }}>
-              <Typography variant="heading" style={{ flexShrink: 1, fontSize: 26, lineHeight: 34 }}>
-                {goal.title}
-              </Typography>
-              <QuietPill accent>{getGoalStatusLabel(goal.status)}</QuietPill>
-            </View>
-            {goal.description ? (
-              <Typography variant="body" style={{ marginTop: SPACE.md, maxWidth: 560 }}>
-                {goal.description}
-              </Typography>
-            ) : (
-              <Typography variant="body" style={{ marginTop: SPACE.md }}>
-                No description has been added yet.
-              </Typography>
-            )}
-          </View>
-          <View style={{ alignItems: 'center', gap: SPACE.sm }}>
-            <ProgressRing color={accent.color} progress={goal.progress} size={94} strokeWidth={6} variant="warm" />
-            <Typography variant="caption">Progress</Typography>
-          </View>
-        </View>
-
-        <View
-          style={{
-            backgroundColor: colors.background.card,
-            borderColor: colors.border.warmSubtle,
-            borderRadius: RADIUS.md,
-            borderWidth: 1,
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            gap: SPACE['2xl'],
-            marginTop: SPACE['3xl'],
-            padding: SPACE.lg,
-          }}
-        >
-          <GoalMeta icon="pricetag-outline" label="Category" value={getGoalCategoryLabel(goal.category)} />
-          <GoalMeta icon="calendar-outline" label="Target" value={formatDate(goal.deadline)} />
-          <GoalMeta icon="time-outline" label="Created" value={formatDate(goal.createdAt)} />
-        </View>
-      </View>
+      </Pressable> : null}
     </Surface>
+    {!collapsed ? <Surface><SharedGoalsPreview /></Surface> : null}
+    </View>
   );
 }
 
@@ -793,9 +628,9 @@ function DetailTabs({ onChange, value }: { onChange: (value: WorkspaceTab) => vo
       accessibilityRole="tablist"
       style={{
         borderTopColor: colors.border.divider,
-        borderTopWidth: 1,
+        borderTopWidth: 0,
         borderBottomColor: colors.border.divider,
-        borderBottomWidth: 1,
+        borderBottomWidth: 0,
         flexDirection: 'row',
         flexWrap: 'wrap',
         paddingHorizontal: SPACE.lg,
@@ -818,7 +653,7 @@ function DetailTabs({ onChange, value }: { onChange: (value: WorkspaceTab) => vo
               paddingHorizontal: SPACE.lg,
             })}
           >
-            <Typography variant="caption" style={{ color: selected ? colors.text.primary : colors.text.secondary }}>
+            <Typography variant={selected ? "emphasis-sm" : "body"} style={{ color: selected ? colors.text.accent : colors.text.secondary }}>
               {tab.label}
             </Typography>
           </Pressable>
@@ -829,8 +664,9 @@ function DetailTabs({ onChange, value }: { onChange: (value: WorkspaceTab) => vo
 }
 
 function WorkspaceSection({ children }: { children: ReactNode }) {
+  const { width } = useWindowDimensions();
   return (
-    <View style={{ paddingHorizontal: SPACE['3xl'], paddingVertical: SPACE['2xl'] }}>
+    <View style={{ paddingHorizontal: width < 560 ? SPACE.xl : SPACE['3xl'], paddingVertical: SPACE.lg }}>
       {children}
     </View>
   );
@@ -900,213 +736,6 @@ function NextStepCard({ goal, milestone, onOpen }: { goal: GoalWithDetails; mile
   );
 }
 
-function MilestoneJourney({ milestones }: { milestones: readonly GoalMilestone[] }) {
-  const colors = useThemeColors();
-  const sorted = [...milestones].sort((left, right) => left.sortOrder - right.sortOrder);
-  if (!sorted.length) {
-    return (
-      <Surface style={{ padding: SPACE.xl }} subtle>
-        <SectionHeading>MILESTONES</SectionHeading>
-        <Typography variant="body" style={{ marginTop: SPACE.lg }}>
-          No milestones have been added to this goal yet.
-        </Typography>
-      </Surface>
-    );
-  }
-
-  const currentIndex = Math.max(0, sorted.findIndex((item) => item.completedAt === null));
-  return (
-    <Surface style={{ padding: SPACE.xl }} subtle>
-      <SectionHeading>MILESTONES</SectionHeading>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.lg, marginTop: SPACE.xl }}>
-        {sorted.map((milestone, index) => {
-          const completed = milestone.completedAt !== null;
-          const current = !completed && index === currentIndex;
-          return (
-            <View key={milestone.id} style={{ flex: 1, minWidth: 112 }}>
-              <View style={{ alignItems: 'center', flexDirection: 'row' }}>
-                <View
-                  style={{
-                    alignItems: 'center',
-                    backgroundColor: completed || current ? colors.background.selectedRow : colors.background.input,
-                    borderColor: completed || current ? colors.border.accent : colors.border.input,
-                    borderRadius: RADIUS.round,
-                    borderWidth: 1,
-                    height: 30,
-                    justifyContent: 'center',
-                    width: 30,
-                  }}
-                >
-                  <Ionicons
-                    color={completed || current ? colors.text.accent : colors.text.muted}
-                    name={completed ? 'checkmark' : current ? 'ellipse' : 'ellipse-outline'}
-                    size={15}
-                  />
-                </View>
-                {index < sorted.length - 1 ? (
-                  <View style={{ backgroundColor: completed ? colors.accent.primary : colors.border.divider, flex: 1, height: 1 }} />
-                ) : null}
-              </View>
-              <Typography numberOfLines={2} variant="emphasis-sm" style={{ marginTop: SPACE.md }}>
-                {milestone.title}
-              </Typography>
-              <Typography variant="caption" style={{ marginTop: SPACE.xs }}>
-                {completed ? `Completed ${formatDate(milestone.completedAt)}` : current ? 'Current' : dueLabel(milestone.dueDate)}
-              </Typography>
-            </View>
-          );
-        })}
-      </View>
-    </Surface>
-  );
-}
-
-function ActivityList({ error, items, loading }: { error: string | null; items: readonly ActivityItem[]; loading: boolean }) {
-  const colors = useThemeColors();
-  const visibleItems = items.slice(0, 4);
-  return (
-    <View>
-      <SectionHeading>RECENT ACTIVITY</SectionHeading>
-      {loading ? (
-        <ActivityIndicator color={colors.accent.primary} style={{ alignSelf: 'flex-start', marginTop: SPACE.xl }} />
-      ) : error ? (
-        <Typography variant="body" style={{ marginTop: SPACE.lg }}>
-          Recent activity could not be loaded right now.
-        </Typography>
-      ) : visibleItems.length ? (
-        <View style={{ gap: SPACE.lg, marginTop: SPACE.lg }}>
-          {visibleItems.map((item) => {
-            const presentation = activityPresentation(item);
-            return (
-              <View key={item.id} style={{ alignItems: 'flex-start', flexDirection: 'row', gap: SPACE.lg }}>
-                <View
-                  style={{
-                    alignItems: 'center',
-                    backgroundColor: colors.background.selectedRow,
-                    borderRadius: RADIUS.round,
-                    height: 34,
-                    justifyContent: 'center',
-                    width: 34,
-                  }}
-                >
-                  <Ionicons color={colors.text.accent} name={presentation.icon} size={17} />
-                </View>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Typography numberOfLines={1} variant="emphasis-sm">{presentation.title}</Typography>
-                  {presentation.detail ? (
-                    <Typography numberOfLines={2} variant="caption" style={{ marginTop: 2 }}>
-                      {presentation.detail}
-                    </Typography>
-                  ) : null}
-                </View>
-                <Typography variant="caption">{formatRelativeDate(item.timestamp)}</Typography>
-              </View>
-            );
-          })}
-        </View>
-      ) : (
-        <Typography variant="body" style={{ marginTop: SPACE.lg }}>
-          No activity has been recorded for this goal yet.
-        </Typography>
-      )}
-    </View>
-  );
-}
-
-function EntriesList({ entries, emptyCopy }: { entries: readonly EntryRecord[]; emptyCopy: string }) {
-  const colors = useThemeColors();
-  if (!entries.length) return <Typography variant="body">{emptyCopy}</Typography>;
-  return (
-    <View style={{ gap: SPACE.lg }}>
-      {entries.slice(0, 6).map((entry) => (
-        <Pressable
-          accessibilityLabel={`Open ${entry.title || entry.entryType}`}
-          key={entry.id}
-          onPress={() => router.push({ pathname: '/(app)/entries/[id]' as never, params: { id: entry.id } })}
-          style={({ pressed }) => ({
-            alignItems: 'flex-start',
-            backgroundColor: colors.background.subtle,
-            borderRadius: RADIUS.md,
-            flexDirection: 'row',
-            gap: SPACE.lg,
-            minHeight: 64,
-            opacity: pressed ? 0.68 : 1,
-            padding: SPACE.lg,
-          })}
-        >
-          <Ionicons color={colors.text.accent} name={entry.entryType === 'note' ? 'document-text-outline' : 'sparkles-outline'} size={19} />
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Typography numberOfLines={1} variant="emphasis-sm">
-              {entry.title || (entry.entryType === 'note' ? 'Untitled note' : 'Reflection')}
-            </Typography>
-            <Typography numberOfLines={2} variant="caption" style={{ marginTop: 2 }}>
-              {entry.plainText || 'No preview available.'}
-            </Typography>
-          </View>
-          <Typography variant="caption">{formatRelativeDate(entry.updatedAt)}</Typography>
-        </Pressable>
-      ))}
-    </View>
-  );
-}
-
-function MilestoneList({ milestones }: { milestones: readonly GoalMilestone[] }) {
-  const colors = useThemeColors();
-  if (!milestones.length) return <Typography variant="body">No milestones have been added yet.</Typography>;
-  return (
-    <View style={{ gap: SPACE.lg }}>
-      {[...milestones].sort((a, b) => a.sortOrder - b.sortOrder).map((milestone) => (
-        <View key={milestone.id} style={{ alignItems: 'flex-start', flexDirection: 'row', gap: SPACE.lg }}>
-          <Ionicons
-            color={milestone.completedAt ? colors.text.accent : colors.text.muted}
-            name={milestone.completedAt ? 'checkmark-circle' : 'ellipse-outline'}
-            size={22}
-          />
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="emphasis-sm">{milestone.title}</Typography>
-            {milestone.description ? <Typography variant="caption" style={{ marginTop: 2 }}>{milestone.description}</Typography> : null}
-          </View>
-          <Typography variant="caption">
-            {milestone.completedAt ? formatDate(milestone.completedAt) : dueLabel(milestone.dueDate)}
-          </Typography>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-function TrackerList({ trackers }: { trackers: readonly Tracker[] }) {
-  const colors = useThemeColors();
-  if (!trackers.length) {
-    return (
-      <Typography variant="body">
-        A dedicated task list is not stored for this goal. Trackers and completed activity will appear here when available.
-      </Typography>
-    );
-  }
-  return (
-    <View style={{ gap: SPACE.lg }}>
-      {trackers.map((tracker) => {
-        const target = tracker.targetValue ?? 0;
-        const progress = target > 0 ? Math.min(100, (tracker.currentValue / target) * 100) : 0;
-        return (
-          <View key={tracker.id} style={{ backgroundColor: colors.background.subtle, borderRadius: RADIUS.md, padding: SPACE.lg }}>
-            <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Typography variant="emphasis-sm">{tracker.title}</Typography>
-              <Typography variant="caption">
-                {tracker.currentValue}{target ? ` / ${target}` : ''}{tracker.targetUnit ? ` ${tracker.targetUnit}` : ''}
-              </Typography>
-            </View>
-            <View style={{ backgroundColor: colors.border.divider, borderRadius: RADIUS.round, height: 5, marginTop: SPACE.md, overflow: 'hidden' }}>
-              <View style={{ backgroundColor: colors.accent.primary, height: 5, width: `${progress}%` }} />
-            </View>
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-
 function GoalTabContent({
   activityError,
   activityItems,
@@ -1115,7 +744,6 @@ function GoalTabContent({
   goal,
   goalDetail,
   linkedEntries,
-  onTabChange,
   tab,
 }: {
   activityError: string | null;
@@ -1125,203 +753,86 @@ function GoalTabContent({
   goal: GoalWithDetails;
   goalDetail: UseGoalDetailResult;
   linkedEntries: readonly EntryRecord[];
-  onTabChange: (value: WorkspaceTab) => void;
   tab: WorkspaceTab;
 }) {
   const colors = useThemeColors();
   const { density: deadlineDensity } = useDeadlineDensity();
+  const [allTasks, setAllTasks] = useState(false);
   const next = getNextGoalMilestone(goal.milestones);
-  const reflections = linkedEntries.filter((entry) => entry.entryType === 'reflection');
-  const insights = activityItems.filter((item) => item.kind === 'insight_confirmed');
-
-  if (tab === 'overview') {
-    const deadlineProgress = getGoalRingProgress(goal);
-    const ended = deadlineProgress !== null && deadlineProgress >= 100;
-    const mutationsDisabled = ended || goal.status === 'complete';
-    return (
-      <View>
-        <WorkspaceSection>
-          <NextStepCard goal={goal} milestone={next} onOpen={() => onTabChange('milestones')} />
-        </WorkspaceSection>
-        <View style={{ backgroundColor: colors.border.divider, height: 1 }} />
-        <WorkspaceSection>
-          <MilestonesPanel
-            archived={goal.status === 'archived'}
-            completingIds={goalDetail.completingMilestoneIds}
-            deadlineDensity={deadlineDensity}
-            embedded
-            ended={mutationsDisabled}
-            error={goalDetail.milestoneError}
-            hasSuccessor={goal.has_successor}
-            milestones={goal.milestones}
-            onAdd={goalDetail.onAddMilestone}
-            onAttachPhoto={goalDetail.onAttachMilestonePhoto}
-            onComplete={goalDetail.onCompleteMilestone}
-            onDelete={goalDetail.onDeleteMilestone}
-            onDismissError={goalDetail.clearMilestoneError}
-            onSave={goalDetail.onSaveMilestone}
-            resolvePhotoUrl={goalDetail.resolveMilestonePhotoUrl}
-          />
-        </WorkspaceSection>
-        <View style={{ backgroundColor: colors.border.divider, height: 1 }} />
-        <WorkspaceSection>
-          <ActivityList error={activityError} items={activityItems} loading={activityLoading} />
-        </WorkspaceSection>
-      </View>
-    );
-  }
-
-  if (tab === 'tasks') return null;
-
-  const title = DETAIL_TABS.find((item) => item.value === tab)?.label ?? '';
+  const milestoneRef = useRef<View>(null);
+  const scrollToContent = useScrollToPageContent();
+  const { width } = useWindowDimensions();
+  if (tab === 'vault') return (
+    <Surface><GoalVault key={goal.id} goal={goal} entries={linkedEntries} entriesError={entriesError}
+      privateNotes={<StickyNotesPanel embedded notes={goal.notes} error={goalDetail.noteError}
+        onAdd={goalDetail.onAddNote} onSave={goalDetail.onSaveNote} onDelete={goalDetail.onDeleteNote}
+        onAttachPhoto={goalDetail.onAttachNotePhoto} onDismissError={goalDetail.clearNoteError}
+        resolvePhotoUrl={goalDetail.resolveNotePhotoUrl}
+        readOnly={goal.has_successor || goal.status === 'complete' || goal.status === 'archived'} />}
+      activityItems={activityItems} activityLoading={activityLoading} activityError={activityError} /></Surface>
+  );
+  const deadlineProgress = getGoalRingProgress(goal);
+  const ended = deadlineProgress !== null && deadlineProgress >= 100;
   return (
-    <WorkspaceSection>
-      <SectionHeading
-        action={tab === 'reflections' ? (
-          <Pressable
-            onPress={() => router.push({ pathname: '/(app)/entries/reflection', params: { goalId: goal.id, type: 'goal' } })}
-            style={{ minHeight: 44, justifyContent: 'center' }}
-          >
-            <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>+ Reflect</Typography>
-          </Pressable>
-        ) : undefined}
-      >
-        {title.toUpperCase()}
-      </SectionHeading>
-      <View style={{ marginTop: SPACE.xl }}>
-        {tab === 'milestones' ? (
-          <MilestonesPanel
-            archived={goal.status === 'archived'}
-            completingIds={goalDetail.completingMilestoneIds}
-            deadlineDensity={deadlineDensity}
-            embedded
-            ended={goal.status === 'complete'}
-            error={goalDetail.milestoneError}
-            hasSuccessor={goal.has_successor}
-            milestones={goal.milestones}
-            onAdd={goalDetail.onAddMilestone}
-            onAttachPhoto={goalDetail.onAttachMilestonePhoto}
-            onComplete={goalDetail.onCompleteMilestone}
-            onDelete={goalDetail.onDeleteMilestone}
-            onDismissError={goalDetail.clearMilestoneError}
-            onSave={goalDetail.onSaveMilestone}
-            resolvePhotoUrl={goalDetail.resolveMilestonePhotoUrl}
-          />
-        ) : null}
-        {tab === 'reflections' ? (
-          entriesError ? <Typography variant="body">Linked reflections could not be loaded right now.</Typography> :
-          <EntriesList entries={reflections} emptyCopy="No reflections are linked to this goal yet." />
-        ) : null}
-        {tab === 'notes' ? (
-          <StickyNotesPanel
-            embedded
-            error={goalDetail.noteError}
-            notes={goal.notes}
-            onAdd={goalDetail.onAddNote}
-            onAttachPhoto={goalDetail.onAttachNotePhoto}
-            onDelete={goalDetail.onDeleteNote}
-            onDismissError={goalDetail.clearNoteError}
-            onSave={goalDetail.onSaveNote}
-            readOnly={goal.has_successor || goal.status === 'complete' || goal.status === 'archived'}
-            resolvePhotoUrl={goalDetail.resolveNotePhotoUrl}
-          />
-        ) : null}
-        {tab === 'insights' ? (
-          insights.length ? (
-            <View style={{ gap: SPACE.lg }}>
-              {insights.map((item) => item.kind === 'insight_confirmed' ? (
-                <View key={item.id} style={{ backgroundColor: colors.background.subtle, borderRadius: RADIUS.md, padding: SPACE.xl }}>
-                  <Typography variant="emphasis-sm">Confirmed insight</Typography>
-                  <Typography variant="body" style={{ marginTop: SPACE.md }}>{item.content}</Typography>
-                  <Typography variant="caption" style={{ marginTop: SPACE.md }}>{formatRelativeDate(item.timestamp)}</Typography>
-                </View>
-              ) : null)}
-            </View>
-          ) : (
-            <Typography variant="body">
-              No confirmed insight is stored for this goal yet. OHARA will only show an insight here when it is backed by real goal context.
-            </Typography>
-          )
-        ) : null}
+    <View style={{ gap: SPACE.xl }}>
+      <Surface>
+      <TasksPanel deadlineDensity={deadlineDensity} full={allTasks} goalId={goal.id} goalStatus={goal.status}
+        milestones={goal.milestones} onSeeAll={() => setAllTasks(true)} />
+      {allTasks ? <Pressable accessibilityRole="button" onPress={() => setAllTasks(false)}
+        style={{ paddingHorizontal: SPACE['3xl'], minHeight: 44 }}>
+        <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>Show fewer Tasks ↑</Typography>
+      </Pressable> : null}
+      <WorkspaceSection>
+        <NextStepCard goal={goal} milestone={next} onOpen={() => {
+          if (Platform.OS === 'web') (milestoneRef.current as unknown as HTMLElement)?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+          else scrollToContent(milestoneRef.current);
+        }} />
+      </WorkspaceSection>
+      </Surface>
+      <View ref={milestoneRef} collapsable={false}>
+      <Surface>
+      <View style={{ padding: width < 560 ? SPACE.xl : SPACE['3xl'] }}>
+        <MilestonesPanel deadlineDensity={deadlineDensity} archived={goal.status === 'archived'}
+          completingIds={goalDetail.completingMilestoneIds} embedded
+          ended={ended || goal.status === 'complete'} error={goalDetail.milestoneError}
+          hasSuccessor={goal.has_successor} milestones={goal.milestones}
+          onAdd={goalDetail.onAddMilestone} onAttachPhoto={goalDetail.onAttachMilestonePhoto}
+          onComplete={goalDetail.onCompleteMilestone} onDelete={goalDetail.onDeleteMilestone}
+          onDismissError={goalDetail.clearMilestoneError} onSave={goalDetail.onSaveMilestone}
+          resolvePhotoUrl={goalDetail.resolveMilestonePhotoUrl} />
       </View>
-    </WorkspaceSection>
+      </Surface>
+      </View>
+    </View>
   );
 }
 
-function GoalAnalyticsCard({ goal, items, entries }: { goal: GoalWithDetails; items: readonly ActivityItem[]; entries: readonly EntryRecord[] }) {
+function GoalAnalyticsCard({ goal }: { goal: GoalWithDetails }) {
   const colors = useThemeColors();
-  const accent = getCategoryAccentTheme(goal.category);
+  const activity = useGoalActivityWindow(goal.id, 70);
   const momentum = useGoalMomentumSummary(goal.id);
-  const goalMomentum = momentum.goalSummary;
-  // One window feeds the merged ACTIVITY panel (TD-012): a single long window
-  // supplies both the Week (current Mon→Sun) and Month (current calendar month)
-  // renders — no second request, no second full-history read.
-  const activityWindow = useGoalActivityWindow(goal.id, 70);
-  const completedMilestones = goal.milestones.filter((milestone) => milestone.completedAt !== null).length;
-  const recordedActions = items.filter((item) => item.kind !== 'goal_created').length;
+  const summary = momentum.goalSummary;
   return (
-    <View style={{ padding: SPACE.xl }}>
-      <SectionHeading>GOAL ANALYTICS</SectionHeading>
-      <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.xl, marginTop: SPACE.xl }}>
-        <ProgressRing color={accent.color} progress={goal.progress} size={74} strokeWidth={5} variant="warm" />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="emphasis-sm">Current progress</Typography>
-          <Typography variant="body" style={{ marginTop: SPACE.sm }}>
-            {goal.progress}% complete from the goal&apos;s authoritative progress value.
-          </Typography>
-        </View>
+    <View style={{ padding: SPACE.xl, gap: SPACE.lg }}>
+      <Typography variant="title">Momentum</Typography>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: SPACE.md }}>
+        <Typography variant="body">{summary?.status ?? (momentum.isLoading ? 'Calculating…' : 'Unavailable')}</Typography>
+        <Typography variant="heading" style={{ color: colors.text.accent }}>{summary?.displayedValue ?? '—'} / 100</Typography>
       </View>
-      <View style={{ flexDirection: 'row', gap: SPACE.md, marginTop: SPACE.xl }}>
-        {[
-          { label: 'Milestones reached', value: `${completedMilestones}/${goal.milestones.length}` },
-          { label: 'Recorded activity', value: String(recordedActions) },
-          { label: 'Linked entries', value: String(entries.length) },
-        ].map((metric) => (
-          <View key={metric.label} style={{ backgroundColor: colors.background.subtle, borderRadius: RADIUS.md, flex: 1, minWidth: 0, padding: SPACE.lg }}>
-            <Typography variant="title">{metric.value}</Typography>
-            <Typography variant="caption" style={{ marginTop: SPACE.xs }}>{metric.label}</Typography>
-          </View>
-        ))}
-      </View>
-      <View style={{ marginTop: SPACE.xl }}>
+      <Typography variant="caption">This week · {summary?.periodState ?? 'provisional'}</Typography>
+      <View style={{ paddingVertical: SPACE.lg, gap: SPACE.lg }}>
         <SectionHeading>ACTIVITY</SectionHeading>
-        <View style={{ marginTop: SPACE.lg }}>
-          <GoalActivityPanel buckets={activityWindow.buckets} loading={activityWindow.loading} />
-        </View>
+        {activity.error ? <Typography variant="body">Activity could not be loaded.</Typography> :
+          <GoalActivityPanel buckets={activity.buckets} loading={activity.loading} />}
       </View>
-      <Typography variant="caption" style={{ marginTop: SPACE.lg }}>
-        Goal progress and Goal Momentum are distinct: progress is the goal&apos;s completion value; Momentum reflects this week&apos;s consistency, progress evidence, reflection, and initiative.
-      </Typography>
-      <View style={{ backgroundColor: colors.background.card, borderRadius: RADIUS.md, marginTop: SPACE.xl, padding: SPACE.lg }}>
-        <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}>
-          <View>
-            <Typography variant="emphasis-sm">Goal Momentum</Typography>
-            <Typography variant="caption" style={{ marginTop: SPACE.xs }}>
-              {goalMomentum ? `${goalMomentum.status.charAt(0).toUpperCase()}${goalMomentum.status.slice(1)}` : momentum.isLoading ? 'Calculating…' : 'Unavailable'}
-            </Typography>
-            {goalMomentum ? (
-              <Typography variant="caption" style={{ marginTop: SPACE.xs }}>
-                This week · {goalMomentum.periodState}
-              </Typography>
-            ) : null}
-          </View>
-          <Typography variant="heading" style={{ color: accent.color }}>
-            {goalMomentum?.displayedValue ?? '—'} / 100
-          </Typography>
-        </View>
-        {goalMomentum?.history.length ? (
-          <View style={{ marginTop: SPACE.lg }}>
-            <MomentumTrendChart
-              height={118}
-              points={goalMomentum.history.map((point) => point.value)}
-              xLabels={goalMomentum.history.map(() => '')}
-              yDomainMax={100}
-            />
-          </View>
-        ) : null}
-        <Typography variant="caption" style={{ marginTop: SPACE.md }}>
-          {goalMomentum?.reasons[0]?.message ?? momentum.error ?? 'Momentum V1.1 history will appear after calculation.'}
-        </Typography>
+      <View style={{ borderTopWidth: 1, borderTopColor: colors.border.divider, paddingTop: SPACE['3xl'], gap: SPACE.lg }}>
+      <SectionHeading>MOMENTUM TREND</SectionHeading>
+      {summary?.history.length ? <MomentumTrendChart height={287} fitHeight
+        points={summary.history.map((point) => point.value)}
+        xLabels={summary.history.map((point, index, all) => (
+          index === 0 || index === all.length - 1 ? new Date(point.periodStart.slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''
+        ))} yDomainMax={100} /> : null}
+      <Typography variant="body">{summary?.reasons[0]?.message ?? momentum.error ?? 'Momentum history will appear after calculation.'}</Typography>
       </View>
     </View>
   );
@@ -1360,81 +871,19 @@ function InsightContextCard({ goal, items }: { goal: GoalWithDetails; items: rea
   );
 }
 
-function RecommendationsContextCard({ goal }: { goal: GoalWithDetails }) {
-  return (
-    <View style={{ padding: SPACE.xl }}>
-      <SectionHeading>RECOMMENDATIONS</SectionHeading>
-      <Typography variant="title" style={{ marginTop: SPACE.xl }}>No personalized recommendation yet.</Typography>
-      <Typography variant="body" style={{ marginTop: SPACE.md }}>
-        {goal.trackers.length || goal.milestones.length
-          ? 'OHARA is collecting real milestone and Task activity. Recommendations will appear only when a supported recommendation source is available.'
-          : 'Add milestones, Tasks, notes, or reflections to build the context needed for a useful recommendation.'}
-      </Typography>
-    </View>
-  );
-}
-
-function LinkedContextCard({ entries, error, goalId }: { entries: readonly EntryRecord[]; error: string | null; goalId: string }) {
-  const colors = useThemeColors();
-  const note = entries.find((entry) => entry.entryType === 'note');
-  const reflection = entries.find((entry) => entry.entryType === 'reflection');
-  const recent = [note, reflection].filter((entry): entry is EntryRecord => Boolean(entry));
-  return (
-    <View style={{ padding: SPACE.xl }}>
-      <SectionHeading
-        action={(
-          <Pressable
-            accessibilityLabel="Add a note"
-            onPress={() => router.push('/(app)/entries?create=note')}
-            style={{ alignItems: 'center', height: 44, justifyContent: 'center', width: 44 }}
-          >
-            <Ionicons color={colors.text.primary} name="add" size={21} />
-          </Pressable>
-        )}
-      >
-        LINKED NOTES & REFLECTIONS
-      </SectionHeading>
-      <View style={{ marginTop: SPACE.lg }}>
-        {error ? (
-          <Typography variant="body">Linked context could not be loaded right now.</Typography>
-        ) : recent.length ? (
-          <EntriesList entries={recent} emptyCopy="" />
-        ) : (
-          <>
-            <Typography variant="body">No note or reflection is explicitly linked to this goal yet.</Typography>
-            <Pressable
-              onPress={() => router.push({ pathname: '/(app)/entries/reflection', params: { goalId, type: 'goal' } })}
-              style={{ marginTop: SPACE.lg, minHeight: 44, justifyContent: 'center' }}
-            >
-              <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>Reflect on this goal →</Typography>
-            </Pressable>
-          </>
-        )}
-      </View>
-    </View>
-  );
-}
-
 function ContextRail({
-  entries,
-  entriesError,
   goal,
   items,
 }: {
-  entries: readonly EntryRecord[];
-  entriesError: string | null;
   goal: GoalWithDetails;
   items: readonly ActivityItem[];
 }) {
-  const colors = useThemeColors();
   return (
-    <Surface style={{ minWidth: 0, overflow: 'hidden' }}>
-      <GoalAnalyticsCard entries={entries} goal={goal} items={items} />
-      <View style={{ backgroundColor: colors.border.divider, height: 1 }} />
-      <RecommendationsContextCard goal={goal} />
-      <View style={{ backgroundColor: colors.border.divider, height: 1 }} />
-      <LinkedContextCard entries={entries} error={entriesError} goalId={goal.id} />
-    </Surface>
+    <View style={{ gap: SPACE.xl }}>
+      <Typography variant="eyebrow" style={{ paddingHorizontal: SPACE.xl }}>Goal Analytics</Typography>
+      <Surface style={{ overflow: 'hidden' }}><InsightContextCard goal={goal} items={items} /></Surface>
+      <Surface><GoalAnalyticsCard goal={goal} /></Surface>
+    </View>
   );
 }
 
@@ -1494,7 +943,8 @@ function SelectedGoalWorkspace({
     <>
       <View style={{ gap: SPACE.xl, minWidth: 0 }}>
         <Surface style={{ minWidth: 0 }}>
-        <GoalDetailHeader
+          <GoalDetailHeader
+            deadlineDensity={deadlineDensity}
           deadlineProgress={goal.progress}
           embedded
           ended={ended}
@@ -1529,32 +979,9 @@ function SelectedGoalWorkspace({
           </View>
         ) : null}
         </Surface>
-        <Surface style={{ minWidth: 0, overflow: 'hidden', padding: SPACE.lg }}>
-          <CountdownTimer
-            createdAt={goal.createdAt}
-            deadline={goal.deadline}
-            deadlineDensity={deadlineDensity}
-            disabled={goal.has_successor || goal.status === 'archived' || goal.status === 'complete'}
-            embedded
-            onUpdateDeadline={goalDetail.onUpdateDeadline}
-          />
-        </Surface>
-        <Surface style={{ minWidth: 0, overflow: 'hidden' }}>
-          <InsightContextCard goal={goal} items={activityItems} />
-        </Surface>
-        <Surface style={{ minWidth: 0, overflow: 'hidden' }}>
-          <TasksPanel
-            deadlineDensity={deadlineDensity}
-            full={tab === 'tasks'}
-            goalId={goal.id}
-            goalStatus={goal.status}
-            milestones={goal.milestones}
-            onSeeAll={() => onTabChange('tasks')}
-          />
-        </Surface>
-        <Surface style={{ minWidth: 0 }}>
-          <DetailTabs onChange={onTabChange} value={tab} />
+        <DetailTabs onChange={onTabChange} value={tab} />
           <GoalTabContent
+            key={goal.id}
             activityError={activityError}
             activityItems={activityItems}
             activityLoading={activityLoading}
@@ -1562,10 +989,8 @@ function SelectedGoalWorkspace({
             goal={goal}
             goalDetail={goalDetail}
             linkedEntries={linkedEntries}
-            onTabChange={onTabChange}
             tab={tab}
           />
-        </Surface>
       </View>
       <GoalProjectPickerModal
         currentProjectId={goal.projectId}
@@ -1615,7 +1040,7 @@ export function GoalsWorkspace() {
   const [workspaceWidth, setWorkspaceWidth] = useState(0);
   const responsiveWidth = workspaceWidth || windowWidth;
   const wide = responsiveWidth >= 1120;
-  const tablet = responsiveWidth >= 680 && !wide;
+  const tablet = responsiveWidth >= 1000 && !wide;
   const compactHeader = responsiveWidth < 700;
   // Side-by-side layouts: pin the goal-list rail and give it its own scroll
   // ("scrollable roll") so a long list rolls internally instead of stretching
@@ -1691,9 +1116,6 @@ export function GoalsWorkspace() {
   const selectedGoal = statusGoals.find((goal) => goal.id === selectedGoalId) ?? null;
   const selectedGoalDetail = useGoalDetail(selectedGoal?.id ?? '');
   const workspaceGoal = selectedGoalDetail.goal ?? selectedGoal;
-  const selectedEntries = workspaceGoal
-    ? entries.filter((entry) => entry.goals.some((linkedGoal) => linkedGoal.id === workspaceGoal.id))
-    : [];
   const selectedActivity = useActivity(workspaceGoal?.id ?? '');
 
   function selectGoal(goalId: string) {
@@ -1730,11 +1152,11 @@ export function GoalsWorkspace() {
           </View>
         ) : wide ? (
           <View style={{ alignItems: 'flex-start', flexDirection: 'row', gap: SPACE.xl }}>
-            <View style={[{ flex: 0.82, gap: SPACE.lg, minWidth: 300 }, stickyRail]}>
+            <View style={[{ flex: 0.65, gap: SPACE.lg, minWidth: 220 }, stickyRail]}>
               <GoalList
                 categories={categories}
                 category={category}
-                filterOpen={filterOpen}
+                filterOpen={filterOpen || Boolean(query.trim())}
                 goals={filteredGoals}
                 onCategoryChange={setCategory}
                 onSelect={selectGoal}
@@ -1743,9 +1165,10 @@ export function GoalsWorkspace() {
                 status={status}
               />
             </View>
-            <View style={{ flex: 1.48, minWidth: 0 }}>
+            <View style={{ flex: 1.7, minWidth: 0 }}>
               {workspaceGoal ? (
                 <SelectedGoalWorkspace
+                  key={workspaceGoal.id}
                   activityError={selectedActivity.error}
                   activityItems={selectedActivity.items}
                   activityLoading={selectedActivity.loading}
@@ -1758,11 +1181,9 @@ export function GoalsWorkspace() {
                 />
               ) : null}
             </View>
-            <View style={{ flex: 0.9, minWidth: 280 }}>
+            <View style={{ flex: 0.85, minWidth: 270 }}>
               {workspaceGoal ? (
                 <ContextRail
-                  entries={selectedEntries}
-                  entriesError={entriesError}
                   goal={workspaceGoal}
                   items={selectedActivity.items}
                 />
@@ -1788,6 +1209,7 @@ export function GoalsWorkspace() {
               {workspaceGoal ? (
                 <>
                   <SelectedGoalWorkspace
+                  key={workspaceGoal.id}
                     activityError={selectedActivity.error}
                     activityItems={selectedActivity.items}
                     activityLoading={selectedActivity.loading}
@@ -1799,8 +1221,6 @@ export function GoalsWorkspace() {
                     tab={tab}
                   />
                   <ContextRail
-                    entries={selectedEntries}
-                    entriesError={entriesError}
                     goal={workspaceGoal}
                     items={selectedActivity.items}
                   />
@@ -1813,7 +1233,7 @@ export function GoalsWorkspace() {
             <GoalList
               categories={categories}
               category={category}
-              filterOpen={filterOpen}
+              filterOpen={filterOpen || Boolean(query.trim())}
               goals={filteredGoals}
               onCategoryChange={setCategory}
               onSelect={selectGoal}
@@ -1824,6 +1244,7 @@ export function GoalsWorkspace() {
             {workspaceGoal ? (
               <>
                 <SelectedGoalWorkspace
+                  key={workspaceGoal.id}
                   activityError={selectedActivity.error}
                   activityItems={selectedActivity.items}
                   activityLoading={selectedActivity.loading}
@@ -1835,8 +1256,6 @@ export function GoalsWorkspace() {
                   tab={tab}
                 />
                 <ContextRail
-                  entries={selectedEntries}
-                  entriesError={entriesError}
                   goal={workspaceGoal}
                   items={selectedActivity.items}
                 />

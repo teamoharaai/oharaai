@@ -19,7 +19,7 @@ export interface MomentumTaskRow {
   created_at: string;
   task_schedules: Array<{
     id: string;
-    recurrence_kind: 'daily' | 'weekly';
+    recurrence_kind: 'daily' | 'weekly' | 'weekly_count';
     interval_count: number;
     weekdays: number[];
     is_active: boolean;
@@ -86,10 +86,14 @@ function occurrenceWasDue(
   boundary: MomentumWeekBoundary,
   asOfLocalDate: string,
   closed: boolean,
+  weeklyCount = false,
 ): boolean {
   const date = occurrence.scheduled_local_date;
   if (!date || date < boundary.weekStart || date > boundary.weekEnd) return false;
-  return closed ? date <= asOfLocalDate : date < asOfLocalDate || occurrence.status === 'completed';
+  // Migration 059 anchors a weekly quantity period at Monday (or its first
+  // partial day), but the commitment is not due until the period ends Sunday.
+  const dueDate = weeklyCount ? boundary.weekEnd : date;
+  return closed ? dueDate <= asOfLocalDate : dueDate < asOfLocalDate || occurrence.status === 'completed';
 }
 
 export function adaptTasksToMomentum(
@@ -128,7 +132,8 @@ export function adaptTasksToMomentum(
         currentValue: numeric(task.legacy_current_value) ?? 0,
         expectedOccurrences: occurrences.filter((occurrence) => (
           occurrence.schedule_id !== null
-          && occurrenceWasDue(occurrence, boundary, asOfLocalDate, closed)
+          && occurrenceWasDue(occurrence, boundary, asOfLocalDate, closed,
+            schedules.find((schedule) => schedule.id === occurrence.schedule_id)?.recurrence_kind === 'weekly_count')
         )).length,
         frequency: task.source === 'legacy_tracker'
           ? task.legacy_frequency

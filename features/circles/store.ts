@@ -8,6 +8,7 @@
  * (the hooks); with the flag off nothing here fetches.
  */
 import { create } from 'zustand';
+import { useAuthStore } from '@/features/auth/store';
 import {
   createComment,
   createPost,
@@ -58,6 +59,8 @@ interface CirclesStore {
   filter: FeedFilter;
   scope: FeedScope;
   sharedWithMe: CircleGoalSummary[];
+  sharedStatus: 'idle' | 'loading' | 'loaded' | 'error';
+  loadSharedWithMe: (retry?: boolean) => Promise<void>;
   friendsPublicGoals: CircleGoalSummary[];
   goalInvites: IncomingGoalInvite[];
   sentInvites: SentGoalInvite[];
@@ -103,6 +106,19 @@ export const useCirclesStore = create<CirclesStore>((set, get) => ({
   filter: 'all',
   scope: { kind: 'everyone' },
   sharedWithMe: [],
+  sharedStatus: 'idle',
+  loadSharedWithMe: async (retry = false) => {
+    if (get().sharedStatus === 'loading' || (!retry && get().sharedStatus !== 'idle')) return;
+    const userId = useAuthStore.getState().session?.user.id;
+    if (!userId) return;
+    set({ sharedStatus: 'loading' });
+    try {
+      const goals = await fetchSharedWithMe();
+      if (useAuthStore.getState().session?.user.id === userId) set({ sharedWithMe: goals, sharedStatus: 'loaded' });
+    } catch {
+      if (useAuthStore.getState().session?.user.id === userId) set({ sharedStatus: 'error' });
+    }
+  },
   friendsPublicGoals: [],
   goalInvites: [],
   sentInvites: [],
@@ -116,11 +132,12 @@ export const useCirclesStore = create<CirclesStore>((set, get) => ({
 
   ensureLoaded: async () => {
     if (get().status !== 'idle') return;
+    const userId = useAuthStore.getState().session?.user.id;
     set({ status: 'loading' });
-    const [feed, shared, friendsPublic, invites, sent, publicGoal, linkable, friends] =
+    const [feed, , friendsPublic, invites, sent, publicGoal, linkable, friends] =
       await Promise.allSettled([
         fetchFeed(),
-        fetchSharedWithMe(),
+        get().loadSharedWithMe(),
         fetchFriendsPublicGoals(),
         fetchIncomingInvites(),
         fetchSentInvites(),
@@ -128,9 +145,9 @@ export const useCirclesStore = create<CirclesStore>((set, get) => ({
         fetchLinkable(),
         fetchInviteableFriends(),
       ]);
+    if (useAuthStore.getState().session?.user.id !== userId) return;
     set((state) => ({
       posts: feed.status === 'fulfilled' ? feed.value : state.posts,
-      sharedWithMe: shared.status === 'fulfilled' ? shared.value : state.sharedWithMe,
       friendsPublicGoals:
         friendsPublic.status === 'fulfilled' ? friendsPublic.value : state.friendsPublicGoals,
       goalInvites: invites.status === 'fulfilled' ? invites.value : state.goalInvites,

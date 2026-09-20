@@ -208,10 +208,18 @@ export function buildTaskSections(tasks: readonly Task[], now = new Date()): Tas
         ?? activeTaskSchedule(task)?.timezone
         ?? 'UTC';
       const today = dateInTimeZone(timezone, now);
+      const schedule = task.schedules.find((item) => item.id === occurrence.scheduleId);
+      const periodStart = occurrence.scheduledLocalDate;
+      const periodEnd = periodStart ? new Date(`${periodStart}T00:00:00Z`) : null;
+      if (periodEnd) periodEnd.setUTCDate(periodEnd.getUTCDate() + (7 - periodEnd.getUTCDay()) % 7);
+      const currentWeeklyPeriod = schedule?.recurrenceKind === 'weekly_count'
+        && periodStart !== null && periodStart <= today
+        && periodEnd !== null && today <= periodEnd.toISOString().slice(0, 10);
       if (!occurrence.scheduledLocalDate) {
         sections.anytime.push({ task, occurrence });
       } else if (
         occurrence.scheduledLocalDate === today
+        || currentWeeklyPeriod
         || (occurrence.scheduleId === null && occurrence.scheduledLocalDate < today)
       ) {
         sections.today.push({ task, occurrence });

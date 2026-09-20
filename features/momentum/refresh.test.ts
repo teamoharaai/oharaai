@@ -7,7 +7,7 @@ const read = (path: string) => readFileSync(
   'utf8',
 );
 
-test('Goal and Home completion writes request a best-effort Momentum refresh', () => {
+test('canonical Goal and Task completion writes request a best-effort Momentum refresh', () => {
   const goalDetail = read('../goals/hooks/useGoalDetail.ts');
   const goalTasks = read('../tasks/hooks/useGoalTasks.ts');
 

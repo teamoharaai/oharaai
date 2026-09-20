@@ -25,6 +25,29 @@ const baseTask: MomentumTaskRow = {
   task_occurrences: [],
 };
 
+test('weekly-count normalizes one weekly commitment without an early missed expectation or double count', () => {
+  const weekly: MomentumTaskRow = { ...baseTask, completion_mode: 'quantity', target_quantity: 3,
+    task_schedules: [{ id: 's', recurrence_kind: 'weekly_count', interval_count: 1, weekdays: [], is_active: true }],
+    task_occurrences: [{ id: 'o', schedule_id: 's', scheduled_local_date: '2026-09-07',
+      status: 'pending', actual_quantity: 2, completed_at: null, source: 'schedule',
+      legacy_tracker_log_id: null, legacy_action_log_id: null, legacy_raw_value: null,
+      created_at: '2026-09-07T13:00:00Z' }],
+  };
+  const adapt = (asOf: string, closed: boolean) => adaptTasksToMomentum([weekly], new Map([['goal', 'active']]), boundary, asOf, closed);
+  const provisional = adapt('2026-09-09', false);
+  assert.equal(provisional.trackers[0].expectedOccurrences, 0);
+  assert.equal(provisional.trackers[0].targetValue, 3);
+  assert.equal(provisional.trackers[0].frequency, 'weekly');
+  assert.equal(provisional.actions.length, 0);
+  assert.equal(adapt('2026-09-14', true).trackers[0].expectedOccurrences, 1);
+  weekly.task_occurrences[0] = { ...weekly.task_occurrences[0], status: 'completed', actual_quantity: 3, completed_at: '2026-09-09T12:00:00Z' };
+  const completed = adapt('2026-09-09', false);
+  assert.equal(completed.trackers[0].expectedOccurrences, 1);
+  assert.equal(completed.trackerLogs.length, 1);
+  assert.equal(completed.trackerLogs[0].value, 3);
+  assert.equal(completed.completedOccurrenceCount, 1);
+});
+
 test('keeps migrated Tracker evidence out of the action/task-completion channel', () => {
   const migrated: MomentumTaskRow = {
     ...baseTask,

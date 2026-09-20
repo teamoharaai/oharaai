@@ -5,6 +5,7 @@ import type { GoalMilestone, GoalNote, GoalWithDetails, Tracker } from './types'
 interface GoalStore {
   goals: GoalWithDetails[];
   selectedGoalId: string | null;
+  recentGoalVisits: Record<string, number>;
   isLoading: boolean;
   setGoals: (goals: GoalWithDetails[]) => void;
   upsertGoal: (goal: GoalWithDetails) => void;
@@ -23,6 +24,7 @@ interface GoalStore {
 export const useGoalStore = create<GoalStore>((set) => ({
   goals: [],
   selectedGoalId: null,
+  recentGoalVisits: {},
   isLoading: true,
   setGoals: (goals) => set({ goals }),
   upsertGoal: (goal) =>
@@ -36,7 +38,10 @@ export const useGoalStore = create<GoalStore>((set) => ({
       goals[existingIndex] = goal;
       return { goals };
     }),
-  setSelectedGoalId: (id) => set({ selectedGoalId: id }),
+  setSelectedGoalId: (id) => set((state) => ({
+    selectedGoalId: id,
+    recentGoalVisits: id ? { ...state.recentGoalVisits, [id]: Date.now() } : state.recentGoalVisits,
+  })),
   setIsLoading: (loading) => set({ isLoading: loading }),
   deleteGoal: async (id) => {
     await deleteGoalRecord(id);

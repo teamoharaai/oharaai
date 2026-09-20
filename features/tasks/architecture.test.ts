@@ -7,12 +7,11 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const read = (relative: string) => fs.readFileSync(path.join(root, relative), 'utf8');
 
-test('Goal workspace uses one canonical Task surface below Intelligence', () => {
+test('Goal Overview retains one canonical Task surface alongside Milestones', () => {
   const workspace = read('features/goals/components/GoalsWorkspace.tsx');
-  const intelligence = workspace.indexOf('<InsightContextCard');
-  const tasks = workspace.indexOf('<TasksPanel', intelligence);
-  const detail = workspace.indexOf('<DetailTabs', tasks);
-  assert.ok(intelligence >= 0 && tasks > intelligence && detail > tasks);
+  assert.equal(workspace.match(/<TasksPanel\b/g)?.length, 1);
+  assert.match(workspace, /<MilestonesPanel/);
+  assert.match(workspace, /<GoalVault/);
   assert.doesNotMatch(workspace, /<TrackersPanel/);
 });
 

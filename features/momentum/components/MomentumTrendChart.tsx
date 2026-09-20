@@ -54,6 +54,7 @@ function createCurvePath(points: readonly (readonly [number, number])[]) {
 
 export function MomentumTrendChart({
   height,
+  fitHeight = false,
   points = [],
   showAxes = false,
   xAxisLabel = 'Time',
@@ -61,6 +62,7 @@ export function MomentumTrendChart({
   yDomainMax,
 }: {
   height?: number;
+  fitHeight?: boolean;
   points?: readonly MomentumTrendPoint[];
   showAxes?: boolean;
   xAxisLabel?: string;
@@ -75,7 +77,7 @@ export function MomentumTrendChart({
   const [measuredWidth, setMeasuredWidth] = useState(0);
   const fallbackWidth = showAxes ? 620 : 440;
   const viewWidth = Math.max(240, measuredWidth || fallbackWidth);
-  const viewHeight = showAxes ? 300 : 180;
+  const viewHeight = fitHeight && height ? height : showAxes ? 300 : 180;
   const left = showAxes ? 62 : 34;
   const right = showAxes ? 20 : 12;
   const top = showAxes ? 20 : 13;
@@ -161,7 +163,7 @@ export function MomentumTrendChart({
                 <SvgText
                   fill={labelColor}
                   fontFamily={FONT.ui.medium}
-                  fontSize={showAxes ? TYPE.chartLabel.fontSize : 10}
+                  fontSize={showAxes ? TYPE.chartLabel.fontSize : fitHeight ? 12 : 10}
                   textAnchor="end"
                   x={left - (showAxes ? 10 : 7)}
                   y={y + 3.5}
@@ -231,9 +233,9 @@ export function MomentumTrendChart({
             <SvgText
               fill={labelColor}
               fontFamily={FONT.ui.medium}
-              fontSize={showAxes ? TYPE.chartLabel.fontSize : 10}
+              fontSize={showAxes ? TYPE.chartLabel.fontSize : fitHeight ? 12 : 10}
               key={`label-${index}`}
-              textAnchor="middle"
+              textAnchor={fitHeight && pointCoordinates.length > 1 ? index === 0 ? 'start' : index === pointCoordinates.length - 1 ? 'end' : 'middle' : 'middle'}
               x={x}
               y={plotBottom + (showAxes ? 21 : 18)}
             >

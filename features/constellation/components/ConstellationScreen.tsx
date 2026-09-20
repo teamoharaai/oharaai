@@ -86,7 +86,7 @@ function ConstellationLoadingState() {
     >
       <ConstellationLoadingMark color={colors.accent.primary} size="large" />
       <Typography accessibilityRole="header" variant="title">
-        Loading your Constellation
+        Loading your Roots
       </Typography>
       <Typography variant="description" style={{ textAlign: 'center' }}>
         Gathering the patterns you have earned…
@@ -116,7 +116,7 @@ function ConstellationErrorState({
       <Card elevated padding="spacious" style={{ maxWidth: 440, width: '100%' }}>
         <View style={{ alignItems: 'center', gap: 14 }}>
           <Typography accessibilityRole="header" variant="heading">
-            Constellation is temporarily out of view.
+            Roots is temporarily out of view.
           </Typography>
           <Typography
             accessibilityRole="alert"

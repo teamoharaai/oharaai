@@ -23,7 +23,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Echo', href: '/(app)/echo', matches: ['/echo', '/entries'], enabled: FEATURES.ECHO_ENABLED, icon: 'echo' },
   { label: 'Momentum', href: '/(app)/momentum', matches: ['/momentum'], enabled: true, icon: 'momentum' },
   {
-    label: 'Constellation',
+    label: 'Roots',
     href: '/(app)/constellation',
     matches: ['/constellation'],
     enabled: FEATURES.CONSTELLATION_ENABLED,
@@ -31,7 +31,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   },
 ];
 
-const DESKTOP_NAVIGATION_MIN_WIDTH = 900;
+const DESKTOP_NAVIGATION_MIN_WIDTH = 1100;
 
 function isActiveRoute(pathname: string, item: NavItem): boolean {
   return item.matches.some((match) => pathname === match || pathname.startsWith(`${match}/`));
@@ -65,7 +65,7 @@ function NavigationItem({
         borderBottomWidth: 2,
         borderRadius: compact ? RADIUS.sm : 0,
         flexDirection: compact ? 'column' : 'row',
-        gap: compact ? 2 : 0,
+        gap: compact ? 2 : SPACE.sm,
         justifyContent: 'center',
         minHeight: compact ? 50 : CONTROL.iconSize,
         minWidth: compact ? 68 : undefined,
@@ -73,13 +73,13 @@ function NavigationItem({
         paddingHorizontal: compact ? SPACE.md : SPACE.xl,
       })}
     >
-      {compact ? (
+      {
         <BrandIcon
           color={active || hovered ? colors.text.accent : colors.text.secondary}
           name={item.icon}
           size={18}
         />
-      ) : null}
+      }
       <Text
         numberOfLines={1}
         style={{

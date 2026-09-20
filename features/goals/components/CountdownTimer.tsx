@@ -203,14 +203,14 @@ export function CountdownTimer({
       <View
         style={{
           alignItems: 'center',
-          backgroundColor: colors.background.sidebar,
+          backgroundColor: 'transparent',
           borderRadius: 16,
           flexDirection: 'row',
           flexWrap: 'wrap',
-          gap: 18,
+          gap: 12,
           minHeight: 56,
-          paddingHorizontal: 20,
-          paddingVertical: 14,
+          paddingHorizontal: 0,
+          paddingVertical: 8,
           shadowColor: embedded ? 'transparent' : '#000',
           shadowOffset: { width: 0, height: 3 },
           shadowOpacity: embedded ? 0 : 0.1,
@@ -227,37 +227,22 @@ export function CountdownTimer({
             textTransform: 'uppercase',
           }}
         >
-          Goal ends in
+          {!deadline ? 'Time' : timeLeft.overdue ? 'End date reached' : 'Time remaining'}
         </Text>
 
-        {deadline ? (
+        {deadline && !timeLeft.overdue ? (
           <View style={{ alignItems: 'center', flexDirection: 'row', gap: 9 }}>
             <TimeValue value={timeLeft.days} unit="d" />
             <TimeValue value={timeLeft.hours} unit="h" />
             <TimeValue value={timeLeft.minutes} unit="m" />
           </View>
-        ) : (
+        ) : !deadline ? (
           <Text style={{ color: colors.text.primary, ...TYPE.bodySmall, fontFamily: FONT.ui.semibold }}>
             Not set
           </Text>
-        )}
+        ) : null}
 
         <View style={{ flex: 1, gap: 5, minWidth: 120 }}>
-          <View
-            style={{
-              backgroundColor: colors.border.divider,
-              borderRadius: 3,
-              height: 4,
-              overflow: 'hidden',
-            }}
-          >
-            <LinearGradient
-              colors={[colors.accent.tealMid, colors.accent.teal]}
-              end={{ x: 1, y: 0 }}
-              start={{ x: 0, y: 0 }}
-              style={{ height: 4, width: `${elapsed.percentage}%` as `${number}%` }}
-            />
-          </View>
           <Text style={{ color: colors.text.secondary, ...TYPE.meta }}>
             {caption}
           </Text>
@@ -290,6 +275,14 @@ export function CountdownTimer({
           </Pressable>
         </View>
       </View>
+
+      {deadline ? <View accessibilityRole="progressbar" accessibilityLabel="Elapsed Goal time"
+        accessibilityValue={{ min: 0, max: 100, now: Math.round(elapsed.percentage) }}
+        style={{ height: 4, borderRadius: 2, overflow: 'hidden', backgroundColor: colors.border.divider, marginTop: 8 }}>
+        <LinearGradient colors={[colors.accent.tealMid, colors.accent.teal]}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+          style={{ height: 4, width: `${elapsed.percentage}%` }} />
+      </View> : null}
 
       {error ? (
         <Typography variant="hint" style={{ color: colors.feedback.danger.text, marginTop: SPACE.sm }}>

@@ -3,6 +3,7 @@ import test from 'node:test';
 import type { GoalMilestone, GoalWithDetails } from './types.ts';
 import {
   filterGoalsForWorkspace,
+  recentWorkspaceGoals,
   getGoalCategoryLabel,
   getGoalStatusLabel,
   getNextGoalMilestone,
@@ -144,4 +145,17 @@ test('formats stored category and status identities without relabeling legacy va
   assert.equal(getGoalStatusLabel('stagnant'), 'Paused');
   assert.equal(getGoalStatusLabel('complete'), 'Completed');
   assert.equal(getGoalStatusLabel('expired'), 'Expired');
+});
+
+test('recent Goals prefer visits and meaningful updates while retaining the selected Goal', () => {
+  const goals = [
+    goal({ id: 'old-selected', updatedAt: new Date('2026-01-01') }),
+    goal({ id: 'recent-edit', updatedAt: new Date('2026-09-15') }),
+    goal({ id: 'recent-visit', updatedAt: new Date('2026-01-02') }),
+    goal({ id: 'older', updatedAt: new Date('2026-08-01') }),
+  ];
+  assert.deepEqual(recentWorkspaceGoals(goals, {
+    'recent-visit': new Date('2026-09-17').getTime(),
+  }, 'old-selected').map((item) => item.id), ['old-selected', 'recent-visit', 'recent-edit']);
+  assert.equal(goals[0].id, 'old-selected');
 });

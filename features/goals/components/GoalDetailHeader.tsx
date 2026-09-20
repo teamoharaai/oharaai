@@ -3,17 +3,19 @@ import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-nativ
 import { router } from 'expo-router';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { ProgressRing } from '@/components/ui/ProgressRing';
+import { CountdownTimer } from './CountdownTimer';
+import type { DatePickerDensity } from '@/components/ui/DatePicker';
 import { Typography } from '@/components/ui/Typography';
 import { ExtendGoalModal } from './ExtendGoalModal';
 import { ExtendDeadlineModal } from './ExtendDeadlineModal';
 import { GoalTitleRow } from './GoalTitleRow';
 import { useThemeColors } from '@/store/uiStore';
-import { FONT, SPACE, TYPE } from '@/constants/design';
+import { FONT, RADIUS, SPACE, TYPE } from '@/constants/design';
 import type { GoalWithDetails } from '../types';
 import { goalWorkspaceHref } from '../navigation';
 
 interface GoalDetailHeaderProps {
+  deadlineDensity?: DatePickerDensity;
   deadlineProgress: number | null;
   embedded?: boolean;
   ended: boolean;
@@ -92,6 +94,7 @@ function MetaItem({ label, value }: { label: string; value: string }) {
 }
 
 export function GoalDetailHeader({
+  deadlineDensity,
   deadlineProgress,
   embedded = false,
   ended,
@@ -124,7 +127,6 @@ export function GoalDetailHeader({
   const archived = goal.status === 'archived';
   const expired = goal.status === 'expired';
   const isReadOnly = isSuperseded || archived;
-  const ringProgress = completed || isSuperseded ? 100 : deadlineProgress ?? 0;
 
   async function saveDescription() {
     const normalized = descriptionDraft.trim() || null;
@@ -173,11 +175,11 @@ export function GoalDetailHeader({
           ? colors.background.selectedRow
           : colors.background.card,
         borderColor: colors.border.warm,
-        borderRadius: embedded ? 0 : 20,
+        borderRadius: RADIUS.xl,
         borderWidth: embedded ? 0 : 1,
         marginBottom: embedded ? 0 : 16,
-        paddingHorizontal: 28,
-        paddingVertical: 26,
+        paddingHorizontal: SPACE['3xl'],
+        paddingVertical: SPACE['3xl'],
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: embedded ? 0 : 0.05,
@@ -350,7 +352,7 @@ export function GoalDetailHeader({
       </View>
 
       <View style={{ alignItems: 'flex-start', flexDirection: 'row', flexWrap: 'wrap', gap: 24 }}>
-        <View style={{ flex: 1, minWidth: 240 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <GoalTitleRow
             iconSize={26}
             iconStyle={{ marginTop: 4 }}
@@ -436,21 +438,13 @@ export function GoalDetailHeader({
           )}
         </View>
 
-        <View style={{ alignItems: 'center', flexShrink: 0, gap: 6 }}>
-          <ProgressRing
-            color={colors.accent.primary}
-            progress={ringProgress}
-            size={92}
-            strokeWidth={7}
-            variant="warm"
-          />
-          <Typography variant="caption" style={{ color: colors.accent.tealMid, fontFamily: FONT.ui.semibold }}>
-            {completed ? 'Completed' : archived ? 'Archived' : expired ? 'Expired' : 'On track'}
-          </Typography>
-        </View>
       </View>
 
-      <View style={{ backgroundColor: colors.border.warmSubtle, height: 1, marginBottom: 16, marginTop: 20 }} />
+      <View style={{ marginVertical: SPACE.xl }}>
+        <CountdownTimer createdAt={goal.createdAt} deadline={goal.deadline} deadlineDensity={deadlineDensity}
+          disabled={isSuperseded || archived || completed} embedded
+          onUpdateDeadline={onUpdateDeadline} />
+      </View>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 34 }}>
         <MetaItem label="Category" value={formatCategory(goal.category)} />
