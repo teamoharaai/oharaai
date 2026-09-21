@@ -26,7 +26,6 @@ export function GoalVault({ goal, entries, entriesError, activityItems, activity
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
   const vault = useVault(goal.id);
-  const [showAll, setShowAll] = useState(false);
   const [showCompletions, setShowCompletions] = useState(false);
   const [retriedEntries, setRetriedEntries] = useState<EntryRecord[] | null>(null);
   const [retrying, setRetrying] = useState(false);
@@ -107,21 +106,6 @@ export function GoalVault({ goal, entries, entriesError, activityItems, activity
             <Typography variant="caption">{dateLabel(source.date)}</Typography>
           </Pressable>
         ))}
-      </View>
-      <View testID="goal-recent-activity" style={{ gap: SPACE.lg }}>
-        <GoalSectionHeading>Recent Activity</GoalSectionHeading>
-        {activityLoading ? <ActivityIndicator color={colors.accent.primary} /> : activityError ?
-          <Typography variant="body">Timeline could not be loaded right now.</Typography> :
-          (showAll ? timeline : timeline.slice(0, 5)).map((item) => (
-            <View key={item.id} style={{ borderLeftWidth: 2, borderLeftColor: colors.border.accent, paddingLeft: SPACE.lg, paddingVertical: SPACE.md, gap: SPACE.sm }}>
-              <Typography variant="emphasis-sm">{eventTitle(item)}</Typography>
-              <Typography variant="caption">{dateLabel(item.timestamp)}</Typography>
-            </View>
-          ))}
-        {!activityLoading && !activityError && !timeline.length ? <Typography variant="body">Meaningful Goal history will appear here.</Typography> : null}
-        {timeline.length > 5 ? <Pressable accessibilityRole="button" onPress={() => setShowAll((value) => !value)} style={{ minHeight: 44 }}>
-          <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>{showAll ? 'Show less ↑' : 'View all activity →'}</Typography>
-        </Pressable> : null}
       </View>
       <View testID="goal-completion-timeline" style={{ gap: SPACE.lg }}>
         <GoalSectionHeading>Completion Timeline</GoalSectionHeading>

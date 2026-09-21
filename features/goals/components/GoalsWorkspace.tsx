@@ -29,7 +29,9 @@ import { TasksPanel } from '@/features/tasks/components/TasksPanel';
 import { useDeadlineDensity } from '../hooks/useDeadlineDensity';
 import { SharedGoalsPreview } from './SharedGoalsPreview';
 import { GoalActivityPanel } from './GoalActivityPanel';
+import { RecentActivityPanel } from './RecentActivityPanel';
 import { useGoalActivityWindow } from '../hooks/useGoalActivityWindow';
+import { buildDailyActivityTrend } from '../utils/activityTrend';
 import type { ActivityItem } from '@/types/activity';
 import {
   filterGoalsForWorkspace,
@@ -807,11 +809,37 @@ function GoalTabContent({
   );
 }
 
+// Stock-ticker style week-over-week delta: green ▲ when improving, red ▼ when
+// falling, muted → when steady. Reused for the momentum score (vs last week) and
+// the daily-activity comparison.
+function MomentumDelta({ change, caption, decimals = 1 }: {
+  change: number | null | undefined;
+  caption: string;
+  decimals?: number;
+}) {
+  const colors = useThemeColors();
+  if (change === null || change === undefined) return null;
+  const factor = 10 ** decimals;
+  const rounded = Math.round(change * factor) / factor;
+  const flat = Math.abs(rounded) < 0.5 / factor;
+  const up = rounded > 0;
+  const color = flat ? colors.text.muted : up ? colors.accent.primary : colors.feedback.danger.text;
+  const arrow = flat ? '→' : up ? '▲' : '▼';
+  const value = flat ? 'Steady' : `${up ? '+' : ''}${rounded.toFixed(decimals)}`;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE.xs }}>
+      <Typography variant="caption" style={{ color, fontWeight: '600' }}>{arrow} {value}</Typography>
+      <Typography variant="caption" style={{ color: colors.text.muted }}>{caption}</Typography>
+    </View>
+  );
+}
+
 function GoalAnalyticsCard({ goal }: { goal: GoalWithDetails }) {
   const colors = useThemeColors();
   const activity = useGoalActivityWindow(goal.id, 70);
   const momentum = useGoalMomentumSummary(goal.id);
   const summary = momentum.goalSummary;
+  const trend = buildDailyActivityTrend(activity.buckets);
   return (
     <View style={{ padding: SPACE.xl, gap: SPACE.lg }}>
       <Typography variant="title">Momentum</Typography>
@@ -819,7 +847,30 @@ function GoalAnalyticsCard({ goal }: { goal: GoalWithDetails }) {
         <Typography variant="body">{summary?.status ?? (momentum.isLoading ? 'Calculating…' : 'Unavailable')}</Typography>
         <Typography variant="heading" style={{ color: colors.text.accent }}>{summary?.displayedValue ?? '—'} / 100</Typography>
       </View>
-      <Typography variant="caption">This week · {summary?.periodState ?? 'provisional'}</Typography>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACE.md, flexWrap: 'wrap' }}>
+        <Typography variant="caption">This week · {summary?.periodState ?? 'provisional'}</Typography>
+        <MomentumDelta change={summary?.weeklyChange} caption="vs last week" />
+      </View>
+      <View style={{ borderTopWidth: 1, borderTopColor: colors.border.divider, paddingTop: SPACE.lg, gap: SPACE.md }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACE.md, flexWrap: 'wrap' }}>
+          <SectionHeading>LAST 7 DAYS</SectionHeading>
+          <MomentumDelta change={activity.loading ? null : trend.delta} caption="vs prior 7 days" decimals={0} />
+        </View>
+        {activity.error ? (
+          <Typography variant="body">Activity could not be loaded.</Typography>
+        ) : activity.loading && !activity.buckets.length ? (
+          <Typography variant="caption" style={{ color: colors.text.muted }}>Loading activity…</Typography>
+        ) : trend.points.length ? (
+          <>
+            <MomentumTrendChart height={96} fitHeight points={trend.points} xLabels={trend.labels} />
+            <Typography variant="caption" style={{ color: colors.text.muted }}>
+              {trend.total} {trend.total === 1 ? 'event' : 'events'} in the last 7 days
+            </Typography>
+          </>
+        ) : (
+          <Typography variant="caption" style={{ color: colors.text.muted }}>Daily activity will appear here.</Typography>
+        )}
+      </View>
       <View style={{ paddingVertical: SPACE.lg, gap: SPACE.lg }}>
         <SectionHeading>ACTIVITY</SectionHeading>
         {activity.error ? <Typography variant="body">Activity could not be loaded.</Typography> :
@@ -874,15 +925,20 @@ function InsightContextCard({ goal, items }: { goal: GoalWithDetails; items: rea
 function ContextRail({
   goal,
   items,
+  activityLoading,
+  activityError,
 }: {
   goal: GoalWithDetails;
   items: readonly ActivityItem[];
+  activityLoading: boolean;
+  activityError: string | null;
 }) {
   return (
     <View style={{ gap: SPACE.xl }}>
       <Typography variant="eyebrow" style={{ paddingHorizontal: SPACE.xl }}>Goal Analytics</Typography>
       <Surface style={{ overflow: 'hidden' }}><InsightContextCard goal={goal} items={items} /></Surface>
       <Surface><GoalAnalyticsCard goal={goal} /></Surface>
+      <Surface><RecentActivityPanel items={items} loading={activityLoading} error={activityError} /></Surface>
     </View>
   );
 }
@@ -1184,6 +1240,8 @@ export function GoalsWorkspace() {
             <View style={{ flex: 0.85, minWidth: 270 }}>
               {workspaceGoal ? (
                 <ContextRail
+                  activityError={selectedActivity.error}
+                  activityLoading={selectedActivity.loading}
                   goal={workspaceGoal}
                   items={selectedActivity.items}
                 />
@@ -1221,6 +1279,8 @@ export function GoalsWorkspace() {
                     tab={tab}
                   />
                   <ContextRail
+                    activityError={selectedActivity.error}
+                    activityLoading={selectedActivity.loading}
                     goal={workspaceGoal}
                     items={selectedActivity.items}
                   />
@@ -1256,6 +1316,8 @@ export function GoalsWorkspace() {
                   tab={tab}
                 />
                 <ContextRail
+                  activityError={selectedActivity.error}
+                  activityLoading={selectedActivity.loading}
                   goal={workspaceGoal}
                   items={selectedActivity.items}
                 />
