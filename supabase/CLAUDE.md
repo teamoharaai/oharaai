@@ -5,7 +5,7 @@ Owner: CTO. Cascade Level 3.
 ## Migration Conventions
 - supabase/migrations/ holds 6 narrative baseline files (001-006), squashed
   2026-06-24 from the original 26 incremental migrations. 007-039 were added
-  after the squash (see below). Next new migration: 060.
+  after the squash (see below). Next new migration: 063.
 - The pre-squash files (original 001-026) are archived, untouched, in
   supabase/migrations_archive_pre_squash_2026-06-24/ for historical reference.
   Do not re-run or restore them — supabase_migrations.schema_migrations tracks
@@ -263,6 +263,24 @@ Owner: CTO. Cascade Level 3.
   (ledger latest=059, target_count column present, single create_task_v1 overload).
   Owned by the Goal Detail Redesign (`design/goal-detail-redesign/`). Latest applied
   migration is now 059.
+- 060_new_phase_cadence_public_visibility.sql: preserves Task cadence and public
+  visibility across Goal phase transitions. Owned by the Goal Detail Redesign;
+  applied live (ledger). Feature-owned narrative lives with that initiative.
+- 061_backfill_goal_vaults.sql: one-time idempotent backfill creating a personal
+  vault for every existing vault-less goal. Vault auto-creation had been gated
+  behind a vaultContext, so most goals had no `vaults` row and the Vault UI 404'd;
+  goal creation now mints a vault unconditionally and the read path get-or-creates.
+  Applied + verified live via the management API 2026-09-19 (vaults 9→53,
+  goals_missing_vault 44→0). Owned by the Vaults revival.
+- 062_unify_sticky_notes_into_vault.sql: makes `vault_items` the single canonical
+  note store. Copies `goal_notes` (058) → `vault_items` (item_type='note',
+  body→content, photo→metadata.photoUrl, created_at preserved; provenance keys for
+  idempotency/rollback), then FREEZES `goal_notes` (revokes authenticated
+  insert/update/delete; SELECT kept as a read-only rollback window). Slated for a
+  later drop of the `goal_notes` table + `goal-note-photos` bucket once verified.
+  Dry-run-verified in a rolled-back txn, then applied + verified live 2026-09-19
+  (2 notes copied, fields matching, embedding_text seeded, authenticated INSERT
+  revoked). Latest applied migration is now 062. Owned by the Vaults revival.
 - goals.mode column was dropped in the 2026-06-24 squash (was a single-value
   CHECK column, no longer carried). lib/db/goals.ts no longer inserts it.
 
