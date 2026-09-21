@@ -11,6 +11,7 @@ import type {
   GoalMilestoneInput,
   GoalMilestoneUpdates,
   GoalNote,
+  GoalNoteFolder,
   GoalNoteInput,
   GoalNoteUpdates,
   GoalStatus,
@@ -79,6 +80,7 @@ type VaultItemJson = {
   title: string | null;
   content: string | null;
   metadata: { photoUrl?: string } & Record<string, unknown>;
+  folderId?: string | null;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -260,6 +262,7 @@ function mapVaultNoteToGoalNote(item: VaultItemJson, goalId: string): GoalNote {
     title: item.title ?? '',
     body: item.content,
     photoUrl: item.metadata?.photoUrl ?? null,
+    folderId: item.folderId ?? null,
     createdAt: new Date(item.createdAt),
     updatedAt: new Date(item.updatedAt),
   };
@@ -296,6 +299,8 @@ export function mapGoal(row: DbGoal): GoalWithDetails {
     // Notes are loaded separately from the goal's Vault on the detail path
     // (fetchGoalVaultNotes) — they are no longer embedded in GOAL_SELECT.
     notes: [],
+    // Sticky Note folders load on the detail path too (fetchGoalNoteFolders).
+    noteFolders: [],
     trackers: (row.trackers ?? []).map(mapTracker).sort((a, b) => a.sortOrder - b.sortOrder),
     vaultItemCount: 0,
     echoLinkCount: 0,
@@ -756,6 +761,7 @@ export async function createGoalNote(
         itemType: 'note',
         title: input.title.trim() || null,
         content: input.body?.trim() || null,
+        folderId: input.folderId ?? null,
       }),
     });
     if (!res.ok) return null;
@@ -776,6 +782,7 @@ export async function updateGoalNote(
   const body: Record<string, unknown> = {};
   if (updates.title !== undefined) body.title = updates.title.trim() || null;
   if ('body' in updates) body.content = updates.body?.trim() || null;
+  if ('folderId' in updates) body.folderId = updates.folderId ?? null;
   // Photo lives in item metadata; a photo change replaces metadata wholesale,
   // which only drops migration provenance keys (harmless). Title/body edits
   // never send metadata, so an existing photo is preserved.
@@ -803,6 +810,127 @@ export async function deleteGoalNote(goalId: string, noteId: string): Promise<bo
 
   try {
     const res = await authedFetch(`/api/vaults/items/${noteId}`, { method: 'DELETE' });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// ── Sticky Note folders (per-goal, migration 065) ──────────────────────────────
+// Folders live in the goal's Vault (vault_note_folders). "General" is the virtual
+// NULL bucket and is never returned as a folder.
+
+type NoteFolderJson = {
+  id: string;
+  name: string;
+  sortOrder: number;
+  createdAt: string;
+};
+
+function mapNoteFolder(folder: NoteFolderJson, goalId: string): GoalNoteFolder {
+  return {
+    id: folder.id,
+    goalId,
+    name: folder.name,
+    sortOrder: folder.sortOrder,
+    createdAt: new Date(folder.createdAt),
+  };
+}
+
+/** Loads a goal's Sticky Note folders (excludes the virtual General bucket). */
+export async function fetchGoalNoteFolders(goalId: string): Promise<GoalNoteFolder[]> {
+  try {
+    const res = await authedFetch(`/api/vaults/${goalId}/folders`);
+    if (!res.ok) return [];
+    const data = (await res.json()) as { folders?: NoteFolderJson[] };
+    return (data.folders ?? []).map((folder) => mapNoteFolder(folder, goalId));
+  } catch {
+    return [];
+  }
+}
+
+export async function createGoalNoteFolder(
+  goalId: string,
+  name: string,
+): Promise<GoalNoteFolder | null> {
+  if (!await canWriteGoal(goalId)) return null;
+  try {
+    const res = await authedFetch(`/api/vaults/${goalId}/folders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name.trim() }),
+    });
+    if (!res.ok) return null;
+    const { folder } = (await res.json()) as { folder: NoteFolderJson };
+    return mapNoteFolder(folder, goalId);
+  } catch {
+    return null;
+  }
+}
+
+export async function renameGoalNoteFolder(
+  goalId: string,
+  folderId: string,
+  name: string,
+): Promise<GoalNoteFolder | null> {
+  if (!await canWriteGoal(goalId)) return null;
+  try {
+    const res = await authedFetch(`/api/vaults/${goalId}/folders/${folderId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name.trim() }),
+    });
+    if (!res.ok) return null;
+    const { folder } = (await res.json()) as { folder: NoteFolderJson };
+    return mapNoteFolder(folder, goalId);
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteGoalNoteFolder(goalId: string, folderId: string): Promise<boolean> {
+  if (!await canWriteGoal(goalId)) return false;
+  try {
+    const res = await authedFetch(`/api/vaults/${goalId}/folders/${folderId}`, { method: 'DELETE' });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/** Persists a new folder order (each folder's sort_order becomes its index). */
+export async function reorderGoalNoteFolders(
+  goalId: string,
+  folderIds: readonly string[],
+): Promise<boolean> {
+  if (folderIds.length === 0) return true;
+  if (!await canWriteGoal(goalId)) return false;
+  try {
+    const res = await authedFetch(`/api/vaults/${goalId}/reorder-folders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folderIds }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/** Moves notes to a folder (or General when folderId is null). Returns success. */
+export async function moveGoalNotes(
+  goalId: string,
+  noteIds: readonly string[],
+  folderId: string | null,
+): Promise<boolean> {
+  if (noteIds.length === 0) return true;
+  if (!await canWriteGoal(goalId)) return false;
+  try {
+    const res = await authedFetch(`/api/vaults/${goalId}/notes/move`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ noteIds, folderId }),
+    });
     return res.ok;
   } catch {
     return false;

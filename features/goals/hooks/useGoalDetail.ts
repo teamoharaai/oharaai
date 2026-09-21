@@ -16,15 +16,21 @@ import {
 import {
   completeMilestone,
   createGoalNote,
+  createGoalNoteFolder,
   createMilestone,
   createTracker,
   deleteGoalNote,
+  deleteGoalNoteFolder,
   deleteMilestone,
   deleteTracker,
   extendGoalDeadline,
   fetchGoalById,
   fetchGoals,
+  fetchGoalNoteFolders,
   fetchGoalVaultNotes,
+  moveGoalNotes,
+  renameGoalNoteFolder,
+  reorderGoalNoteFolders,
   updateGoal,
   updateGoalNote,
   updateMilestone,
@@ -34,6 +40,7 @@ import { useGoalStore } from '../store';
 import type {
   GoalMilestoneInput,
   GoalMilestoneUpdates,
+  GoalNoteFolder,
   GoalNoteInput,
   GoalNoteUpdates,
   GoalWithDetails,
@@ -61,6 +68,11 @@ export interface UseGoalDetailResult {
   onDeleteNote: (noteId: string) => Promise<void>;
   onAttachNotePhoto: (noteId: string) => Promise<void>;
   resolveNotePhotoUrl: (storagePath: string) => Promise<string>;
+  onAddNoteFolder: (name: string) => Promise<GoalNoteFolder | null>;
+  onRenameNoteFolder: (folderId: string, name: string) => Promise<void>;
+  onDeleteNoteFolder: (folderId: string) => Promise<void>;
+  onReorderNoteFolders: (folderIds: readonly string[]) => Promise<void>;
+  onMoveNotes: (noteIds: readonly string[], folderId: string | null) => Promise<void>;
   onUpdateDeadline: (deadline: Date | null) => Promise<boolean>;
   onUpdateProject: (projectId: string | null) => Promise<boolean>;
   onUpdateDescription: (description: string | null) => Promise<boolean>;
@@ -71,10 +83,12 @@ export interface UseGoalDetailResult {
   trackerError: string | null;
   milestoneError: string | null;
   noteError: string | null;
+  folderError: string | null;
   goalError: string | null;
   clearTrackerError: () => void;
   clearMilestoneError: () => void;
   clearNoteError: () => void;
+  clearFolderError: () => void;
   clearGoalError: () => void;
 }
 
@@ -89,6 +103,7 @@ function mergeServerGoal(current: GoalWithDetails, saved: GoalWithDetails): Goal
     // Notes load on a separate Vault fetch, not with the goal — carry any
     // already-loaded notes forward so a server reload doesn't blank them.
     notes: current.notes.length > 0 ? current.notes : saved.notes,
+    noteFolders: current.noteFolders.length > 0 ? current.noteFolders : saved.noteFolders,
   };
 }
 
@@ -97,8 +112,12 @@ function mergeServerGoal(current: GoalWithDetails, saved: GoalWithDetails): Goal
 // store, preserve the notes we loaded so they don't flash away.
 function withPreservedNotes(detail: GoalWithDetails): GoalWithDetails {
   const prev = useGoalStore.getState().goals.find((item) => item.id === detail.id);
-  if (prev && prev.notes.length > 0) return { ...detail, notes: prev.notes };
-  return detail;
+  if (!prev) return detail;
+  return {
+    ...detail,
+    notes: prev.notes.length > 0 ? prev.notes : detail.notes,
+    noteFolders: prev.noteFolders.length > 0 ? prev.noteFolders : detail.noteFolders,
+  };
 }
 
 export function useGoalDetail(goalId: string): UseGoalDetailResult {
@@ -118,9 +137,14 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
   const upsertNote = useGoalStore((state) => state.upsertNote);
   const removeNote = useGoalStore((state) => state.removeNote);
   const setGoalNotes = useGoalStore((state) => state.setGoalNotes);
+  const setGoalNoteFolders = useGoalStore((state) => state.setGoalNoteFolders);
+  const upsertNoteFolder = useGoalStore((state) => state.upsertNoteFolder);
+  const removeNoteFolder = useGoalStore((state) => state.removeNoteFolder);
+  const setNotesFolder = useGoalStore((state) => state.setNotesFolder);
   const [trackerError, setTrackerError] = useState<string | null>(null);
   const [milestoneError, setMilestoneError] = useState<string | null>(null);
   const [noteError, setNoteError] = useState<string | null>(null);
+  const [folderError, setFolderError] = useState<string | null>(null);
   const [goalError, setGoalError] = useState<string | null>(null);
   const [completedTrackerIds, setCompletedTrackerIds] = useState<Set<string>>(new Set());
   const [completingMilestoneIds, setCompletingMilestoneIds] = useState<Set<string>>(new Set());
@@ -132,6 +156,7 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
     setTrackerError(null);
     setMilestoneError(null);
     setNoteError(null);
+    setFolderError(null);
     setGoalError(null);
   }, [goalId]);
 
@@ -201,13 +226,19 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
 
     let cancelled = false;
     void (async () => {
-      const notes = await fetchGoalVaultNotes(goalId);
-      if (!cancelled) setGoalNotes(goalId, notes);
+      const [notes, folders] = await Promise.all([
+        fetchGoalVaultNotes(goalId),
+        fetchGoalNoteFolders(goalId),
+      ]);
+      if (!cancelled) {
+        setGoalNotes(goalId, notes);
+        setGoalNoteFolders(goalId, folders);
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, [goalId, hasGoal, setGoalNotes]);
+  }, [goalId, hasGoal, setGoalNotes, setGoalNoteFolders]);
 
   const readOnlyGoal = useCallback(() => {
     const current = goals.find((item) => item.id === goalId);
@@ -494,6 +525,88 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
     }
   }, [goalId, readOnlyGoal, upsertNote]);
 
+  // ── Sticky Note folders (per-goal, migration 065) ────────────────────────────
+
+  const onAddNoteFolder = useCallback(async (name: string): Promise<GoalNoteFolder | null> => {
+    if (!readOnlyGoal()) return null;
+    setFolderError(null);
+    const saved = await createGoalNoteFolder(goalId, name);
+    if (!saved) {
+      setFolderError('Could not create that folder. The name may already be in use.');
+      return null;
+    }
+    upsertNoteFolder(goalId, saved);
+    return saved;
+  }, [goalId, readOnlyGoal, upsertNoteFolder]);
+
+  const onRenameNoteFolder = useCallback(async (folderId: string, name: string) => {
+    const currentGoal = readOnlyGoal();
+    const current = currentGoal?.noteFolders.find((item) => item.id === folderId);
+    if (!current) return;
+
+    upsertNoteFolder(goalId, { ...current, name });
+    const saved = await renameGoalNoteFolder(goalId, folderId, name);
+    if (!saved) {
+      upsertNoteFolder(goalId, current);
+      setFolderError('Could not rename that folder. The name may already be in use.');
+      return;
+    }
+    upsertNoteFolder(goalId, saved);
+  }, [goalId, readOnlyGoal, upsertNoteFolder]);
+
+  const onDeleteNoteFolder = useCallback(async (folderId: string) => {
+    if (!readOnlyGoal()) return;
+    // Optimistic: drop the folder and fall its notes back to General, mirroring
+    // the FK ON DELETE SET NULL. On failure, re-sync from the server.
+    removeNoteFolder(goalId, folderId);
+    if (!await deleteGoalNoteFolder(goalId, folderId)) {
+      setFolderError('Could not delete that folder. Please try again.');
+      const [notes, folders] = await Promise.all([
+        fetchGoalVaultNotes(goalId),
+        fetchGoalNoteFolders(goalId),
+      ]);
+      setGoalNotes(goalId, notes);
+      setGoalNoteFolders(goalId, folders);
+    }
+  }, [goalId, readOnlyGoal, removeNoteFolder, setGoalNotes, setGoalNoteFolders]);
+
+  const onMoveNotes = useCallback(async (noteIds: readonly string[], folderId: string | null) => {
+    if (!readOnlyGoal() || noteIds.length === 0) return;
+    // Capture prior folder assignments so a failed move can be reverted exactly.
+    const prev = new Map(
+      (useGoalStore.getState().goals.find((item) => item.id === goalId)?.notes ?? [])
+        .filter((note) => noteIds.includes(note.id))
+        .map((note) => [note.id, note.folderId] as const),
+    );
+    setNotesFolder(goalId, noteIds, folderId);
+    if (!await moveGoalNotes(goalId, noteIds, folderId)) {
+      setFolderError('Could not move those notes. Please try again.');
+      for (const [id, prevFolderId] of prev) setNotesFolder(goalId, [id], prevFolderId);
+    }
+  }, [goalId, readOnlyGoal, setNotesFolder]);
+
+  const onReorderNoteFolders = useCallback(async (folderIds: readonly string[]) => {
+    const currentGoal = readOnlyGoal();
+    if (!currentGoal) return;
+    const previous = currentGoal.noteFolders;
+    // Optimistic: apply the new order (sortOrder := index) immediately.
+    const byId = new Map(previous.map((folder) => [folder.id, folder] as const));
+    const reordered = folderIds
+      .map((id, index) => {
+        const folder = byId.get(id);
+        return folder ? { ...folder, sortOrder: index } : null;
+      })
+      .filter((folder): folder is (typeof previous)[number] => folder !== null);
+    if (reordered.length !== previous.length) return; // stale ids — skip
+    setGoalNoteFolders(goalId, reordered);
+    if (!await reorderGoalNoteFolders(goalId, folderIds)) {
+      setGoalNoteFolders(goalId, previous);
+      setFolderError('Could not reorder folders. Please try again.');
+    }
+  }, [goalId, readOnlyGoal, setGoalNoteFolders]);
+
+  const clearFolderError = useCallback(() => setFolderError(null), []);
+
   const persistGoalUpdate = useCallback(async (
     optimistic: GoalWithDetails,
     updates: Parameters<typeof updateGoal>[1],
@@ -591,6 +704,11 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
     onDeleteNote,
     onAttachNotePhoto,
     resolveNotePhotoUrl: createSignedGoalNotePhotoUrl,
+    onAddNoteFolder,
+    onRenameNoteFolder,
+    onDeleteNoteFolder,
+    onReorderNoteFolders,
+    onMoveNotes,
     onUpdateDeadline,
     onUpdateProject,
     onUpdateDescription,
@@ -601,10 +719,12 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
     trackerError,
     milestoneError,
     noteError,
+    folderError,
     goalError,
     clearTrackerError,
     clearMilestoneError,
     clearNoteError,
+    clearFolderError,
     clearGoalError,
   };
 }

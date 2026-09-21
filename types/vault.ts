@@ -10,12 +10,27 @@ export interface Vault {
   updatedAt: string;
 }
 
+/** Per-goal (per-Vault) Sticky Note folder (migration 065). Owner-private.
+ *  A note-type VaultItem with `folderId == null` is the virtual "General" folder. */
+export interface VaultNoteFolder {
+  id: string;
+  vaultId: string;
+  userId: string;
+  name: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface VaultItem {
   id: string;
   vaultId: string;
   itemType: VaultItemType;
   title: string | null;
   content: string | null;
+  /** Sticky Note folder (vault_note_folders, migration 065). `null` = General.
+   *  Only note-type items use this; other item types leave it null. */
+  folderId?: string | null;
   metadata: {
     url?: string;
     annotation?: string;

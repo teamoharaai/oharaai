@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { deleteGoal as deleteGoalRecord } from './services/goal-service';
-import type { GoalMilestone, GoalNote, GoalWithDetails, Tracker } from './types';
+import { assignNotesToFolder, clearFolderFromNotes } from './sticky-notes-folders';
+import type { GoalMilestone, GoalNote, GoalNoteFolder, GoalWithDetails, Tracker } from './types';
 
 interface GoalStore {
   goals: GoalWithDetails[];
@@ -20,6 +21,10 @@ interface GoalStore {
   upsertNote: (goalId: string, note: GoalNote) => void;
   removeNote: (goalId: string, noteId: string) => void;
   setGoalNotes: (goalId: string, notes: GoalNote[]) => void;
+  setGoalNoteFolders: (goalId: string, folders: GoalNoteFolder[]) => void;
+  upsertNoteFolder: (goalId: string, folder: GoalNoteFolder) => void;
+  removeNoteFolder: (goalId: string, folderId: string) => void;
+  setNotesFolder: (goalId: string, noteIds: readonly string[], folderId: string | null) => void;
 }
 
 export const useGoalStore = create<GoalStore>((set) => ({
@@ -128,5 +133,47 @@ export const useGoalStore = create<GoalStore>((set) => ({
         );
         return { ...goal, notes: sorted };
       }),
+    })),
+  // Folders load on the goal-detail path (from the goal's Vault) like notes.
+  setGoalNoteFolders: (goalId, folders) =>
+    set((state) => ({
+      goals: state.goals.map((goal) => {
+        if (goal.id !== goalId) return goal;
+        const sorted = [...folders].sort(
+          (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
+        );
+        return { ...goal, noteFolders: sorted };
+      }),
+    })),
+  upsertNoteFolder: (goalId, folder) =>
+    set((state) => ({
+      goals: state.goals.map((goal) => {
+        if (goal.id !== goalId) return goal;
+        const exists = goal.noteFolders.some((item) => item.id === folder.id);
+        const noteFolders = (exists
+          ? goal.noteFolders.map((item) => (item.id === folder.id ? folder : item))
+          : [...goal.noteFolders, folder]
+        ).sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+        return { ...goal, noteFolders };
+      }),
+    })),
+  // Removing a folder mirrors the FK ON DELETE SET NULL (migration 065): its
+  // notes fall back to General (folderId -> null) in the client state too.
+  removeNoteFolder: (goalId, folderId) =>
+    set((state) => ({
+      goals: state.goals.map((goal) => {
+        if (goal.id !== goalId) return goal;
+        return {
+          ...goal,
+          noteFolders: goal.noteFolders.filter((folder) => folder.id !== folderId),
+          notes: clearFolderFromNotes(goal.notes, folderId),
+        };
+      }),
+    })),
+  setNotesFolder: (goalId, noteIds, folderId) =>
+    set((state) => ({
+      goals: state.goals.map((goal) =>
+        goal.id !== goalId ? goal : { ...goal, notes: assignNotesToFolder(goal.notes, noteIds, folderId) },
+      ),
     })),
 }));

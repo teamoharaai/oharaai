@@ -5,7 +5,7 @@ Owner: CTO. Cascade Level 3.
 ## Migration Conventions
 - supabase/migrations/ holds 6 narrative baseline files (001-006), squashed
   2026-06-24 from the original 26 incremental migrations. 007-039 were added
-  after the squash (see below). Next new migration: 065.
+  after the squash (see below). Next new migration: 067.
 - The pre-squash files (original 001-026) are archived, untouched, in
   supabase/migrations_archive_pre_squash_2026-06-24/ for historical reference.
   Do not re-run or restore them — supabase_migrations.schema_migrations tracks
@@ -318,6 +318,16 @@ Owner: CTO. Cascade Level 3.
   accepted, invalid tz raises 'Occurrence timezone must be a valid IANA timezone',
   cross-owner still rejected — all in rolled-back txns). Applied via the management
   API; ledger latest now 064.
+- 065_vault_note_folders.sql: per-goal Sticky Note folders. Adds
+  `vault_note_folders` (vault-scoped, owner RLS, unique lower(name) per vault) and
+  a nullable `vault_items.folder_id` FK with ON DELETE SET NULL (NULL = the
+  virtual "General" bucket; deleting a folder reassigns its notes to General, no
+  RPC). Only note-type items use folder_id. Applied via management API.
+- 066_harden_note_folder_vault_ownership.sql: tightens `vault_note_folders`
+  INSERT/UPDATE with-check to also require ownership of the referenced vault (so a
+  folder can only live in a vault the caller owns; closes a raw-PostgREST path
+  that let an inert folder row point at another vault). Applied via management
+  API; ledger latest now 066. Owned by the Sticky Note folders feature.
 - goals.mode column was dropped in the 2026-06-24 squash (was a single-value
   CHECK column, no longer carried). lib/db/goals.ts no longer inserts it.
 

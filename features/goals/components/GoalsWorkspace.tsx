@@ -766,9 +766,14 @@ function GoalTabContent({
   const { width } = useWindowDimensions();
   if (tab === 'vault') return (
     <Surface><GoalVault key={goal.id} goal={goal} entries={linkedEntries} entriesError={entriesError}
-      privateNotes={<StickyNotesPanel embedded notes={goal.notes} error={goalDetail.noteError}
+      privateNotes={<StickyNotesPanel embedded notes={goal.notes} folders={goal.noteFolders}
+        error={goalDetail.noteError} folderError={goalDetail.folderError}
         onAdd={goalDetail.onAddNote} onSave={goalDetail.onSaveNote} onDelete={goalDetail.onDeleteNote}
         onAttachPhoto={goalDetail.onAttachNotePhoto} onDismissError={goalDetail.clearNoteError}
+        onDismissFolderError={goalDetail.clearFolderError}
+        onAddFolder={goalDetail.onAddNoteFolder} onRenameFolder={goalDetail.onRenameNoteFolder}
+        onDeleteFolder={goalDetail.onDeleteNoteFolder} onReorderFolders={goalDetail.onReorderNoteFolders}
+        onMoveNotes={goalDetail.onMoveNotes}
         resolvePhotoUrl={goalDetail.resolveNotePhotoUrl}
         readOnly={goal.has_successor || goal.status === 'complete' || goal.status === 'archived'} />}
       activityItems={activityItems} activityLoading={activityLoading} activityError={activityError} /></Surface>

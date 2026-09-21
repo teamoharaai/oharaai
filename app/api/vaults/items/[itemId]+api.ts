@@ -5,6 +5,7 @@ import {
   updateVaultItem,
   deleteVaultItem,
 } from '@/lib/db/vaults';
+import { getFolderByIdForVault } from '@/lib/db/vault-folders';
 import type { VaultItem } from '@/types/vault';
 
 // ─── Input sanitization ───────────────────────────────────────────────────────
@@ -56,6 +57,7 @@ interface UpdateVaultItemBody {
   title?: unknown;
   content?: unknown;
   metadata?: unknown;
+  folderId?: unknown;
 }
 
 export async function PUT(
@@ -89,6 +91,10 @@ async function handlePut(
   }
 
   const updates: Partial<VaultItem> = {};
+  // `folderId` may legitimately be null (move to General), so track "provided"
+  // separately and validate the target against the item's own vault below.
+  let folderIdProvided = false;
+  let folderIdValue: string | null = null;
 
   try {
     if (body.title !== undefined) {
@@ -101,6 +107,16 @@ async function handlePut(
     if (body.metadata !== undefined) {
       updates.metadata = sanitizeMetadata(body.metadata);
     }
+    if (body.folderId !== undefined) {
+      folderIdProvided = true;
+      if (body.folderId === null) {
+        folderIdValue = null;
+      } else if (typeof body.folderId === 'string' && body.folderId.trim().length > 0) {
+        folderIdValue = body.folderId.trim();
+      } else {
+        throw new Error('folderId must be a string or null');
+      }
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Invalid request';
     return Response.json({ error: message }, { status: 400 });
@@ -111,6 +127,17 @@ async function handlePut(
     const existingItem = await getVaultItemByIdForUser(itemId, auth.userId, authedDb);
     if (!existingItem) {
       return Response.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    if (folderIdProvided) {
+      // A non-General target must be a folder in the item's own vault.
+      if (folderIdValue !== null) {
+        const folder = await getFolderByIdForVault(folderIdValue, existingItem.vaultId, authedDb);
+        if (!folder) {
+          return Response.json({ error: 'Folder not found' }, { status: 404 });
+        }
+      }
+      updates.folderId = folderIdValue;
     }
 
     const item = await updateVaultItem(itemId, updates, authedDb);

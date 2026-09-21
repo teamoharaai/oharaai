@@ -29,6 +29,7 @@ type DbVaultItemRow = {
   title: string | null;
   content: string | null;
   metadata: Record<string, unknown>;
+  folder_id: string | null;
   visibility: 'private' | 'vault_members' | 'public';
   created_by: string;
   sort_order: number;
@@ -58,6 +59,7 @@ function mapVaultItem(row: DbVaultItemRow): VaultItem {
     title: row.title,
     content: row.content,
     metadata: row.metadata as VaultItem['metadata'],
+    folderId: row.folder_id,
     visibility: row.visibility,
     createdBy: row.created_by,
     sortOrder: row.sort_order,
@@ -72,6 +74,7 @@ function buildVaultItemUpdate(updates: Partial<VaultItem>): Record<string, unkno
   if (updates.title !== undefined) result.title = updates.title;
   if (updates.content !== undefined) result.content = updates.content;
   if (updates.metadata !== undefined) result.metadata = updates.metadata;
+  if (updates.folderId !== undefined) result.folder_id = updates.folderId;
   if (updates.visibility !== undefined) result.visibility = updates.visibility;
   if (updates.sortOrder !== undefined) result.sort_order = updates.sortOrder;
   return result;
@@ -167,7 +170,7 @@ export async function getVaultItems(
 ): Promise<VaultItem[]> {
   const { data, error } = await client
     .from('vault_items')
-    .select('id, vault_id, item_type, title, content, metadata, visibility, created_by, sort_order, created_at, updated_at')
+    .select('id, vault_id, item_type, title, content, metadata, folder_id, visibility, created_by, sort_order, created_at, updated_at')
     .eq('vault_id', vaultId)
     .order('sort_order', { ascending: true });
 
@@ -182,7 +185,7 @@ export async function getVaultItemsByType(
 ): Promise<VaultItem[]> {
   const { data, error } = await client
     .from('vault_items')
-    .select('id, vault_id, item_type, title, content, metadata, visibility, created_by, sort_order, created_at, updated_at')
+    .select('id, vault_id, item_type, title, content, metadata, folder_id, visibility, created_by, sort_order, created_at, updated_at')
     .eq('vault_id', vaultId)
     .eq('item_type', itemType)
     .order('sort_order', { ascending: true });
@@ -206,12 +209,13 @@ export async function createVaultItem(
       title: item.title,
       content: item.content,
       metadata: item.metadata,
+      folder_id: item.folderId ?? null,
       visibility: item.visibility,
       created_by: item.createdBy,
       sort_order: item.sortOrder,
       embedding_text: embeddingText,
     })
-    .select('id, vault_id, item_type, title, content, metadata, visibility, created_by, sort_order, created_at, updated_at')
+    .select('id, vault_id, item_type, title, content, metadata, folder_id, visibility, created_by, sort_order, created_at, updated_at')
     .single();
 
   if (error || !data) throw new Error(error?.message ?? 'Failed to create vault item');
@@ -256,7 +260,7 @@ export async function updateVaultItem(
     .from('vault_items')
     .update(payload)
     .eq('id', itemId)
-    .select('id, vault_id, item_type, title, content, metadata, visibility, created_by, sort_order, created_at, updated_at')
+    .select('id, vault_id, item_type, title, content, metadata, folder_id, visibility, created_by, sort_order, created_at, updated_at')
     .single();
 
   if (error || !data) throw new Error(error?.message ?? 'Failed to update vault item');
@@ -282,7 +286,7 @@ export async function getVaultItemByIdForUser(
 ): Promise<VaultItem | null> {
   const { data: itemRow, error: itemError } = await client
     .from('vault_items')
-    .select('id, vault_id, item_type, title, content, metadata, visibility, created_by, sort_order, created_at, updated_at')
+    .select('id, vault_id, item_type, title, content, metadata, folder_id, visibility, created_by, sort_order, created_at, updated_at')
     .eq('id', itemId)
     .maybeSingle();
 

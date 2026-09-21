@@ -5,6 +5,7 @@ import {
   getVaultItems,
   createVaultItem,
 } from '@/lib/db/vaults';
+import { getFolderByIdForVault } from '@/lib/db/vault-folders';
 import type { VaultItem, VaultItemType } from '@/types/vault';
 
 const VAULT_ITEM_TYPES: readonly VaultItemType[] = [
@@ -108,6 +109,7 @@ interface CreateVaultItemBody {
   title?: unknown;
   content?: unknown;
   metadata?: unknown;
+  folderId?: unknown;
 }
 
 export async function POST(
@@ -144,6 +146,7 @@ async function handlePost(
   let title: string | null;
   let content: string | null;
   let metadata: VaultItem['metadata'];
+  let folderId: string | null;
 
   try {
     if (!(VAULT_ITEM_TYPES as readonly unknown[]).includes(body.itemType)) {
@@ -153,6 +156,13 @@ async function handlePost(
     title = sanitizeOptionalString(body.title, MAX_TITLE_LENGTH);
     content = sanitizeOptionalString(body.content, MAX_CONTENT_LENGTH);
     metadata = sanitizeMetadata(body.metadata);
+    if (body.folderId === undefined || body.folderId === null) {
+      folderId = null;
+    } else if (typeof body.folderId === 'string' && body.folderId.trim().length > 0) {
+      folderId = body.folderId.trim();
+    } else {
+      throw new Error('folderId must be a string or null');
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Invalid request';
     return Response.json({ error: message }, { status: 400 });
@@ -166,12 +176,21 @@ async function handlePost(
       return Response.json({ error: 'Not found' }, { status: 404 });
     }
 
+    // A note created into a folder must target one in this goal's own vault.
+    if (folderId !== null) {
+      const folder = await getFolderByIdForVault(folderId, vault.id, authedDb);
+      if (!folder) {
+        return Response.json({ error: 'Folder not found' }, { status: 404 });
+      }
+    }
+
     const item = await createVaultItem(vault.id, {
       vaultId: vault.id,
       itemType,
       title,
       content,
       metadata,
+      folderId,
       visibility: 'private',
       createdBy: auth.userId,
       sortOrder: 0,

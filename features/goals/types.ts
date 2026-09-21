@@ -88,6 +88,8 @@ export interface GoalNote {
   body: string | null;
   /** Storage path of the hero photo (goal-note-photos bucket). */
   photoUrl: string | null;
+  /** Sticky Note folder (vault_note_folders, migration 065). `null` = General. */
+  folderId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -95,12 +97,25 @@ export interface GoalNote {
 export interface GoalNoteInput {
   title: string;
   body?: string | null;
+  /** Create the note directly into this folder. Omit/`null` = General. */
+  folderId?: string | null;
 }
 
 export interface GoalNoteUpdates {
   title?: string;
   body?: string | null;
   photoUrl?: string | null;
+  /** Move the note to this folder. `null` = General. */
+  folderId?: string | null;
+}
+
+/** A per-goal Sticky Note folder (client-facing shape of vault_note_folders). */
+export interface GoalNoteFolder {
+  id: string;
+  goalId: string;
+  name: string;
+  sortOrder: number;
+  createdAt: Date;
 }
 
 export interface Tracker {
@@ -152,6 +167,9 @@ export interface GoalWithDetails extends Goal {
   reflected_at: Date | null;
   milestones: GoalMilestone[];
   notes: GoalNote[];
+  /** Sticky Note folders for this goal (migration 065). Loaded on the detail
+   *  path alongside notes; General is the virtual null bucket, not a member. */
+  noteFolders: GoalNoteFolder[];
   trackers: Tracker[];
   vaultItemCount: number;
   echoLinkCount: number;
