@@ -5,7 +5,7 @@ Owner: CTO. Cascade Level 3.
 ## Migration Conventions
 - supabase/migrations/ holds 6 narrative baseline files (001-006), squashed
   2026-06-24 from the original 26 incremental migrations. 007-039 were added
-  after the squash (see below). Next new migration: 063.
+  after the squash (see below). Next new migration: 065.
 - The pre-squash files (original 001-026) are archived, untouched, in
   supabase/migrations_archive_pre_squash_2026-06-24/ for historical reference.
   Do not re-run or restore them — supabase_migrations.schema_migrations tracks
@@ -281,6 +281,43 @@ Owner: CTO. Cascade Level 3.
   Dry-run-verified in a rolled-back txn, then applied + verified live 2026-09-19
   (2 notes copied, fields matching, embedding_text seeded, authenticated INSERT
   revoked). Latest applied migration is now 062. Owned by the Vaults revival.
+- 063_reconcile_occurrences_frontier_scan.sql: Momentum/Tasks read-path perf.
+  Rewrites `reconcile_task_occurrences_v1` to lower-bound its occurrence
+  generate_series at the materialization FRONTIER + 1 (day after the latest
+  existing occurrence for the schedule) instead of `start_date`. Root cause found
+  via EXPLAIN ANALYZE: the old body re-proposed every already-materialized day to
+  the `BEFORE INSERT` `validate_task_occurrence_v1` trigger, whose
+  `pg_timezone_names` timezone check costs ~112ms/row — so a ~36-occurrence task
+  burned ~4s of trigger time on every reconcile (blowing the authenticated
+  statement_timeout and 500-ing momentum + `/api/tasks`). Frontier+1 stops
+  re-proposing existing rows; steady-state reconcile dropped ~2540ms → ~100ms
+  (~25×). Correctness preserved: recurrence filters are start_date-anchored (matches
+  unchanged), occurrences are insert-only with atomic inserts (no below-frontier
+  gaps), and the status-only "mark missed" UPDATE doesn't match the trigger's
+  UPDATE-OF column list. Function-body-only (same signature, no schema/type/RLS
+  change), idempotent CREATE OR REPLACE. Verified live on real owner data (36 occ →
+  contiguous span 36, correct 17-row forward materialization in a rolled-back txn),
+  applied via the management API, ledger latest now 063. Deeper follow-up: optimize
+  the `validate_task_occurrence_v1` `pg_timezone_names` scan itself (still taxes
+  genuinely-new inserts / task creation) — deferred, broader blast radius. [Done in
+  064.]
+- 064_validate_occurrence_timezone_fast.sql: the 063 follow-up. Removes the
+  per-row `pg_timezone_names` full-view scan (~112ms/row) from
+  `validate_task_occurrence_v1` (the BEFORE INSERT/UPDATE-OF trigger on
+  task_occurrences). Replaces the `not exists (select 1 from pg_timezone_names …)`
+  timezone check with an O(1) `perform now() at time zone new.schedule_timezone`
+  probe that rejects on SQLSTATE 22023 (invalid_parameter_value). This is the exact
+  fitness-for-use criterion — schedule_timezone is only consumed by `at time zone`
+  (task_local_instant_v1) — so it never scans the view and never drifts from live
+  tzdata; marginally more permissive (also accepts abbreviations/offsets `at time
+  zone` accepts) but the app only stores IANA names, so the accepted/rejected set is
+  unchanged in practice. The two ownership checks are reproduced verbatim.
+  Function-body only (same trigger/signature, no schema/type/RLS change), idempotent
+  CREATE OR REPLACE. Verified live: the validate trigger dropped 4055ms→30ms across a
+  36-row insert (~135×), the full insert 5005ms→99ms; behavior intact (valid tz
+  accepted, invalid tz raises 'Occurrence timezone must be a valid IANA timezone',
+  cross-owner still rejected — all in rolled-back txns). Applied via the management
+  API; ledger latest now 064.
 - goals.mode column was dropped in the 2026-06-24 squash (was a single-value
   CHECK column, no longer carried). lib/db/goals.ts no longer inserts it.
 
