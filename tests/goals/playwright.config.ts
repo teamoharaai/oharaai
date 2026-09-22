@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: '.',
-  testMatch: 'workspace.spec.ts',
+  testMatch: ['workspace.spec.ts', 'creation-v22.spec.ts'],
   workers: 1,
   timeout: 90000,
   expect: { timeout: 15000 },

@@ -545,19 +545,21 @@ export interface TodoDraft {
  *  choices commit in one create write. Always open under the Tasks header (no
  *  reveal button); the whole composer resets after each add (title, date, repeat,
  *  and units) so it never leaves prefilled data behind. */
-function ToDoAddRow({
+export function ToDoAddRow({
   onAdd,
   autoFocus = false,
   deadlineDensity,
   onClose,
+  initialTitle = '',
 }: {
   onAdd: (draft: TodoDraft) => Promise<void>;
   autoFocus?: boolean;
   deadlineDensity?: DatePickerDensity;
   onClose?: () => void;
+  initialTitle?: string;
 }) {
   const colors = useThemeColors();
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useState(initialTitle);
   const [date, setDate] = useState('');
   const [showRepeat, setShowRepeat] = useState(false);
   const [weekdays, setWeekdays] = useState<number[]>([]);
@@ -639,7 +641,7 @@ function ToDoAddRow({
         {submitting ? (
           <ActivityIndicator color={colors.accent.primary} size="small" />
         ) : draft.trim() ? (
-          <Pressable accessibilityLabel="Save to-do" onPress={() => void submit()} style={{ minHeight: 36, justifyContent: 'center', paddingHorizontal: SPACE.sm }}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Save to-do" onPress={() => void submit()} style={{ minHeight: 36, justifyContent: 'center', paddingHorizontal: SPACE.sm }}>
             <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>Add</Typography>
           </Pressable>
         ) : onClose ? (

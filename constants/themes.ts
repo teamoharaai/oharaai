@@ -14,6 +14,10 @@ export const GOAL_THEMES = {
 export type GoalTheme = keyof typeof GOAL_THEMES;
 
 export const CATEGORY_COLOR_THEME: Record<GoalCategory, GoalTheme> = {
+  'Health & Fitness': 'mint',
+  'Work & Money': 'ocean',
+  'Learning & Creativity': 'lavender',
+  'Life & Relationships': 'coral',
   body: 'ember',
   mind: 'lavender',
   money: 'slate',
@@ -37,7 +41,7 @@ export type CategoryAccentTheme = {
   pageBg: string;
 };
 
-export const CATEGORY_ACCENT_THEME: Record<GoalCreationCategory, CategoryAccentTheme> = {
+const LEGACY_ACCENT_THEME = {
   health: {
     color: '#34B87A',
     mid: '#2A9564',
@@ -87,6 +91,14 @@ export const CATEGORY_ACCENT_THEME: Record<GoalCreationCategory, CategoryAccentT
     shadow: 'rgba(212,168,67,.32)',
     pageBg: '#F7F3EC',
   },
+};
+
+export const CATEGORY_ACCENT_THEME: Record<GoalCreationCategory, CategoryAccentTheme> = {
+  ...LEGACY_ACCENT_THEME,
+  'Health & Fitness': LEGACY_ACCENT_THEME.health,
+  'Work & Money': LEGACY_ACCENT_THEME.finance,
+  'Learning & Creativity': LEGACY_ACCENT_THEME.creative,
+  'Life & Relationships': LEGACY_ACCENT_THEME.relationships,
 };
 
 const LEGACY_CATEGORY_ACCENT_THEME: Record<

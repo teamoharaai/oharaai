@@ -56,11 +56,15 @@ test('the Tasks V2 cutover switch covers every canonical API surface', () => {
 test('Goal creation persists canonical Tasks and uses Task terminology', () => {
   const persistence = read('lib/db/goals.ts');
   const wizard = read('app/goals/create.tsx');
+  const manual = read('features/goals/components/ManualGoalCreationV22.tsx');
   assert.match(persistence, /rpc\('create_task_v1'/);
   assert.doesNotMatch(persistence, /from\(['"]trackers['"]\)[\s\S]{0,120}\.insert/);
-  assert.match(wizard, /Your first Tasks/);
-  assert.match(wizard, /Add custom Task/);
-  assert.doesNotMatch(wizard, />TRACKERS</);
+  assert.match(wizard, /<ManualGoalCreationV22/);
+  assert.match(manual, /\+ Add Task/);
+  assert.match(manual, /<ToDoAddRow/);
+  assert.match(manual, /await createTask\(/);
+  assert.match(manual, /trackers: \[\]/);
+  assert.doesNotMatch(manual, />TRACKERS</);
 });
 
 test('Task form drives scheduling from the weekday strip, with inferred completion (Goal Detail Redesign)', () => {

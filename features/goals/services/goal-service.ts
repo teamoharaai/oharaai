@@ -1,5 +1,6 @@
 import supabase from '@/lib/db/client';
 import { authedFetch } from '@/lib/api/client';
+import { productCategory } from '@/lib/goals/product-categories';
 import { fetchLatestReflectionTimestamps } from '@/lib/db/echo-entry-links';
 import { getSuccessorGoalId, getSuccessorGoalIds } from '@/lib/db/goals';
 import { resolveBrt } from '@/lib/utils/resolveBrt';
@@ -26,7 +27,6 @@ import type {
 } from '../types';
 import type { GoalTheme } from '@/constants/themes';
 import {
-  GOAL_CATEGORIES,
   GOAL_DB_STATUSES,
   GOAL_TRACKER_FREQUENCIES,
   GOAL_TRACKER_TYPES,
@@ -135,8 +135,8 @@ function toDate(raw: string | null): Date | null {
   return Number.isNaN(value.getTime()) ? null : value;
 }
 
-function toCategory(raw: string): GoalCategory {
-  return GOAL_CATEGORIES.includes(raw as GoalCategory) ? (raw as GoalCategory) : 'mind';
+function toCategory(raw: string, goalId: string): GoalCategory {
+  return productCategory(raw, goalId);
 }
 
 function toStatus(raw: string): GoalStatus {
@@ -274,7 +274,7 @@ export function mapGoal(row: DbGoal): GoalWithDetails {
     userId: row.user_id,
     title: row.title,
     description: row.description,
-    category: toCategory(row.category),
+    category: toCategory(row.category, row.id),
     colorTheme: toTheme(row.color_theme),
     deadline: toDate(row.deadline),
     targetFrequency: toTargetFrequency(row.target_frequency),

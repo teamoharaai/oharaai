@@ -4,7 +4,6 @@ import {
   GOAL_MOMENTUM_VERSION,
   MOMENTUM_CATEGORY_CONFIG_VERSION,
   OHARA_MOMENTUM_VERSION,
-  normalizeMomentumCategory,
 } from '../config.ts';
 import {
   calculateGoalDifficultyProfile,
@@ -41,10 +40,12 @@ import type {
   OharaMomentumDiagnostic,
 } from '../types.ts';
 import { adaptTasksToMomentum, type MomentumTaskRow } from '../task-adapter.ts';
+import { establishedScoringProfile } from '../scoring-profile.ts';
 
 type GoalRow = {
   archived_at: string | null;
   category: string;
+  momentum_scoring_profile?: string | null;
   completed_at: string | null;
   created_at: string;
   deadline: string | null;
@@ -369,7 +370,7 @@ async function fetchGoalSourceData(
   trackers: TrackerRow[];
 }> {
   let goalQuery = db.from('goals')
-    .select('id, user_id, category, status, smart_data, target_frequency, deadline, progress, created_at, updated_at, completed_at, archived_at, expired_at, previous_goal_id')
+    .select('id, user_id, category, momentum_scoring_profile, status, smart_data, target_frequency, deadline, progress, created_at, updated_at, completed_at, archived_at, expired_at, previous_goal_id')
     .eq('user_id', userId);
   if (scope === 'provisional') goalQuery = goalQuery.eq('status', 'active');
   const { data: goalData, error: goalError } = await goalQuery.order('id');
@@ -558,7 +559,7 @@ function normalizedGoalEvents(
   reflections: readonly ReflectionRow[],
   progressEvents: readonly GoalProgressEventRow[],
 ): MomentumEvent[] {
-  const category = normalizeMomentumCategory(goal.category);
+  const category = establishedScoringProfile(goal);
   const normalizedActions = normalizeActionRecords(actions, boundary, goal.user_id);
   const actionEvents = actionCompletionEvents(normalizedActions).map((event) => ({ ...event, category, goalId: goal.id }));
   const milestoneEvents = milestones.flatMap((milestone) => {
@@ -697,7 +698,7 @@ async function buildGoalDiagnostic(
   ]).size;
   const goalMode = modeForGoal(goal, trackers, milestones);
   const planRevisionKey = await calculationHash({
-    category: goal.category,
+    category: establishedScoringProfile(goal),
     deadline: goal.deadline,
     milestones: milestones.map(({ id, createdAt, dueDate }) => ({ id, createdAt, dueDate })),
     smartData: goal.smart_data,
@@ -705,7 +706,7 @@ async function buildGoalDiagnostic(
     trackers: trackers.map(({ currentValue: _currentValue, ...tracker }) => tracker),
   });
   const difficultyProfile = calculateGoalDifficultyProfile({
-    category: normalizeMomentumCategory(goal.category),
+    category: establishedScoringProfile(goal),
     complexityMilestoneCount: milestones.length || null,
     durationWeeks,
     effortMinutes: smartNumber(goal.smart_data, 'effortMinutes', 'estimatedMinutes', 'effort_minutes'),

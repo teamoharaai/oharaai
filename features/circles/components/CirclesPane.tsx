@@ -15,6 +15,7 @@ type LinkableGoal = Extract<LinkableItem, { kind: 'goal' }>;
 
 function categoryLabel(category: string): string {
   const value = toCategory(category);
+  if (!value) return 'Historical category';
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 

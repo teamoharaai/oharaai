@@ -4,7 +4,7 @@ const user = { id: '11111111-1111-4111-8111-111111111111', email: 'preview@examp
 const titles = ['Run a 5K', 'Launch portfolio', 'Read twelve books', 'Restore an old bicycle'];
 const goals = titles.map((title, index) => ({
   id: `goal-${index}`, user_id: user.id, title, description: index === 0 ? 'Build a steady running rhythm and enjoy the journey.' : null,
-  category: ['body', 'money', 'mind', 'create'][index], status: 'active', color_theme: 'ocean',
+  category: ['Health & Fitness', 'Work & Money', 'Learning & Creativity', 'Life & Relationships'][index], status: 'active', color_theme: 'ocean',
   progress: 20, deadline: '2027-03-01T17:00:00Z', created_at: '2026-08-01T12:00:00Z',
   updated_at: `2026-09-${17 - index}T12:00:00Z`, previous_goal_id: null,
   milestones: index === 0 ? [{ id: 'milestone-1', goal_id: 'goal-0', user_id: user.id, title: 'Run two miles continuously',
@@ -24,11 +24,14 @@ const task = {
 for (const appearance of ['light', 'dark']) {
   test(`Goal workspace ${appearance}: progressive disclosure and responsive layout`, async ({ page }) => {
     const errors: string[] = [];
-    let failVaultOnce = true;
+    let failVaultOnce = false;
     let sharedRequests = 0;
-    const privateNote = { id: 'private-note-1', goal_id: 'goal-0', user_id: user.id, title: 'Private training thought', body: 'Owner only', photo_url: null, created_at: date, updated_at: date };
+    let failAudienceOnce = true;
+    const visibilityWrites: unknown[] = [];
+    let noteCreated = false;
+    const privateNote = { id: 'private-note-1', vaultId: 'vault-1', createdBy: user.id, itemType: 'note', title: 'Private training thought', content: 'Owner only', metadata: {}, visibility: 'private', createdAt: date, updatedAt: date };
     const sharedGoals = ['Read the entire Bible', 'Run my first 10K', 'Learn piano', 'Build a garden'].map((title, index) => ({
-      id: `shared-${index}`, ownerId: 'friend-1', title, category: 'growth', status: 'active', access: 'invited',
+      id: `shared-${index}`, ownerId: 'friend-1', title, category: 'Life & Relationships', status: 'active', access: 'invited',
       owner: { id: 'friend-1', displayName: 'Justin', username: 'justin', avatarUrl: null },
       milestones: [{ title: 'A shared accomplishment', done: true }], weeklyTask: null,
     }));
@@ -47,18 +50,24 @@ for (const appearance of ['light', 'dark']) {
       if (url.pathname.includes('/auth/v1/user')) return json(user);
       if (url.pathname.endsWith('/goals')) {
         if (url.searchParams.has('previous_goal_id')) return json([]);
+        if (url.searchParams.has('id')) return json(goals.find((goal) => `eq.${goal.id}` === url.searchParams.get('id')) ?? goals[0]);
         return json(goals);
       }
-      if (url.pathname.endsWith('/profiles')) return json({ id: user.id, display_name: 'Preview', username: 'preview' });
-      if (url.pathname.endsWith('/goal_notes')) {
-        const input = route.request().postDataJSON();
-        Object.assign(privateNote, input);
-        return json(privateNote);
+      if (url.pathname.endsWith('/goal_share_invites')) {
+        if (failAudienceOnce) { failAudienceOnce = false; return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ message: 'Audience temporarily unavailable' }) }); }
+        return json([]);
       }
+      if (url.pathname.endsWith('/rpc/set_goal_visibility_v2')) { visibilityWrites.push(route.request().postDataJSON()); return json(null); }
+      if (url.pathname.endsWith('/profiles')) return json({ id: user.id, display_name: 'Preview', username: 'preview' });
       return json([]);
     });
     await page.route('**/api/**', async (route) => {
       const path = new URL(route.request().url()).pathname;
+      if (path.startsWith('/api/vaults/') && ['POST', 'PUT'].includes(route.request().method())) {
+        noteCreated = true;
+        Object.assign(privateNote, route.request().postDataJSON());
+        return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ item: privateNote }) });
+      }
       if (path === '/api/circles/shared-with-me') {
         sharedRequests += 1;
         if (sharedRequests === 1) return route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
@@ -87,7 +96,7 @@ for (const appearance of ['light', 'dark']) {
       }) };
       if (path.startsWith('/api/vaults/')) body = { vault: { id: 'vault-1' }, items: [{
         id: 'source-1', itemType: 'link', title: 'Race preparation guide', metadata: { url: 'https://example.test' }, createdAt: date,
-      }] };
+      }, ...(noteCreated ? [privateNote] : [])] };
       if (path === '/api/momentum') body = { data: { goals: [{
         goalId: 'goal-0', displayedValue: 58, status: 'active', periodState: 'provisional',
         history: [30, 45, 39, 58].map((value, index) => ({ value, periodStart: `2026-09-${String(1 + index * 7).padStart(2, '0')}` })),
@@ -102,6 +111,21 @@ for (const appearance of ['light', 'dark']) {
     if (await continueButton.isVisible()) await continueButton.click();
     await expect(page.getByRole('tab', { name: 'Vault', exact: true })).toBeVisible();
     await expect(page.getByRole('progressbar', { name: 'Elapsed Goal time' })).toBeVisible();
+    await page.getByRole('button', { name: 'Manage Goal ▾', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Retry visibility', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Save visibility', exact: true })).toBeDisabled();
+    expect(visibilityWrites).toEqual([]);
+    await page.getByRole('button', { name: 'Retry visibility', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Save visibility', exact: true })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Complete', exact: true })).toBeVisible();
+    await expect(page.getByRole('radio', { name: /^Private/ })).toHaveAttribute('aria-checked', 'true');
+    await page.getByRole('button', { name: 'Save visibility', exact: true }).click();
+    await expect.poll(() => visibilityWrites.length).toBe(1);
+    expect(visibilityWrites[0]).toEqual({ p_goal_id: 'goal-0', p_visibility: 'private', p_audience: [] });
+    await expect(page.getByRole('button', { name: 'Save visibility', exact: true })).toBeEnabled();
+    await page.getByText('Close', { exact: true }).click();
+    await expect(page.getByText('Close', { exact: true })).toBeHidden();
     const sharedCard = page.getByTestId('goals-shared-preview');
     await expect(sharedCard.getByText("Shared Goals couldn't load.")).toBeVisible();
     await sharedCard.getByRole('button', { name: 'Retry', exact: true }).click();
@@ -134,7 +158,11 @@ for (const appearance of ['light', 'dark']) {
     await page.screenshot({ path: `/tmp/ohara-goals-v21-${appearance}-milestones.png`, fullPage: true });
     await page.getByRole('textbox', { name: 'Add a to-do', exact: true }).fill('Unsaved preview');
     await page.getByRole('textbox', { name: 'Add a to-do', exact: true }).fill('');
+    failVaultOnce = true;
     await page.getByRole('tab', { name: 'Vault', exact: true }).click();
+    await expect(page.getByText("Some linked material couldn't load.")).toBeVisible();
+    await page.getByRole('button', { name: 'Retry', exact: true }).click();
+    await expect(page.getByText("Some linked material couldn't load.")).toHaveCount(0);
     await expect(page.getByRole('tab', { name: 'Notes', exact: true })).toHaveCount(0);
     await page.getByRole('button', { name: 'Add a sticky note' }).click();
     await page.getByRole('textbox', { name: 'Note title' }).fill('Private training thought');
@@ -146,16 +174,13 @@ for (const appearance of ['light', 'dark']) {
     await page.getByRole('button', { name: 'Save note', exact: true }).click();
     await expect(page.getByTestId('goal-private-notes').getByText('Edited private thought')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Open Training plan' })).toBeVisible();
-    await expect(page.getByText("Some linked material couldn't load.")).toBeVisible();
-    await page.getByRole('button', { name: 'Retry', exact: true }).click();
-    await expect(page.getByText("Some linked material couldn't load.")).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Open Race preparation guide' })).toBeVisible();
     await expect(page.getByText('Private contents should stay hidden')).toHaveCount(0);
     await page.getByRole('button', { name: 'Open Race preparation guide' }).click();
     await expect(page.getByText('Close', { exact: true })).toBeVisible();
     await page.getByText('Close', { exact: true }).click();
     await expect(page.getByText('Close', { exact: true })).toBeHidden();
-    await expect(page.getByTestId('goal-recent-activity').getByText('Goal created', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('goal-recent-activity').filter({ visible: true }).getByText('Goal created', { exact: true })).toBeVisible();
     await expect(page.getByTestId('goal-completion-timeline').getByText('Completed Mobility', { exact: true })).toBeVisible();
     await expect(page.getByTestId('goal-completion-timeline').getByText('Goal created', { exact: true })).toHaveCount(0);
     await page.getByTestId('goal-completion-timeline').scrollIntoViewIfNeeded();

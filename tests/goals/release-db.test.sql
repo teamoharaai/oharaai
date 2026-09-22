@@ -1,15 +1,17 @@
--- Run only against a disposable local database with migrations 001–060.
+-- Run only against a disposable local database with migrations 001–069.
 \set ON_ERROR_STOP on
 begin;
 insert into auth.users(id) values
  ('00000000-0000-4000-8000-000000000091'),
  ('00000000-0000-4000-8000-000000000092');
 insert into public.goals(id,user_id,title,category,status,deadline,visibility) values
- ('10000000-0000-4000-8000-000000000091','00000000-0000-4000-8000-000000000091','Release fixture','body','active',now()+interval '1 year','private');
+ ('10000000-0000-4000-8000-000000000091','00000000-0000-4000-8000-000000000091','Release fixture','Health & Fitness','active',now()+interval '1 year','private');
 set local role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000091',true);
-insert into public.goal_notes(id,goal_id,user_id,title,body) values
- ('20000000-0000-4000-8000-000000000091','10000000-0000-4000-8000-000000000091','00000000-0000-4000-8000-000000000091','Private fixture','Never shared');
+insert into public.vaults(id,goal_id,user_id) values
+ ('30000000-0000-4000-8000-000000000091','10000000-0000-4000-8000-000000000091','00000000-0000-4000-8000-000000000091');
+insert into public.vault_items(id,vault_id,created_by,item_type,title,content) values
+ ('20000000-0000-4000-8000-000000000091','30000000-0000-4000-8000-000000000091','00000000-0000-4000-8000-000000000091','note','Private fixture','Never shared');
 do $$
 declare t uuid; o uuid; again uuid; successor uuid; n integer;
 begin
@@ -45,19 +47,20 @@ begin
  if not exists(select 1 from public.task_schedules s join public.tasks t on t.id=s.task_id
    where t.goal_id=successor and s.recurrence_kind='weekly_count' and s.target_count=3) then
    raise exception 'New Phase lost weekly target'; end if;
- if not exists(select 1 from public.goal_notes where id='20000000-0000-4000-8000-000000000091'
-   and goal_id='10000000-0000-4000-8000-000000000091' and body='Never shared')
-   or exists(select 1 from public.goal_notes where goal_id=successor) then raise exception 'private note history changed or copied'; end if;
+ if not exists(select 1 from public.vault_items where id='20000000-0000-4000-8000-000000000091'
+   and vault_id='30000000-0000-4000-8000-000000000091' and content='Never shared')
+   or exists(select 1 from public.vault_items i join public.vaults v on v.id=i.vault_id where v.goal_id=successor) then raise exception 'private note history changed or copied'; end if;
+ if (select momentum_scoring_profile from public.goals where id=successor) <> 'health_fitness' then raise exception 'New Phase scoring profile changed'; end if;
 end $$;
 update public.goals set visibility='public' where id='10000000-0000-4000-8000-000000000091';
-update public.goal_notes set title='Edited private fixture' where id='20000000-0000-4000-8000-000000000091';
+update public.vault_items set title='Edited private fixture' where id='20000000-0000-4000-8000-000000000091';
 do $$ begin
- if not exists(select 1 from public.goal_notes where title='Edited private fixture') then raise exception 'owner note edit failed'; end if;
+ if not exists(select 1 from public.vault_items where title='Edited private fixture') then raise exception 'owner note edit failed'; end if;
 end $$;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000092',true);
 do $$ begin
- if exists(select 1 from public.goal_notes where goal_id='10000000-0000-4000-8000-000000000091') then raise exception 'public/viewer note leak'; end if;
- update public.goal_notes set title='Viewer mutation' where id='20000000-0000-4000-8000-000000000091';
+ if exists(select 1 from public.vault_items where vault_id='30000000-0000-4000-8000-000000000091') then raise exception 'public/viewer note leak'; end if;
+ update public.vault_items set title='Viewer mutation' where id='20000000-0000-4000-8000-000000000091';
  if found then raise exception 'viewer changed owner note'; end if;
 end $$;
 reset role;

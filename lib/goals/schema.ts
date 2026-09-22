@@ -1,3 +1,5 @@
+import { PRODUCT_CATEGORIES, type ProductCategory } from './product-categories.ts';
+
 export const LEGACY_GOAL_CATEGORIES = [
   'body',
   'mind',
@@ -7,7 +9,7 @@ export const LEGACY_GOAL_CATEGORIES = [
   'contribute',
 ] as const;
 
-export const GOAL_CREATION_CATEGORIES = [
+export const LEGACY_CREATION_CATEGORIES = [
   'health',
   'finance',
   'career',
@@ -17,13 +19,19 @@ export const GOAL_CREATION_CATEGORIES = [
   'growth',
 ] as const;
 
-export const GOAL_CATEGORIES = [
+export const GOAL_CREATION_CATEGORIES = PRODUCT_CATEGORIES;
+
+export const GOAL_COMPATIBILITY_CATEGORIES = [
   ...LEGACY_GOAL_CATEGORIES,
+  ...LEGACY_CREATION_CATEGORIES,
   ...GOAL_CREATION_CATEGORIES,
 ] as const;
 
-export type GoalCreationCategory = (typeof GOAL_CREATION_CATEGORIES)[number];
-export type GoalCategory = (typeof GOAL_CATEGORIES)[number];
+export const GOAL_CATEGORIES = PRODUCT_CATEGORIES;
+
+/** Legacy values remain readable for historical fixtures, never primary creation options. */
+export type GoalCreationCategory = ProductCategory | (typeof LEGACY_CREATION_CATEGORIES)[number];
+export type GoalCategory = (typeof GOAL_COMPATIBILITY_CATEGORIES)[number];
 
 export const GOAL_SMART_KEYS = [
   'specific',

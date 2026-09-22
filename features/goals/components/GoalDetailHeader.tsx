@@ -13,6 +13,7 @@ import { useThemeColors } from '@/store/uiStore';
 import { FONT, RADIUS, SPACE, TYPE } from '@/constants/design';
 import type { GoalWithDetails } from '../types';
 import { goalWorkspaceHref } from '../navigation';
+import { ManageGoalControl } from './ManageGoalControl';
 
 interface GoalDetailHeaderProps {
   deadlineDensity?: DatePickerDensity;
@@ -233,37 +234,7 @@ export function GoalDetailHeader({
         </View>
 
         <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
-          <Pressable
-            accessibilityLabel={completed ? 'Goal completed' : 'Mark goal complete'}
-            accessibilityRole="button"
-            disabled={completed || isReadOnly || savingStatus}
-            onPress={completeGoal}
-            style={({ pressed }) => ({
-              alignItems: 'center',
-              backgroundColor: completed ? colors.accent.primary : colors.background.card,
-              borderColor: completed ? colors.accent.primary : colors.border.accent,
-              borderRadius: 9,
-              borderWidth: 1,
-              flexDirection: 'row',
-              gap: 6,
-              minHeight: 38,
-              opacity: isReadOnly ? 0.5 : pressed ? 0.72 : 1,
-              paddingHorizontal: 13,
-            })}
-          >
-            {savingStatus && !completed ? (
-              <ActivityIndicator color={colors.accent.primary} size="small" />
-            ) : (
-              <Typography
-                variant="emphasis-sm"
-                style={{
-                  color: completed ? colors.text.onAccent : colors.text.accent,
-                }}
-              >
-                ✓ {completed ? 'Completed' : 'Mark complete'}
-              </Typography>
-            )}
-          </Pressable>
+          <ManageGoalControl goal={goal} superseded={isSuperseded} onComplete={onComplete} onArchive={onArchive} />
 
           <View style={{ position: 'relative', zIndex: 40 }}>
             <Pressable

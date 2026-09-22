@@ -51,6 +51,7 @@ export interface MilestonesPanelProps {
 }
 
 interface MilestoneEditorProps {
+  initialTitle?: string;
   initial?: GoalMilestone;
   submitLabel: string;
   /** Show the optional target-count field (top-level achievements only). */
@@ -223,7 +224,8 @@ function TargetStepper({
   );
 }
 
-function MilestoneEditor({
+export function MilestoneEditor({
+  initialTitle = '',
   initial,
   submitLabel,
   showTargetCount = false,
@@ -239,7 +241,7 @@ function MilestoneEditor({
   // Milestones are always achievements now (prep was retired). Kept explicit so
   // the input contract still carries a kind for the service layer.
   const kind: MilestoneKind = initial?.kind ?? 'achievement';
-  const [title, setTitle] = useState(initial?.title ?? '');
+  const [title, setTitle] = useState(initial?.title ?? initialTitle);
   const [description, setDescription] = useState(initial?.description ?? '');
   const [dueDate, setDueDate] = useState(toDateInput(initial?.dueDate));
   const [targetCount, setTargetCount] = useState(

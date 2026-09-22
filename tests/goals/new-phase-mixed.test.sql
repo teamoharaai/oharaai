@@ -3,7 +3,7 @@
 begin;
 insert into auth.users(id) values ('00000000-0000-4000-8000-000000000096');
 insert into public.goals(id,user_id,title,category) values
- ('10000000-0000-4000-8000-000000000096','00000000-0000-4000-8000-000000000096','Mixed phase','body');
+ ('10000000-0000-4000-8000-000000000096','00000000-0000-4000-8000-000000000096','Mixed phase','Health & Fitness');
 insert into public.milestones(id,goal_id,user_id,title) values
  ('20000000-0000-4000-8000-000000000096','10000000-0000-4000-8000-000000000096','00000000-0000-4000-8000-000000000096','Forward milestone');
 set local role authenticated;

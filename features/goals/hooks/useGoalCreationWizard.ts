@@ -157,7 +157,7 @@ export function createTemplateTrackers(
 export function createInitialGoalCreationWizardState(
   options: UseGoalCreationWizardOptions = {},
 ): GoalCreationWizardState {
-  const category = options.initialCategory ?? 'health';
+  const category = options.initialCategory ?? 'Health & Fitness';
   const template = getGoalCreationTemplate(category);
 
   return {

@@ -5,18 +5,8 @@ import {
   type GoalCreationCategory,
 } from '@/lib/goals/schema';
 import { GOAL_CREATION_TEMPLATES } from '@/lib/goals/templates';
+import { productCategory } from './product-categories';
 
-const LEGACY_CATEGORY_EQUIVALENTS: Record<
-  Exclude<GoalCategory, GoalCreationCategory>,
-  GoalCreationCategory
-> = {
-  body: 'health',
-  mind: 'education',
-  money: 'finance',
-  create: 'creative',
-  connect: 'relationships',
-  contribute: 'growth',
-};
 
 export const GOAL_CATEGORY_CATALOG = GOAL_CREATION_CATEGORIES.map((id) => {
   const template = GOAL_CREATION_TEMPLATES[id];
@@ -35,12 +25,7 @@ export const GOAL_CATEGORY_LABELS = Object.fromEntries(
 
 export function normalizeGoalCategoryForEntries(
   category: GoalCategory | string | null | undefined,
+  goalId?: string,
 ): GoalCreationCategory {
-  if (GOAL_CREATION_CATEGORIES.includes(category as GoalCreationCategory)) {
-    return category as GoalCreationCategory;
-  }
-
-  return LEGACY_CATEGORY_EQUIVALENTS[
-    category as Exclude<GoalCategory, GoalCreationCategory>
-  ] ?? 'growth';
+  return productCategory(category ?? '', goalId);
 }

@@ -3,7 +3,7 @@
 begin;
 insert into auth.users(id) values ('00000000-0000-4000-8000-000000000094'),('00000000-0000-4000-8000-000000000095');
 insert into public.goals(id,user_id,title,category,visibility) values
- ('10000000-0000-4000-8000-000000000094','00000000-0000-4000-8000-000000000094','Public phase fixture','body','public');
+ ('10000000-0000-4000-8000-000000000094','00000000-0000-4000-8000-000000000094','Public phase fixture','Health & Fitness','public');
 set local role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000094',true);
 do $$ declare successor uuid; begin
@@ -37,7 +37,7 @@ begin if new.previous_goal_id is not null and new.title='Rollback fixture' then
 create trigger release_reject_successor before insert on public.goals
  for each row execute function public.release_reject_successor();
 insert into public.goals(id,user_id,title,category,visibility) values
- ('10000000-0000-4000-8000-000000000095','00000000-0000-4000-8000-000000000095','Rollback fixture','body','public');
+ ('10000000-0000-4000-8000-000000000095','00000000-0000-4000-8000-000000000095','Rollback fixture','Health & Fitness','public');
 set local role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000095',true);
 do $$ begin

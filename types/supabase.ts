@@ -1446,6 +1446,7 @@ export type Database = {
           expired_at: string | null
           id: string
           is_private: boolean
+          momentum_scoring_profile: string
           previous_goal_id: string | null
           prior_phase_summary: Json | null
           progress: number
@@ -1477,6 +1478,7 @@ export type Database = {
           expired_at?: string | null
           id?: string
           is_private?: boolean
+          momentum_scoring_profile?: string
           previous_goal_id?: string | null
           prior_phase_summary?: Json | null
           progress?: number
@@ -1508,6 +1510,7 @@ export type Database = {
           expired_at?: string | null
           id?: string
           is_private?: boolean
+          momentum_scoring_profile?: string
           previous_goal_id?: string | null
           prior_phase_summary?: Json | null
           progress?: number

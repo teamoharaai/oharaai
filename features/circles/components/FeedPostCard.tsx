@@ -38,7 +38,7 @@ function LinkAttachment({ link }: { link: CircleFeedLink }) {
       }}
     >
       {link.kind === 'goal' && link.category ? (
-        <CategoryGlyph category={toCategory(link.category)} size={36} />
+        <CategoryGlyph category={toCategory(link.category, link.kind === 'goal' ? link.refId : undefined)} size={36} />
       ) : (
         <View style={{ alignItems: 'center', backgroundColor: colors.background.card, borderRadius: isMilestone ? 18 : RADIUS.sm, height: 36, justifyContent: 'center', width: 36 }}>
           <Ionicons color={colors.text.accent} name={meta.icon} size={17} />

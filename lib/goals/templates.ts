@@ -41,7 +41,7 @@ export interface GoalCreationTemplate {
 
 const weekly = 'weekly' satisfies GoalTrackerFrequency;
 
-export const GOAL_CREATION_TEMPLATES = {
+const LEGACY_TEMPLATES = {
   health: {
     category: 'health',
     label: 'Health & Fitness',
@@ -632,6 +632,14 @@ export const GOAL_CREATION_TEMPLATES = {
       },
     ],
   },
+} as const satisfies Partial<Record<GoalCreationCategory, GoalCreationTemplate>>;
+
+export const GOAL_CREATION_TEMPLATES = {
+  ...LEGACY_TEMPLATES,
+  'Health & Fitness': { ...LEGACY_TEMPLATES.health, category: 'Health & Fitness', label: 'Health & Fitness' },
+  'Work & Money': { ...LEGACY_TEMPLATES.finance, category: 'Work & Money', label: 'Work & Money' },
+  'Learning & Creativity': { ...LEGACY_TEMPLATES.creative, category: 'Learning & Creativity', label: 'Learning & Creativity' },
+  'Life & Relationships': { ...LEGACY_TEMPLATES.relationships, category: 'Life & Relationships', label: 'Life & Relationships' },
 } as const satisfies Record<GoalCreationCategory, GoalCreationTemplate>;
 
 /** Kept as a concise alias for consumers following the prototype naming. */

@@ -120,7 +120,7 @@ export function EntryLinkPicker({
       <ScrollView style={{ marginTop: 14, maxHeight: 390 }}>
         <Typography variant="eyebrow" style={{ marginBottom: 8 }}>SPECIFIC GOALS</Typography>
         {selectedHistoricalGoals.map((goal) => {
-          const category = normalizeGoalCategoryForEntries(goal.category);
+          const category = normalizeGoalCategoryForEntries(goal.category, goal.id);
           const accent = getCategoryAccentTheme(category);
           return (
             <Pressable
@@ -152,7 +152,7 @@ export function EntryLinkPicker({
         })}
         {availableGoals.length ? availableGoals.map((goal) => {
           const selected = goalIds.includes(goal.id);
-          const category = normalizeGoalCategoryForEntries(goal.category);
+          const category = normalizeGoalCategoryForEntries(goal.category, goal.id);
           const accent = getCategoryAccentTheme(category);
           return (
             <Pressable

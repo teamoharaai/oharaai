@@ -99,7 +99,7 @@ function mapEntry(
   const goals: EntryGoalLink[] = relationships.goalRows.map((goal) => ({
     id: goal.id,
     title: goal.title,
-    category: normalizeGoalCategoryForEntries(goal.category),
+    category: normalizeGoalCategoryForEntries(goal.category, goal.id),
     status: goal.status,
     projectId: goal.project_id,
   }));
@@ -131,7 +131,7 @@ function mapEntry(
     updatedAt: new Date(row.updated_at),
     goals,
     project,
-    categoryIds: relationships.categoryIds.map(normalizeGoalCategoryForEntries),
+    categoryIds: relationships.categoryIds.map((category) => normalizeGoalCategoryForEntries(category)),
     milestones,
   };
 }
@@ -272,7 +272,7 @@ export async function getEntryGoalOptions(
   return goals.map((goal) => ({
     id: goal.id,
     title: goal.title,
-    category: normalizeGoalCategoryForEntries(goal.category),
+    category: normalizeGoalCategoryForEntries(goal.category, goal.id),
     status: goal.status,
     projectId: goal.project_id,
     milestones: milestones

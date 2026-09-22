@@ -133,7 +133,7 @@ function validateManualGoalCreationInput(value: unknown): ManualGoalCreationInpu
   if (typeof value.title !== 'string' || value.title.trim() === '') {
     throw new Error('title must be a non-empty string');
   }
-  if (!GOAL_CATEGORIES.includes(value.category as GoalCategory)) {
+  if (!(GOAL_CATEGORIES as readonly string[]).includes(value.category as string)) {
     throw new Error(`category must be one of: ${GOAL_CATEGORIES.join(', ')}`);
   }
   if (!GOAL_VISIBILITIES.includes(value.visibility as GoalVisibility)) {

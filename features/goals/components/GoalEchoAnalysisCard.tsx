@@ -8,12 +8,8 @@ import { useGoalMomentumSummary } from '@/features/momentum/hooks/useMomentumHom
 import { MomentumTrendChart } from '@/features/momentum/components/MomentumTrendChart';
 import { goalWorkspaceHref } from '../navigation';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
-import type { GoalCategory, GoalCreationCategory } from '@/lib/goals/schema';
-
-const CATEGORY_ALIASES: Partial<Record<string, string>> = {
-  body: 'health', connect: 'relationships', contribute: 'growth',
-  create: 'creative', mind: 'education', money: 'finance',
-};
+import type { GoalCategory } from '@/lib/goals/schema';
+import { productCategory } from '@/lib/goals/product-categories';
 
 function statusLabel(status: string | undefined): string {
   if (!status) return 'Unavailable';
@@ -42,11 +38,11 @@ export function GoalEchoAnalysisCard({
   const darkMode = useUIStore((state) => state.themeMode) === 'dark';
   const momentum = useGoalMomentumSummary(goalId);
   const summary = momentum.goalSummary;
-  const normalized = category?.trim().toLowerCase() ?? '';
   const accent = category ? getCategoryAccentTheme(category) : null;
   const accentColor = accent?.color ?? colors.text.accent;
-  const resolvedCategory = (CATEGORY_ALIASES[normalized] ?? normalized) as GoalCreationCategory;
-  const categoryTemplate = getGoalCreationTemplate(resolvedCategory);
+  let categoryTemplate;
+  try { categoryTemplate = category ? getGoalCreationTemplate(productCategory(category, goalId)) : undefined; }
+  catch { categoryTemplate = undefined; }
   const categoryLabel = categoryTemplate?.label ?? 'Uncategorized';
   const categoryIcon = categoryTemplate?.icon ?? '○';
   const rowStacked = width < 900;

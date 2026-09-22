@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { establishedScoringProfile, legacyScoringProfile } from './scoring-profile.ts';
+import { APPROVED_MIND_CATEGORIES, PRODUCT_CATEGORIES, productCategory } from '../../lib/goals/product-categories.ts';
 import {
   GOAL_DIFFICULTY_VERSION,
   GOAL_MOMENTUM_CONFIG,
@@ -80,6 +82,24 @@ function goalInput(overrides: Partial<GoalMomentumCalculationInput> = {}): GoalM
     ...overrides,
   };
 }
+
+test('V2.2 taxonomy migration and later category edits preserve full V1.1 calculations', () => {
+  const legacy = ['health', 'finance', 'career', 'creative', 'education', 'relationships', 'growth', 'body', 'create', 'connect', 'money', 'contribute'];
+  const cases = [
+    ...legacy.map((category) => ({ category, product: productCategory(category) })),
+    ...Object.entries(APPROVED_MIND_CATEGORIES).map(([id]) => ({ category: 'mind', product: productCategory('mind', id) })),
+  ];
+  for (const row of cases) {
+    const profile = legacyScoringProfile(row.category);
+    const beforeDifficulty = difficulty({ category: profile });
+    const before = calculateGoalMomentum(goalInput({ difficultyProfile: beforeDifficulty, previousValue: 42.125 }));
+    for (const category of [row.product, ...PRODUCT_CATEGORIES]) {
+      const afterDifficulty = difficulty({ category: establishedScoringProfile({ category, momentum_scoring_profile: profile }) });
+      assert.deepEqual(afterDifficulty, beforeDifficulty, `${row.category} → ${category}: difficulty`);
+      assert.deepEqual(calculateGoalMomentum(goalInput({ difficultyProfile: afterDifficulty, previousValue: 42.125 })), before, `${row.category} → ${category}: score`);
+    }
+  }
+});
 
 function evidence(overrides: Partial<OharaGoalEvidence> = {}): OharaGoalEvidence {
   return {

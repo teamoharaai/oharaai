@@ -13,6 +13,10 @@ import type { CirclesAuthor } from '../types';
 export type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
 export const CATEGORY_ICON: Record<GoalCreationCategory, IoniconName> = {
+  'Health & Fitness': 'walk-outline',
+  'Work & Money': 'wallet-outline',
+  'Learning & Creativity': 'color-palette-outline',
+  'Life & Relationships': 'heart-outline',
   health: 'walk-outline',
   finance: 'wallet-outline',
   career: 'briefcase-outline',
@@ -27,9 +31,11 @@ export function useDarkMode(): boolean {
 }
 
 /** Category tint that stays quiet on dark surfaces instead of glowing pastel. */
-export function useCategoryTone(category: GoalCreationCategory) {
+export function useCategoryTone(category: GoalCreationCategory | null) {
   const dark = useDarkMode();
-  const theme = CATEGORY_ACCENT_THEME[category];
+  const colors = useThemeColors();
+  const theme = category ? CATEGORY_ACCENT_THEME[category] : null;
+  if (!theme) return { fg: colors.text.muted, bg: colors.background.subtle };
   return {
     fg: dark ? theme.color : theme.mid,
     bg: dark ? `${theme.color}24` : theme.tint,
@@ -60,7 +66,7 @@ export function CategoryGlyph({
   category,
   size = 44,
 }: {
-  category: GoalCreationCategory;
+  category: GoalCreationCategory | null;
   size?: number;
 }) {
   const tone = useCategoryTone(category);
@@ -75,7 +81,7 @@ export function CategoryGlyph({
         width: size,
       }}
     >
-      <Ionicons color={tone.fg} name={CATEGORY_ICON[category]} size={Math.round(size * 0.45)} />
+      <Ionicons color={tone.fg} name={category ? CATEGORY_ICON[category] : 'ellipse-outline'} size={Math.round(size * 0.45)} />
     </View>
   );
 }

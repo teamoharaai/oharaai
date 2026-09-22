@@ -103,7 +103,7 @@ function validateTemplate(raw: unknown, index: number): GoalTemplateOption | str
   if (typeof g.description !== 'string') {
     return `templates[${index}].goal.description must be a string`;
   }
-  if (!GOAL_CREATION_CATEGORIES.includes(g.category as GoalCreationCategory)) {
+  if (!(GOAL_CREATION_CATEGORIES as readonly string[]).includes(g.category as string)) {
     return `templates[${index}].goal.category must be one of: ${GOAL_CREATION_CATEGORIES.join(', ')}`;
   }
   if (typeof g.deadline !== 'string' || g.deadline.trim() === '') {
@@ -291,7 +291,7 @@ export function validateGoalTemplateResponse(parsed: unknown): ValidateResult {
     validated.push(result);
   }
 
-  if (!GOAL_CREATION_CATEGORIES.includes(obj.derived_category as GoalCreationCategory)) {
+  if (!(GOAL_CREATION_CATEGORIES as readonly string[]).includes(obj.derived_category as string)) {
     return {
       success: false,
       error: `derived_category must be one of: ${GOAL_CREATION_CATEGORIES.join(', ')}`,

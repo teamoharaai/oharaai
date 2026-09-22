@@ -5,22 +5,12 @@
  */
 import type { GoalCreationCategory } from '@/lib/goals/schema';
 import type { CirclesAuthor } from '@/lib/db/circles-core';
+import { productCategory } from '../../lib/goals/product-categories';
 
-const CATEGORIES: readonly GoalCreationCategory[] = [
-  'health',
-  'finance',
-  'career',
-  'creative',
-  'education',
-  'relationships',
-  'growth',
-];
-
-/** Coerce a free-form category string to a known category, defaulting to growth. */
-export function toCategory(value: string | null | undefined): GoalCreationCategory {
-  return (CATEGORIES as readonly string[]).includes(value ?? '')
-    ? (value as GoalCreationCategory)
-    : 'growth';
+/** Historical snapshots with no approved mapping receive neutral presentation. */
+export function toCategory(value: string | null | undefined, goalId?: string): GoalCreationCategory | null {
+  if (!value) return null;
+  try { return productCategory(value, goalId); } catch { return null; }
 }
 
 /** First name from a display name, for the quieter "Shared by X" copy. */

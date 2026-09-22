@@ -246,7 +246,7 @@ function parseRelationships(value: unknown): EntryRelationships {
     throw new Error('relationships.categoryIds must be a list');
   }
   const categoryIds = relationships.categoryIds.map((category) => {
-    if (!GOAL_CREATION_CATEGORIES.includes(category as GoalCreationCategory)) {
+    if (!(GOAL_CREATION_CATEGORIES as readonly string[]).includes(category as string)) {
       throw new Error('relationships.categoryIds contains an invalid category');
     }
     return category as GoalCreationCategory;
