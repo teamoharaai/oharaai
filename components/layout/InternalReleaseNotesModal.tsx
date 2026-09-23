@@ -5,19 +5,19 @@ import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
 import { RADIUS, SPACE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
-import type { InternalReleaseNotes } from '@/config/internal-release';
+import type { FeaturePatchNote } from '@/config/internal-release';
 
 export function InternalReleaseNotesModal({
-  release,
+  patches,
   visible,
   onClose,
 }: {
-  release: InternalReleaseNotes;
+  patches: readonly FeaturePatchNote[];
   visible: boolean;
   onClose: () => void;
 }) {
   const colors = useThemeColors();
-  const titleId = `${release.id}-title`;
+  const titleId = 'ohara-whats-new-title';
 
   useEffect(() => {
     if (!visible || Platform.OS !== 'web' || typeof document === 'undefined') return;
@@ -84,13 +84,13 @@ export function InternalReleaseNotesModal({
           paddingTop: SPACE['3xl'],
         }}>
           <Typography variant="eyebrow" style={{ color: colors.text.accent, marginBottom: SPACE.sm }}>
-            {release.version}
+            Recent updates
           </Typography>
           <Typography nativeID={titleId} variant="heading" style={{ fontSize: 28, lineHeight: 34, paddingRight: 46 }}>
-            {release.title}
+            What's new in OHARA
           </Typography>
           <Typography variant="body" style={{ color: colors.text.secondary, marginTop: SPACE.md }}>
-            {release.summary}
+            The newest updates across the parts of OHARA you use.
           </Typography>
           <Pressable
             accessibilityLabel="Close what's new"
@@ -112,27 +112,13 @@ export function InternalReleaseNotesModal({
           </Pressable>
         </View>
         <ScrollView contentContainerStyle={{ gap: SPACE['2xl'], padding: SPACE['3xl'] }}>
-          {release.sections.map((section) => (
-            <View key={section.heading}>
-              <Typography variant="emphasis-sm" style={{ fontSize: 15, marginBottom: SPACE.md }}>
-                {section.heading}
+          {patches.map((patch) => (
+            <View key={patch.id} style={{ gap: SPACE.sm }}>
+              <Typography variant="eyebrow" style={{ color: colors.text.accent }}>
+                {patch.category} · Version {patch.version}
               </Typography>
-              <View style={{ gap: SPACE.md }}>
-                {section.updates.map((update) => (
-                  <View key={update} style={{ alignItems: 'flex-start', flexDirection: 'row', gap: SPACE.md }}>
-                    <View style={{
-                      backgroundColor: colors.accent.primary,
-                      borderRadius: RADIUS.round,
-                      height: 5,
-                      marginTop: 8,
-                      width: 5,
-                    }} />
-                    <Typography variant="meta" style={{ flex: 1, fontSize: 14, lineHeight: 20 }}>
-                      {update}
-                    </Typography>
-                  </View>
-                ))}
-              </View>
+              <Typography variant="emphasis-sm" style={{ fontSize: 15 }}>{patch.title}</Typography>
+              <Typography variant="meta" style={{ fontSize: 14, lineHeight: 20 }}>{patch.summary}</Typography>
             </View>
           ))}
         </ScrollView>

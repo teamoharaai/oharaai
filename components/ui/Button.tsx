@@ -1,6 +1,7 @@
 import {
   ActivityIndicator,
   Pressable,
+  View,
   type PressableProps,
   type StyleProp,
   type TextStyle,
@@ -16,6 +17,7 @@ export type ButtonSize = 'compact' | 'default';
 
 export interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> {
   children: ReactNode;
+  leftIcon?: ReactNode;
   loading?: boolean;
   size?: ButtonSize;
   style?: StyleProp<ViewStyle>;
@@ -26,6 +28,7 @@ export interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> 
 export function Button({
   children,
   disabled = false,
+  leftIcon,
   loading = false,
   size = 'default',
   style,
@@ -94,13 +97,16 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={appearance.textColor} size="small" />
       ) : (
-        <Typography
-          numberOfLines={1}
-          variant="control"
-          style={[{ color: appearance.textColor }, textStyle]}
-        >
-          {children}
-        </Typography>
+        <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}>
+          {leftIcon}
+          <Typography
+            numberOfLines={1}
+            variant="control"
+            style={[{ color: appearance.textColor }, textStyle]}
+          >
+            {children}
+          </Typography>
+        </View>
       )}
     </Pressable>
   );

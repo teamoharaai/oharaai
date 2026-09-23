@@ -15,8 +15,9 @@ const modal = readFileSync(
 
 test('keeps the internal release concise, versioned, and controlled by one flag', () => {
   assert.equal(SHOW_INTERNAL_RELEASE_NOTES, true);
-  assert.equal(INTERNAL_RELEASE_NOTES.version, 'OHARA Notes Version 1.1');
-  assert.equal(INTERNAL_RELEASE_NOTES.sections.flatMap((section) => section.updates).length, 5);
+  assert.ok(INTERNAL_RELEASE_NOTES.some((patch) => patch.category === 'Goals'));
+  assert.ok(INTERNAL_RELEASE_NOTES.some((patch) => patch.category === 'Vault'));
+  assert.ok(INTERNAL_RELEASE_NOTES.every((patch) => patch.id && patch.category && patch.version && patch.releasedAt));
   assert.match(rootLayout, /SHOW_INTERNAL_RELEASE_NOTES/);
   assert.equal((rootLayout.match(/<InternalReleaseNotesModal/g) ?? []).length, 1);
 });
@@ -30,4 +31,6 @@ test('release dialog exposes X, Escape, backdrop, focus trap, and title semantic
   assert.match(modal, /'aria-modal': true/);
   assert.match(modal, /role: 'dialog'/);
   assert.match(modal, /'aria-labelledby': titleId/);
+  assert.match(modal, /patch\.category/);
+  assert.match(modal, /patch\.version/);
 });

@@ -958,8 +958,7 @@ function SelectedGoalWorkspace({
   return (
     <>
       <View style={{ gap: SPACE.xl, minWidth: 0 }}>
-        <Surface style={{ minWidth: 0 }}>
-          <GoalDetailHeader
+        <GoalDetailHeader
             deadlineDensity={deadlineDensity}
           deadlineProgress={goal.progress}
           embedded
@@ -996,7 +995,6 @@ function SelectedGoalWorkspace({
             </View>
           </View>
         ) : null}
-        </Surface>
         <GoalTabContent
             key={goal.id}
             activityError={activityError}
@@ -1007,7 +1005,7 @@ function SelectedGoalWorkspace({
             goalDetail={goalDetail}
             linkedEntries={linkedEntries}
             tab={tab}
-          />
+        />
       </View>
       <GoalProjectPickerModal
         currentProjectId={goal.projectId}

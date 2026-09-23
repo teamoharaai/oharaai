@@ -25,7 +25,9 @@ import { InternalReleaseNotesModal } from '@/components/layout/InternalReleaseNo
 import { INTERNAL_RELEASE_NOTES, SHOW_INTERNAL_RELEASE_NOTES } from '@/config/internal-release';
 import {
   getInternalReleaseSessionStorage,
-  shouldShowInternalReleaseForAuthEvent,
+  markFeaturePatchesSeen,
+  selectActiveFeaturePatches,
+  unseenFeaturePatches,
 } from '@/features/auth/internal-release';
 import '../global.css';
 
@@ -52,13 +54,17 @@ export default function RootLayout() {
   const activeUserIdRef = useRef<string | null>(null);
   const internalReleaseShownRef = useRef(false);
   const [internalReleaseVisible, setInternalReleaseVisible] = useState(false);
+  const [internalReleasePatches, setInternalReleasePatches] = useState(() => selectActiveFeaturePatches(INTERNAL_RELEASE_NOTES));
   const fontTimingRef = useRef<ReturnType<typeof startPerformanceTimer> | null>(null);
   if (!fontTimingRef.current) {
     fontTimingRef.current = startPerformanceTimer('root.font-bootstrap', { fontCount: 12 });
   }
   const segments = useSegments();
   const router = useRouter();
-  const closeInternalRelease = useCallback(() => setInternalReleaseVisible(false), []);
+  const closeInternalRelease = useCallback(() => {
+    markFeaturePatchesSeen(internalReleasePatches, getInternalReleaseSessionStorage());
+    setInternalReleaseVisible(false);
+  }, [internalReleasePatches]);
 
   useEffect(() => {
     colorScheme.set(themeMode);
@@ -95,21 +101,20 @@ export default function RootLayout() {
         internalReleaseShownRef.current = false;
         setInternalReleaseVisible(false);
       }
-      const shouldShow = !internalReleaseShownRef.current
-        && shouldShowInternalReleaseForAuthEvent(
-          event,
-          INTERNAL_RELEASE_NOTES.id,
-          SHOW_INTERNAL_RELEASE_NOTES,
-          getInternalReleaseSessionStorage(),
-        );
-      if (shouldShow) {
-        internalReleaseShownRef.current = true;
-        setInternalReleaseVisible(true);
-      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (loading || !session || !SHOW_INTERNAL_RELEASE_NOTES || internalReleaseShownRef.current) return;
+    const active = selectActiveFeaturePatches(INTERNAL_RELEASE_NOTES);
+    const unseen = unseenFeaturePatches(active, getInternalReleaseSessionStorage());
+    internalReleaseShownRef.current = true;
+    if (!unseen.length) return;
+    setInternalReleasePatches(unseen);
+    setInternalReleaseVisible(true);
+  }, [loading, session]);
 
   useEffect(() => {
     if (fontsLoaded) {
@@ -162,7 +167,7 @@ export default function RootLayout() {
       </Stack>
       <InternalReleaseNotesModal
         onClose={closeInternalRelease}
-        release={INTERNAL_RELEASE_NOTES}
+        patches={internalReleasePatches}
         visible={!!session && internalReleaseVisible}
       />
     </GestureHandlerRootView>

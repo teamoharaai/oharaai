@@ -41,6 +41,12 @@ for (const theme of ['light', 'dark']) for (const width of [1440, 390]) {
       return json({ data: [], entries: [], items: [], ok: true });
     });
     await page.goto('http://localhost:4181/goals/create');
+    await expect(page.getByText("What's new in OHARA", { exact: true })).toBeVisible();
+    await expect(page.getByText('Goals · Version 2.3.1', { exact: true })).toBeVisible();
+    await expect(page.getByText('Vault · Version 2.3', { exact: true })).toBeVisible();
+    await expect(page.getByText(/Notes · Version/)).toHaveCount(0);
+    await expect(page.getByText(/Momentum · Version/)).toHaveCount(0);
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await expect(page.getByRole('textbox', { name: 'Goal title', exact: true })).toBeVisible();
     await expect(page.getByRole('radio')).toHaveCount(4);
     await page.getByRole('textbox', { name: 'Goal title', exact: true }).fill('Learn a language with regular reading and practice');

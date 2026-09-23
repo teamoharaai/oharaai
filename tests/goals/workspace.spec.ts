@@ -111,9 +111,14 @@ for (const appearance of ['light', 'dark']) {
     const continueButton = page.getByRole('button', { name: 'Continue', exact: true });
     if (await continueButton.isVisible()) await continueButton.click();
     await expect(page.getByRole('button', { name: 'Open Vault', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Goal actions', exact: true })).toHaveCount(0);
     await expect(page.getByRole('tab', { name: 'Overview', exact: true })).toHaveCount(0);
     await expect(page.getByRole('progressbar', { name: 'Elapsed Goal time' })).toBeVisible();
     await page.getByRole('button', { name: 'Manage Goal ▾', exact: true }).click();
+    await expect(page.getByRole('tab', { name: 'Details', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Move to Project', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Edit end date', exact: true })).toBeVisible();
+    await page.getByRole('tab', { name: 'Status & Access', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Retry visibility', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Save visibility', exact: true })).toBeDisabled();
     expect(visibilityWrites).toEqual([]);
@@ -121,6 +126,7 @@ for (const appearance of ['light', 'dark']) {
     await expect(page.getByRole('button', { name: 'Save visibility', exact: true })).toBeEnabled();
     await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Complete', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Archive Goal', exact: true })).toBeVisible();
     await expect(page.getByRole('radio', { name: /^Private/ })).toHaveAttribute('aria-checked', 'true');
     await page.getByRole('button', { name: 'Save visibility', exact: true }).click();
     await expect.poll(() => visibilityWrites.length).toBe(1);

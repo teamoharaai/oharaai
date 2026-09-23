@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, View, useWindowDimensions } f
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
+import { VaultIcon } from '@/components/ui/VaultIcon';
 import { Modal } from '@/components/ui/Modal';
 import { RADIUS, SPACE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
@@ -126,7 +127,7 @@ export function VaultWorkspace({ activityError, activityItems, activityLoading, 
         <View style={{ alignItems: compact ? 'stretch' : 'center', flexDirection: compact ? 'column' : 'row', gap: SPACE.xl, justifyContent: 'space-between' }}>
           <View style={{ gap: SPACE.xs }}>
             <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
-              <Ionicons color={colors.text.accent} name="layers-outline" size={23} />
+              <VaultIcon color={colors.text.accent} size={23} />
               <Typography accessibilityRole="header" variant="heading">Vault</Typography>
             </View>
             <Typography variant="body">Everything worth remembering about this Goal.</Typography>

@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Added — Goals V2.3.1 Goal controls and What's New lifecycle
+- Added an extensible feature-patch data contract and deterministic seven-day selector that displays only the newest active release per independent feature category. Seen state is persisted per patch ID so later Goals, Vault, Roots, Home, Momentum, Circles, Projects, or future-feature releases remain independently eligible (`config/internal-release.ts`, `features/auth/internal-release.ts`, release modal/tests).
+
+### Changed — Goals V2.3.1 Goal controls and What's New lifecycle
+- Separated Goal identity from a focused Time Remaining card, removed duplicate category metadata and the redundant Goal overflow menu, and made Vault/Overview a primary sibling action beside Manage Goal. The shared `VaultIcon` now defines the approved layered mark for current and future Vault surfaces (`GoalDetailHeader.tsx`, `GoalVault.tsx`, shared UI controls).
+- Reorganized Manage Goal into compact Details and Status & Access tabs. Existing description/category/project/deadline actions and canonical lifecycle, archive, visibility, and Circles-audience controls now live in one management surface without changing their persistence paths (`ManageGoalControl.tsx`).
+
 ### Added — Goals V2.3 Vault workspace foundation
 - Added migration 070 with durable, immutable `vault_items.content_kind` classification. Only migration-062 rows with complete `goal_notes` provenance are backfilled as `sticky_note`; ambiguous and generic notes remain `generic`. New Sticky Notes are classified explicitly, while photo/content edits cannot erase identity (`supabase/migrations/070_vault_item_content_kind.sql`, Vault API/types/services).
 - Added a parent-neutral `VaultWorkspace` presentation contract, functional All/Sticky Notes/Notes/Reflections/Sources filters, canonical Echo links, existing source handling, truthful Vault-only activity, section-level errors, and a compact Add to Vault menu. Project-owned schema remains deliberately deferred; the reuse and future Study Card seam are documented in `docs/goals/vault-v23-foundation.md`.

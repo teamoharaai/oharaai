@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { VaultIcon } from '@/components/ui/VaultIcon';
 import { CountdownTimer } from './CountdownTimer';
 import type { DatePickerDensity } from '@/components/ui/DatePicker';
 import { Typography } from '@/components/ui/Typography';
@@ -115,12 +116,10 @@ export function GoalDetailHeader({
   vaultMode,
 }: GoalDetailHeaderProps) {
   const colors = useThemeColors();
-  const [menuOpen, setMenuOpen] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState(goal.description ?? '');
   const [descriptionError, setDescriptionError] = useState<string | null>(null);
   const [savingDescription, setSavingDescription] = useState(false);
-  const [savingStatus, setSavingStatus] = useState(false);
   const [showEndedCard, setShowEndedCard] = useState(true);
   const [showExtendModal, setShowExtendModal] = useState(false);
   const [showDeadlineModal, setShowDeadlineModal] = useState(false);
@@ -151,24 +150,8 @@ export function GoalDetailHeader({
     setEditingDescription(false);
   }
 
-  async function completeGoal() {
-    if (completed || isReadOnly || savingStatus) return;
-    setSavingStatus(true);
-    await onComplete();
-    setSavingStatus(false);
-  }
-
-  async function archiveGoal() {
-    if (archived || isSuperseded || savingStatus) return;
-    setMenuOpen(false);
-    setSavingStatus(true);
-    await onArchive();
-    setSavingStatus(false);
-  }
-
   function startDescriptionEdit() {
     if (isReadOnly) return;
-    setMenuOpen(false);
     setDescriptionDraft(goal.description ?? '');
     setDescriptionError(null);
     setEditingDescription(true);
@@ -177,31 +160,14 @@ export function GoalDetailHeader({
   return (
     <View
       style={{
-        backgroundColor: isSuperseded
-          ? colors.background.selectedRow
-          : colors.background.card,
-        borderColor: colors.border.warm,
-        borderRadius: RADIUS.xl,
-        borderWidth: embedded ? 0 : 1,
+        backgroundColor: 'transparent',
+        borderWidth: 0,
         marginBottom: embedded ? 0 : 16,
-        paddingHorizontal: SPACE['3xl'],
-        paddingVertical: SPACE['3xl'],
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: embedded ? 0 : 0.05,
-        shadowRadius: embedded ? 0 : 22,
-        elevation: embedded ? 0 : 2,
+        paddingHorizontal: embedded ? 0 : SPACE['3xl'],
+        paddingVertical: embedded ? 0 : SPACE['3xl'],
         zIndex: 5,
       }}
     >
-      {menuOpen ? (
-        <Pressable
-          accessibilityLabel="Close goal actions"
-          onPress={() => setMenuOpen(false)}
-          style={{ bottom: 0, left: 0, position: 'absolute', right: 0, top: 0, zIndex: 10 }}
-        />
-      ) : null}
-
       {isSuperseded && successorGoalId ? (
         <Pressable
           onPress={() => router.push(goalWorkspaceHref(successorGoalId) as never)}
@@ -239,110 +205,25 @@ export function GoalDetailHeader({
         </View>
 
         <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
-          <Pressable
+          <Button
             accessibilityLabel={vaultMode ? 'Back to Overview' : 'Open Vault'}
-            accessibilityRole="button"
+            leftIcon={vaultMode
+              ? <Ionicons color={colors.text.onAccent} name="arrow-back" size={17} />
+              : <VaultIcon color={colors.text.onAccent} size={17} />}
             onPress={() => onWorkspaceChange(vaultMode ? 'overview' : 'vault')}
-            style={({ pressed }) => ({
-              alignItems: 'center',
-              borderColor: colors.border.input,
-              borderRadius: RADIUS.md,
-              borderWidth: 1,
-              flexDirection: 'row',
-              gap: SPACE.sm,
-              minHeight: 38,
-              opacity: pressed ? 0.68 : 1,
-              paddingHorizontal: SPACE.lg,
-            })}
+            size="compact"
           >
-            <Ionicons color={colors.text.primary} name={vaultMode ? 'arrow-back' : 'layers-outline'} size={16} />
-            <Typography variant="emphasis-sm">{vaultMode ? 'Overview' : 'Vault'}</Typography>
-          </Pressable>
-          <ManageGoalControl goal={goal} superseded={isSuperseded} onComplete={onComplete} onArchive={onArchive} />
-
-          <View style={{ position: 'relative', zIndex: 40 }}>
-            <Pressable
-              accessibilityLabel="Goal actions"
-              accessibilityRole="button"
-              onPress={() => setMenuOpen((value) => !value)}
-              style={({ pressed }) => ({
-                alignItems: 'center',
-                borderRadius: 9,
-                height: 30,
-                justifyContent: 'center',
-                opacity: pressed ? 0.65 : 1,
-                width: 30,
-              })}
-            >
-              <Text style={{ color: colors.text.muted, fontFamily: 'Inter-Regular', fontSize: 17, letterSpacing: 1 }}>⋯</Text>
-            </Pressable>
-
-            {menuOpen ? (
-              <View
-                accessibilityRole="menu"
-                style={{
-                  backgroundColor: colors.background.card,
-                  borderColor: colors.border.warm,
-                  borderRadius: 14,
-                  borderWidth: 1,
-                  padding: 6,
-                  position: 'absolute',
-                  right: 0,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 16 },
-                  shadowOpacity: 0.2,
-                  shadowRadius: 44,
-                  top: 36,
-                  width: 240,
-                  zIndex: 50,
-                }}
-              >
-                <Pressable
-                  accessibilityRole="menuitem"
-                  disabled={isReadOnly}
-                  onPress={() => {
-                    setMenuOpen(false);
-                    onOpenProjectPicker();
-                  }}
-                  style={({ pressed }) => ({
-                    borderRadius: 10,
-                    opacity: isReadOnly ? 0.45 : pressed ? 0.7 : 1,
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
-                  })}
-                >
-                  <Typography variant="meta" style={{ color: colors.text.primary }}>↦  Move to project…</Typography>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="menuitem"
-                  disabled={isReadOnly}
-                  onPress={startDescriptionEdit}
-                  style={({ pressed }) => ({
-                    borderRadius: 10,
-                    opacity: isReadOnly ? 0.45 : pressed ? 0.7 : 1,
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
-                  })}
-                >
-                  <Typography variant="meta" style={{ color: colors.text.primary }}>✎  Edit description</Typography>
-                </Pressable>
-                <View style={{ backgroundColor: colors.border.warmSubtle, height: 1, margin: 5 }} />
-                <Pressable
-                  accessibilityRole="menuitem"
-                  disabled={isSuperseded || archived || savingStatus}
-                  onPress={archiveGoal}
-                  style={({ pressed }) => ({
-                    borderRadius: 10,
-                    opacity: isSuperseded || archived ? 0.45 : pressed ? 0.7 : 1,
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
-                  })}
-                >
-                  <Typography variant="meta" style={{ color: colors.feedback.danger.text }}>⌫  Archive goal</Typography>
-                </Pressable>
-              </View>
-            ) : null}
-          </View>
+            {vaultMode ? 'Overview' : 'Vault'}
+          </Button>
+          <ManageGoalControl
+            goal={goal}
+            onArchive={onArchive}
+            onComplete={onComplete}
+            onEditDeadline={() => setShowDeadlineModal(true)}
+            onOpenProjectPicker={onOpenProjectPicker}
+            onUpdateDescription={onUpdateDescription}
+            superseded={isSuperseded}
+          />
         </View>
       </View>
 
@@ -435,16 +316,25 @@ export function GoalDetailHeader({
 
       </View>
 
-      <View style={{ marginVertical: SPACE.xl }}>
+      <View style={{
+        backgroundColor: isSuperseded ? colors.background.selectedRow : colors.background.card,
+        borderColor: colors.border.warm,
+        borderRadius: RADIUS.xl,
+        borderWidth: 1,
+        marginTop: SPACE['2xl'],
+        paddingHorizontal: SPACE['3xl'],
+        paddingVertical: SPACE['2xl'],
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 22,
+      }}>
         <CountdownTimer createdAt={goal.createdAt} deadline={goal.deadline} deadlineDensity={deadlineDensity}
-          disabled={isSuperseded || archived || completed} embedded
-          onUpdateDeadline={onUpdateDeadline} />
-      </View>
-
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 34 }}>
-        <MetaItem label="Category" value={formatCategory(goal.category)} />
-        <MetaItem label="Started" value={formatDate(goal.createdAt)} />
-        <MetaItem label="End date" value={formatDate(goal.deadline)} />
+          disabled={isSuperseded || archived || completed} embedded onUpdateDeadline={onUpdateDeadline} />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 48, marginTop: SPACE.xl }}>
+          <MetaItem label="Started" value={formatDate(goal.createdAt)} />
+          <MetaItem label="End date" value={formatDate(goal.deadline)} />
+        </View>
       </View>
 
       {ended && !isSuperseded && !completed && !archived && showEndedCard ? (
