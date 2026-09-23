@@ -15,7 +15,8 @@ type DbClient = SupabaseClient;
 type DbVaultRow = {
   id: string;
   user_id: string;
-  goal_id: string;
+  goal_id: string | null;
+  project_id: string | null;
   space_id: string | null;
   vault_type: 'personal' | 'shared' | 'institutional';
   created_at: string;
@@ -45,6 +46,7 @@ function mapVault(row: DbVaultRow): Vault {
     id: row.id,
     ownerId: row.user_id,
     goalId: row.goal_id,
+    projectId: row.project_id,
     spaceId: row.space_id,
     vaultType: row.vault_type,
     createdAt: row.created_at,
@@ -52,7 +54,7 @@ function mapVault(row: DbVaultRow): Vault {
   };
 }
 
-function mapVaultItem(row: DbVaultItemRow): VaultItem {
+export function mapVaultItem(row: DbVaultItemRow): VaultItem {
   return {
     id: row.id,
     vaultId: row.vault_id,
@@ -90,7 +92,7 @@ export async function getVaultByGoalId(
 ): Promise<Vault | null> {
   const { data, error } = await client
     .from('vaults')
-    .select('id, user_id, goal_id, space_id, vault_type, created_at, updated_at')
+    .select('id, user_id, goal_id, project_id, space_id, vault_type, created_at, updated_at')
     .eq('goal_id', goalId)
     .maybeSingle();
 
@@ -106,7 +108,7 @@ export async function getVaultByGoalIdForUser(
 ): Promise<Vault | null> {
   const { data, error } = await client
     .from('vaults')
-    .select('id, user_id, goal_id, space_id, vault_type, created_at, updated_at')
+    .select('id, user_id, goal_id, project_id, space_id, vault_type, created_at, updated_at')
     .eq('goal_id', goalId)
     .eq('user_id', userId)
     .maybeSingle();
@@ -150,7 +152,7 @@ export async function getOrCreateVaultForUser(
   const { data: created, error } = await client
     .from('vaults')
     .insert({ goal_id: goalId, user_id: userId, vault_type: 'personal' })
-    .select('id, user_id, goal_id, space_id, vault_type, created_at, updated_at')
+    .select('id, user_id, goal_id, project_id, space_id, vault_type, created_at, updated_at')
     .single();
 
   if (created) return mapVault(created as unknown as DbVaultRow);
@@ -164,6 +166,44 @@ export async function getOrCreateVaultForUser(
   }
 
   throw new Error(error?.message ?? 'Failed to create vault');
+}
+
+export async function getOrCreateProjectVaultForUser(
+  projectId: string,
+  userId: string,
+  client: DbClient = supabase,
+): Promise<Vault | null> {
+  const selection = 'id, user_id, goal_id, project_id, space_id, vault_type, created_at, updated_at';
+  const { data: existing, error: existingError } = await client
+    .from('vaults')
+    .select(selection)
+    .eq('project_id', projectId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (existingError) throw existingError;
+  if (existing) return mapVault(existing as unknown as DbVaultRow);
+
+  const { data: project, error: projectError } = await client
+    .from('projects')
+    .select('id')
+    .eq('id', projectId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (projectError) throw projectError;
+  if (!project) return null;
+
+  const { data: created, error } = await client
+    .from('vaults')
+    .insert({ project_id: projectId, user_id: userId, vault_type: 'personal' })
+    .select(selection)
+    .single();
+  if (created) return mapVault(created as unknown as DbVaultRow);
+  if (error?.code === '23505') {
+    const { data: raced } = await client.from('vaults').select(selection)
+      .eq('project_id', projectId).eq('user_id', userId).maybeSingle();
+    if (raced) return mapVault(raced as unknown as DbVaultRow);
+  }
+  throw new Error(error?.message ?? 'Failed to create Project Vault');
 }
 
 export async function getVaultItems(

@@ -1,128 +1,56 @@
-import { useState } from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Typography } from '@/components/ui/Typography';
-import { Card } from '@/components/ui/Card';
-import { BrandIcon } from '@/components/ui/BrandIcon';
-import { ProjectGoalRow } from '@/features/goals/components/ProjectGoalRow';
-import { useThemeColors } from '@/store/uiStore';
 import { RADIUS, SPACE } from '@/constants/design';
-import type { Project } from '@/features/projects/types';
-import type { GoalWithDetails } from '@/features/goals/types';
+import { useThemeColors } from '@/store/uiStore';
+import type { ProjectSummary, ProjectVisualCategory } from '../types';
 
-interface ProjectCardProps {
-  project: Project;
-  /** Goals belonging to this project (pre-filtered by the dashboard from the goal store). */
-  goals: GoalWithDetails[];
+function categoryPresentation(category: ProjectVisualCategory, colors: ReturnType<typeof useThemeColors>) {
+  if (category === 'Health & Fitness') return { bg: colors.background.selectedRow, color: colors.accent.primary, icon: 'fitness-outline' as const };
+  if (category === 'Work & Money') return { bg: colors.feedback.pending.bg, color: colors.feedback.pending.text, icon: 'briefcase-outline' as const };
+  if (category === 'Learning & Creativity') return { bg: colors.feedback.info.bg, color: colors.accent.teal, icon: 'book-outline' as const };
+  if (category === 'Life & Relationships') return { bg: colors.feedback.danger.bg, color: colors.feedback.danger.text, icon: 'people-outline' as const };
+  return { bg: colors.background.subtle, color: colors.text.secondary, icon: 'layers-outline' as const };
 }
 
-export function ProjectCard({ project, goals }: ProjectCardProps) {
+function relativeDate(value: string): string {
+  const days = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86400000));
+  if (days === 0) return 'Today';
+  if (days === 1) return '1 day ago';
+  if (days < 7) return `${days} days ago`;
+  const weeks = Math.floor(days / 7);
+  return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`;
+}
+
+export function ProjectCard({ project }: { project: ProjectSummary }) {
   const colors = useThemeColors();
-  const [expanded, setExpanded] = useState(false);
-  const progress = goals.length
-    ? Math.round(goals.reduce((total, goal) => total + goal.progress, 0) / goals.length)
-    : 0;
-
+  const accent = categoryPresentation(project.visualCategory, colors);
   return (
-    <Card
-      elevation="none"
-      padding="none"
-      style={{
-        borderColor: colors.border.warmSubtle,
-        marginBottom: SPACE.md,
-        paddingVertical: SPACE.xl,
-        paddingHorizontal: SPACE.xl,
-      }}
-    >
-      <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.lg }}>
-        <View style={{
-          alignItems: 'center',
-          backgroundColor: colors.background.selectedRow,
-          borderRadius: RADIUS.md,
-          height: 48,
-          justifyContent: 'center',
-          width: 48,
-        }}>
-          <BrandIcon name="project" size={22} tintColor={colors.accent.primary} />
+    <Pressable accessibilityRole="button" accessibilityLabel={`Open Project ${project.title}`}
+      onPress={() => router.push(`/(app)/projects/${project.id}` as never)}
+      style={({ pressed }) => ({ backgroundColor: accent.bg, borderColor: colors.border.warmSubtle, borderRadius: RADIUS.xl, borderWidth: 1, flexBasis: 380, flexGrow: 1, maxWidth: 520, minHeight: 238, opacity: pressed ? 0.78 : 1, padding: SPACE['2xl'] })}>
+      <View style={{ alignItems: 'flex-start', flexDirection: 'row', gap: SPACE.xl }}>
+        <View style={{ alignItems: 'center', backgroundColor: colors.background.card, borderColor: colors.border.divider, borderRadius: RADIUS.lg, borderWidth: 1, height: 58, justifyContent: 'center', width: 58 }}>
+          <Ionicons color={accent.color} name={accent.icon} size={28} />
         </View>
-        <Pressable
-          onPress={() => router.push(`/(app)/projects/${project.id}` as never)}
-          style={({ pressed }) => ({ flex: 1, minHeight: 44, opacity: pressed ? 0.64 : 1 })}
-        >
-          <Typography variant="card-title" numberOfLines={1}>
-            {project.title}
-          </Typography>
-          {project.description !== null && (
-            <Typography
-              variant="card-description"
-              style={{ fontSize: 14, lineHeight: 20, marginTop: 4 }}
-              numberOfLines={2}
-            >
-              {project.description}
-            </Typography>
-          )}
-          <Typography variant="caption" style={{ color: colors.text.secondary, marginTop: SPACE.sm }}>
-            {goals.length} {goals.length === 1 ? 'goal' : 'goals'} connected
-          </Typography>
-        </Pressable>
-
-        <Typography
-          variant="label"
-          style={{ color: colors.text.accent, minWidth: 40, textAlign: 'right' }}
-        >
-          {progress}%
-        </Typography>
-
-        {/* Chevron — taps toggle expand/collapse (collapsed by default) */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={
-            expanded ? `Collapse ${project.title}` : `Expand ${project.title}`
-          }
-          hitSlop={10}
-          onPress={() => setExpanded((prev) => !prev)}
-          style={({ pressed }) => ({
-            alignItems: 'center',
-            borderRadius: RADIUS.round,
-            height: 44,
-            justifyContent: 'center',
-            marginLeft: SPACE.md,
-            opacity: pressed ? 0.5 : 1,
-            width: 44,
-          })}
-        >
-          <Text
-            style={{
-              color: colors.text.muted,
-              fontFamily: 'Inter-Regular',
-              fontSize: 18,
-              lineHeight: 18,
-              transform: [{ rotate: expanded ? '90deg' : '-90deg' }],
-            }}
-          >
-            ›
-          </Text>
-        </Pressable>
+        <View style={{ flex: 1, gap: SPACE.xs }}>
+          <Typography variant="title" numberOfLines={1}>{project.title}</Typography>
+          <Typography variant="body-small" numberOfLines={2}>{project.description || 'Bring related Goals and material together.'}</Typography>
+        </View>
+        <Ionicons color={colors.text.muted} name="ellipsis-horizontal" size={18} />
       </View>
-
-      {expanded && (
-        <View style={{
-          backgroundColor: colors.background.subtle,
-          borderRadius: RADIUS.md,
-          marginTop: SPACE.xl,
-          padding: SPACE.lg,
-        }}>
-          {goals.length > 0 ? (
-            <View style={{ gap: 8 }}>
-              {goals.map((goal) => (
-                <ProjectGoalRow key={goal.id} goal={goal} />
-              ))}
-            </View>
-          ) : (
-            <Typography variant="hint">No goals in this project yet.</Typography>
-          )}
+      <View style={{ borderBottomColor: colors.border.divider, borderBottomWidth: 1, flexDirection: 'row', flexWrap: 'wrap', gap: SPACE['2xl'], marginTop: SPACE['2xl'], paddingBottom: SPACE.xl }}>
+        <View><Typography variant="emphasis-sm">{project.activeGoalCount}</Typography><Typography variant="caption">Active Goals</Typography></View>
+        <View><Typography variant="emphasis-sm">{project.vaultItemCount}</Typography><Typography variant="caption">Vault Items</Typography></View>
+        <View><Typography variant="emphasis-sm">{relativeDate(project.lastActivityAt)}</Typography><Typography variant="caption">Last Activity</Typography></View>
+      </View>
+      <View style={{ gap: SPACE.sm, marginTop: SPACE.lg }}>
+        <Typography variant="eyebrow">Goals</Typography>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>
+          {project.goalNames.length ? project.goalNames.map((name) => <View key={name} style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider, borderRadius: RADIUS.round, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6 }}><Typography variant="caption">{name}</Typography></View>) : <Typography variant="caption">No active Goals yet.</Typography>}
         </View>
-      )}
-    </Card>
+      </View>
+    </Pressable>
   );
 }

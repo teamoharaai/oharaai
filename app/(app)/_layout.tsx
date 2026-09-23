@@ -52,6 +52,7 @@ export default function AppLayout() {
           <Stack.Screen name="goals/index" />
           <Stack.Screen name="constellation" />
           <Stack.Screen name="explore" />
+          <Stack.Screen name="projects/index" />
           <Stack.Screen name="projects/[id]" />
           <Stack.Screen name="projects/create" />
           <Stack.Screen name="goals/[id]/index" />

@@ -700,6 +700,7 @@ function GoalTabContent({
   goalDetail,
   linkedEntries,
   tab,
+  externalVaultAddRequest,
 }: {
   activityError: string | null;
   activityItems: readonly ActivityItem[];
@@ -709,6 +710,7 @@ function GoalTabContent({
   goalDetail: UseGoalDetailResult;
   linkedEntries: readonly EntryRecord[];
   tab: WorkspaceTab;
+  externalVaultAddRequest: number;
 }) {
   const colors = useThemeColors();
   const { density: deadlineDensity } = useDeadlineDensity();
@@ -720,6 +722,8 @@ function GoalTabContent({
   const { width } = useWindowDimensions();
   if (tab === 'vault') return (
     <GoalVault key={goal.id} goal={goal} entries={linkedEntries} entriesError={entriesError}
+      externalAddRequest={externalVaultAddRequest}
+      showAddButton={false}
       onAddStickyNote={() => setStickyCreateRequest((value) => value + 1)}
       privateNotes={<StickyNotesPanel embedded creationRequestKey={stickyCreateRequest} notes={goal.notes} folders={goal.noteFolders}
         error={goalDetail.noteError} folderError={goalDetail.folderError}
@@ -929,6 +933,7 @@ function SelectedGoalWorkspace({
   const [projectPickerVisible, setProjectPickerVisible] = useState(false);
   const [projectSaving, setProjectSaving] = useState(false);
   const [projectError, setProjectError] = useState<string | null>(null);
+  const [vaultAddRequest, setVaultAddRequest] = useState(0);
   const projects = useProjectStore((state) => state.projects);
   const projectsLoading = useProjectStore((state) => state.isLoading);
   const loadProjects = useProjectStore((state) => state.loadProjects);
@@ -967,6 +972,7 @@ function SelectedGoalWorkspace({
           isMomentum={!goal.has_successor && goal.previous_goal_id !== null}
           isSuperseded={goal.has_successor}
           onArchive={goalDetail.onArchiveGoal}
+          onAddToVault={() => setVaultAddRequest((value) => value + 1)}
           onComplete={goalDetail.onCompleteGoal}
           onOpenProjectPicker={openProjectPicker}
           onUpdateDeadline={goalDetail.onUpdateDeadline}
@@ -1005,6 +1011,7 @@ function SelectedGoalWorkspace({
             goalDetail={goalDetail}
             linkedEntries={linkedEntries}
             tab={tab}
+            externalVaultAddRequest={vaultAddRequest}
         />
       </View>
       <GoalProjectPickerModal

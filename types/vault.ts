@@ -4,7 +4,8 @@ export type VaultContentKind = 'generic' | 'sticky_note';
 export interface Vault {
   id: string;
   ownerId: string;
-  goalId: string;
+  goalId: string | null;
+  projectId: string | null;
   spaceId: string | null;
   vaultType: 'personal' | 'shared' | 'institutional';
   createdAt: string;

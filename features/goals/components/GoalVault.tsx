@@ -10,6 +10,7 @@ import { useThemeColors } from '@/store/uiStore';
 import type { EntryRecord } from '@/features/entries/types';
 import type { ActivityItem } from '@/types/activity';
 import type { GoalWithDetails } from '../types';
+import type { VaultItem } from '@/types/vault';
 import { useVault } from '../hooks/useVault';
 import { fetchEntries } from '@/features/entries/services/entry-service';
 import { VaultItemCard } from './VaultItemCard';
@@ -20,7 +21,16 @@ type VaultFilter = 'all' | 'sticky' | 'notes' | 'reflections' | 'sources';
 export interface VaultWorkspaceParent {
   id: string;
   title: string;
-  type: 'goal';
+  type: 'goal' | 'project';
+}
+
+export interface VaultDataSource {
+  items: VaultItem[];
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+  updateItem: (itemId: string, updates: Partial<VaultItem>) => Promise<void>;
+  removeItem: (itemId: string) => Promise<void>;
 }
 
 interface VaultWorkspaceProps {
@@ -32,6 +42,11 @@ interface VaultWorkspaceProps {
   onAddStickyNote: () => void;
   parent: VaultWorkspaceParent;
   privateNotes: ReactNode;
+  activityContent?: ReactNode;
+  onAddSource?: () => void;
+  vaultData?: VaultDataSource;
+  externalAddRequest?: number;
+  showAddButton?: boolean;
 }
 
 const FILTERS: ReadonlyArray<{ label: string; value: VaultFilter }> = [
@@ -56,11 +71,12 @@ function VaultSection({ children, icon, title }: { children: ReactNode; icon: ke
 }
 
 /** Parent-neutral Vault presentation. Goal-specific data is supplied by GoalVault. */
-export function VaultWorkspace({ activityError, activityItems, activityLoading, entries, entriesError, onAddStickyNote, parent, privateNotes }: VaultWorkspaceProps) {
+export function VaultWorkspace({ activityContent, activityError, activityItems, activityLoading, entries, entriesError, externalAddRequest, onAddSource, onAddStickyNote, parent, privateNotes, showAddButton = true, vaultData }: VaultWorkspaceProps) {
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
   const compact = width < 620;
-  const vault = useVault(parent.id);
+  const goalVault = useVault(parent.type === 'goal' ? parent.id : '');
+  const vault = vaultData ?? goalVault;
   const [filter, setFilter] = useState<VaultFilter>('all');
   const [addOpen, setAddOpen] = useState(false);
   const [retriedEntries, setRetriedEntries] = useState<EntryRecord[] | null>(null);
@@ -71,6 +87,7 @@ export function VaultWorkspace({ activityError, activityItems, activityLoading, 
 
   useEffect(() => setEntryLoadError(entriesError), [entriesError]);
   useEffect(() => { void vault.refresh(); }, [vault.refresh]);
+  useEffect(() => { if (externalAddRequest) setAddOpen(true); }, [externalAddRequest]);
 
   const linkedEntries = retriedEntries ?? entries;
   const notes = linkedEntries.filter((entry) => entry.entryType === 'note');
@@ -85,7 +102,9 @@ export function VaultWorkspace({ activityError, activityItems, activityLoading, 
     await Promise.all([
       vault.refresh(),
       fetchEntries().then((result) => {
-        setRetriedEntries(result.filter((entry) => entry.goals.some((linked) => linked.id === parent.id)));
+        setRetriedEntries(result.filter((entry) => parent.type === 'goal'
+          ? entry.goals.some((linked) => linked.id === parent.id)
+          : entry.project?.id === parent.id));
         setEntryLoadError(null);
       }).catch(() => setEntryLoadError('Linked entries could not be loaded.')),
     ]);
@@ -94,7 +113,7 @@ export function VaultWorkspace({ activityError, activityItems, activityLoading, 
 
   function createEchoEntry(entryType: 'note' | 'reflection') {
     setAddOpen(false);
-    router.push({ pathname: '/(app)/entries', params: { create: entryType, view: entryType, goalId: parent.id } } as never);
+    router.push({ pathname: '/(app)/entries', params: { create: entryType, view: entryType, ...(parent.type === 'goal' ? { goalId: parent.id } : { projectId: parent.id }) } } as never);
   }
 
   function addStickyNote() {
@@ -115,6 +134,16 @@ export function VaultWorkspace({ activityError, activityItems, activityLoading, 
     if (!url) return 'Goal Vault';
     try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return 'Goal Vault'; }
   };
+  const provenance = (item: VaultItem) => {
+    const origins = (item as VaultItem & { origins?: Array<{ goalTitle: string }> }).origins ?? [];
+    return origins.length ? `From: ${origins.map((origin) => origin.goalTitle).join(', ')}` : 'Project note';
+  };
+  const entryProvenance = (entry: EntryRecord) => {
+    if (parent.type === 'goal') return `From ${parent.title}`;
+    if (entry.project?.id === parent.id) return 'Project note';
+    const goalTitles = entry.goals.filter((goal) => goal.projectId === parent.id).map((goal) => goal.title);
+    return goalTitles.length ? `From: ${goalTitles.join(', ')}` : 'Project note';
+  };
   const showSticky = filter === 'all' || filter === 'sticky';
   const showNotes = filter === 'all' || filter === 'notes';
   const showReflections = filter === 'all' || filter === 'reflections';
@@ -130,12 +159,12 @@ export function VaultWorkspace({ activityError, activityItems, activityLoading, 
               <VaultIcon color={colors.text.accent} size={23} />
               <Typography accessibilityRole="header" variant="heading">Vault</Typography>
             </View>
-            <Typography variant="body">Everything worth remembering about this Goal.</Typography>
+            <Typography variant="body">Everything worth remembering about this {parent.type === 'goal' ? 'Goal' : 'Project'}.</Typography>
           </View>
-          <Pressable accessibilityLabel="Add to Vault" accessibilityRole="button" onPress={() => setAddOpen(true)} style={({ pressed }) => ({ alignItems: 'center', alignSelf: compact ? 'stretch' : 'center', backgroundColor: colors.accent.primary, borderRadius: RADIUS.md, flexDirection: 'row', gap: SPACE.sm, justifyContent: 'center', minHeight: 44, opacity: pressed ? 0.75 : 1, paddingHorizontal: SPACE.xl })}>
+          {showAddButton ? <Pressable accessibilityLabel="Add to Vault" accessibilityRole="button" onPress={() => setAddOpen(true)} style={({ pressed }) => ({ alignItems: 'center', alignSelf: compact ? 'stretch' : 'center', backgroundColor: colors.accent.primary, borderRadius: RADIUS.md, flexDirection: 'row', gap: SPACE.sm, justifyContent: 'center', minHeight: 44, opacity: pressed ? 0.75 : 1, paddingHorizontal: SPACE.xl })}>
             <Ionicons color={colors.text.onAccent} name="add" size={18} />
             <Typography variant="emphasis-sm" style={{ color: colors.text.onAccent }}>Add to Vault</Typography>
-          </Pressable>
+          </Pressable> : null}
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACE.xs }}>
           {FILTERS.map((option) => {
@@ -148,7 +177,7 @@ export function VaultWorkspace({ activityError, activityItems, activityLoading, 
       </View>
 
       {showSticky ? <VaultSection icon="document-text-outline" title="Sticky Notes">
-        <Typography variant="caption">Private to you. Sticky Notes are never included in Shared Goals, public Goals, or Project aggregation.</Typography>
+        <Typography variant="caption">{parent.type === 'goal' ? 'Private to you. Sticky Notes appear in Projects only through owner-authorized aggregation.' : 'Private to you. Project Vault content is owner-only.'}</Typography>
         <View testID="goal-private-notes">{privateNotes}</View>
       </VaultSection> : null}
 
@@ -157,7 +186,7 @@ export function VaultWorkspace({ activityError, activityItems, activityLoading, 
         {visibleEntries.length === 0 && !entryLoadError ? <Typography variant="body">Linked {filter === 'all' ? 'Notes and Reflections' : FILTERS.find((item) => item.value === filter)?.label} will appear here.</Typography> : null}
         <View style={{ flexDirection: compact ? 'column' : 'row', flexWrap: 'wrap', gap: SPACE.md }}>
           {visibleEntries.map((entry) => <Pressable key={entry.id} accessibilityLabel={`Open ${entry.title || 'Untitled entry'}`} accessibilityRole="button" onPress={() => router.push({ pathname: '/(app)/entries/[id]' as never, params: { id: entry.id } })} style={({ pressed }) => ({ backgroundColor: colors.background.subtle, borderColor: colors.border.divider, borderRadius: RADIUS.lg, borderWidth: 1, flexBasis: compact ? undefined : 280, flexGrow: 1, gap: SPACE.sm, minWidth: compact ? 0 : 250, opacity: pressed ? 0.7 : 1, padding: SPACE.lg })}>
-            <Typography variant="caption">{entry.entryType === 'reflection' ? 'Reflection' : 'Note'} · Echo</Typography><Typography variant="emphasis-sm">{entry.title || 'Untitled entry'}</Typography><Typography variant="caption">{dateLabel(entry.updatedAt)} · From {parent.title}</Typography>
+            <Typography variant="caption">{entry.entryType === 'reflection' ? 'Reflection' : 'Note'} · Echo</Typography><Typography variant="emphasis-sm">{entry.title || 'Untitled entry'}</Typography><Typography variant="caption">{dateLabel(entry.updatedAt)} · {entryProvenance(entry)}</Typography>
           </Pressable>)}
         </View>
       </VaultSection> : null}
@@ -168,13 +197,13 @@ export function VaultWorkspace({ activityError, activityItems, activityLoading, 
         {!vault.loading && !sources.length ? <Typography variant="body">Saved links, documents, and other source material will appear here.</Typography> : null}
         <View style={{ flexDirection: compact ? 'column' : 'row', flexWrap: 'wrap', gap: SPACE.md }}>
           {sources.map((item) => <Pressable key={item.id} accessibilityLabel={`Open ${item.title || 'Untitled material'}`} accessibilityRole="button" onPress={() => setSelectedSourceId(item.id)} style={({ pressed }) => ({ backgroundColor: colors.background.subtle, borderColor: colors.border.divider, borderRadius: RADIUS.lg, borderWidth: 1, flexBasis: compact ? undefined : 280, flexGrow: 1, gap: SPACE.sm, minWidth: compact ? 0 : 250, opacity: pressed ? 0.7 : 1, padding: SPACE.lg })}>
-            <Typography variant="caption">{item.itemType.replace('_', ' ')} · {sourceOrigin(item.metadata?.url)}</Typography><Typography variant="emphasis-sm">{item.title || (item.itemType === 'link' ? 'Saved link' : 'Untitled material')}</Typography><Typography variant="caption">{dateLabel(item.createdAt)} · From {parent.title}</Typography>
+            <Typography variant="caption">{item.itemType.replace('_', ' ')} · {sourceOrigin(item.metadata?.url)}</Typography><Typography variant="emphasis-sm">{item.title || (item.itemType === 'link' ? 'Saved link' : 'Untitled material')}</Typography><Typography variant="caption">{dateLabel(item.createdAt)} · {parent.type === 'project' ? provenance(item) : `From ${parent.title}`}</Typography>
           </Pressable>)}
         </View>
       </VaultSection> : null}
 
       {filter === 'all' ? <VaultSection icon="time-outline" title="Recent Vault Activity">
-        {activityLoading ? <ActivityIndicator color={colors.accent.primary} /> : activityError ? <Typography variant="body">Vault activity could not be loaded.</Typography> : recentActivity.length ? recentActivity.slice(0, 12).map((item) => <View key={item.id} style={{ alignItems: compact ? 'flex-start' : 'center', borderBottomColor: colors.border.divider, borderBottomWidth: 1, flexDirection: compact ? 'column' : 'row', gap: SPACE.sm, justifyContent: 'space-between', paddingVertical: SPACE.md }}><Typography variant="body-small">{activityLabel(item)}</Typography><Typography variant="caption">{dateLabel(item.timestamp)}</Typography></View>) : <Typography variant="body">Meaningful Vault activity will appear here.</Typography>}
+        {activityContent ?? (activityLoading ? <ActivityIndicator color={colors.accent.primary} /> : activityError ? <Typography variant="body">Vault activity could not be loaded.</Typography> : recentActivity.length ? recentActivity.slice(0, 12).map((item) => <View key={item.id} style={{ alignItems: compact ? 'flex-start' : 'center', borderBottomColor: colors.border.divider, borderBottomWidth: 1, flexDirection: compact ? 'column' : 'row', gap: SPACE.sm, justifyContent: 'space-between', paddingVertical: SPACE.md }}><Typography variant="body-small">{activityLabel(item)}</Typography><Typography variant="caption">{dateLabel(item.timestamp)}</Typography></View>) : <Typography variant="body">Meaningful Vault activity will appear here.</Typography>)}
       </VaultSection> : null}
 
       <Modal visible={addOpen} onClose={() => setAddOpen(false)} contentStyle={{ maxWidth: 520 }}>
@@ -183,7 +212,7 @@ export function VaultWorkspace({ activityError, activityItems, activityLoading, 
             { key: 'sticky', icon: 'document-text-outline' as const, title: 'Sticky Note', detail: 'Capture a private note for this Goal.', action: addStickyNote },
             { key: 'note', icon: 'reader-outline' as const, title: 'Note', detail: 'Create a linked Note in Echo.', action: () => createEchoEntry('note') },
             { key: 'reflection', icon: 'create-outline' as const, title: 'Reflection', detail: 'Create a linked Reflection in Echo.', action: () => createEchoEntry('reflection') },
-            { key: 'source', icon: 'link-outline' as const, title: 'Source', detail: 'Add a link, document, or other material.', action: () => { setAddOpen(false); router.push(`/(app)/goals/${parent.id}/vault` as never); } },
+            { key: 'source', icon: 'link-outline' as const, title: 'Source', detail: 'Add a link, document, or other material.', action: () => { setAddOpen(false); if (onAddSource) onAddSource(); else router.push(`/(app)/goals/${parent.id}/vault` as never); } },
           ].map((option) => <Pressable key={option.key} accessibilityRole="button" accessibilityLabel={`Add ${option.title}`} onPress={option.action} style={({ pressed }) => ({ alignItems: 'center', backgroundColor: pressed ? colors.background.selectedRow : colors.background.subtle, borderRadius: RADIUS.md, flexDirection: 'row', gap: SPACE.lg, minHeight: 64, padding: SPACE.lg })}><Ionicons color={colors.text.accent} name={option.icon} size={22} /><View style={{ flex: 1 }}><Typography variant="emphasis-sm">{option.title}</Typography><Typography variant="caption">{option.detail}</Typography></View><Ionicons color={colors.text.muted} name="chevron-forward" size={17} /></Pressable>)}
         </View>
       </Modal>

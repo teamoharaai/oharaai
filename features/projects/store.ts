@@ -3,6 +3,7 @@ import type { Project } from '@/features/projects/types';
 import {
   fetchProjects,
   createProject as createProjectService,
+  createProjectWithGoals,
   updateProject as updateProjectService,
 } from './services/project-service';
 import supabase from '@/lib/db/client';
@@ -13,7 +14,7 @@ interface ProjectStore {
   isLoading: boolean;
   error: string | null;
   loadProjects: () => Promise<void>;
-  createProject: (payload: { title: string; description?: string }) => Promise<Project>;
+  createProject: (payload: { title: string; description?: string; goalIds?: string[]; allowReassignment?: boolean }) => Promise<Project>;
   updateProject: (id: string, updates: Partial<Pick<Project, 'title' | 'description' | 'status'>>) => Promise<void>;
 }
 
@@ -47,7 +48,14 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    const project = await createProjectService({ ...payload, user_id: user.id });
+    const project = payload.goalIds?.length
+      ? await createProjectWithGoals({
+          title: payload.title,
+          description: payload.description,
+          goalIds: payload.goalIds,
+          allowReassignment: payload.allowReassignment ?? false,
+        })
+      : await createProjectService({ ...payload, user_id: user.id });
     set((state) => ({ projects: [project, ...state.projects] }));
     return project;
   },

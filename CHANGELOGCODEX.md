@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added — Projects V1.0
+- Added the responsive `/projects` landing page, lightweight Project creation with optional owned-Goal selection and explicit reassignment confirmation, and a premium Project workspace with Current Goals, history, activity, Sticky Note previews, snapshot context, and owner-only management (`app/(app)/projects`, `features/projects`).
+- Added Migration 071 with database-enforced Goal/Project same-owner rules, Goal-or-Project Vault parent XOR enforcement, one canonical Vault per Project, safe association RPCs, and append-only Project/Goal association evidence (`supabase/migrations/071_projects_v1_foundation.sql`).
+- Added owner-authorized Project Vault aggregation across canonical Project-native and Goal-derived material, Project-native Sticky Notes and sources, Echo Note/Reflection reuse, provenance, deduplication, and shared Vault workspace presentation (`app/api/projects/[projectId]/vault+api.ts`, Project/Vault components and services).
+
+### Changed — Projects V1.0
+- Added Projects to the existing horizontal global navigation and derived Project card accents from dominant active Goal categories without persisting a second taxonomy.
+- Aligned Goal Vault and Manage Goal actions directly with the Goal title; Vault mode now uses the same action position for Overview and Add to Vault without changing Goal behavior.
+
 ### Added — Goals V2.3.1 Goal controls and What's New lifecycle
 - Added an extensible feature-patch data contract and deterministic seven-day selector that displays only the newest active release per independent feature category. Seen state is persisted per patch ID so later Goals, Vault, Roots, Home, Momentum, Circles, Projects, or future-feature releases remain independently eligible (`config/internal-release.ts`, `features/auth/internal-release.ts`, release modal/tests).
 
@@ -21,6 +30,7 @@
 - Release sequencing preserves score continuity: expand the scoring column with 067 before deploying its reader, verify the new deployed SHA, then convert taxonomy/apply visibility with 068–069. No historical test Goals are removed. Historical Roots reference assets were restored solely for local baseline validation and are not part of the product changes.
 
 ### Added
+- Added a category-neutral Projects 1.0 patch note to the shared What's New lifecycle in `config/internal-release.ts`.
 - Added a rollback-only production migration rehearsal with a 066 ledger guard, short lock timeout, approved category/profile checks, and full logical Goal/Momentum history comparisons; it never commits or changes the migration ledger.
 - Preserved approved legacy Goal reads during the staged rollout by passing Goal IDs through Goal/Entry category adapters; unknown `mind` values still fail closed. New writes remain canonical-only. Scoring-profile expansion must precede deployment, and taxonomy conversion must follow deployment of profile-aware Momentum reads.
 - Expanded manual creation browser coverage to commit explicit Task/Milestone drafts only on final creation, while the skip path clears both without persistence.
@@ -82,11 +92,15 @@
 - Audited card radius, inset dividers, header padding, and mobile section alignment; normalized header spacing to site tokens and reduced Next Step gaps. Validation: Task/activity (69), Momentum (70), Goal UI/lifecycle (11), and light/dark browser scenarios pass, including partial Vault failure/retry. Web export succeeds; TypeScript still reports only the three existing duplicate-editor errors. Screenshots are emitted to `/tmp/ohara-goals-v21-*` by the browser suite.
 
 ### Changed
+- Updated the generated Supabase contract for nullable Goal/Project Vault parents, Project association events, and the Projects V1 RPCs.
+- Expanded the Projects database harness to cover one-Vault enforcement, exclusive parents, archive preservation, archived-assignment rejection, and activity isolation.
 - Reorganized Goals V2.1 into a compact Recent Goals/Shared Goals rail, a countdown-led header, Overview/Vault tabs, one Task-and-Milestone planning surface, and contextual Intelligence/Momentum cards. Vault presents existing linked Echo entries, stored material, and progressively disclosed activity without changing storage or Task/Milestone/lifecycle behavior (Goals workspace, header, and new GoalVault component).
 - Restored desktop navigation icons, labeled the existing Constellation destination Roots, and increased usable Goal Momentum chart height with readable endpoint dates; formulas, categories, and source data remain unchanged.
 - Labeled the existing social popover Circles, recorded session-local Goal interaction recency (cleared on sign-out), and retained next-step navigation within the unified planning panel using the page shell's native scroll target. Added isolated light/dark desktop, tablet, and mobile browser coverage in `tests/goals/`; Task, Momentum, Friends, and Goal regression suites pass. Production web export passes; repository typecheck remains blocked only by three pre-existing errors in the untouched `RichTextEditor.web 2.tsx` duplicate.
 
 ### Fixed
+- Added explicit accessible names to Project header actions and a dismiss action to Project management so icon glyphs do not obscure controls and the modal cannot trap users.
+- Made Project workspace sources degrade independently with a retry state, and added bounded truthful Task-completion, Entry-link, and New Phase events without fabricating mutable-timestamp history.
 - Prevented incomplete milestone evidence children from being selected as a Goal Overview “Next Step”; the feature now uses top-level milestones only (`features/goals/goals-workspace.ts` and focused selector tests).
 - Fixed the Echo Reflections control reverting to Notes by removing the library-local reset effect and making `view=reflection` the stable source of truth. Reflection compatibility/deep-link routes now carry that view through the unified Entries workspace.
 - Reset the Add/Edit Task draft whenever its modal closes so reopening Add Task cannot retain prior values, and seed retroactive completion input from the user's local wall clock instead of UTC so valid current times are not rejected as future times in negative UTC offsets (`features/tasks/components/TasksPanel.tsx`, `features/tasks/utils.ts`, `features/tasks/utils.test.ts`, and `features/tasks/architecture.test.ts`).

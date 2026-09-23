@@ -20,6 +20,7 @@ type NavItem = {
 const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Home', href: '/(app)/dashboard', matches: ['/dashboard'], enabled: true, icon: 'home' },
   { label: 'Goals', href: '/(app)/goals', matches: ['/goals'], enabled: true, icon: 'goals' },
+  { label: 'Projects', href: '/(app)/projects', matches: ['/projects'], enabled: true, icon: 'project' },
   { label: 'Echo', href: '/(app)/echo', matches: ['/echo', '/entries'], enabled: FEATURES.ECHO_ENABLED, icon: 'echo' },
   { label: 'Momentum', href: '/(app)/momentum', matches: ['/momentum'], enabled: true, icon: 'momentum' },
   {

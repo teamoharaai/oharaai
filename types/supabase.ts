@@ -2021,6 +2021,58 @@ export type Database = {
         }
         Relationships: []
       }
+      project_goal_events: {
+        Row: {
+          event_type: string
+          goal_id: string
+          id: string
+          occurred_at: string
+          owner_id: string
+          prior_project_id: string | null
+          project_id: string | null
+        }
+        Insert: {
+          event_type: string
+          goal_id: string
+          id?: string
+          occurred_at?: string
+          owner_id: string
+          prior_project_id?: string | null
+          project_id?: string | null
+        }
+        Update: {
+          event_type?: string
+          goal_id?: string
+          id?: string
+          occurred_at?: string
+          owner_id?: string
+          prior_project_id?: string | null
+          project_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_goal_events_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_goal_events_prior_project_id_fkey"
+            columns: ["prior_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_goal_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           created_at: string
@@ -2694,8 +2746,9 @@ export type Database = {
       vaults: {
         Row: {
           created_at: string
-          goal_id: string
+          goal_id: string | null
           id: string
+          project_id: string | null
           space_id: string | null
           updated_at: string
           user_id: string
@@ -2703,8 +2756,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          goal_id: string
+          goal_id?: string | null
           id?: string
+          project_id?: string | null
           space_id?: string | null
           updated_at?: string
           user_id: string
@@ -2712,8 +2766,9 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          goal_id?: string
+          goal_id?: string | null
           id?: string
+          project_id?: string | null
           space_id?: string | null
           updated_at?: string
           user_id?: string
@@ -2725,6 +2780,13 @@ export type Database = {
             columns: ["goal_id"]
             isOneToOne: true
             referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vaults_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
@@ -2741,6 +2803,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_goals_to_project_v1: {
+        Args: {
+          p_allow_reassignment?: boolean
+          p_goal_ids: string[]
+          p_project_id: string
+        }
+        Returns: number
+      }
       adjust_task_occurrence_quantity_v1: {
         Args: {
           p_delta: number
@@ -2776,6 +2846,15 @@ export type Database = {
           p_link_description?: string
           p_link_kind?: string
           p_link_ref_id?: string
+        }
+        Returns: string
+      }
+      create_project_v1: {
+        Args: {
+          p_allow_reassignment?: boolean
+          p_description?: string
+          p_goal_ids?: string[]
+          p_title: string
         }
         Returns: string
       }
@@ -2822,6 +2901,10 @@ export type Database = {
       delete_folder_with_contents: {
         Args: { p_folder_id: string }
         Returns: undefined
+      }
+      detach_goal_from_project_v1: {
+        Args: { p_goal_id: string; p_project_id: string }
+        Returns: boolean
       }
       extend_goal_deadline_v1: {
         Args: { p_goal_id: string; p_new_deadline: string }

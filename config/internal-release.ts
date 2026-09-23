@@ -13,6 +13,14 @@ export const SHOW_INTERNAL_RELEASE_NOTES = true;
 
 export const INTERNAL_RELEASE_NOTES: readonly FeaturePatchNote[] = [
   {
+    id: 'projects-v1-0',
+    category: 'Projects',
+    version: '1.0',
+    title: 'Projects brings the bigger picture together',
+    summary: 'Organize related Goals, private Vault material, and meaningful activity in one focused workspace.',
+    releasedAt: '2026-09-23T14:15:00.000Z',
+  },
+  {
     id: 'goals-v2-3-1',
     category: 'Goals',
     version: '2.3.1',

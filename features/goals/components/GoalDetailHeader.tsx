@@ -26,6 +26,7 @@ interface GoalDetailHeaderProps {
   isMomentum: boolean;
   isSuperseded: boolean;
   onArchive: () => Promise<boolean>;
+  onAddToVault: () => void;
   onComplete: () => Promise<boolean>;
   onOpenProjectPicker: () => void;
   onUpdateDeadline: (deadline: Date | null) => Promise<boolean>;
@@ -107,6 +108,7 @@ export function GoalDetailHeader({
   isMomentum,
   isSuperseded,
   onArchive,
+  onAddToVault,
   onComplete,
   onOpenProjectPicker,
   onUpdateDeadline,
@@ -183,8 +185,8 @@ export function GoalDetailHeader({
           flexDirection: 'row',
           flexWrap: 'wrap',
           gap: 12,
-          justifyContent: 'space-between',
-          marginBottom: 16,
+          justifyContent: 'flex-start',
+          marginBottom: 10,
           zIndex: 30,
         }}
       >
@@ -202,28 +204,6 @@ export function GoalDetailHeader({
               {goal.aiGenerated ? <Badge label="AI-guided" variant="ai" /> : null}
             </>
           )}
-        </View>
-
-        <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
-          <Button
-            accessibilityLabel={vaultMode ? 'Back to Overview' : 'Open Vault'}
-            leftIcon={vaultMode
-              ? <Ionicons color={colors.text.onAccent} name="arrow-back" size={17} />
-              : <VaultIcon color={colors.text.onAccent} size={17} />}
-            onPress={() => onWorkspaceChange(vaultMode ? 'overview' : 'vault')}
-            size="compact"
-          >
-            {vaultMode ? 'Overview' : 'Vault'}
-          </Button>
-          <ManageGoalControl
-            goal={goal}
-            onArchive={onArchive}
-            onComplete={onComplete}
-            onEditDeadline={() => setShowDeadlineModal(true)}
-            onOpenProjectPicker={onOpenProjectPicker}
-            onUpdateDescription={onUpdateDescription}
-            superseded={isSuperseded}
-          />
         </View>
       </View>
 
@@ -313,7 +293,32 @@ export function GoalDetailHeader({
             </Pressable>
           )}
         </View>
-
+        <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          <Button
+            accessibilityLabel={vaultMode ? 'Back to Overview' : 'Open Vault'}
+            leftIcon={vaultMode
+              ? <Ionicons color={colors.text.onAccent} name="arrow-back" size={17} />
+              : <VaultIcon color={colors.text.onAccent} size={17} />}
+            onPress={() => onWorkspaceChange(vaultMode ? 'overview' : 'vault')}
+            size="compact"
+          >
+            {vaultMode ? 'Overview' : 'Vault'}
+          </Button>
+          {vaultMode ? <Button
+            accessibilityLabel="Add to Vault"
+            leftIcon={<Ionicons color={colors.text.onAccent} name="add" size={18} />}
+            onPress={onAddToVault}
+            size="compact"
+          >Add to Vault</Button> : <ManageGoalControl
+            goal={goal}
+            onArchive={onArchive}
+            onComplete={onComplete}
+            onEditDeadline={() => setShowDeadlineModal(true)}
+            onOpenProjectPicker={onOpenProjectPicker}
+            onUpdateDescription={onUpdateDescription}
+            superseded={isSuperseded}
+          />}
+        </View>
       </View>
 
       <View style={{
