@@ -1,135 +1,197 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
 import { Modal } from '@/components/ui/Modal';
-import { SPACE } from '@/constants/design';
+import { RADIUS, SPACE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
 import type { EntryRecord } from '@/features/entries/types';
 import type { ActivityItem } from '@/types/activity';
 import type { GoalWithDetails } from '../types';
 import { useVault } from '../hooks/useVault';
-import { GoalSectionHeading } from '@/components/ui/GoalSectionHeading';
 import { fetchEntries } from '@/features/entries/services/entry-service';
 import { VaultItemCard } from './VaultItemCard';
+import { isStickyVaultItem } from '../vault-classification';
 
-/** Goal memory presentation; uses existing owner-scoped sources and activity. */
-export function GoalVault({ goal, entries, entriesError, activityItems, activityLoading, activityError, privateNotes }: {
-  privateNotes: ReactNode;
-  goal: GoalWithDetails;
-  entries: readonly EntryRecord[];
-  entriesError: string | null;
+type VaultFilter = 'all' | 'sticky' | 'notes' | 'reflections' | 'sources';
+
+export interface VaultWorkspaceParent {
+  id: string;
+  title: string;
+  type: 'goal';
+}
+
+interface VaultWorkspaceProps {
+  activityError: string | null;
   activityItems: readonly ActivityItem[];
   activityLoading: boolean;
-  activityError: string | null;
-}) {
+  entries: readonly EntryRecord[];
+  entriesError: string | null;
+  onAddStickyNote: () => void;
+  parent: VaultWorkspaceParent;
+  privateNotes: ReactNode;
+}
+
+const FILTERS: ReadonlyArray<{ label: string; value: VaultFilter }> = [
+  { label: 'All', value: 'all' },
+  { label: 'Sticky Notes', value: 'sticky' },
+  { label: 'Notes', value: 'notes' },
+  { label: 'Reflections', value: 'reflections' },
+  { label: 'Sources', value: 'sources' },
+];
+
+function VaultSection({ children, icon, title }: { children: ReactNode; icon: keyof typeof Ionicons.glyphMap; title: string }) {
+  const colors = useThemeColors();
+  return (
+    <View style={{ backgroundColor: colors.background.card, borderColor: colors.border.warmSubtle, borderRadius: RADIUS.xl, borderWidth: 1, padding: SPACE.xl, gap: SPACE.lg }}>
+      <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
+        <Ionicons color={colors.text.accent} name={icon} size={20} />
+        <Typography variant="title">{title}</Typography>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+/** Parent-neutral Vault presentation. Goal-specific data is supplied by GoalVault. */
+export function VaultWorkspace({ activityError, activityItems, activityLoading, entries, entriesError, onAddStickyNote, parent, privateNotes }: VaultWorkspaceProps) {
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
-  const vault = useVault(goal.id);
-  const [showCompletions, setShowCompletions] = useState(false);
+  const compact = width < 620;
+  const vault = useVault(parent.id);
+  const [filter, setFilter] = useState<VaultFilter>('all');
+  const [addOpen, setAddOpen] = useState(false);
   const [retriedEntries, setRetriedEntries] = useState<EntryRecord[] | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [entryLoadError, setEntryLoadError] = useState(entriesError);
-  useEffect(() => setEntryLoadError(entriesError), [entriesError]);
-  async function retrySources() {
-    setRetrying(true);
-    await Promise.all([vault.refresh(), fetchEntries().then((result) => {
-      setRetriedEntries(result.filter((entry) => entry.goals.some((linked) => linked.id === goal.id)));
-      setEntryLoadError(null);
-    }).catch(() => setEntryLoadError('Linked entries could not be loaded.'))]);
-    setRetrying(false);
-  }
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const selectedSource = vault.items.find((item) => item.id === selectedSourceId);
+
+  useEffect(() => setEntryLoadError(entriesError), [entriesError]);
   useEffect(() => { void vault.refresh(); }, [vault.refresh]);
-  const openStorage = () => router.push(`/(app)/goals/${goal.id}/vault` as never);
-  const sources = [
-    ...(retriedEntries ?? entries).map((entry) => ({
-      id: `entry-${entry.id}`, type: entry.entryType, title: entry.title || 'Untitled entry',
-      date: entry.updatedAt, origin: 'Echo',
-      open: () => router.push({ pathname: '/(app)/entries/[id]' as never, params: { id: entry.id } }),
-    })),
-    ...vault.items.map((item) => ({
-      id: `vault-${item.id}`, type: item.itemType, title: item.title || (item.itemType === 'link' ? 'Saved link' : 'Untitled material'),
-      date: item.createdAt, origin: 'Goal Vault', open: () => setSelectedSourceId(item.id),
-    })),
-  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  const timeline = [...activityItems]
-    .filter((item) => item.kind !== 'tracker_logged')
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  const completions = timeline.filter((item) => item.kind === 'task_completed' || item.kind === 'milestone_completed')
-    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-  function eventTitle(item: ActivityItem) {
-    switch (item.kind) {
-      case 'goal_created': return 'Goal created';
-      case 'milestone_completed': return `Reached ${item.label}`;
-      case 'task_completed': return `Completed ${item.label}`;
-      case 'tracker_logged': return `Logged ${item.label}`;
-      case 'vault_item_added': return `Added ${item.title}`;
-      case 'insight_confirmed': return 'Insight confirmed';
-      case 'echo_linked': return 'Reflection linked';
-      case 'echo_entry': return 'Reflection recorded';
-    }
+
+  const linkedEntries = retriedEntries ?? entries;
+  const notes = linkedEntries.filter((entry) => entry.entryType === 'note');
+  const reflections = linkedEntries.filter((entry) => entry.entryType === 'reflection');
+  const sources = vault.items.filter((item) => !isStickyVaultItem(item));
+  const recentActivity = useMemo(() => [...activityItems]
+    .filter((item) => item.kind === 'vault_item_added' || item.kind === 'echo_linked')
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [activityItems]);
+
+  async function retrySources() {
+    setRetrying(true);
+    await Promise.all([
+      vault.refresh(),
+      fetchEntries().then((result) => {
+        setRetriedEntries(result.filter((entry) => entry.goals.some((linked) => linked.id === parent.id)));
+        setEntryLoadError(null);
+      }).catch(() => setEntryLoadError('Linked entries could not be loaded.')),
+    ]);
+    setRetrying(false);
   }
-  const dateLabel = (date: string | Date) => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  function createEchoEntry(entryType: 'note' | 'reflection') {
+    setAddOpen(false);
+    router.push({ pathname: '/(app)/entries', params: { create: entryType, view: entryType, goalId: parent.id } } as never);
+  }
+
+  function addStickyNote() {
+    setAddOpen(false);
+    setFilter('sticky');
+    onAddStickyNote();
+  }
+
+  const dateLabel = (value: string | Date) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const activityLabel = (item: ActivityItem) => {
+    if (item.kind === 'echo_linked') return 'Echo entry linked';
+    if (item.kind !== 'vault_item_added') return 'Vault activity';
+    if (item.contentKind === 'sticky_note') return `Sticky Note created — ${item.title}`;
+    if (item.itemType === 'link' || item.itemType === 'document') return `Source added — ${item.title}`;
+    return `Vault item added — ${item.title}`;
+  };
+  const sourceOrigin = (url: string | undefined) => {
+    if (!url) return 'Goal Vault';
+    try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return 'Goal Vault'; }
+  };
+  const showSticky = filter === 'all' || filter === 'sticky';
+  const showNotes = filter === 'all' || filter === 'notes';
+  const showReflections = filter === 'all' || filter === 'reflections';
+  const showSources = filter === 'all' || filter === 'sources';
+  const visibleEntries = [...(showNotes ? notes : []), ...(showReflections ? reflections : [])];
+
   return (
-    <View style={{ padding: width < 700 ? SPACE.xl : SPACE['3xl'], gap: SPACE['4xl'] }}>
-      <View style={{ gap: SPACE.md }}>
-        <Typography variant="heading">Vault</Typography>
-        <Typography variant="body">The material and moments behind this Goal.</Typography>
-      </View>
-      <View testID="goal-private-notes" style={{ gap: SPACE.lg }}>
-        <GoalSectionHeading>Private Notes</GoalSectionHeading>
-        <Typography variant="caption">Only you can see these notes. They are not shared through Circles, public Goals, or Projects.</Typography>
-        {privateNotes}
-      </View>
-      <View style={{ gap: SPACE.lg }}>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: SPACE.md }}>
-          <GoalSectionHeading>Linked Notes & Reflections</GoalSectionHeading>
-          <Pressable accessibilityRole="button" onPress={openStorage} style={{ minHeight: 44, justifyContent: 'center' }}>
-            <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>Manage material →</Typography>
+    <View style={{ gap: SPACE.xl }} testID="goal-vault-workspace">
+      <View style={{ backgroundColor: colors.background.card, borderColor: colors.border.warmSubtle, borderRadius: RADIUS.xl, borderWidth: 1, padding: compact ? SPACE.xl : SPACE['3xl'], gap: SPACE.xl }}>
+        <View style={{ alignItems: compact ? 'stretch' : 'center', flexDirection: compact ? 'column' : 'row', gap: SPACE.xl, justifyContent: 'space-between' }}>
+          <View style={{ gap: SPACE.xs }}>
+            <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
+              <Ionicons color={colors.text.accent} name="layers-outline" size={23} />
+              <Typography accessibilityRole="header" variant="heading">Vault</Typography>
+            </View>
+            <Typography variant="body">Everything worth remembering about this Goal.</Typography>
+          </View>
+          <Pressable accessibilityLabel="Add to Vault" accessibilityRole="button" onPress={() => setAddOpen(true)} style={({ pressed }) => ({ alignItems: 'center', alignSelf: compact ? 'stretch' : 'center', backgroundColor: colors.accent.primary, borderRadius: RADIUS.md, flexDirection: 'row', gap: SPACE.sm, justifyContent: 'center', minHeight: 44, opacity: pressed ? 0.75 : 1, paddingHorizontal: SPACE.xl })}>
+            <Ionicons color={colors.text.onAccent} name="add" size={18} />
+            <Typography variant="emphasis-sm" style={{ color: colors.text.onAccent }}>Add to Vault</Typography>
           </Pressable>
         </View>
-        {vault.loading ? <ActivityIndicator color={colors.accent.primary} /> : null}
-        {vault.error || entryLoadError ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: SPACE.md }}>
-          <Typography variant="caption">Some linked material couldn't load.</Typography>
-          <Pressable accessibilityRole="button" disabled={retrying} onPress={() => void retrySources()} style={{ minHeight: 44, justifyContent: 'center' }}>
-            <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>{retrying ? 'Retrying…' : 'Retry'}</Typography>
-          </Pressable>
-        </View> : null}
-        {!vault.loading && !sources.length ? <Typography variant="body">Linked Notes, Reflections, and saved material will appear here.</Typography> : null}
-        {sources.map((source) => (
-          <Pressable key={source.id} accessibilityRole="button" accessibilityLabel={`Open ${source.title}`}
-            onPress={source.open} style={{ borderBottomWidth: 1, borderBottomColor: colors.border.divider, paddingVertical: SPACE.lg, gap: SPACE.sm }}>
-            <Typography variant="caption">{source.type.replace('_', ' ')} · {source.origin}</Typography>
-            <Typography variant="emphasis-sm">{source.title}</Typography>
-            <Typography variant="caption">{dateLabel(source.date)}</Typography>
-          </Pressable>
-        ))}
-      </View>
-      <View testID="goal-completion-timeline" style={{ gap: SPACE.lg }}>
-        <GoalSectionHeading>Completion Timeline</GoalSectionHeading>
-        <Typography variant="body">Meaningful work completed toward this Goal.</Typography>
-        {activityLoading ? <ActivityIndicator color={colors.accent.primary} /> : activityError ?
-          <Typography variant="body">Completions could not be loaded right now.</Typography> :
-          (showCompletions ? completions : completions.slice(-10)).map((item) => (
-            <View key={item.id} style={{ borderLeftWidth: 2, borderLeftColor: colors.border.accent, paddingLeft: SPACE.lg, paddingVertical: SPACE.md, gap: SPACE.sm }}>
-              <Typography variant="emphasis-sm">{eventTitle(item)}</Typography>
-              <Typography variant="caption">{dateLabel(item.timestamp)}</Typography>
-            </View>
-          ))}
-        {!activityLoading && !activityError && !completions.length ? <Typography variant="body">Completed Tasks and Milestones will appear here.</Typography> : null}
-        {completions.length > 10 ? <Pressable accessibilityRole="button" onPress={() => setShowCompletions((value) => !value)} style={{ minHeight: 44 }}>
-          <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>{showCompletions ? 'Show recent completions ↑' : 'View all completions →'}</Typography>
-        </Pressable> : null}
-      </View>
-      <Modal visible={Boolean(selectedSource)} onClose={() => setSelectedSourceId(null)}
-        contentStyle={{ maxWidth: 620, maxHeight: '90%' }}>
-        <ScrollView style={{ flexShrink: 1 }}>
-          {selectedSource ? <VaultItemCard item={selectedSource} goalId={goal.id}
-            onUpdate={vault.updateItem} onDelete={vault.removeItem} /> : null}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACE.xs }}>
+          {FILTERS.map((option) => {
+            const selected = option.value === filter;
+            return <Pressable key={option.value} accessibilityRole="tab" accessibilityState={{ selected }} onPress={() => setFilter(option.value)} style={({ pressed }) => ({ backgroundColor: selected ? colors.background.selectedRow : 'transparent', borderBottomColor: selected ? colors.accent.primary : 'transparent', borderBottomWidth: 2, minHeight: 42, justifyContent: 'center', opacity: pressed ? 0.7 : 1, paddingHorizontal: SPACE.lg })}>
+              <Typography variant={selected ? 'emphasis-sm' : 'body-small'} style={{ color: selected ? colors.text.accent : colors.text.secondary }}>{option.label}</Typography>
+            </Pressable>;
+          })}
         </ScrollView>
+      </View>
+
+      {showSticky ? <VaultSection icon="document-text-outline" title="Sticky Notes">
+        <Typography variant="caption">Private to you. Sticky Notes are never included in Shared Goals, public Goals, or Project aggregation.</Typography>
+        <View testID="goal-private-notes">{privateNotes}</View>
+      </VaultSection> : null}
+
+      {(showNotes || showReflections) ? <VaultSection icon="reader-outline" title={filter === 'notes' ? 'Notes' : filter === 'reflections' ? 'Reflections' : 'Notes & Reflections'}>
+        {entryLoadError ? <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md }}><Typography variant="caption">Linked entries couldn't load.</Typography><Pressable accessibilityRole="button" disabled={retrying} onPress={() => void retrySources()} style={{ minHeight: 44, justifyContent: 'center' }}><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>{retrying ? 'Retrying…' : 'Retry'}</Typography></Pressable></View> : null}
+        {visibleEntries.length === 0 && !entryLoadError ? <Typography variant="body">Linked {filter === 'all' ? 'Notes and Reflections' : FILTERS.find((item) => item.value === filter)?.label} will appear here.</Typography> : null}
+        <View style={{ flexDirection: compact ? 'column' : 'row', flexWrap: 'wrap', gap: SPACE.md }}>
+          {visibleEntries.map((entry) => <Pressable key={entry.id} accessibilityLabel={`Open ${entry.title || 'Untitled entry'}`} accessibilityRole="button" onPress={() => router.push({ pathname: '/(app)/entries/[id]' as never, params: { id: entry.id } })} style={({ pressed }) => ({ backgroundColor: colors.background.subtle, borderColor: colors.border.divider, borderRadius: RADIUS.lg, borderWidth: 1, flexBasis: compact ? undefined : 280, flexGrow: 1, gap: SPACE.sm, minWidth: compact ? 0 : 250, opacity: pressed ? 0.7 : 1, padding: SPACE.lg })}>
+            <Typography variant="caption">{entry.entryType === 'reflection' ? 'Reflection' : 'Note'} · Echo</Typography><Typography variant="emphasis-sm">{entry.title || 'Untitled entry'}</Typography><Typography variant="caption">{dateLabel(entry.updatedAt)} · From {parent.title}</Typography>
+          </Pressable>)}
+        </View>
+      </VaultSection> : null}
+
+      {showSources ? <VaultSection icon="link-outline" title="Sources">
+        {vault.loading ? <ActivityIndicator color={colors.accent.primary} /> : null}
+        {vault.error ? <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}><Typography variant="caption">Sources couldn't load.</Typography><Pressable accessibilityRole="button" onPress={() => void retrySources()}><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>Retry</Typography></Pressable></View> : null}
+        {!vault.loading && !sources.length ? <Typography variant="body">Saved links, documents, and other source material will appear here.</Typography> : null}
+        <View style={{ flexDirection: compact ? 'column' : 'row', flexWrap: 'wrap', gap: SPACE.md }}>
+          {sources.map((item) => <Pressable key={item.id} accessibilityLabel={`Open ${item.title || 'Untitled material'}`} accessibilityRole="button" onPress={() => setSelectedSourceId(item.id)} style={({ pressed }) => ({ backgroundColor: colors.background.subtle, borderColor: colors.border.divider, borderRadius: RADIUS.lg, borderWidth: 1, flexBasis: compact ? undefined : 280, flexGrow: 1, gap: SPACE.sm, minWidth: compact ? 0 : 250, opacity: pressed ? 0.7 : 1, padding: SPACE.lg })}>
+            <Typography variant="caption">{item.itemType.replace('_', ' ')} · {sourceOrigin(item.metadata?.url)}</Typography><Typography variant="emphasis-sm">{item.title || (item.itemType === 'link' ? 'Saved link' : 'Untitled material')}</Typography><Typography variant="caption">{dateLabel(item.createdAt)} · From {parent.title}</Typography>
+          </Pressable>)}
+        </View>
+      </VaultSection> : null}
+
+      {filter === 'all' ? <VaultSection icon="time-outline" title="Recent Vault Activity">
+        {activityLoading ? <ActivityIndicator color={colors.accent.primary} /> : activityError ? <Typography variant="body">Vault activity could not be loaded.</Typography> : recentActivity.length ? recentActivity.slice(0, 12).map((item) => <View key={item.id} style={{ alignItems: compact ? 'flex-start' : 'center', borderBottomColor: colors.border.divider, borderBottomWidth: 1, flexDirection: compact ? 'column' : 'row', gap: SPACE.sm, justifyContent: 'space-between', paddingVertical: SPACE.md }}><Typography variant="body-small">{activityLabel(item)}</Typography><Typography variant="caption">{dateLabel(item.timestamp)}</Typography></View>) : <Typography variant="body">Meaningful Vault activity will appear here.</Typography>}
+      </VaultSection> : null}
+
+      <Modal visible={addOpen} onClose={() => setAddOpen(false)} contentStyle={{ maxWidth: 520 }}>
+        <View style={{ gap: SPACE.lg }}><Typography variant="title">Add to Vault</Typography>
+          {[
+            { key: 'sticky', icon: 'document-text-outline' as const, title: 'Sticky Note', detail: 'Capture a private note for this Goal.', action: addStickyNote },
+            { key: 'note', icon: 'reader-outline' as const, title: 'Note', detail: 'Create a linked Note in Echo.', action: () => createEchoEntry('note') },
+            { key: 'reflection', icon: 'create-outline' as const, title: 'Reflection', detail: 'Create a linked Reflection in Echo.', action: () => createEchoEntry('reflection') },
+            { key: 'source', icon: 'link-outline' as const, title: 'Source', detail: 'Add a link, document, or other material.', action: () => { setAddOpen(false); router.push(`/(app)/goals/${parent.id}/vault` as never); } },
+          ].map((option) => <Pressable key={option.key} accessibilityRole="button" accessibilityLabel={`Add ${option.title}`} onPress={option.action} style={({ pressed }) => ({ alignItems: 'center', backgroundColor: pressed ? colors.background.selectedRow : colors.background.subtle, borderRadius: RADIUS.md, flexDirection: 'row', gap: SPACE.lg, minHeight: 64, padding: SPACE.lg })}><Ionicons color={colors.text.accent} name={option.icon} size={22} /><View style={{ flex: 1 }}><Typography variant="emphasis-sm">{option.title}</Typography><Typography variant="caption">{option.detail}</Typography></View><Ionicons color={colors.text.muted} name="chevron-forward" size={17} /></Pressable>)}
+        </View>
       </Modal>
+      <Modal visible={Boolean(selectedSource)} onClose={() => setSelectedSourceId(null)} contentStyle={{ maxWidth: 620, maxHeight: '90%' }}><ScrollView style={{ flexShrink: 1 }}>{selectedSource ? <VaultItemCard item={selectedSource} goalId={parent.id} onUpdate={vault.updateItem} onDelete={vault.removeItem} /> : null}</ScrollView></Modal>
     </View>
   );
+}
+
+export function GoalVault(props: Omit<VaultWorkspaceProps, 'parent'> & { goal: GoalWithDetails }) {
+  const { goal, ...workspaceProps } = props;
+  return <VaultWorkspace {...workspaceProps} parent={{ id: goal.id, title: goal.title, type: 'goal' }} />;
 }

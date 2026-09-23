@@ -1,4 +1,5 @@
 export type VaultItemType = 'note' | 'link' | 'document' | 'insight' | 'action_update';
+export type VaultContentKind = 'generic' | 'sticky_note';
 
 export interface Vault {
   id: string;
@@ -26,6 +27,8 @@ export interface VaultItem {
   id: string;
   vaultId: string;
   itemType: VaultItemType;
+  /** Explicit semantic classification; never infer Sticky Notes from itemType. */
+  contentKind: VaultContentKind;
   title: string | null;
   content: string | null;
   /** Sticky Note folder (vault_note_folders, migration 065). `null` = General.
@@ -57,6 +60,7 @@ export interface VaultItem {
 
 export interface CreateVaultItemInput {
   itemType: VaultItemType;
+  contentKind?: VaultContentKind;
   title: string;
   content?: string | null;
   metadata?: VaultItem['metadata'];

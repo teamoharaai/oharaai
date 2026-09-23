@@ -6,7 +6,7 @@ import {
   createVaultItem,
 } from '@/lib/db/vaults';
 import { getFolderByIdForVault } from '@/lib/db/vault-folders';
-import type { VaultItem, VaultItemType } from '@/types/vault';
+import type { VaultContentKind, VaultItem, VaultItemType } from '@/types/vault';
 
 const VAULT_ITEM_TYPES: readonly VaultItemType[] = [
   'note',
@@ -106,6 +106,7 @@ async function handleGet(
 
 interface CreateVaultItemBody {
   itemType?: unknown;
+  contentKind?: unknown;
   title?: unknown;
   content?: unknown;
   metadata?: unknown;
@@ -143,6 +144,7 @@ async function handlePost(
   }
 
   let itemType: VaultItemType;
+  let contentKind: VaultContentKind;
   let title: string | null;
   let content: string | null;
   let metadata: VaultItem['metadata'];
@@ -153,6 +155,13 @@ async function handlePost(
       throw new Error(`itemType must be one of: ${VAULT_ITEM_TYPES.join(', ')}`);
     }
     itemType = body.itemType as VaultItemType;
+    if (body.contentKind === undefined) contentKind = 'generic';
+    else if (body.contentKind === 'generic' || body.contentKind === 'sticky_note') {
+      contentKind = body.contentKind;
+    } else throw new Error('contentKind must be generic or sticky_note');
+    if (contentKind === 'sticky_note' && itemType !== 'note') {
+      throw new Error('sticky_note contentKind requires note itemType');
+    }
     title = sanitizeOptionalString(body.title, MAX_TITLE_LENGTH);
     content = sanitizeOptionalString(body.content, MAX_CONTENT_LENGTH);
     metadata = sanitizeMetadata(body.metadata);
@@ -187,6 +196,7 @@ async function handlePost(
     const item = await createVaultItem(vault.id, {
       vaultId: vault.id,
       itemType,
+      contentKind,
       title,
       content,
       metadata,

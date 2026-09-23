@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { CountdownTimer } from './CountdownTimer';
@@ -28,7 +29,9 @@ interface GoalDetailHeaderProps {
   onOpenProjectPicker: () => void;
   onUpdateDeadline: (deadline: Date | null) => Promise<boolean>;
   onUpdateDescription: (description: string | null) => Promise<boolean>;
+  onWorkspaceChange: (mode: 'overview' | 'vault') => void;
   successorGoalId: string | null;
+  vaultMode: boolean;
 }
 
 function getStatusBadgeVariant(
@@ -107,7 +110,9 @@ export function GoalDetailHeader({
   onOpenProjectPicker,
   onUpdateDeadline,
   onUpdateDescription,
+  onWorkspaceChange,
   successorGoalId,
+  vaultMode,
 }: GoalDetailHeaderProps) {
   const colors = useThemeColors();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -234,6 +239,25 @@ export function GoalDetailHeader({
         </View>
 
         <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
+          <Pressable
+            accessibilityLabel={vaultMode ? 'Back to Overview' : 'Open Vault'}
+            accessibilityRole="button"
+            onPress={() => onWorkspaceChange(vaultMode ? 'overview' : 'vault')}
+            style={({ pressed }) => ({
+              alignItems: 'center',
+              borderColor: colors.border.input,
+              borderRadius: RADIUS.md,
+              borderWidth: 1,
+              flexDirection: 'row',
+              gap: SPACE.sm,
+              minHeight: 38,
+              opacity: pressed ? 0.68 : 1,
+              paddingHorizontal: SPACE.lg,
+            })}
+          >
+            <Ionicons color={colors.text.primary} name={vaultMode ? 'arrow-back' : 'layers-outline'} size={16} />
+            <Typography variant="emphasis-sm">{vaultMode ? 'Overview' : 'Vault'}</Typography>
+          </Pressable>
           <ManageGoalControl goal={goal} superseded={isSuperseded} onComplete={onComplete} onArchive={onArchive} />
 
           <View style={{ position: 'relative', zIndex: 40 }}>

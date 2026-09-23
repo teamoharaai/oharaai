@@ -30,6 +30,8 @@ export interface StickyNotesPanelProps {
   readOnly?: boolean;
   /** Rendered inside a tab shell; drops the card chrome. */
   embedded?: boolean;
+  /** Opens the canonical composer when requested by the parent Vault menu. */
+  creationRequestKey?: number;
   onAdd?: (input: GoalNoteInput) => Promise<void>;
   onSave?: (noteId: string, updates: GoalNoteUpdates) => Promise<void>;
   onDelete?: (noteId: string) => Promise<void>;
@@ -256,6 +258,7 @@ export function StickyNotesPanel({
   folders = [],
   readOnly = false,
   embedded = false,
+  creationRequestKey = 0,
   onAdd,
   onSave,
   onDelete,
@@ -298,6 +301,10 @@ export function StickyNotesPanel({
   const canManageFolders = !readOnly && Boolean(onAddFolder);
   const canMove = !readOnly && Boolean(onMoveNotes) && folders.length > 0;
   const canReorder = !readOnly && Boolean(onReorderFolders);
+
+  useEffect(() => {
+    if (creationRequestKey > 0 && !readOnly) setShowAddForm(true);
+  }, [creationRequestKey, readOnly]);
 
   const sortedFolders = useMemo(
     () => [...folders].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
@@ -511,11 +518,12 @@ export function StickyNotesPanel({
             }
           : {})}
         style={{
-          backgroundColor: colors.background.card,
-          borderColor: selectionMode && selected ? colors.accent.primary : colors.border.divider,
+          backgroundColor: embedded ? colors.background.selectedRow : colors.background.card,
+          borderColor: selectionMode && selected ? colors.accent.primary : embedded ? colors.border.accent : colors.border.divider,
           borderRadius: 16,
           borderWidth: selectionMode && selected ? 2 : 1,
           padding: compact ? 16 : 20,
+          ...(embedded && !compact ? { flexBasis: 280, flexGrow: 1, minWidth: 250 } : {}),
         }}
       >
         {note.photoUrl ? (
@@ -992,7 +1000,9 @@ export function StickyNotesPanel({
       ) : null}
 
       {visibleNotes.length > 0 ? (
-        <View style={{ gap: 12 }}>{visibleNotes.map((note) => renderNoteCard(note))}</View>
+        <View style={{ flexDirection: embedded && !compact ? 'row' : 'column', flexWrap: 'wrap', gap: 12 }}>
+          {visibleNotes.map((note) => renderNoteCard(note))}
+        </View>
       ) : !showAddForm ? (
         <View style={{ paddingHorizontal: 2, paddingVertical: 6 }}>
           <Text style={{ color: colors.text.muted, fontFamily: 'Inter-Regular', fontSize: 14, lineHeight: 21 }}>

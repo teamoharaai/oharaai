@@ -73,11 +73,6 @@ const STATUS_OPTIONS: ReadonlyArray<{ label: string; value: GoalWorkspaceStatusF
 const PRIMARY_STATUS_OPTIONS = STATUS_OPTIONS.slice(0, 2);
 const OVERFLOW_STATUS_OPTIONS = STATUS_OPTIONS.slice(2);
 
-const DETAIL_TABS: ReadonlyArray<{ label: string; value: WorkspaceTab }> = [
-  { label: 'Overview', value: 'overview' },
-  { label: 'Vault', value: 'vault' },
-];
-
 function formatDate(date: Date | null, fallback = 'Not set'): string {
   if (!date || Number.isNaN(date.getTime())) return fallback;
   return new Intl.DateTimeFormat('en-US', {
@@ -623,48 +618,6 @@ function GoalList({
   );
 }
 
-function DetailTabs({ onChange, value }: { onChange: (value: WorkspaceTab) => void; value: WorkspaceTab }) {
-  const colors = useThemeColors();
-  return (
-    <View
-      accessibilityRole="tablist"
-      style={{
-        borderTopColor: colors.border.divider,
-        borderTopWidth: 0,
-        borderBottomColor: colors.border.divider,
-        borderBottomWidth: 0,
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        paddingHorizontal: SPACE.lg,
-      }}
-    >
-      {DETAIL_TABS.map((tab) => {
-        const selected = value === tab.value;
-        return (
-          <Pressable
-            accessibilityRole="tab"
-            accessibilityState={{ selected }}
-            key={tab.value}
-            onPress={() => onChange(tab.value)}
-            style={({ pressed }) => ({
-              borderBottomColor: selected ? colors.accent.primary : 'transparent',
-              borderBottomWidth: 2,
-              minHeight: 46,
-              justifyContent: 'center',
-              opacity: pressed ? 0.65 : 1,
-              paddingHorizontal: SPACE.lg,
-            })}
-          >
-            <Typography variant={selected ? "emphasis-sm" : "body"} style={{ color: selected ? colors.text.accent : colors.text.secondary }}>
-              {tab.label}
-            </Typography>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
 function WorkspaceSection({ children }: { children: ReactNode }) {
   const { width } = useWindowDimensions();
   return (
@@ -760,13 +713,15 @@ function GoalTabContent({
   const colors = useThemeColors();
   const { density: deadlineDensity } = useDeadlineDensity();
   const [allTasks, setAllTasks] = useState(false);
+  const [stickyCreateRequest, setStickyCreateRequest] = useState(0);
   const next = getNextGoalMilestone(goal.milestones);
   const milestoneRef = useRef<View>(null);
   const scrollToContent = useScrollToPageContent();
   const { width } = useWindowDimensions();
   if (tab === 'vault') return (
-    <Surface><GoalVault key={goal.id} goal={goal} entries={linkedEntries} entriesError={entriesError}
-      privateNotes={<StickyNotesPanel embedded notes={goal.notes} folders={goal.noteFolders}
+    <GoalVault key={goal.id} goal={goal} entries={linkedEntries} entriesError={entriesError}
+      onAddStickyNote={() => setStickyCreateRequest((value) => value + 1)}
+      privateNotes={<StickyNotesPanel embedded creationRequestKey={stickyCreateRequest} notes={goal.notes} folders={goal.noteFolders}
         error={goalDetail.noteError} folderError={goalDetail.folderError}
         onAdd={goalDetail.onAddNote} onSave={goalDetail.onSaveNote} onDelete={goalDetail.onDeleteNote}
         onAttachPhoto={goalDetail.onAttachNotePhoto} onDismissError={goalDetail.clearNoteError}
@@ -776,7 +731,7 @@ function GoalTabContent({
         onMoveNotes={goalDetail.onMoveNotes}
         resolvePhotoUrl={goalDetail.resolveNotePhotoUrl}
         readOnly={goal.has_successor || goal.status === 'complete' || goal.status === 'archived'} />}
-      activityItems={activityItems} activityLoading={activityLoading} activityError={activityError} /></Surface>
+      activityItems={activityItems} activityLoading={activityLoading} activityError={activityError} />
   );
   const deadlineProgress = getGoalRingProgress(goal);
   const ended = deadlineProgress !== null && deadlineProgress >= 100;
@@ -957,7 +912,7 @@ function SelectedGoalWorkspace({
   goal,
   goalDetail,
   tab,
-  onTabChange,
+  onWorkspaceChange,
 }: {
   activityError: string | null;
   activityItems: readonly ActivityItem[];
@@ -966,7 +921,7 @@ function SelectedGoalWorkspace({
   entriesError: string | null;
   goal: GoalWithDetails;
   goalDetail: UseGoalDetailResult;
-  onTabChange: (value: WorkspaceTab) => void;
+  onWorkspaceChange: (value: WorkspaceTab) => void;
   tab: WorkspaceTab;
 }) {
   const colors = useThemeColors();
@@ -1017,7 +972,9 @@ function SelectedGoalWorkspace({
           onOpenProjectPicker={openProjectPicker}
           onUpdateDeadline={goalDetail.onUpdateDeadline}
           onUpdateDescription={goalDetail.onUpdateDescription}
+          onWorkspaceChange={onWorkspaceChange}
           successorGoalId={goal.successor?.id ?? null}
+          vaultMode={tab === 'vault'}
         />
         {goalDetail.goalError ? (
           <View
@@ -1040,8 +997,7 @@ function SelectedGoalWorkspace({
           </View>
         ) : null}
         </Surface>
-        <DetailTabs onChange={onTabChange} value={tab} />
-          <GoalTabContent
+        <GoalTabContent
             key={goal.id}
             activityError={activityError}
             activityItems={activityItems}
@@ -1096,6 +1052,7 @@ export function GoalsWorkspace() {
     goal?: string | string[];
     selected?: string | string[];
     status?: string | string[];
+    view?: string | string[];
   }>();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [workspaceWidth, setWorkspaceWidth] = useState(0);
@@ -1124,7 +1081,8 @@ export function GoalsWorkspace() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<GoalWithDetails['category'] | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [tab, setTab] = useState<WorkspaceTab>('overview');
+  const requestedView = Array.isArray(params.view) ? params.view[0] : params.view;
+  const tab: WorkspaceTab = requestedView === 'vault' ? 'vault' : 'overview';
   const [entries, setEntries] = useState<EntryRecord[]>([]);
   const [entriesError, setEntriesError] = useState<string | null>(null);
 
@@ -1181,8 +1139,12 @@ export function GoalsWorkspace() {
 
   function selectGoal(goalId: string) {
     setSelectedGoalId(goalId);
-    setTab('overview');
-    router.setParams({ goal: goalId } as never);
+    router.setParams({ goal: goalId, view: 'overview' } as never);
+  }
+
+  function changeWorkspace(mode: WorkspaceTab) {
+    if (!workspaceGoal || mode === tab) return;
+    router.push({ pathname: '/(app)/goals', params: { goal: workspaceGoal.id, status, view: mode } } as never);
   }
 
   return (
@@ -1237,12 +1199,12 @@ export function GoalsWorkspace() {
                   entriesError={entriesError}
                   goal={workspaceGoal}
                   goalDetail={selectedGoalDetail}
-                  onTabChange={setTab}
+                  onWorkspaceChange={changeWorkspace}
                   tab={tab}
                 />
               ) : null}
             </View>
-            <View style={{ flex: 0.85, minWidth: 270 }}>
+            {tab === 'overview' ? <View style={{ flex: 0.85, minWidth: 270 }}>
               {workspaceGoal ? (
                 <ContextRail
                   activityError={selectedActivity.error}
@@ -1251,7 +1213,7 @@ export function GoalsWorkspace() {
                   items={selectedActivity.items}
                 />
               ) : null}
-            </View>
+            </View> : null}
           </View>
         ) : tablet ? (
           <View style={{ alignItems: 'flex-start', flexDirection: 'row', gap: SPACE.xl }}>
@@ -1280,15 +1242,15 @@ export function GoalsWorkspace() {
                     entriesError={entriesError}
                     goal={workspaceGoal}
                     goalDetail={selectedGoalDetail}
-                    onTabChange={setTab}
+                    onWorkspaceChange={changeWorkspace}
                     tab={tab}
                   />
-                  <ContextRail
+                  {tab === 'overview' ? <ContextRail
                     activityError={selectedActivity.error}
                     activityLoading={selectedActivity.loading}
                     goal={workspaceGoal}
                     items={selectedActivity.items}
-                  />
+                  /> : null}
                 </>
               ) : null}
             </View>
@@ -1317,15 +1279,15 @@ export function GoalsWorkspace() {
                   entriesError={entriesError}
                   goal={workspaceGoal}
                   goalDetail={selectedGoalDetail}
-                  onTabChange={setTab}
+                  onWorkspaceChange={changeWorkspace}
                   tab={tab}
                 />
-                <ContextRail
+                {tab === 'overview' ? <ContextRail
                   activityError={selectedActivity.error}
                   activityLoading={selectedActivity.loading}
                   goal={workspaceGoal}
                   items={selectedActivity.items}
-                />
+                /> : null}
               </>
             ) : null}
           </View>

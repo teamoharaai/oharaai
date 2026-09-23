@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import supabase from './client';
-import type { Vault, VaultItem, VaultItemType } from '@/types/vault';
+import type { Vault, VaultContentKind, VaultItem, VaultItemType } from '@/types/vault';
 import { buildVaultItemEmbeddingText } from '@/lib/ai/embedding-text';
 import { generateEmbedding } from '@/lib/ai/embeddings';
 import { EMBEDDING_MODEL } from '@/lib/ai/constants';
@@ -26,6 +26,7 @@ type DbVaultItemRow = {
   id: string;
   vault_id: string;
   item_type: string;
+  content_kind: string;
   title: string | null;
   content: string | null;
   metadata: Record<string, unknown>;
@@ -56,6 +57,7 @@ function mapVaultItem(row: DbVaultItemRow): VaultItem {
     id: row.id,
     vaultId: row.vault_id,
     itemType: row.item_type as VaultItemType,
+    contentKind: row.content_kind as VaultContentKind,
     title: row.title,
     content: row.content,
     metadata: row.metadata as VaultItem['metadata'],
@@ -170,7 +172,7 @@ export async function getVaultItems(
 ): Promise<VaultItem[]> {
   const { data, error } = await client
     .from('vault_items')
-    .select('id, vault_id, item_type, title, content, metadata, folder_id, visibility, created_by, sort_order, created_at, updated_at')
+    .select('id, vault_id, item_type, content_kind, title, content, metadata, folder_id, visibility, created_by, sort_order, created_at, updated_at')
     .eq('vault_id', vaultId)
     .order('sort_order', { ascending: true });
 
@@ -185,7 +187,7 @@ export async function getVaultItemsByType(
 ): Promise<VaultItem[]> {
   const { data, error } = await client
     .from('vault_items')
-    .select('id, vault_id, item_type, title, content, metadata, folder_id, visibility, created_by, sort_order, created_at, updated_at')
+    .select('id, vault_id, item_type, content_kind, title, content, metadata, folder_id, visibility, created_by, sort_order, created_at, updated_at')
     .eq('vault_id', vaultId)
     .eq('item_type', itemType)
     .order('sort_order', { ascending: true });
@@ -206,6 +208,7 @@ export async function createVaultItem(
     .insert({
       vault_id: vaultId,
       item_type: item.itemType,
+      content_kind: item.contentKind,
       title: item.title,
       content: item.content,
       metadata: item.metadata,
@@ -215,7 +218,7 @@ export async function createVaultItem(
       sort_order: item.sortOrder,
       embedding_text: embeddingText,
     })
-    .select('id, vault_id, item_type, title, content, metadata, folder_id, visibility, created_by, sort_order, created_at, updated_at')
+    .select('id, vault_id, item_type, content_kind, title, content, metadata, folder_id, visibility, created_by, sort_order, created_at, updated_at')
     .single();
 
   if (error || !data) throw new Error(error?.message ?? 'Failed to create vault item');
@@ -260,7 +263,7 @@ export async function updateVaultItem(
     .from('vault_items')
     .update(payload)
     .eq('id', itemId)
-    .select('id, vault_id, item_type, title, content, metadata, folder_id, visibility, created_by, sort_order, created_at, updated_at')
+    .select('id, vault_id, item_type, content_kind, title, content, metadata, folder_id, visibility, created_by, sort_order, created_at, updated_at')
     .single();
 
   if (error || !data) throw new Error(error?.message ?? 'Failed to update vault item');
@@ -286,7 +289,7 @@ export async function getVaultItemByIdForUser(
 ): Promise<VaultItem | null> {
   const { data: itemRow, error: itemError } = await client
     .from('vault_items')
-    .select('id, vault_id, item_type, title, content, metadata, folder_id, visibility, created_by, sort_order, created_at, updated_at')
+    .select('id, vault_id, item_type, content_kind, title, content, metadata, folder_id, visibility, created_by, sort_order, created_at, updated_at')
     .eq('id', itemId)
     .maybeSingle();
 

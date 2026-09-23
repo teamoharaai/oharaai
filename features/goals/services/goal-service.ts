@@ -26,6 +26,7 @@ import type {
   TrackerUpdates,
 } from '../types';
 import type { GoalTheme } from '@/constants/themes';
+import { isStickyVaultItem } from '../vault-classification';
 import {
   GOAL_DB_STATUSES,
   GOAL_TRACKER_FREQUENCIES,
@@ -77,6 +78,7 @@ type VaultItemJson = {
   id: string;
   vaultId: string;
   itemType: string;
+  contentKind: string;
   title: string | null;
   content: string | null;
   metadata: { photoUrl?: string } & Record<string, unknown>;
@@ -737,7 +739,7 @@ export async function fetchGoalVaultNotes(goalId: string): Promise<GoalNote[]> {
     if (!res.ok) return [];
     const data = (await res.json()) as { items?: VaultItemJson[] };
     return (data.items ?? [])
-      .filter((item) => item.itemType === 'note')
+      .filter((item) => isStickyVaultItem({ contentKind: item.contentKind as 'generic' | 'sticky_note' }))
       .map((item) => mapVaultNoteToGoalNote(item, goalId))
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   } catch {
@@ -759,6 +761,7 @@ export async function createGoalNote(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         itemType: 'note',
+        contentKind: 'sticky_note',
         title: input.title.trim() || null,
         content: input.body?.trim() || null,
         folderId: input.folderId ?? null,
@@ -783,9 +786,8 @@ export async function updateGoalNote(
   if (updates.title !== undefined) body.title = updates.title.trim() || null;
   if ('body' in updates) body.content = updates.body?.trim() || null;
   if ('folderId' in updates) body.folderId = updates.folderId ?? null;
-  // Photo lives in item metadata; a photo change replaces metadata wholesale,
-  // which only drops migration provenance keys (harmless). Title/body edits
-  // never send metadata, so an existing photo is preserved.
+  // Photo lives in item metadata. Classification is a dedicated immutable
+  // column, so media edits cannot erase or accidentally create Sticky Notes.
   if ('photoUrl' in updates) {
     body.metadata = updates.photoUrl ? { photoUrl: updates.photoUrl } : {};
   }

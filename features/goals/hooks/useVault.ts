@@ -43,7 +43,7 @@ export function useVault(goalId: string): UseVaultResult {
       const res = await authedFetch(`/api/vaults/${goalId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemType: 'note', title: title.trim() || null, content }),
+        body: JSON.stringify({ itemType: 'note', contentKind: 'generic', title: title.trim() || null, content }),
       });
       if (!res.ok) throw new Error(`Failed to add note: ${res.status}`);
       const { item } = await res.json();

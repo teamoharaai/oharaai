@@ -1,6 +1,6 @@
 import type { EchoBrt } from '@/features/echo/types';
 import type { EchoEmotion } from '@/features/echo/types';
-import type { VaultItemType } from '@/types/vault';
+import type { VaultContentKind, VaultItemType } from '@/types/vault';
 
 export type ActivityKind =
   | 'echo_entry'
@@ -54,6 +54,7 @@ export interface GoalCreatedActivity extends ActivityBase {
 export interface VaultItemAddedActivity extends ActivityBase {
   kind: 'vault_item_added';
   itemType: VaultItemType;
+  contentKind: VaultContentKind;
   title: string;
 }
 

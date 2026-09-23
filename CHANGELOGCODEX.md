@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added — Goals V2.3 Vault workspace foundation
+- Added migration 070 with durable, immutable `vault_items.content_kind` classification. Only migration-062 rows with complete `goal_notes` provenance are backfilled as `sticky_note`; ambiguous and generic notes remain `generic`. New Sticky Notes are classified explicitly, while photo/content edits cannot erase identity (`supabase/migrations/070_vault_item_content_kind.sql`, Vault API/types/services).
+- Added a parent-neutral `VaultWorkspace` presentation contract, functional All/Sticky Notes/Notes/Reflections/Sources filters, canonical Echo links, existing source handling, truthful Vault-only activity, section-level errors, and a compact Add to Vault menu. Project-owned schema remains deliberately deferred; the reuse and future Study Card seam are documented in `docs/goals/vault-v23-foundation.md`.
+- Replaced the Overview/Vault center tabs with a Goal-header Vault/Overview action and URL-backed `view=vault` workspace state. Vault mode retains the Goal and left navigation, removes the analytics rail, and expands across the available workspace on desktop and responsive layouts.
+- Added isolated migration/owner-isolation rehearsal coverage and updated light/dark responsive browser acceptance for workspace expansion, deep-link refresh, filters, canonical add/edit flows, error recovery, and zero horizontal overflow (`scripts/test-vault-v23-security.sh`, `features/goals/vault-classification.test.ts`, `tests/goals/workspace.spec.ts`).
+
 ### Changed — Goals V2.2 validated release
 - Final V2.2 state supersedes the incremental pending-validation notes below: upstream `5a8887b` and migrations 001–066 are preserved; the legitimate new migrations are 067 (immutable scoring profile), 068 (four canonical categories and preserved Entry-link audit), and 069 (canonical visibility management).
 - Validation passes: 377 affected unit checks, six light/dark responsive browser scenarios, isolated database/security suites, clean 001–069 reset, data-bearing 066→069 upgrade, authenticated local Task/Momentum/New Phase integration, production web export, and diff checks. TypeScript reports only the three unchanged protected duplicate-editor diagnostics. Rollback-only production rehearsal preserves all 55 Goals and complete Momentum snapshot/difficulty history, yielding 19 Health & Fitness, 1 Work & Money, 27 Learning & Creativity, and 8 Life & Relationships Goals.

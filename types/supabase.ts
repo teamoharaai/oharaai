@@ -2632,6 +2632,7 @@ export type Database = {
       vault_items: {
         Row: {
           content: string | null
+          content_kind: string
           created_at: string
           created_by: string
           embedding: string | null
@@ -2648,6 +2649,7 @@ export type Database = {
         }
         Insert: {
           content?: string | null
+          content_kind?: string
           created_at?: string
           created_by: string
           embedding?: string | null
@@ -2664,6 +2666,7 @@ export type Database = {
         }
         Update: {
           content?: string | null
+          content_kind?: string
           created_at?: string
           created_by?: string
           embedding?: string | null

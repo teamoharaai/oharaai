@@ -633,6 +633,7 @@ type DbVaultRowForActivity = {
 type DbVaultItemRowForActivity = {
   id: string;
   item_type: string;
+  content_kind: string;
   title: string | null;
   content: string | null;
   metadata: Record<string, unknown>;
@@ -749,7 +750,7 @@ export async function getActivityByGoalId(
 
     const { data: vaultItemData } = await db
       .from('vault_items')
-      .select('id, item_type, title, content, metadata, created_at, updated_at')
+      .select('id, item_type, content_kind, title, content, metadata, created_at, updated_at')
       .eq('vault_id', vaultId)
       .in('item_type', ['note', 'link', 'insight']);
 
@@ -764,6 +765,7 @@ export async function getActivityByGoalId(
           kind: 'vault_item_added',
           id: `vault-item-${row.id}`,
           itemType,
+          contentKind: row.content_kind === 'sticky_note' ? 'sticky_note' : 'generic',
           title,
           timestamp: row.created_at,
         });

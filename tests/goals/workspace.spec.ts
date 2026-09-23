@@ -29,7 +29,7 @@ for (const appearance of ['light', 'dark']) {
     let failAudienceOnce = true;
     const visibilityWrites: unknown[] = [];
     let noteCreated = false;
-    const privateNote = { id: 'private-note-1', vaultId: 'vault-1', createdBy: user.id, itemType: 'note', title: 'Private training thought', content: 'Owner only', metadata: {}, visibility: 'private', createdAt: date, updatedAt: date };
+    const privateNote = { id: 'private-note-1', vaultId: 'vault-1', createdBy: user.id, itemType: 'note', contentKind: 'sticky_note', title: 'Private training thought', content: 'Owner only', metadata: {}, visibility: 'private', createdAt: date, updatedAt: date };
     const sharedGoals = ['Read the entire Bible', 'Run my first 10K', 'Learn piano', 'Build a garden'].map((title, index) => ({
       id: `shared-${index}`, ownerId: 'friend-1', title, category: 'Life & Relationships', status: 'active', access: 'invited',
       owner: { id: 'friend-1', displayName: 'Justin', username: 'justin', avatarUrl: null },
@@ -88,6 +88,7 @@ for (const appearance of ['light', 'dark']) {
       if (path === '/api/goals/activity') body = { items: [
         { id: 'created', kind: 'goal_created', timestamp: date },
         { id: 'task-done', kind: 'task_completed', label: 'Mobility', timestamp: date },
+        { id: 'source-added', kind: 'vault_item_added', itemType: 'link', contentKind: 'generic', title: 'Race preparation guide', timestamp: date },
       ] };
       if (path === '/api/goals/activity-window') body = { buckets: Array.from({ length: 70 }, (_, index) => {
         const day = new Date(Date.UTC(2026, 6, 10 + index));
@@ -95,7 +96,7 @@ for (const appearance of ['light', 'dark']) {
           byKind: { task_completed: 0, entry_created: 0, milestone_completed: 0 }, isToday: index === 69 };
       }) };
       if (path.startsWith('/api/vaults/')) body = { vault: { id: 'vault-1' }, items: [{
-        id: 'source-1', itemType: 'link', title: 'Race preparation guide', metadata: { url: 'https://example.test' }, createdAt: date,
+        id: 'source-1', itemType: 'link', contentKind: 'generic', title: 'Race preparation guide', metadata: { url: 'https://example.test' }, createdAt: date,
       }, ...(noteCreated ? [privateNote] : [])] };
       if (path === '/api/momentum') body = { data: { goals: [{
         goalId: 'goal-0', displayedValue: 58, status: 'active', periodState: 'provisional',
@@ -109,7 +110,8 @@ for (const appearance of ['light', 'dark']) {
     await expect(page.getByRole('button', { name: 'Select Run a 5K', exact: true })).toBeVisible();
     const continueButton = page.getByRole('button', { name: 'Continue', exact: true });
     if (await continueButton.isVisible()) await continueButton.click();
-    await expect(page.getByRole('tab', { name: 'Vault', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open Vault', exact: true })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Overview', exact: true })).toHaveCount(0);
     await expect(page.getByRole('progressbar', { name: 'Elapsed Goal time' })).toBeVisible();
     await page.getByRole('button', { name: 'Manage Goal ▾', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Retry visibility', exact: true })).toBeVisible();
@@ -159,12 +161,26 @@ for (const appearance of ['light', 'dark']) {
     await page.getByRole('textbox', { name: 'Add a to-do', exact: true }).fill('Unsaved preview');
     await page.getByRole('textbox', { name: 'Add a to-do', exact: true }).fill('');
     failVaultOnce = true;
-    await page.getByRole('tab', { name: 'Vault', exact: true }).click();
-    await expect(page.getByText("Some linked material couldn't load.")).toBeVisible();
+    await page.getByRole('button', { name: 'Open Vault', exact: true }).click();
+    await expect(page).toHaveURL(/view=vault/);
+    await expect(page.getByText("Sources couldn't load.")).toBeVisible();
     await page.getByRole('button', { name: 'Retry', exact: true }).click();
-    await expect(page.getByText("Some linked material couldn't load.")).toHaveCount(0);
-    await expect(page.getByRole('tab', { name: 'Notes', exact: true })).toHaveCount(0);
-    await page.getByRole('button', { name: 'Add a sticky note' }).click();
+    await expect(page.getByText("Sources couldn't load.")).toHaveCount(0);
+    await expect(page.getByText('Goal Analytics', { exact: true }).filter({ visible: true })).toHaveCount(0);
+    for (const filter of ['All', 'Sticky Notes', 'Notes', 'Reflections', 'Sources']) {
+      await expect(page.getByRole('tab', { name: filter, exact: true })).toBeVisible();
+    }
+    await page.getByRole('tab', { name: 'Notes', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Open Training plan' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open Race preparation guide' })).toHaveCount(0);
+    await page.getByRole('tab', { name: 'Sources', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Open Race preparation guide' })).toBeVisible();
+    await page.getByRole('tab', { name: 'All', exact: true }).click();
+    await page.getByRole('button', { name: 'Add to Vault', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Add Note', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add Reflection', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add Source', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Add Sticky Note', exact: true }).click();
     await page.getByRole('textbox', { name: 'Note title' }).fill('Private training thought');
     await page.getByTestId('goal-private-notes').getByRole('button', { name: 'Create', exact: true }).click();
     await expect(page.getByTestId('goal-private-notes').getByText('Private training thought')).toBeVisible();
@@ -173,6 +189,7 @@ for (const appearance of ['light', 'dark']) {
     await page.getByRole('textbox', { name: 'Note title' }).fill('Edited private thought');
     await page.getByRole('button', { name: 'Save note', exact: true }).click();
     await expect(page.getByTestId('goal-private-notes').getByText('Edited private thought')).toBeVisible();
+    await page.getByRole('tab', { name: 'All', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Open Training plan' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Open Race preparation guide' })).toBeVisible();
     await expect(page.getByText('Private contents should stay hidden')).toHaveCount(0);
@@ -180,24 +197,33 @@ for (const appearance of ['light', 'dark']) {
     await expect(page.getByText('Close', { exact: true })).toBeVisible();
     await page.getByText('Close', { exact: true }).click();
     await expect(page.getByText('Close', { exact: true })).toBeHidden();
-    await expect(page.getByTestId('goal-recent-activity').filter({ visible: true }).getByText('Goal created', { exact: true })).toBeVisible();
-    await expect(page.getByTestId('goal-completion-timeline').getByText('Completed Mobility', { exact: true })).toBeVisible();
-    await expect(page.getByTestId('goal-completion-timeline').getByText('Goal created', { exact: true })).toHaveCount(0);
-    await page.getByTestId('goal-completion-timeline').scrollIntoViewIfNeeded();
+    await expect(page.getByText('Source added — Race preparation guide', { exact: true })).toBeVisible();
+    await expect(page.getByText('Goal created', { exact: true }).filter({ visible: true })).toHaveCount(0);
+    await page.getByText('Recent Vault Activity', { exact: true }).scrollIntoViewIfNeeded();
     await page.screenshot({ path: `/tmp/ohara-goals-v21-${appearance}-vault.png`, fullPage: true });
+    await page.reload();
+    await expect(page).toHaveURL(/view=vault/);
+    await expect(page.getByTestId('goal-vault-workspace')).toBeVisible();
+    const continueAfterReload = page.getByRole('button', { name: 'Continue', exact: true });
+    if (await continueAfterReload.isVisible()) await continueAfterReload.click();
+    await page.getByRole('button', { name: 'Select Launch portfolio', exact: true }).click();
+    await expect(page).toHaveURL(/view=overview/);
+    await expect(page.getByTestId('goal-vault-workspace').filter({ visible: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Select Run a 5K', exact: true }).click();
+    await page.getByRole('button', { name: 'Open Vault', exact: true }).click();
     for (const width of [768, 390]) {
       await page.setViewportSize({ width, height: 900 });
-      await expect(page.getByRole('tab', { name: 'Vault', exact: true })).toBeVisible();
-      await page.getByRole('tab', { name: 'Overview', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Back to Overview', exact: true })).toBeVisible();
+      await page.getByRole('button', { name: 'Back to Overview', exact: true }).click();
       await expect(page.getByRole('textbox', { name: 'Add a to-do', exact: true })).toBeVisible();
-      await expect(page.getByTestId('goal-private-notes')).toHaveCount(0);
+      await expect(page.getByTestId('goal-private-notes').filter({ visible: true })).toHaveCount(0);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
       expect(overflow).toBe(false);
       await page.screenshot({ path: `/tmp/ohara-goals-v21-${appearance}-${width}.png`, fullPage: true });
       await page.getByRole('button', { name: '+ New Milestone', exact: true }).scrollIntoViewIfNeeded();
       expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
       await page.screenshot({ path: `/tmp/ohara-goals-v21-${appearance}-milestones-${width}.png`, fullPage: true });
-      await page.getByRole('tab', { name: 'Vault', exact: true }).click();
+      await page.getByRole('button', { name: 'Open Vault', exact: true }).click();
       await page.getByRole('button', { name: 'Open Training plan' }).scrollIntoViewIfNeeded();
       expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
       await page.screenshot({ path: `/tmp/ohara-goals-v21-${appearance}-vault-${width}.png`, fullPage: true });
