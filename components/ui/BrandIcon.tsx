@@ -6,6 +6,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   ConstellationLogo,
   HomeLogo,
@@ -34,7 +35,6 @@ const BRAND_ICON_SOURCES: Partial<Record<BrandIconName, ImageSourcePropType>> = 
   'goal-mark': require('../../assets/brand/goal-mark.png') as ImageSourcePropType,
   today: require('../../assets/brand/today-logo.png') as ImageSourcePropType,
   'echo-add-entry': require('../../assets/brand/echo-add-entry.png') as ImageSourcePropType,
-  project: require('../../assets/brand/project-logo.png') as ImageSourcePropType,
   'theme-mode': require('../../assets/brand/theme-mode.png') as ImageSourcePropType,
 };
 
@@ -57,6 +57,10 @@ export function BrandIcon({ color, name, size = 20, style, tintColor }: BrandIco
   const colors = useThemeColors();
   const resolvedColor = color ?? tintColor ?? colors.accent.primary;
   const VectorIcon = BRAND_ICON_VECTORS[name];
+
+  if (name === 'project') {
+    return <Ionicons color={resolvedColor} name="folder-outline" size={size} style={style as never} />;
+  }
 
   if (VectorIcon) {
     return (

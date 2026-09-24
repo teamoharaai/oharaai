@@ -7,11 +7,11 @@ import { useThemeColors } from '@/store/uiStore';
 import type { ProjectSummary, ProjectVisualCategory } from '../types';
 
 function categoryPresentation(category: ProjectVisualCategory, colors: ReturnType<typeof useThemeColors>) {
-  if (category === 'Health & Fitness') return { bg: colors.background.selectedRow, color: colors.accent.primary, icon: 'fitness-outline' as const };
-  if (category === 'Work & Money') return { bg: colors.feedback.pending.bg, color: colors.feedback.pending.text, icon: 'briefcase-outline' as const };
-  if (category === 'Learning & Creativity') return { bg: colors.feedback.info.bg, color: colors.accent.teal, icon: 'book-outline' as const };
-  if (category === 'Life & Relationships') return { bg: colors.feedback.danger.bg, color: colors.feedback.danger.text, icon: 'people-outline' as const };
-  return { bg: colors.background.subtle, color: colors.text.secondary, icon: 'layers-outline' as const };
+  if (category === 'Health & Fitness') return { bg: colors.background.selectedRow, color: colors.accent.primary };
+  if (category === 'Work & Money') return { bg: colors.feedback.pending.bg, color: colors.feedback.pending.text };
+  if (category === 'Learning & Creativity') return { bg: colors.feedback.info.bg, color: colors.accent.teal };
+  if (category === 'Life & Relationships') return { bg: colors.feedback.danger.bg, color: colors.feedback.danger.text };
+  return { bg: colors.background.subtle, color: colors.text.secondary };
 }
 
 function relativeDate(value: string): string {
@@ -32,7 +32,7 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
       style={({ pressed }) => ({ backgroundColor: accent.bg, borderColor: colors.border.warmSubtle, borderRadius: RADIUS.xl, borderWidth: 1, flexBasis: 380, flexGrow: 1, maxWidth: 520, minHeight: 238, opacity: pressed ? 0.78 : 1, padding: SPACE['2xl'] })}>
       <View style={{ alignItems: 'flex-start', flexDirection: 'row', gap: SPACE.xl }}>
         <View style={{ alignItems: 'center', backgroundColor: colors.background.card, borderColor: colors.border.divider, borderRadius: RADIUS.lg, borderWidth: 1, height: 58, justifyContent: 'center', width: 58 }}>
-          <Ionicons color={accent.color} name={accent.icon} size={28} />
+          <Ionicons color={accent.color} name="folder-outline" size={28} />
         </View>
         <View style={{ flex: 1, gap: SPACE.xs }}>
           <Typography variant="title" numberOfLines={1}>{project.title}</Typography>

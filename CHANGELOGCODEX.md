@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Added — Projects V1.0.1
+- Added a bounded three-column Project dashboard with separate Current Goals, Notes, Reflections, OHARA Intelligence, aggregated Goal Tasks, Project Snapshot, Goal Momentum Snapshot, and capped Recent Activity previews with canonical deep links (`app/(app)/projects/[id].tsx`, Project service/model/types).
+
+### Changed — Projects V1.0.1
+- Standardized Projects on the folder icon across navigation, landing cards, breadcrumbs, and empty states; widened and reordered the responsive workspace without changing Project persistence or lifecycle behavior.
+- Split Project Vault Notes and Reflections into distinct ordered sections, added route-backed filtered entry points, removed the duplicated Overview Sticky Note card, and restricted Sources presentation to external links/documents while preserving note-like records unchanged (`GoalVault.tsx`, Project Vault workspace, Vault classification).
+
 ### Added — Projects V1.0
 - Added the responsive `/projects` landing page, lightweight Project creation with optional owned-Goal selection and explicit reassignment confirmation, and a premium Project workspace with Current Goals, history, activity, Sticky Note previews, snapshot context, and owner-only management (`app/(app)/projects`, `features/projects`).
 - Added Migration 071 with database-enforced Goal/Project same-owner rules, Goal-or-Project Vault parent XOR enforcement, one canonical Vault per Project, safe association RPCs, and append-only Project/Goal association evidence (`supabase/migrations/071_projects_v1_foundation.sql`).

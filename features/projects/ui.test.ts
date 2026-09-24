@@ -9,9 +9,12 @@ const vault = readFileSync(resolve(process.cwd(), 'features/projects/components/
 const nav = readFileSync(resolve(process.cwd(), 'components/layout/AppNavigation.tsx'), 'utf8');
 const goalHeader = readFileSync(resolve(process.cwd(), 'features/goals/components/GoalDetailHeader.tsx'), 'utf8');
 const service = readFileSync(resolve(process.cwd(), 'features/projects/services/project-service.ts'), 'utf8');
+const sharedVault = readFileSync(resolve(process.cwd(), 'features/goals/components/GoalVault.tsx'), 'utf8');
+const brandIcon = readFileSync(resolve(process.cwd(), 'components/ui/BrandIcon.tsx'), 'utf8');
 
 test('Projects is a first-class horizontal navigation destination', () => {
   assert.match(nav, /label: 'Projects'.*href: '\/\(app\)\/projects'/);
+  assert.match(brandIcon, /name === 'project'[\s\S]*folder-outline/);
 });
 
 test('landing uses meaningful data without progress percentages or imagery', () => {
@@ -21,10 +24,17 @@ test('landing uses meaningful data without progress percentages or imagery', () 
 });
 
 test('workspace contains approved overview and owner-only Vault hierarchy', () => {
-  for (const label of ['Current Goals', 'Recent Activity', 'Sticky Notes', 'Project Snapshot', 'OHARA Intelligence']) assert.match(workspace, new RegExp(label));
+  for (const label of ['Current Goals', 'Recent Activity', 'Notes', 'Reflections', 'Project Tasks', 'Project Snapshot', 'Momentum Snapshot', 'OHARA Intelligence']) assert.match(workspace, new RegExp(label));
+  assert.doesNotMatch(workspace, /title="Sticky Notes"/);
   assert.match(vault, /Project Sticky Note/);
   assert.match(vault, /Private to you/);
   assert.match(vault, /origins/);
+});
+
+test('Project Vault separates Notes and Reflections and applies strict Source semantics', () => {
+  assert.match(sharedVault, /title="Notes"/);
+  assert.match(sharedVault, /title="Reflections"/);
+  assert.match(sharedVault, /filter\(isSourceVaultItem\)/);
 });
 
 test('Goal title and sibling actions share the intentional header row', () => {

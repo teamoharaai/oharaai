@@ -5,6 +5,8 @@ import type { GoalWithDetails } from '@/features/goals/types';
 import { enrichGoalsWithSignals, GOAL_SELECT, mapGoal, type DbGoal } from '@/features/goals/services/goal-service';
 import { fetchEntries } from '@/features/entries/services/entry-service';
 import { buildProjectVaultActivity, deriveProjectVisualCategory, mergeProjectActivity } from '../model';
+import { selectProjectTaskPreviews } from '../model';
+import { getGoalTasks } from '@/features/tasks/services/task-service';
 
 const PROJECT_SELECT =
   'id, user_id, title, description, status, start_date, end_date, period_key, created_at, updated_at';
@@ -181,7 +183,8 @@ async function fetchProjectEntryLinkActivity(goals: GoalWithDetails[]): Promise<
 export async function fetchProjectWorkspace(projectId: string): Promise<ProjectWorkspace | null> {
   const base = await fetchProjectWithGoals(projectId);
   if (!base) return null;
-  const [entriesResult, vaultResult, eventResult, taskResult, entryLinkResult] = await Promise.allSettled([
+  const activeGoals = base.goals.filter((goal) => goal.status === 'active');
+  const [entriesResult, vaultResult, eventResult, taskResult, entryLinkResult, taskPreviewResult] = await Promise.allSettled([
     fetchEntries(),
     authedFetch(`/api/projects/${projectId}/vault`).then(async (response) => {
       if (!response.ok) throw new Error('Project Vault could not be loaded');
@@ -191,6 +194,7 @@ export async function fetchProjectWorkspace(projectId: string): Promise<ProjectW
       .or(`project_id.eq.${projectId},prior_project_id.eq.${projectId}`).order('occurred_at', { ascending: false }).limit(30),
     fetchProjectTaskActivity(base.goals),
     fetchProjectEntryLinkActivity(base.goals),
+    Promise.all(activeGoals.map(async (goal) => ({ goalId: goal.id, goalTitle: goal.title, tasks: await getGoalTasks(goal.id) }))),
   ]);
   const partialErrors: string[] = [];
   const entries = entriesResult.status === 'fulfilled' ? entriesResult.value : (partialErrors.push('Echo content'), []);
@@ -200,6 +204,9 @@ export async function fetchProjectWorkspace(projectId: string): Promise<ProjectW
     : (partialErrors.push('association activity'), []);
   const taskActivity = taskResult.status === 'fulfilled' ? taskResult.value : (partialErrors.push('Task activity'), []);
   const entryLinks = entryLinkResult.status === 'fulfilled' ? entryLinkResult.value : (partialErrors.push('Entry activity'), []);
+  const taskPreviews = taskPreviewResult.status === 'fulfilled'
+    ? selectProjectTaskPreviews(taskPreviewResult.value)
+    : (partialErrors.push('Project Tasks'), []);
   const goalIds = new Set(base.goals.map((goal) => goal.id));
   const linkedEntries = entries.filter((entry) => entry.project?.id === projectId || entry.goals.some((goal) => goalIds.has(goal.id)));
   const goalTitle = new Map(base.goals.map((goal) => [goal.id, goal.title]));
@@ -237,6 +244,7 @@ export async function fetchProjectWorkspace(projectId: string): Promise<ProjectW
     partialErrors,
     vault: vaultPayload.vault,
     vaultItems: vaultPayload.items,
+    taskPreviews,
     activity: mergeProjectActivity([eventActivity, taskActivity, entryActivity, milestoneActivity, goalActivity, phaseActivity, buildProjectVaultActivity(vaultPayload.items)]),
   };
 }

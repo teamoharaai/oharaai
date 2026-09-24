@@ -2,6 +2,7 @@ import type { GoalWithDetails } from '@/features/goals/types';
 import type { GoalCategory } from '@/lib/goals/schema';
 import type { EntryRecord } from '@/features/entries/types';
 import type { Vault, VaultItem } from '@/types/vault';
+import type { TaskOccurrence } from '@/features/tasks/types';
 
 export type ProjectStatus = 'active' | 'complete' | 'archived';
 
@@ -44,10 +45,20 @@ export type ProjectActivity = {
   origin?: string;
 };
 
+export type ProjectTaskPreview = {
+  id: string;
+  goalId: string;
+  goalTitle: string;
+  occurrence: TaskOccurrence | null;
+  title: string;
+  timing: 'overdue' | 'today' | 'upcoming' | 'anytime';
+};
+
 export type ProjectWorkspace = ProjectWithGoals & {
   activity: ProjectActivity[];
   entries: EntryRecord[];
   partialErrors: string[];
+  taskPreviews: ProjectTaskPreview[];
   vault: Vault | null;
   vaultItems: ProjectVaultItem[];
 };

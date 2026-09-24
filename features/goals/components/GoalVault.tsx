@@ -14,9 +14,9 @@ import type { VaultItem } from '@/types/vault';
 import { useVault } from '../hooks/useVault';
 import { fetchEntries } from '@/features/entries/services/entry-service';
 import { VaultItemCard } from './VaultItemCard';
-import { isStickyVaultItem } from '../vault-classification';
+import { isSourceVaultItem } from '../vault-classification';
 
-type VaultFilter = 'all' | 'sticky' | 'notes' | 'reflections' | 'sources';
+export type VaultFilter = 'all' | 'sticky' | 'notes' | 'reflections' | 'sources';
 
 export interface VaultWorkspaceParent {
   id: string;
@@ -47,6 +47,7 @@ interface VaultWorkspaceProps {
   vaultData?: VaultDataSource;
   externalAddRequest?: number;
   showAddButton?: boolean;
+  initialFilter?: VaultFilter;
 }
 
 const FILTERS: ReadonlyArray<{ label: string; value: VaultFilter }> = [
@@ -71,13 +72,13 @@ function VaultSection({ children, icon, title }: { children: ReactNode; icon: ke
 }
 
 /** Parent-neutral Vault presentation. Goal-specific data is supplied by GoalVault. */
-export function VaultWorkspace({ activityContent, activityError, activityItems, activityLoading, entries, entriesError, externalAddRequest, onAddSource, onAddStickyNote, parent, privateNotes, showAddButton = true, vaultData }: VaultWorkspaceProps) {
+export function VaultWorkspace({ activityContent, activityError, activityItems, activityLoading, entries, entriesError, externalAddRequest, initialFilter = 'all', onAddSource, onAddStickyNote, parent, privateNotes, showAddButton = true, vaultData }: VaultWorkspaceProps) {
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
   const compact = width < 620;
   const goalVault = useVault(parent.type === 'goal' ? parent.id : '');
   const vault = vaultData ?? goalVault;
-  const [filter, setFilter] = useState<VaultFilter>('all');
+  const [filter, setFilter] = useState<VaultFilter>(initialFilter);
   const [addOpen, setAddOpen] = useState(false);
   const [retriedEntries, setRetriedEntries] = useState<EntryRecord[] | null>(null);
   const [retrying, setRetrying] = useState(false);
@@ -86,13 +87,14 @@ export function VaultWorkspace({ activityContent, activityError, activityItems, 
   const selectedSource = vault.items.find((item) => item.id === selectedSourceId);
 
   useEffect(() => setEntryLoadError(entriesError), [entriesError]);
+  useEffect(() => setFilter(initialFilter), [initialFilter]);
   useEffect(() => { void vault.refresh(); }, [vault.refresh]);
   useEffect(() => { if (externalAddRequest) setAddOpen(true); }, [externalAddRequest]);
 
   const linkedEntries = retriedEntries ?? entries;
   const notes = linkedEntries.filter((entry) => entry.entryType === 'note');
   const reflections = linkedEntries.filter((entry) => entry.entryType === 'reflection');
-  const sources = vault.items.filter((item) => !isStickyVaultItem(item));
+  const sources = vault.items.filter(isSourceVaultItem);
   const recentActivity = useMemo(() => [...activityItems]
     .filter((item) => item.kind === 'vault_item_added' || item.kind === 'echo_linked')
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [activityItems]);
@@ -148,7 +150,12 @@ export function VaultWorkspace({ activityContent, activityError, activityItems, 
   const showNotes = filter === 'all' || filter === 'notes';
   const showReflections = filter === 'all' || filter === 'reflections';
   const showSources = filter === 'all' || filter === 'sources';
-  const visibleEntries = [...(showNotes ? notes : []), ...(showReflections ? reflections : [])];
+
+  const entryCards = (items: readonly EntryRecord[]) => <View style={{ flexDirection: compact ? 'column' : 'row', flexWrap: 'wrap', gap: SPACE.md }}>
+    {items.map((entry) => <Pressable key={entry.id} accessibilityLabel={`Open ${entry.title || 'Untitled entry'}`} accessibilityRole="button" onPress={() => router.push({ pathname: '/(app)/entries/[id]' as never, params: { id: entry.id } })} style={({ pressed }) => ({ backgroundColor: colors.background.subtle, borderColor: colors.border.divider, borderRadius: RADIUS.lg, borderWidth: 1, flexBasis: compact ? undefined : 280, flexGrow: 1, gap: SPACE.sm, minWidth: compact ? 0 : 250, opacity: pressed ? 0.7 : 1, padding: SPACE.lg })}>
+      <Typography variant="caption">{entry.entryType === 'reflection' ? 'Reflection' : 'Note'} · Echo</Typography><Typography variant="emphasis-sm">{entry.title || 'Untitled entry'}</Typography><Typography variant="caption">{dateLabel(entry.updatedAt)} · {entryProvenance(entry)}</Typography>
+    </Pressable>)}
+  </View>;
 
   return (
     <View style={{ gap: SPACE.xl }} testID="goal-vault-workspace">
@@ -181,14 +188,15 @@ export function VaultWorkspace({ activityContent, activityError, activityItems, 
         <View testID="goal-private-notes">{privateNotes}</View>
       </VaultSection> : null}
 
-      {(showNotes || showReflections) ? <VaultSection icon="reader-outline" title={filter === 'notes' ? 'Notes' : filter === 'reflections' ? 'Reflections' : 'Notes & Reflections'}>
+      {showNotes ? <VaultSection icon="reader-outline" title="Notes">
         {entryLoadError ? <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md }}><Typography variant="caption">Linked entries couldn't load.</Typography><Pressable accessibilityRole="button" disabled={retrying} onPress={() => void retrySources()} style={{ minHeight: 44, justifyContent: 'center' }}><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>{retrying ? 'Retrying…' : 'Retry'}</Typography></Pressable></View> : null}
-        {visibleEntries.length === 0 && !entryLoadError ? <Typography variant="body">Linked {filter === 'all' ? 'Notes and Reflections' : FILTERS.find((item) => item.value === filter)?.label} will appear here.</Typography> : null}
-        <View style={{ flexDirection: compact ? 'column' : 'row', flexWrap: 'wrap', gap: SPACE.md }}>
-          {visibleEntries.map((entry) => <Pressable key={entry.id} accessibilityLabel={`Open ${entry.title || 'Untitled entry'}`} accessibilityRole="button" onPress={() => router.push({ pathname: '/(app)/entries/[id]' as never, params: { id: entry.id } })} style={({ pressed }) => ({ backgroundColor: colors.background.subtle, borderColor: colors.border.divider, borderRadius: RADIUS.lg, borderWidth: 1, flexBasis: compact ? undefined : 280, flexGrow: 1, gap: SPACE.sm, minWidth: compact ? 0 : 250, opacity: pressed ? 0.7 : 1, padding: SPACE.lg })}>
-            <Typography variant="caption">{entry.entryType === 'reflection' ? 'Reflection' : 'Note'} · Echo</Typography><Typography variant="emphasis-sm">{entry.title || 'Untitled entry'}</Typography><Typography variant="caption">{dateLabel(entry.updatedAt)} · {entryProvenance(entry)}</Typography>
-          </Pressable>)}
-        </View>
+        {!notes.length && !entryLoadError ? <Typography variant="body">Linked Notes will appear here.</Typography> : null}
+        {entryCards(notes)}
+      </VaultSection> : null}
+
+      {showReflections ? <VaultSection icon="create-outline" title="Reflections">
+        {!reflections.length && !entryLoadError ? <Typography variant="body">Linked Reflections will appear here.</Typography> : null}
+        {entryCards(reflections)}
       </VaultSection> : null}
 
       {showSources ? <VaultSection icon="link-outline" title="Sources">

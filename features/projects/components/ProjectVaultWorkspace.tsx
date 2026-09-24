@@ -5,12 +5,12 @@ import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
 import { RADIUS, SPACE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
-import { VaultWorkspace } from '@/features/goals/components/GoalVault';
+import { VaultWorkspace, type VaultFilter } from '@/features/goals/components/GoalVault';
 import { isStickyVaultItem } from '@/features/goals/vault-classification';
 import type { ProjectWorkspace } from '../types';
 import { useProjectVault } from '../hooks/useProjectVault';
 
-export function ProjectVaultWorkspace({ addRequest, project }: { addRequest: number; project: ProjectWorkspace }) {
+export function ProjectVaultWorkspace({ addRequest, initialFilter, project }: { addRequest: number; initialFilter?: VaultFilter; project: ProjectWorkspace }) {
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
   const compact = width < 720;
@@ -63,6 +63,7 @@ export function ProjectVaultWorkspace({ addRequest, project }: { addRequest: num
       onAddSource={openSource}
       onAddStickyNote={openStickyNote}
       externalAddRequest={addRequest}
+      initialFilter={initialFilter}
       parent={{ id: project.id, title: project.title, type: 'project' }}
       privateNotes={<View style={{ flexDirection: compact ? 'column' : 'row', flexWrap: 'wrap', gap: SPACE.md }}>
         {sticky.length ? sticky.map((item) => {
