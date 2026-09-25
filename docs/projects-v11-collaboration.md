@@ -43,16 +43,20 @@ The engine is non-LLM and does not alter Momentum V1.1 inputs, weights, formulas
 
 ## Migration and rollout
 
-Pending production migration: `072_projects_v1_1_collaboration.sql`.
+Production Migration 072 (`manual_goal_foundation`) was reconciled byte-for-byte from the production ledger into source control. Its admission switch remains off and this release does not change its behavior.
+
+Local validation note: Supabase CLI 2.118.0's bundled Postgres 15.8.1.085 image segfaults on Migration 072's temporary `grant goal_manual_executor to current_user` statement. The clean local rehearsal therefore resolved `current_user` to the explicit local migrator role (`postgres`) for that matching grant/revoke pair only. The canonical file remains byte-identical to production, the rest of the migration ran unchanged, and the final role membership/schema state is equivalent before Migration 073 is applied.
+
+Pending production migration: `073_projects_v1_1_collaboration.sql`.
 
 Deployment order after explicit approval:
 
-1. verify production remains at Migration 071 and take the normal database backup;
-2. apply Migration 072;
+1. verify production remains at Migration 072 and its stored statement checksum still matches the reviewed source, then take the normal database backup;
+2. apply Migration 073;
 3. verify tables, triggers, functions, grants, RLS policies, and the three-member concurrency guard;
 4. deploy the reviewed application commit;
 5. run owner/Admin/Member/Guide authenticated smoke checks and private-content denial checks.
 
 No new environment variables are required.
 
-Rollback should disable or revert the application surface first. Migration 072 is additive, but its new collaboration records and assignment metadata should be preserved. Do not drop its tables or columns as an emergency rollback. If application rollback is required, leave 072 applied and return to the previous reader until a reviewed forward migration is available.
+Rollback should disable or revert the application surface first. Migration 073 is additive, but its new collaboration records and assignment metadata should be preserved. Do not drop its tables or columns as an emergency rollback. If application rollback is required, leave 072–073 applied and return to the previous reader until a reviewed forward migration is available.

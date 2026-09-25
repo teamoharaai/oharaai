@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 const migration = readFileSync(resolve(process.cwd(), 'supabase/migrations/071_projects_v1_foundation.sql'), 'utf8');
-const collaboration = readFileSync(resolve(process.cwd(), 'supabase/migrations/072_projects_v1_1_collaboration.sql'), 'utf8');
+const collaboration = readFileSync(resolve(process.cwd(), 'supabase/migrations/073_projects_v1_1_collaboration.sql'), 'utf8');
 const api = readFileSync(resolve(process.cwd(), 'app/api/projects/[projectId]/vault+api.ts'), 'utf8');
 
 test('Project Vault has one exclusive same-owner parent', () => {
