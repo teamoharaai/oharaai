@@ -8,6 +8,7 @@ export type ProjectStatus = 'active' | 'complete' | 'archived';
 export type ProjectMode = 'personal' | 'team' | 'guide';
 export type ProjectRole = 'owner' | 'admin' | 'member' | 'guide';
 export const PROJECT_MEMBER_LIMIT = 3;
+export const GUIDE_RELATIONSHIP_LABELS = ['Fitness Coach', 'Personal Trainer', 'Tutor', 'Academic Mentor', 'Career Mentor', 'Advisor', 'Life Coach', 'Other'] as const;
 
 export type Project = {
   id: string;
@@ -59,6 +60,7 @@ export type ProjectComment = {
   targetId: string;
   body: string;
   createdAt: string;
+  editedAt: string | null;
 };
 
 export type ProjectTaskPreview = {

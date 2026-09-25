@@ -10,6 +10,7 @@ import { AuthenticatedPageShell } from '@/components/layout/AuthenticatedPageShe
 import { FeaturePageHeader } from '@/components/layout/FeaturePageHeader';
 import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Card } from '@/components/ui/Card';
+import { IntelligenceHeader } from '@/components/ui/IntelligenceHeader';
 import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
 import { SPACE } from '@/constants/design';
@@ -315,18 +316,11 @@ export default function MomentumScreen() {
               </Card>
             </View>
 
-            <View>
-              <SectionHeading title="OHARA Intelligence" />
-              <Card padding="spacious" elevated>
-                <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
-                  <Ionicons color={colors.accent.primary} name="sparkles-outline" size={18} />
-                  <Typography variant="eyebrow" style={{ color: colors.text.accent }}>OHARA Intelligence</Typography>
-                </View>
-                <Typography variant="caption" style={{ color: colors.text.secondary, marginTop: SPACE.sm }}>{momentumInsight.subtitle}</Typography>
-                <Typography variant="title" style={{ marginTop: SPACE.md }}>{momentumInsight.primary}</Typography>
-                {momentumInsight.secondary ? <Typography variant="description" style={{ marginTop: SPACE.sm }}>{momentumInsight.secondary}</Typography> : null}
-              </Card>
-            </View>
+            <Card padding="spacious" elevated>
+              <IntelligenceHeader insightType={momentumInsight.subtitle.replace(/^./, (character) => character.toUpperCase())} />
+              <Typography variant="ai-italic" style={{ color: colors.text.primary, fontSize: 17, lineHeight: 26, marginTop: SPACE.md }}>“{momentumInsight.primary}”</Typography>
+              {momentumInsight.secondary ? <Typography variant="description" style={{ color: colors.text.secondary, marginTop: SPACE.sm }}>{momentumInsight.secondary}</Typography> : null}
+            </Card>
 
             <View>
               <SectionHeading

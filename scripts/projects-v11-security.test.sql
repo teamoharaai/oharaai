@@ -76,8 +76,26 @@ end $$;
 select public.create_project_comment_v11('a1100000-0000-0000-0000-000000000001','goal','b1100000-0000-0000-0000-000000000001','Member context');
 select public.complete_project_task_v11((select id from public.task_occurrences where task_id=(select id from public.tasks where title='Assigned Task')));
 
+reset role;
+update public.project_comments set id='d1300000-0000-0000-0000-000000000003'
+  where project_id='a1100000-0000-0000-0000-000000000001' and author_id='13000000-0000-0000-0000-000000000003';
+set local role authenticated;
+select set_config('request.jwt.claim.sub','13000000-0000-0000-0000-000000000003',true);
+do $$ begin
+  if not public.edit_project_comment_v11('d1300000-0000-0000-0000-000000000003','Member context updated') then raise exception 'Author edit failed'; end if;
+  if not exists(select 1 from public.project_comments where id='d1300000-0000-0000-0000-000000000003' and body='Member context updated' and edited_at is not null) then raise exception 'Edited comment did not persist'; end if;
+  begin
+    perform public.edit_project_comment_v11('d1300000-0000-0000-0000-000000000003','   ');
+    raise exception 'Empty comment edit accepted';
+  exception when others then if sqlerrm='Empty comment edit accepted' then raise; end if; end;
+end $$;
+
 select set_config('request.jwt.claim.sub','12000000-0000-0000-0000-000000000002',true);
 select public.assign_project_task_v11((select id from public.tasks where title='Assigned Task'),'12000000-0000-0000-0000-000000000002');
+do $$ begin
+  if public.edit_project_comment_v11('d1300000-0000-0000-0000-000000000003','Admin rewrite') then raise exception 'Admin edited another author comment'; end if;
+  if public.delete_project_comment_v11('d1300000-0000-0000-0000-000000000003') then raise exception 'Admin deleted another author comment'; end if;
+end $$;
 
 select set_config('request.jwt.claim.sub','15000000-0000-0000-0000-000000000005',true);
 do $$ begin
@@ -95,6 +113,14 @@ do $$ begin
   if exists(select 1 from public.project_comments where project_id='a1100000-0000-0000-0000-000000000001') then raise exception 'Cross-Project comments leaked'; end if;
   begin perform public.create_project_comment_v11('a1100000-0000-0000-0000-000000000001','goal','b1100000-0000-0000-0000-000000000001','Unauthorized'); raise exception 'Non-member commented';
   exception when others then if sqlerrm='Non-member commented' then raise; end if; end;
+  if public.edit_project_comment_v11('d1300000-0000-0000-0000-000000000003','Outsider rewrite') then raise exception 'Non-member edited a comment'; end if;
+  if public.delete_project_comment_v11('d1300000-0000-0000-0000-000000000003') then raise exception 'Non-member deleted a comment'; end if;
+end $$;
+
+select set_config('request.jwt.claim.sub','13000000-0000-0000-0000-000000000003',true);
+do $$ begin
+  if not public.delete_project_comment_v11('d1300000-0000-0000-0000-000000000003') then raise exception 'Author soft delete failed'; end if;
+  if exists(select 1 from public.project_comments where id='d1300000-0000-0000-0000-000000000003') then raise exception 'Deleted comment body remained readable'; end if;
 end $$;
 
 select set_config('request.jwt.claim.sub','11000000-0000-0000-0000-000000000001',true);

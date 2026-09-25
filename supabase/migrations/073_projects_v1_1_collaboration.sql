@@ -503,6 +503,20 @@ begin
 end;
 $$;
 
+create or replace function public.edit_project_comment_v11(p_comment uuid,p_body text)
+returns boolean language plpgsql security definer set search_path = pg_catalog, public as $$
+begin
+  if char_length(btrim(coalesce(p_body,''))) not between 1 and 2000 then
+    raise exception 'Comment must be between 1 and 2000 characters';
+  end if;
+  update public.project_comments c
+    set body=btrim(p_body),edited_at=now()
+    where c.id=p_comment and c.author_id=auth.uid() and c.deleted_at is null
+      and public.project_has_capability_v11(c.project_id,auth.uid(),'comment');
+  return found;
+end;
+$$;
+
 create or replace function public.delete_project_comment_v11(p_comment uuid)
 returns boolean language plpgsql security definer set search_path = pg_catalog, public as $$
 begin
@@ -514,9 +528,11 @@ $$;
 
 revoke all on function public.validate_project_comment_target_v11(uuid,text,uuid) from public,anon;
 revoke all on function public.create_project_comment_v11(uuid,text,uuid,text) from public,anon;
+revoke all on function public.edit_project_comment_v11(uuid,text) from public,anon;
 revoke all on function public.delete_project_comment_v11(uuid) from public,anon;
 grant execute on function public.validate_project_comment_target_v11(uuid,text,uuid) to authenticated;
 grant execute on function public.create_project_comment_v11(uuid,text,uuid,text) to authenticated;
+grant execute on function public.edit_project_comment_v11(uuid,text) to authenticated;
 grant execute on function public.delete_project_comment_v11(uuid) to authenticated;
 
 -- Collaborators can read only Project-scoped canonical objects and explicitly

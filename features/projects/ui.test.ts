@@ -14,6 +14,10 @@ const brandIcon = readFileSync(resolve(process.cwd(), 'components/ui/BrandIcon.t
 const manage = readFileSync(resolve(process.cwd(), 'features/projects/components/ManageProjectModal.tsx'), 'utf8');
 const intelligence = readFileSync(resolve(process.cwd(), 'features/projects/intelligence.ts'), 'utf8');
 const contextualIntelligence = readFileSync(resolve(process.cwd(), 'features/intelligence/contextual-insights.ts'), 'utf8');
+const comments = readFileSync(resolve(process.cwd(), 'features/projects/components/ProjectComments.tsx'), 'utf8');
+const intelligenceHeader = readFileSync(resolve(process.cwd(), 'components/ui/IntelligenceHeader.tsx'), 'utf8');
+const momentum = readFileSync(resolve(process.cwd(), 'app/(app)/momentum.tsx'), 'utf8');
+const goalIntelligence = readFileSync(resolve(process.cwd(), 'features/goals/components/IntelligencePanel.tsx'), 'utf8');
 
 test('Projects is a first-class horizontal navigation destination', () => {
   assert.match(nav, /label: 'Projects'.*href: '\/\(app\)\/projects'/);
@@ -27,11 +31,35 @@ test('landing uses meaningful data without progress percentages or imagery', () 
 });
 
 test('workspace contains approved overview and owner-only Vault hierarchy', () => {
-  for (const label of ['Current Goals', 'Recent Activity', 'Notes', 'Reflections', 'Project Tasks', 'Project Snapshot', 'Momentum Snapshot', 'OHARA Intelligence']) assert.match(workspace, new RegExp(label));
+  for (const label of ['Current Goals', 'Recent Activity', 'Notes', 'Reflections', 'Upcoming Milestones', 'Project Tasks', 'Project Snapshot', 'Momentum Snapshot', 'OHARA Intelligence']) assert.match(workspace, new RegExp(label));
   assert.doesNotMatch(workspace, /title="Sticky Notes"/);
   assert.match(vault, /Project Sticky Note/);
   assert.match(vault, /Private to you/);
   assert.match(vault, /origins/);
+  assert.match(workspace, /\{projectHeader\}\{milestonesCard\}\{tasksCard\}/);
+  assert.match(workspace, /\{snapshotCard\}\{intelligenceCard\}\{momentumCard\}\{activityCard\}/);
+});
+
+test('workspace keeps Goal summaries compact and bounds attention to meaningful Tasks', () => {
+  assert.match(workspace, /Task needs.*attention/);
+  assert.match(workspace, /task\.timing === 'overdue'.*task\.timing === 'today'/);
+  assert.doesNotMatch(workspace, /Momentum \$\{summary\.displayedValue\}/);
+  assert.match(workspace, /Next: \{nextMilestone\.title\}/);
+});
+
+test('workspace uses compact Task assignment controls and separates Comment', () => {
+  assert.match(workspace, /accessibilityRole="radiogroup"/);
+  assert.match(workspace, /Assign \$\{task\.title\} to \$\{member\.displayName\}/);
+  assert.match(workspace, /Comment →/);
+});
+
+test('OHARA Intelligence uses one presentation hierarchy without changing facts', () => {
+  assert.match(intelligenceHeader, /OHARA Intelligence/);
+  assert.match(intelligenceHeader, /— \{label\}/);
+  assert.match(workspace, /IntelligenceHeader insightType/);
+  assert.match(momentum, /IntelligenceHeader insightType/);
+  assert.match(goalIntelligence, /OHARA Intelligence — Goal Insight/);
+  assert.match(workspace, /variant="ai-italic"/);
 });
 
 test('Project Vault separates Notes and Reflections and applies strict Source semantics', () => {
@@ -54,11 +82,16 @@ test('Project activity is truthful, bounded, and partial-source failures degrade
 });
 
 test('collaboration UI exposes modes, bounded membership, responsibility, and contextual comments', () => {
-  for (const label of ['Personal', 'Team', 'OHARA Guide', 'Goal Lead', 'Invite person', 'Access / Mode']) assert.match(manage, new RegExp(label));
+  for (const label of ['Personal', 'Team', 'OHARA Guide', 'Goal Lead', 'Invite to Project', 'Invite Guide', 'Access / Mode']) assert.match(manage, new RegExp(label));
   assert.match(manage, /PROJECT_MEMBER_LIMIT/);
   assert.match(manage, /assignProjectMilestone/);
   assert.match(manage, /createProjectComment/);
   assert.match(workspace, /\['mine', 'everyone', 'upcoming'\]/);
+  assert.match(comments, /Edit comment by/);
+  assert.match(comments, /Delete comment by/);
+  assert.match(comments, /editingId/);
+  assert.match(comments, /Delete comment\?/);
+  assert.match(comments, /currentUserId === comment\.authorId/);
 });
 
 test('Project Intelligence is deterministic and does not call an LLM', () => {

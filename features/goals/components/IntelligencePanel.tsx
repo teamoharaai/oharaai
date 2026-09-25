@@ -71,7 +71,7 @@ export function IntelligencePanel({
 
   return (
     <View
-      accessibilityLabel={`Ohara Intelligence. ${sourceLabel}. ${displayInsight}`}
+      accessibilityLabel={`OHARA Intelligence. Goal Insight. ${sourceLabel}. ${displayInsight}`}
       style={{
         backgroundColor: dark ? colors.background.sidebar : colors.background.page,
         borderColor: colors.border.warm,
@@ -124,7 +124,7 @@ export function IntelligencePanel({
               textTransform: 'uppercase',
             }}
           >
-            Ohara Intelligence
+            OHARA Intelligence — Goal Insight
           </Text>
           <View
             accessibilityLabel={sourceLabel}

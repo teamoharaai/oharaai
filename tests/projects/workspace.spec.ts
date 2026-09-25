@@ -56,12 +56,12 @@ for (const theme of ['light', 'dark']) test(`Projects V1 workspace ${theme}`, as
   await expect(page.getByText('1', { exact: true }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Open Project Run a 5K Journey' }).click();
   await expect(page.getByRole('heading', { name: project.title })).toBeVisible();
-  for (const text of ['Current Goals', 'Notes', 'Reflections', 'Project Tasks', 'Recent Activity', 'Project Snapshot', 'Momentum Snapshot', 'OHARA Intelligence']) await expect(page.getByText(text, { exact: true }).first()).toBeVisible();
+  for (const text of ['Current Goals', 'Notes', 'Reflections', 'Upcoming Milestones', 'Project Tasks', 'Recent Activity', 'Project Snapshot', 'Momentum Snapshot', 'OHARA Intelligence']) await expect(page.getByText(text, { exact: true }).first()).toBeVisible();
   await expect(page.getByText('Aerobic base', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Training research', { exact: true })).toBeVisible();
   await expect(page.getByText('Easy run', { exact: true })).toBeVisible();
   await expect(page.getByText('71 / 100', { exact: true })).toBeVisible();
-  await expect(page.getByText('+6 this week', { exact: false })).toBeVisible();
+  await expect(page.getByText('↗ +6 this week', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Vault', exact: true }).click();
   await expect(page).toHaveURL(/view=vault/);
   await expect(page.getByRole('button', { name: 'Overview', exact: true })).toBeVisible();
@@ -130,8 +130,8 @@ test('Guide workspace exposes permitted coordination without owner controls or p
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`http://localhost:4182/projects/${guideProject.id}`);
   await expect(page.getByRole('heading', { name: guideProject.title })).toBeVisible();
-  await expect(page.getByText('OHARA Guide', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText('1 assigned Task is overdue.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Guide', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/1 assigned Task is overdue\./)).toBeVisible();
   await expect(page.getByText('Private Reflection', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Manage Project ▾', exact: true }).click();
   await expect(page.getByRole('tab', { name: 'Goals', exact: true })).toBeVisible();

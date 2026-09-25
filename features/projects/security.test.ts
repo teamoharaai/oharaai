@@ -58,5 +58,9 @@ test('responsibility and contextual comments validate canonical Project targets'
   assert.match(collaboration, /tasks_validate_assignee_v11/);
   assert.match(collaboration, /milestones_validate_responsibility_v11/);
   assert.match(collaboration, /validate_project_comment_target_v11/);
+  assert.match(collaboration, /edit_project_comment_v11/);
+  assert.match(collaboration, /author_id=auth\.uid\(\)/);
+  assert.match(collaboration, /set body=btrim\(p_body\),edited_at=now\(\)/);
+  assert.match(collaboration, /Comment must be between 1 and 2000 characters/);
   assert.match(collaboration, /project_activity_events/);
 });

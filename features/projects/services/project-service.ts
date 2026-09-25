@@ -251,7 +251,7 @@ export async function fetchProjectWorkspace(projectId: string): Promise<ProjectW
     fetchProjectTaskPreviews(base.goals),
     fetchProjectCollaboration(projectId),
     supabase.from('project_activity_events').select('id,actor_id,event_type,target_type,target_id,label,metadata,occurred_at').eq('project_id',projectId).order('occurred_at',{ascending:false}).limit(30),
-    supabase.from('project_comments').select('id,author_id,target_type,target_id,body,created_at').eq('project_id',projectId).is('deleted_at',null).order('created_at',{ascending:false}).limit(50),
+    supabase.from('project_comments').select('id,author_id,target_type,target_id,body,created_at,edited_at').eq('project_id',projectId).is('deleted_at',null).order('created_at',{ascending:false}).limit(50),
     supabase.rpc('get_project_goal_momentum_v11',{p_project_id:projectId}),
   ]);
   const partialErrors: string[] = [];
@@ -271,7 +271,7 @@ export async function fetchProjectWorkspace(projectId: string): Promise<ProjectW
   for (const item of taskActivity) if (item.actorId) item.actorName = memberName.get(item.actorId);
   const collaborationRows = collaborationActivityResult.status === 'fulfilled' && !collaborationActivityResult.value.error ? collaborationActivityResult.value.data ?? [] : (partialErrors.push('collaboration activity'), []);
   const collaborationActivity: ProjectActivity[] = collaborationRows.map((row: any) => ({ id:`collaboration-${row.id}`,label:row.label,occurredAt:row.occurred_at,origin:row.metadata?.title,actorId:row.actor_id,actorName:row.actor_id ? memberName.get(row.actor_id) : undefined }));
-  const comments: ProjectComment[] = commentsResult.status === 'fulfilled' && !commentsResult.value.error ? (commentsResult.value.data ?? []).map((row:any)=>({id:row.id,authorId:row.author_id,targetType:row.target_type,targetId:row.target_id,body:row.body,createdAt:row.created_at})) : (partialErrors.push('comments'), []);
+  const comments: ProjectComment[] = commentsResult.status === 'fulfilled' && !commentsResult.value.error ? (commentsResult.value.data ?? []).map((row:any)=>({id:row.id,authorId:row.author_id,targetType:row.target_type,targetId:row.target_id,body:row.body,createdAt:row.created_at,editedAt:row.edited_at})) : (partialErrors.push('comments'), []);
   const goalMomentum: ProjectGoalMomentum[] = momentumResult.status === 'fulfilled' && !momentumResult.value.error ? (momentumResult.value.data ?? []).map((row:any)=>({goalId:row.goal_id,displayedValue:row.current_value === null ? null : Math.round(Number(row.current_value)),weeklyChange:row.weekly_change === null ? null : Number(row.weekly_change),status:row.status})) : (partialErrors.push('Momentum'), []);
   const goalIds = new Set(base.goals.map((goal) => goal.id));
   const linkedEntries = Array.from(new Map([...entries.filter((entry) => entry.project?.id === projectId || entry.goals.some((goal) => goalIds.has(goal.id))), ...projectEntries].map((entry) => [entry.id, entry])).values());
@@ -334,6 +334,8 @@ export async function assignProjectMilestone(milestoneId:string,userId:string|nu
 export async function createProjectTask(goalId:string,title:string,dueDate:string|null,assignedTo:string|null):Promise<void>{ const {error}=await supabase.rpc('create_project_task_v11',{p_goal_id:goalId,p_title:title,p_due_date:dueDate,p_assigned_to:assignedTo,p_idempotency_key:`project-${Date.now()}-${Math.random().toString(36).slice(2)}`}); if(error) throw new Error(error.message); }
 export async function createProjectMilestone(goalId:string,title:string,dueDate:string|null,responsibleUserId:string|null):Promise<void>{ const {error}=await supabase.rpc('create_project_milestone_v11',{p_goal_id:goalId,p_title:title,p_due_date:dueDate,p_responsible_user_id:responsibleUserId}); if(error) throw new Error(error.message); }
 export async function createProjectComment(projectId:string,targetType:string,targetId:string,body:string):Promise<void>{ const {error}=await supabase.rpc('create_project_comment_v11',{p_project:projectId,p_type:targetType,p_id:targetId,p_body:body}); if(error) throw new Error(error.message); }
+export async function editProjectComment(commentId:string,body:string):Promise<void>{ const {data,error}=await supabase.rpc('edit_project_comment_v11',{p_comment:commentId,p_body:body}); if(error) throw new Error(error.message); if(!data) throw new Error('You can edit only your own active comments.'); }
+export async function deleteProjectComment(commentId:string):Promise<void>{ const {data,error}=await supabase.rpc('delete_project_comment_v11',{p_comment:commentId}); if(error) throw new Error(error.message); if(!data) throw new Error('You can delete only your own active comments.'); }
 export async function setEntryProjectShare(entryId:string,scope:'private'|'project'|'guide'):Promise<void>{ const {error}=await supabase.rpc('set_entry_project_share_v11',{p_entry_id:entryId,p_scope:scope}); if(error) throw new Error(error.message); }
 
 export async function updateProject(

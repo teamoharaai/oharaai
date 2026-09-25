@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Changed — Projects V1.1 Workspace Steering
+- Rebalanced the bounded three-column Project Overview so the center focuses on Project identity, upcoming canonical Goal Milestones, and Tasks, while the right rail presents Project Snapshot, OHARA Intelligence, Goal Momentum, and Recent Activity in analytical order (`app/(app)/projects/[id].tsx`).
+- Simplified Current Goal secondary context to Goal lead, weekly Momentum movement, next Milestone, and a compact real Task-attention count; reduced Reflection sharing and Task assignment controls while preserving their existing persistence and authorization paths.
+- Standardized the OHARA Intelligence author/insight-type header and readable italic primary insight treatment across Project, Momentum, and Goal presentation without changing contextual fact selection or Momentum formulas (`components/ui/IntelligenceHeader.tsx`, Project/Momentum screens, Goal Intelligence panel).
+- Added dark, light, empty-preview, card-level, full-dashboard, and narrow browser acceptance evidence for the workspace steering hierarchy (`tests/projects/collaboration-ui.spec.ts`, Projects Playwright coverage).
+
+### Changed — Projects V1.1 Collaboration UI Acceptance
+- Simplified Personal Project headers, added compact Team/Guide member identity and relationship treatments, polished Members/invitation role presets, and clarified Goal, Task, Milestone, and sharing controls without changing the three-column workspace (`app/(app)/projects/[id].tsx`, `features/projects/components/ManageProjectModal.tsx`, Project types).
+- Added lightweight author-only inline comment editing and confirmed soft deletion with edited-state presentation. Authorization remains enforced by Migration 073 RPCs and deleted bodies remain excluded from normal reads (`ProjectComments.tsx`, Project service/types, Migration 073).
+
+### Fixed — Projects V1.1 Collaboration UI Acceptance
+- Added database and browser coverage for comment ownership, persistence, empty-edit rejection, cancel behavior, deletion confirmation, unauthorized mutation denial, role-aware collaboration surfaces, privacy, and local screenshot acceptance artifacts (`scripts/projects-v11-security.test.sql`, Project unit/browser tests).
+
 ### Added — Projects V1.1 Collaboration & Intelligence Foundation
 - Reconciled production Migration 072 (`manual_goal_foundation`) byte-for-byte into the repository without changing its disabled admission state, then added one capability-based Personal/Team/OHARA Guide collaboration architecture in Migration 073 with canonical owner membership, invitations, role presets, a database-serialized three-person limit, Goal leads, canonical Task assignment/completion, Milestone responsibility, contextual comments, actor-aware activity, and secure Goal Momentum projection (`supabase/migrations/072_manual_goal_foundation.sql`, `073_projects_v1_1_collaboration.sql`, Project services/types/components, Tasks/Goals mappings).
 - Added explicit private/Project/Guide Entry sharing and collaborator-safe Project Vault reads. Membership never exposes private Notes, Reflections, Sticky Notes, previews, counts, or Intelligence facts (`app/api/projects/[projectId]/vault+api.ts`, Goal/Project Vault components, Migration 073 RLS/RPC policies).
