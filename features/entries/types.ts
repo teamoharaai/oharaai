@@ -128,6 +128,7 @@ export interface EntryRecord {
   updatedAt: Date;
   goals: EntryGoalLink[];
   project?: EntryProjectLink | null;
+  projectShareScope?: 'private' | 'project' | 'guide';
   categoryIds: GoalCreationCategory[];
   milestones: EntryMilestoneLink[];
 }

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, TextInput, View, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
 import { Modal } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
 import { Typography } from '@/components/ui/Typography';
 import { RADIUS, SPACE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
@@ -21,21 +22,22 @@ export function ProjectVaultWorkspace({ addRequest, initialFilter, project }: { 
   const [content, setContent] = useState('');
   const [url, setUrl] = useState('');
   const [saving, setSaving] = useState(false);
+  const [visibility, setVisibility] = useState<'private' | 'vault_members'>(project.collaboration.role === 'owner' ? 'private' : 'vault_members');
   const [error, setError] = useState<string | null>(null);
   const sticky = useMemo(() => vault.items.filter(isStickyVaultItem), [vault.items]);
 
   function openStickyNote() {
-    setTitle(''); setContent(''); setUrl(''); setError(null); setNoteOpen(true);
+    setTitle(''); setContent(''); setUrl(''); setError(null); setVisibility(project.collaboration.role === 'owner' ? 'private' : 'vault_members'); setNoteOpen(true);
   }
   function openSource() {
-    setTitle(''); setContent(''); setUrl(''); setError(null); setSourceOpen(true);
+    setTitle(''); setContent(''); setUrl(''); setError(null); setVisibility(project.collaboration.role === 'owner' ? 'private' : 'vault_members'); setSourceOpen(true);
   }
 
   async function saveSticky() {
     if (!title.trim() || saving) return;
     setSaving(true); setError(null);
     try {
-      await vault.addItem({ itemType: 'note', contentKind: 'sticky_note', title: title.trim(), content: content.trim() });
+      await vault.addItem({ itemType: 'note', contentKind: 'sticky_note', title: title.trim(), content: content.trim(), visibility });
       setNoteOpen(false); setTitle(''); setContent('');
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'Sticky Note could not be saved.'); }
     finally { setSaving(false); }
@@ -45,7 +47,7 @@ export function ProjectVaultWorkspace({ addRequest, initialFilter, project }: { 
     setSaving(true); setError(null);
     try {
       const normalized = /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`;
-      await vault.addItem({ itemType: 'link', title: title.trim() || normalized, metadata: { url: normalized, annotation: content.trim() || undefined } });
+      await vault.addItem({ itemType: 'link', title: title.trim() || normalized, metadata: { url: normalized, annotation: content.trim() || undefined }, visibility });
       setSourceOpen(false); setTitle(''); setContent(''); setUrl('');
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'Source could not be saved.'); }
     finally { setSaving(false); }
@@ -69,18 +71,19 @@ export function ProjectVaultWorkspace({ addRequest, initialFilter, project }: { 
         {sticky.length ? sticky.map((item) => {
           const origin = item.origins.length ? `From: ${item.origins.map((entry) => entry.goalTitle).join(', ')}` : 'Project note';
           return <Pressable key={item.id} accessibilityRole="button" onPress={() => item.origins[0] && router.push(`/(app)/goals/${item.origins[0].goalId}` as never)} style={({ pressed }) => ({ backgroundColor: colors.background.selectedRow, borderColor: colors.border.accent, borderRadius: RADIUS.lg, borderWidth: 1, flexBasis: compact ? undefined : 280, flexGrow: 1, gap: SPACE.sm, minWidth: compact ? 0 : 250, opacity: pressed ? 0.72 : 1, padding: SPACE.lg })}>
-            <Typography variant="caption">Sticky Note · Private to you</Typography><Typography variant="emphasis-sm">{item.title || 'Untitled'}</Typography>{item.content ? <Typography variant="body-small" numberOfLines={3}>{item.content}</Typography> : null}<Typography variant="caption">{origin}</Typography>
+            <Typography variant="caption">Sticky Note · {item.visibility === 'vault_members' ? 'Shared with Project' : 'Private to you'}</Typography><Typography variant="emphasis-sm">{item.title || 'Untitled'}</Typography>{item.content ? <Typography variant="body-small" numberOfLines={3}>{item.content}</Typography> : null}<Typography variant="caption">{origin}</Typography>
           </Pressable>;
         }) : <Typography variant="body">No Sticky Notes yet.</Typography>}
       </View>}
       vaultData={vault}
       showAddButton={false}
+      stickyPrivacyCopy="Private items remain owner-only. Shared Sticky Notes are visible only to authorized Project members."
     />
     <Modal visible={noteOpen} onClose={() => !saving && setNoteOpen(false)} showCloseButton={false} cancelText="Cancel" onCancel={() => setNoteOpen(false)} confirmText={saving ? 'Saving…' : 'Save Sticky Note'} onConfirm={() => void saveSticky()} confirmDisabled={!title.trim() || saving}>
-      <View style={{ gap: SPACE.lg }}><Typography variant="title">Project Sticky Note</Typography><Typography variant="caption">Private to you and stored in this Project Vault.</Typography><TextInput accessibilityLabel="Sticky Note title" placeholder="Title" placeholderTextColor={colors.text.muted} value={title} onChangeText={setTitle} style={inputStyle} /><TextInput accessibilityLabel="Sticky Note content" multiline placeholder="Write a note…" placeholderTextColor={colors.text.muted} value={content} onChangeText={setContent} style={[inputStyle, { minHeight: 120, textAlignVertical: 'top' }]} />{error ? <Typography variant="caption" style={{ color: colors.feedback.danger.text }}>{error}</Typography> : null}</View>
+      <View style={{ gap: SPACE.lg }}><Typography variant="title">Project Sticky Note</Typography><Typography variant="caption">Choose the sharing boundary explicitly. Private Notes never appear to collaborators.</Typography>{project.collaboration.role === 'owner' ? <View style={{ flexDirection: 'row', gap: SPACE.sm }}><Pressable onPress={() => setVisibility('private')} style={{ backgroundColor: visibility === 'private' ? colors.background.selectedRow : colors.background.subtle, borderColor: colors.border.divider, borderRadius: RADIUS.md, borderWidth: 1, padding: SPACE.md }}><Typography variant="emphasis-sm">{visibility === 'private' ? '✓ ' : ''}Private to me</Typography></Pressable><Pressable onPress={() => setVisibility('vault_members')} style={{ backgroundColor: visibility === 'vault_members' ? colors.background.selectedRow : colors.background.subtle, borderColor: colors.border.divider, borderRadius: RADIUS.md, borderWidth: 1, padding: SPACE.md }}><Typography variant="emphasis-sm">{visibility === 'vault_members' ? '✓ ' : ''}Shared with Project</Typography></Pressable></View> : <Typography variant="caption">Shared with Project</Typography>}<TextInput accessibilityLabel="Sticky Note title" placeholder="Title" placeholderTextColor={colors.text.muted} value={title} onChangeText={setTitle} style={inputStyle} /><TextInput accessibilityLabel="Sticky Note content" multiline placeholder="Write a note…" placeholderTextColor={colors.text.muted} value={content} onChangeText={setContent} style={[inputStyle, { minHeight: 120, textAlignVertical: 'top' }]} />{error ? <Typography variant="caption" style={{ color: colors.feedback.danger.text }}>{error}</Typography> : null}</View>
     </Modal>
     <Modal visible={sourceOpen} onClose={() => !saving && setSourceOpen(false)} showCloseButton={false} cancelText="Cancel" onCancel={() => setSourceOpen(false)} confirmText={saving ? 'Saving…' : 'Add Source'} onConfirm={() => void saveSource()} confirmDisabled={!url.trim() || saving}>
-      <View style={{ gap: SPACE.lg }}><Typography variant="title">Add Project Source</Typography><TextInput accessibilityLabel="Source URL" autoCapitalize="none" placeholder="https://…" placeholderTextColor={colors.text.muted} value={url} onChangeText={setUrl} style={inputStyle} /><TextInput accessibilityLabel="Source title" placeholder="Title (optional)" placeholderTextColor={colors.text.muted} value={title} onChangeText={setTitle} style={inputStyle} /><TextInput accessibilityLabel="Source annotation" multiline placeholder="Why this matters (optional)" placeholderTextColor={colors.text.muted} value={content} onChangeText={setContent} style={[inputStyle, { minHeight: 90, textAlignVertical: 'top' }]} />{error ? <Typography variant="caption" style={{ color: colors.feedback.danger.text }}>{error}</Typography> : null}</View>
+      <View style={{ gap: SPACE.lg }}><Typography variant="title">Add Project Source</Typography><Typography variant="caption">{project.collaboration.role === 'owner' ? 'Sources are private unless you explicitly share them.' : 'This Source will be shared with the Project.'}</Typography>{project.collaboration.role === 'owner' ? <View style={{ flexDirection: 'row', gap: SPACE.sm }}><Button size="compact" variant={visibility === 'private' ? 'primary' : 'secondary'} onPress={() => setVisibility('private')}>Private</Button><Button size="compact" variant={visibility === 'vault_members' ? 'primary' : 'secondary'} onPress={() => setVisibility('vault_members')}>Share with Project</Button></View> : null}<TextInput accessibilityLabel="Source URL" autoCapitalize="none" placeholder="https://…" placeholderTextColor={colors.text.muted} value={url} onChangeText={setUrl} style={inputStyle} /><TextInput accessibilityLabel="Source title" placeholder="Title (optional)" placeholderTextColor={colors.text.muted} value={title} onChangeText={setTitle} style={inputStyle} /><TextInput accessibilityLabel="Source annotation" multiline placeholder="Why this matters (optional)" placeholderTextColor={colors.text.muted} value={content} onChangeText={setContent} style={[inputStyle, { minHeight: 90, textAlignVertical: 'top' }]} />{error ? <Typography variant="caption" style={{ color: colors.feedback.danger.text }}>{error}</Typography> : null}</View>
     </Modal>
   </>;
 }

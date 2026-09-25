@@ -46,6 +46,7 @@ export interface TaskOccurrence {
   source: TaskOccurrenceSource;
   createdAt: string;
   updatedAt: string;
+  completedBy?: string | null;
 }
 
 export interface Task {
@@ -67,6 +68,9 @@ export interface Task {
   updatedAt: string;
   completedAt: string | null;
   archivedAt: string | null;
+  assignedTo?: string | null;
+  assignedBy?: string | null;
+  createdBy?: string | null;
   schedules: TaskSchedule[];
   occurrences: TaskOccurrence[];
 }

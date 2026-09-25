@@ -51,7 +51,7 @@ export function selectProjectTaskPreviews(
       .sort((a, b) => (a.scheduledLocalDate ?? '9999').localeCompare(b.scheduledLocalDate ?? '9999'))[0] ?? null;
     const date = pending?.scheduledLocalDate ?? task.dueDate;
     const timing: ProjectTaskPreview['timing'] = !date ? 'anytime' : date < today ? 'overdue' : date === today ? 'today' : 'upcoming';
-    return [{ id: task.id, goalId, goalTitle, occurrence: pending, title: task.title, timing }];
+    return [{ id: task.id, goalId, goalTitle, occurrence: pending, title: task.title, timing, assignedTo: task.assignedTo ?? null }];
   })).sort((a, b) => rank[a.timing] - rank[b.timing]
     || (a.occurrence?.scheduledLocalDate ?? '9999').localeCompare(b.occurrence?.scheduledLocalDate ?? '9999'))
     .slice(0, limit);

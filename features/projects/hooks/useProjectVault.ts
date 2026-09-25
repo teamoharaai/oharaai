@@ -19,7 +19,7 @@ export function useProjectVault(projectId: string, initialItems: ProjectVaultIte
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'Project Vault could not load'); }
     finally { setLoading(false); }
   }, [projectId]);
-  const addItem = useCallback(async (payload: { itemType: 'note' | 'link'; contentKind?: 'generic' | 'sticky_note'; title?: string; content?: string; metadata?: VaultItem['metadata'] }) => {
+  const addItem = useCallback(async (payload: { itemType: 'note' | 'link'; contentKind?: 'generic' | 'sticky_note'; title?: string; content?: string; metadata?: VaultItem['metadata']; visibility?: 'private' | 'vault_members' }) => {
     const response = await authedFetch(`/api/projects/${projectId}/vault`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     if (!response.ok) throw new Error('Project Vault item could not be saved');
     const body = await response.json() as { item: ProjectVaultItem };

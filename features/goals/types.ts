@@ -35,6 +35,7 @@ export interface Goal {
   aiGenerated: boolean;
   smartData: GoalSmartData | null;
   projectId: string | null;
+  projectLeadId?: string | null;
   createdAt: Date;
   updatedAt: Date;
   embedding?: number[] | null;
@@ -72,6 +73,9 @@ export interface GoalMilestone {
   photoUrl: string | null;
   createdAt: Date;
   updatedAt: Date;
+  responsibleUserId?: string | null;
+  assignedBy?: string | null;
+  createdBy?: string | null;
 }
 
 /**

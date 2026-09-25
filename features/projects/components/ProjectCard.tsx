@@ -37,6 +37,7 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
         <View style={{ flex: 1, gap: SPACE.xs }}>
           <Typography variant="title" numberOfLines={1}>{project.title}</Typography>
           <Typography variant="body-small" numberOfLines={2}>{project.description || 'Bring related Goals and material together.'}</Typography>
+          <Typography variant="caption">{project.mode === 'guide' ? 'OHARA Guide' : project.mode[0].toUpperCase() + project.mode.slice(1)} · {project.memberCount} {project.memberCount === 1 ? 'person' : 'people'}</Typography>
         </View>
         <Ionicons color={colors.text.muted} name="ellipsis-horizontal" size={18} />
       </View>

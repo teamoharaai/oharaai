@@ -15,6 +15,7 @@ import { Typography } from '@/components/ui/Typography';
 import { SPACE } from '@/constants/design';
 import { GoalEchoAnalysisCard } from '@/features/goals/components/GoalEchoAnalysisCard';
 import { useGoals } from '@/features/goals/hooks/useGoals';
+import { buildMomentumInsightFacts, selectContextualInsight } from '@/features/intelligence/contextual-insights';
 import {
   MomentumTrendChart,
 } from '@/features/momentum/components/MomentumTrendChart';
@@ -161,6 +162,16 @@ export default function MomentumScreen() {
   const historyValues = visibleHistory.map((point) => point.value);
   const historyLabels = visibleHistory.map(weeklyLabel);
   const currentChange = momentumChange(momentum.summary?.weeklyChange ?? null);
+  const insightContext = range === '3M' || range === '1Y' ? 'momentum_monthly' : 'momentum_weekly';
+  const momentumInsight = selectContextualInsight(buildMomentumInsightFacts({
+    currentValue: momentum.summary?.currentValue ?? null,
+    weeklyChange: momentum.summary?.weeklyChange ?? null,
+    dimensions: COMPONENTS.flatMap((component) => {
+      const value = momentum.summary?.components[component.key];
+      return typeof value === 'number' ? [{ id: component.key, name: component.label, currentValue: value }] : [];
+    }),
+    history: visibleHistory.slice(-5).map((point) => ({ value: point.value })),
+  }), insightContext);
 
   return (
     <AuthenticatedPageShell>
@@ -301,6 +312,19 @@ export default function MomentumScreen() {
                     Closed points are immutable weekly snapshots. The newest point is this week&apos;s live provisional calculation.
                   </Typography>
                 </View>
+              </Card>
+            </View>
+
+            <View>
+              <SectionHeading title="OHARA Intelligence" />
+              <Card padding="spacious" elevated>
+                <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
+                  <Ionicons color={colors.accent.primary} name="sparkles-outline" size={18} />
+                  <Typography variant="eyebrow" style={{ color: colors.text.accent }}>OHARA Intelligence</Typography>
+                </View>
+                <Typography variant="caption" style={{ color: colors.text.secondary, marginTop: SPACE.sm }}>{momentumInsight.subtitle}</Typography>
+                <Typography variant="title" style={{ marginTop: SPACE.md }}>{momentumInsight.primary}</Typography>
+                {momentumInsight.secondary ? <Typography variant="description" style={{ marginTop: SPACE.sm }}>{momentumInsight.secondary}</Typography> : null}
               </Card>
             </View>
 

@@ -5,6 +5,9 @@ import type { Vault, VaultItem } from '@/types/vault';
 import type { TaskOccurrence } from '@/features/tasks/types';
 
 export type ProjectStatus = 'active' | 'complete' | 'archived';
+export type ProjectMode = 'personal' | 'team' | 'guide';
+export type ProjectRole = 'owner' | 'admin' | 'member' | 'guide';
+export const PROJECT_MEMBER_LIMIT = 3;
 
 export type Project = {
   id: string;
@@ -12,6 +15,7 @@ export type Project = {
   title: string;
   description: string | null;
   status: ProjectStatus;
+  mode: ProjectMode;
   start_date: string | null;
   end_date: string | null;
   period_key: string | null;
@@ -27,6 +31,7 @@ export type ProjectVisualCategory = GoalCategory | 'mixed';
 
 export type ProjectSummary = Project & {
   activeGoalCount: number;
+  memberCount: number;
   goalNames: string[];
   lastActivityAt: string;
   vaultItemCount: number;
@@ -43,6 +48,17 @@ export type ProjectActivity = {
   label: string;
   occurredAt: string;
   origin?: string;
+  actorId?: string | null;
+  actorName?: string;
+};
+
+export type ProjectComment = {
+  id: string;
+  authorId: string;
+  targetType: 'goal' | 'task' | 'milestone' | 'entry' | 'source';
+  targetId: string;
+  body: string;
+  createdAt: string;
 };
 
 export type ProjectTaskPreview = {
@@ -52,6 +68,53 @@ export type ProjectTaskPreview = {
   occurrence: TaskOccurrence | null;
   title: string;
   timing: 'overdue' | 'today' | 'upcoming' | 'anytime';
+  assignedTo: string | null;
+};
+
+export type ProjectMember = {
+  userId: string;
+  role: ProjectRole;
+  relationshipLabel: string | null;
+  displayName: string;
+  username: string;
+  avatarUrl: string | null;
+  joinedAt: string;
+};
+
+export type ProjectInvitation = {
+  id: string;
+  invitedUserId: string | null;
+  invitedEmail: string | null;
+  role: Exclude<ProjectRole, 'owner'>;
+  relationshipLabel: string | null;
+  status: 'pending' | 'accepted' | 'declined' | 'revoked' | 'expired';
+  expiresAt: string;
+  createdAt: string;
+};
+
+export type IncomingProjectInvitation = {
+  id: string;
+  projectId: string;
+  projectTitle: string;
+  inviterName: string;
+  role: Exclude<ProjectRole, 'owner'>;
+  relationshipLabel: string | null;
+  expiresAt: string;
+  createdAt: string;
+};
+
+export type ProjectCollaboration = {
+  role: ProjectRole;
+  capabilities: string[];
+  members: ProjectMember[];
+  invitations: ProjectInvitation[];
+};
+
+export type ProjectGoalMomentum = {
+  goalId: string;
+  displayedValue: number | null;
+  weeklyChange: number | null;
+  status: string | null;
 };
 
 export type ProjectWorkspace = ProjectWithGoals & {
@@ -59,6 +122,9 @@ export type ProjectWorkspace = ProjectWithGoals & {
   entries: EntryRecord[];
   partialErrors: string[];
   taskPreviews: ProjectTaskPreview[];
+  collaboration: ProjectCollaboration;
+  comments: ProjectComment[];
+  goalMomentum: ProjectGoalMomentum[];
   vault: Vault | null;
   vaultItems: ProjectVaultItem[];
 };

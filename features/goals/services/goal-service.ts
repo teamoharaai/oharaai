@@ -69,6 +69,9 @@ type DbMilestone = {
   photo_url: string | null;
   created_at: string;
   updated_at: string;
+  responsible_user_id: string | null;
+  assigned_by: string | null;
+  created_by: string | null;
 };
 
 // Notes are Vault items (item_type='note') since migration 062; a goal's
@@ -106,6 +109,7 @@ export type DbGoal = {
   status: string;
   ai_generated: boolean;
   project_id: string | null;
+  project_lead_id: string | null;
   previous_goal_id: string | null;
   prior_phase_summary: unknown;
   reflection: string | null;
@@ -253,6 +257,9 @@ function mapMilestone(row: DbMilestone): GoalMilestone {
     photoUrl: row.photo_url,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
+    responsibleUserId: row.responsible_user_id ?? null,
+    assignedBy: row.assigned_by ?? null,
+    createdBy: row.created_by ?? null,
   };
 }
 
@@ -289,6 +296,7 @@ export function mapGoal(row: DbGoal): GoalWithDetails {
     aiGenerated: row.ai_generated,
     smartData: toSmartData(row.smart_data),
     projectId: row.project_id,
+    projectLeadId: row.project_lead_id ?? null,
     previous_goal_id: row.previous_goal_id,
     prior_phase_summary: toPriorPhaseSummary(row.prior_phase_summary),
     reflection: row.reflection,
@@ -419,12 +427,12 @@ async function fetchGoalSignals(
 export const GOAL_SELECT = `
   id, user_id, title, description, category, smart_data, color_theme, deadline,
   target_frequency, visibility, progress, status, completed_at, archived_at, expired_at,
-  ai_generated, project_id, previous_goal_id,
+  ai_generated, project_id, project_lead_id, previous_goal_id,
   prior_phase_summary, reflection, reflected_at, created_at, updated_at,
   milestones (
     id, goal_id, user_id, title, description, due_date, completed_at,
     sort_order, is_ai_suggested, kind, parent_id, target_count, photo_url,
-    created_at, updated_at
+    created_at, updated_at, responsible_user_id, assigned_by, created_by
   ),
   trackers (
     id, goal_id, title, type, target_value, target_unit, frequency,

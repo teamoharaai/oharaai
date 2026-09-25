@@ -48,6 +48,7 @@ interface VaultWorkspaceProps {
   externalAddRequest?: number;
   showAddButton?: boolean;
   initialFilter?: VaultFilter;
+  stickyPrivacyCopy?: string;
 }
 
 const FILTERS: ReadonlyArray<{ label: string; value: VaultFilter }> = [
@@ -72,7 +73,7 @@ function VaultSection({ children, icon, title }: { children: ReactNode; icon: ke
 }
 
 /** Parent-neutral Vault presentation. Goal-specific data is supplied by GoalVault. */
-export function VaultWorkspace({ activityContent, activityError, activityItems, activityLoading, entries, entriesError, externalAddRequest, initialFilter = 'all', onAddSource, onAddStickyNote, parent, privateNotes, showAddButton = true, vaultData }: VaultWorkspaceProps) {
+export function VaultWorkspace({ activityContent, activityError, activityItems, activityLoading, entries, entriesError, externalAddRequest, initialFilter = 'all', onAddSource, onAddStickyNote, parent, privateNotes, showAddButton = true, stickyPrivacyCopy, vaultData }: VaultWorkspaceProps) {
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
   const compact = width < 620;
@@ -101,15 +102,14 @@ export function VaultWorkspace({ activityContent, activityError, activityItems, 
 
   async function retrySources() {
     setRetrying(true);
-    await Promise.all([
-      vault.refresh(),
+    await Promise.all([vault.refresh(), ...(parent.type === 'goal' ? [
       fetchEntries().then((result) => {
         setRetriedEntries(result.filter((entry) => parent.type === 'goal'
           ? entry.goals.some((linked) => linked.id === parent.id)
           : entry.project?.id === parent.id));
         setEntryLoadError(null);
       }).catch(() => setEntryLoadError('Linked entries could not be loaded.')),
-    ]);
+    ] : [])]);
     setRetrying(false);
   }
 
@@ -184,7 +184,7 @@ export function VaultWorkspace({ activityContent, activityError, activityItems, 
       </View>
 
       {showSticky ? <VaultSection icon="document-text-outline" title="Sticky Notes">
-        <Typography variant="caption">{parent.type === 'goal' ? 'Private to you. Sticky Notes appear in Projects only through owner-authorized aggregation.' : 'Private to you. Project Vault content is owner-only.'}</Typography>
+        <Typography variant="caption">{stickyPrivacyCopy ?? (parent.type === 'goal' ? 'Private to you. Sticky Notes appear in Projects only through owner-authorized aggregation.' : 'Private items remain owner-only; shared items are visible only to authorized Project members.')}</Typography>
         <View testID="goal-private-notes">{privateNotes}</View>
       </VaultSection> : null}
 

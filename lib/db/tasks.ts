@@ -57,6 +57,7 @@ export function mapTaskOccurrence(row: Row): TaskOccurrence {
     source: row.source,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    completedBy: row.completed_by ?? null,
   };
 }
 
@@ -80,6 +81,9 @@ export function mapTask(row: Row): Task {
     updatedAt: row.updated_at,
     completedAt: row.completed_at ?? null,
     archivedAt: row.archived_at ?? null,
+    assignedTo: row.assigned_to ?? null,
+    assignedBy: row.assigned_by ?? null,
+    createdBy: row.created_by ?? null,
     schedules: (row.task_schedules ?? []).map(mapTaskSchedule)
       .sort((a: TaskSchedule, b: TaskSchedule) => b.version - a.version),
     occurrences: (row.task_occurrences ?? []).map(mapTaskOccurrence),

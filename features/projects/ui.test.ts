@@ -11,6 +11,9 @@ const goalHeader = readFileSync(resolve(process.cwd(), 'features/goals/component
 const service = readFileSync(resolve(process.cwd(), 'features/projects/services/project-service.ts'), 'utf8');
 const sharedVault = readFileSync(resolve(process.cwd(), 'features/goals/components/GoalVault.tsx'), 'utf8');
 const brandIcon = readFileSync(resolve(process.cwd(), 'components/ui/BrandIcon.tsx'), 'utf8');
+const manage = readFileSync(resolve(process.cwd(), 'features/projects/components/ManageProjectModal.tsx'), 'utf8');
+const intelligence = readFileSync(resolve(process.cwd(), 'features/projects/intelligence.ts'), 'utf8');
+const contextualIntelligence = readFileSync(resolve(process.cwd(), 'features/intelligence/contextual-insights.ts'), 'utf8');
 
 test('Projects is a first-class horizontal navigation destination', () => {
   assert.match(nav, /label: 'Projects'.*href: '\/\(app\)\/projects'/);
@@ -48,4 +51,20 @@ test('Project activity is truthful, bounded, and partial-source failures degrade
   assert.match(service, /entry_goal_links/);
   assert.match(service, /New Phase created/);
   assert.match(service, /partialErrors/);
+});
+
+test('collaboration UI exposes modes, bounded membership, responsibility, and contextual comments', () => {
+  for (const label of ['Personal', 'Team', 'OHARA Guide', 'Goal Lead', 'Invite person', 'Access / Mode']) assert.match(manage, new RegExp(label));
+  assert.match(manage, /PROJECT_MEMBER_LIMIT/);
+  assert.match(manage, /assignProjectMilestone/);
+  assert.match(manage, /createProjectComment/);
+  assert.match(workspace, /\['mine', 'everyone', 'upcoming'\]/);
+});
+
+test('Project Intelligence is deterministic and does not call an LLM', () => {
+  assert.match(intelligence, /structured facts/);
+  assert.match(contextualIntelligence, /selectContextualInsight/);
+  assert.match(contextualIntelligence, /\.sort\(/);
+  assert.doesNotMatch(`${intelligence}\n${contextualIntelligence}`, /openai|anthropic|fetch\(/i);
+  assert.match(workspace, /insight\.subtitle/);
 });

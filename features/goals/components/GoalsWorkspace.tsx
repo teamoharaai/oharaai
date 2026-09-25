@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/Button';
 import { Typography } from '@/components/ui/Typography';
 import { elevationStyle, RADIUS, SPACE, TYPE } from '@/constants/design';
 import { getCategoryAccentTheme } from '@/constants/themes';
+import { buildGoalInsightFacts, selectContextualInsight } from '@/features/intelligence/contextual-insights';
 import { fetchEntries } from '@/features/entries/services/entry-service';
 import type { EntryRecord } from '@/features/entries/types';
 import { useProjectStore } from '@/features/projects/store';
@@ -523,7 +524,7 @@ function GoalListCard({ goal, onSelect, selected }: {
         <View style={{ flex: 1, minWidth: 0 }}>
           <Typography numberOfLines={2} variant="emphasis-sm">{goal.title}</Typography>
           <Typography variant="caption" style={{ marginTop: 3 }}>
-            {getGoalCategoryLabel(goal.category)} · {getGoalStatusLabel(goal.status)}
+            {getGoalCategoryLabel(goal.category)} · {getGoalStatusLabel(goal.status)}{goal.projectId ? ' · Project Goal' : ' · Personal'}
           </Typography>
         </View>
       </View>
@@ -855,7 +856,25 @@ function GoalAnalyticsCard({ goal }: { goal: GoalWithDetails }) {
 
 function InsightContextCard({ goal, items }: { goal: GoalWithDetails; items: readonly ActivityItem[] }) {
   const colors = useThemeColors();
-  const insight = items.find((item) => item.kind === 'insight_confirmed');
+  const momentum = useGoalMomentumSummary(goal.id);
+  const now = new Date();
+  const weekAgo = now.getTime() - 7 * 86_400_000;
+  const recentItems = items.filter((item) => new Date(item.timestamp).getTime() >= weekAgo);
+  const nextMilestone = goal.milestones
+    .filter((milestone) => !milestone.completedAt && milestone.dueDate)
+    .sort((a, b) => a.dueDate!.getTime() - b.dueDate!.getTime())[0] ?? null;
+  const insight = selectContextualInsight(buildGoalInsightFacts({
+    goalId: goal.id,
+    goalTitle: goal.title,
+    weeklyMomentumDelta: momentum.goalSummary?.weeklyChange ?? null,
+    taskCompletedCount: recentItems.filter((item) => item.kind === 'task_completed').length,
+    taskDueCount: 0,
+    milestoneCompletedCount: recentItems.filter((item) => item.kind === 'milestone_completed').length,
+    nextMilestone: nextMilestone ? { id: nextMilestone.id, title: nextMilestone.title, dueDate: nextMilestone.dueDate! } : null,
+    deadline: goal.deadline,
+    latestActivityAt: items[0]?.timestamp ?? null,
+    now,
+  }), 'goal');
   return (
     <View
       style={{
@@ -867,21 +886,9 @@ function InsightContextCard({ goal, items }: { goal: GoalWithDetails; items: rea
         <Ionicons color={colors.text.accent} name="sparkles-outline" size={18} />
         <SectionHeading>OHARA INTELLIGENCE</SectionHeading>
       </View>
-      {insight?.kind === 'insight_confirmed' ? (
-        <>
-          <Typography variant="title" style={{ marginTop: SPACE.xl }}>A confirmed insight from this journey.</Typography>
-          <Typography variant="body" style={{ marginTop: SPACE.md }}>{insight.content}</Typography>
-        </>
-      ) : (
-        <>
-          <Typography variant="title" style={{ marginTop: SPACE.xl }}>No confirmed insight yet.</Typography>
-          <Typography variant="body" style={{ marginTop: SPACE.md }}>
-            {goal.latestBrtTags?.length
-              ? `Recent reflection themes: ${goal.latestBrtTags.join(', ')}. These are context signals, not an AI conclusion.`
-              : 'Keep reflecting and recording real activity. OHARA will not invent an interpretation before enough context exists.'}
-          </Typography>
-        </>
-      )}
+      <Typography variant="caption" style={{ color: colors.text.muted, marginTop: SPACE.md }}>{insight.subtitle}</Typography>
+      <Typography variant="title" style={{ marginTop: SPACE.md }}>{insight.primary}</Typography>
+      {insight.secondary ? <Typography variant="body" style={{ marginTop: SPACE.md }}>{insight.secondary}</Typography> : null}
     </View>
   );
 }
@@ -1084,6 +1091,7 @@ export function GoalsWorkspace() {
   const setSelectedGoalId = useGoalStore((state) => state.setSelectedGoalId);
   const routeSelected = getGoalWorkspaceSelection(params);
   const [query, setQuery] = useState('');
+  const [libraryScope, setLibraryScope] = useState<'all' | 'project' | 'personal'>('all');
   const [category, setCategory] = useState<GoalWithDetails['category'] | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const requestedView = Array.isArray(params.view) ? params.view[0] : params.view;
@@ -1106,7 +1114,8 @@ export function GoalsWorkspace() {
   }, []);
 
   useEffect(() => {
-    const statusGoals = goals.filter((goal) => goalMatchesWorkspaceStatus(goal, status));
+    const statusGoals = goals.filter((goal) => goalMatchesWorkspaceStatus(goal, status)
+      && (libraryScope === 'all' || (libraryScope === 'project' ? Boolean(goal.projectId) : !goal.projectId)));
     if (isLoading) return;
     if (statusGoals.length === 0) {
       if (selectedGoalId !== null) setSelectedGoalId(null);
@@ -1120,11 +1129,12 @@ export function GoalsWorkspace() {
       : null;
     const next = validRouteGoal ?? validStoredGoal ?? statusGoals[0].id;
     if (selectedGoalId !== next) setSelectedGoalId(next);
-  }, [goals, isLoading, routeSelected, selectedGoalId, setSelectedGoalId, status]);
+  }, [goals, isLoading, libraryScope, routeSelected, selectedGoalId, setSelectedGoalId, status]);
 
   const statusGoals = useMemo(
-    () => goals.filter((goal) => goalMatchesWorkspaceStatus(goal, status)),
-    [goals, status],
+    () => goals.filter((goal) => goalMatchesWorkspaceStatus(goal, status)
+      && (libraryScope === 'all' || (libraryScope === 'project' ? Boolean(goal.projectId) : !goal.projectId))),
+    [goals, libraryScope, status],
   );
 
   const categories = useMemo(
@@ -1134,8 +1144,8 @@ export function GoalsWorkspace() {
     [statusGoals],
   );
   const filteredGoals = useMemo(
-    () => filterGoalsForWorkspace(goals, query, status, category),
-    [category, goals, query, status],
+    () => filterGoalsForWorkspace(goals, query, status, category).filter((goal) => libraryScope === 'all' || (libraryScope === 'project' ? Boolean(goal.projectId) : !goal.projectId)),
+    [category, goals, libraryScope, query, status],
   );
   const selectedGoal = statusGoals.find((goal) => goal.id === selectedGoalId) ?? null;
   const selectedGoalDetail = useGoalDetail(selectedGoal?.id ?? '');
@@ -1165,6 +1175,10 @@ export function GoalsWorkspace() {
           query={query}
           setQuery={setQuery}
         />
+
+        <View accessibilityRole="tablist" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>
+          {([['all', 'All'], ['project', 'Project Goals'], ['personal', 'Personal']] as const).map(([value, label]) => <Button key={value} size="compact" variant={libraryScope === value ? 'primary' : 'secondary'} onPress={() => setLibraryScope(value)}>{label}</Button>)}
+        </View>
 
         {isLoading ? (
           <Surface style={{ alignItems: 'center', justifyContent: 'center', minHeight: 420 }}>

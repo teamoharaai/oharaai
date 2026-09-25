@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Added — Projects V1.1 Collaboration & Intelligence Foundation
+- Added one capability-based Personal/Team/OHARA Guide collaboration architecture with canonical owner membership, invitations, role presets, a database-serialized three-person limit, Goal leads, canonical Task assignment/completion, Milestone responsibility, contextual comments, actor-aware activity, and secure Goal Momentum projection (`supabase/migrations/072_projects_v1_1_collaboration.sql`, Project services/types/components, Tasks/Goals mappings).
+- Added explicit private/Project/Guide Entry sharing and collaborator-safe Project Vault reads. Membership never exposes private Notes, Reflections, Sticky Notes, previews, counts, or Intelligence facts (`app/api/projects/[projectId]/vault+api.ts`, Goal/Project Vault components, Migration 072 RLS/RPC policies).
+- Added a reusable non-LLM contextual OHARA Intelligence engine that separates authorized structured facts, screen-specific ranking, and screen-specific template rendering for Home, Goal, Personal Project, Team Project, Guide Project, weekly/monthly Momentum, and Weekly Recap. Projects, Goal Intelligence, and Momentum now consume the shared engine without changing Momentum V1.1 calculations (`features/intelligence/contextual-insights.ts`, Project adapter, Goals workspace, Momentum screen).
+- Added Project invitation handling, mode selection, member/role management, coordination controls, Project Goal/Task filters, and the Goals library Project/Personal distinctions while preserving standalone Goals (`app/(app)/projects`, `features/projects`, `features/goals/components/GoalsWorkspace.tsx`).
+- Added deterministic insight tests, expanded Project unit/browser coverage, and a local database security/concurrency harness for owner/Admin/Member/Guide access, invitation lifecycle, assignments, privacy, comments, archive behavior, and the three-person race boundary (`features/intelligence/*.test.ts`, `features/projects/*.test.ts`, `tests/projects/workspace.spec.ts`, `scripts/test-projects-v11-security.sh`).
+
+### Changed — Projects V1.1 Collaboration & Intelligence Foundation
+- Reused canonical Goals, Tasks, Milestones, Entries, Vaults, Circles friends, and Goal Momentum rather than introducing Project-native duplicates or a Project Momentum score. Project ownership transfer remains explicitly deferred because current Goal ownership cannot be transferred safely (`docs/projects-v11-collaboration.md`).
+- Upgraded the Project workspace header, Current Goals, Project Tasks, Momentum Snapshot, Recent Activity, Vault sharing controls, and Manage Project sections for calm role-aware collaboration on desktop and narrow layouts.
+
 ### Added — Projects V1.0.1
 - Added a bounded three-column Project dashboard with separate Current Goals, Notes, Reflections, OHARA Intelligence, aggregated Goal Tasks, Project Snapshot, Goal Momentum Snapshot, and capped Recent Activity previews with canonical deep links (`app/(app)/projects/[id].tsx`, Project service/model/types).
 

@@ -7,6 +7,7 @@ import { useThemeColors } from '@/store/uiStore';
 import { useProjectStore } from '../store';
 import { fetchOwnedGoalsForProjects } from '../services/project-service';
 import type { GoalWithDetails } from '@/features/goals/types';
+import type { ProjectMode } from '../types';
 import supabase from '@/lib/db/client';
 
 interface CreateProjectModalProps {
@@ -28,6 +29,7 @@ export function CreateProjectModal({ visible, onClose }: CreateProjectModalProps
   const createProject = useProjectStore((state) => state.createProject);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [mode, setMode] = useState<ProjectMode>('personal');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [goals, setGoals] = useState<GoalWithDetails[]>([]);
@@ -53,6 +55,7 @@ export function CreateProjectModal({ visible, onClose }: CreateProjectModalProps
 
     setTitle('');
     setDescription('');
+    setMode('personal');
     setIsSubmitting(false);
     setError(null);
     setGoals([]);
@@ -83,6 +86,7 @@ export function CreateProjectModal({ visible, onClose }: CreateProjectModalProps
       const project = await createProject({
         title: title.trim(),
         description: description.trim() || undefined,
+        mode,
         goalIds: selectedGoalIds,
         allowReassignment: reassignmentConfirmed,
       });
@@ -143,6 +147,19 @@ export function CreateProjectModal({ visible, onClose }: CreateProjectModalProps
           placeholder="e.g. Build financial independence"
           placeholderTextColor={colors.text.muted}
         />
+      </View>
+
+      <View style={{ marginBottom: 18 }}>
+        <Typography variant="eyebrow" style={{ marginBottom: 8 }}>What kind of Project is this?</Typography>
+        <View style={{ gap: 8 }}>
+          {([
+            ['personal', 'Personal', 'Just me.'],
+            ['team', 'Team', 'Work toward shared outcomes together.'],
+            ['guide', 'Guide', 'Work with someone helping guide your progress.'],
+          ] as const).map(([value, label, detail]) => <Pressable key={value} accessibilityRole="radio" accessibilityState={{ checked: mode === value }} onPress={() => setMode(value)} style={{ backgroundColor: mode === value ? colors.background.selectedRow : colors.background.subtle, borderColor: mode === value ? colors.border.accent : colors.border.divider, borderRadius: 12, borderWidth: 1, padding: 12 }}>
+            <Typography variant="emphasis-sm">{label}</Typography><Typography variant="caption">{detail}</Typography>
+          </Pressable>)}
+        </View>
       </View>
 
       <View>

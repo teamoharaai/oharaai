@@ -29,11 +29,16 @@ async function handleGet(_request: Request, params: Record<string, string>, auth
   if (!projectId) return Response.json({ error: 'Invalid Project ID' }, { status: 400 });
   try {
     const db = createAuthedClient(auth.accessToken);
-    const vault = await getOrCreateProjectVaultForUser(projectId, auth.userId, db);
+    const { data: project, error: projectError } = await db.from('projects').select('id,user_id').eq('id', projectId).maybeSingle();
+    if (projectError) throw projectError;
+    if (!project) return Response.json({ error: 'Not found' }, { status: 404 });
+    const { data: existingVault, error: vaultError } = await db.from('vaults').select('*').eq('project_id', projectId).maybeSingle();
+    if (vaultError) throw vaultError;
+    const vault = existingVault ?? (project.user_id === auth.userId ? await getOrCreateProjectVaultForUser(projectId, auth.userId, db) : null);
     if (!vault) return Response.json({ error: 'Not found' }, { status: 404 });
 
     const { data: goals, error: goalsError } = await db.from('goals')
-      .select('id, title').eq('project_id', projectId).eq('user_id', auth.userId);
+      .select('id, title').eq('project_id', projectId);
     if (goalsError) throw goalsError;
     const goalRows = (goals ?? []) as Array<{ id: string; title: string }>;
     const goalIds = goalRows.map((goal) => goal.id);
@@ -42,7 +47,7 @@ async function handleGet(_request: Request, params: Record<string, string>, auth
     let goalVaults: Array<{ id: string; goal_id: string }> = [];
     if (goalIds.length) {
       const { data, error } = await db.from('vaults').select('id, goal_id')
-        .in('goal_id', goalIds).eq('user_id', auth.userId);
+        .in('goal_id', goalIds);
       if (error) throw error;
       goalVaults = (data ?? []) as Array<{ id: string; goal_id: string }>;
     }
@@ -83,7 +88,7 @@ async function handlePost(request: Request, params: Record<string, string>, auth
   const projectId = idFrom(params);
   if (!projectId) return Response.json({ error: 'Invalid Project ID' }, { status: 400 });
   try {
-    const raw = await request.json() as { itemType?: unknown; contentKind?: unknown; title?: unknown; content?: unknown; metadata?: unknown };
+    const raw = await request.json() as { itemType?: unknown; contentKind?: unknown; title?: unknown; content?: unknown; metadata?: unknown; visibility?: unknown };
     const itemType = raw.itemType as VaultItemType;
     const allowed: VaultItemType[] = ['note', 'link', 'document'];
     if (!allowed.includes(itemType)) return Response.json({ error: 'Unsupported item type' }, { status: 400 });
@@ -94,11 +99,21 @@ async function handlePost(request: Request, params: Record<string, string>, auth
     const metadata = raw.metadata && typeof raw.metadata === 'object' && !Array.isArray(raw.metadata)
       ? raw.metadata as VaultItem['metadata'] : {};
     const db = createAuthedClient(auth.accessToken);
-    const vault = await getOrCreateProjectVaultForUser(projectId, auth.userId, db);
+    const { data: project, error: projectError } = await db.from('projects').select('id,user_id,status').eq('id', projectId).maybeSingle();
+    if (projectError) throw projectError;
+    if (!project || project.status === 'archived') return Response.json({ error: 'Not found' }, { status: 404 });
+    const isOwner = project.user_id === auth.userId;
+    const { data: canAdd, error: capabilityError } = await db.rpc('project_has_capability_v11', { p_project_id: projectId, p_user_id: auth.userId, p_capability: 'add_shared_content' });
+    if (capabilityError) throw capabilityError;
+    const visibility = raw.visibility === 'vault_members' ? 'vault_members' : 'private';
+    if (!isOwner && (!canAdd || visibility !== 'vault_members')) return Response.json({ error: 'Not permitted' }, { status: 403 });
+    const { data: existingVault, error: vaultError } = await db.from('vaults').select('*').eq('project_id', projectId).maybeSingle();
+    if (vaultError) throw vaultError;
+    const vault = existingVault ?? (isOwner ? await getOrCreateProjectVaultForUser(projectId, auth.userId, db) : null);
     if (!vault) return Response.json({ error: 'Not found' }, { status: 404 });
     const item = await createVaultItem(vault.id, {
       vaultId: vault.id, itemType, contentKind, title, content, metadata,
-      folderId: null, visibility: 'private', createdBy: auth.userId, sortOrder: 0,
+      folderId: null, visibility, createdBy: auth.userId, sortOrder: 0,
     }, db);
     return Response.json({ item: { ...item, directProjectItem: true, origins: [] } }, { status: 201 });
   } catch (error) {
