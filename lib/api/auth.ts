@@ -78,7 +78,7 @@ export type AuthedRouteHandler = (
 // side effect of removing duplication.
 export function withAuth(
   handler: AuthedRouteHandler,
-  options?: { onUnauthorized?: () => Response },
+  options?: { onUnauthorized?: () => Response; onUnavailable?: () => Response },
 ) {
   return async (request: Request, params: Record<string, string> = {}): Promise<Response> => {
     const result = await getAuthContext(request);
@@ -86,6 +86,7 @@ export function withAuth(
       return handler(request, params, result.auth);
     }
     if (result.status === 'unavailable') {
+      if (options?.onUnavailable) return options.onUnavailable();
       // Transient: we could not validate the token (auth backend timeout / 5xx),
       // NOT a rejection of the user's identity. 503 tells the client to back off
       // and retry — it must never trigger the 401 sign-out path.

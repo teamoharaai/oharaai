@@ -26,6 +26,22 @@
 - Reused canonical Goals, Tasks, Milestones, Entries, Vaults, Circles friends, and Goal Momentum rather than introducing Project-native duplicates or a Project Momentum score. Project ownership transfer remains explicitly deferred because current Goal ownership cannot be transferred safely (`docs/projects-v11-collaboration.md`).
 - Upgraded the Project workspace header, Current Goals, Project Tasks, Momentum Snapshot, Recent Activity, Vault sharing controls, and Manage Project sections for calm role-aware collaboration on desktop and narrow layouts.
 
+### Fixed — Manual Goal development verification (2026-09-25)
+- Applied migration 072 to the explicitly authorized development Supabase project after rollback-only preflight. Two real Swift/API/DB tests passed, including dated/undated creation, replay, recovery and owner isolation; 18 Node and 12 disposable DB tests also passed. Removed both synthetic accounts/data and closed admission afterward. Existing desktop grants and hosted deployment remain unchanged. Evidence: `docs/goal-e2e-verification-2026-09-25.md`.
+- Kept manual-v1 authentication failures in the domain envelope and private/no-store policy; other API routes retain their existing auth response behavior.
+- Corrected migration 072 for hosted Supabase: temporary SET ROLE/schema CREATE privileges for ownership transfer, an identity-only auth.uid() helper where auth-schema privileges cannot be delegated, and explicit service-role revocation on the private protocol.
+- Defaulted admission to an administrator-controlled verification-owner allowlist behind the existing global kill switch. Existing desktop accounts and raw grants are unchanged; broader desktop retirement is not authorized by the current integration task.
+- Added a rollback-only hosted-schema preflight that verifies real triggers, privacy, replay, direct reads, temporary privilege cleanup and account-deletion cascade. Extended isolated DB tests to reject non-verification owners.
+
+### Added — Manual Goal foundation (admission disabled)
+- Added manual-v1 field normalization, exact four-category validation, strict Gregorian calendar dates, canonical UTF-8/SHA-256 and portable RB4 fixtures (`lib/goals/manual-create-v1*`).
+- Added authenticated fixed-shape `/api/goals/manual-v1` reads and receipt operations with private/no-store responses and explicit failures (`manual-v1+api.ts`, `manual-v1-http.ts`).
+- Added Migration 072: owner-derived registration, immutable binding, transactional Goal/provenance/receipt creation, permanent close fencing, bounded receipt discovery/acknowledgment, compact Goal paging/direct lookup, profile calendar review and legacy-date preservation. A restricted non-login execution role protects adopted rows from legacy writes; admission defaults OFF.
+- Added 18 Node contract/HTTP tests and 11 PostgreSQL integration cases for canonical parity, owner isolation, concurrent submit/close, recovery paging, rollback, profile revision and account deletion. The DB suite requires an explicitly disposable local socket and a synthetic prerequisite scaffold; it does not certify the full Supabase migration chain.
+
+### Changed — Manual Goal foundation
+- Pinned a new versioned boundary for the Swift/SwiftUI app without changing the old desktop create route or existing Goal dates. Full reader/embedded/RPC/service egress cutover, legacy job compatibility, deployed access verification and live iOS/backend QA remain release gates. Native verification now passes on Xcode 27.0 / iOS 26.5: 274 Swift tests and 3 fixture-backed UI workflows; the earlier Xcode license gate is resolved. No live migration/deployment or creation enablement was performed. See `docs/manual-goal-v1-delivery.md`.
+
 ### Added — Projects V1.0.1
 - Added a bounded three-column Project dashboard with separate Current Goals, Notes, Reflections, OHARA Intelligence, aggregated Goal Tasks, Project Snapshot, Goal Momentum Snapshot, and capped Recent Activity previews with canonical deep links (`app/(app)/projects/[id].tsx`, Project service/model/types).
 

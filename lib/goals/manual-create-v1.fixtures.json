@@ -1,0 +1,133 @@
+[
+  {
+    "id": "RB4-01",
+    "input": {
+      "title": "Café",
+      "category": "Life & Relationships",
+      "description": null,
+      "endDate": null
+    },
+    "canonical": "[1,\"goal.create.manual\",\"Café\",\"Life & Relationships\",null,null]",
+    "digest": "034eb48c780988013ae1487ceb012e0b900d3b04c4f020c6695e26076382e37e"
+  },
+  {
+    "id": "RB4-02",
+    "input": {
+      "title": " Café ",
+      "category": "Life & Relationships",
+      "description": null,
+      "endDate": null
+    },
+    "canonical": "[1,\"goal.create.manual\",\"Café\",\"Life & Relationships\",null,null]",
+    "digest": "034eb48c780988013ae1487ceb012e0b900d3b04c4f020c6695e26076382e37e"
+  },
+  {
+    "id": "RB4-03",
+    "input": {
+      "title": "Café",
+      "category": "Life & Relationships",
+      "description": "\t "
+    },
+    "canonical": "[1,\"goal.create.manual\",\"Café\",\"Life & Relationships\",null,null]",
+    "digest": "034eb48c780988013ae1487ceb012e0b900d3b04c4f020c6695e26076382e37e"
+  },
+  {
+    "id": "RB4-04",
+    "input": {
+      "title": "Café",
+      "category": "Life & Relationships",
+      "description": "First\nSecond",
+      "endDate": null
+    },
+    "canonical": "[1,\"goal.create.manual\",\"Café\",\"Life & Relationships\",\"First\\nSecond\",null]",
+    "digest": "b3ad8e1025e1b031cdbb1f71f461afd5167f5991fae18f0279e7f48aa38b8e42"
+  },
+  {
+    "id": "RB4-05",
+    "input": {
+      "title": "Café  daily",
+      "category": "Life & Relationships",
+      "description": null,
+      "endDate": null
+    },
+    "canonical": "[1,\"goal.create.manual\",\"Café  daily\",\"Life & Relationships\",null,null]",
+    "digest": "bf9d52f30ace454220152e5787f243b01bcfe655fd0cb8019c8f8bfdd74f633e"
+  },
+  {
+    "id": "RB4-06",
+    "input": {
+      "title": "👨‍👩‍👧‍👦",
+      "category": "Life & Relationships",
+      "description": null,
+      "endDate": null
+    },
+    "canonical": "[1,\"goal.create.manual\",\"👨‍👩‍👧‍👦\",\"Life & Relationships\",null,null]",
+    "digest": "9bb67213b6fbbffa939191a32f32c011d5fcc018e4f917d170189caa0642ed10"
+  },
+  {
+    "id": "RB4-07",
+    "input": {
+      "title": "A \"quote\" / slash",
+      "category": "Life & Relationships",
+      "description": "x\\y\nz\u0001",
+      "endDate": null
+    },
+    "canonical": "[1,\"goal.create.manual\",\"A \\\"quote\\\" / slash\",\"Life & Relationships\",\"x\\\\y\\nz\\u0001\",null]",
+    "digest": "3da27cac2a5592af618ed3a2121dc151f50586c953f16a2b58ab0a30fee38f01"
+  },
+  {
+    "id": "RB4-08",
+    "input": {
+      "title": "Café",
+      "category": "Life & Relationships",
+      "description": null,
+      "endDate": "2028-02-29"
+    },
+    "canonical": "[1,\"goal.create.manual\",\"Café\",\"Life & Relationships\",null,\"2028-02-29\"]",
+    "digest": "114c4feade456030efd2b51d585ae28a197de02672bbc811985b9fabeb725f58"
+  },
+  {
+    "id": "RB4-09",
+    "input": {
+      "title": "Café",
+      "category": "Life & Relationships",
+      "description": null,
+      "endDate": "2028-02-29"
+    },
+    "canonical": "[1,\"goal.create.manual\",\"Café\",\"Life & Relationships\",null,\"2028-02-29\"]",
+    "digest": "114c4feade456030efd2b51d585ae28a197de02672bbc811985b9fabeb725f58"
+  },
+  {
+    "id": "RB4-10",
+    "input": {
+      "title": "Café",
+      "category": "Life & Relationships",
+      "description": null,
+      "endDate": "2028-02-29"
+    },
+    "canonical": "[1,\"goal.create.manual\",\"Café\",\"Life & Relationships\",null,\"2028-02-29\"]",
+    "digest": "114c4feade456030efd2b51d585ae28a197de02672bbc811985b9fabeb725f58"
+  },
+  {
+    "id": "RB4-11",
+    "input": {
+      "title": "Café",
+      "category": "Life & Relationships",
+      "description": null,
+      "endDate": "2028-02-29"
+    },
+    "canonical": "[1,\"goal.create.manual\",\"Café\",\"Life & Relationships\",null,\"2028-02-29\"]",
+    "digest": "114c4feade456030efd2b51d585ae28a197de02672bbc811985b9fabeb725f58"
+  },
+  {
+    "id": "RB4-12",
+    "input": {
+      "title": "Café",
+      "category": "Learning & Creativity",
+      "description": null,
+      "endDate": null
+    },
+    "canonical": "[1,\"goal.create.manual\",\"Café\",\"Learning & Creativity\",null,null]",
+    "digest": "554e2303003ad9384e581c76d6b00004b21ef1776bbe475512504de9a8ecfa9b"
+  }
+]
