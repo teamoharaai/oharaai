@@ -26,12 +26,42 @@
 - Reused canonical Goals, Tasks, Milestones, Entries, Vaults, Circles friends, and Goal Momentum rather than introducing Project-native duplicates or a Project Momentum score. Project ownership transfer remains explicitly deferred because current Goal ownership cannot be transferred safely (`docs/projects-v11-collaboration.md`).
 - Upgraded the Project workspace header, Current Goals, Project Tasks, Momentum Snapshot, Recent Activity, Vault sharing controls, and Manage Project sections for calm role-aware collaboration on desktop and narrow layouts.
 
+### Fixed — One scheduled Task occurrence per day across schedule changes (Migration 075, not deployed)
+- `replace_task_schedule_v1` (shared by desktop and native) now moves continuing days onto the new schedule version instead of recreating them. Replacing a schedule on a day already done used to open a second, pending occurrence for that day; a partly logged quantity used to reset. Status, quantity and completion time are kept. Days the new version skips keep completed/skipped history, and their open rows are cancelled as before.
+- Added a unique index: at most one non-cancelled scheduler-created occurrence per Task per day. Legacy tracker/action backfill rows are out of scope. `reconcile_task_occurrences_v1` (063 body) and 074's batch reconcile now skip occupied days with a target-less `ON CONFLICT DO NOTHING`.
+- Existing data: 075 first cancels redundant pending/missed rows that share a day with another live row. If any day holds two completed/skipped rows, it stops with `TASK_OCCURRENCE_DAY_CONFLICTS: <count>` and changes nothing, so an operator can review. Run the hosted rollback-only preflight before applying.
+- Tests: `lib/goals/task-schedule-continuity-db.test.mjs` (8 PostgreSQL cases). They reproduce the defect on the pre-075 chain, prove the guard refuses ambiguous history, and cover repair, desktop RPC and native `task.schedule` continuity, skipped days, quantity carry-over, the invariant for every writer, and idempotent replay. The 074 suite passes 16/16 with and without 075.
+
+### Added — Goal work v1: Task and Milestone workflows (Migration 074, not deployed)
+- Added `supabase/migrations/074_goal_work_foundation.sql`, an owner-checked `goal_work_v1(action,payload)` RPC. Why: native needs trusted Milestone writes (IOSB-002) and bounded Task reads without per-Task reconciliation (IOSB-003).
+  - Bounded `tasks` pages reconcile only the page's schedules in one set-based pass, from frontier to today, with canonical keys.
+  - `milestones` pages embed up to 20 steps with exact counts.
+  - `mutate` covers Task create, edit, schedule, progress and archive, and Milestone create, edit and complete. Receipts are digest-bound per operation identity with replay, and every response returns a fresh projection.
+- Task writes delegate to the canonical 048/056/057/059 RPCs. The Goal lifecycle, ownership, revision, mode, schedule, current-occurrence, one-level hierarchy and limit rules are enforced on the server.
+- Added `/api/goals/work-v1` (`app/api/goals/work-v1+api.ts`, `lib/goals/goal-work-v1-http.ts`) and a shared contract fixture `lib/goals/goal-work-v1.fixtures.json`.
+- Tests: 5 HTTP tests and 16 PostgreSQL integration cases against the real Task chain (`lib/goals/goal-work-v1-db-scaffold.sql`, `goal-work-v1-db.test.mjs`).
+- No desktop route, raw grant or existing data changed. Deferred Task/Milestone behavior is listed in `docs/goal-work-v1-delivery.md`.
+
+### Changed — Migration 073 narrowed and fixed (not deployed)
+- Removed 073's `tasks`/`milestones` reads and `goal_private.task_projection`, so 074 is the single Task/Milestone contract; `/api/goals/card-v1` now rejects those actions. The top-level Milestone index moved to 074.
+- Fixed 073 for hosted Supabase: owner resolution now uses `goal_private.request_owner()` (the executor role cannot use the `auth` schema), and function ownership transfer uses the same temporary membership as 072/074.
+- The 073 DB test now admits its synthetic owner through 072's verification allowlist. It had been failing since 072 moved to verification-only admission. Suites now pass: 072 12/12, 073 12/12, 074 16/16.
+
 ### Fixed — Manual Goal development verification (2026-09-25)
 - Applied migration 072 to the explicitly authorized development Supabase project after rollback-only preflight. Two real Swift/API/DB tests passed, including dated/undated creation, replay, recovery and owner isolation; 18 Node and 12 disposable DB tests also passed. Removed both synthetic accounts/data and closed admission afterward. Existing desktop grants and hosted deployment remain unchanged. Evidence: `docs/goal-e2e-verification-2026-09-25.md`.
 - Kept manual-v1 authentication failures in the domain envelope and private/no-store policy; other API routes retain their existing auth response behavior.
 - Corrected migration 072 for hosted Supabase: temporary SET ROLE/schema CREATE privileges for ownership transfer, an identity-only auth.uid() helper where auth-schema privileges cannot be delegated, and explicit service-role revocation on the private protocol.
 - Defaulted admission to an administrator-controlled verification-owner allowlist behind the existing global kill switch. Existing desktop accounts and raw grants are unchanged; broader desktop retirement is not authorized by the current integration task.
 - Added a rollback-only hosted-schema preflight that verifies real triggers, privacy, replay, direct reads, temporary privilege cleanup and account-deletion cascade. Extended isolated DB tests to reject non-verification owners.
+
+### Added — Goal Card v1 contract (native Goal detail)
+- Added Migration 073 with a separate owner-authorized `goal_card_v1(action,payload)` RPC (`supabase/migrations/073_goal_card_foundation.sql`). Why: the native Goal Card needs bounded child reads and version-checked Goal writes that no existing route provides.
+- Bounded child reads (`tasks`, `milestones`, `entries` reflection/note, `activity`) establish Goal ownership first and return `GOAL_UNAVAILABLE` instead of an empty collection. Pages are 20 by default, 50 max, with signed owner/Goal-bound 15-minute cursors. Tasks report today's occurrence state in the schedule's own calendar without per-Task reconciliation fan-out. Milestones are top-level with a child count. Entries are canonical `entries` linked by `entry_goal_links`. Activity counts Task completions, linked canonical Entries and Milestone completions per profile-local day (1–28 days, UTC only when no profile zone is configured).
+- Receipt-backed existing-Goal mutations (`mutate` for `goal.update.manual`/`goal.complete`/`goal.archive`, `mutation_lookup`, `mutation_close`, `mutation_discover`, `mutation_ack`). Each write is one atomic transaction against `expectedVersion`, with terminal committed/not_committed receipts (`VERSION_CONFLICT`, `STATUS_CONFLICT`, `NO_CHANGES`, `DATE_IN_PAST`, `DATE_CONTEXT_CHANGED`, `DATE_ADOPTION_UNAVAILABLE`, `GOAL_UNAVAILABLE`, `closed_by_owner`), same-ID replay, payload-mismatch rejection and close tombstones that fence delayed requests. Edits reuse the manual-v1 field rules and preserve untouched fields. A dated edit needs a reviewed profile context and a today-or-later date. Legacy Goals keep their unresolved date (no adoption); archive is allowed from Active/Paused/Completed/Expired only.
+- Added `/api/goals/card-v1` (`app/api/goals/card-v1+api.ts`, `lib/goals/goal-card-v1-http.ts`) with private/no-store responses and explicit failure mapping, plus 5 Node HTTP tests and 13 PostgreSQL integration cases (`lib/goals/goal-card-v1-*.test.*`, synthetic `goal-card-v1-db-scaffold.sql`). The existing 11 manual-v1 DB cases still pass with 073 applied.
+
+### Changed — Goal Card v1
+- Goal Activity for the native card counts canonical `entries`/`entry_goal_links`. Desktop `activity-window` still counts confirmed `echo_entry_links`, so the two surfaces can differ until desktop moves to canonical Entries. No desktop route or existing data was changed; deployment and full-chain migration QA remain release gates, as for 072.
 
 ### Added — Manual Goal foundation (admission disabled)
 - Added manual-v1 field normalization, exact four-category validation, strict Gregorian calendar dates, canonical UTF-8/SHA-256 and portable RB4 fixtures (`lib/goals/manual-create-v1*`).
