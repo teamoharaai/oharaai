@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Verified — TD-001 pushed, CI green, production preflight covers 077 (2026-09-26)
+- **Pushed:** `ef3fbbc` to `main`, a fast-forward of `59cf622`.
+- **First `db-chain` CI run (36263829506):** green in both ACL legs, 13/13 suites and the preflight rehearsal (074–077). Its only annotation is GitHub's Node 20 deprecation notice for `actions/checkout@v4` and `setup-node@v4`.
+- **Second production preflight** (`rrgiqemscnyaqkculnmb`, approved by Justin):
+  - covered 074–077;
+  - PASS: history exactly 001–073, 0 `TASK_OCCURRENCE_DAY_CONFLICTS`, 0 rows to cancel, probes 072/074/075/076/077 passed;
+  - transaction 17963 aborted.
+- **Not deployed.** 074–077 still wait on their release gates:
+  - deploying the `card-v1`/`work-v1` API routes;
+  - a live native↔API↔database run for work-v1;
+  - an apply procedure matching 072's (committing transaction, `schema_migrations` rows, PostgREST reload, before/after invariant digests).
+
 ### Changed — Goal migrations renumbered after upstream 073 (2026-09-26)
 - `origin/main` gained Arthur's `073_projects_v1_1_collaboration`, which is applied on hosted. The unpushed Goal migrations are rebased on top of it and renamed, **content unchanged**: `073_goal_card_foundation` → `074`, `074_goal_work_foundation` → `075`, `075_task_schedule_period_continuity` → `076`. Earlier entries below still use the old numbers.
   - Comments inside the renamed files still say the old numbers; for example, 076's `TASK_OCCURRENCE_DAY_CONFLICTS` message says "review before applying 075".
