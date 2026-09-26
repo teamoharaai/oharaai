@@ -1,7 +1,6 @@
-begin;
-set local lock_timeout='5s';
-set local statement_timeout='15s';
--- Runs only inside the caller's rollback transaction. Does not alter real users.
+-- 072 probe: manual Goal creation, replay, header, list, privacy defaults and account cascade.
+-- Runs inside the preflight's single rollback-only transaction (scripts/test-manual-goal-hosted.mjs),
+-- which owns BEGIN, the timeouts and ROLLBACK. Synthetic rows only; does not alter real users.
 insert into auth.users(id,email,raw_user_meta_data)
 values('11a00e2e-1111-4111-8111-111111111111','goal-migration-probe@local.ohara.test','{}');
 insert into goal_private.verification_owners values('11a00e2e-1111-4111-8111-111111111111');
@@ -33,4 +32,3 @@ delete from auth.users where id='11a00e2e-1111-4111-8111-111111111111';
 do $$ begin
  if exists(select 1 from goal_private.operations where owner_id='11a00e2e-1111-4111-8111-111111111111') then raise exception 'Account cascade failed'; end if;
 end $$;
-rollback;
