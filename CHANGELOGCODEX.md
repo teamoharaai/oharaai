@@ -2,6 +2,97 @@
 
 ## [Unreleased]
 
+### Changed — Goal migrations renumbered after upstream 073 (2026-09-26)
+- `origin/main` gained Arthur's `073_projects_v1_1_collaboration`, which is applied on hosted. The unpushed Goal migrations are rebased on top of it and renamed, **content unchanged**: `073_goal_card_foundation` → `074`, `074_goal_work_foundation` → `075`, `075_task_schedule_period_continuity` → `076`. Earlier entries below still use the old numbers.
+  - Comments inside the renamed files still say the old numbers; for example, 076's `TASK_OCCURRENCE_DAY_CONFLICTS` message says "review before applying 075".
+  - Suites, runner and docs now use the new numbers. All four Goal suites also pass with Arthur's 073 in the chain.
+
+### Fixed — Note evidence synchronizer is internal again (Migration 077, not deployed)
+- **Problem:** 047 re-granted `authenticated` EXECUTE on `sync_entry_goal_progress_evidence`, undoing 042's revoke. A signed-in user could write progress evidence for their own Notes and Goals directly, without the editor deriving it from the saved document. The Notes bootstrap never applied 047, so its assertion never saw this.
+- **Fix:** `077_revoke_note_evidence_synchronizer.sql` revokes EXECUTE from `public`, `anon` and `authenticated`, exactly as 042 did.
+- **Desktop and native:** unaffected. Both save through `save_entry_v2/v3/v4`, and the only caller, `save_entry_v2`, is a `security definer` owned by `postgres`. No app code calls the synchronizer directly.
+- **Verification:** the preflight probe `077-note-evidence-synchronizer.sql` checks both halves: a direct call is refused, and `save_entry_v2` still records evidence.
+
+### Added — Hosted preflight for 074–077 (TD-001)
+- `scripts/test-manual-goal-hosted.mjs` is generalized. It keeps the project-ref and pooler guards and adds:
+  - `--applied-through NNN`: applies every later migration in one transaction, runs `scripts/goal-hosted-preflight/*` probes, prints hosted facts and rolls back;
+  - server-side proof the transaction aborted (`pg_xact_status`);
+  - a check that hosted `schema_migrations` exactly matches local 001..NNN by version and name;
+  - a refusal of migrations that aren't one plain `BEGIN … COMMIT`.
+- **Probes:**
+  - 072 manual create (moved from `manual-goal-hosted-probe.sql`);
+  - 074 `goal_card_v1` as `authenticated`, plus executor ownership and grants;
+  - 075 `goal_work_v1` Task and Milestone read/mutate round trip;
+  - 076 schedule replacement on a completed day via the desktop RPC;
+  - 077 synchronizer.
+- **076 pre-check:** read-only; it mirrors 076's repair ranking and reports the conflicts and the rows 076 would cancel. A non-zero conflict count skips 076 and exits 2.
+- **Local proofs:**
+
+  | Case | Result |
+  | --- | --- |
+  | Clean run on a chain stopped at 073 | PASS |
+  | Seeded conflicting Task-day | BLOCKED, count 1, matching 076's own abort |
+  | Seeded `auth.uid()` defect in 074 | FAIL: `permission denied for schema auth` |
+  | Bad migration shape, wrong ref, or migration-dir override in hosted mode | Refused before connecting |
+
+- **Hosted run, production `rrgiqemscnyaqkculnmb`, once, approved by Justin on 2026-09-26, covering 074–076** (077 didn't exist yet):
+  - PASS;
+  - history exactly 001–073 (`072 manual_goal_foundation` and `073 projects_v1_1_collaboration` are applied on hosted);
+  - **076 would abort on 0 Task-days and cancel 0 rows**;
+  - probes 072, 074, 075 and 076 passed;
+  - transaction 17923 aborted.
+  - Hosted facts: PG 17.6; `goal_card_v1` is still executable by `service_role` (074 revokes only `public`/`anon`; 075 also revokes `service_role`).
+- `npm run test:preflight:rehearsal` (`scripts/db-chain/preflight-rehearsal.sh`, `HOSTED_APPLIED_THROUGH` default 073) runs the preflight locally. CI runs it.
+
+### Changed — All database suites on the real migration chain (TD-001)
+- **Commands:** `npm run test:db` runs 13 suites on the full chain in both ACL modes, about 35 seconds each. `test:goals:db` now runs only `lib/goals`.
+- **Runner:**
+  - `scripts/db-chain/run.sh` adds `--through NNN` and runs shell suites (`scripts/db-chain/suites/*.sh`), each on its own cluster copied from a data-directory snapshot, because roles are cluster-wide.
+  - Shell suites source `scripts/db-chain/lib.sh`, which provides `continue_chain`, `apply_migration` and `quiet_sql`.
+- **Ported, with each bootstrap deleted:** Tasks, Momentum, Circles, Notes/Entries, Sticky Note folders, Vault and Constellation.
+  - Tasks loads its production-shaped fixture on the chain through 046 and then continues to 051, as before.
+  - Vault loads its rows through 069 (fixture `scripts/db-chain/fixtures/vault-v23.sql`).
+- **Also ported:** Projects V1 and **Arthur's Projects V1.1**, which needed Docker Supabase on port 54322, with their SQL unchanged and the V1.1 acceptance race kept.
+- **For Arthur:**
+  - `scripts/test-projects-v1-security.sh` and `test-projects-v11-security.sh` now just call the chain runner.
+  - `scripts/projects-v11-security.test.sql` is unchanged.
+- The old `scripts/test-*-security.sh` entry points remain as thin wrappers.
+- **Setup-only test changes the real schema forced:**
+  - profiles are updated after signup instead of inserted;
+  - Goals carry a category valid at that point in the chain;
+  - Tasks and occurrences carry the columns 048 requires;
+  - accepted friendships set `responded_at`;
+  - Echo links set `container_type`;
+  - the Entries BRT test uses the app's `reflection_type` `open`, not `quick`, which the real constraint rejects and the app never sends.
+- **Assertion changes (review):**
+  - **Constellation:** 033 dropped `constellation_evidence_links.brt_category`, which the old harness still tested because it skipped 033.
+    - The invalid-category assertion now targets `echo_entries.brt_category`, where 033 moved the same CHECK.
+    - The category-update and cross-user-update checks use the note.
+    - The scaffold's blanket `GRANT ALL … to authenticated` is removed, so the real REVOKEs apply.
+    - Annotation hard-deletes are accepted as denied whether RLS filters them (hosted) or privilege refuses them (039 grants no DELETE).
+  - **Tasks:** the RLS isolation check was vacuous, because it looked for Tasks of a user who had none. It now covers every other owner's Tasks, schedules and occurrences, and fails if there are none to hide.
+  - No assertion was weakened.
+- **Seeded-defect proofs:** each suite fails when its migration is broken in a copy:
+
+  | Suite | Seeded defect | Result |
+  | --- | --- | --- |
+  | Vault | 070 provenance loosened | caught |
+  | Sticky Note folders | 066 vault-ownership guard removed | caught |
+  | Circles | 053 `are_friends` widened | caught |
+  | Momentum | 040 forgotten REVOKE | caught in hosted mode only, as intended |
+  | Constellation | 032 read policy opened | caught |
+  | Constellation | 033 CHECK dropped | caught |
+  | Tasks | 048 read policy opened | caught after the fix above |
+  | Tasks | 049 `ON CONFLICT` removed | caught |
+  | Projects V1 | 071 same-owner check removed | caught |
+  | Projects V1.1 | 073 cap raised | caught |
+
+  One narrower 066 mutation (dropping only the owner clause) is masked by `vaults` RLS, so that clause is defense in depth.
+- **Stand-in:** the `auth` schema is now owned by `supabase_admin`, as read on hosted.
+- **CI:** it runs `test:db` plus the preflight rehearsal, and its path filters cover `scripts/**` and `package.json`.
+- **Hosted default ACL (read-only, 2026-09-26):** matches `OHARA_DEFAULT_ACL=hosted`. CI keeps both modes, per Justin.
+- **Unchanged:** no migration content, route or desktop behavior, apart from the new 077 above.
+
 ### Changed — Projects V1.1 Workspace Steering
 - Rebalanced the bounded three-column Project Overview so the center focuses on Project identity, upcoming canonical Goal Milestones, and Tasks, while the right rail presents Project Snapshot, OHARA Intelligence, Goal Momentum, and Recent Activity in analytical order (`app/(app)/projects/[id].tsx`).
 - Simplified Current Goal secondary context to Goal lead, weekly Momentum movement, next Milestone, and a compact real Task-attention count; reduced Reflection sharing and Task assignment controls while preserving their existing persistence and authorization paths.

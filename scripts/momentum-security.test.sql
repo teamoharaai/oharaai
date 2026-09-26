@@ -1,14 +1,15 @@
 \set ON_ERROR_STOP on
 
+-- Runs on the full migration chain (scripts/db-chain/suites/momentum.sh): signup (008/028) creates the
+-- profiles, and real Goals need a post-068 scoring category.
 insert into auth.users (id) values
   ('10000000-0000-0000-0000-000000000001'),
   ('10000000-0000-0000-0000-000000000002');
-insert into public.profiles (id, timezone) values
-  ('10000000-0000-0000-0000-000000000001', 'America/New_York'),
-  ('10000000-0000-0000-0000-000000000002', 'UTC');
-insert into public.goals (id, user_id, title, status) values
-  ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'V1 owner goal', 'active'),
-  ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 'V1 other goal', 'active');
+update public.profiles set timezone = 'America/New_York' where id = '10000000-0000-0000-0000-000000000001';
+update public.profiles set timezone = 'UTC' where id = '10000000-0000-0000-0000-000000000002';
+insert into public.goals (id, user_id, title, status, category) values
+  ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'V1 owner goal', 'active', 'Work & Money'),
+  ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 'V1 other goal', 'active', 'Work & Money');
 
 set role service_role;
 select set_config('request.jwt.claim.role', 'service_role', false);

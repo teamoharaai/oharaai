@@ -16,7 +16,7 @@
 --
 -- Known, deliberate differences from hosted (see scripts/db-chain/README.md):
 --   * PostgreSQL 17 locally vs 15 hosted (CREATEROLE semantics differ; the
---     072-074 executor-role pattern works under both).
+--     072, 074 and 075 executor-role pattern works under both).
 --   * supautils is absent: run.sh lifts `postgres` to superuser for 001 only
 --     (its event trigger needs it), then drops the attribute and hands the
 --     event trigger to supabase_admin, which is what supautils does on hosted.
@@ -59,7 +59,10 @@ create extension pgcrypto with schema extensions;
 create extension vector with schema extensions;
 
 -- auth -----------------------------------------------------------------------
-create schema auth authorization supabase_auth_admin;
+-- As upstream (and as read on hosted 2026-09-26): supabase_admin owns the schema,
+-- supabase_auth_admin owns the objects in it.
+create schema auth authorization supabase_admin;
+grant all on schema auth to supabase_auth_admin;
 set role supabase_auth_admin;
 
 create table auth.users (
@@ -132,7 +135,7 @@ $$;
 reset role;
 -- Client roles may use the schema (and so call auth.uid()), but cannot read
 -- auth tables. Roles created later by migrations get nothing: that is the
--- hosted behavior that made 073's executor fail on auth.uid().
+-- hosted behavior that made the goal-card executor (now 074) fail on auth.uid().
 grant usage on schema auth to anon, authenticated, service_role, postgres, dashboard_user;
 grant all on all tables in schema auth to postgres, dashboard_user;
 grant execute on all functions in schema auth to postgres, dashboard_user;

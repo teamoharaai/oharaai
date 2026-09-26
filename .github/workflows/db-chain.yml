@@ -11,7 +11,8 @@ on:
       - "lib/**"
       - "app/api/goals/**"
       - "app/api/tasks/**"
-      - "scripts/db-chain/**"
+      - "scripts/**"
+      - "package.json"
       - ".github/workflows/db-chain.yml"
   push:
     branches: [main]
@@ -20,7 +21,8 @@ on:
       - "lib/**"
       - "app/api/goals/**"
       - "app/api/tasks/**"
-      - "scripts/db-chain/**"
+      - "scripts/**"
+      - "package.json"
       - ".github/workflows/db-chain.yml"
   workflow_dispatch:
 
@@ -62,4 +64,9 @@ jobs:
           "$OHARA_PG_BIN/postgres" --version
 
       - name: Run database suites on the full migration chain
-        run: npm run test:goals:db
+        run: npm run test:db
+
+      # The rollback-only hosted preflight, rehearsed on a local chain stopped where hosted is
+      # (HOSTED_APPLIED_THROUGH in scripts/db-chain/preflight-rehearsal.sh; update after each deploy).
+      - name: Rehearse the hosted preflight locally
+        run: npm run test:preflight:rehearsal

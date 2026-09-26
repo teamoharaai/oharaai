@@ -1,4 +1,6 @@
 \set ON_ERROR_STOP on
+-- Runs on the full migration chain (scripts/db-chain/suites/notes-editor.sh). reflection_type uses the
+-- app default 'open' (features/entries/validation.ts); the real constraint allows week/goal/milestone/open.
 
 set role authenticated;
 select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000001', false);
@@ -15,7 +17,7 @@ begin
     'BRT reflection',
     '{"type":"doc","content":[{"type":"paragraph","text":"Private test content"}]}'::jsonb,
     'Private test content',
-    'quick',
+    'open',
     '[]'::jsonb,
     null,
     false,
@@ -38,7 +40,7 @@ begin
     'BRT reflection retry',
     '{"type":"doc","content":[]}'::jsonb,
     '',
-    'quick',
+    'open',
     '[]'::jsonb,
     null,
     false,
@@ -65,7 +67,7 @@ begin
     'Updated through V3',
     '{"type":"doc","content":[]}'::jsonb,
     '',
-    'quick',
+    'open',
     '[]'::jsonb,
     null,
     false,

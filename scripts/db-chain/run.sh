@@ -12,6 +12,7 @@
 #   bash scripts/db-chain/run.sh --chain-only  # only prove the chain applies
 #   bash scripts/db-chain/run.sh goal-work     # suites whose path contains it
 #   bash scripts/db-chain/run.sh --chain-only --keep  # leave the cluster up to inspect
+#   bash scripts/db-chain/run.sh --chain-only --keep --through 073  # stop after 073 (preflight rehearsal)
 #
 # Environment:
 #   OHARA_PG_BIN       PostgreSQL bin dir with pgvector (default: Homebrew 17)
@@ -39,20 +40,38 @@ SUITES=(
   "lib/goals/manual-v1-db.test.mjs:all"
   "lib/goals/goal-card-v1-db.test.mjs:all"
   "lib/goals/goal-work-v1-db.test.mjs:all"
-  "lib/goals/task-schedule-continuity-db.test.mjs:074"
+  "lib/goals/task-schedule-continuity-db.test.mjs:075"
+  "scripts/db-chain/suites/vault-v23.sh:069"
+  "scripts/db-chain/suites/sticky-note-folders.sh:all"
+  "scripts/db-chain/suites/notes-editor.sh:all"
+  "scripts/db-chain/suites/circles.sh:all"
+  "scripts/db-chain/suites/momentum.sh:all"
+  "scripts/db-chain/suites/constellation.sh:all"
+  "scripts/db-chain/suites/tasks.sh:046"
+  "scripts/db-chain/suites/projects-v1.sh:all"
+  "scripts/db-chain/suites/projects-v11.sh:all"
 )
 
 CHAIN_ONLY=false
 KEEP=false
 FILTER=""
-for arg in "$@"; do
-  case "$arg" in
+THROUGH=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
     --chain-only) CHAIN_ONLY=true ;;
     --keep) KEEP=true ;;
-    -*) echo "Unknown option: $arg" >&2; exit 2 ;;
-    *) FILTER="$arg" ;;
+    --through)
+      THROUGH="${2:-}"; shift
+      [[ "$THROUGH" =~ ^[0-9]{3}$ ]] || { echo "--through needs a migration number, e.g. 073" >&2; exit 2; } ;;
+    -*) echo "Unknown option: $1" >&2; exit 2 ;;
+    *) FILTER="$1" ;;
   esac
+  shift
 done
+if [[ -n "$THROUGH" ]] && ! $CHAIN_ONLY; then
+  echo "--through stops the chain early, so it needs --chain-only (suites expect the full chain)." >&2
+  exit 2
+fi
 
 # PostgreSQL with pgvector ------------------------------------------------------
 if [[ -n "${OHARA_PG_BIN:-}" ]]; then
@@ -72,11 +91,6 @@ if [[ ! -f "$("$PG_BIN/pg_config" --sharedir)/extension/vector.control" ]]; then
   echo "pgvector is not installed for $PG_BIN (macOS: brew install pgvector)." >&2
   exit 1
 fi
-if ! $CHAIN_ONLY && [[ -z "$NODE" ]]; then
-  echo "node is required to run the suites (set OHARA_NODE)." >&2
-  exit 1
-fi
-
 # Disposable cluster ------------------------------------------------------------
 # The /tmp/ohara-goal- prefix is what the suites accept as disposable.
 TEST_ROOT="$(mktemp -d /tmp/ohara-goal-chain.XXXXXX)"
@@ -87,12 +101,16 @@ mkdir -p "$SOCKET_DIR"
 cleanup() {
   if $KEEP; then
     echo "Kept: $PG_BIN/psql -h $SOCKET_DIR -p $PORT -U postgres -d chain"
+    echo "Env:  export GOAL_TEST_SOCKET=$SOCKET_DIR GOAL_TEST_PORT=$PORT GOAL_TEST_DB=chain GOAL_TEST_PSQL=$PG_BIN/psql"
     echo "Stop: $PG_BIN/pg_ctl -D $DATA_DIR stop && rm -rf $TEST_ROOT"
     return
   fi
-  if [[ -d "$DATA_DIR" ]] && "$PG_BIN/pg_ctl" -D "$DATA_DIR" status >/dev/null 2>&1; then
-    "$PG_BIN/pg_ctl" -D "$DATA_DIR" -m fast -w stop >/dev/null
-  fi
+  local data
+  for data in "$DATA_DIR" "$TEST_ROOT"/suite_*/data; do
+    if [[ -d "$data" ]] && "$PG_BIN/pg_ctl" -D "$data" status >/dev/null 2>&1; then
+      "$PG_BIN/pg_ctl" -D "$data" -m fast -w stop >/dev/null
+    fi
+  done
   case "$TEST_ROOT" in
     /tmp/ohara-goal-chain.*) rm -rf -- "$TEST_ROOT" ;;
     *) echo "Refusing to clean unexpected test path: $TEST_ROOT" >&2 ;;
@@ -100,9 +118,14 @@ cleanup() {
 }
 trap cleanup EXIT
 
+start_cluster() { # <data dir> <socket dir>
+  "$PG_BIN/pg_ctl" -D "$1" -l "$1/../postgres.log" \
+    -o "-k $2 -p $PORT -c listen_addresses='' -c unix_socket_permissions=0700" -w start >/dev/null
+}
+stop_cluster() { "$PG_BIN/pg_ctl" -D "$1" -m fast -w stop >/dev/null; }
+
 "$PG_BIN/initdb" -D "$DATA_DIR" -A trust -U supabase_admin --encoding=UTF8 --locale=en_US.UTF-8 >/dev/null
-"$PG_BIN/pg_ctl" -D "$DATA_DIR" -l "$TEST_ROOT/postgres.log" \
-  -o "-k $SOCKET_DIR -p $PORT -c listen_addresses='' -c unix_socket_permissions=0700" -w start >/dev/null
+start_cluster "$DATA_DIR" "$SOCKET_DIR"
 
 psql_as() { # <role> <database> [psql args...]
   local role="$1" database="$2"; shift 2
@@ -124,13 +147,22 @@ psql_as supabase_admin postgres -c "create role postgres login createrole create
 psql_as supabase_admin chain -v DBNAME=chain -v DEFAULT_ACL="$DEFAULT_ACL" -f "$PLATFORM_SQL" >/dev/null
 
 # Which snapshots do the selected suites need? -----------------------------------
+# Node suites get a template database. Shell suites may continue the chain, and roles are cluster-wide
+# (a copied database can't re-run 072's CREATE ROLE), so each gets its own cluster copied from a
+# stopped data-directory snapshot.
 declare -a SELECTED=()
 SNAPSHOTS=" "
+CLUSTER_SNAPSHOTS=" "
 for entry in "${SUITES[@]}"; do
   file="${entry%%:*}"; through="${entry##*:}"
   [[ -z "$FILTER" || "$file" == *"$FILTER"* ]] || continue
   SELECTED+=("$entry")
-  [[ "$through" == all ]] || SNAPSHOTS+="$through "
+  if [[ "$file" == *.sh ]]; then CLUSTER_SNAPSHOTS+="$through "
+  elif [[ "$through" != all ]]; then SNAPSHOTS+="$through "; fi
+  if ! $CHAIN_ONLY && [[ "$file" == *.mjs && -z "$NODE" ]]; then
+    echo "node is required to run $file (set OHARA_NODE)." >&2
+    exit 1
+  fi
 done
 if ! $CHAIN_ONLY && [[ ${#SELECTED[@]} -eq 0 ]]; then
   echo "No suite matches '$FILTER'." >&2
@@ -140,6 +172,15 @@ fi
 # Migrations --------------------------------------------------------------------
 shopt -s nullglob
 MIGRATIONS=("$MIGRATIONS_DIR"/[0-9][0-9][0-9]_*.sql)
+if [[ -n "$THROUGH" ]]; then
+  # Stop early, e.g. at the state a hosted project is at, for the rollback-only preflight rehearsal.
+  kept=()
+  for migration in "${MIGRATIONS[@]}"; do
+    name="$(basename "$migration")"; [[ "${name%%_*}" > "$THROUGH" ]] || kept+=("$migration")
+  done
+  MIGRATIONS=("${kept[@]}")
+  [[ "$(basename "${MIGRATIONS[${#MIGRATIONS[@]}-1]}")" == "$THROUGH"_* ]] || { echo "No migration $THROUGH in $MIGRATIONS_DIR" >&2; exit 2; }
+fi
 echo "Applying ${#MIGRATIONS[@]} migrations to a Supabase-shaped PostgreSQL $("$PG_BIN/pg_config" --version | awk '{print $2}') (default ACL: $DEFAULT_ACL)..."
 for migration in "${MIGRATIONS[@]}"; do
   name="$(basename "$migration")"; number="${name%%_*}"
@@ -155,8 +196,15 @@ for migration in "${MIGRATIONS[@]}"; do
   if [[ "$SNAPSHOTS" == *" $number "* ]]; then
     psql_as supabase_admin postgres -c "create database chain_$number template chain owner postgres"
   fi
+  if [[ "$CLUSTER_SNAPSHOTS" == *" $number "* ]]; then
+    stop_cluster "$DATA_DIR"; cp -Rp "$DATA_DIR" "$TEST_ROOT/data_$number"; start_cluster "$DATA_DIR" "$SOCKET_DIR"
+  fi
 done
-echo "Chain applied: ${MIGRATIONS[0]##*/} .. ${MIGRATIONS[${#MIGRATIONS[@]}-1]##*/}"
+LAST_MIGRATION="${MIGRATIONS[${#MIGRATIONS[@]}-1]##*/}"
+if [[ "$CLUSTER_SNAPSHOTS" == *" all "* ]] && ! $CHAIN_ONLY; then
+  stop_cluster "$DATA_DIR"; cp -Rp "$DATA_DIR" "$TEST_ROOT/data_all"; start_cluster "$DATA_DIR" "$SOCKET_DIR"
+fi
+echo "Chain applied: ${MIGRATIONS[0]##*/} .. $LAST_MIGRATION"
 $CHAIN_ONLY && exit 0
 
 # Suites ------------------------------------------------------------------------
@@ -166,18 +214,30 @@ index=0
 for entry in "${SELECTED[@]}"; do
   file="${entry%%:*}"; through="${entry##*:}"
   index=$((index + 1))
-  template=chain; [[ "$through" == all ]] || template="chain_$through"
-  database="suite_$index"
-  psql_as supabase_admin postgres -c "create database $database template $template owner postgres"
-  echo
-  echo "== $file (on $template)"
-  if GOAL_TEST_SOCKET="$SOCKET_DIR" GOAL_TEST_PORT="$PORT" GOAL_TEST_DB="$database" \
+  at="${LAST_MIGRATION%%_*}"; [[ "$through" == all ]] || at="$through"
+  if [[ "$file" == *.sh ]]; then
+    # Shell suites (scripts/db-chain/suites/) get their own cluster and source lib.sh, which can load
+    # fixtures and then continue the real chain from CHAIN_AT.
+    suite_root="$TEST_ROOT/suite_$index"
+    mkdir -p "$suite_root/socket"; cp -Rp "$TEST_ROOT/data_$through" "$suite_root/data"
+    start_cluster "$suite_root/data" "$suite_root/socket"
+    socket="$suite_root/socket"; database=chain; runner=(bash)
+    echo; echo "== $file (own cluster, chain through $at)"
+  else
+    template=chain; [[ "$through" == all ]] || template="chain_$through"
+    database="suite_$index"; socket="$SOCKET_DIR"; runner=("$NODE" --test)
+    psql_as supabase_admin postgres -c "create database $database template $template owner postgres"
+    echo; echo "== $file (on $template)"
+  fi
+  if GOAL_TEST_SOCKET="$socket" GOAL_TEST_PORT="$PORT" GOAL_TEST_DB="$database" \
      GOAL_TEST_PSQL="$PG_BIN/psql" PGUSER=postgres \
-     "$NODE" --test "$file"; then
+     CHAIN_AT="$at" CHAIN_MIGRATIONS_DIR="$MIGRATIONS_DIR" CHAIN_TMP="${suite_root:-$TEST_ROOT}" \
+     "${runner[@]}" "$file"; then
     :
   else
     failed+=("$file")
   fi
+  if [[ "$file" == *.sh ]]; then stop_cluster "$suite_root/data"; rm -rf -- "$suite_root"; unset suite_root; fi
 done
 
 echo

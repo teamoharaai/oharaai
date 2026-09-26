@@ -1,8 +1,8 @@
 \set ON_ERROR_STOP on
 
-grant usage on schema public to authenticated;
-grant select, insert, update, delete on all tables in schema public to authenticated;
-grant execute on all functions in schema public to authenticated;
+-- Runs on the full migration chain (scripts/db-chain/suites/constellation.sh) with the real grants.
+-- The blanket GRANT ALL to authenticated the scaffold needed is gone: it would undo real REVOKEs and
+-- leave RLS as the only barrier. Real Goals need a post-068 scoring category.
 
 insert into auth.users (id)
 values
@@ -14,18 +14,18 @@ values
   ('10000000-0000-4000-8000-00000000001a', '00000000-0000-4000-8000-00000000000a', 'A project'),
   ('10000000-0000-4000-8000-00000000001b', '00000000-0000-4000-8000-00000000000b', 'B project');
 
-insert into public.goals (id, user_id, title)
+insert into public.goals (id, user_id, title, category)
 values
-  ('20000000-0000-4000-8000-00000000001a', '00000000-0000-4000-8000-00000000000a', 'A primary goal'),
-  ('20000000-0000-4000-8000-00000000002a', '00000000-0000-4000-8000-00000000000a', 'A deletion goal'),
-  ('20000000-0000-4000-8000-00000000003a', '00000000-0000-4000-8000-00000000000a', 'A linked goal 3'),
-  ('20000000-0000-4000-8000-00000000004a', '00000000-0000-4000-8000-00000000000a', 'A linked goal 4'),
-  ('20000000-0000-4000-8000-00000000005a', '00000000-0000-4000-8000-00000000000a', 'A linked goal 5'),
-  ('20000000-0000-4000-8000-00000000006a', '00000000-0000-4000-8000-00000000000a', 'A linked goal 6'),
-  ('20000000-0000-4000-8000-00000000007a', '00000000-0000-4000-8000-00000000000a', 'A linked goal 7'),
-  ('20000000-0000-4000-8000-00000000008a', '00000000-0000-4000-8000-00000000000a', 'A limit goal'),
-  ('20000000-0000-4000-8000-00000000001b', '00000000-0000-4000-8000-00000000000b', 'B goal'),
-  ('20000000-0000-4000-8000-00000000002b', '00000000-0000-4000-8000-00000000000b', 'B second goal');
+  ('20000000-0000-4000-8000-00000000001a', '00000000-0000-4000-8000-00000000000a', 'A primary goal', 'Work & Money'),
+  ('20000000-0000-4000-8000-00000000002a', '00000000-0000-4000-8000-00000000000a', 'A deletion goal', 'Work & Money'),
+  ('20000000-0000-4000-8000-00000000003a', '00000000-0000-4000-8000-00000000000a', 'A linked goal 3', 'Work & Money'),
+  ('20000000-0000-4000-8000-00000000004a', '00000000-0000-4000-8000-00000000000a', 'A linked goal 4', 'Work & Money'),
+  ('20000000-0000-4000-8000-00000000005a', '00000000-0000-4000-8000-00000000000a', 'A linked goal 5', 'Work & Money'),
+  ('20000000-0000-4000-8000-00000000006a', '00000000-0000-4000-8000-00000000000a', 'A linked goal 6', 'Work & Money'),
+  ('20000000-0000-4000-8000-00000000007a', '00000000-0000-4000-8000-00000000000a', 'A linked goal 7', 'Work & Money'),
+  ('20000000-0000-4000-8000-00000000008a', '00000000-0000-4000-8000-00000000000a', 'A limit goal', 'Work & Money'),
+  ('20000000-0000-4000-8000-00000000001b', '00000000-0000-4000-8000-00000000000b', 'B goal', 'Work & Money'),
+  ('20000000-0000-4000-8000-00000000002b', '00000000-0000-4000-8000-00000000000b', 'B second goal', 'Work & Money');
 
 insert into public.echo_entries (id, user_id, content)
 values
@@ -34,11 +34,12 @@ values
   ('30000000-0000-4000-8000-00000000003a', '00000000-0000-4000-8000-00000000000a', 'A Echo preserved after goal deletion'),
   ('30000000-0000-4000-8000-00000000001b', '00000000-0000-4000-8000-00000000000b', 'B Echo');
 
-insert into public.echo_entry_links (id, echo_entry_id, goal_id, confirmed)
+insert into public.echo_entry_links (id, echo_entry_id, goal_id, container_type, confirmed)
 values (
   '40000000-0000-4000-8000-00000000001a',
   '30000000-0000-4000-8000-00000000001a',
   '20000000-0000-4000-8000-00000000001a',
+  'goal',
   true
 );
 
@@ -342,7 +343,6 @@ insert into public.constellation_evidence_links (
   owner_id,
   echo_entry_id,
   goal_id,
-  brt_category,
   note
 )
 values (
@@ -350,7 +350,6 @@ values (
   '00000000-0000-4000-8000-00000000000b',
   '30000000-0000-4000-8000-00000000001b',
   '20000000-0000-4000-8000-00000000001b',
-  'rose',
   null
 );
 
@@ -917,9 +916,15 @@ begin
     raise exception 'archived annotation was restored';
   end if;
 
-  delete from public.constellation_annotations
-  where id = '70000000-0000-4000-8000-00000000001a';
-  get diagnostics deleted_rows = row_count;
+  -- 039 grants no DELETE on annotations (they archive through UPDATE). With hosted default grants the
+  -- delete reaches RLS and must affect 0 rows; without them it is refused outright. Both deny it.
+  begin
+    delete from public.constellation_annotations
+    where id = '70000000-0000-4000-8000-00000000001a';
+    get diagnostics deleted_rows = row_count;
+  exception when insufficient_privilege then
+    deleted_rows := 0;
+  end;
 
   if deleted_rows <> 0 then
     raise exception 'authenticated user hard-deleted an annotation';
@@ -927,25 +932,19 @@ begin
 end;
 $$;
 
-\echo 'Checking evidence validation, uniqueness, category updates, and isolation...'
+\echo 'Checking evidence validation, uniqueness, note updates, and isolation...'
 
+-- Migration 033 retired constellation_evidence_links.brt_category and moved the BRT category onto
+-- echo_entries.brt_category with the same bud|rose|thorn CHECK, so the invalid-category guarantee is
+-- asserted where the category now lives (A's own Echo; RLS hiding it would also fail this block).
 do $$
 declare
   rejected boolean := false;
 begin
   begin
-    insert into public.constellation_evidence_links (
-      owner_id,
-      echo_entry_id,
-      goal_id,
-      brt_category
-    )
-    values (
-      '00000000-0000-4000-8000-00000000000a',
-      '30000000-0000-4000-8000-00000000002a',
-      '20000000-0000-4000-8000-00000000002a',
-      'bloom'
-    );
+    update public.echo_entries
+    set brt_category = 'bloom'
+    where id = '30000000-0000-4000-8000-00000000002a';
   exception
     when check_violation then rejected := true;
   end;
@@ -965,14 +964,12 @@ begin
       owner_id,
       echo_entry_id,
       goal_id,
-      brt_category,
       note
     )
     values (
       '00000000-0000-4000-8000-00000000000a',
       '30000000-0000-4000-8000-00000000002a',
       '20000000-0000-4000-8000-00000000002a',
-      'bud',
       repeat('x', 281)
     );
   exception
@@ -990,7 +987,6 @@ insert into public.constellation_evidence_links (
   owner_id,
   echo_entry_id,
   goal_id,
-  brt_category,
   note
 )
 values (
@@ -998,7 +994,6 @@ values (
   '00000000-0000-4000-8000-00000000000a',
   '30000000-0000-4000-8000-00000000001a',
   '20000000-0000-4000-8000-00000000001a',
-  'bud',
   'Bounded private evidence'
 );
 
@@ -1010,14 +1005,12 @@ begin
     insert into public.constellation_evidence_links (
       owner_id,
       echo_entry_id,
-      goal_id,
-      brt_category
+      goal_id
     )
     values (
       '00000000-0000-4000-8000-00000000000a',
       '30000000-0000-4000-8000-00000000001a',
-      '20000000-0000-4000-8000-00000000001a',
-      'rose'
+      '20000000-0000-4000-8000-00000000001a'
     );
   exception
     when unique_violation then rejected := true;
@@ -1029,8 +1022,9 @@ begin
 end;
 $$;
 
+-- Since 033 the note is the relation's only mutable field (the category moved to echo_entries).
 update public.constellation_evidence_links
-set brt_category = 'thorn', note = 'Updated category without duplication'
+set note = 'Updated note without duplication'
 where id = '80000000-0000-4000-8000-00000000001a';
 
 do $$
@@ -1046,7 +1040,7 @@ begin
   end;
 
   if not rejected then
-    raise exception 'evidence relation endpoints were rewritten instead of updating category/note';
+    raise exception 'evidence relation endpoints were rewritten instead of updating the note';
   end if;
 end;
 $$;
@@ -1060,10 +1054,10 @@ begin
   from public.constellation_evidence_links
   where echo_entry_id = '30000000-0000-4000-8000-00000000001a'
     and goal_id = '20000000-0000-4000-8000-00000000001a'
-    and brt_category = 'thorn';
+    and note = 'Updated note without duplication';
 
   if evidence_count <> 1 then
-    raise exception 'evidence category update did not preserve one relation';
+    raise exception 'evidence note update did not preserve one relation';
   end if;
 end;
 $$;
@@ -1076,14 +1070,12 @@ begin
     insert into public.constellation_evidence_links (
       owner_id,
       echo_entry_id,
-      goal_id,
-      brt_category
+      goal_id
     )
     values (
       '00000000-0000-4000-8000-00000000000a',
       '30000000-0000-4000-8000-00000000001a',
-      '20000000-0000-4000-8000-00000000001b',
-      'rose'
+      '20000000-0000-4000-8000-00000000001b'
     );
   exception
     when insufficient_privilege or foreign_key_violation then rejected := true;
@@ -1103,14 +1095,12 @@ begin
     insert into public.constellation_evidence_links (
       owner_id,
       echo_entry_id,
-      goal_id,
-      brt_category
+      goal_id
     )
     values (
       '00000000-0000-4000-8000-00000000000b',
       '30000000-0000-4000-8000-00000000001a',
-      '20000000-0000-4000-8000-00000000001a',
-      'rose'
+      '20000000-0000-4000-8000-00000000001a'
     );
   exception
     when insufficient_privilege or foreign_key_violation then rejected := true;
@@ -1128,7 +1118,7 @@ declare
   deleted_rows integer;
 begin
   update public.constellation_evidence_links
-  set brt_category = 'bud'
+  set note = 'cross-user write'
   where id = '80000000-0000-4000-8000-00000000001b';
   get diagnostics updated_rows = row_count;
 
@@ -1152,9 +1142,14 @@ begin
   where id = '70000000-0000-4000-8000-00000000001b';
   get diagnostics updated_rows = row_count;
 
-  delete from public.constellation_annotations
-  where id = '70000000-0000-4000-8000-00000000001b';
-  get diagnostics deleted_rows = row_count;
+  -- No DELETE grant on annotations (039): refused outright without hosted default grants, else RLS.
+  begin
+    delete from public.constellation_annotations
+    where id = '70000000-0000-4000-8000-00000000001b';
+    get diagnostics deleted_rows = row_count;
+  exception when insufficient_privilege then
+    deleted_rows := 0;
+  end;
 
   if updated_rows <> 0 or deleted_rows <> 0 then
     raise exception 'cross-user annotation write bypassed RLS';
@@ -1166,15 +1161,13 @@ insert into public.constellation_evidence_links (
   id,
   owner_id,
   echo_entry_id,
-  goal_id,
-  brt_category
+  goal_id
 )
 values (
   '80000000-0000-4000-8000-00000000002a',
   '00000000-0000-4000-8000-00000000000a',
   '30000000-0000-4000-8000-00000000002a',
-  '20000000-0000-4000-8000-00000000001a',
-  'rose'
+  '20000000-0000-4000-8000-00000000001a'
 );
 
 delete from public.constellation_evidence_links
@@ -1243,14 +1236,12 @@ begin
     insert into public.constellation_evidence_links (
       owner_id,
       echo_entry_id,
-      goal_id,
-      brt_category
+      goal_id
     )
     values (
       '00000000-0000-4000-8000-00000000000a',
       '30000000-0000-4000-8000-00000000001a',
-      '20000000-0000-4000-8000-00000000001b',
-      'bud'
+      '20000000-0000-4000-8000-00000000001b'
     );
   exception
     when foreign_key_violation then rejected := true;
@@ -1266,23 +1257,20 @@ insert into public.constellation_evidence_links (
   id,
   owner_id,
   echo_entry_id,
-  goal_id,
-  brt_category
+  goal_id
 )
 values
   (
     '80000000-0000-4000-8000-00000000003a',
     '00000000-0000-4000-8000-00000000000a',
     '30000000-0000-4000-8000-00000000002a',
-    '20000000-0000-4000-8000-00000000001a',
-    'bud'
+    '20000000-0000-4000-8000-00000000001a'
   ),
   (
     '80000000-0000-4000-8000-00000000004a',
     '00000000-0000-4000-8000-00000000000a',
     '30000000-0000-4000-8000-00000000003a',
-    '20000000-0000-4000-8000-00000000002a',
-    'thorn'
+    '20000000-0000-4000-8000-00000000002a'
   );
 
 delete from public.echo_entries

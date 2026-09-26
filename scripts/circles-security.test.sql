@@ -2,35 +2,41 @@
 
 -- Migration 053 security + behavior assertions. Each block raises on failure.
 -- Users: A (owner), B (A's friend), C (B's friend, NOT A's friend).
+-- Runs on the full migration chain (scripts/db-chain/suites/circles.sh): signup (008/028) creates the
+-- profiles, Goal categories are the post-068 values 068 maps health/growth/career to, and Tasks and
+-- occurrences carry the columns the real 048 tables require.
 
 insert into auth.users(id) values
   ('00000000-0000-4000-8000-00000000000a'),
   ('00000000-0000-4000-8000-00000000000b'),
   ('00000000-0000-4000-8000-00000000000c');
-insert into public.profiles(id, display_name, timezone) values
-  ('00000000-0000-4000-8000-00000000000a', 'A', 'America/New_York'),
-  ('00000000-0000-4000-8000-00000000000b', 'B', 'UTC'),
-  ('00000000-0000-4000-8000-00000000000c', 'C', 'UTC');
-insert into public.friend_connections(requester_id, addressee_id, status) values
-  ('00000000-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-00000000000b', 'accepted'),
-  ('00000000-0000-4000-8000-00000000000b', '00000000-0000-4000-8000-00000000000c', 'accepted');
+update public.profiles p set display_name = v.display_name, timezone = v.timezone
+from (values
+  ('00000000-0000-4000-8000-00000000000a'::uuid, 'A', 'America/New_York'),
+  ('00000000-0000-4000-8000-00000000000b'::uuid, 'B', 'UTC'),
+  ('00000000-0000-4000-8000-00000000000c'::uuid, 'C', 'UTC')) v(id, display_name, timezone)
+where p.id = v.id;
+insert into public.friend_connections(requester_id, addressee_id, status, responded_at) values
+  ('00000000-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-00000000000b', 'accepted', now()),
+  ('00000000-0000-4000-8000-00000000000b', '00000000-0000-4000-8000-00000000000c', 'accepted', now());
 
 insert into public.goals(id, user_id, title, description, category, status, reflection) values
-  ('10000000-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-00000000000a', 'Run a 5K', 'PRIVATE WHY', 'health', 'active', 'PRIVATE REFLECTION'),
-  ('10000000-0000-4000-8000-00000000001a', '00000000-0000-4000-8000-00000000000a', 'Sleep early', 'PRIVATE', 'health', 'active', null),
-  ('10000000-0000-4000-8000-00000000002a', '00000000-0000-4000-8000-00000000000a', 'Draft idea', null, 'growth', 'draft', null),
-  ('10000000-0000-4000-8000-00000000000b', '00000000-0000-4000-8000-00000000000b', 'B goal', null, 'career', 'active', null);
+  ('10000000-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-00000000000a', 'Run a 5K', 'PRIVATE WHY', 'Health & Fitness', 'active', 'PRIVATE REFLECTION'),
+  ('10000000-0000-4000-8000-00000000001a', '00000000-0000-4000-8000-00000000000a', 'Sleep early', 'PRIVATE', 'Health & Fitness', 'active', null),
+  ('10000000-0000-4000-8000-00000000002a', '00000000-0000-4000-8000-00000000000a', 'Draft idea', null, 'Life & Relationships', 'draft', null),
+  ('10000000-0000-4000-8000-00000000000b', '00000000-0000-4000-8000-00000000000b', 'B goal', null, 'Work & Money', 'active', null);
 insert into public.milestones(goal_id, user_id, title, completed_at, sort_order) values
   ('10000000-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-00000000000a', 'Run 1 mile', now(), 1),
   ('10000000-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-00000000000a', 'Finish the race', null, 2);
 insert into public.entries(id, user_id, entry_type, title, plain_text) values
   ('30000000-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-00000000000a', 'reflection', 'Rest counts', 'PRIVATE BODY'),
   ('30000000-0000-4000-8000-00000000001a', '00000000-0000-4000-8000-00000000000a', 'note', 'A note', 'PRIVATE NOTE');
-insert into public.tasks(id, user_id, goal_id, title) values
-  ('40000000-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-00000000000a', '10000000-0000-4000-8000-00000000000a', 'PRIVATE TASK TITLE');
-insert into public.task_occurrences(user_id, task_id, scheduled_local_date, status)
-select '00000000-0000-4000-8000-00000000000a', '40000000-0000-4000-8000-00000000000a',
-       date_trunc('week', now() at time zone 'America/New_York')::date + d, case when d < 2 then 'completed' else 'pending' end
+insert into public.tasks(id, user_id, goal_id, title, completion_mode) values
+  ('40000000-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-00000000000a', '10000000-0000-4000-8000-00000000000a', 'PRIVATE TASK TITLE', 'binary');
+insert into public.task_occurrences(user_id, task_id, occurrence_key, scheduled_local_date, status, completed_at)
+select '00000000-0000-4000-8000-00000000000a', '40000000-0000-4000-8000-00000000000a', 'circles-test:' || d,
+       date_trunc('week', now() at time zone 'America/New_York')::date + d, case when d < 2 then 'completed' else 'pending' end,
+       case when d < 2 then now() end
 from generate_series(0, 4) d;
 
 set role authenticated;

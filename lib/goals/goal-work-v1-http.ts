@@ -1,4 +1,4 @@
-// Goal work v1 HTTP boundary: fixed actions onto the owner-authorized goal_work_v1 RPC (Migration 074).
+// Goal work v1 HTTP boundary: fixed actions onto the owner-authorized goal_work_v1 RPC (Migration 075).
 // A failed read is never an empty collection; every mutation outcome (committed or not) is a 200 receipt.
 const reads = new Set(['tasks', 'milestones']);
 const writes = new Set(['mutate']);

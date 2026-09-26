@@ -25,7 +25,7 @@ test('a missing Goal or failed read is an explicit failure, never an empty colle
 test('reads cannot mutate and writes cannot be issued as GET', async () => {
   assert.equal((await goalCardHTTP(new Request('https://example.test/?action=mutate'), never)).status, 405);
   assert.equal((await goalCardHTTP(new Request('https://example.test/?action=entries', { method: 'POST', body: '{}' }), never)).status, 405);
-  // Task and Milestone reads moved to /api/goals/work-v1 (Migration 074).
+  // Task and Milestone reads moved to /api/goals/work-v1 (Migration 075).
   assert.equal((await goalCardHTTP(new Request('https://example.test/?action=tasks&goalId=g'), never)).status, 405);
   assert.equal((await goalCardHTTP(new Request('https://example.test/?action=milestones&goalId=g'), never)).status, 405);
   assert.equal((await goalCardHTTP(new Request('https://example.test/?action=mutate', { method: 'DELETE' }), never)).status, 405);

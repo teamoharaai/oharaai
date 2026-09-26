@@ -1,12 +1,14 @@
 \set ON_ERROR_STOP on
 
+-- Runs on the full migration chain (scripts/db-chain/suites/notes-editor.sh): signup (008/028) creates
+-- the profile, and real Goals need a post-068 scoring category.
 insert into auth.users (id) values ('10000000-0000-0000-0000-000000000001');
-insert into public.profiles (id) values ('10000000-0000-0000-0000-000000000001');
-insert into public.goals (id, user_id, title, status) values (
+insert into public.goals (id, user_id, title, status, category) values (
   '20000000-0000-0000-0000-000000000001',
   '10000000-0000-0000-0000-000000000001',
   'Build OHARA',
-  'active'
+  'active',
+  'Work & Money'
 );
 insert into public.entries (id, user_id, entry_type, content) values (
   '30000000-0000-0000-0000-000000000001',

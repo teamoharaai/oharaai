@@ -1,16 +1,17 @@
 -- Adversarial RLS assertions for per-goal Sticky Note folders (migrations 065 +
--- 066). Runs against the disposable cluster set up by the bootstrap. Any
+-- 066). Runs on the full migration chain (scripts/db-chain/suites/sticky-note-folders.sh). Any
 -- violation raises and aborts the run (ON_ERROR_STOP).
 \set ON_ERROR_STOP on
 
--- ── Seed as superuser (bypasses RLS) ──────────────────────────────────────────
+-- ── Seed as postgres (bypasses RLS) ───────────────────────────────────────────
 insert into auth.users (id) values
   ('10000000-0000-0000-0000-000000000001'),  -- user A
   ('10000000-0000-0000-0000-000000000002');  -- user B
 
-insert into public.goals (id, user_id, title) values
-  ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'A goal'),
-  ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 'B goal');
+-- Real Goals need a post-068 scoring category.
+insert into public.goals (id, user_id, title, category) values
+  ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'A goal', 'Work & Money'),
+  ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 'B goal', 'Work & Money');
 
 insert into public.vaults (id, user_id, goal_id) values
   ('30000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001'),

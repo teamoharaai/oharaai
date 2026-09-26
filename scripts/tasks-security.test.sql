@@ -1,15 +1,16 @@
 \set ON_ERROR_STOP on
 
+-- Runs on the real chain at the 051 state (scripts/db-chain/suites/tasks.sh): signup (008/028) creates
+-- the profiles, and Goals carry a category valid at that point (pre-068 taxonomy).
 insert into auth.users(id) values
   ('00000000-0000-4000-8000-00000000000a'),
   ('00000000-0000-4000-8000-00000000000b');
-insert into public.profiles(id,display_name,timezone) values
-  ('00000000-0000-4000-8000-00000000000a','A','America/New_York'),
-  ('00000000-0000-4000-8000-00000000000b','B','UTC');
-insert into public.goals(id,user_id,title,deadline,status) values
-  ('10000000-0000-4000-8000-00000000000a','00000000-0000-4000-8000-00000000000a','A active',now()+interval '1 year','active'),
-  ('10000000-0000-4000-8000-00000000000b','00000000-0000-4000-8000-00000000000b','B active',now()+interval '1 year','active'),
-  ('10000000-0000-4000-8000-00000000001a','00000000-0000-4000-8000-00000000000a','A archived',now()+interval '1 year','archived');
+update public.profiles set display_name='A', timezone='America/New_York' where id='00000000-0000-4000-8000-00000000000a';
+update public.profiles set display_name='B', timezone='UTC' where id='00000000-0000-4000-8000-00000000000b';
+insert into public.goals(id,user_id,title,category,deadline,status) values
+  ('10000000-0000-4000-8000-00000000000a','00000000-0000-4000-8000-00000000000a','A active','health',now()+interval '1 year','active'),
+  ('10000000-0000-4000-8000-00000000000b','00000000-0000-4000-8000-00000000000b','B active','health',now()+interval '1 year','active'),
+  ('10000000-0000-4000-8000-00000000001a','00000000-0000-4000-8000-00000000000a','A archived','health',now()+interval '1 year','archived');
 insert into public.milestones(id,goal_id,user_id,title) values
   ('20000000-0000-4000-8000-00000000000a','10000000-0000-4000-8000-00000000000a','00000000-0000-4000-8000-00000000000a','A milestone'),
   ('20000000-0000-4000-8000-00000000000b','10000000-0000-4000-8000-00000000000b','00000000-0000-4000-8000-00000000000b','B milestone');
@@ -176,10 +177,18 @@ begin
   exception when others then
     if sqlerrm='Inactive-Goal Task creation was allowed' then raise; end if;
   end;
-  if exists(select 1 from public.tasks where user_id='00000000-0000-4000-8000-00000000000b') then
+  -- Any other owner, not just B (who has no Tasks): the fixture owner's backfilled Tasks make this live.
+  if exists(select 1 from public.tasks where user_id<>'00000000-0000-4000-8000-00000000000a')
+    or exists(select 1 from public.task_schedules where user_id<>'00000000-0000-4000-8000-00000000000a')
+    or exists(select 1 from public.task_occurrences where user_id<>'00000000-0000-4000-8000-00000000000a') then
     raise exception 'RLS exposed another owner Task';
   end if;
 end $$;
 
 reset role;
+do $$ begin
+  if not exists(select 1 from public.tasks where user_id<>'00000000-0000-4000-8000-00000000000a') then
+    raise exception 'Task RLS isolation check was vacuous: no other owner has Tasks';
+  end if;
+end $$;
 \echo 'Task schema, recurrence, idempotency, ownership, and RLS assertions passed.'

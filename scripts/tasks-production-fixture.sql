@@ -1,16 +1,17 @@
 \set ON_ERROR_STOP on
 
 -- Synthetic aggregate-shaped rows only. No production content or identity is
--- read by this disposable migration scenario.
+-- read by this disposable migration scenario. Loaded on the real chain through 046
+-- (scripts/db-chain/suites/tasks.sh), where signup (008/028) creates the profile.
 insert into auth.users(id) values ('00000000-0000-4000-8000-00000000000c');
-insert into public.profiles(id,display_name,timezone)
-values ('00000000-0000-4000-8000-00000000000c','Fixture','America/New_York');
+update public.profiles set display_name='Fixture', timezone='America/New_York'
+where id='00000000-0000-4000-8000-00000000000c';
 
-insert into public.goals(id,user_id,title,status,deadline,previous_goal_id,created_at) values
-  ('11000000-0000-4000-8000-00000000000c','00000000-0000-4000-8000-00000000000c','Past deadline','active',now()-interval '2 days',null,now()-interval '30 days'),
-  ('12000000-0000-4000-8000-00000000000c','00000000-0000-4000-8000-00000000000c','Phase predecessor','active',now()+interval '10 days',null,now()-interval '40 days'),
-  ('13000000-0000-4000-8000-00000000000c','00000000-0000-4000-8000-00000000000c','Phase successor','active',now()+interval '40 days','12000000-0000-4000-8000-00000000000c',now()-interval '1 day'),
-  ('14000000-0000-4000-8000-00000000000c','00000000-0000-4000-8000-00000000000c','Current active','active',now()+interval '1 year',null,now()-interval '20 days');
+insert into public.goals(id,user_id,title,category,status,deadline,previous_goal_id,created_at) values
+  ('11000000-0000-4000-8000-00000000000c','00000000-0000-4000-8000-00000000000c','Past deadline','health','active',now()-interval '2 days',null,now()-interval '30 days'),
+  ('12000000-0000-4000-8000-00000000000c','00000000-0000-4000-8000-00000000000c','Phase predecessor','health','active',now()+interval '10 days',null,now()-interval '40 days'),
+  ('13000000-0000-4000-8000-00000000000c','00000000-0000-4000-8000-00000000000c','Phase successor','health','active',now()+interval '40 days','12000000-0000-4000-8000-00000000000c',now()-interval '1 day'),
+  ('14000000-0000-4000-8000-00000000000c','00000000-0000-4000-8000-00000000000c','Current active','health','active',now()+interval '1 year',null,now()-interval '20 days');
 
 insert into public.trackers(
   id,goal_id,title,type,target_value,target_unit,frequency,current_value,
