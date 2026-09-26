@@ -103,9 +103,9 @@ These remain open under IOSQ-006 (Tasks) and IOSQ-007 (Milestones):
 
 ## Verification
 
-- `lib/goals/goal-work-v1-db.test.mjs`: 16 PostgreSQL integration cases, all passing. They run on a disposable Unix-socket cluster with the **real** Task chain applied.
-  - Setup order: `manual-v1-db-scaffold.sql`, `goal-work-v1-db-scaffold.sql`, then 048, 056, 057, 059, 063, 064, 072, 073, 074.
-  - Run with `GOAL_TEST_SOCKET=/tmp/ohara-goal-… LC_ALL=en_US.UTF-8 node --test`; the port defaults to 55441 and the database to `work`.
+- `lib/goals/goal-work-v1-db.test.mjs`: 16 PostgreSQL integration cases, all passing on the **full** migration chain (001…075) applied to a Supabase-shaped database as the non-superuser `postgres`.
+  - Run with `npm run test:goals:db` (`scripts/db-chain/run.sh`, see `scripts/db-chain/README.md`). CI runs it on every PR touching `supabase/`, `lib/` or the Goal/Task routes.
+  - Before 2026-09-25 (session 015) it ran on hand-written scaffolds plus a partial chain; those were retired (TD-001).
   - Covered: empty and foreign reads, bounded paging with page-only batch reconciliation and desktop frontier continuity, repeated and parallel identical writes, payload mismatch, structural validation, revision conflicts, mode and schedule rules, current-occurrence progress, archive, inactive or phased Goals, cross-owner isolation (foreign Goal, Task, Milestone and parent; per-owner operation identities; closed raw writes), Milestone hierarchy and completion, bounded step embedding, a mid-write engine failure leaving nothing behind, shared fixture round-trip, and account-deletion cascade.
 - `lib/goals/goal-work-v1-http.test.ts`: 5 HTTP boundary tests, including that every fixture request reaches the RPC unchanged.
 - Shared contract fixture `lib/goals/goal-work-v1.fixtures.json`. It is byte-identical to `OharaAITests/ContractFixtures/v1/goal-work-v1.json` in the iOS repo, which checks it with Swift encoding and decoding tests.

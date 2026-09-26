@@ -26,6 +26,15 @@
 - Reused canonical Goals, Tasks, Milestones, Entries, Vaults, Circles friends, and Goal Momentum rather than introducing Project-native duplicates or a Project Momentum score. Project ownership transfer remains explicitly deferred because current Goal ownership cannot be transferred safely (`docs/projects-v11-collaboration.md`).
 - Upgraded the Project workspace header, Current Goals, Project Tasks, Momentum Snapshot, Recent Activity, Vault sharing controls, and Manage Project sections for calm role-aware collaboration on desktop and narrow layouts.
 
+### Added — Full-chain database tests without Docker (TD-001)
+- Added `npm run test:goals:db` (`scripts/db-chain/run.sh`). It applies every `supabase/migrations` file (001…075) in order to a throwaway, Supabase-shaped PostgreSQL 17, then runs the Goal database suites on copies of that chain. Why: per-migration scaffolds drifted from hosted and hid two 073 defects on 2026-09-25.
+- `scripts/db-chain/supabase-platform.sql` recreates what hosted Supabase provides before migrations: platform roles, the `auth`/`storage`/`extensions` schemas and functions, and grants. Migrations run as the non-superuser `postgres`, as on hosted; only 001's event trigger is applied with superuser, standing in for `supautils`.
+- `OHARA_DEFAULT_ACL=hosted|cli` covers both default-privilege behaviors. CI (`.github/workflows/db-chain.yml`, new) runs both on PRs touching `supabase/`, `lib/` or the Goal/Task routes, installing PostgreSQL 17 and pgvector from apt.
+- Suites now create users through the real signup path, and profiles are created by the 008/028 trigger. They connect as the non-superuser `postgres`. The 073 suite borrows the executor role the way the migrations do, and the 072 suite's legacy Goal uses a category the post-068 constraint allows.
+- Removed `lib/goals/manual-v1-db-scaffold.sql`, `goal-card-v1-db-scaffold.sql` and `goal-work-v1-db-scaffold.sql`.
+- Verified: 072 12/12, 073 12/12, 074 16/16, 075 8/8 in both ACL modes. Putting 073's original `auth.uid()` defect back into a throwaway copy makes 11 of 12 goal-card cases fail with `permission denied for schema auth`.
+- No migration, route or desktop behavior changed. The older `scripts/test-*-security.sh` harnesses are not migrated yet.
+
 ### Fixed — One scheduled Task occurrence per day across schedule changes (Migration 075, not deployed)
 - `replace_task_schedule_v1` (shared by desktop and native) now moves continuing days onto the new schedule version instead of recreating them. Replacing a schedule on a day already done used to open a second, pending occurrence for that day; a partly logged quantity used to reset. Status, quantity and completion time are kept. Days the new version skips keep completed/skipped history, and their open rows are cancelled as before.
 - Added a unique index: at most one non-cancelled scheduler-created occurrence per Task per day. Legacy tracker/action backfill rows are out of scope. `reconcile_task_occurrences_v1` (063 body) and 074's batch reconcile now skip occupied days with a target-less `ON CONFLICT DO NOTHING`.

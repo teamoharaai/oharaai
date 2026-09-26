@@ -1,0 +1,65 @@
+name: Database chain
+
+# Applies every supabase/migrations file in order to a Supabase-shaped
+# PostgreSQL (scripts/db-chain) and runs the database suites against it.
+# No Supabase project, credentials or Docker are involved.
+
+on:
+  pull_request:
+    paths:
+      - "supabase/**"
+      - "lib/**"
+      - "app/api/goals/**"
+      - "app/api/tasks/**"
+      - "scripts/db-chain/**"
+      - ".github/workflows/db-chain.yml"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/**"
+      - "lib/**"
+      - "app/api/goals/**"
+      - "app/api/tasks/**"
+      - "scripts/db-chain/**"
+      - ".github/workflows/db-chain.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-chain-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  db-chain:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # hosted: client grants by default, as on hosted projects.
+        # cli: no default client grants, as after `supabase db reset`.
+        default-acl: [hosted, cli]
+    env:
+      OHARA_PG_BIN: /usr/lib/postgresql/17/bin
+      OHARA_DEFAULT_ACL: ${{ matrix.default-acl }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install PostgreSQL 17 with pgvector
+        run: |
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y --no-install-recommends postgresql-17 postgresql-17-pgvector
+          sudo locale-gen en_US.UTF-8
+          "$OHARA_PG_BIN/postgres" --version
+
+      - name: Run database suites on the full migration chain
+        run: npm run test:goals:db
