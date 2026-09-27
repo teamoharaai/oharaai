@@ -104,7 +104,15 @@
 - **CI:** it runs `test:db` plus the preflight rehearsal, and its path filters cover `scripts/**` and `package.json`.
 - **Hosted default ACL (read-only, 2026-09-26):** matches `OHARA_DEFAULT_ACL=hosted`. CI keeps both modes, per Justin.
 - **Unchanged:** no migration content, route or desktop behavior, apart from the new 077 above.
-
+### Changed — Projects Workspace UI Polish
+- Simplified Current Goals into compact identity/date rows with in-frame attention counts and clear Goal Lead ownership actions; removed duplicated progress, Momentum, and next-milestone analytics from the left rail (`app/(app)/projects/[id].tsx`).
+- Removed the internal divider between each Current Goal identity and its Lead/Manage row, tightening the spacing while preserving a calm separation through padding alone (`app/(app)/projects/[id].tsx`).
+- Added a restrained, honest Project Notice empty-state card and refined Notes/Reflections spacing, preview emphasis, share actions, upcoming Milestone responsibility, Project Task assignment text/comment actions, Snapshot counts, Momentum deltas, and actor-aware Recent Activity context without adding persistence or changing Project behavior (`app/(app)/projects/[id].tsx`).
+- Changed each Project Task comment control into a real inline disclosure: it now expands only that Task’s existing comments, preserves author edit/delete behavior, and exposes a separate Add comment action backed by the existing contextual comment RPC (`app/(app)/projects/[id].tsx`, `tests/projects/collaboration-ui.spec.ts`).
+- Removed comment bodies and mutation controls from Recent Activity; the right rail now stays a bounded event summary while Task comments live exclusively in their corresponding Project Task disclosure (`app/(app)/projects/[id].tsx`).
+- Added compact New Note and New Reflection buttons to their respective left-rail cards, reusing the existing project-scoped Echo creation route and authorization capability (`app/(app)/projects/[id].tsx`).
+- Preserved valid Momentum values when one of the two existing summary sources is temporarily empty and enriched collaboration activity with its canonical target type/title so comment events identify the Task, Goal, or Milestone they came from (`app/(app)/projects/[id].tsx`, `features/projects/services/project-service.ts`, `features/projects/types.ts`).
+- Updated focused source and browser coverage for the polished three-column hierarchy, notice state, plain-text assignments, contextual comment activity, and dark/light workspace rendering (`features/projects/ui.test.ts`, `tests/projects/workspace.spec.ts`, `tests/projects/collaboration-ui.spec.ts`).
 ### Changed — Projects V1.1 Workspace Steering
 - Rebalanced the bounded three-column Project Overview so the center focuses on Project identity, upcoming canonical Goal Milestones, and Tasks, while the right rail presents Project Snapshot, OHARA Intelligence, Goal Momentum, and Recent Activity in analytical order (`app/(app)/projects/[id].tsx`).
 - Simplified Current Goal secondary context to Goal lead, weekly Momentum movement, next Milestone, and a compact real Task-attention count; reduced Reflection sharing and Task assignment controls while preserving their existing persistence and authorization paths.

@@ -270,12 +270,31 @@ export async function fetchProjectWorkspace(projectId: string): Promise<ProjectW
   const memberName = new Map(collaboration.members.map((member) => [member.userId, member.displayName]));
   for (const item of taskActivity) if (item.actorId) item.actorName = memberName.get(item.actorId);
   const collaborationRows = collaborationActivityResult.status === 'fulfilled' && !collaborationActivityResult.value.error ? collaborationActivityResult.value.data ?? [] : (partialErrors.push('collaboration activity'), []);
-  const collaborationActivity: ProjectActivity[] = collaborationRows.map((row: any) => ({ id:`collaboration-${row.id}`,label:row.label,occurredAt:row.occurred_at,origin:row.metadata?.title,actorId:row.actor_id,actorName:row.actor_id ? memberName.get(row.actor_id) : undefined }));
+  const goalTitle = new Map(base.goals.map((goal) => [goal.id, goal.title]));
+  const milestoneTitle = new Map(base.goals.flatMap((goal) => goal.milestones.map((milestone) => [milestone.id, milestone.title] as const)));
+  const taskTitle = new Map(taskPreviews.map((task) => [task.id, task.title]));
+  const activityTargetTitle = (targetType: string | null, targetId: string | null, metadataTitle?: string) => {
+    if (metadataTitle) return metadataTitle;
+    if (!targetId) return undefined;
+    if (targetType === 'goal') return goalTitle.get(targetId);
+    if (targetType === 'milestone') return milestoneTitle.get(targetId);
+    if (targetType === 'task') return taskTitle.get(targetId);
+    return undefined;
+  };
+  const collaborationActivity: ProjectActivity[] = collaborationRows.map((row: any) => ({
+    id: `collaboration-${row.id}`,
+    label: row.label,
+    occurredAt: row.occurred_at,
+    origin: activityTargetTitle(row.target_type, row.target_id, row.metadata?.title),
+    actorId: row.actor_id,
+    actorName: row.actor_id ? memberName.get(row.actor_id) : undefined,
+    targetId: row.target_id,
+    targetType: row.target_type,
+  }));
   const comments: ProjectComment[] = commentsResult.status === 'fulfilled' && !commentsResult.value.error ? (commentsResult.value.data ?? []).map((row:any)=>({id:row.id,authorId:row.author_id,targetType:row.target_type,targetId:row.target_id,body:row.body,createdAt:row.created_at,editedAt:row.edited_at})) : (partialErrors.push('comments'), []);
   const goalMomentum: ProjectGoalMomentum[] = momentumResult.status === 'fulfilled' && !momentumResult.value.error ? (momentumResult.value.data ?? []).map((row:any)=>({goalId:row.goal_id,displayedValue:row.current_value === null ? null : Math.round(Number(row.current_value)),weeklyChange:row.weekly_change === null ? null : Number(row.weekly_change),status:row.status})) : (partialErrors.push('Momentum'), []);
   const goalIds = new Set(base.goals.map((goal) => goal.id));
   const linkedEntries = Array.from(new Map([...entries.filter((entry) => entry.project?.id === projectId || entry.goals.some((goal) => goalIds.has(goal.id))), ...projectEntries].map((entry) => [entry.id, entry])).values());
-  const goalTitle = new Map(base.goals.map((goal) => [goal.id, goal.title]));
   const eventActivity: ProjectActivity[] = eventRows.map((event: any) => ({
     id: `association-${event.id}`,
     label: event.event_type === 'detached' ? 'Goal removed from Project' : event.event_type === 'reassigned' ? 'Goal moved to Project' : 'Goal added to Project',

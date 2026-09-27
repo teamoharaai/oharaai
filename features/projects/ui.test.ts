@@ -31,7 +31,7 @@ test('landing uses meaningful data without progress percentages or imagery', () 
 });
 
 test('workspace contains approved overview and owner-only Vault hierarchy', () => {
-  for (const label of ['Current Goals', 'Recent Activity', 'Notes', 'Reflections', 'Upcoming Milestones', 'Project Tasks', 'Project Snapshot', 'Momentum Snapshot', 'OHARA Intelligence']) assert.match(workspace, new RegExp(label));
+  for (const label of ['Current Goals', 'Project Notice', 'Recent Activity', 'Notes', 'Reflections', 'Upcoming Milestones', 'Project Tasks', 'Project Snapshot', 'Momentum Snapshot', 'OHARA Intelligence']) assert.match(workspace, new RegExp(label));
   assert.doesNotMatch(workspace, /title="Sticky Notes"/);
   assert.match(vault, /Project Sticky Note/);
   assert.match(vault, /Private to you/);
@@ -43,14 +43,25 @@ test('workspace contains approved overview and owner-only Vault hierarchy', () =
 test('workspace keeps Goal summaries compact and bounds attention to meaningful Tasks', () => {
   assert.match(workspace, /Task needs.*attention/);
   assert.match(workspace, /task\.timing === 'overdue'.*task\.timing === 'today'/);
-  assert.doesNotMatch(workspace, /Momentum \$\{summary\.displayedValue\}/);
-  assert.match(workspace, /Next: \{nextMilestone\.title\}/);
+  assert.match(workspace, /Lead: \{leadName\}/);
+  assert.match(workspace, /Assign →/);
+  assert.doesNotMatch(workspace, /borderTopColor: colors\.border\.divider/);
+  assert.doesNotMatch(workspace, /Next: \{nextMilestone\.title\}/);
+  assert.doesNotMatch(workspace, /ProjectGoalRow/);
 });
 
-test('workspace uses compact Task assignment controls and separates Comment', () => {
-  assert.match(workspace, /accessibilityRole="radiogroup"/);
-  assert.match(workspace, /Assign \$\{task\.title\} to \$\{member\.displayName\}/);
-  assert.match(workspace, /Comment →/);
+test('workspace presents calm Task assignment text and separated contextual Comments', () => {
+  assert.doesNotMatch(workspace, /accessibilityRole="radiogroup"/);
+  assert.match(workspace, /Assigned to:/);
+  assert.match(workspace, /expandedCommentTaskId/);
+  assert.match(workspace, /Comments for \$\{task\.title\}/);
+  assert.match(workspace, /\+ Add comment/);
+  assert.doesNotMatch(workspace, /project\.comments\.slice\(0, 2\)/);
+});
+
+test('Notes and Reflections cards use the existing project-scoped Echo creation path', () => {
+  assert.match(workspace, /\+ New \{kind === 'note' \? 'Note' : 'Reflection'\}/);
+  assert.match(workspace, /params: \{ create: kind, view: kind, projectId: project\.id \}/);
 });
 
 test('OHARA Intelligence uses one presentation hierarchy without changing facts', () => {
@@ -79,6 +90,9 @@ test('Project activity is truthful, bounded, and partial-source failures degrade
   assert.match(service, /entry_goal_links/);
   assert.match(service, /New Phase created/);
   assert.match(service, /partialErrors/);
+  assert.match(service, /activityTargetTitle/);
+  assert.match(workspace, /commented on \$\{targetLabel\}/);
+  assert.match(workspace, /on: \$\{item\.origin\}/);
 });
 
 test('collaboration UI exposes modes, bounded membership, responsibility, and contextual comments', () => {
@@ -99,5 +113,5 @@ test('Project Intelligence is deterministic and does not call an LLM', () => {
   assert.match(contextualIntelligence, /selectContextualInsight/);
   assert.match(contextualIntelligence, /\.sort\(/);
   assert.doesNotMatch(`${intelligence}\n${contextualIntelligence}`, /openai|anthropic|fetch\(/i);
-  assert.match(workspace, /insight\.subtitle/);
+  assert.match(workspace, /IntelligenceHeader insightType="Project Insight"/);
 });

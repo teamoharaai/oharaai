@@ -51,6 +51,8 @@ export type ProjectActivity = {
   origin?: string;
   actorId?: string | null;
   actorName?: string;
+  targetId?: string | null;
+  targetType?: ProjectComment['targetType'] | null;
 };
 
 export type ProjectComment = {

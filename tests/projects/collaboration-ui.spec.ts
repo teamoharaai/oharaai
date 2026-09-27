@@ -63,8 +63,8 @@ async function installScenario(page: Page, scenario: Scenario) {
   const goalId = `goal-${scenario.mode}`;
   const goal = { id: goalId, user_id: ids.owner, title: scenario.mode === 'guide' ? 'Run a Sub-25 5K' : scenario.mode === 'team' ? 'Beta Launch' : 'Read 12 Books', description: 'Build consistent progress.', category: scenario.mode === 'guide' ? 'Health & Fitness' : 'Learning & Creativity', status: 'active', color_theme: 'ocean', smart_data: {}, target_frequency: null, visibility: 'private', progress: 30, deadline: '2026-12-01T12:00:00Z', completed_at: null, archived_at: null, expired_at: null, ai_generated: false, project_id: projectId, project_lead_id: ids.owner, previous_goal_id: null, prior_phase_summary: null, reflection: null, reflected_at: null, created_at: now, updated_at: now, milestones: [{ id: 'milestone-1', goal_id: goalId, user_id: ids.owner, title: 'First complete rehearsal', description: null, due_date: '2026-10-14', completed_at: null, sort_order: 0, is_ai_suggested: false, kind: 'achievement', parent_id: null, target_count: null, photo_url: null, responsible_user_id: ids.owner, created_at: now, updated_at: now }] };
   const task = { id: 'task-1', user_id: ids.owner, goal_id: goalId, milestone_id: null, title: scenario.mode === 'guide' ? 'Long Run' : 'Finalize onboarding', description: null, completion_mode: 'binary', target_quantity: null, quantity_unit: null, status: 'active', due_date: null, source: 'user', legacy_current_value: null, legacy_frequency: null, sort_order: 0, created_at: now, updated_at: now, completed_at: null, archived_at: null, assigned_to: scenario.mode === 'team' ? ids.member : ids.owner, task_schedules: [], task_occurrences: [{ id: 'occurrence-1', task_id: 'task-1', schedule_id: null, occurrence_key: 'one-time', scheduled_local_date: '2026-09-22', scheduled_local_time: null, schedule_timezone: 'UTC', scheduled_at: null, status: 'pending', actual_quantity: null, note: null, completed_at: null, skipped_at: null, source: 'user', created_at: now, updated_at: now }] };
-  let ownComment = { id: 'comment-own', author_id: viewerId, target_type: 'goal', target_id: goalId, body: 'Keep this one at conversational pace.', created_at: now, edited_at: null as string | null, deleted_at: null as string | null };
-  const otherComment = { id: 'comment-other', author_id: scenario.mode === 'guide' ? ids.owner : ids.admin, target_type: 'goal', target_id: goalId, body: 'The next checkpoint looks clear.', created_at: '2026-09-23T11:00:00Z', edited_at: null, deleted_at: null };
+  let ownComment = { id: 'comment-own', author_id: viewerId, target_type: 'task', target_id: task.id, body: 'Keep this one at conversational pace.', created_at: now, edited_at: null as string | null, deleted_at: null as string | null };
+  const otherComment = { id: 'comment-other', author_id: scenario.mode === 'guide' ? ids.owner : ids.admin, target_type: 'task', target_id: task.id, body: 'The next checkpoint looks clear.', created_at: '2026-09-23T11:00:00Z', edited_at: null, deleted_at: null };
   const sharedReflection = { id: 'entry-shared', userId: ids.owner, entryType: 'reflection', title: 'Weekly Reflection', content: { type: 'doc', content: [] }, plainText: scenario.reflectionText === undefined ? 'Training felt more consistent this week, especially during the longer sessions.' : scenario.reflectionText ?? '', brtCategory: null, reflectionType: 'weekly', conversationTurns: [], takeaway: null, pinned: false, archived: false, contentVersion: 1, schemaVersion: 2, completedAt: null, createdAt: now, updatedAt: now, projectShareScope: scenario.mode === 'guide' ? 'guide' : 'project', goals: [{ id: goalId, title: goal.title, category: goal.category, status: goal.status, projectId }], project: { id: projectId, title: project.title }, categoryIds: [], milestones: [] };
 
   const session = { access_token: 'preview-token', refresh_token: 'preview-refresh', token_type: 'bearer', expires_at: Math.floor(Date.now() / 1000) + 3600, expires_in: 3600, user };
@@ -90,7 +90,10 @@ async function installScenario(page: Page, scenario: Scenario) {
     if (url.pathname.endsWith('/tasks')) return json([task]);
     if (url.pathname.endsWith('/task_occurrences')) return json([]);
     if (url.pathname.endsWith('/entries')) return json([]);
-    if (url.pathname.endsWith('/project_activity_events')) return json([{ id: 'activity-1', actor_id: ids.admin, event_type: 'task.assigned', target_type: 'task', target_id: task.id, label: 'Assigned a Task to Maya', metadata: { title: task.title }, occurred_at: now }]);
+    if (url.pathname.endsWith('/project_activity_events')) return json([
+      { id: 'activity-comment', actor_id: ids.admin, event_type: 'comment.created', target_type: 'task', target_id: task.id, label: 'Commented on Task', metadata: {}, occurred_at: now },
+      { id: 'activity-1', actor_id: ids.admin, event_type: 'task.assigned', target_type: 'task', target_id: task.id, label: 'Assigned a Task to Maya', metadata: { title: task.title }, occurred_at: '2026-09-23T11:30:00Z' },
+    ]);
     if (url.pathname.endsWith('/project_comments')) return json([ownComment, otherComment].filter((comment) => !comment.deleted_at));
     if (url.pathname.endsWith('/vaults')) return json([{ id: 'project-vault', project_id: projectId, goal_id: null }]);
     if (url.pathname.endsWith('/vault_items') || url.pathname.endsWith('/project_goal_events')) return json([]);
@@ -131,6 +134,11 @@ test('Personal Project stays visually quiet', async ({ page }) => {
 test('Team owner collaboration, assignments, comments, and responsive states', async ({ page }) => {
   await openProject(page, { mode: 'team', viewer: 'owner', full: true });
   await expect(page.getByText('TEAM · 3 MEMBERS', { exact: true })).toBeVisible();
+  await expect(page.getByText('Project Notice', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '+ New Note', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '+ New Reflection', exact: true })).toBeVisible();
+  await expect(page.getByText('Justin commented on Task', { exact: true })).toBeVisible();
+  await expect(page.getByText('on: Finalize onboarding', { exact: true })).toBeVisible();
   await shot(page, '02-team-project-owner-three-members');
   await steeringShot(page, '01-team-project-desktop-dark', true);
   await expect(page.getByLabel('1 Task needs attention')).toBeVisible();
@@ -141,6 +149,10 @@ test('Team owner collaboration, assignments, comments, and responsive states', a
   await steeringShot(page.getByLabel('Upcoming Milestones card'), '11-upcoming-milestones');
   await steeringShot(page.getByLabel('Project Tasks card'), '12-project-tasks-compact-assignees');
   await steeringShot(page.getByLabel('Project Tasks card'), '13-comment-action-separated');
+  await page.getByRole('button', { name: 'Show comments for Finalize onboarding' }).click();
+  await expect(page.getByLabel('Comments for Finalize onboarding', { exact: true })).toBeVisible();
+  await expect(page.getByText('+ Add comment', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Hide comments for Finalize onboarding' }).click();
   await steeringShot(page.getByLabel('Project Snapshot card'), '14-project-snapshot-consistent-counts');
   await steeringShot(page, '15-full-three-column-dashboard', true);
   await page.getByRole('button', { name: 'Members', exact: true }).click();
@@ -164,6 +176,7 @@ test('Team owner collaboration, assignments, comments, and responsive states', a
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   await page.waitForTimeout(400);
 
+  await page.getByRole('button', { name: 'Show comments for Finalize onboarding' }).click();
   await expect(page.getByRole('button', { name: 'Edit comment by Arthur Silva' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Edit comment by Justin' })).toHaveCount(0);
   await shot(page, '13-comment-author-controls');
