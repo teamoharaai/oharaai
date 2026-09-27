@@ -27,6 +27,7 @@
     "test:goals:db": "bash scripts/db-chain/run.sh lib/goals",
     "test:db": "bash scripts/db-chain/run.sh",
     "test:preflight:rehearsal": "bash scripts/db-chain/preflight-rehearsal.sh",
+    "test:apply:rehearsal": "bash scripts/db-chain/apply-rehearsal.sh",
   "test:circles": "node --experimental-strip-types --test lib/db/circles-core.test.ts features/circles/progress.test.ts",
   "test:circles:db": "bash scripts/test-circles-security.sh",
     "test:circles:api": "node scripts/circles-api.smoke.mjs",

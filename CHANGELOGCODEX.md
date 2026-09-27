@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+### Added — Committing hosted apply (`--apply`) with invariant checks (2026-09-27, source, not run on hosted)
+- **Why:** 074–077 had no checked-in apply procedure; 072 was applied by hand. The apply should reuse the preflight's guards, not a copy of them.
+- **`scripts/test-manual-goal-hosted.mjs --apply`:**
+  - runs the same guarded transaction as the preflight;
+  - fingerprints existing Goal/Task rows before (`scripts/goal-hosted-preflight/invariants-before.sql`) and aborts on any change (`invariants-after.sql`, `APPLY_INVARIANT_CHANGED`);
+  - requires a clean 076 pre-check: 0 conflicts **and** 0 rows to cancel (new `:clean_076` in `076-precheck.sql`);
+  - runs the probes in a savepoint it rolls back;
+  - records `supabase_migrations.schema_migrations` (version, name), notifies PostgREST and commits;
+  - then verifies, on the server, that the transaction is `committed` and that the history is 001..last.
+- **History guard now runs locally too.** `supabase-platform.sql` creates `supabase_migrations.schema_migrations` in the CLI's shape, and `run.sh` / `lib.sh continue_chain` record each migration they apply.
+- **`npm run test:apply:rehearsal`** (`scripts/db-chain/apply-rehearsal.sh`, seed `scripts/db-chain/fixtures/apply-rehearsal-seed.sql`) proves 4 cases on the chain through 073: a seeded row-editing defect aborts with nothing kept; an unclean 076 pre-check blocks (exit 2); the real apply commits with rows unchanged, history 001..077 and no probe rows; a rerun is refused. It is added to CI after the preflight rehearsal.
+- **One source for "hosted is at":** `scripts/db-chain/hosted-applied-through` (073), read by both rehearsals. Both skip, exit 0, when nothing is pending, so a deploy doesn't break CI until 078 exists.
+- **Verification (local):**
+
+  | Check | Result |
+  | --- | --- |
+  | `npm run test:db`, `hosted` ACL | 13/13 |
+  | `npm run test:db`, `cli` ACL | 13/13 |
+  | Preflight rehearsal, both ACL modes | PASS |
+  | Apply rehearsal, both ACL modes | 4/4 cases |
+  | Both rehearsals with `HOSTED_APPLIED_THROUGH=077` | skipped cleanly |
+
+- **No migration changed.** Desktop is unaffected until an apply runs; 076 then changes the canonical Task RPCs desktop calls, as recorded below.
+
 ### Verified — TD-001 pushed, CI green, production preflight covers 077 (2026-09-26)
 - **Pushed:** `ef3fbbc` to `main`, a fast-forward of `59cf622`.
 - **First `db-chain` CI run (36263829506):** green in both ACL legs, 13/13 suites and the preflight rehearsal (074–077). Its only annotation is GitHub's Node 20 deprecation notice for `actions/checkout@v4` and `setup-node@v4`.

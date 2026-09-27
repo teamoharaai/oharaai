@@ -193,6 +193,8 @@ for migration in "${MIGRATIONS[@]}"; do
   else
     apply_file postgres chain "$migration"
   fi
+  # Record it as `supabase db push` does, so the chain's history matches hosted.
+  psql_as postgres chain -c "insert into supabase_migrations.schema_migrations(version, name) values ('$number', '$(basename "$name" .sql | cut -d_ -f2-)')"
   if [[ "$SNAPSHOTS" == *" $number "* ]]; then
     psql_as supabase_admin postgres -c "create database chain_$number template chain owner postgres"
   fi

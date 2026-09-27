@@ -3,13 +3,16 @@
 # real chain only as far as hosted has applied, then runs the preflight against it with --local, so the
 # pending migrations and every probe are exercised without touching hosted.
 #
-#   HOSTED_APPLIED_THROUGH  last migration hosted has applied (default 073, read from hosted 2026-09-26;
-#                           update it after each deploy)
+#   HOSTED_APPLIED_THROUGH  override the last migration hosted has applied (default: scripts/db-chain/hosted-applied-through,
+#                           which a deploy updates)
 #   OHARA_NODE / OHARA_PG_BIN / OHARA_DEFAULT_ACL / OHARA_MIGRATIONS_DIR as for run.sh
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-THROUGH="${HOSTED_APPLIED_THROUGH:-073}"
+THROUGH="${HOSTED_APPLIED_THROUGH:-$(tr -d "[:space:]" < "$ROOT_DIR/scripts/db-chain/hosted-applied-through")}"
+if ! ls "$ROOT_DIR/supabase/migrations"/[0-9][0-9][0-9]_*.sql | sed -E "s|.*/([0-9]{3})_.*|\1|" | awk -v t="$THROUGH" "\$1 > t { found = 1 } END { exit !found }"; then
+  echo "Nothing pending after $THROUGH (hosted is current); skipped."; exit 0
+fi
 NODE="${OHARA_NODE:-$(command -v node || true)}"
 [[ -n "$NODE" ]] || { echo "node is required (set OHARA_NODE)." >&2; exit 1; }
 

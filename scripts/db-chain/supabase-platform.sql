@@ -204,6 +204,15 @@ grant usage on schema storage to postgres, anon, authenticated, service_role;
 grant all on all tables in schema storage to postgres, anon, authenticated, service_role;
 grant all on all functions in schema storage to postgres, anon, authenticated, service_role;
 
+-- Migration history ----------------------------------------------------------
+-- As the Supabase CLI creates it (connected as postgres) on the first `db push`.
+-- run.sh records each migration it applies here, so the chain carries the same
+-- history as hosted and the hosted preflight/apply history guard runs locally.
+create schema supabase_migrations authorization postgres;
+set role postgres;
+create table supabase_migrations.schema_migrations (version text not null primary key, statements text[], name text);
+reset role;
+
 -- Default privileges for objects migrations create --------------------------
 -- DEFAULT_ACL=hosted (default): tables/functions/sequences created by postgres
 -- in public are granted to the client roles, as on hosted projects. This is

@@ -70,3 +70,9 @@ jobs:
       # (HOSTED_APPLIED_THROUGH in scripts/db-chain/preflight-rehearsal.sh; update after each deploy).
       - name: Rehearse the hosted preflight locally
         run: npm run test:preflight:rehearsal
+
+      # The committing apply (scripts/test-manual-goal-hosted.mjs --apply), rehearsed on the same stopped chain
+      # with production-shaped rows: a seeded defect aborts, an unclean 076 pre-check blocks, the apply commits
+      # with existing rows unchanged, and a rerun is refused.
+      - name: Rehearse the hosted apply locally
+        run: npm run test:apply:rehearsal

@@ -35,6 +35,7 @@ continue_chain() { # [NNN]
     name="$(basename "$file")"; number="${name%%_*}"
     [[ "$number" > "$CHAIN_AT" && ! "$number" > "$stop" ]] || continue
     quiet_sql "$file" "applying $name"
+    "${PSQL[@]}" -q -c "insert into supabase_migrations.schema_migrations(version, name) values ('$number', '$(basename "$name" .sql | cut -d_ -f2-)')"
     CHAIN_AT="$number"
   done
   echo "Chain continued through $CHAIN_AT."

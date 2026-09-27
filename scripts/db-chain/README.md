@@ -77,7 +77,27 @@ Guards, all checked before anything is applied:
 Before 076 it counts, read-only, the Task-days 076 would abort on (`TASK_OCCURRENCE_DAY_CONFLICTS`) and the redundant rows it would cancel. A non-zero conflict count skips 076 and exits 2 (BLOCKED).
 
 - **Hosted:** `node scripts/test-manual-goal-hosted.mjs --project-ref <ref> --applied-through 073`. **This needs explicit approval every time.** The project is production.
-- **Local rehearsal:** `npm run test:preflight:rehearsal`, with `HOSTED_APPLIED_THROUGH` set to hosted's last migration (default 073; update it after each deploy). CI runs it.
+- **Local rehearsal:** `npm run test:preflight:rehearsal` (below). CI runs it.
+
+## Hosted apply
+
+`--apply` on the same script is the deploy. It keeps every preflight guard and runs the same transaction, with these differences:
+- **Before:** it fingerprints the existing rows of `goals`, `milestones`, `tasks`, `task_schedules`, `task_occurrences` and `task_mutation_receipts`: a row count plus an md5 over each row as JSON, restricted to the columns the table already had (`scripts/goal-hosted-preflight/invariants-*.sql`).
+- **076 pre-check:** any conflict, or any redundant row 076 would cancel, ends the session before 076 (exit 2, nothing committed). An apply therefore never changes existing Task data.
+- **Probes** run inside a savepoint that is rolled back, so no synthetic row survives.
+- **Then:** the fingerprints must be unchanged (`APPLY_INVARIANT_CHANGED` aborts), the pending migrations are recorded in `supabase_migrations.schema_migrations` (version and name, as `supabase db push` does), `notify pgrst, 'reload schema'` is queued, and it COMMITs.
+- **After:** the server must report the transaction `committed`, and the history must equal local 001..last.
+
+Any failure before COMMIT leaves the target untouched. Migrations are applied in number order, all pending ones at once: history must stay gap-free for the guard and for `supabase db push`.
+
+Deploy steps (**each hosted step needs explicit approval**):
+1. Run the hosted preflight the same day, and read its output.
+2. `node scripts/test-manual-goal-hosted.mjs --project-ref <ref> --applied-through <hosted last> --apply`. Keep the output.
+3. Set `scripts/db-chain/hosted-applied-through` to the new last migration. Both rehearsals read it, and skip while nothing is pending.
+
+**Local rehearsal:** `npm run test:apply:rehearsal`. It builds the chain through `hosted-applied-through`, loads `fixtures/apply-rehearsal-seed.sql`, and proves: a pending migration that edits an existing row aborts with nothing kept; an unclean 076 pre-check blocks; the real apply commits with rows unchanged, the full history and no probe rows; a rerun is refused. CI runs it.
+
+The chain records each migration in `supabase_migrations.schema_migrations` (created by `supabase-platform.sql` in the CLI's shape), so the history guard also runs locally.
 
 ## Known differences from hosted
 

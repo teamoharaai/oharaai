@@ -42,14 +42,13 @@ Native environment: Xcode 27.0 (27A266a), iPhone 17 simulator running iOS 26.5. 
 
 ## Repeating verification
 
-Before migration 072 is applied, the checked-in rollback-only hosted preflight can run with:
+*Updated 2026-09-27:* this project is **production**, and 072 is applied. The preflight now takes `--applied-through` and covers every pending migration; `--apply` is the checked-in successor to the manual 072 apply described above. See `scripts/db-chain/README.md` ("Hosted preflight" and "Hosted apply"). Every hosted run needs Justin's explicit approval.
 
 ```sh
-GOAL_TEST_PSQL=/opt/homebrew/opt/postgresql@16/bin/psql \
-  node scripts/test-manual-goal-hosted.mjs --project-ref rrgiqemscnyaqkculnmb
+node scripts/test-manual-goal-hosted.mjs --project-ref rrgiqemscnyaqkculnmb --applied-through <hosted last>
 ```
 
-It reads the existing linked project's pooler URL and local environment file without printing credentials. Do not rerun the migration preflight on an already-migrated target; it intentionally refuses conflicting objects.
+It reads the existing linked project's pooler URL and local environment file without printing credentials. The history guard refuses a target whose history is not exactly local 001..`--applied-through`.
 
 The native live suite is opt-in with `OHARA_LIVE_GOAL_TEST=1`; creation also requires `OHARA_LIVE_GOAL_CREATE=1`. Use fresh synthetic accounts ending in `@goal-e2e.ohara.test`, supply OWNER/OTHER email and password through a private xctestrun environment, and set `OHARA_LIVE_GOAL_API_URL=http://localhost:8081` for local API verification. Enable only the test owner in `goal_private.verification_owners`, keeping `verification_only=true`. Close admission and remove only those synthetic accounts after verification. Ordinary test runs never contact this backend through the live suite.
 
