@@ -2,6 +2,35 @@
 
 ## [Unreleased]
 
+### Deployed — Migration 078 to production (2026-09-27; route not yet pushed)
+- **Preflight** (approved by Justin): `node scripts/test-manual-goal-hosted.mjs --project-ref rrgiqemscnyaqkculnmb --applied-through 077`. **PASS:**
+  - history exactly 001–077;
+  - probes 072/074/075/076/077/078 passed;
+  - transaction 18423 aborted (server-verified).
+  - pg_cron 1.6.4 is available on hosted (`pg_catalog`). `create extension if not exists pg_cron` and `cron.schedule` both work as `postgres`, so no dashboard change was needed.
+- **Apply** (approved): the same command plus `--apply`. **PASS:**
+  - transaction 18478 committed (server-verified);
+  - probes passed and rolled back;
+  - history now exactly 001–078, and the recorded statements match the file;
+  - PostgREST notified.
+- **Existing rows unchanged** (`invariants-before.sql` = `invariants-after.sql`):
+
+  | Table | Rows | Digest |
+  | --- | --- | --- |
+  | goals | 60 | `8db07b1518b00a5cce448d98a8e44a31` |
+  | milestones | 46 | `d010eaf1b5f3846e2a09a9bcaecbb206` |
+  | tasks | 138 | `4fa74065147f6f23f9bd5c3d97e93498` |
+  | task_schedules | 30 | `da8abb1e662ade134161f6bde5f0c677` |
+  | task_occurrences | 669 | `58c793eae6cfc6df5812bcac3a47fbe6` |
+  | task_mutation_receipts | 103 | `891cf848ab55ef947491cf57e3882a79` |
+  | goal_private.operations / goal_mutations / work_mutations / provenance | 0 each | empty-set digest |
+
+- **Receipts:** the three old stores were empty, so the ledger starts empty. 0 rows of `task_mutation_receipts` (048) are older than 30 days, so the first retention run deletes nothing that desktop wrote.
+- **pg_cron:** job `goal-operation-retention` (`17 3 * * *`, `select goal_private.prune_operations()`, owner `postgres`) is active.
+- **Desktop:** the only change is the daily 048 prune from the next 03:17 UTC run.
+- `scripts/db-chain/hosted-applied-through` is now 078; both rehearsals skip until 079 exists.
+- **Still pending:** push `/api/goals/operations-v1` (until then native can't reach it; the v1 routes are unaffected), re-probe the routes, the live ledger run.
+
 ### Added — Migration 078: one Goal operation ledger, operations-v1, retention (TD-002; source, not deployed)
 - **Why:** four receipt stores with different shapes; Task/Milestone writes had no lookup or close (a lost response couldn't be checked, and an abandoned create could still commit later); nothing was ever pruned. Design, agreed with Justin 2026-09-27: `design/ios-core/TD-002-operation-ledger.md` (iOS repo).
 - **`goal_private.operation_ledger`** replaces 072 `operations`, 074 `goal_mutations` and 075 `work_mutations`:
