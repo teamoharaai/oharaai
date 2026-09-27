@@ -15,6 +15,7 @@ const manage = readFileSync(resolve(process.cwd(), 'features/projects/components
 const intelligence = readFileSync(resolve(process.cwd(), 'features/projects/intelligence.ts'), 'utf8');
 const contextualIntelligence = readFileSync(resolve(process.cwd(), 'features/intelligence/contextual-insights.ts'), 'utf8');
 const comments = readFileSync(resolve(process.cwd(), 'features/projects/components/ProjectComments.tsx'), 'utf8');
+const chat = readFileSync(resolve(process.cwd(), 'features/projects/components/ProjectChat.tsx'), 'utf8');
 const intelligenceHeader = readFileSync(resolve(process.cwd(), 'components/ui/IntelligenceHeader.tsx'), 'utf8');
 const momentum = readFileSync(resolve(process.cwd(), 'app/(app)/momentum.tsx'), 'utf8');
 const goalIntelligence = readFileSync(resolve(process.cwd(), 'features/goals/components/IntelligencePanel.tsx'), 'utf8');
@@ -31,7 +32,8 @@ test('landing uses meaningful data without progress percentages or imagery', () 
 });
 
 test('workspace contains approved overview and owner-only Vault hierarchy', () => {
-  for (const label of ['Current Goals', 'Project Notice', 'Recent Activity', 'Notes', 'Reflections', 'Upcoming Milestones', 'Project Tasks', 'Project Snapshot', 'Momentum Snapshot', 'OHARA Intelligence']) assert.match(workspace, new RegExp(label));
+  for (const label of ['Current Goals', 'Project Chat', 'Recent Activity', 'Notes', 'Reflections', 'Upcoming Milestones', 'Project Tasks', 'Project Snapshot', 'Momentum Snapshot', 'OHARA Intelligence']) assert.match(`${workspace}\n${chat}`, new RegExp(label));
+  assert.doesNotMatch(workspace, /Project Notice/);
   assert.doesNotMatch(workspace, /title="Sticky Notes"/);
   assert.match(vault, /Project Sticky Note/);
   assert.match(vault, /Private to you/);
@@ -50,9 +52,12 @@ test('workspace keeps Goal summaries compact and bounds attention to meaningful 
   assert.doesNotMatch(workspace, /ProjectGoalRow/);
 });
 
-test('workspace presents calm Task assignment text and separated contextual Comments', () => {
+test('workspace presents an actionable Task assignment menu and separated contextual Comments', () => {
   assert.doesNotMatch(workspace, /accessibilityRole="radiogroup"/);
   assert.match(workspace, /Assigned to:/);
+  assert.match(workspace, /assignProjectTask/);
+  assert.match(workspace, /Assignee options for/);
+  assert.match(workspace, /Unassigned/);
   assert.match(workspace, /expandedCommentTaskId/);
   assert.match(workspace, /Comments for \$\{task\.title\}/);
   assert.match(workspace, /\+ Add comment/);
@@ -99,13 +104,25 @@ test('collaboration UI exposes modes, bounded membership, responsibility, and co
   for (const label of ['Personal', 'Team', 'OHARA Guide', 'Goal Lead', 'Invite to Project', 'Invite Guide', 'Access / Mode']) assert.match(manage, new RegExp(label));
   assert.match(manage, /PROJECT_MEMBER_LIMIT/);
   assert.match(manage, /assignProjectMilestone/);
-  assert.match(manage, /createProjectComment/);
+  assert.doesNotMatch(manage, /createProjectComment/);
+  assert.doesNotMatch(manage, />Comment</);
   assert.match(workspace, /\['mine', 'everyone', 'upcoming'\]/);
   assert.match(comments, /Edit comment by/);
   assert.match(comments, /Delete comment by/);
   assert.match(comments, /editingId/);
   assert.match(comments, /Delete comment\?/);
   assert.match(comments, /currentUserId === comment\.authorId/);
+});
+
+test('Project Chat is a distinct realtime conversation with author-only controls', () => {
+  assert.match(chat, /project_chat_messages/);
+  assert.match(chat, /Project Chat becomes available when collaborators join/);
+  assert.match(chat, /createProjectChatMessage/);
+  assert.match(chat, /editProjectChatMessage/);
+  assert.match(chat, /deleteProjectChatMessage/);
+  assert.match(chat, /message\.authorId === currentUserId/);
+  assert.match(chat, /maxHeight: 300/);
+  assert.doesNotMatch(chat, /ProjectComments/);
 });
 
 test('Project Intelligence is deterministic and does not call an LLM', () => {

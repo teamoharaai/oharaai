@@ -105,8 +105,14 @@ async function handlePost(request: Request, params: Record<string, string>, auth
     const isOwner = project.user_id === auth.userId;
     const { data: canAdd, error: capabilityError } = await db.rpc('project_has_capability_v11', { p_project_id: projectId, p_user_id: auth.userId, p_capability: 'add_shared_content' });
     if (capabilityError) throw capabilityError;
-    const visibility = raw.visibility === 'vault_members' ? 'vault_members' : 'private';
-    if (!isOwner && (!canAdd || visibility !== 'vault_members')) return Response.json({ error: 'Not permitted' }, { status: 403 });
+    // Collaborators cannot create owner-private Vault content. Treat every
+    // authorized non-owner write as explicitly Project-shared, including older
+    // clients that omitted visibility, so an Admin never gets a misleading 403
+    // merely because the UI sent its former owner default.
+    const visibility = isOwner
+      ? raw.visibility === 'vault_members' ? 'vault_members' : 'private'
+      : 'vault_members';
+    if (!isOwner && !canAdd) return Response.json({ error: 'Not permitted' }, { status: 403 });
     const { data: existingVault, error: vaultError } = await db.from('vaults').select('*').eq('project_id', projectId).maybeSingle();
     if (vaultError) throw vaultError;
     const vault = existingVault ?? (isOwner ? await getOrCreateProjectVaultForUser(projectId, auth.userId, db) : null);

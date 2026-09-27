@@ -5,7 +5,10 @@ import test from 'node:test';
 
 const migration = readFileSync(resolve(process.cwd(), 'supabase/migrations/071_projects_v1_foundation.sql'), 'utf8');
 const collaboration = readFileSync(resolve(process.cwd(), 'supabase/migrations/073_projects_v1_1_collaboration.sql'), 'utf8');
+const chatMigration = readFileSync(resolve(process.cwd(), 'supabase/migrations/079_project_chat.sql'), 'utf8');
 const api = readFileSync(resolve(process.cwd(), 'app/api/projects/[projectId]/vault+api.ts'), 'utf8');
+const auth = readFileSync(resolve(process.cwd(), 'lib/api/auth.ts'), 'utf8');
+const apiClient = readFileSync(resolve(process.cwd(), 'lib/api/client.ts'), 'utf8');
 
 test('Project Vault has one exclusive same-owner parent', () => {
   assert.match(migration, /vaults_exactly_one_parent_check/);
@@ -32,9 +35,18 @@ test('Project Vault aggregation authenticates before reading titles or counts', 
   assert.match(api, /getOrCreateProjectVaultForUser/);
   assert.match(api, /createAuthedClient\(auth\.accessToken\)/);
   assert.match(api, /project_has_capability_v11/);
-  assert.match(api, /visibility !== 'vault_members'/);
+  assert.match(api, /const visibility = isOwner/);
+  assert.match(api, /: 'vault_members'/);
   assert.match(api, /directProjectItem/);
   assert.match(api, /origins/);
+});
+
+test('Project API auth does not disguise missing or stale sessions as GET 404s', () => {
+  assert.match(api, /withAuth\(handleGet\)/);
+  assert.match(auth, /status: 401/);
+  assert.match(auth, /status: 503/);
+  assert.match(apiClient, /response\.status === 401/);
+  assert.doesNotMatch(apiClient, /response\.status === 404/);
 });
 
 test('V1.1 enforces one capability architecture and the three-person boundary', () => {
@@ -63,4 +75,15 @@ test('responsibility and contextual comments validate canonical Project targets'
   assert.match(collaboration, /set body=btrim\(p_body\),edited_at=now\(\)/);
   assert.match(collaboration, /Comment must be between 1 and 2000 characters/);
   assert.match(collaboration, /project_activity_events/);
+});
+
+test('Project Chat is member-scoped, author-mutable, and body-safe in activity', () => {
+  assert.match(chatMigration, /create table public\.project_chat_messages/);
+  assert.match(chatMigration, /project_has_capability_v11\(project_id, auth\.uid\(\), 'chat'\)/);
+  assert.match(chatMigration, /author_id = auth\.uid\(\)/);
+  assert.match(chatMigration, /create_project_chat_message_v11/);
+  assert.match(chatMigration, /edit_project_chat_message_v11/);
+  assert.match(chatMigration, /delete_project_chat_message_v11/);
+  assert.match(chatMigration, /supabase_realtime/);
+  assert.doesNotMatch(chatMigration, /jsonb_build_object\('body'/);
 });

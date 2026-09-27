@@ -65,6 +65,15 @@ export type ProjectComment = {
   editedAt: string | null;
 };
 
+export type ProjectChatMessage = {
+  id: string;
+  projectId: string;
+  authorId: string;
+  body: string;
+  createdAt: string;
+  editedAt: string | null;
+};
+
 export type ProjectTaskPreview = {
   id: string;
   goalId: string;

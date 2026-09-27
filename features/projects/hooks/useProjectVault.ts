@@ -13,7 +13,7 @@ export function useProjectVault(projectId: string, initialItems: ProjectVaultIte
     setLoading(true); setError(null);
     try {
       const response = await authedFetch(`/api/projects/${projectId}/vault`);
-      if (!response.ok) throw new Error('Project Vault could not load');
+      if (!response.ok) { const payload = await response.json().catch(() => null) as { error?: string } | null; throw new Error(payload?.error ?? `Project Vault could not load (${response.status})`); }
       const body = await response.json() as { items: ProjectVaultItem[] };
       setItems(body.items);
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'Project Vault could not load'); }
@@ -21,7 +21,7 @@ export function useProjectVault(projectId: string, initialItems: ProjectVaultIte
   }, [projectId]);
   const addItem = useCallback(async (payload: { itemType: 'note' | 'link'; contentKind?: 'generic' | 'sticky_note'; title?: string; content?: string; metadata?: VaultItem['metadata']; visibility?: 'private' | 'vault_members' }) => {
     const response = await authedFetch(`/api/projects/${projectId}/vault`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    if (!response.ok) throw new Error('Project Vault item could not be saved');
+    if (!response.ok) { const result = await response.json().catch(() => null) as { error?: string } | null; throw new Error(result?.error ?? `Project Vault item could not be saved (${response.status})`); }
     const body = await response.json() as { item: ProjectVaultItem };
     setItems((current) => [body.item, ...current]);
   }, [projectId]);

@@ -174,6 +174,30 @@
 
 - **No migration changed.** Desktop is unaffected until an apply runs; 076 then changes the canonical Task RPCs desktop calls, as recorded below.
 
+### Deployed — Migration 079 to production (2026-09-27; route pending push)
+- Validated the PostgreSQL 17 production backup at `/private/tmp/ohara-production-pre-projects-v11-159be42-pg17.dump`: non-empty custom archive, successful `pg_restore --list`, and expected Projects, Goals, Tasks, Milestones, Entries, Vault, and migration objects present.
+- The guarded hosted preflight confirmed the exact 001–078 ledger, applied 079 inside a transaction, passed probes 072/074/075/076/077/078, and server-verified rollback.
+- The guarded apply committed transaction 18790, verified existing Goal and Task rows were byte-stable by count/digest, recorded the exact migration source, advanced the production ledger to 001–079, and notified PostgREST.
+- Updated `scripts/db-chain/hosted-applied-through` to 079 so future rehearsals use the current production baseline.
+
+### Added — Projects V1.1 Final Collaboration UX (Migration 079 deployed; route pending push)
+- Replaced the static Project Notice with a bounded, realtime Project Chat for current Project participants. Chat messages use a dedicated table and author-only create/edit/soft-delete RPCs; Task comments remain a separate Task-specific conversation and no message bodies enter Project activity (`supabase/migrations/079_project_chat.sql`, `features/projects/components/ProjectChat.tsx`, Project services/types/workspace).
+- Added an accessible compact Task assignee menu inside each Project Task, backed by the existing canonical nullable assignment RPC and limited to current Project participants plus Unassigned (`app/(app)/projects/[id].tsx`).
+- Added database acceptance for Project Chat isolation, author mutation rules, Admin Project Vault writes, and Admin-owned Echo Notes explicitly shared into a Project; Migration 079 uses the single explicit transaction required by the guarded hosted preflight/apply path (`scripts/projects-v11-security.test.sql`, `supabase/migrations/079_project_chat.sql`).
+
+### Changed — Projects V1.1 Final Collaboration UX
+- Removed Goal and Milestone comment entry points from Manage Project so contextual comments are exposed only on Tasks; historical backend comment support remains intact (`features/projects/components/ManageProjectModal.tsx`).
+- Restricted Project comment loading and Recent Activity presentation to Task comments while keeping Project Chat as a distinct conversation surface (`features/projects/services/project-service.ts`, `app/(app)/projects/[id].tsx`).
+- Allowed collaborators with `add_shared_content` to organize their own canonical Echo Notes/Reflections inside an active Project. Entry ownership stays with the creator and sharing remains explicit/private by default (`supabase/migrations/079_project_chat.sql`, `app/(app)/projects/[id].tsx`).
+- Made nullable Task reassignment optimistic and in-place with silent server reconciliation, rollback on failure, and no workspace-level loading refresh; browser acceptance proves the label changes before a deliberately delayed RPC returns. Project Chat includes a persistent, accessible chatbox for participant conversation (`app/(app)/projects/[id].tsx`, `features/projects/components/ProjectChat.tsx`, `tests/projects/collaboration-ui.spec.ts`).
+- Simplified the Project Chat composer by removing the redundant “Message everyone in this Project” helper line while retaining the compact input, Send action, edit state, and accessibility semantics (`features/projects/components/ProjectChat.tsx`).
+- Moved the isolated Projects browser harness to port 4207 to avoid collision with persistent local previews (`tests/projects/playwright.config.ts`).
+
+### Fixed — Projects authorization and auth error clarity
+- Canonicalized authorized non-owner Project Vault writes to `vault_members` server-side so Admins using older clients cannot receive a misleading permission failure from an omitted/private visibility value; owner-private content remains inaccessible (`app/api/projects/[projectId]/vault+api.ts`).
+- Preserved API error bodies/statuses in Project Vault clients and added regression coverage confirming unauthenticated GETs use 401, transient auth validation uses 503, and 404 remains resource-specific (`features/projects/hooks/useProjectVault.ts`, `features/projects/services/project-service.ts`, `features/projects/security.test.ts`).
+- Kept the guarded apply rehearsal valid after hosted reached the Goal operation ledger: when the rehearsal starts at 078+, its legacy receipt fixture is mirrored into the canonical ledger before testing pending migrations. The synthetic invariant failure now mutates a seeded Milestone instead of a protocol-protected Goal, and unexpected pre-invariant refusals print the decisive apply-log tail (`scripts/db-chain/apply-rehearsal.sh`, `scripts/db-chain/fixtures/apply-rehearsal-ledger-seed.sql`).
+
 ### Verified — TD-001 pushed, CI green, production preflight covers 077 (2026-09-26)
 - **Pushed:** `ef3fbbc` to `main`, a fast-forward of `59cf622`.
 - **First `db-chain` CI run (36263829506):** green in both ACL legs, 13/13 suites and the preflight rehearsal (074–077). Its only annotation is GitHub's Node 20 deprecation notice for `actions/checkout@v4` and `setup-node@v4`.

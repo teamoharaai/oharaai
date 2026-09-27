@@ -1,6 +1,6 @@
 import supabase from '@/lib/db/client';
 import { authedFetch } from '@/lib/api/client';
-import type { IncomingProjectInvitation, Project, ProjectActivity, ProjectCollaboration, ProjectComment, ProjectGoalMomentum, ProjectMode, ProjectRole, ProjectSummary, ProjectVaultItem, ProjectWithGoals, ProjectWorkspace } from '@/features/projects/types';
+import type { IncomingProjectInvitation, Project, ProjectActivity, ProjectChatMessage, ProjectCollaboration, ProjectComment, ProjectGoalMomentum, ProjectMode, ProjectRole, ProjectSummary, ProjectVaultItem, ProjectWithGoals, ProjectWorkspace } from '@/features/projects/types';
 import type { GoalWithDetails } from '@/features/goals/types';
 import type { EntryRecord } from '@/features/entries/types';
 import { enrichGoalsWithSignals, GOAL_SELECT, mapGoal, type DbGoal } from '@/features/goals/services/goal-service';
@@ -241,7 +241,10 @@ export async function fetchProjectWorkspace(projectId: string): Promise<ProjectW
   const [entriesResult, sharedEntriesResult, vaultResult, eventResult, taskResult, entryLinkResult, taskPreviewResult, collaborationResult, collaborationActivityResult, commentsResult, momentumResult] = await Promise.allSettled([
     fetchEntries(), fetchProjectEntries(projectId),
     authedFetch(`/api/projects/${projectId}/vault`).then(async (response) => {
-      if (!response.ok) throw new Error('Project Vault could not be loaded');
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(payload?.error ?? `Project Vault could not be loaded (${response.status})`);
+      }
       return response.json() as Promise<{ vault: NonNullable<ProjectWorkspace['vault']>; items: ProjectVaultItem[] }>;
     }),
     supabase.from('project_goal_events').select('id, project_id, prior_project_id, goal_id, event_type, occurred_at')
@@ -251,7 +254,7 @@ export async function fetchProjectWorkspace(projectId: string): Promise<ProjectW
     fetchProjectTaskPreviews(base.goals),
     fetchProjectCollaboration(projectId),
     supabase.from('project_activity_events').select('id,actor_id,event_type,target_type,target_id,label,metadata,occurred_at').eq('project_id',projectId).order('occurred_at',{ascending:false}).limit(30),
-    supabase.from('project_comments').select('id,author_id,target_type,target_id,body,created_at,edited_at').eq('project_id',projectId).is('deleted_at',null).order('created_at',{ascending:false}).limit(50),
+    supabase.from('project_comments').select('id,author_id,target_type,target_id,body,created_at,edited_at').eq('project_id',projectId).eq('target_type','task').is('deleted_at',null).order('created_at',{ascending:false}).limit(50),
     supabase.rpc('get_project_goal_momentum_v11',{p_project_id:projectId}),
   ]);
   const partialErrors: string[] = [];
@@ -281,7 +284,7 @@ export async function fetchProjectWorkspace(projectId: string): Promise<ProjectW
     if (targetType === 'task') return taskTitle.get(targetId);
     return undefined;
   };
-  const collaborationActivity: ProjectActivity[] = collaborationRows.map((row: any) => ({
+  const collaborationActivity: ProjectActivity[] = collaborationRows.filter((row: any) => row.event_type !== 'comment.created' || row.target_type === 'task').map((row: any) => ({
     id: `collaboration-${row.id}`,
     label: row.label,
     occurredAt: row.occurred_at,
@@ -355,6 +358,10 @@ export async function createProjectMilestone(goalId:string,title:string,dueDate:
 export async function createProjectComment(projectId:string,targetType:string,targetId:string,body:string):Promise<void>{ const {error}=await supabase.rpc('create_project_comment_v11',{p_project:projectId,p_type:targetType,p_id:targetId,p_body:body}); if(error) throw new Error(error.message); }
 export async function editProjectComment(commentId:string,body:string):Promise<void>{ const {data,error}=await supabase.rpc('edit_project_comment_v11',{p_comment:commentId,p_body:body}); if(error) throw new Error(error.message); if(!data) throw new Error('You can edit only your own active comments.'); }
 export async function deleteProjectComment(commentId:string):Promise<void>{ const {data,error}=await supabase.rpc('delete_project_comment_v11',{p_comment:commentId}); if(error) throw new Error(error.message); if(!data) throw new Error('You can delete only your own active comments.'); }
+export async function fetchProjectChatMessages(projectId:string):Promise<ProjectChatMessage[]>{ const {data,error}=await supabase.from('project_chat_messages').select('id,project_id,author_id,body,created_at,edited_at').eq('project_id',projectId).is('deleted_at',null).order('created_at',{ascending:false}).limit(50); if(error) throw new Error(error.message); return (data??[]).map((row:any)=>({id:row.id,projectId:row.project_id,authorId:row.author_id,body:row.body,createdAt:row.created_at,editedAt:row.edited_at})).reverse(); }
+export async function createProjectChatMessage(projectId:string,body:string):Promise<void>{ const {error}=await supabase.rpc('create_project_chat_message_v11',{p_project_id:projectId,p_body:body}); if(error) throw new Error(error.message); }
+export async function editProjectChatMessage(messageId:string,body:string):Promise<void>{ const {data,error}=await supabase.rpc('edit_project_chat_message_v11',{p_message_id:messageId,p_body:body}); if(error) throw new Error(error.message); if(!data) throw new Error('You can edit only your own active messages.'); }
+export async function deleteProjectChatMessage(messageId:string):Promise<void>{ const {data,error}=await supabase.rpc('delete_project_chat_message_v11',{p_message_id:messageId}); if(error) throw new Error(error.message); if(!data) throw new Error('You can delete only your own active messages.'); }
 export async function setEntryProjectShare(entryId:string,scope:'private'|'project'|'guide'):Promise<void>{ const {error}=await supabase.rpc('set_entry_project_share_v11',{p_entry_id:entryId,p_scope:scope}); if(error) throw new Error(error.message); }
 
 export async function updateProject(

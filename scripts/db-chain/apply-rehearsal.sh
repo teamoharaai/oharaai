@@ -54,14 +54,17 @@ unchanged() { # <label>
 }
 
 sql -f "$ROOT_DIR/scripts/db-chain/fixtures/apply-rehearsal-seed.sql"
+if [[ "$THROUGH" > 077 ]]; then
+  sql -f "$ROOT_DIR/scripts/db-chain/fixtures/apply-rehearsal-ledger-seed.sql"
+fi
 before="$(state)"
 
 echo "1. A pending migration that changes an existing row"
 cp -R "$ROOT_DIR/supabase/migrations" "$WORK/defect"
 last="$(ls "$WORK/defect"/[0-9][0-9][0-9]_*.sql | tail -1)"
-perl -0pi -e "s/\ncommit;\s*\z/\nupdate public.goals set title = title || ' (changed)';\ncommit;\n/i" "$last"
+perl -0pi -e "s/\ncommit;\s*\z/\nupdate public.milestones set title = title || ' (changed)';\ncommit;\n/i" "$last"
 run_apply 1 "seeded defect" OHARA_MIGRATIONS_DIR="$WORK/defect"
-grep -q APPLY_INVARIANT_CHANGED "$WORK/apply.log" || { echo "FAIL: the invariant did not catch the change" >&2; exit 1; }
+grep -q APPLY_INVARIANT_CHANGED "$WORK/apply.log" || { echo "FAIL: the invariant did not catch the change" >&2; tail -40 "$WORK/apply.log" >&2; exit 1; }
 unchanged "the aborted apply"
 
 if [[ "$THROUGH" < 076 ]]; then

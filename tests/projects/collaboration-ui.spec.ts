@@ -55,14 +55,14 @@ async function installScenario(page: Page, scenario: Scenario) {
   const project = { id: projectId, user_id: ids.owner, title: scenario.mode === 'guide' ? '5K Training' : scenario.mode === 'team' ? 'Launch OHARA' : 'Reading Practice', description: scenario.mode === 'guide' ? 'Build a confident training rhythm together.' : 'A calm place for meaningful progress.', status: 'active', mode: scenario.mode, start_date: null, end_date: null, period_key: null, created_at: now, updated_at: now };
   const members = scenario.mode === 'personal' ? [people.owner] : scenario.mode === 'guide' ? [people.owner, people.guide] : scenario.full === false ? [people.owner, people.admin] : [people.owner, people.admin, people.member];
   const capabilitiesByRole = {
-    owner: ['view_project','manage_project','manage_members','invite_members','create_goal','assign_goal_lead','create_task','assign_task','complete_task','create_milestone','assign_milestone','view_shared_vault','add_shared_content','comment','view_shared_notes','view_shared_reflections'],
-    admin: ['view_project','manage_project','manage_members','invite_members','assign_goal_lead','create_task','assign_task','complete_task','create_milestone','assign_milestone','view_shared_vault','add_shared_content','comment','view_shared_notes','view_shared_reflections'],
-    member: ['view_project','complete_task','view_shared_vault','add_shared_content','comment','view_shared_notes','view_shared_reflections'],
-    guide: ['view_project','create_task','assign_task','complete_task','create_milestone','assign_milestone','view_shared_vault','add_shared_content','comment','view_shared_notes','view_shared_reflections'],
+    owner: ['view_project','manage_project','manage_members','invite_members','create_goal','assign_goal_lead','create_task','assign_task','complete_task','create_milestone','assign_milestone','view_shared_vault','add_shared_content','comment','chat','view_shared_notes','view_shared_reflections'],
+    admin: ['view_project','manage_project','manage_members','invite_members','assign_goal_lead','create_task','assign_task','complete_task','create_milestone','assign_milestone','view_shared_vault','add_shared_content','comment','chat','view_shared_notes','view_shared_reflections'],
+    member: ['view_project','complete_task','view_shared_vault','add_shared_content','comment','chat','view_shared_notes','view_shared_reflections'],
+    guide: ['view_project','create_task','assign_task','complete_task','create_milestone','assign_milestone','view_shared_vault','add_shared_content','comment','chat','view_shared_notes','view_shared_reflections'],
   } as const;
   const goalId = `goal-${scenario.mode}`;
   const goal = { id: goalId, user_id: ids.owner, title: scenario.mode === 'guide' ? 'Run a Sub-25 5K' : scenario.mode === 'team' ? 'Beta Launch' : 'Read 12 Books', description: 'Build consistent progress.', category: scenario.mode === 'guide' ? 'Health & Fitness' : 'Learning & Creativity', status: 'active', color_theme: 'ocean', smart_data: {}, target_frequency: null, visibility: 'private', progress: 30, deadline: '2026-12-01T12:00:00Z', completed_at: null, archived_at: null, expired_at: null, ai_generated: false, project_id: projectId, project_lead_id: ids.owner, previous_goal_id: null, prior_phase_summary: null, reflection: null, reflected_at: null, created_at: now, updated_at: now, milestones: [{ id: 'milestone-1', goal_id: goalId, user_id: ids.owner, title: 'First complete rehearsal', description: null, due_date: '2026-10-14', completed_at: null, sort_order: 0, is_ai_suggested: false, kind: 'achievement', parent_id: null, target_count: null, photo_url: null, responsible_user_id: ids.owner, created_at: now, updated_at: now }] };
-  const task = { id: 'task-1', user_id: ids.owner, goal_id: goalId, milestone_id: null, title: scenario.mode === 'guide' ? 'Long Run' : 'Finalize onboarding', description: null, completion_mode: 'binary', target_quantity: null, quantity_unit: null, status: 'active', due_date: null, source: 'user', legacy_current_value: null, legacy_frequency: null, sort_order: 0, created_at: now, updated_at: now, completed_at: null, archived_at: null, assigned_to: scenario.mode === 'team' ? ids.member : ids.owner, task_schedules: [], task_occurrences: [{ id: 'occurrence-1', task_id: 'task-1', schedule_id: null, occurrence_key: 'one-time', scheduled_local_date: '2026-09-22', scheduled_local_time: null, schedule_timezone: 'UTC', scheduled_at: null, status: 'pending', actual_quantity: null, note: null, completed_at: null, skipped_at: null, source: 'user', created_at: now, updated_at: now }] };
+  let task = { id: 'task-1', user_id: ids.owner, goal_id: goalId, milestone_id: null, title: scenario.mode === 'guide' ? 'Long Run' : 'Finalize onboarding', description: null, completion_mode: 'binary', target_quantity: null, quantity_unit: null, status: 'active', due_date: null, source: 'user', legacy_current_value: null, legacy_frequency: null, sort_order: 0, created_at: now, updated_at: now, completed_at: null, archived_at: null, assigned_to: (scenario.mode === 'team' ? ids.member : ids.owner) as string | null, task_schedules: [], task_occurrences: [{ id: 'occurrence-1', task_id: 'task-1', schedule_id: null, occurrence_key: 'one-time', scheduled_local_date: '2026-09-22', scheduled_local_time: null, schedule_timezone: 'UTC', scheduled_at: null, status: 'pending', actual_quantity: null, note: null, completed_at: null, skipped_at: null, source: 'user', created_at: now, updated_at: now }] };
   let ownComment = { id: 'comment-own', author_id: viewerId, target_type: 'task', target_id: task.id, body: 'Keep this one at conversational pace.', created_at: now, edited_at: null as string | null, deleted_at: null as string | null };
   const otherComment = { id: 'comment-other', author_id: scenario.mode === 'guide' ? ids.owner : ids.admin, target_type: 'task', target_id: task.id, body: 'The next checkpoint looks clear.', created_at: '2026-09-23T11:00:00Z', edited_at: null, deleted_at: null };
   const sharedReflection = { id: 'entry-shared', userId: ids.owner, entryType: 'reflection', title: 'Weekly Reflection', content: { type: 'doc', content: [] }, plainText: scenario.reflectionText === undefined ? 'Training felt more consistent this week, especially during the longer sessions.' : scenario.reflectionText ?? '', brtCategory: null, reflectionType: 'weekly', conversationTurns: [], takeaway: null, pinned: false, archived: false, contentVersion: 1, schemaVersion: 2, completedAt: null, createdAt: now, updatedAt: now, projectShareScope: scenario.mode === 'guide' ? 'guide' : 'project', goals: [{ id: goalId, title: goal.title, category: goal.category, status: goal.status, projectId }], project: { id: projectId, title: project.title }, categoryIds: [], milestones: [] };
@@ -84,6 +84,7 @@ async function installScenario(page: Page, scenario: Scenario) {
     if (url.pathname.endsWith('/rpc/get_project_goal_momentum_v11')) return json([{ goal_id: goalId, current_value: scenario.mode === 'guide' ? 68 : 72, weekly_change: scenario.mode === 'guide' ? 6 : 4, status: 'active' }]);
     if (url.pathname.endsWith('/rpc/edit_project_comment_v11')) { const body = route.request().postDataJSON() as { p_body: string }; ownComment = { ...ownComment, body: body.p_body.trim(), edited_at: '2026-09-23T13:00:00Z' }; return json(true); }
     if (url.pathname.endsWith('/rpc/delete_project_comment_v11')) { ownComment = { ...ownComment, deleted_at: '2026-09-23T13:00:00Z' }; return json(true); }
+    if (url.pathname.endsWith('/rpc/assign_project_task_v11')) { const body = route.request().postDataJSON() as { p_user_id: string | null }; await new Promise((resolve) => setTimeout(resolve, 600)); task = { ...task, assigned_to: body.p_user_id }; return json(true); }
     if (url.pathname.endsWith('/projects')) return json(project);
     if (url.pathname.endsWith('/project_members')) return json([{ project_id: projectId }]);
     if (url.pathname.endsWith('/goals')) return json([goal]);
@@ -95,6 +96,7 @@ async function installScenario(page: Page, scenario: Scenario) {
       { id: 'activity-1', actor_id: ids.admin, event_type: 'task.assigned', target_type: 'task', target_id: task.id, label: 'Assigned a Task to Maya', metadata: { title: task.title }, occurred_at: '2026-09-23T11:30:00Z' },
     ]);
     if (url.pathname.endsWith('/project_comments')) return json([ownComment, otherComment].filter((comment) => !comment.deleted_at));
+    if (url.pathname.endsWith('/project_chat_messages')) return json([]);
     if (url.pathname.endsWith('/vaults')) return json([{ id: 'project-vault', project_id: projectId, goal_id: null }]);
     if (url.pathname.endsWith('/vault_items') || url.pathname.endsWith('/project_goal_events')) return json([]);
     return json([]);
@@ -118,7 +120,7 @@ async function installScenario(page: Page, scenario: Scenario) {
 async function openProject(page: Page, scenario: Scenario) {
   const data = await installScenario(page, scenario);
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto(`http://localhost:4182/projects/${data.project.id}`);
+  await page.goto(`/projects/${data.project.id}`);
   await expect(page.getByRole('heading', { name: data.project.title })).toBeVisible();
   return data;
 }
@@ -134,7 +136,10 @@ test('Personal Project stays visually quiet', async ({ page }) => {
 test('Team owner collaboration, assignments, comments, and responsive states', async ({ page }) => {
   await openProject(page, { mode: 'team', viewer: 'owner', full: true });
   await expect(page.getByText('TEAM · 3 MEMBERS', { exact: true })).toBeVisible();
-  await expect(page.getByText('Project Notice', { exact: true })).toBeVisible();
+  await expect(page.getByText('Project Chat', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Project Chatbox')).toBeVisible();
+  await expect(page.getByLabel('Project Chat message')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Send', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '+ New Note', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '+ New Reflection', exact: true })).toBeVisible();
   await expect(page.getByText('Justin commented on Task', { exact: true })).toBeVisible();
@@ -148,6 +153,11 @@ test('Team owner collaboration, assignments, comments, and responsive states', a
   await steeringShot(page.getByLabel('OHARA Intelligence card'), '09-intelligence-dark-contrast');
   await steeringShot(page.getByLabel('Upcoming Milestones card'), '11-upcoming-milestones');
   await steeringShot(page.getByLabel('Project Tasks card'), '12-project-tasks-compact-assignees');
+  await page.getByRole('button', { name: /Change assignee for Finalize onboarding/ }).click();
+  await expect(page.getByLabel('Assignee options for Finalize onboarding')).toBeVisible();
+  await page.getByRole('menuitem', { name: 'Arthur Silva' }).click();
+  await expect(page.getByRole('button', { name: /Currently Arthur Silva/ })).toBeVisible({ timeout: 250 });
+  await expect(page.getByRole('heading', { name: 'Launch OHARA' })).toBeVisible();
   await steeringShot(page.getByLabel('Project Tasks card'), '13-comment-action-separated');
   await page.getByRole('button', { name: 'Show comments for Finalize onboarding' }).click();
   await expect(page.getByLabel('Comments for Finalize onboarding', { exact: true })).toBeVisible();

@@ -24,7 +24,7 @@ for (const theme of ['light', 'dark']) test(`Projects V1 workspace ${theme}`, as
     if (url.pathname.includes('/auth/v1/user')) return json(user);
     if (url.pathname.endsWith('/rpc/reconcile_goal_expiration_v1')) return json(null);
     if (url.pathname.endsWith('/rpc/get_my_project_invitations_v11')) return json([]);
-    if (url.pathname.endsWith('/rpc/get_project_collaboration_v11')) return json({ role: 'owner', capabilities: ['view_project','manage_project','manage_members','invite_members','create_goal','assign_goal_lead','create_task','assign_task','complete_task','create_milestone','assign_milestone','view_shared_vault','add_shared_content','comment'], members: [{ userId: user.id, role: 'owner', relationshipLabel: null, displayName: 'Arthur', username: 'arthur', avatarUrl: null, joinedAt: now }], invitations: [] });
+    if (url.pathname.endsWith('/rpc/get_project_collaboration_v11')) return json({ role: 'owner', capabilities: ['view_project','manage_project','manage_members','invite_members','create_goal','assign_goal_lead','create_task','assign_task','complete_task','create_milestone','assign_milestone','view_shared_vault','add_shared_content','comment','chat'], members: [{ userId: user.id, role: 'owner', relationshipLabel: null, displayName: 'Arthur', username: 'arthur', avatarUrl: null, joinedAt: now }], invitations: [] });
     if (url.pathname.endsWith('/rpc/get_project_goal_momentum_v11')) return json([{ goal_id: goal.id, current_value: 71, weekly_change: 6, status: 'active' }]);
     if (url.pathname.endsWith('/projects')) return json(url.searchParams.has('id') ? project : [project]);
     if (url.pathname.endsWith('/project_members')) return json([{ project_id: project.id }]);
@@ -34,6 +34,7 @@ for (const theme of ['light', 'dark']) test(`Projects V1 workspace ${theme}`, as
     if (url.pathname.endsWith('/entries')) return json([]);
     if (url.pathname.endsWith('/project_activity_events')) return json([]);
     if (url.pathname.endsWith('/project_comments')) return json([]);
+    if (url.pathname.endsWith('/project_chat_messages')) return json([]);
     if (url.pathname.endsWith('/vaults')) return json([{ id: 'project-vault', project_id: project.id, goal_id: null }, { id: 'goal-vault', project_id: null, goal_id: goal.id }]);
     if (url.pathname.endsWith('/vault_items')) return json(items.map((item) => ({ id: item.id, vault_id: item.vaultId, updated_at: item.updatedAt })));
     if (url.pathname.endsWith('/project_goal_events')) return json([{ id: 'event-1', project_id: project.id, prior_project_id: null, goal_id: goal.id, event_type: 'added', occurred_at: now }]);
@@ -50,13 +51,13 @@ for (const theme of ['light', 'dark']) test(`Projects V1 workspace ${theme}`, as
     return json({ data: [], entries: [], items: [] });
   });
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto('http://localhost:4182/projects');
+  await page.goto('/projects');
   await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Open Project Run a 5K Journey' })).toBeVisible();
   await expect(page.getByText('1', { exact: true }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Open Project Run a 5K Journey' }).click();
   await expect(page.getByRole('heading', { name: project.title })).toBeVisible();
-  for (const text of ['Current Goals', 'Project Notice', 'Notes', 'Reflections', 'Upcoming Milestones', 'Project Tasks', 'Recent Activity', 'Project Snapshot', 'Momentum Snapshot', 'OHARA Intelligence']) await expect(page.getByText(text, { exact: true }).first()).toBeVisible();
+  for (const text of ['Current Goals', 'Project Chat', 'Notes', 'Reflections', 'Upcoming Milestones', 'Project Tasks', 'Recent Activity', 'Project Snapshot', 'Momentum Snapshot', 'OHARA Intelligence']) await expect(page.getByText(text, { exact: true }).first()).toBeVisible();
   await expect(page.getByText('Aerobic base', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Training research', { exact: true })).toBeVisible();
   await expect(page.getByText('Easy run', { exact: true })).toBeVisible();
@@ -107,7 +108,7 @@ test('Guide workspace exposes permitted coordination without owner controls or p
     const json = (body: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
     if (url.pathname.includes('/auth/v1/user')) return json(user);
     if (url.pathname.endsWith('/rpc/reconcile_goal_expiration_v1')) return json(null);
-    if (url.pathname.endsWith('/rpc/get_project_collaboration_v11')) return json({ role: 'guide', capabilities: ['view_project','view_shared_vault','add_shared_content','create_task','assign_task','complete_task','create_milestone','assign_milestone','comment','view_shared_notes','view_shared_reflections'], members: [{ userId: clientId, role: 'owner', relationshipLabel: null, displayName: 'Arthur', username: 'arthur', avatarUrl: null, joinedAt: now }, { userId: user.id, role: 'guide', relationshipLabel: 'Fitness Coach', displayName: 'Justin', username: 'justin', avatarUrl: null, joinedAt: now }], invitations: [] });
+    if (url.pathname.endsWith('/rpc/get_project_collaboration_v11')) return json({ role: 'guide', capabilities: ['view_project','view_shared_vault','add_shared_content','create_task','assign_task','complete_task','create_milestone','assign_milestone','comment','chat','view_shared_notes','view_shared_reflections'], members: [{ userId: clientId, role: 'owner', relationshipLabel: null, displayName: 'Arthur', username: 'arthur', avatarUrl: null, joinedAt: now }, { userId: user.id, role: 'guide', relationshipLabel: 'Fitness Coach', displayName: 'Justin', username: 'justin', avatarUrl: null, joinedAt: now }], invitations: [] });
     if (url.pathname.endsWith('/rpc/get_project_goal_momentum_v11')) return json([{ goal_id: guideGoal.id, current_value: 71, weekly_change: null, status: 'active' }]);
     if (url.pathname.endsWith('/projects')) return json(url.searchParams.has('id') ? guideProject : [guideProject]);
     if (url.pathname.endsWith('/project_members')) return json([{ project_id: guideProject.id }]);
@@ -128,7 +129,7 @@ test('Guide workspace exposes permitted coordination without owner controls or p
     return json({ data: [], entries: [], items: [] });
   });
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto(`http://localhost:4182/projects/${guideProject.id}`);
+  await page.goto(`/projects/${guideProject.id}`);
   await expect(page.getByRole('heading', { name: guideProject.title })).toBeVisible();
   await expect(page.getByText('Guide', { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/1 assigned Task is overdue\./)).toBeVisible();
