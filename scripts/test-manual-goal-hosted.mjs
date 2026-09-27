@@ -36,7 +36,7 @@ if (!/^\d{3}$/.test(through ?? '')) throw Error('--applied-through NNN is requir
 // Probes by migration. A probe runs whenever its migration is on the target after the pending ones apply,
 // so already-applied migrations are re-checked against the new ones.
 const PROBES = { '072': '072-manual-goal.sql', '074': '074-goal-card.sql', '075': '075-goal-work.sql', '076': '076-task-schedule-continuity.sql',
-  '077': '077-note-evidence-synchronizer.sql' };
+  '077': '077-note-evidence-synchronizer.sql', '078': '078-operation-ledger.sql' };
 const PRECHECKS = { '076': '076-precheck.sql' };
 
 // Target -----------------------------------------------------------------------

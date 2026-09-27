@@ -57,6 +57,12 @@ create extension pgcrypto with schema extensions;
 -- pgvector is untrusted; hosted enables it through supautils/dashboard. 001's
 -- `create extension if not exists vector` then no-ops, as it does on hosted.
 create extension vector with schema extensions;
+-- pg_cron is untrusted and preloaded on hosted; supautils/the dashboard create it and give postgres
+-- the cron schema (Supabase's documented grants). 078's `create extension if not exists pg_cron` then
+-- no-ops here, as it does on hosted once enabled.
+create extension pg_cron;
+grant usage on schema cron to postgres;
+grant all privileges on all tables in schema cron to postgres;
 
 -- auth -----------------------------------------------------------------------
 -- As upstream (and as read on hosted 2026-09-26): supabase_admin owns the schema,

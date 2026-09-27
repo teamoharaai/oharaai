@@ -15,7 +15,7 @@
 #   bash scripts/db-chain/run.sh --chain-only --keep --through 073  # stop after 073 (preflight rehearsal)
 #
 # Environment:
-#   OHARA_PG_BIN       PostgreSQL bin dir with pgvector (default: Homebrew 17)
+#   OHARA_PG_BIN       PostgreSQL bin dir with pgvector and pg_cron (default: Homebrew 17)
 #   OHARA_DEFAULT_ACL  hosted (default) | cli, see supabase-platform.sql
 #   OHARA_NODE         node binary (default: node on PATH)
 #   OHARA_MIGRATIONS_DIR  migrations to apply (default: supabase/migrations);
@@ -41,6 +41,7 @@ SUITES=(
   "lib/goals/goal-card-v1-db.test.mjs:all"
   "lib/goals/goal-work-v1-db.test.mjs:all"
   "lib/goals/task-schedule-continuity-db.test.mjs:075"
+  "lib/goals/operation-ledger-db.test.mjs:all"
   "scripts/db-chain/suites/vault-v23.sh:069"
   "scripts/db-chain/suites/sticky-note-folders.sh:all"
   "scripts/db-chain/suites/notes-editor.sh:all"
@@ -73,7 +74,7 @@ if [[ -n "$THROUGH" ]] && ! $CHAIN_ONLY; then
   exit 2
 fi
 
-# PostgreSQL with pgvector ------------------------------------------------------
+# PostgreSQL with pgvector and pg_cron ------------------------------------------
 if [[ -n "${OHARA_PG_BIN:-}" ]]; then
   PG_BIN="$OHARA_PG_BIN"
 elif [[ -d /opt/homebrew/opt/postgresql@17/bin ]]; then
@@ -89,6 +90,10 @@ for executable in initdb pg_ctl psql pg_config; do
 done
 if [[ ! -f "$("$PG_BIN/pg_config" --sharedir)/extension/vector.control" ]]; then
   echo "pgvector is not installed for $PG_BIN (macOS: brew install pgvector)." >&2
+  exit 1
+fi
+if [[ ! -f "$("$PG_BIN/pg_config" --sharedir)/extension/pg_cron.control" ]]; then
+  echo "pg_cron is not installed for $PG_BIN (macOS: brew install pg_cron; Debian: postgresql-17-cron)." >&2
   exit 1
 fi
 # Disposable cluster ------------------------------------------------------------
@@ -119,8 +124,12 @@ cleanup() {
 trap cleanup EXIT
 
 start_cluster() { # <data dir> <socket dir>
+  # pg_cron is preloaded as on hosted (CREATE EXTENSION requires it), but its scheduler never starts
+  # (max_worker_processes=0): suites run jobs directly, and an idle scheduler session on `chain` would
+  # block the template copies below.
   "$PG_BIN/pg_ctl" -D "$1" -l "$1/../postgres.log" \
-    -o "-k $2 -p $PORT -c listen_addresses='' -c unix_socket_permissions=0700" -w start >/dev/null
+    -o "-k $2 -p $PORT -c listen_addresses='' -c unix_socket_permissions=0700 -c shared_preload_libraries=pg_cron -c cron.database_name=chain -c max_worker_processes=0" \
+    -w start >/dev/null
 }
 stop_cluster() { "$PG_BIN/pg_ctl" -D "$1" -m fast -w stop >/dev/null; }
 

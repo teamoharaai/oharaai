@@ -56,10 +56,10 @@ jobs:
         with:
           node-version: 24
 
-      - name: Install PostgreSQL 17 with pgvector
+      - name: Install PostgreSQL 17 with pgvector and pg_cron
         run: |
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
-          sudo apt-get install -y --no-install-recommends postgresql-17 postgresql-17-pgvector
+          sudo apt-get install -y --no-install-recommends postgresql-17 postgresql-17-pgvector postgresql-17-cron
           sudo locale-gen en_US.UTF-8
           "$OHARA_PG_BIN/postgres" --version
 

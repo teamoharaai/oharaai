@@ -1,0 +1,83 @@
+{
+  "contract": "goal-operations-v1",
+  "contractVersion": 1,
+  "note": "Shared byte-for-byte with OharaAITests/ContractFixtures/v1/goal-operations-v1.json. Responses are the data member of a successful {ok:true,data} envelope.",
+  "requests": [
+    { "name": "lookup", "method": "GET", "query": { "action": "lookup", "operationId": "7c9e6679-7425-40de-944b-e07fc1f90ae7" } },
+    { "name": "discover.first", "method": "GET", "query": { "action": "discover", "limit": "50" } },
+    { "name": "close.work", "method": "POST", "action": "close", "body": { "operationId": "7c9e6679-7425-40de-944b-e07fc1f90ae7", "protocol": "goal.work" } },
+    { "name": "ack", "method": "POST", "action": "ack", "body": { "operationId": "7c9e6679-7425-40de-944b-e07fc1f90ae7", "revision": "1" } }
+  ],
+  "responses": {
+    "workCommitted": {
+      "ownerId": "0f8fad5b-d9cb-469f-a165-70867728950e",
+      "operationId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "protocol": "goal.work",
+      "operationType": "task.create",
+      "contractVersion": 1,
+      "state": "committed",
+      "reason": null,
+      "revision": "1",
+      "goalId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "entityId": "9b2f2f8e-7a1d-4a8e-9c1e-5d6f7a8b9c0d",
+      "recordedAt": "2026-09-27T18:02:11.482913+00:00",
+      "terminalAt": "2026-09-27T18:02:11.482913+00:00",
+      "acknowledged": false
+    },
+    "workTombstone": {
+      "ownerId": "0f8fad5b-d9cb-469f-a165-70867728950e",
+      "operationId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "protocol": "goal.work",
+      "operationType": null,
+      "contractVersion": 1,
+      "state": "not_committed",
+      "reason": "closed_by_owner",
+      "revision": "1",
+      "goalId": null,
+      "entityId": null,
+      "recordedAt": "2026-09-27T18:05:40.100422+00:00",
+      "terminalAt": "2026-09-27T18:05:40.100422+00:00",
+      "acknowledged": false
+    },
+    "createRegistered": {
+      "ownerId": "0f8fad5b-d9cb-469f-a165-70867728950e",
+      "operationId": "1b4e28ba-2fa1-41d2-883f-0016d3cca427",
+      "protocol": "goal.create",
+      "operationType": "goal.create.manual",
+      "contractVersion": 1,
+      "state": "registered",
+      "reason": null,
+      "revision": "1",
+      "goalId": null,
+      "entityId": null,
+      "recordedAt": "2026-09-27T17:59:03.000001+00:00",
+      "terminalAt": null,
+      "acknowledged": false
+    },
+    "discoverPage": {
+      "ownerId": "0f8fad5b-d9cb-469f-a165-70867728950e",
+      "contractVersion": 1,
+      "items": [
+        {
+          "ownerId": "0f8fad5b-d9cb-469f-a165-70867728950e",
+          "operationId": "6ec0bd7f-11c0-43da-975e-2a8ad9ebae0b",
+          "protocol": "goal.mutate",
+          "operationType": "goal.complete",
+          "contractVersion": 1,
+          "state": "committed",
+          "reason": null,
+          "revision": "1",
+          "goalId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "entityId": null,
+          "recordedAt": "2026-09-27T17:40:00.5+00:00",
+          "terminalAt": "2026-09-27T17:40:00.5+00:00",
+          "acknowledged": false
+        }
+      ],
+      "hasMore": false,
+      "nextCursor": null,
+      "barrier": "42",
+      "hasOutstandingAtBarrier": true
+    }
+  }
+}

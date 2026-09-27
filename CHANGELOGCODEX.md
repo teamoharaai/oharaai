@@ -2,6 +2,64 @@
 
 ## [Unreleased]
 
+### Added — Migration 078: one Goal operation ledger, operations-v1, retention (TD-002; source, not deployed)
+- **Why:** four receipt stores with different shapes; Task/Milestone writes had no lookup or close (a lost response couldn't be checked, and an abandoned create could still commit later); nothing was ever pruned. Design, agreed with Justin 2026-09-27: `design/ios-core/TD-002-operation-ledger.md` (iOS repo).
+- **`goal_private.operation_ledger`** replaces 072 `operations`, 074 `goal_mutations` and 075 `work_mutations`:
+  - keyed by (owner, operation ID), with one per-owner sequence for every protocol (`goal.create`, `goal.mutate`, `goal.work`);
+  - typed protocol facts, and per-protocol CHECKs that carry over each old table's invariants.
+  - **Old rows are copied, not moved.** The three old tables are left untouched and frozen (the executor has no privileges on them); a later migration drops them after the 30-day window.
+- **The v1 RPCs are unchanged apart from storage.** `goal_manual_v1`, `goal_card_v1` and `goal_work_v1` switch to the ledger with the same wire contracts. Each was copied from its migration with only the listed storage replacements (each asserted to match exactly once).
+  - One identity lock and space for all protocols: an ID used by another protocol returns `OPERATION_PAYLOAD_MISMATCH`.
+  - A work request that hits a tombstone answers `not_committed`/`closed_by_owner` in its own operation type.
+- **Provenance points at the ledger** with `NO ACTION` instead of `CASCADE`. A create operation that is a Goal's provenance can't be deleted; account deletion still cascades. `projection()` checks it in the ledger.
+- **`public.goal_operations_v1`** behind `/api/goals/operations-v1` (`lib/goals/goal-operations-v1-http.ts`, shared `goal-route-http` wrapper, `private, no-store`):
+  - `lookup`, `discover` (072's barrier algorithm, for every protocol), `close` (a permanent tombstone for an unseen identity; a pending 072 registration becomes `not_committed`; a terminal outcome is returned unchanged) and `ack` (needs the seen `revision`).
+  - `HISTORY_UNAVAILABLE` maps to 503, like the other Goal routes.
+- **Retention:** `goal_private.prune_operations()`, daily through **pg_cron** (`goal-operation-retention`, `17 3 * * *`), in bounded batches:
+  - expired 072 registrations end as `SUBMISSION_WINDOW_ENDED`;
+  - acknowledged outcomes go 30 days after ack;
+  - unacknowledged outcomes are kept, but at most 180 days and 500 per owner (the newest kept);
+  - never a Goal's provenance.
+  - **Desktop-shared:** it also prunes `task_mutation_receipts` (048) after 30 days. Desktop retries within seconds, so its idempotency is unaffected. The executor gains SELECT/DELETE on that table; no client grant changes.
+- **Also:** revokes `service_role` EXECUTE on `goal_card_v1`, as agreed.
+- **Harness:**
+  - pg_cron is required: Homebrew `pg_cron` locally, `postgresql-17-cron` in CI.
+  - The cluster preloads it with the scheduler off (`max_worker_processes=0`; a scheduler session would block template copies).
+  - `supabase-platform.sql` creates it as hosted supautils does (like pgvector).
+  - `run.sh` checks for it.
+- **Preflight/apply:**
+  - new probe `078-operation-ledger.sql`: copy equivalence field by field, lookup/discover/ack, tombstone fencing, cross-protocol reuse, owner isolation, retention, provenance FK, grants, pg_cron job, account cascade;
+  - `invariants-before.sql` now also fingerprints the three old receipt tables and `provenance`;
+  - `facts.sql` prints pg_cron and the receipt counts per store;
+  - the apply-rehearsal seed has receipts in all three stores, and the rehearsal checks all six are copied.
+- **Assertion changes in existing suites and probes (for review).** These counted rows in the old tables, which stay empty after 078, so their "0 rows" checks would have passed without testing anything. They now read the ledger:
+  - `manual-v1-db.test.mjs` (account cascade);
+  - `goal-card-v1-db.test.mjs` (account cascade);
+  - `goal-work-v1-db.test.mjs` (DATE_IN_PAST receipt count, raw-insert refusal, rollback leaves no receipt, account cascade);
+  - probes `072`/`074`/`075` (account cascade).
+- **Tests:**
+  - new `lib/goals/operation-ledger-db.test.mjs` (11 cases, including a real concurrent close/write race, every retention rule including the 500 cap, provenance protection, and the fixture shape);
+  - it was proven by a seeded defect (dropping the provenance exclusion fails it);
+  - `goal-operations-v1-http.test.ts` (3);
+  - shared fixture `goal-operations-v1.fixtures.json`, byte-identical in the iOS repo.
+
+  | Check | Result |
+  | --- | --- |
+  | `npm run test:db`, `hosted` ACL | 14/14 suites (Goal cases 12 · 12 · 16 · 8 · 11) |
+  | `npm run test:db`, `cli` ACL | 14/14 suites |
+  | Preflight rehearsal, both ACL modes | PASS (078 on top of 077, probes 072–078) |
+  | Apply rehearsal, both ACL modes | PASS (seeded receipts copied, defect aborted, rerun refused) |
+  | Goal HTTP and unit tests | 34/34 |
+  | `npx tsc --noEmit` | only the pre-existing `manual-create-v1.test.ts:6` error |
+  | Native (iOS repo) | 409 passed, 0 failed |
+
+- **Deploy (each step needs Justin's approval):**
+  - hosted preflight, which also shows whether pg_cron is enabled on hosted and grants `postgres` what 078 needs;
+  - `--apply` 078;
+  - set `hosted-applied-through` to 078;
+  - push (deploys `/api/goals/operations-v1`).
+  - The database can deploy before the route: the v1 wire contracts don't change.
+
 ### Verified — live native↔API↔database run for card-v1/work-v1 on production (2026-09-27)
 - **Passed** against the deployed www.oharaai.com (`37a8408`) and `rrgiqemscnyaqkculnmb`. Provision, run and cleanup were approved by Justin as one sequence. Record: `docs/goal-work-e2e-verification-2026-09-27.md`.
 - **Native:** new opt-in `ManualGoalLiveIntegrationTests.deployedGoalCardAndWorkLifecycle` (iOS repo). It covers the Goal Card read, the Task create/complete/reschedule (076 carry-over)/quantity/archive flow, replay and payload mismatch, a Milestone with a step (completion is one-way), and owner isolation. 3/3 live tests passed. The ordinary native run is 393 passed, 0 failed, 3 skipped.

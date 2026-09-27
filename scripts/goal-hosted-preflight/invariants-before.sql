@@ -17,7 +17,10 @@ select c.oid::regclass as tbl,
        array(select attname::text from pg_attribute where attrelid = c.oid and attnum > 0 and not attisdropped) as keys
 from pg_class c
 where c.oid in ('public.goals'::regclass, 'public.milestones'::regclass, 'public.tasks'::regclass,
-                'public.task_schedules'::regclass, 'public.task_occurrences'::regclass, 'public.task_mutation_receipts'::regclass);
+                'public.task_schedules'::regclass, 'public.task_occurrences'::regclass, 'public.task_mutation_receipts'::regclass,
+                -- Goal receipts and provenance: 078 copies them into the operation ledger and must leave them untouched.
+                'goal_private.operations'::regclass, 'goal_private.goal_mutations'::regclass,
+                'goal_private.work_mutations'::regclass, 'goal_private.provenance'::regclass);
 alter table apply_invariants add column row_count bigint, add column digest text;
 update apply_invariants i set (row_count, digest) = (select f.row_count, f.digest from pg_temp.table_fingerprint(i.tbl, i.keys) f);
 

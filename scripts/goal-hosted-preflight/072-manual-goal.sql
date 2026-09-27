@@ -30,5 +30,5 @@ begin
 end $$;
 delete from auth.users where id='11a00e2e-1111-4111-8111-111111111111';
 do $$ begin
- if exists(select 1 from goal_private.operations where owner_id='11a00e2e-1111-4111-8111-111111111111') then raise exception 'Account cascade failed'; end if;
+ if exists(select 1 from goal_private.operation_ledger where owner_id='11a00e2e-1111-4111-8111-111111111111') then raise exception 'Account cascade failed'; end if;
 end $$;

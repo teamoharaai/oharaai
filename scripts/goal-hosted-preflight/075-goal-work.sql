@@ -86,6 +86,6 @@ begin
 
   -- Account deletion cascades the receipts.
   delete from auth.users where id in (owner::uuid, other::uuid);
-  if exists (select 1 from goal_private.work_mutations where owner_id in (owner::uuid, other::uuid)) then
+  if exists (select 1 from goal_private.operation_ledger where owner_id in (owner::uuid, other::uuid)) then
     raise exception '075 probe: account cascade failed'; end if;
 end $$;

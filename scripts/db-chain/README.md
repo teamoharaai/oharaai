@@ -1,13 +1,14 @@
 # Full-chain database tests
 
-`npm run test:db` applies every file in `supabase/migrations` in order to a throwaway PostgreSQL that looks like hosted Supabase, then runs every database suite against copies of it: the Goal suites and the domain suites (Tasks, Momentum, Circles, Notes/Entries, Sticky Note folders, Vault, Constellation, Projects V1 and V1.1). It needs no Docker, Supabase CLI, credentials or network. The chain applies in about 5 seconds; all 13 suites take about 35 seconds.
+`npm run test:db` applies every file in `supabase/migrations` in order to a throwaway PostgreSQL that looks like hosted Supabase, then runs every database suite against copies of it: the Goal suites and the domain suites (Tasks, Momentum, Circles, Notes/Entries, Sticky Note folders, Vault, Constellation, Projects V1 and V1.1). It needs no Docker, Supabase CLI, credentials or network. The chain applies in about 5 seconds; all 14 suites take about 40 seconds.
 
 | Command | Runs |
 | --- | --- |
 | `npm run test:db` | Every suite |
-| `npm run test:goals:db` | The four Goal suites (`lib/goals`) |
+| `npm run test:goals:db` | The five Goal suites (`lib/goals`), including the operation ledger (078) |
 | `npm run test:tasks:db`, `test:momentum:db`, `test:circles:db`, `test:entries:db`, `test:sticky-folders:db`, `test:projects:db`, `test:projects:v11:db` | One domain (the old `scripts/test-*-security.sh` entry points are now thin wrappers) |
 | `npm run test:preflight:rehearsal` | The rollback-only hosted preflight, rehearsed locally (below) |
+| `npm run test:apply:rehearsal` | The committing hosted apply, rehearsed locally with seeded rows (below) |
 
 ## Why
 
@@ -23,8 +24,9 @@ With the real chain, a test only passes if the migrations work the way they will
 
 ## Setup
 
-- **macOS:** `brew install postgresql@17 pgvector`. PostgreSQL 17 matches hosted (17.6, read 2026-09-26) and Homebrew's pgvector isn't built for 16. It installs alongside 16 and isn't started as a service.
-- **CI:** `.github/workflows/db-chain.yml` installs `postgresql-17` and `postgresql-17-pgvector` from the PostgreSQL apt repository.
+- **macOS:** `brew install postgresql@17 pgvector pg_cron`. PostgreSQL 17 matches hosted (17.6, read 2026-09-26) and Homebrew's pgvector isn't built for 16. It installs alongside 16 and isn't started as a service.
+- **CI:** `.github/workflows/db-chain.yml` installs `postgresql-17`, `postgresql-17-pgvector` and `postgresql-17-cron` from the PostgreSQL apt repository.
+- **pg_cron** (078's retention job): the cluster preloads it (`shared_preload_libraries`, `cron.database_name=chain`), and the stand-in creates it the way hosted supautils does, so 078's `create extension if not exists` no-ops. Its scheduler is deliberately not started (`max_worker_processes=0`): an idle scheduler session would block the template copies, and suites call `goal_private.prune_operations()` directly.
 - **Node:** 24, from PATH, or set `OHARA_NODE`.
 
 ## How it works
@@ -32,7 +34,7 @@ With the real chain, a test only passes if the migrations work the way they will
 1. `initdb` into `/tmp/ohara-goal-chain.*` with bootstrap superuser `supabase_admin`; Unix socket only, port 55450.
 2. `supabase-platform.sql` recreates what hosted Supabase provides before any migration runs:
    - the roles `anon`, `authenticated`, `service_role` and `authenticator`;
-   - the `auth` schema (owned by `supabase_admin`, objects by `supabase_auth_admin`, as on hosted), `storage` and `extensions` (`pgcrypto`, `uuid-ossp`, `vector`);
+   - the `auth` schema (owned by `supabase_admin`, objects by `supabase_auth_admin`, as on hosted), `storage` and `extensions` (`pgcrypto`, `uuid-ossp`, `vector`), and `pg_cron` with Supabase's documented grants to `postgres`;
    - Supabase's grants, and the default privileges.
 3. Migrations run as **`postgres`, a non-superuser**, as on hosted. The one exception is 001, whose event trigger needs superuser. On hosted, `supautils` permits that, so the runner lifts `postgres` to superuser for 001 only and hands the trigger to `supabase_admin`.
 4. Suites run on copies of the chain, optionally stopped early ("chain through NNN"):
@@ -51,7 +53,7 @@ Suites receive one env contract: `GOAL_TEST_SOCKET`, `GOAL_TEST_PORT`, `GOAL_TES
 | `--through NNN` (with `--chain-only`) | Stop the chain after NNN, e.g. at the state hosted is at |
 | `OHARA_DEFAULT_ACL=hosted` (default) | Tables, functions and sequences `postgres` creates in `public` are granted to client roles. **This is hosted's setting** (read from `pg_default_acl` on 2026-09-26). It is the mode where a forgotten `REVOKE` is a real exposure. |
 | `OHARA_DEFAULT_ACL=cli` | No default client grants, as after `supabase db reset`. This catches code that relies on implicit grants, which is what 039 restored explicitly. CI runs both modes. |
-| `OHARA_PG_BIN` | PostgreSQL bin directory (default: Homebrew `postgresql@17`) |
+| `OHARA_PG_BIN` | PostgreSQL bin directory with pgvector and pg_cron (default: Homebrew `postgresql@17`) |
 | `OHARA_MIGRATIONS_DIR` | Apply a different migrations directory, e.g. a copy with a seeded defect to prove a suite catches it |
 
 ## Adding a suite
@@ -116,8 +118,13 @@ Every hosted script imports it; nothing in it connects.
 - **Each step needs explicit approval. Run cleanup even when the tests fail.**
 - The full command sequence is in `docs/goal-work-e2e-verification-2026-09-27.md`.
 
+## Invariants and receipts (078 onward)
+
+`invariants-before.sql` also fingerprints `goal_private.operations`, `goal_mutations`, `work_mutations` and `provenance`: 078 copies the receipts into `goal_private.operation_ledger` and must leave the old rows untouched (the old tables are frozen; a later migration drops them). The apply-rehearsal seed has receipts in all three stores, and the 078 probe checks each copy field by field. A migration that moves rows out of a fingerprinted table needs its own invariant, not an exception.
+
 ## Known differences from hosted
 
 - No `supautils`, PostgREST, GoTrue or storage API. Only the database is exercised; HTTP routes have their own tests.
+- pg_cron's scheduler doesn't run (see Setup). Whether hosted has pg_cron enabled, and grants `postgres` what 078 needs, is printed by the hosted preflight facts; a failure there stops the preflight before anything is kept.
 - The stand-in grants default privileges only for objects `postgres` creates in `public`. Hosted also has `supabase_admin` defaults in `public`, `storage`, `graphql` and so on. Migrations run as `postgres`, so this doesn't affect them.
 - Some retired files still describe the old harnesses: dated reports in `docs/`, and history in `CHANGELOGCODEX.md`.

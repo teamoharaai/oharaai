@@ -36,7 +36,9 @@ state() {
     || ' | ' || (select md5(string_agg(t::text, ',' order by t::text)) from (
       select to_jsonb(g)::text t from public.goals g union all select to_jsonb(m)::text from public.milestones m
       union all select to_jsonb(k)::text from public.tasks k union all select to_jsonb(s)::text from public.task_schedules s
-      union all select to_jsonb(o)::text from public.task_occurrences o) rows)
+      union all select to_jsonb(o)::text from public.task_occurrences o
+      union all select to_jsonb(r)::text from goal_private.operations r union all select to_jsonb(r)::text from goal_private.goal_mutations r
+      union all select to_jsonb(r)::text from goal_private.work_mutations r union all select to_jsonb(r)::text from goal_private.provenance r) rows)
     || ' | probe users ' || (select count(*) from auth.users where email like '%probe%')"
 }
 run_apply() { # <expected exit> <label> [env assignments...]
@@ -77,6 +79,11 @@ expected_history="$(cd "$ROOT_DIR/supabase/migrations" && ls [0-9][0-9][0-9]_*.s
 after="$(state)"
 [[ "${after%% | *}" == "$expected_history" ]] || { echo "FAIL: history after apply is not the full local chain" >&2; exit 1; }
 [[ "${after#* | }" == "${before#* | }" ]] || { echo "FAIL: the apply changed existing rows or left probe rows" >&2; exit 1; }
+if [[ "$THROUGH" < 078 ]]; then
+  # 078 copies the six seeded receipts into the operation ledger (the probe checks each one field by field).
+  copied="$(sql -c "select count(*) from goal_private.operation_ledger where owner_id = '5eed0000-0000-4000-8000-000000000001'")"
+  [[ "$copied" == 6 ]] || { echo "FAIL: expected the 6 seeded receipts in the operation ledger, found $copied" >&2; exit 1; }
+fi
 # Independently of the apply's own check: each new history row stores exactly its local file, as one element.
 for file in "$ROOT_DIR/supabase/migrations"/[0-9][0-9][0-9]_*.sql; do
   number="$(basename "$file")"; number="${number%%_*}"
