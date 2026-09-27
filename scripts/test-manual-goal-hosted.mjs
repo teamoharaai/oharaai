@@ -24,6 +24,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { resolveHostedTarget } from './db-chain/hosted-target.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const probeDir = `${root}/scripts/goal-hosted-preflight`;
 const arg = (name) => { const i = process.argv.indexOf(name); return i < 0 ? undefined : process.argv[i + 1]; };
@@ -48,19 +49,7 @@ if (local) {
   label = `local ${socket} (${env.PGDATABASE})`;
 } else {
   if (process.env.OHARA_MIGRATIONS_DIR) throw Error('OHARA_MIGRATIONS_DIR is only allowed with --local');
-  const expected = arg('--project-ref');
-  const linked = readFileSync(`${root}/supabase/.temp/project-ref`, 'utf8').trim();
-  if (!expected || expected !== linked) throw Error('Explicit confirmed project reference must match the linked project');
-  const values = {};
-  for (let line of readFileSync(`${root}/.env.local`, 'utf8').split(/\r?\n/)) {
-    line = line.trim().replace(/^export\s+/, '');
-    if (!line || line.startsWith('#') || !line.includes('=')) continue;
-    const i = line.indexOf('='); values[line.slice(0,i).trim()] = line.slice(i+1).trim().replace(/^(['"])(.*)\1$/, '$2');
-  }
-  const target = new URL(readFileSync(`${root}/supabase/.temp/pooler-url`, 'utf8').trim());
-  if (decodeURIComponent(target.username) !== `postgres.${expected}` || !target.hostname.endsWith('.pooler.supabase.com')) throw Error('Unexpected database target');
-  env = { ...process.env, PGHOST:target.hostname, PGPORT:target.port || '5432', PGDATABASE:target.pathname.slice(1), PGUSER:decodeURIComponent(target.username), PGPASSWORD:values.SUPABASE_DB_PASSWORD, PGSSLMODE:'require', PGCONNECT_TIMEOUT:'15' };
-  label = `hosted ${expected}`;
+  ({ env, label } = resolveHostedTarget(root, arg('--project-ref')));
 }
 
 // Migrations -------------------------------------------------------------------

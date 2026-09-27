@@ -101,6 +101,21 @@ Deploy steps (**each hosted step needs explicit approval**):
 
 The chain records each migration in `supabase_migrations.schema_migrations` (created by `supabase-platform.sql` in the CLI's shape), so the history guard also runs locally.
 
+## Hosted target and live verification
+
+**One target resolver.** `hosted-target.mjs` is the only code that resolves the hosted project. It checks:
+- the explicit `--project-ref` equals `supabase/.temp/project-ref`;
+- the database is that project's pooler;
+- the API is `https://<ref>.supabase.co`.
+
+Every hosted script imports it; nothing in it connects.
+
+**Live native↔API↔database run:** `node scripts/goal-live-verification.mjs provision|cleanup --project-ref <ref>`.
+- `provision` checks that admission is closed and the allowlist is empty, creates two `@goal-e2e.ohara.test` accounts, allow-lists only the owner and opens `enabled` (with `verification_only` staying true), and writes a private `.xctestrun` holding the credentials.
+- `cleanup` closes admission, deletes only the recorded accounts and verifies that no row remains.
+- **Each step needs explicit approval. Run cleanup even when the tests fail.**
+- The full command sequence is in `docs/goal-work-e2e-verification-2026-09-27.md`.
+
 ## Known differences from hosted
 
 - No `supautils`, PostgREST, GoTrue or storage API. Only the database is exercised; HTTP routes have their own tests.

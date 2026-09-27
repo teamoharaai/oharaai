@@ -1,6 +1,6 @@
 # Goal work v1 — Task and Milestone workflows (Migration 074)
 
-Status 2026-09-27: **database deployed to production** as Migration **075** (renumbered from 074; with 074 goal card, 076 continuity and 077), through `scripts/test-manual-goal-hosted.mjs --apply`, which checked that no existing row changed. **The `/api/goals/work-v1` route is not deployed yet**, and the live native↔API↔database run is still pending. The numbers in the rest of this document are the pre-rename ones (074 = work, 075 = continuity).
+Status 2026-09-27: **database deployed to production** as Migration **075** (renumbered from 074; with 074 goal card, 076 continuity and 077), through `scripts/test-manual-goal-hosted.mjs --apply`, which checked that no existing row changed. The `/api/goals/work-v1` route has been live on www.oharaai.com since `2bb080f` reached `main`. The **live native↔API↔database run passed** on 2026-09-27 (`docs/goal-work-e2e-verification-2026-09-27.md`). The numbers in the rest of this document are the pre-rename ones (074 = work, 075 = continuity).
 
 Team and agent context: the cross-repo changelog, debt register (TD-001…TD-005) and resume prompt live in the iOS repo at `design/ios-core/CHANGELOG.md`, `design/ios-core/TECH_DEBT.md` and `design/ios-core/prompts/resume-session-014.md`.
 
@@ -110,4 +110,4 @@ These remain open under IOSQ-006 (Tasks) and IOSQ-007 (Milestones):
 - `lib/goals/goal-work-v1-http.test.ts`: 5 HTTP boundary tests, including that every fixture request reaches the RPC unchanged.
 - Shared contract fixture `lib/goals/goal-work-v1.fixtures.json`. It is byte-identical to `OharaAITests/ContractFixtures/v1/goal-work-v1.json` in the iOS repo, which checks it with Swift encoding and decoding tests.
 - The TypeScript check reports no errors in the new files.
-- Not done: hosted preflight or deployment, and live native↔API↔database runs. Deployment has the same release gates as 072/073.
+- Hosted preflight, deployment (2026-09-27) and the live native↔API↔database run (2026-09-27, `docs/goal-work-e2e-verification-2026-09-27.md`) are done.

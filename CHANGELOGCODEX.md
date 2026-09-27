@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Verified — live native↔API↔database run for card-v1/work-v1 on production (2026-09-27)
+- **Passed** against the deployed www.oharaai.com (`37a8408`) and `rrgiqemscnyaqkculnmb`. Provision, run and cleanup were approved by Justin as one sequence. Record: `docs/goal-work-e2e-verification-2026-09-27.md`.
+- **Native:** new opt-in `ManualGoalLiveIntegrationTests.deployedGoalCardAndWorkLifecycle` (iOS repo). It covers the Goal Card read, the Task create/complete/reschedule (076 carry-over)/quantity/archive flow, replay and payload mismatch, a Milestone with a step (completion is one-way), and owner isolation. 3/3 live tests passed. The ordinary native run is 393 passed, 0 failed, 3 skipped.
+- **Evidence:** 3 goals, 3 tasks, 2 milestones and 13 `work_mutations` for the synthetic owners, matching the test exactly. After cleanup all counts are 0, `enabled` is false, `verification_only` is true and the allowlist is empty.
+- **Added `scripts/goal-live-verification.mjs`** (`provision` / `cleanup`). This is the repeatable procedure the 09-25 run did by hand:
+  - guarded pre-check;
+  - two synthetic `@goal-e2e.ohara.test` accounts created through the Auth admin API;
+  - owner-only allowlist and `enabled = true` for the run, with `verification_only` staying true;
+  - a private 0600 `.xctestrun` holding the credentials;
+  - cleanup: evidence counts, admission closed, only the recorded accounts deleted, the file removed, and nothing remaining verified.
+- **Added `scripts/db-chain/hosted-target.mjs`**, the one place that resolves the hosted target (explicit ref, the linked project's pooler, its `supabase.co` origin). `test-manual-goal-hosted.mjs` now uses it instead of an inline copy. Offline it gives the identical psql environment and still refuses a missing or wrong ref. `HOSTED_APPLIED_THROUGH=076 npm run test:preflight:rehearsal` passes.
+- **Admission, noted:** 072 admits a creation only when `enabled = true` (the kill switch) **and**, while `verification_only`, the owner is allow-listed. So a live run has to open `enabled` briefly. After the run it stays `false` (decided with Justin).
+
 ### Verified — card-v1/work-v1 routes live on www.oharaai.com; fixed their auth-failure shape (2026-09-27, source, not pushed)
 - **Deployment (read-only, GitHub):** `37a8408` has a Vercel `Production` deployment (id 6694294978) with state `success`. Both route files were added in `2bb080f` and are in `37a8408`.
 - **Unauthenticated probe** (approved by Justin): `GET https://www.oharaai.com/api/goals/card-v1` and `/work-v1` both returned **401** (served from iad1, `x-vercel-cache: MISS`), not 404/500. The routes are deployed and running.
