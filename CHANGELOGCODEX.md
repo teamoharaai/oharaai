@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Verified — card-v1/work-v1 routes live on www.oharaai.com; fixed their auth-failure shape (2026-09-27, source, not pushed)
+- **Deployment (read-only, GitHub):** `37a8408` has a Vercel `Production` deployment (id 6694294978) with state `success`. Both route files were added in `2bb080f` and are in `37a8408`.
+- **Unauthenticated probe** (approved by Justin): `GET https://www.oharaai.com/api/goals/card-v1` and `/work-v1` both returned **401** (served from iad1, `x-vercel-cache: MISS`), not 404/500. The routes are deployed and running.
+- **Gap found:** neither route passed `onUnauthorized` to `withAuth`. Their 401 was the plain `{"error":"Unauthorized"}` body, and without an explicit header Vercel sent `cache-control: public, max-age=0, must-revalidate`. Only responses after sign-in were `private, no-store`. `manual-v1` already did this correctly.
+- **Fix:** new dependency-free `lib/goals/goal-route-http.ts` (`goalRouteAuthResponses`, `privateNoStore`), used by all three Goal routes (`manual-v1`, `card-v1`, `work-v1`) so they can't drift apart again. Every response, including 401 `{ok:false,error:{code:'UNAUTHORIZED'}}` and 503 `AUTH_UNAVAILABLE` (`Retry-After: 2`), is now `private, no-store`. `manual-v1` behaviour is unchanged.
+- **Native:** no change needed. `OharaAPIClient` classifies by HTTP status and defaults to `UNAUTHORIZED` when the body has no code.
+- **Tests:** `lib/goals/goal-route-http.test.ts` (3). The Goal HTTP and unit tests pass 31/31 (`node --experimental-strip-types --test lib/goals/*-http.test.ts lib/goals/manual-create-v1.test.ts`). `npx tsc --noEmit` reports one error that predates this change, in `lib/goals/manual-create-v1.test.ts:6`, and none in the changed files.
+- **Deploy:** pushing to `main` redeploys production. After the push, re-probe both routes and expect `private, no-store` on the 401.
+
 ### Deployed — Migrations 074–077 to production (2026-09-27)
 - **Apply** (`rrgiqemscnyaqkculnmb`, approved by Justin): `node scripts/test-manual-goal-hosted.mjs --project-ref rrgiqemscnyaqkculnmb --applied-through 073 --apply`, from `93daa46` after CI run 36330085011 was green. **PASS:**
   - transaction 18195 committed (server-verified);
