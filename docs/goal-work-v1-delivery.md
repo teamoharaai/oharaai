@@ -1,6 +1,6 @@
 # Goal work v1 — Task and Milestone workflows (Migration 074)
 
-Status 2026-09-25: source prepared and verified locally. **Not deployed.** It depends on 072 and 073, which are also not deployed to production. Desktop routes and data are unchanged.
+Status 2026-09-27: **database deployed to production** as Migration **075** (renumbered from 074; with 074 goal card, 076 continuity and 077), through `scripts/test-manual-goal-hosted.mjs --apply`, which checked that no existing row changed. **The `/api/goals/work-v1` route is not deployed yet**, and the live native↔API↔database run is still pending. The numbers in the rest of this document are the pre-rename ones (074 = work, 075 = continuity).
 
 Team and agent context: the cross-repo changelog, debt register (TD-001…TD-005) and resume prompt live in the iOS repo at `design/ios-core/CHANGELOG.md`, `design/ios-core/TECH_DEBT.md` and `design/ios-core/prompts/resume-session-014.md`.
 

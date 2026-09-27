@@ -76,7 +76,7 @@ Guards, all checked before anything is applied:
 
 Before 076 it counts, read-only, the Task-days 076 would abort on (`TASK_OCCURRENCE_DAY_CONFLICTS`) and the redundant rows it would cancel. A non-zero conflict count skips 076 and exits 2 (BLOCKED).
 
-- **Hosted:** `node scripts/test-manual-goal-hosted.mjs --project-ref <ref> --applied-through 073`. **This needs explicit approval every time.** The project is production.
+- **Hosted:** `node scripts/test-manual-goal-hosted.mjs --project-ref <ref> --applied-through $(cat scripts/db-chain/hosted-applied-through)`. **This needs explicit approval every time.** The project is production.
 - **Local rehearsal:** `npm run test:preflight:rehearsal` (below). CI runs it.
 
 ## Hosted apply

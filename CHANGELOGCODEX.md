@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+### Deployed — Migrations 074–077 to production (2026-09-27)
+- **Apply** (`rrgiqemscnyaqkculnmb`, approved by Justin): `node scripts/test-manual-goal-hosted.mjs --project-ref rrgiqemscnyaqkculnmb --applied-through 073 --apply`, from `93daa46` after CI run 36330085011 was green. **PASS:**
+  - transaction 18195 committed (server-verified);
+  - existing rows unchanged: 59 goals, 46 milestones, 134 tasks, 26 task_schedules, 653 task_occurrences, 100 task_mutation_receipts;
+  - 076 pre-check 0 conflicts and 0 rows to cancel;
+  - probes 072/074/075/076/077 passed and rolled back;
+  - history now exactly 001–077, recorded statements match the files;
+  - PostgREST notified.
+- **Desktop:** 076 replaced `replace_task_schedule_v1` and `reconcile_task_occurrences_v1` in place (same signatures). Desktop now gets the one-occurrence-per-day behaviour. A desktop smoke test (schedule edit, Task list) is pending with Justin.
+- **Native:** nothing reachable yet. `/api/goals/card-v1` and `/api/goals/work-v1` still need deploying to www.oharaai.com.
+- `scripts/db-chain/hosted-applied-through` is now 077; both rehearsals skip until 078 exists.
+- Unchanged, noted for follow-up: `goal_card_v1` is still executable by `service_role` (`goal_work_v1` is not).
+
+### Verified — production preflight and history format, before the apply (2026-09-27)
+- **Preflight** (approved), after CI run 36328486949 was green:
+  - PASS. History was exactly 001–073, 0 conflicts and 0 rows to cancel, all probes passed, and transaction 18144 was aborted.
+  - The new facts showed `schema_migrations` has columns `version` (not null), `statements` and `name`, and that rows 070–073 all set `statements`.
+- **Read-only query** (approved) of `statements` for 072 and 073:
+  - 072 is the whole file as one element;
+  - 073 has 145 elements, the CLI's per-statement split.
+- `--apply` therefore records `statements` in 072's format (`93daa46`), and verifies the stored bytes after commit.
+
 ### Added — Committing hosted apply (`--apply`) with invariant checks (2026-09-27, source, not run on hosted)
 - **Why:** 074–077 had no checked-in apply procedure; 072 was applied by hand. The apply should reuse the preflight's guards, not a copy of them.
 - **`scripts/test-manual-goal-hosted.mjs --apply`:**
