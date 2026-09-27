@@ -3,7 +3,8 @@
 # (HOSTED_APPLIED_THROUGH) with production-shaped rows loaded (fixtures/apply-rehearsal-seed.sql). Proves, in order:
 #   1. a pending migration that changes an existing row aborts the apply, and nothing is kept;
 #   2. a redundant scheduled occurrence 076 would cancel blocks the apply before anything runs (exit 2);
-#   3. the real apply commits: history is the full local chain, existing rows are unchanged, no probe row is left;
+#   3. the real apply commits: history is the full local chain, each new row stores its whole file as `statements`,
+#      existing rows are unchanged, and no probe row is left;
 #   4. running it again is refused by the history guard.
 #
 #   HOSTED_APPLIED_THROUGH  override the last migration hosted has applied (default: scripts/db-chain/hosted-applied-through,
@@ -76,6 +77,14 @@ expected_history="$(cd "$ROOT_DIR/supabase/migrations" && ls [0-9][0-9][0-9]_*.s
 after="$(state)"
 [[ "${after%% | *}" == "$expected_history" ]] || { echo "FAIL: history after apply is not the full local chain" >&2; exit 1; }
 [[ "${after#* | }" == "${before#* | }" ]] || { echo "FAIL: the apply changed existing rows or left probe rows" >&2; exit 1; }
+# Independently of the apply's own check: each new history row stores exactly its local file, as one element.
+for file in "$ROOT_DIR/supabase/migrations"/[0-9][0-9][0-9]_*.sql; do
+  number="$(basename "$file")"; number="${number%%_*}"
+  [[ "$number" > "$THROUGH" ]] || continue
+  stored="$(sql -c "select md5(statements[1]) || ' ' || cardinality(statements) from supabase_migrations.schema_migrations where version = '$number'")"
+  expected="$("$NODE" -e "process.stdout.write(require('crypto').createHash('md5').update(require('fs').readFileSync(process.argv[1])).digest('hex'))" "$file") 1"
+  [[ "$stored" == "$expected" ]] || { echo "FAIL: history row $number does not store its migration file ($stored)" >&2; exit 1; }
+done
 
 echo "4. Running it again"
 before="$after"

@@ -9,8 +9,8 @@
   - fingerprints existing Goal/Task rows before (`scripts/goal-hosted-preflight/invariants-before.sql`) and aborts on any change (`invariants-after.sql`, `APPLY_INVARIANT_CHANGED`);
   - requires a clean 076 pre-check: 0 conflicts **and** 0 rows to cancel (new `:clean_076` in `076-precheck.sql`);
   - runs the probes in a savepoint it rolls back;
-  - records `supabase_migrations.schema_migrations` (version, name), notifies PostgREST and commits;
-  - then verifies, on the server, that the transaction is `committed` and that the history is 001..last.
+  - records `supabase_migrations.schema_migrations` (version, name and the whole file as the single `statements` element, the format hand-applied 072 has on hosted; CLI-pushed 073 splits per statement), notifies PostgREST and commits;
+  - then verifies, on the server, that the transaction is `committed`, that the history is 001..last and that each new row's statements hash to its file.
 - **History guard now runs locally too.** `supabase-platform.sql` creates `supabase_migrations.schema_migrations` in the CLI's shape, and `run.sh` / `lib.sh continue_chain` record each migration they apply.
 - **`npm run test:apply:rehearsal`** (`scripts/db-chain/apply-rehearsal.sh`, seed `scripts/db-chain/fixtures/apply-rehearsal-seed.sql`) proves 4 cases on the chain through 073: a seeded row-editing defect aborts with nothing kept; an unclean 076 pre-check blocks (exit 2); the real apply commits with rows unchanged, history 001..077 and no probe rows; a rerun is refused. It is added to CI after the preflight rehearsal.
 - **One source for "hosted is at":** `scripts/db-chain/hosted-applied-through` (073), read by both rehearsals. Both skip, exit 0, when nothing is pending, so a deploy doesn't break CI until 078 exists.

@@ -85,8 +85,10 @@ Before 076 it counts, read-only, the Task-days 076 would abort on (`TASK_OCCURRE
 - **Before:** it fingerprints the existing rows of `goals`, `milestones`, `tasks`, `task_schedules`, `task_occurrences` and `task_mutation_receipts`: a row count plus an md5 over each row as JSON, restricted to the columns the table already had (`scripts/goal-hosted-preflight/invariants-*.sql`).
 - **076 pre-check:** any conflict, or any redundant row 076 would cancel, ends the session before 076 (exit 2, nothing committed). An apply therefore never changes existing Task data.
 - **Probes** run inside a savepoint that is rolled back, so no synthetic row survives.
-- **Then:** the fingerprints must be unchanged (`APPLY_INVARIANT_CHANGED` aborts), the pending migrations are recorded in `supabase_migrations.schema_migrations` (version and name, as `supabase db push` does), `notify pgrst, 'reload schema'` is queued, and it COMMITs.
-- **After:** the server must report the transaction `committed`, and the history must equal local 001..last.
+- **Then:** the fingerprints must be unchanged (`APPLY_INVARIANT_CHANGED` aborts), the pending migrations are recorded in `supabase_migrations.schema_migrations` (version, name, and the whole file as the single `statements` element), `notify pgrst, 'reload schema'` is queued, and it COMMITs.
+- **After:** the server must report the transaction `committed`, the history must equal local 001..last, and each new row's `statements` must hash to its local file.
+
+**History row format** (read-only from hosted, 2026-09-27): rows written by `supabase db push` (e.g. 073) split `statements` per statement, with the trailing `;` removed. 072, applied by hand, stores the whole file as one element. `--apply` follows 072: it is byte-exact and needs no SQL splitter. Tools that only read versions (`db push`, `migration list`) are unaffected either way.
 
 Any failure before COMMIT leaves the target untouched. Migrations are applied in number order, all pending ones at once: history must stay gap-free for the guard and for `supabase db push`.
 

@@ -16,7 +16,7 @@ select c.oid::regclass as table, count(t.oid) as triggers, string_agg(t.tgname, 
 from pg_class c left join pg_trigger t on t.tgrelid = c.oid and not t.tgisinternal
 where c.oid in ('public.goals'::regclass, 'public.tasks'::regclass, 'public.task_occurrences'::regclass, 'public.milestones'::regclass)
 group by 1 order by 1::text;
-\echo '-- Facts: migration history shape (--apply records version and name, as `supabase db push` does)'
+\echo '-- Facts: migration history shape (--apply records version, name and the whole file as statements, as 072 was recorded)'
 select column_name, data_type, is_nullable, column_default
 from information_schema.columns where table_schema = 'supabase_migrations' and table_name = 'schema_migrations' order by ordinal_position;
 select version, name,

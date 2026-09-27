@@ -3,8 +3,9 @@
 //   Preflight (default): ends with ROLLBACK. Nothing is kept: no schema change, no synthetic row, no history row.
 //   --apply: fingerprints existing Goal/Task rows first, runs the probes inside a savepoint it rolls back, aborts
 //   if any existing row changed, records the migrations in supabase_migrations.schema_migrations (version, name,
-//   as `supabase db push` does), notifies PostgREST to reload its schema cache, and COMMITs. The server then
-//   confirms the commit and the new history. Any failure before COMMIT leaves the target untouched.
+//   and the whole file as the single `statements` element, as 072 was recorded), notifies PostgREST to reload its
+//   schema cache, and COMMITs. The server then confirms the commit, the new history and the recorded statements.
+//   Any failure before COMMIT leaves the target untouched.
 //
 // Usage:
 //   node scripts/test-manual-goal-hosted.mjs --project-ref <confirmed-ref> --applied-through 073 [--apply]  # hosted
@@ -21,6 +22,7 @@
 // --apply: any conflict, or any redundant row 076 would cancel, stops before 076 and commits nothing (exit 2).
 import { readFileSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const probeDir = `${root}/scripts/goal-hosted-preflight`;
@@ -125,16 +127,28 @@ for (const [v, name] of Object.entries(PROBES).sort()) {
 if (apply) out.push('rollback to savepoint probes;', "\\echo 'probes rolled back'");
 out.push(probe('facts.sql'), "\\echo 'PREFLIGHT_PROBES_DONE'", 'select pg_current_xact_id() as preflight_xid \\gset');
 if (apply) {
-  // Commit, then prove it from the server: the transaction is committed and the history is the full local chain.
-  const rows = pending.map((f) => `(${quote(version(f))}, ${quote(f.slice(4, -4))})`).join(', ');
+  // History rows carry the whole migration file as the single `statements` element: byte-exact, no SQL splitting.
+  // This is how 072 was recorded on hosted (read 2026-09-27); `supabase db push` rows split per statement instead.
+  const source = (f) => readFileSync(`${migrationsDir}/${f}`, 'utf8');
+  const rows = pending.map((f) => `(${quote(version(f))}, ${quote(f.slice(4, -4))}, array[${quote(source(f))}])`).join(',\n');
+  const digests = JSON.stringify(Object.fromEntries(pending.map((f) => [version(f), createHash('md5').update(source(f)).digest('hex')])));
+  // Commit, then prove it from the server: the transaction is committed, the history is the full local chain,
+  // and each new row's statements are exactly its local file.
   out.push(probe('invariants-after.sql'),
-    `insert into supabase_migrations.schema_migrations(version, name) values ${rows};`,
+    `insert into supabase_migrations.schema_migrations(version, name, statements) values ${rows};`,
     "notify pgrst, 'reload schema';",
     'commit;',
     "select 'COMMIT verified: transaction ' || :'preflight_xid' || ' is ' || pg_xact_status(:'preflight_xid'::xid8) as outcome \\gset",
     '\\echo :outcome',
     historyGuard([...applied, ...pending], 'APPLY_HISTORY_MISMATCH', `local 001..${last} after commit`),
-    `\\echo 'history: target now has exactly local 001..${last}'`);
+    `\\echo 'history: target now has exactly local 001..${last}'`,
+    `do $$ begin
+  if exists (select 1 from jsonb_each_text(${quote(digests)}::jsonb) d(v, digest)
+             left join supabase_migrations.schema_migrations m on m.version = d.v
+             where m.statements is null or cardinality(m.statements) <> 1 or md5(m.statements[1]) <> d.digest) then
+    raise exception 'APPLY_HISTORY_STATEMENTS_MISMATCH: recorded statements differ from the local migration files'; end if;
+end $$;`,
+    `\\echo 'history: recorded statements match the local files'`);
 } else {
   // Prove the rollback from the server: after it, the preflight's transaction must report as aborted.
   out.push('rollback;',
