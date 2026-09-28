@@ -1,11 +1,11 @@
 # Full-chain database tests
 
-`npm run test:db` applies every file in `supabase/migrations` in order to a throwaway PostgreSQL that looks like hosted Supabase, then runs every database suite against copies of it: the Goal suites and the domain suites (Tasks, Momentum, Circles, Notes/Entries, Sticky Note folders, Vault, Constellation, Projects V1 and V1.1). It needs no Docker, Supabase CLI, credentials or network. The chain applies in about 5 seconds; all 14 suites take about 40 seconds.
+`npm run test:db` applies every file in `supabase/migrations` in order to a throwaway PostgreSQL that looks like hosted Supabase, then runs every database suite against copies of it: the Goal suites and the domain suites (Tasks, Momentum, Circles, Notes/Entries, Sticky Note folders, Vault, Constellation, Projects V1 and V1.1). It needs no Docker, Supabase CLI, credentials or network. The chain applies in about 5 seconds; all 15 suites take about 40 seconds.
 
 | Command | Runs |
 | --- | --- |
 | `npm run test:db` | Every suite |
-| `npm run test:goals:db` | The five Goal suites (`lib/goals`), including the operation ledger (078) |
+| `npm run test:goals:db` | The six Goal suites (`lib/goals`), including the operation ledger (078) and Goal events (080) |
 | `npm run test:tasks:db`, `test:momentum:db`, `test:circles:db`, `test:entries:db`, `test:sticky-folders:db`, `test:projects:db`, `test:projects:v11:db` | One domain (the old `scripts/test-*-security.sh` entry points are now thin wrappers) |
 | `npm run test:preflight:rehearsal` | The rollback-only hosted preflight, rehearsed locally (below) |
 | `npm run test:apply:rehearsal` | The committing hosted apply, rehearsed locally with seeded rows (below) |
@@ -38,7 +38,7 @@ With the real chain, a test only passes if the migrations work the way they will
    - Supabase's grants, and the default privileges.
 3. Migrations run as **`postgres`, a non-superuser**, as on hosted. The one exception is 001, whose event trigger needs superuser. On hosted, `supautils` permits that, so the runner lifts `postgres` to superuser for 001 only and hands the trigger to `supabase_admin`.
 4. Suites run on copies of the chain, optionally stopped early ("chain through NNN"):
-   - **Node suites** (`lib/goals/*-db.test.mjs`) get a template-database copy. `task-schedule-continuity` runs on `chain_075` because it applies 076 itself.
+   - **Node suites** (`lib/goals/*-db.test.mjs`) get a template-database copy. `task-schedule-continuity` runs on `chain_075` because it applies 076 itself; `goal-events` runs on `chain_079`, seeds rows through desktop's paths and applies 080 itself, to prove the backfill.
    - **Shell suites** (`scripts/db-chain/suites/*.sh`) each get their own cluster, copied from a stopped data-directory snapshot. Roles are cluster-wide, so a copied database could not re-run 072's `CREATE ROLE` when a suite continues the chain. They source `lib.sh`, which provides `continue_chain [NNN]` (apply the real migrations after the snapshot), `apply_migration NNN` (re-run one, e.g. for idempotency) and `quiet_sql`. That is how the Tasks and Vault suites load their production-shaped fixtures at the same point as the old bootstraps: through 046 for Tasks, through 069 for Vault.
 
 Suites receive one env contract: `GOAL_TEST_SOCKET`, `GOAL_TEST_PORT`, `GOAL_TEST_DB`, `GOAL_TEST_PSQL`, `PGUSER=postgres`, plus `CHAIN_AT`, `CHAIN_MIGRATIONS_DIR` and `CHAIN_TMP` for shell suites.
@@ -117,11 +117,11 @@ Every hosted script imports it; nothing in it connects.
 - `cleanup` closes admission, deletes only the recorded accounts and verifies that no row remains.
 - **Each step needs explicit approval. Run cleanup even when the tests fail.**
 - The full command sequence is in `docs/goal-work-e2e-verification-2026-09-27.md`. The ledger run is recorded in `docs/goal-operations-e2e-verification-2026-09-27.md`.
-- Cleanup's evidence and "nothing remains" counts include `goal_private.operation_ledger`. From 078, every protocol writes there. Any new receipt or event store a live test writes needs a count here too, or cleanup can't tell whether it's empty.
+- Cleanup's evidence and "nothing remains" counts include `goal_private.operation_ledger` and `goal_private.goal_events`. From 078, every protocol writes the ledger; from 080, every Task, Milestone and Entry write also writes an event. Any new receipt or event store a live test writes needs a count here too, or cleanup can't tell whether it's empty.
 
 ## Invariants and receipts (078 onward)
 
-`invariants-before.sql` also fingerprints `goal_private.operations`, `goal_mutations`, `work_mutations` and `provenance`: 078 copies the receipts into `goal_private.operation_ledger` and must leave the old rows untouched (the old tables are frozen; a later migration drops them). The apply-rehearsal seed has receipts in all three stores, and the 078 probe checks each copy field by field. A migration that moves rows out of a fingerprinted table needs its own invariant, not an exception.
+`invariants-before.sql` also fingerprints `goal_private.operations`, `goal_mutations`, `work_mutations` and `provenance`: 078 copies the receipts into `goal_private.operation_ledger` and must leave the old rows untouched (the old tables are frozen; a later migration drops them). The apply-rehearsal seed has receipts in all three stores, and the 078 probe checks each copy field by field. A migration that moves rows out of a fingerprinted table needs its own invariant, not an exception. From 080, `goal_private.goal_events` is fingerprinted too (through `to_regclass`, so preflights on a target without it still run): a later apply must not rewrite Activity history.
 
 ## Known differences from hosted
 

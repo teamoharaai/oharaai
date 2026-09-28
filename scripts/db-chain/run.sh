@@ -42,6 +42,7 @@ SUITES=(
   "lib/goals/goal-work-v1-db.test.mjs:all"
   "lib/goals/task-schedule-continuity-db.test.mjs:075"
   "lib/goals/operation-ledger-db.test.mjs:all"
+  "lib/goals/goal-events-db.test.mjs:079"
   "scripts/db-chain/suites/vault-v23.sh:069"
   "scripts/db-chain/suites/sticky-note-folders.sh:all"
   "scripts/db-chain/suites/notes-editor.sh:all"

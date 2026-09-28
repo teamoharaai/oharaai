@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Added — Goal events for Activity (TD-004, Migration 080; local only, not deployed, 2026-09-28)
+- **Design:** `design/ios-core/TD-004-goal-events.md` (iOS repo), agreed with Justin 2026-09-27, including the IOSB-004 counting rules.
+- **`goal_private.goal_events`** (`supabase/migrations/080_goal_events.sql`): one row per (Goal, kind, entity), kinds `task_completed` / `entry_created` / `milestone_completed`. The unique key is the dedup rule: an Entry reached directly and through a Milestone counts once per Goal. Notes and Reflections are one kind, with `entry_type` stored. Archive keeps history; hard delete, unlink and un-complete remove. Moved Tasks/Milestones take their events. Only canonical Entries count; only the Goal owner's rows count (as in 074).
+- **Written by AFTER row triggers** on `task_occurrences`, `tasks`, `milestones`, `entries`, `entry_goal_links`, `reflection_milestone_links` and `goals` (11 triggers, security definer, owned by `goal_manual_executor`). One derivation function per kind serves the triggers and the one-time backfill.
+- **Desktop-shared behaviour change:** the canonical Task RPCs (048–064, 076: `set_task_occurrence_status_v1`, `set_task_occurrence_quantity_v1` and so on), Arthur's `complete_project_task_v11` (073), and desktop's direct RLS writes to Milestones and Entry links now also write `goal_events` in their transaction. Their SQL bodies and responses are unchanged, but a trigger failure would fail the desktop write. The new suite covers each path.
+- **Reads:** `goal_card_v1` `activity` delegates to `goal_private.activity_window` with an unchanged wire shape (078's function copied verbatim apart from that branch). New `public.goal_activity_v1(p_goal_id, p_days)` serves 1–120 days for desktop, authenticated only. **`/api/goals/activity-window` is not switched** (TD-004 A7: desktop Echo capture still writes only legacy links). Momentum is unchanged (A5).
+- **Native Activity numbers change:** archived Entries and Milestone-linked Reflections now count.
+- **Harness:** new chain suite `lib/goals/goal-events-db.test.mjs` (on `chain_079`: it seeds pre-080 rows through desktop's paths, applies 080 and checks backfill = rebuild). `run.sh` lists it (15 suites). New probe `scripts/goal-hosted-preflight/080-goal-events.sql` (registered in `test-manual-goal-hosted.mjs`). `facts.sql` prints event counts and the legacy-only Echo goal-link count. `invariants-before.sql` fingerprints `goal_events` once it exists (`to_regclass`). `goal-live-verification.mjs` cleanup counts `goal_events`. README updated.
+- **No existing assertion changed.**
+- **Verified locally:** `npm run test:db` 15/15 in hosted and CLI ACL modes and with `PGTZ=UTC`. The preflight rehearsal passes (probes 072–078, 080). The apply rehearsal passes in both ACL modes (existing rows unchanged). Goal HTTP/unit tests 34/34. `tsc` shows only the known `manual-create-v1.test.ts(6,41)` error.
+
 ### Fixed — Task suite failed on CI between 00:00 and 04:00 UTC (2026-09-28, test only)
 - **Symptom:** Database chain run 36362162870 (on `340d5d8`, 00:25 UTC Monday) failed both legs at `scripts/tasks-security.test.sql`: "Schedule materialization is not stable". The previous run, at 23:52 UTC, was green.
 - **Cause:** the check (from `a46bd85`) creates a Mon/Wed/Fri Task in `America/New_York`, then reconciles through `current_date+28` and expects the count not to change.

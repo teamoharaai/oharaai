@@ -33,3 +33,12 @@ union all select 'goal_mutations (074)', 'goal.mutate', state, count(*), count(*
 union all select 'work_mutations (075)', 'goal.work', state, count(*), count(*) from goal_private.work_mutations group by state
 union all select 'task_mutation_receipts (048)', '-', 'older than 30 days', count(*), null from public.task_mutation_receipts where created_at < now() - interval '30 days'
 order by 1, 2, 3;
+\echo '-- Facts: Goal events (080 backfills them; counts only, no content)'
+select kind, coalesce(entry_type, '-') as entry_type, count(*) as events, count(distinct goal_id) as goals
+from goal_private.goal_events group by 1, 2 order by 1, 2;
+\echo '-- Facts: confirmed legacy Echo goal links with no canonical entry_goal_links row (TD-004 decision 4: they do not count; A7 holds the desktop switch until this stops growing)'
+select count(*) as legacy_only_goal_links, count(distinct l.goal_id) as goals,
+       count(*) filter (where not exists (select 1 from public.entries e where e.id = l.echo_entry_id)) as without_canonical_entry
+from public.echo_entry_links l
+where l.container_type = 'goal' and l.confirmed and l.goal_id is not null
+  and not exists (select 1 from public.entry_goal_links c where c.entry_id = l.echo_entry_id and c.goal_id = l.goal_id);

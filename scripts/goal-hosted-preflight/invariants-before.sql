@@ -20,7 +20,9 @@ where c.oid in ('public.goals'::regclass, 'public.milestones'::regclass, 'public
                 'public.task_schedules'::regclass, 'public.task_occurrences'::regclass, 'public.task_mutation_receipts'::regclass,
                 -- Goal receipts and provenance: 078 copies them into the operation ledger and must leave them untouched.
                 'goal_private.operations'::regclass, 'goal_private.goal_mutations'::regclass,
-                'goal_private.work_mutations'::regclass, 'goal_private.provenance'::regclass);
+                'goal_private.work_mutations'::regclass, 'goal_private.provenance'::regclass,
+                -- Goal events (080) once the target has them; a later apply must not change history.
+                to_regclass('goal_private.goal_events'));
 alter table apply_invariants add column row_count bigint, add column digest text;
 update apply_invariants i set (row_count, digest) = (select f.row_count, f.digest from pg_temp.table_fingerprint(i.tbl, i.keys) f);
 

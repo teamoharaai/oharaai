@@ -120,11 +120,13 @@ if (command === 'cleanup') {
   for (const user of users) if (!user.email.endsWith(SUFFIX)) throw Error('Refusing a non-synthetic account');
   const ids = users.map((u) => `'${uuid(u.id)}'`).join(',') || 'null';
   // From 078 every protocol writes operation_ledger; the three frozen stores stay counted until a migration drops them.
+  // From 080 every Task/Milestone/Entry write also writes goal_events (TD-004).
   const counts = () => psql(`select 'auth_users ' || (select count(*) from auth.users where id in (${ids}))
     || ' profiles ' || (select count(*) from public.profiles where id in (${ids}))
     || ' goals ' || (select count(*) from public.goals where user_id in (${ids}))
     || ' tasks ' || (select count(*) from public.tasks where user_id in (${ids}))
     || ' milestones ' || (select count(*) from public.milestones where user_id in (${ids}))
+    || ' goal_events ' || (select count(*) from goal_private.goal_events where owner_id in (${ids}))
     || ' operation_ledger ' || (select count(*) from goal_private.operation_ledger where owner_id in (${ids}))
     || ' manual_operations ' || (select count(*) from goal_private.operations where owner_id in (${ids}))
     || ' goal_mutations ' || (select count(*) from goal_private.goal_mutations where owner_id in (${ids}))
