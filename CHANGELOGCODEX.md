@@ -29,7 +29,14 @@
 - **pg_cron:** job `goal-operation-retention` (`17 3 * * *`, `select goal_private.prune_operations()`, owner `postgres`) is active.
 - **Desktop:** the only change is the daily 048 prune from the next 03:17 UTC run.
 - `scripts/db-chain/hosted-applied-through` is now 078; both rehearsals skip until 079 exists.
-- **Still pending:** push `/api/goals/operations-v1` (until then native can't reach it; the v1 routes are unaffected), re-probe the routes, the live ledger run.
+- **Route push** (approved): `498e85b` fast-forwarded to `main`. Vercel `Production` deployment 6699639088 reached `success`, and Database chain CI run 36360127221 is green in both legs (pg_cron installed).
+- **Re-probe** (approved, unauthenticated GET): `card-v1`, `work-v1` and `operations-v1?action=discover` each returned `HTTP/2 401`, `cache-control: private, no-store`, `{"ok":false,"error":{"code":"UNAUTHORIZED"}}` from iad1. That confirms operations-v1 is live and the `8468a65` fix is deployed.
+- **Fixed `scripts/goal-live-verification.mjs` before the ledger live run.** Cleanup's evidence and "nothing remains" counts now include `goal_private.operation_ledger` for the synthetic owners. After 078 the three old stores stay empty, so without this the check would silently skip the ledger. The old stores stay counted until a migration drops them.
+- **Live ledger run PASSED** (provision → run → cleanup approved as one sequence). Record: `docs/goal-operations-e2e-verification-2026-09-27.md`.
+  - 4/4 live tests passed, including the new `deployedOperationLedgerLookupCloseAndRecovery` (iOS repo): lookup/discover/ack of a work write, a close tombstone fencing a delayed create, restart recovery through a shared journal, and owner-isolated lookup.
+  - Evidence: goals 4, tasks 5, milestones 3 and **operation_ledger 22**, matching the tests exactly; the three frozen stores stayed at 0.
+  - After cleanup, all counts are 0, `enabled` is false, `verification_only` is true and the allowlist is empty.
+- **Next:** push native (TD-002 journal and recovery), which needs Justin's approval.
 
 ### Added — Migration 078: one Goal operation ledger, operations-v1, retention (TD-002; source, not deployed)
 - **Why:** four receipt stores with different shapes; Task/Milestone writes had no lookup or close (a lost response couldn't be checked, and an abandoned create could still commit later); nothing was ever pruned. Design, agreed with Justin 2026-09-27: `design/ios-core/TD-002-operation-ledger.md` (iOS repo).
