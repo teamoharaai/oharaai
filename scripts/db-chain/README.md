@@ -116,7 +116,8 @@ Every hosted script imports it; nothing in it connects.
 - `provision` checks that admission is closed and the allowlist is empty, creates two `@goal-e2e.ohara.test` accounts, allow-lists only the owner and opens `enabled` (with `verification_only` staying true), and writes a private `.xctestrun` holding the credentials.
 - `cleanup` closes admission, deletes only the recorded accounts and verifies that no row remains.
 - **Each step needs explicit approval. Run cleanup even when the tests fail.**
-- The full command sequence is in `docs/goal-work-e2e-verification-2026-09-27.md`.
+- The full command sequence is in `docs/goal-work-e2e-verification-2026-09-27.md`. The ledger run is recorded in `docs/goal-operations-e2e-verification-2026-09-27.md`.
+- Cleanup's evidence and "nothing remains" counts include `goal_private.operation_ledger`. From 078, every protocol writes there. Any new receipt or event store a live test writes needs a count here too, or cleanup can't tell whether it's empty.
 
 ## Invariants and receipts (078 onward)
 
@@ -125,6 +126,7 @@ Every hosted script imports it; nothing in it connects.
 ## Known differences from hosted
 
 - No `supautils`, PostgREST, GoTrue or storage API. Only the database is exercised; HTTP routes have their own tests.
-- pg_cron's scheduler doesn't run (see Setup). Whether hosted has pg_cron enabled, and grants `postgres` what 078 needs, is printed by the hosted preflight facts; a failure there stops the preflight before anything is kept.
+- pg_cron's scheduler doesn't run (see Setup). The hosted preflight facts print whether hosted has pg_cron and grants `postgres` what 078 needs. Hosted had pg_cron 1.6.4 enabled on 2026-09-27, and 078's job is active there.
+- **Session timezone.** CI sessions run in UTC; a Mac uses its local zone. A test that compares `current_date` with a date the engine computes in a schedule's timezone (`now() at time zone <tz>`) fails only in some hours. Use the schedule's local date, and check a date-sensitive suite with `PGTZ=UTC` as well as locally (see the 2026-09-28 fix to `tasks-security.test.sql`).
 - The stand-in grants default privileges only for objects `postgres` creates in `public`. Hosted also has `supabase_admin` defaults in `public`, `storage`, `graphql` and so on. Migrations run as `postgres`, so this doesn't affect them.
 - Some retired files still describe the old harnesses: dated reports in `docs/`, and history in `CHANGELOGCODEX.md`.

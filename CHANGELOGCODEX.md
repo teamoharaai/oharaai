@@ -10,6 +10,7 @@
   - So the reconcile went one day further; when that day is a scheduled weekday, it adds an occurrence.
   - Reproduced locally with `PGTZ=UTC npm run test:tasks:db`; `PGTZ=America/New_York` passed.
 - **Fix:** the reconcile uses `(now() at time zone 'America/New_York')::date+28`, the same horizon creation uses. No migration and no engine behaviour changed. This is the canonical Task engine's suite, shared with desktop; desktop is unaffected.
+- **README** (`scripts/db-chain/README.md`) now says that live cleanup counts the ledger, and notes the session-timezone pitfall: check date-sensitive suites with `PGTZ=UTC` too.
 - **Verified** at 01:32 UTC, inside the failing window: the Task suite passes with `PGTZ=UTC` and `PGTZ=America/New_York`. `npm run test:db` passes 14/14 with `PGTZ=UTC` in both ACL modes, and in the local timezone.
 
 ### Deployed — Migration 078 to production (2026-09-27; route not yet pushed)
