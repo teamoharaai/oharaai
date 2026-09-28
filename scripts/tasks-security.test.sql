@@ -82,7 +82,9 @@ begin
     p_schedule_weekdays => array[1,3,5]::smallint[],p_schedule_timezone => 'America/New_York'
   );
   select count(*) into v_count from public.task_occurrences where task_id=v_task;
-  perform public.reconcile_task_occurrences_v1(v_task,current_date+28);
+  -- Creation materializes through the schedule's local today + 28 (048); current_date is the session's
+  -- date, which differs from New York's between 00:00 and 04:00 UTC and would reach one day further.
+  perform public.reconcile_task_occurrences_v1(v_task,(now() at time zone 'America/New_York')::date+28);
   select count(*) into v_count_again from public.task_occurrences where task_id=v_task;
   if v_count=0 or v_count_again<>v_count then raise exception 'Schedule materialization is not stable'; end if;
 end $$;

@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Fixed — Task suite failed on CI between 00:00 and 04:00 UTC (2026-09-28, test only)
+- **Symptom:** Database chain run 36362162870 (on `340d5d8`, 00:25 UTC Monday) failed both legs at `scripts/tasks-security.test.sql`: "Schedule materialization is not stable". The previous run, at 23:52 UTC, was green.
+- **Cause:** the check (from `a46bd85`) creates a Mon/Wed/Fri Task in `America/New_York`, then reconciles through `current_date+28` and expects the count not to change.
+  - `create_task_v1` materializes through the schedule's local today + 28 (048).
+  - `current_date` is the session's date: UTC on CI, a day ahead of New York between 00:00 and 04:00 UTC.
+  - So the reconcile went one day further; when that day is a scheduled weekday, it adds an occurrence.
+  - Reproduced locally with `PGTZ=UTC npm run test:tasks:db`; `PGTZ=America/New_York` passed.
+- **Fix:** the reconcile uses `(now() at time zone 'America/New_York')::date+28`, the same horizon creation uses. No migration and no engine behaviour changed. This is the canonical Task engine's suite, shared with desktop; desktop is unaffected.
+- **Verified** at 01:32 UTC, inside the failing window: the Task suite passes with `PGTZ=UTC` and `PGTZ=America/New_York`. `npm run test:db` passes 14/14 with `PGTZ=UTC` in both ACL modes, and in the local timezone.
+
 ### Deployed — Migration 078 to production (2026-09-27; route not yet pushed)
 - **Preflight** (approved by Justin): `node scripts/test-manual-goal-hosted.mjs --project-ref rrgiqemscnyaqkculnmb --applied-through 077`. **PASS:**
   - history exactly 001–077;
