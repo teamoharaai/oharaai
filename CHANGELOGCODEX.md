@@ -2,6 +2,34 @@
 
 ## [Unreleased]
 
+### Deployed — Migration 080 to production (2026-09-28; backend not yet pushed)
+- **Preflight** (approved by Justin): `node scripts/test-manual-goal-hosted.mjs --project-ref rrgiqemscnyaqkculnmb --applied-through 079`. **PASS:**
+  - history exactly 001–079; nobody upstream had taken 080 (`git fetch` before preflight and again before apply);
+  - probes 072/074/075/076/077/078/080 passed (078's ledger-copy check still clean: the ledger holds no rows);
+  - transaction 19009 aborted (server-verified).
+- **Apply** (approved): the same command plus `--apply`. **PASS:**
+  - transaction 19075 committed (server-verified);
+  - probes passed and rolled back;
+  - history now exactly 001–080, and the recorded statements match the file;
+  - PostgREST notified.
+- **Existing rows unchanged** (`invariants-before.sql` = `invariants-after.sql`; `goal_events` did not exist before, so it is not fingerprinted in this apply):
+
+  | Table | Rows | Digest |
+  | --- | --- | --- |
+  | goals | 60 | `8db07b1518b00a5cce448d98a8e44a31` |
+  | milestones | 46 | `d010eaf1b5f3846e2a09a9bcaecbb206` |
+  | tasks | 138 | `7caf6ad6877e31d6a0362ca3406b51ac` |
+  | task_schedules | 30 | `da8abb1e662ade134161f6bde5f0c677` |
+  | task_occurrences | 679 | `c3b9a630712ec3393c4857f58dd78359` |
+  | task_mutation_receipts | 104 | `04789c255bc400abbc63ee4ec626dae8` |
+  | goal_private.operations / goal_mutations / work_mutations / provenance | 0 each | empty-set digest |
+
+- **Backfill** (counts only): `entry_created` note 2 events / 2 Goals, reflection 25 / 17; `milestone_completed` 19 / 12; `task_completed` 83 / 22 (129 events).
+- **Legacy-only Echo goal links: 0** (0 Goals, 0 without a canonical entry). This is the TD-004 A7 baseline for TD-005.
+- **Desktop:** responses unchanged; every Task completion, Milestone write and Entry link now also writes `goal_events` in its transaction. A desktop smoke test (schedule edit, Task list, Milestone complete, Echo capture) is recommended.
+- `scripts/db-chain/hosted-applied-through` is now 080; both rehearsals skip until 081 exists. From now on a migration's apply fingerprints `goal_events` too.
+- **Still pending:** push the backend (the live-cleanup script counts `goal_events`), the live run, the native push.
+
 ### Added — Goal events for Activity (TD-004, Migration 080; local only, not deployed, 2026-09-28)
 - **Design:** `design/ios-core/TD-004-goal-events.md` (iOS repo), agreed with Justin 2026-09-27, including the IOSB-004 counting rules.
 - **`goal_private.goal_events`** (`supabase/migrations/080_goal_events.sql`): one row per (Goal, kind, entity), kinds `task_completed` / `entry_created` / `milestone_completed`. The unique key is the dedup rule: an Entry reached directly and through a Milestone counts once per Goal. Notes and Reflections are one kind, with `entry_type` stored. Archive keeps history; hard delete, unlink and un-complete remove. Moved Tasks/Milestones take their events. Only canonical Entries count; only the Goal owner's rows count (as in 074).
