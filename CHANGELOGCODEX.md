@@ -67,6 +67,10 @@
 - **Query performance:** added a partial `(project_id, updated_at desc)` index for active Project Entry lists, matching the existing filter/order shape (`supabase/migrations/082_shared_entry_reliability.sql`).
 - **Validation:** added Phase 1 contract tests, a hosted read-only 082 index/policy probe, and an expanded Project security matrix for shared/private Notes, Reflections, image objects, archived Projects, outsiders, and removed members; captured owner/admin/member UI checkpoints (`features/entries/shared-entry-phase1.test.ts`, `scripts/goal-hosted-preflight/082-shared-entry-reliability.sql`, `scripts/projects-v11-security.test.sql`, `docs/ui-checkpoints/phase1-shared-entry-reliability/`).
 
+### Verified — Migration 081 live run; backend and native pushed (2026-09-29)
+- **Push** (approved): `4daa836..3cbaabf`; Vercel production 6745919512 succeeded; Database chain green (first run on actions v7). Desktop's Task lists and Momentum now use `reconcile_my_tasks_v1`.
+- **Live run** `live-20260929-47cbf57d` (approved): 4/4 passed from native `bdd4903`; evidence identical to the 080 run (goal_events 3, operation_ledger 22); every count 0 after cleanup; admission closed. Native pushed `95fbb1f..bdd4903`. Record: `docs/goal-work-desktop-e2e-verification-2026-09-29.md`.
+
 ### Deployed — Migration 081 to production (2026-09-29; backend not yet pushed)
 - **Preflight** (approved by Justin): history exactly 001–080; probes 072–078, 080 and 081 passed; transaction 19941 aborted (server-verified). **B9: the storage grant works on hosted:** the executor has `usage` on `storage` and `select` on `storage.objects` (owner `supabase_storage_admin`), and the probe's photo check answered `PHOTO_NOT_FOUND`, so no fallback is needed.
 - **Apply** (approved): transaction 20027 committed (server-verified); probes passed and rolled back; history now exactly 001–081, and the recorded statements match the file; PostgREST notified.
