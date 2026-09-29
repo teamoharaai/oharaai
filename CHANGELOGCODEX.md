@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed — CI actions v4 → v7 (2026-09-29; local, ships with the next approved push)
+- `.github/workflows/db-chain.yml`: `actions/checkout@v7`, `actions/setup-node@v7` (Node 24 runtime; GitHub is retiring Node 20 actions). `package-manager-cache: false` keeps v5+'s automatic cache off explicitly; the job installs no dependencies.
+
 ### Verified — Migration 080 live run; backend pushed (2026-09-29)
 - **Push** (approved): `0587f9b..9fa9914` to `main`; Vercel production deployment 6722945035 succeeded; Database chain green.
 - **Live run** (approved as one sequence), `live-20260929-ae70f7b1`: 4/4 opt-in native tests passed. Cleanup evidence included **goal_events 3** (and operation_ledger 22); afterwards every count was 0 and admission was closed (`enabled false`, allowlist 0). Record: `docs/goal-events-e2e-verification-2026-09-29.md`.
