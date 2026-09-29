@@ -349,13 +349,13 @@ export function NoteEditor({
               width: 36,
             }}
           >
-            <BrandIcon name="ohara" color={colors.accent.primary} size={20} />
+            <BrandIcon name="echo" color={colors.accent.primary} size={20} />
           </View>
           <Typography variant="title" style={{ flex: 1, fontSize: 17, lineHeight: 24 }}>
-            Ohara Intelligence
+            Echo
           </Typography>
           <Pressable
-            accessibilityLabel="Close Ohara Intelligence"
+            accessibilityLabel="Close Echo"
             accessibilityRole="button"
             onPress={() => setIntelligenceOpen(false)}
             style={({ pressed }) => [chromeIconButton, {
@@ -412,7 +412,7 @@ export function NoteEditor({
                   </Typography>
                 ) : null}
                 <Typography variant="caption" style={{ color: colors.text.accent, marginTop: SPACE.sm }}>
-                  AI analysis reserved for OHARA Intelligence
+                  Analysis reserved for Echo
                 </Typography>
               </Pressable>
               <View style={{ borderTopColor: colors.border.divider, borderTopWidth: 1, flexDirection: 'row' }}>
@@ -425,7 +425,7 @@ export function NoteEditor({
                   <Typography variant="caption" style={{ color: colors.text.accent }}>Jump to source</Typography>
                 </Pressable>
                 <Pressable
-                  accessibilityLabel="Remove OHARA Intelligence reference"
+                  accessibilityLabel="Remove Echo reference"
                   accessibilityRole="button"
                   onPress={() => setReferenceRemoval({ id: reference.id, nonce: Date.now() })}
                   style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1, padding: SPACE.md })}
@@ -436,9 +436,9 @@ export function NoteEditor({
             </View>
           )) : (
             <View style={{ paddingVertical: SPACE.sm }}>
-              <Typography variant="emphasis-sm" style={{ fontSize: 14 }}>Focus OHARA on what matters</Typography>
+              <Typography variant="emphasis-sm" style={{ fontSize: 14 }}>Focus Echo on what matters</Typography>
               <Typography variant="meta" style={{ lineHeight: 19, marginTop: SPACE.xs }}>
-                Select part of your note and choose Ask OHARA to create a focused reference.
+                Select part of your note and choose Ask Echo to create a focused reference.
               </Typography>
             </View>
           )}
@@ -573,8 +573,8 @@ export function NoteEditor({
             }}
           >
             <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
-              <Ionicons name="sparkles-outline" color={colors.accent.primary} size={18} />
-              <Typography variant="emphasis-sm" style={{ fontSize: 15 }}>Ask Ohara</Typography>
+              <BrandIcon name="echo" color={colors.accent.primary} size={18} />
+              <Typography variant="emphasis-sm" style={{ fontSize: 15 }}>Ask Echo</Typography>
             </View>
             <Typography variant="body-small" style={{ marginTop: SPACE.md }}>
               Future insights and chat will use your linked context. This preview does not make an AI request.
@@ -615,7 +615,7 @@ export function NoteEditor({
       >
         {showBack ? (
           <Pressable
-            accessibilityLabel="Back to Echo library"
+            accessibilityLabel="Back to Notes library"
             accessibilityRole="button"
             onPress={() => void handleBack()}
             hitSlop={8}
@@ -661,7 +661,7 @@ export function NoteEditor({
         </Pressable>
         {!narrow && !embedded ? <Button onPress={handleNewNote} size="compact" variant="secondary">New Note</Button> : null}
         <Pressable
-          accessibilityLabel={intelligenceOpen ? 'Collapse Ohara Intelligence' : 'Open Ohara Intelligence'}
+          accessibilityLabel={intelligenceOpen ? 'Collapse Echo' : 'Open Echo'}
           accessibilityRole="button"
           onPress={() => setIntelligenceOpen(!intelligenceOpen)}
           style={({ pressed }) => [chromeIconButton, {
@@ -670,7 +670,7 @@ export function NoteEditor({
               : 'transparent',
           }]}
         >
-          <Ionicons name="sparkles-outline" color={colors.text.accent} size={21} />
+          <BrandIcon name="echo" color={colors.text.accent} size={21} />
         </Pressable>
         <Pressable accessibilityLabel="More note actions" accessibilityRole="button" onPress={() => setOverflowOpen(true)} style={chromeIconButton}>
           <Ionicons name="ellipsis-horizontal" color={colors.text.secondary} size={22} />

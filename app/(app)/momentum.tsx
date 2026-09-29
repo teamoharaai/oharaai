@@ -317,7 +317,7 @@ export default function MomentumScreen() {
             </View>
 
             <Card padding="spacious" elevated>
-              <IntelligenceHeader insightType={momentumInsight.subtitle.replace(/^./, (character) => character.toUpperCase())} />
+              <IntelligenceHeader insightType={insightContext === 'momentum_monthly' ? 'Monthly Insight' : 'Weekly Insight'} />
               <Typography variant="ai-italic" style={{ color: colors.text.primary, fontSize: 17, lineHeight: 26, marginTop: SPACE.md }}>“{momentumInsight.primary}”</Typography>
               {momentumInsight.secondary ? <Typography variant="description" style={{ color: colors.text.secondary, marginTop: SPACE.sm }}>{momentumInsight.secondary}</Typography> : null}
             </Card>
@@ -447,7 +447,7 @@ export default function MomentumScreen() {
                     <View style={{ gap: 12 }}>
                       {momentum.summary.reasons.map((reason) => (
                         <View key={reason.code} style={{ alignItems: 'flex-start', flexDirection: 'row', gap: 9 }}>
-                          <Ionicons color={colors.text.accent} name="sparkles-outline" size={15} />
+                          <BrandIcon color={colors.text.accent} name="echo" size={15} />
                           <Typography variant="caption" style={{ color: colors.text.primary, flex: 1, lineHeight: 19 }}>{reason.message}</Typography>
                         </View>
                       ))}

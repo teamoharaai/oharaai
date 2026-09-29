@@ -32,7 +32,7 @@ test('landing uses meaningful data without progress percentages or imagery', () 
 });
 
 test('workspace contains approved overview and owner-only Vault hierarchy', () => {
-  for (const label of ['Current Goals', 'Project Chat', 'Recent Activity', 'Notes', 'Reflections', 'Upcoming Milestones', 'Project Tasks', 'Project Snapshot', 'Momentum Snapshot', 'OHARA Intelligence']) assert.match(`${workspace}\n${chat}`, new RegExp(label));
+  for (const label of ['Current Goals', 'Project Chat', 'Recent Activity', 'Notes', 'Reflections', 'Upcoming Milestones', 'Project Tasks', 'Project Snapshot', 'Momentum Snapshot', 'Echo']) assert.match(`${workspace}\n${chat}`, new RegExp(label));
   assert.doesNotMatch(workspace, /Project Notice/);
   assert.doesNotMatch(workspace, /title="Sticky Notes"/);
   assert.match(vault, /Project Sticky Note/);
@@ -64,17 +64,18 @@ test('workspace presents an actionable Task assignment menu and separated contex
   assert.doesNotMatch(workspace, /project\.comments\.slice\(0, 2\)/);
 });
 
-test('Notes and Reflections cards use the existing project-scoped Echo creation path', () => {
+test('Notes and Reflections cards use canonical project-aware destinations', () => {
   assert.match(workspace, /\+ New \{kind === 'note' \? 'Note' : 'Reflection'\}/);
-  assert.match(workspace, /params: \{ create: kind, view: kind, projectId: project\.id \}/);
+  assert.match(workspace, /kind === 'note' \? '\/\(app\)\/notes' : '\/\(app\)\/reflections'/);
+  assert.match(workspace, /params: \{ create: kind, projectId: project\.id \}/);
 });
 
-test('OHARA Intelligence uses one presentation hierarchy without changing facts', () => {
-  assert.match(intelligenceHeader, /OHARA Intelligence/);
+test('Echo uses one presentation hierarchy without changing facts', () => {
+  assert.match(intelligenceHeader, />\s*Echo\s*</);
   assert.match(intelligenceHeader, /— \{label\}/);
   assert.match(workspace, /IntelligenceHeader insightType/);
   assert.match(momentum, /IntelligenceHeader insightType/);
-  assert.match(goalIntelligence, /OHARA Intelligence — Goal Insight/);
+  assert.match(goalIntelligence, /Echo — Goal Insight/);
   assert.match(workspace, /variant="ai-italic"/);
 });
 

@@ -676,8 +676,8 @@ export function RichTextEditor({
           </div> : null}
         </div>
         <div className="ohara-editor-menu-wrap">
-          <ToolButton label="Ask OHARA about selection" active={menu === 'ask'} onClick={() => setMenu(menu === 'ask' ? null : 'ask')}><Ionicons name="sparkles-outline" color="currentColor" size={19} /></ToolButton>
-          {menu === 'ask' ? <div className="ohara-editor-popover" role="menu" aria-label="Ask OHARA actions">
+          <ToolButton label="Ask Echo about selection" active={menu === 'ask'} onClick={() => setMenu(menu === 'ask' ? null : 'ask')}><BrandIcon name="echo" color="currentColor" size={19} /></ToolButton>
+          {menu === 'ask' ? <div className="ohara-editor-popover" role="menu" aria-label="Ask Echo actions">
             {ASK_ACTIONS.map((item) => <button type="button" role="menuitem" key={item.action} onClick={() => askOhara(item.action)}>{item.label}</button>)}
             <span className="ohara-editor-premium-note">Creates a stable reference. AI analysis is not run yet.</span>
           </div> : null}
@@ -711,18 +711,18 @@ export function RichTextEditor({
           <ToolButton label="Italicize selected text" active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()}><em>I</em></ToolButton>
           <ToolButton label="Add link to selected text" onClick={editLink}><Ionicons name="link-outline" color="currentColor" size={17} /></ToolButton>
           <ToolButton label="Reference selected text to a Goal" onClick={() => { setEditingGoalReferenceId(null); setGoalMode('reference'); setMenu('goal'); }}><BrandIcon name="goals" color={colors.text.secondary} size={17} /></ToolButton>
-          <ToolButton label="Create OHARA Intelligence reference" onClick={() => askOhara('ask')}><Ionicons name="sparkles-outline" color="currentColor" size={17} /></ToolButton>
+          <ToolButton label="Create Echo reference" onClick={() => askOhara('ask')}><BrandIcon name="echo" color="currentColor" size={17} /></ToolButton>
         </div>
       ) : null}
       {referenceMenu && referenceAttributes ? (
         <div
-          aria-label={referenceMenu.kind === 'goal' ? 'Goal Reference actions' : 'OHARA Intelligence Reference actions'}
+          aria-label={referenceMenu.kind === 'goal' ? 'Goal Reference actions' : 'Echo Reference actions'}
           className="ohara-reference-popover"
           role="menu"
           style={{ left: referenceMenu.left, top: referenceMenu.top }}
         >
           <div className="ohara-reference-popover-summary">
-            <strong>{referenceMenu.kind === 'goal' ? referenceGoal?.title ?? 'Goal unavailable' : 'OHARA Intelligence'}</strong>
+            <strong>{referenceMenu.kind === 'goal' ? referenceGoal?.title ?? 'Goal unavailable' : 'Echo'}</strong>
             <span>{referenceMenu.kind === 'goal'
               ? `${referenceGoal?.category ?? 'Unavailable'} · ${referenceAttributes.progressEvidence ? 'Progress evidence' : 'Reference only'}`
               : String(referenceAttributes.question ?? 'Focused note reference')}</span>

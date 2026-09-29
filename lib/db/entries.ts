@@ -33,6 +33,7 @@ type DbEntryRow = {
   content_version: number;
   schema_version: number;
   project_id: string | null;
+  project_share_scope: 'private' | 'project' | 'guide';
   completed_at: string | null;
   created_at: string;
   updated_at: string;
@@ -131,6 +132,7 @@ function mapEntry(
     updatedAt: new Date(row.updated_at),
     goals,
     project,
+    projectShareScope: row.project_share_scope ?? 'private',
     categoryIds: relationships.categoryIds.map((category) => normalizeGoalCategoryForEntries(category)),
     milestones,
   };

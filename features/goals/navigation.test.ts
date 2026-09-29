@@ -9,6 +9,10 @@ test('encodes the selected goal in the canonical workspace URL', () => {
     goalWorkspaceHref('archived-goal', 'archived'),
     '/(app)/goals?goal=archived-goal&status=archived',
   );
+  assert.equal(
+    goalWorkspaceHref('goal-one', 'active', { projectId: 'project-one' }),
+    '/(app)/goals?goal=goal-one&status=active&projectId=project-one',
+  );
 });
 
 test('prefers the canonical goal parameter while accepting legacy selected links', () => {

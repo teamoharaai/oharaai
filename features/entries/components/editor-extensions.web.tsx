@@ -123,7 +123,7 @@ export const IntelligenceReferenceMark = Mark.create({
       'data-intelligence-reference': HTMLAttributes.referenceId,
       role: 'button',
       tabindex: '0',
-      title: 'OHARA Intelligence reference',
+      title: 'Echo reference',
     }), 0];
   },
 });

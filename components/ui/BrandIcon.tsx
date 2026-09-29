@@ -26,6 +26,8 @@ export type BrandIconName =
   | 'momentum'
   | 'constellation'
   | 'project'
+  | 'notes'
+  | 'reflections'
   | 'theme-mode';
 
 const BRAND_ICON_SOURCES: Partial<Record<BrandIconName, ImageSourcePropType>> = {
@@ -60,6 +62,14 @@ export function BrandIcon({ color, name, size = 20, style, tintColor }: BrandIco
 
   if (name === 'project') {
     return <Ionicons color={resolvedColor} name="folder-outline" size={size} style={style as never} />;
+  }
+
+  if (name === 'notes') {
+    return <Ionicons color={resolvedColor} name="document-text-outline" size={size} style={style as never} />;
+  }
+
+  if (name === 'reflections') {
+    return <Ionicons color={resolvedColor} name="book-outline" size={size} style={style as never} />;
   }
 
   if (VectorIcon) {

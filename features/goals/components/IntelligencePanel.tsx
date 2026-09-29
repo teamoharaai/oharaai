@@ -1,5 +1,6 @@
 import { Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BrandIcon } from '@/components/ui/BrandIcon';
 import { GoalEchoAnalysisCard } from '@/features/goals/components/GoalEchoAnalysisCard';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import type { GoalCategory } from '@/lib/goals/schema';
@@ -71,7 +72,7 @@ export function IntelligencePanel({
 
   return (
     <View
-      accessibilityLabel={`OHARA Intelligence. Goal Insight. ${sourceLabel}. ${displayInsight}`}
+      accessibilityLabel={`Echo. Goal Insight. ${sourceLabel}. ${displayInsight}`}
       style={{
         backgroundColor: dark ? colors.background.sidebar : colors.background.page,
         borderColor: colors.border.warm,
@@ -112,7 +113,11 @@ export function IntelligencePanel({
               width: 26,
             }}
           >
-            <Text style={{ color: dark ? colors.accent.teal : colors.text.accent, fontFamily: 'Inter-Regular', fontSize: 14 }}>✦</Text>
+            <BrandIcon
+              color={dark ? colors.accent.teal : colors.text.accent}
+              name="echo"
+              size={16}
+            />
           </View>
           <Text
             style={{
@@ -124,7 +129,7 @@ export function IntelligencePanel({
               textTransform: 'uppercase',
             }}
           >
-            OHARA Intelligence — Goal Insight
+            Echo — Goal Insight
           </Text>
           <View
             accessibilityLabel={sourceLabel}

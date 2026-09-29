@@ -250,7 +250,7 @@ export function EchoCreationModal({
             />
             <ChoiceCard
               badge="Coming soon"
-              description="A future OHARA Intelligence conversation that will help you explore your thoughts more deeply."
+              description="A future Echo conversation that will help you explore your thoughts more deeply."
               disabled
               icon={<BrandIcon name="ohara" color={colors.text.accent} size={27} />}
               title="Guided Reflection"

@@ -21,7 +21,8 @@ const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Home', href: '/(app)/dashboard', matches: ['/dashboard'], enabled: true, icon: 'home' },
   { label: 'Goals', href: '/(app)/goals', matches: ['/goals'], enabled: true, icon: 'goals' },
   { label: 'Projects', href: '/(app)/projects', matches: ['/projects'], enabled: true, icon: 'project' },
-  { label: 'Echo', href: '/(app)/echo', matches: ['/echo', '/entries'], enabled: FEATURES.ECHO_ENABLED, icon: 'echo' },
+  { label: 'Notes', href: '/(app)/notes', matches: ['/notes', '/entries'], enabled: FEATURES.ECHO_ENABLED, icon: 'notes' },
+  { label: 'Reflections', href: '/(app)/reflections', matches: ['/reflections'], enabled: FEATURES.ECHO_ENABLED, icon: 'reflections' },
   { label: 'Momentum', href: '/(app)/momentum', matches: ['/momentum'], enabled: true, icon: 'momentum' },
   {
     label: 'Roots',
@@ -32,7 +33,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   },
 ];
 
-const DESKTOP_NAVIGATION_MIN_WIDTH = 1100;
+const DESKTOP_NAVIGATION_MIN_WIDTH = 1220;
 
 function isActiveRoute(pathname: string, item: NavItem): boolean {
   return item.matches.some((match) => pathname === match || pathname.startsWith(`${match}/`));
@@ -71,7 +72,7 @@ function NavigationItem({
         minHeight: compact ? 50 : CONTROL.iconSize,
         minWidth: compact ? 68 : undefined,
         opacity: item.enabled ? 1 : 0.4,
-        paddingHorizontal: compact ? SPACE.md : SPACE.xl,
+        paddingHorizontal: compact ? SPACE.md : SPACE.lg,
       })}
     >
       {
@@ -110,8 +111,8 @@ export function AppNavigation({
   const desktop = width >= DESKTOP_NAVIGATION_MIN_WIDTH;
 
   const createEntry = onNewEntry ?? (() => router.push({
-    pathname: '/entries',
-    params: { create: 'new' },
+    pathname: '/notes',
+    params: { create: 'note' },
   }));
   const createProject = onNewProject ?? (() => router.push('/projects/create'));
 
@@ -165,8 +166,8 @@ export function AppNavigation({
               alignItems: 'center',
               flex: 1,
               flexDirection: 'row',
-              gap: SPACE.sm,
-              marginLeft: SPACE['6xl'],
+              gap: SPACE.xs,
+              marginLeft: SPACE['3xl'],
             }}
           >
             {NAV_ITEMS.map((item) => (

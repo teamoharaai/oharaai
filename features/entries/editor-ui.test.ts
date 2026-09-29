@@ -71,7 +71,7 @@ test('only shows selected-text actions for a genuine editor text selection', () 
   assert.match(editor, /editor\.state\.doc\.textBetween\(from, to, ' ', ' '\)\.trim\(\)/);
   assert.match(editor, /editor\.view\.dom\.contains\(anchor\)/);
   assert.match(editor, /aria-label="Selected text actions"/);
-  assert.match(editor, /Create OHARA Intelligence reference/);
+  assert.match(editor, /Create Echo reference/);
   assert.match(editor, /askOhara\('ask'\)/);
 });
 
@@ -86,13 +86,14 @@ test('uses a recognizable numbered-list glyph and the shared canonical Goals mar
 
 test('exposes discoverable and removable Goal and Intelligence reference controls', () => {
   assert.match(editor, /Link selection to Goal/);
-  assert.match(editor, /Ask OHARA about selection/);
+  assert.match(editor, /Ask Echo about selection/);
+  assert.match(editor, /<BrandIcon name="echo"/);
   assert.match(editor, /Change Goal/);
   assert.match(editor, /Progress evidence:/);
   assert.match(editor, /Remove Goal Link/);
   assert.match(editor, /Edit question\/context/);
   assert.match(editor, /Remove Reference/);
   assert.match(panel, /Jump to source/);
-  assert.match(panel, /Remove OHARA Intelligence reference/);
+  assert.match(panel, /Remove Echo reference/);
   assert.match(panel, /Remove Goal reference/);
 });

@@ -76,9 +76,14 @@ export function GlobalCreateControl({
 
   const menuItems = [
     {
-      icon: 'echo-add-entry' as BrandIconName,
-      label: 'New entry',
+      icon: 'notes' as BrandIconName,
+      label: 'New note',
       onPress: onNewEntry,
+    },
+    {
+      icon: 'reflections' as BrandIconName,
+      label: 'New reflection',
+      onPress: () => router.push({ pathname: '/reflections', params: { create: 'new' } }),
     },
     {
       icon: 'goals' as BrandIconName,

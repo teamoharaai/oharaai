@@ -511,6 +511,7 @@ function GoalListCard({ goal, onSelect, selected }: {
   goal: GoalWithDetails; onSelect: () => void; selected: boolean;
 }) {
   const colors = useThemeColors();
+  const projectTitle = useProjectStore((state) => state.projects.find((project) => project.id === goal.projectId)?.title);
   return (
     <Pressable accessibilityLabel={`Select ${goal.title}`} accessibilityRole="button"
       accessibilityState={{ selected }} onPress={onSelect}
@@ -524,7 +525,7 @@ function GoalListCard({ goal, onSelect, selected }: {
         <View style={{ flex: 1, minWidth: 0 }}>
           <Typography numberOfLines={2} variant="emphasis-sm">{goal.title}</Typography>
           <Typography variant="caption" style={{ marginTop: 3 }}>
-            {getGoalCategoryLabel(goal.category)} · {getGoalStatusLabel(goal.status)}{goal.projectId ? ' · Project Goal' : ' · Personal'}
+            {getGoalCategoryLabel(goal.category)} · {getGoalStatusLabel(goal.status)}{goal.projectId ? ` · ${projectTitle ?? 'Project Goal'}` : ' · Personal'}
           </Typography>
         </View>
       </View>
@@ -877,14 +878,15 @@ function InsightContextCard({ goal, items }: { goal: GoalWithDetails; items: rea
   }), 'goal');
   return (
     <View
+      accessibilityLabel="Echo Goal Insight card"
       style={{
         backgroundColor: colors.background.selectedRow,
         padding: SPACE.xl,
       }}
     >
       <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
-        <Ionicons color={colors.text.accent} name="sparkles-outline" size={18} />
-        <SectionHeading>OHARA INTELLIGENCE</SectionHeading>
+        <BrandIcon color={colors.text.accent} name="echo" size={19} />
+        <SectionHeading>ECHO — GOAL INSIGHT</SectionHeading>
       </View>
       <Typography variant="caption" style={{ color: colors.text.muted, marginTop: SPACE.md }}>{insight.subtitle}</Typography>
       <Typography variant="title" style={{ marginTop: SPACE.md }}>{insight.primary}</Typography>
@@ -924,6 +926,7 @@ function SelectedGoalWorkspace({
   goalDetail,
   tab,
   onWorkspaceChange,
+  sourceProjectId,
 }: {
   activityError: string | null;
   activityItems: readonly ActivityItem[];
@@ -933,6 +936,7 @@ function SelectedGoalWorkspace({
   goal: GoalWithDetails;
   goalDetail: UseGoalDetailResult;
   onWorkspaceChange: (value: WorkspaceTab) => void;
+  sourceProjectId?: string;
   tab: WorkspaceTab;
 }) {
   const colors = useThemeColors();
@@ -944,6 +948,8 @@ function SelectedGoalWorkspace({
   const projects = useProjectStore((state) => state.projects);
   const projectsLoading = useProjectStore((state) => state.isLoading);
   const loadProjects = useProjectStore((state) => state.loadProjects);
+  const associatedProject = projects.find((project) => project.id === goal.projectId) ?? null;
+  const sourceProject = sourceProjectId && sourceProjectId === goal.projectId ? associatedProject : null;
   const linkedEntries = entries.filter((entry) => entry.goals.some((linkedGoal) => linkedGoal.id === goal.id));
   const deadlineProgress = getGoalRingProgress(goal);
   const ended = deadlineProgress !== null && deadlineProgress >= 100;
@@ -970,6 +976,25 @@ function SelectedGoalWorkspace({
   return (
     <>
       <View style={{ gap: SPACE.xl, minWidth: 0 }}>
+        <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm, minHeight: 44 }}>
+          {sourceProject ? (
+            <>
+              <Pressable accessibilityRole="link" onPress={() => router.push('/(app)/projects')}><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>Projects</Typography></Pressable>
+              <Typography variant="caption">›</Typography>
+              <Pressable accessibilityRole="link" onPress={() => router.push(`/(app)/projects/${sourceProject.id}` as never)}><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>{sourceProject.title}</Typography></Pressable>
+            </>
+          ) : (
+            <Pressable accessibilityRole="link" onPress={() => router.push('/(app)/goals')}><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>Goals</Typography></Pressable>
+          )}
+          <Typography variant="caption">›</Typography>
+          <Typography numberOfLines={1} variant="emphasis-sm">{goal.title}</Typography>
+        </View>
+        {!sourceProject && associatedProject ? (
+          <Pressable accessibilityRole="link" onPress={() => router.push(`/(app)/projects/${associatedProject.id}` as never)} style={{ alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: SPACE.sm, minHeight: 38 }}>
+            <BrandIcon color={colors.text.accent} name="project" size={16} />
+            <Typography variant="caption" style={{ color: colors.text.accent }}>Project: {associatedProject.title}</Typography>
+          </Pressable>
+        ) : null}
         <GoalDetailHeader
             deadlineDensity={deadlineDensity}
           deadlineProgress={goal.progress}
@@ -1065,6 +1090,7 @@ export function GoalsWorkspace() {
     selected?: string | string[];
     status?: string | string[];
     view?: string | string[];
+    projectId?: string | string[];
   }>();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [workspaceWidth, setWorkspaceWidth] = useState(0);
@@ -1087,9 +1113,11 @@ export function GoalsWorkspace() {
       : 'active'
   ));
   const { goals, isLoading } = useGoals({ status: workspaceStatusToGoalStatus(status) });
+  const loadProjects = useProjectStore((state) => state.loadProjects);
   const selectedGoalId = useGoalStore((state) => state.selectedGoalId);
   const setSelectedGoalId = useGoalStore((state) => state.setSelectedGoalId);
   const routeSelected = getGoalWorkspaceSelection(params);
+  const sourceProjectId = Array.isArray(params.projectId) ? params.projectId[0] : params.projectId;
   const [query, setQuery] = useState('');
   const [libraryScope, setLibraryScope] = useState<'all' | 'project' | 'personal'>('all');
   const [category, setCategory] = useState<GoalWithDetails['category'] | null>(null);
@@ -1112,6 +1140,10 @@ export function GoalsWorkspace() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    void loadProjects();
+  }, [loadProjects]);
 
   useEffect(() => {
     const statusGoals = goals.filter((goal) => goalMatchesWorkspaceStatus(goal, status)
@@ -1154,12 +1186,12 @@ export function GoalsWorkspace() {
 
   function selectGoal(goalId: string) {
     setSelectedGoalId(goalId);
-    router.setParams({ goal: goalId, view: 'overview' } as never);
+    router.setParams({ goal: goalId, view: 'overview', projectId: undefined } as never);
   }
 
   function changeWorkspace(mode: WorkspaceTab) {
     if (!workspaceGoal || mode === tab) return;
-    router.push({ pathname: '/(app)/goals', params: { goal: workspaceGoal.id, status, view: mode } } as never);
+    router.push({ pathname: '/(app)/goals', params: { goal: workspaceGoal.id, status, view: mode, ...(sourceProjectId ? { projectId: sourceProjectId } : {}) } } as never);
   }
 
   return (
@@ -1219,6 +1251,7 @@ export function GoalsWorkspace() {
                   goal={workspaceGoal}
                   goalDetail={selectedGoalDetail}
                   onWorkspaceChange={changeWorkspace}
+                  sourceProjectId={sourceProjectId}
                   tab={tab}
                 />
               ) : null}
@@ -1262,6 +1295,7 @@ export function GoalsWorkspace() {
                     goal={workspaceGoal}
                     goalDetail={selectedGoalDetail}
                     onWorkspaceChange={changeWorkspace}
+                    sourceProjectId={sourceProjectId}
                     tab={tab}
                   />
                   {tab === 'overview' ? <ContextRail
@@ -1299,6 +1333,7 @@ export function GoalsWorkspace() {
                   goal={workspaceGoal}
                   goalDetail={selectedGoalDetail}
                   onWorkspaceChange={changeWorkspace}
+                  sourceProjectId={sourceProjectId}
                   tab={tab}
                 />
                 {tab === 'overview' ? <ContextRail

@@ -104,7 +104,7 @@ export function CompletedReflection({
       >
         {showBack ? (
           <Pressable
-            accessibilityLabel="Back to Echo library"
+            accessibilityLabel="Back to Reflections"
             onPress={() => onBack ? onBack() : router.replace('/(app)/entries' as never)}
           >
             <Ionicons name="arrow-back" color={colors.text.primary} size={22} />

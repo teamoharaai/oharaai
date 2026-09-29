@@ -121,7 +121,7 @@ function ProjectRow({
   const colors = useThemeColors();
   return (
     <Pressable
-      accessibilityLabel={`Open Echo project ${project.title}`}
+      accessibilityLabel={`Open project collection ${project.title}`}
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={onPress}
@@ -159,6 +159,7 @@ export function EntriesLibrary({
   onCollapse,
   filter,
   onFilterChange,
+  feature = 'legacy',
 }: {
   selectedEntryId?: string;
   selectedProjectId?: string;
@@ -169,6 +170,7 @@ export function EntriesLibrary({
   onCollapse?: () => void;
   filter: EchoLibraryFilter;
   onFilterChange: (filter: EchoLibraryFilter) => void;
+  feature?: 'legacy' | 'notes';
 }) {
   const colors = useThemeColors();
   const { entries, isLoading, error, loadEntries, loadContext } = useEntriesStore();
@@ -197,23 +199,24 @@ export function EntriesLibrary({
     const scopedEntries = selectedProjectId ? entriesForProject(entries, selectedProjectId) : entries;
     return sortEntriesByRecency(scopedEntries.filter((entry) => {
       if (entry.archived) return false;
-      if (filter !== 'all' && entry.entryType !== filter) return false;
+      if (feature === 'notes' && entry.entryType !== 'note') return false;
+      if (feature !== 'notes' && filter !== 'all' && entry.entryType !== filter) return false;
       if (!normalizedQuery) return true;
       return entry.title.toLowerCase().includes(normalizedQuery)
         || entry.plainText.toLowerCase().includes(normalizedQuery)
         || entry.takeaway?.toLowerCase().includes(normalizedQuery);
     }));
-  }, [entries, filter, query, selectedProjectId]);
+  }, [entries, feature, filter, query, selectedProjectId]);
 
   const projectCounts = useMemo(() => {
     const counts = new Map<string, number>();
     entries.forEach((entry) => {
-      if (!entry.archived && entry.project?.id) {
+      if (!entry.archived && entry.project?.id && (feature !== 'notes' || entry.entryType === 'note')) {
         counts.set(entry.project.id, (counts.get(entry.project.id) ?? 0) + 1);
       }
     });
     return counts;
-  }, [entries]);
+  }, [entries, feature]);
 
   function retryLibraryLoad() {
     void Promise.all([loadEntries(), loadContext(), loadProjects()]);
@@ -241,7 +244,7 @@ export function EntriesLibrary({
       >
         <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}>
           <Pressable
-            accessibilityLabel={inProjectContext ? 'Return to Most Recent Echo content' : 'Show Most Recent Echo content'}
+            accessibilityLabel={inProjectContext ? `Return to Most Recent ${feature === 'notes' ? 'Notes' : 'Echo content'}` : `Show Most Recent ${feature === 'notes' ? 'Notes' : 'Echo content'}`}
             accessibilityRole="button"
             accessibilityState={{ selected: !inProjectContext }}
             onPress={onSelectMostRecent}
@@ -272,7 +275,7 @@ export function EntriesLibrary({
           </Pressable>
           {onCollapse ? (
             <Pressable
-              accessibilityLabel="Collapse Echo library"
+              accessibilityLabel={`Collapse ${feature === 'notes' ? 'Notes' : 'Echo'} library`}
               accessibilityRole="button"
               accessibilityState={{ expanded: true }}
               hitSlop={6}
@@ -305,9 +308,9 @@ export function EntriesLibrary({
         >
           <Ionicons name="search-outline" color={colors.text.muted} size={18} />
           <TextInput
-            accessibilityLabel="Search Echo"
+            accessibilityLabel={`Search ${feature === 'notes' ? 'Notes' : 'Echo'}`}
             onChangeText={setQuery}
-            placeholder="Search Echo"
+            placeholder={feature === 'notes' ? 'Search Notes' : 'Search Echo'}
             placeholderTextColor={colors.text.muted}
             style={{
               color: colors.text.primary,
@@ -322,8 +325,8 @@ export function EntriesLibrary({
           />
         </View>
 
-        <View
-          accessibilityLabel="Echo entry type"
+        {feature !== 'notes' ? <View
+          accessibilityLabel="Entry type"
           accessibilityRole="tablist"
           style={{ flexDirection: 'row', gap: SPACE.xs }}
         >
@@ -337,7 +340,7 @@ export function EntriesLibrary({
               <Pressable
                 accessibilityRole="tab"
                 accessibilityState={{ selected }}
-                accessibilityHint={`Shows ${option.label.toLowerCase()} in the current Echo library`}
+                accessibilityHint={`Shows ${option.label.toLowerCase()} in the current entry library`}
                 key={option.id}
                 onPress={() => onFilterChange(option.id)}
                 style={({ pressed }) => ({
@@ -360,7 +363,7 @@ export function EntriesLibrary({
               </Pressable>
             );
           })}
-        </View>
+        </View> : null}
       </View>
 
       <ScrollView
@@ -378,7 +381,7 @@ export function EntriesLibrary({
         {(isLoading || projectsLoading) && entries.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: SPACE['5xl'] }}>
             <ActivityIndicator color={colors.accent.primary} />
-            <Typography variant="caption" style={{ marginTop: SPACE.md }}>Loading Echo…</Typography>
+            <Typography variant="caption" style={{ marginTop: SPACE.md }}>Loading {feature === 'notes' ? 'Notes' : 'Echo'}…</Typography>
           </View>
         ) : visibleEntries.length ? (
           <View style={{ gap: SPACE.xs }}>
@@ -396,22 +399,22 @@ export function EntriesLibrary({
             <BrandIcon name="echo" color={colors.text.accent} size={25} />
             <Typography variant="title">
               {selectedProject
-                ? `No ${filter === 'all' ? 'Echo entries' : filter === 'note' ? 'Notes' : 'Reflections'} in this Project`
+                ? `No ${feature === 'notes' ? 'Notes' : filter === 'all' ? 'Echo entries' : filter === 'note' ? 'Notes' : 'Reflections'} in this Project`
                 : filter === 'reflection'
                   ? 'A private place to reflect'
                   : filter === 'all'
-                    ? 'A clear place to begin'
+                    ? feature === 'notes' ? 'A place to gather what you learn' : 'A clear place to begin'
                     : 'A place to gather what you learn'}
             </Typography>
             <Typography variant="body-small">
               {selectedProject
-                ? `${filter === 'all' ? 'Notes and Reflections' : filter === 'note' ? 'Notes' : 'Reflections'} added to this Project will appear here by recency.`
+                ? `${feature === 'notes' ? 'Notes' : filter === 'all' ? 'Notes and Reflections' : filter === 'note' ? 'Notes' : 'Reflections'} added to this Project will appear here by recency.`
                 : query
                   ? `No ${filter === 'all' ? 'Notes or Reflections' : filter === 'note' ? 'Notes' : 'Reflections'} match this search.`
                   : filter === 'reflection'
                     ? 'Reflections are private by default. Start with what you are thinking, feeling, or learning.'
                     : filter === 'all'
-                      ? 'Your Notes and Reflections will appear here as you create them.'
+                    ? feature === 'notes' ? 'Your Notes will appear here as you create them.' : 'Your Notes and Reflections will appear here as you create them.'
                       : 'Notes are for ideas, research, plans, and anything you want to develop.'}
             </Typography>
             {!query ? <Button onPress={onNew} size="compact">New</Button> : null}
@@ -437,11 +440,11 @@ export function EntriesLibrary({
                 variant="body-small"
                 style={{ color: colors.feedback.danger.text, flex: 1 }}
               >
-                We couldn’t load all of your Echo content.
+                We couldn’t load all of your {feature === 'notes' ? 'Notes' : 'Echo content'}.
               </Typography>
             </View>
             <Pressable
-              accessibilityLabel="Retry loading Echo content"
+              accessibilityLabel={`Retry loading ${feature === 'notes' ? 'Notes' : 'Echo content'}`}
               accessibilityRole="button"
               onPress={retryLibraryLoad}
               style={({ pressed }) => ({

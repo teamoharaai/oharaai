@@ -40,7 +40,22 @@
 - **Harness:** new chain suite `lib/goals/goal-events-db.test.mjs` (on `chain_079`: it seeds pre-080 rows through desktop's paths, applies 080 and checks backfill = rebuild). `run.sh` lists it (15 suites). New probe `scripts/goal-hosted-preflight/080-goal-events.sql` (registered in `test-manual-goal-hosted.mjs`). `facts.sql` prints event counts and the legacy-only Echo goal-link count. `invariants-before.sql` fingerprints `goal_events` once it exists (`to_regclass`). `goal-live-verification.mjs` cleanup counts `goal_events`. README updated.
 - **No existing assertion changed.**
 - **Verified locally:** `npm run test:db` 15/15 in hosted and CLI ACL modes and with `PGTZ=UTC`. The preflight rehearsal passes (probes 072–078, 080). The apply rehearsal passes in both ACL modes (existing rows unchanged). Goal HTTP/unit tests 34/34. `tsc` shows only the known `manual-create-v1.test.ts(6,41)` error.
+### Added — Product structure: Notes, Reflections, and contextual Echo
+- Added canonical `/notes` and `/reflections` routes, including entry detail routes and safe redirects from the former Echo/Entries destinations (`app/(app)/notes*`, `app/(app)/reflections*`, `app/(app)/echo.tsx`, and `app/(app)/entries*`).
+- Added a dedicated journal-style Reflections experience with a minimal composer, chronological history, Project/Goal context, contextual visibility choices, and edit/delete controls in `features/entries/components/ReflectionsScreen.tsx`.
+- Added focused UI contracts covering the new product structure in `features/entries/product-structure-ui.test.ts` and included them in `npm run test:entries`.
 
+### Changed — Projects, Goals, Notes, Reflections, and Echo navigation
+- Updated the authenticated navigation and global create menu to expose Home, Goals, Projects, Notes, Reflections, Momentum, and Roots without a standalone Echo library destination (`components/layout/AppNavigation.tsx`, `components/layout/GlobalCreateControl.tsx`, and `app/(app)/_layout.tsx`).
+- Preserved Project context when opening Goals from Project cards, Tasks, Milestones, and Momentum; direct Goal navigation retains a Goals breadcrumb and shows its linked Project separately (`features/goals/navigation.ts`, `features/goals/components/GoalsWorkspace.tsx`, and `app/(app)/projects/[id].tsx`).
+- Repositioned the existing document workspace as Notes while preserving canonical Entry records, Goal/Project links, rich editing, export, and Vault behavior (`features/entries/components/EntriesScreen.tsx`, `EntriesLibrary.tsx`, `NoteEditor.tsx`, and `RichTextEditor.web.tsx`).
+- Updated Project and Goal Vault destinations and terminology so Notes and Reflections remain separate content types (`app/(app)/projects/[id].tsx`, `features/goals/components/GoalVault.tsx`, and `app/(app)/goals/[id]/vault.tsx`).
+- Renamed user-facing OHARA Intelligence to Echo and adopted the canonical Echo logo anywhere the intelligence persona is identified, including Project, Goal, Momentum, and Notes insight surfaces (`components/ui/IntelligenceHeader.tsx`, `features/goals/components/GoalsWorkspace.tsx`, `features/goals/components/IntelligencePanel.tsx`, `features/entries/components/NoteEditor.tsx`, and `app/(app)/momentum.tsx`). The deterministic insight engine is unchanged.
+- Added restrained Notes and Reflections icons to the shared brand icon system and updated public-facing feature language (`components/ui/BrandIcon.tsx` and `components/landing/LandingPage.tsx`).
+
+### Fixed — Entry compatibility and visibility presentation
+- Included persisted Project share scope when mapping Entry rows so Reflection visibility is rendered correctly in the journal and Project previews (`lib/db/entries.ts`).
+- Kept legacy Echo/Entries deep links functional through canonical route redirects without copying or migrating Note or Reflection data.
 ### Fixed — Task suite failed on CI between 00:00 and 04:00 UTC (2026-09-28, test only)
 - **Symptom:** Database chain run 36362162870 (on `340d5d8`, 00:25 UTC Monday) failed both legs at `scripts/tasks-security.test.sql`: "Schedule materialization is not stable". The previous run, at 23:52 UTC, was green.
 - **Cause:** the check (from `a46bd85`) creates a Mon/Wed/Fri Task in `America/New_York`, then reconciles through `current_date+28` and expects the count not to change.

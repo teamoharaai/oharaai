@@ -96,7 +96,7 @@ export function EchoNewMenu({
       <View collapsable={false} ref={triggerRef}>
         <Button
           accessibilityHint="Opens Note and Reflection creation choices"
-          accessibilityLabel="New Echo entry"
+          accessibilityLabel="New Note or Reflection"
           accessibilityState={{ expanded: open }}
           onPress={openMenu}
           style={{ minWidth: compact ? 98 : 112 }}

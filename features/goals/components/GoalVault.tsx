@@ -115,7 +115,7 @@ export function VaultWorkspace({ activityContent, activityError, activityItems, 
 
   function createEchoEntry(entryType: 'note' | 'reflection') {
     setAddOpen(false);
-    router.push({ pathname: '/(app)/entries', params: { create: entryType, view: entryType, ...(parent.type === 'goal' ? { goalId: parent.id } : { projectId: parent.id }) } } as never);
+    router.push({ pathname: entryType === 'note' ? '/(app)/notes' : '/(app)/reflections', params: { create: entryType === 'note' ? 'note' : 'new', ...(parent.type === 'goal' ? { goalId: parent.id } : { projectId: parent.id }) } } as never);
   }
 
   function addStickyNote() {
@@ -126,7 +126,7 @@ export function VaultWorkspace({ activityContent, activityError, activityItems, 
 
   const dateLabel = (value: string | Date) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const activityLabel = (item: ActivityItem) => {
-    if (item.kind === 'echo_linked') return 'Echo entry linked';
+    if (item.kind === 'echo_linked') return 'Note or Reflection linked';
     if (item.kind !== 'vault_item_added') return 'Vault activity';
     if (item.contentKind === 'sticky_note') return `Sticky Note created — ${item.title}`;
     if (item.itemType === 'link' || item.itemType === 'document') return `Source added — ${item.title}`;
@@ -152,8 +152,8 @@ export function VaultWorkspace({ activityContent, activityError, activityItems, 
   const showSources = filter === 'all' || filter === 'sources';
 
   const entryCards = (items: readonly EntryRecord[]) => <View style={{ flexDirection: compact ? 'column' : 'row', flexWrap: 'wrap', gap: SPACE.md }}>
-    {items.map((entry) => <Pressable key={entry.id} accessibilityLabel={`Open ${entry.title || 'Untitled entry'}`} accessibilityRole="button" onPress={() => router.push({ pathname: '/(app)/entries/[id]' as never, params: { id: entry.id } })} style={({ pressed }) => ({ backgroundColor: colors.background.subtle, borderColor: colors.border.divider, borderRadius: RADIUS.lg, borderWidth: 1, flexBasis: compact ? undefined : 280, flexGrow: 1, gap: SPACE.sm, minWidth: compact ? 0 : 250, opacity: pressed ? 0.7 : 1, padding: SPACE.lg })}>
-      <Typography variant="caption">{entry.entryType === 'reflection' ? 'Reflection' : 'Note'} · Echo</Typography><Typography variant="emphasis-sm">{entry.title || 'Untitled entry'}</Typography><Typography variant="caption">{dateLabel(entry.updatedAt)} · {entryProvenance(entry)}</Typography>
+    {items.map((entry) => <Pressable key={entry.id} accessibilityLabel={`Open ${entry.title || 'Untitled entry'}`} accessibilityRole="button" onPress={() => router.push({ pathname: entry.entryType === 'note' ? '/(app)/notes/[id]' : '/(app)/reflections/[id]', params: { id: entry.id } } as never)} style={({ pressed }) => ({ backgroundColor: colors.background.subtle, borderColor: colors.border.divider, borderRadius: RADIUS.lg, borderWidth: 1, flexBasis: compact ? undefined : 280, flexGrow: 1, gap: SPACE.sm, minWidth: compact ? 0 : 250, opacity: pressed ? 0.7 : 1, padding: SPACE.lg })}>
+      <Typography variant="caption">{entry.entryType === 'reflection' ? 'Reflection' : 'Note'}</Typography><Typography variant="emphasis-sm">{entry.title || 'Untitled entry'}</Typography><Typography variant="caption">{dateLabel(entry.entryType === 'reflection' ? entry.createdAt : entry.updatedAt)} · {entryProvenance(entry)}</Typography>
     </Pressable>)}
   </View>;
 

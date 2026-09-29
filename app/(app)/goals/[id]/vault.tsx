@@ -394,7 +394,7 @@ export default function VaultScreen() {
             </Typography>
             <Pressable
               onPress={() =>
-                router.push(`/(app)/echo?goalId=${goalId}` as never)
+                router.push(`/(app)/reflections?create=new&goalId=${goalId}` as never)
               }
             >
               <Typography variant="label" style={{ fontSize: 13, color: colors.text.accent }}>
@@ -414,7 +414,7 @@ export default function VaultScreen() {
           {!echoTrail.loading && echoTrail.entries.length === 0 ? (
             <Pressable
               onPress={() =>
-                router.push(`/(app)/echo?goalId=${goalId}` as never)
+                router.push(`/(app)/reflections?create=new&goalId=${goalId}` as never)
               }
               style={{
                 ...cardStyle,

@@ -227,7 +227,7 @@ export function QuickReflectionEditor({
         {showBack ? (
           <Pressable
             accessibilityHint="Saves changes before returning"
-            accessibilityLabel="Back to Echo library"
+            accessibilityLabel="Back to Reflections"
             accessibilityRole="button"
             hitSlop={8}
             onPress={() => void leave()}

@@ -36,18 +36,18 @@ test('Echo library is organized by Most Recent and Projects without date buckets
 
 test('Echo exposes one New flow and a persistent collapsible library', () => {
   assert.match(workspace, /toggleEntriesLibraryCollapsed/);
-  assert.match(library, /Collapse Echo library/);
-  assert.match(workspace, /Expand Echo library/);
+  assert.match(library, /Collapse \$\{feature === 'notes' \? 'Notes' : 'Echo'\} library/);
+  assert.match(workspace, /Expand Notes library/);
   assert.match(workspace, /<EchoCreationModal/);
   assert.match(workspace, /<EchoNewMenu/);
 });
 
 test('Echo polish uses a compact header, in-library collapse, and explicit Project exit', () => {
   assert.doesNotMatch(workspace, /<FeaturePageHeader/);
-  assert.match(workspace, /<BrandIcon name="echo"/);
-  assert.match(workspace, /accessibilityRole="header"[\s\S]*Echo/);
+  assert.match(workspace, /feature === 'notes' \? 'notes' : 'echo'/);
+  assert.match(workspace, /feature === 'notes' \? 'Notes' : 'Entries'/);
   assert.match(newMenu, /\+ New/);
-  assert.match(library, /Return to Most Recent Echo content/);
+  assert.match(library, /Return to Most Recent \$\{feature === 'notes' \? 'Notes' : 'Echo content'\}/);
   assert.match(library, /onCollapse/);
   assert.doesNotMatch(workspace, /width: 42/);
   assert.match(workspace, /position: 'absolute'[\s\S]*top: '50%'/);
@@ -79,8 +79,8 @@ test('Intelligence starts below the full-width toolbar and constrained editors u
 });
 
 test('Echo library errors are calm, actionable, and do not expose raw transport messages', () => {
-  assert.match(library, /We couldn’t load all of your Echo content\./);
-  assert.match(library, /Retry loading Echo content/);
+  assert.match(library, /We couldn’t load all of your \{feature === 'notes' \? 'Notes' : 'Echo content'\}/);
+  assert.match(library, /Retry loading \$\{feature === 'notes' \? 'Notes' : 'Echo content'\}/);
   assert.match(library, /retryLibraryLoad/);
   assert.doesNotMatch(library, /\{error \?\? projectsError\}/);
 });
@@ -117,8 +117,8 @@ test('legacy manual Reflections are not mistaken for guided conversations', () =
 });
 
 test('the old guided Reflection route can no longer expose the legacy chatbot', () => {
-  assert.match(legacyRoute, /create: 'reflection'/);
-  assert.match(legacyRoute, /view: 'reflection'/);
+  assert.match(legacyRoute, /create: 'new'/);
+  assert.match(legacyRoute, /\/(?:\(app\)\/)?reflections/);
   assert.doesNotMatch(legacyRoute, /GuidedReflection/);
 });
 

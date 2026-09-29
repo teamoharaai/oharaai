@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, TextInput, View, useWindowDim
 import { router, useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Badge } from '@/components/ui/Badge';
+import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Button } from '@/components/ui/Button';
 import { IntelligenceHeader } from '@/components/ui/IntelligenceHeader';
 import { Modal } from '@/components/ui/Modal';
@@ -11,7 +12,7 @@ import { VaultIcon } from '@/components/ui/VaultIcon';
 import { LAYOUT, RADIUS, SPACE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
 import supabase from '@/lib/db/client';
-import { goalWorkspaceHref } from '@/features/goals/navigation';
+import { goalWorkspaceHref as baseGoalWorkspaceHref } from '@/features/goals/navigation';
 import { isSourceVaultItem, isStickyVaultItem } from '@/features/goals/vault-classification';
 import type { VaultFilter } from '@/features/goals/components/GoalVault';
 import { ProjectVaultWorkspace } from '@/features/projects/components/ProjectVaultWorkspace';
@@ -26,7 +27,7 @@ import type { ProjectWorkspace } from '@/features/projects/types';
 
 function Surface({ accessibilityLabel, children, intelligence = false, title }: { accessibilityLabel?: string; children: ReactNode; intelligence?: boolean; title?: string }) {
   const colors = useThemeColors();
-  return <View accessibilityLabel={accessibilityLabel} style={{ backgroundColor: intelligence ? colors.background.selectedRow : colors.background.card, borderColor: intelligence ? colors.border.accent : colors.border.warmSubtle, borderRadius: RADIUS.xl, borderWidth: 1, gap: SPACE.lg, padding: SPACE.xl }}>{title ? <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}>{intelligence ? <Ionicons color={colors.accent.primary} name="sparkles-outline" size={19} /> : null}<Typography variant="section-header" style={intelligence ? { color: colors.text.accent } : undefined}>{title}</Typography></View> : null}{children}</View>;
+  return <View accessibilityLabel={accessibilityLabel} style={{ backgroundColor: intelligence ? colors.background.selectedRow : colors.background.card, borderColor: intelligence ? colors.border.accent : colors.border.warmSubtle, borderRadius: RADIUS.xl, borderWidth: 1, gap: SPACE.lg, padding: SPACE.xl }}>{title ? <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}>{intelligence ? <BrandIcon color={colors.accent.primary} name="echo" size={19} /> : null}<Typography variant="section-header" style={intelligence ? { color: colors.text.accent } : undefined}>{title}</Typography></View> : null}{children}</View>;
 }
 
 export default function ProjectDetailScreen() {
@@ -36,6 +37,9 @@ export default function ProjectDetailScreen() {
   const compact = width < 720;
   const params = useLocalSearchParams<{ id: string; view?: string; vaultFilter?: VaultFilter }>();
   const projectId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const goalWorkspaceHref = (goalId: string, status?: Parameters<typeof baseGoalWorkspaceHref>[1]) => (
+    baseGoalWorkspaceHref(goalId, status, { projectId })
+  );
   const [project, setProject] = useState<ProjectWorkspace | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -165,9 +169,26 @@ export default function ProjectDetailScreen() {
   const entryCard = (kind: 'note' | 'reflection') => {
     const items = kind === 'note' ? notes : reflections;
     const label = kind === 'note' ? 'Notes' : 'Reflections';
-    return <Surface accessibilityLabel={`${label} card`} title={label}><Typography variant="caption">{items.length} authorized {items.length === 1 ? kind : `${label.toLowerCase()}`}</Typography>{items.slice(0, 2).map((entry) => <View key={entry.id} style={{ borderBottomColor: colors.border.divider, borderBottomWidth: 1, gap: SPACE.sm, paddingBottom: SPACE.md }}><Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/(app)/entries/[id]' as never, params: { id: entry.id } })}><Typography variant="emphasis-sm" numberOfLines={1}>{entry.title || 'Untitled'}</Typography>{entry.plainText?.trim() ? <Typography variant="caption" numberOfLines={2} style={{ color: colors.text.muted, marginTop: SPACE.xs }}>{entry.plainText.trim()}</Typography> : null}</Pressable><View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm, justifyContent: 'space-between' }}><Typography variant="caption">{entry.projectShareScope === 'guide' ? 'Shared with Guide' : entry.projectShareScope === 'project' ? 'Shared with Project' : 'Private to me'}</Typography>{capabilities.has('add_shared_content') && entry.userId === currentUserId && entry.project?.id === project.id ? <Pressable accessibilityRole="button" disabled={busy} onPress={() => void (async () => { setBusy(true); try { await setEntryProjectShare(entry.id, entry.projectShareScope === 'private' || !entry.projectShareScope ? (project.mode === 'guide' ? 'guide' : 'project') : 'private'); await load(); } finally { setBusy(false); } })()} style={({ pressed }) => ({ opacity: busy ? 0.5 : pressed ? 0.65 : 1, paddingVertical: SPACE.sm })}><Typography variant="caption" style={{ color: colors.text.accent }}>{entry.projectShareScope === 'private' || !entry.projectShareScope ? `Share with ${project.mode === 'guide' ? 'Guide' : 'Project'}` : 'Make private'}</Typography></Pressable> : null}</View></View>)}{!items.length ? <Typography variant="body-small">No authorized {label.toLowerCase()} yet.</Typography> : null}<View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md, justifyContent: 'space-between' }}>{capabilities.has('add_shared_content') ? <Button size="compact" variant="secondary" onPress={() => router.push({ pathname: '/(app)/entries', params: { create: kind, view: kind, projectId: project.id } } as never)}>+ New {kind === 'note' ? 'Note' : 'Reflection'}</Button> : null}{actionLink(kind === 'note' ? 'Open Notes' : 'View reflections', () => switchMode('vault', kind === 'note' ? 'notes' : 'reflections'))}</View></Surface>;
+    return <Surface accessibilityLabel={`${label} card`} title={label}>
+      <Typography variant="caption">{items.length} authorized {items.length === 1 ? kind : label.toLowerCase()}</Typography>
+      {items.slice(0, 2).map((entry) => <View key={entry.id} style={{ borderBottomColor: colors.border.divider, borderBottomWidth: 1, gap: SPACE.sm, paddingBottom: SPACE.md }}>
+        <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: kind === 'note' ? '/(app)/notes/[id]' : '/(app)/reflections/[id]', params: { id: entry.id, projectId: project.id } } as never)}>
+          <Typography variant="emphasis-sm" numberOfLines={1}>{entry.title || (kind === 'note' ? 'Untitled Note' : 'Reflection')}</Typography>
+          {entry.plainText?.trim() ? <Typography variant="caption" numberOfLines={2} style={{ color: colors.text.muted, marginTop: SPACE.xs }}>{entry.plainText.trim()}</Typography> : null}
+        </Pressable>
+        <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm, justifyContent: 'space-between' }}>
+          <Typography variant="caption">{entry.projectShareScope === 'guide' ? 'Shared with Guide' : entry.projectShareScope === 'project' ? 'Shared with Project' : 'Private to me'}</Typography>
+          {capabilities.has('add_shared_content') && entry.userId === currentUserId && entry.project?.id === project.id ? <Pressable accessibilityRole="button" disabled={busy} onPress={() => void (async () => { setBusy(true); try { await setEntryProjectShare(entry.id, entry.projectShareScope === 'private' || !entry.projectShareScope ? (project.mode === 'guide' ? 'guide' : 'project') : 'private'); await load(); } finally { setBusy(false); } })()} style={({ pressed }) => ({ opacity: busy ? 0.5 : pressed ? 0.65 : 1, paddingVertical: SPACE.sm })}><Typography variant="caption" style={{ color: colors.text.accent }}>{entry.projectShareScope === 'private' || !entry.projectShareScope ? `Share with ${project.mode === 'guide' ? 'Guide' : 'Project'}` : 'Make private'}</Typography></Pressable> : null}
+        </View>
+      </View>)}
+      {!items.length ? <Typography variant="body-small">No authorized {label.toLowerCase()} yet.</Typography> : null}
+      <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md, justifyContent: 'space-between' }}>
+        {capabilities.has('add_shared_content') ? <Button size="compact" variant="secondary" onPress={() => router.push({ pathname: kind === 'note' ? '/(app)/notes' : '/(app)/reflections', params: { create: kind, projectId: project.id } } as never)}>+ New {kind === 'note' ? 'Note' : 'Reflection'}</Button> : null}
+        {actionLink(kind === 'note' ? 'Open Notes' : 'View Reflections', () => router.push({ pathname: kind === 'note' ? '/(app)/notes' : '/(app)/reflections', params: { projectId: project.id } } as never))}
+      </View>
+    </Surface>;
   };
-  const intelligenceCard = <Surface accessibilityLabel="OHARA Intelligence card" intelligence><IntelligenceHeader insightType="Project Insight" /><Typography variant="ai-italic" style={{ color: colors.text.primary, fontSize: 17, lineHeight: 26 }}>“{insight.primary}”</Typography>{insight.secondary ? <Typography variant="body-small" style={{ color: colors.text.secondary, lineHeight: 21 }}>{insight.secondary}</Typography> : null}</Surface>;
+  const intelligenceCard = <Surface accessibilityLabel="Echo Project Insight card" intelligence><IntelligenceHeader insightType="Project Insight" /><Typography variant="ai-italic" style={{ color: colors.text.primary, fontSize: 17, lineHeight: 26 }}>“{insight.primary}”</Typography>{insight.secondary ? <Typography variant="body-small" style={{ color: colors.text.secondary, lineHeight: 21 }}>{insight.secondary}</Typography> : null}</Surface>;
   const milestonesCard = <Surface accessibilityLabel="Upcoming Milestones card" title="Upcoming Milestones">{upcomingMilestones.length ? upcomingMilestones.map(({ goal, milestone }) => <Pressable accessibilityRole="button" key={milestone.id} onPress={() => router.push(goalWorkspaceHref(goal.id, 'active') as never)} style={({ pressed }) => ({ borderBottomColor: colors.border.divider, borderBottomWidth: 1, gap: SPACE.sm, opacity: pressed ? 0.72 : 1, paddingBottom: SPACE.lg })}><Typography variant="emphasis-sm" numberOfLines={1}>{milestone.title}</Typography><View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}><Typography variant="caption" numberOfLines={1} style={{ flex: 1 }}>{goal.title}</Typography><Typography variant="caption">{milestone.dueDate ? `Due ${milestone.dueDate.toLocaleDateString()}` : 'No deadline'}</Typography></View><Typography variant="caption">Responsible: {milestone.responsibleUserId ? memberName.get(milestone.responsibleUserId) ?? 'Assigned member' : 'Unassigned'}</Typography></Pressable>) : <Typography variant="body-small">No upcoming Milestones yet.</Typography>}{activeGoals.length ? actionLink('View all', () => router.push(goalWorkspaceHref(activeGoals[0].id, 'active') as never)) : null}</Surface>;
   const tasksCard = <Surface accessibilityLabel="Project Tasks card" title="Project Tasks">
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>{(['mine', 'everyone', 'upcoming'] as const).map((filter) => <Button key={filter} size="compact" variant={taskFilter === filter ? 'primary' : 'secondary'} onPress={() => setTaskFilter(filter)}>{filter[0].toUpperCase() + filter.slice(1)}</Button>)}</View>

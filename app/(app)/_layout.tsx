@@ -20,8 +20,8 @@ export default function AppLayout() {
     >
       <AppNavigation
         onNewEntry={() => router.push({
-          pathname: '/entries',
-          params: { create: 'new' },
+          pathname: '/notes',
+          params: { create: 'note' },
         })}
         onNewProject={() => setProjectModalOpen(true)}
       />
@@ -49,6 +49,10 @@ export default function AppLayout() {
           <Stack.Screen name="entries/[id]" />
           <Stack.Screen name="entries/reflection" />
           <Stack.Screen name="echo" />
+          <Stack.Screen name="notes" />
+          <Stack.Screen name="notes/[id]" />
+          <Stack.Screen name="reflections" />
+          <Stack.Screen name="reflections/[id]" />
           <Stack.Screen name="goals/index" />
           <Stack.Screen name="constellation" />
           <Stack.Screen name="explore" />

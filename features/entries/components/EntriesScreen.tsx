@@ -23,7 +23,13 @@ function param(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string }) {
+export function EntriesScreen({
+  selectedEntryId,
+  feature = 'legacy',
+}: {
+  selectedEntryId?: string;
+  feature?: 'legacy' | 'notes';
+}) {
   const colors = useThemeColors();
   const darkMode = useUIStore((state) => state.themeMode === 'dark');
   const libraryCollapsed = useUIStore((state) => state.entriesLibraryCollapsed);
@@ -44,11 +50,9 @@ export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string })
       ? state.entries.find((entry) => entry.id === selectedEntryId)?.entryType
       : undefined
   ));
-  const activeFilter = resolveEchoLibraryFilter(
-    params.view,
-    selectedProjectId,
-    selectedEntryType,
-  );
+  const activeFilter = feature === 'notes'
+    ? 'note'
+    : resolveEchoLibraryFilter(params.view, selectedProjectId, selectedEntryType);
   const projects = useProjectStore((state) => state.projects);
   const [creationOpen, setCreationOpen] = useState(false);
   const [creationType, setCreationType] = useState<EntryType | null>(null);
@@ -64,7 +68,9 @@ export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string })
 
   useEffect(() => {
     if (!['new', 'note', 'reflection'].includes(requestedCreation ?? '')) return;
-    setCreationType(requestedCreation === 'note' || requestedCreation === 'reflection'
+    setCreationType(feature === 'notes'
+      ? 'note'
+      : requestedCreation === 'note' || requestedCreation === 'reflection'
       ? requestedCreation
       : null);
     setCreationOpen(true);
@@ -77,7 +83,7 @@ export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string })
 
   function entriesHref(projectId?: string, view: EchoLibraryFilter = activeFilter) {
     return {
-      pathname: '/(app)/entries',
+      pathname: feature === 'notes' ? '/(app)/notes' : '/(app)/entries',
       params: {
         ...(projectId ? { projectId } : {}),
         view,
@@ -87,7 +93,7 @@ export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string })
 
   function selectEntry(entryId: string, entryType: EntryType) {
     router.push({
-      pathname: '/(app)/entries/[id]',
+      pathname: feature === 'notes' ? '/(app)/notes/[id]' : '/(app)/entries/[id]',
       params: {
         id: entryId,
         ...(selectedProjectId ? { projectId: selectedProjectId } : {}),
@@ -99,7 +105,7 @@ export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string })
   function selectMostRecent() {
     if (selectedEntryId) {
       router.replace({
-        pathname: '/(app)/entries/[id]',
+        pathname: feature === 'notes' ? '/(app)/notes/[id]' : '/(app)/entries/[id]',
         params: { id: selectedEntryId, view: activeFilter },
       } as never);
       return;
@@ -113,7 +119,7 @@ export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string })
     if (requestedCreation) {
       if (selectedEntryId) {
         router.replace({
-          pathname: '/(app)/entries/[id]',
+          pathname: feature === 'notes' ? '/(app)/notes/[id]' : '/(app)/entries/[id]',
           params: {
             id: selectedEntryId,
             ...(selectedProjectId ? { projectId: selectedProjectId } : {}),
@@ -150,6 +156,7 @@ export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string })
       onSelectProject={(projectId) => router.replace(entriesHref(projectId, 'all'))}
       selectedEntryId={selectedEntryId}
       selectedProjectId={selectedProjectId}
+      feature={feature}
     />
   );
 
@@ -196,15 +203,15 @@ export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string })
             width: 52,
           }}
         >
-          <BrandIcon name={selectedProject ? 'project' : 'echo'} color={colors.text.accent} size={25} />
+          <BrandIcon name={selectedProject ? 'project' : feature === 'notes' ? 'notes' : 'echo'} color={colors.text.accent} size={25} />
         </View>
         <Typography variant="heading" style={{ fontSize: compact ? 25 : 28, marginTop: SPACE['2xl'], textAlign: 'center' }}>
-          {selectedProject?.title ?? 'A space to hear yourself think'}
+          {selectedProject?.title ?? (feature === 'notes' ? 'A space for ideas worth developing' : 'A space to hear yourself think')}
         </Typography>
         <Typography variant="body" style={{ color: colors.text.secondary, lineHeight: 24, marginTop: SPACE.md, textAlign: 'center' }}>
           {selectedProject
-            ? 'Choose a Note or Reflection from this Project, or create something new for it.'
-            : 'Choose something from Most Recent, open a Project, or begin with a new Note or Reflection.'}
+            ? feature === 'notes' ? 'Choose a Note from this Project, or create something new for it.' : 'Choose a Note or Reflection from this Project, or create something new for it.'
+            : feature === 'notes' ? 'Choose a Note, open a Project collection, or begin writing.' : 'Choose something from Most Recent, open a Project, or begin with a new Note or Reflection.'}
         </Typography>
       </View>
     </View>
@@ -233,16 +240,35 @@ export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string })
         }}
       >
         <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md, minWidth: 0 }}>
-          <BrandIcon name="echo" color={colors.accent.primary} size={compact ? 23 : 25} />
+          <BrandIcon name={feature === 'notes' ? 'notes' : 'echo'} color={colors.accent.primary} size={compact ? 23 : 25} />
           <Typography
             accessibilityRole="header"
             variant="heading"
             style={{ letterSpacing: -0.6 }}
           >
-            Echo
+            {feature === 'notes' ? 'Notes' : 'Entries'}
           </Typography>
         </View>
-        <EchoNewMenu compact={compact} onSelectType={(type) => openCreation(type)} />
+        {feature === 'notes' ? (
+          <Pressable
+            accessibilityLabel="New Note"
+            accessibilityRole="button"
+            onPress={() => openCreation('note')}
+            style={({ pressed }) => ({
+              alignItems: 'center',
+              backgroundColor: colors.accent.primary,
+              borderRadius: RADIUS.md,
+              flexDirection: 'row',
+              gap: SPACE.sm,
+              minHeight: 42,
+              opacity: pressed ? 0.72 : 1,
+              paddingHorizontal: SPACE.xl,
+            })}
+          >
+            <Ionicons color={colors.text.onAccent} name="add" size={18} />
+            <Typography variant="emphasis-sm" style={{ color: colors.text.onAccent }}>New Note</Typography>
+          </Pressable>
+        ) : <EchoNewMenu compact={compact} onSelectType={(type) => openCreation(type)} />}
       </View>
 
       <View style={{ flex: 1, flexDirection: 'row', minHeight: 0, minWidth: 0 }}>
@@ -285,7 +311,7 @@ export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string })
           {compact ? (selectedEntryId ? activeWorkspace : library) : activeWorkspace}
           {!compact && libraryCollapsed ? (
             <Pressable
-              accessibilityLabel="Expand Echo library"
+              accessibilityLabel={feature === 'notes' ? 'Expand Notes library' : 'Expand entry library'}
               accessibilityRole="button"
               accessibilityState={{ expanded: false }}
               onPress={toggleLibrary}
@@ -321,7 +347,7 @@ export function EntriesScreen({ selectedEntryId }: { selectedEntryId?: string })
           setCreationOpen(false);
           setCreationType(null);
           router.replace({
-            pathname: '/(app)/entries/[id]',
+            pathname: feature === 'notes' ? '/(app)/notes/[id]' : '/(app)/entries/[id]',
             params: { id: entryId, view: entryType },
           } as never);
         }}
