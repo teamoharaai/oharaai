@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Verified — Migration 080 live run; backend pushed (2026-09-29)
+- **Push** (approved): `0587f9b..9fa9914` to `main`; Vercel production deployment 6722945035 succeeded; Database chain green.
+- **Live run** (approved as one sequence), `live-20260929-ae70f7b1`: 4/4 opt-in native tests passed. Cleanup evidence included **goal_events 3** (and operation_ledger 22); afterwards every count was 0 and admission was closed (`enabled false`, allowlist 0). Record: `docs/goal-events-e2e-verification-2026-09-29.md`.
+- **Next:** TD-005 (design agreed 2026-09-29, `design/ios-core/TD-005-desktop-work-cutover.md` in the iOS repo): Migration 081 (work-v1 Milestone delete/reorder/photo path with a `storage.objects` existence check, schedule interval/end date, `reconcile_my_tasks_v1`), 082 (Echo → canonical mirror triggers), 083 (revoke direct Milestone writes), desktop behind a per-account flag.
+
 ### Deployed — Migration 080 to production (2026-09-28; backend not yet pushed)
 - **Preflight** (approved by Justin): `node scripts/test-manual-goal-hosted.mjs --project-ref rrgiqemscnyaqkculnmb --applied-through 079`. **PASS:**
   - history exactly 001–079; nobody upstream had taken 080 (`git fetch` before preflight and again before apply);
