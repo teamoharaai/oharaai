@@ -283,17 +283,9 @@ async function fetchTaskEvidence(
   if (!goalIds.length) return { actions: [], trackers: [], trackerLogs: [], completedOccurrenceCount: 0 };
   const activeGoalIds = goalIds.filter((goalId) => goalStatuses.get(goalId) === 'active');
   if (activeGoalIds.length) {
-    const { data: definitions, error: definitionError } = await db.from('tasks')
-      .select('id, task_schedules!left(id,is_active)')
-      .eq('user_id', userId).eq('status', 'active').in('goal_id', activeGoalIds);
-    if (definitionError) throw new Error(`Momentum Task reconciliation read failed: ${definitionError.message}`);
-    for (const definition of (definitions ?? []) as Array<Record<string, unknown>>) {
-      const schedules = Array.isArray(definition.task_schedules)
-        ? definition.task_schedules as Array<Record<string, unknown>> : [];
-      if (!schedules.some((schedule) => schedule.is_active === true)) continue;
-      const { error } = await db.rpc('reconcile_task_occurrences_v1', { p_task_id: String(definition.id) });
-      if (error) throw new Error(`Momentum Task reconciliation failed: ${error.message}`);
-    }
+    // One set-based reconcile for these Goals (Migration 081), not one sequential RPC per Task.
+    const { error } = await db.rpc('reconcile_my_tasks_v1', { p_goal_ids: activeGoalIds });
+    if (error) throw new Error(`Momentum Task reconciliation failed: ${error.message}`);
   }
   const { data, error } = await db.from('tasks').select(`
     id, user_id, goal_id, title, completion_mode, target_quantity, status, due_date,

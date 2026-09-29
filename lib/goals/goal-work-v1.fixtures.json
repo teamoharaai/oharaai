@@ -65,6 +65,30 @@
       "name": "milestone.create.child",
       "body": { "operationType": "milestone.create", "contractVersion": 1, "goalId": "<GOAL>", "parentId": "<MILESTONE>",
         "fields": { "title": "First 5 km loop" } }
+    },
+    {
+      "name": "milestone.create.childEvidence",
+      "body": { "operationType": "milestone.create", "contractVersion": 1, "goalId": "<GOAL>", "parentId": "<MILESTONE>",
+        "fields": { "title": "Finish line", "description": "Evidence note" } }
+    },
+    {
+      "name": "milestone.create.suggested",
+      "body": { "operationType": "milestone.create", "contractVersion": 1, "goalId": "<GOAL>", "parentId": null,
+        "fields": { "title": "Sign up for a 10 km race", "description": null, "dueDate": null, "targetCount": null, "isAiSuggested": true } }
+    },
+    {
+      "name": "milestone.reorder",
+      "body": { "operationType": "milestone.reorder", "contractVersion": 1, "goalId": "<GOAL>", "parentId": null,
+        "orderedIds": ["<MILESTONE>", "<PREVIOUS_MILESTONE>"] }
+    },
+    {
+      "name": "milestone.update.photo",
+      "body": { "operationType": "milestone.update", "contractVersion": 1, "goalId": "<GOAL>", "milestoneId": "<MILESTONE>",
+        "expectedRevision": "<MILESTONE_REVISION>", "changes": { "photoPath": "<PHOTO_PATH>" } }
+    },
+    {
+      "name": "milestone.delete",
+      "body": { "operationType": "milestone.delete", "contractVersion": 1, "goalId": "<GOAL>", "milestoneId": "<MILESTONE>" }
     }
   ],
   "responses": {
@@ -130,6 +154,8 @@
           "dueDate": "2026-10-01",
           "completedAt": null,
           "targetCount": 3,
+          "photoPath": null,
+          "isAiSuggested": false,
           "revision": "1790265600423456",
           "childCount": 1,
           "completedChildCount": 1,
@@ -143,6 +169,8 @@
               "dueDate": null,
               "completedAt": "2026-09-20T13:00:00.123456+00:00",
               "targetCount": null,
+              "photoPath": null,
+              "isAiSuggested": false,
               "revision": "1790265600523456"
             }
           ]
@@ -170,6 +198,8 @@
         "dueDate": "2026-10-01",
         "completedAt": "2026-09-24T14:00:00.123456+00:00",
         "targetCount": 3,
+        "photoPath": null,
+        "isAiSuggested": false,
         "revision": "1790265600623456",
         "childCount": 1,
         "completedChildCount": 1,
@@ -183,6 +213,8 @@
             "dueDate": null,
             "completedAt": "2026-09-20T13:00:00.123456+00:00",
             "targetCount": null,
+            "photoPath": null,
+            "isAiSuggested": false,
             "revision": "1790265600523456"
           }
         ]
@@ -207,6 +239,8 @@
         "dueDate": "2026-10-01",
         "completedAt": "2026-09-24T14:00:00.123456+00:00",
         "targetCount": 3,
+        "photoPath": null,
+        "isAiSuggested": false,
         "revision": "1790265600623456",
         "childCount": 1,
         "completedChildCount": 1,

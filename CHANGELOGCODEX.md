@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### Added — Migration 081: goal_work_v1 for desktop, batch Task reconcile (TD-005 phase a; local only, not deployed, 2026-09-29)
+- **Design:** `design/ios-core/TD-005-desktop-work-cutover.md` (iOS repo), agreed with Justin 2026-09-29 (D1–D6, B1–B10), plus two decisions taken while implementing (B11 completed-Milestone evidence, B12 interval/end date deferred).
+- **`goal_work_v1` (additive; existing requests, digests and responses unchanged):**
+  - `milestone.delete {milestoneId}`: hard delete, steps cascade, their `goal_events` go (080). Completed Milestones can be deleted (desktop parity). A deleted step projects its parent; a deleted top-level Milestone projects nothing.
+  - `milestone.reorder {parentId?, orderedIds}`: must be exactly the current siblings (`MILESTONE_ORDER_STALE` otherwise), 1–100 distinct IDs.
+  - `photoPath` on `milestone.update`: shape `{uuid}/{uuid}/{name}.{ext}`, must be the Goal owner's folder for this Milestone (`PHOTO_PATH_INVALID`) and exist in `storage.objects`, bucket `milestone-photos` (`PHOTO_NOT_FOUND`, D5). `null` clears it.
+  - `isAiSuggested` on `milestone.create`; steps accept `description` and `dueDate`.
+  - **A completed Milestone still takes evidence** (Justin 2026-09-29, IOSQ-007): its photo, and new or edited steps; its own text, date and target stay sealed.
+  - The Milestone DTO gains `photoPath` and `isAiSuggested`. The ledger's `goal.work` check (078, found by definition) is replaced by `operation_ledger_goal_work` with the two new types.
+- **`public.reconcile_my_tasks_v1(p_goal_ids uuid[])`**: one set-based reconcile of the caller's active scheduled Tasks on active Goals, owner from `request_owner()`, `authenticated` only. **Correction to TD-005 §2:** `work_reconcile` (075) stops at today while `reconcile_task_occurrences_v1` materializes through today + 28, so `work_reconcile` gains a horizon (`work_reconcile(owner, ids, horizon_days)`; the two-argument form is horizon 0, unchanged for goal_work_v1) and the batch RPC uses 28. The chain suite proves it equals one per-Task call for daily, weekday, weekly-count and every-2-days schedules. Deliberate difference: a schedule starting more than 3660 days ago is clamped instead of raising.
+- **Desktop-shared behaviour change:** `lib/db/tasks.ts` (`fetchGoalTasks`, `fetchTodayTaskItems`) and `features/momentum/services/momentum-service.ts` make one `reconcile_my_tasks_v1` call instead of one `reconcile_task_occurrences_v1` per Task (Momentum's were sequential). Same occurrences; this code must not be pushed before 081 is on production. Desktop Milestone writes are unchanged until phase b.
+- The executor gets `usage` on `storage` and `select` on `storage.objects` (existence check only), and `delete`/`update(sort_order, photo_url)` on `milestones`.
+- **Assertions changed (for Justin's review):** in `lib/goals/goal-work-v1-db.test.mjs` "milestones keep one visible child level…": a step with `dueDate` was `INVALID_FIELD` and now commits (a step with `targetCount` is still `INVALID_FIELD`); a step under a completed Milestone was `MILESTONE_COMPLETE` and now commits. Both follow Justin's decisions above.
+- **Harness:** 6 new tests in `goal-work-v1-db.test.mjs`; the fixture round-trip covers the new examples (seeds a storage object). Shared fixtures gained five request examples and the two DTO keys (byte-identical copy in the iOS repo). Probe `scripts/goal-hosted-preflight/081-goal-work-desktop.sql` (registered): storage grant (B9: stop and ask if hosted refuses), ledger check, grants, delete/reorder/photo/evidence end to end, batch horizon 28; writes nothing to storage. `facts.sql` prints the executor's storage access. README updated.
+- Verified locally: `test:db` 15/15 in both ACL modes and with `PGTZ=UTC`; preflight rehearsal (probes 072–078, 080, 081) and apply rehearsal (both ACL modes) PASS; HTTP 34/34; `test:tasks` 83/83; `test:momentum` 72/72; `tsc` only the pre-existing `manual-create-v1.test.ts(6,41)`.
+
 ### Changed — CI actions v4 → v7 (2026-09-29; local, ships with the next approved push)
 - `.github/workflows/db-chain.yml`: `actions/checkout@v7`, `actions/setup-node@v7` (Node 24 runtime; GitHub is retiring Node 20 actions). `package-manager-cache: false` keeps v5+'s automatic cache off explicitly; the job installs no dependencies.
 

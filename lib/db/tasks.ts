@@ -97,21 +97,9 @@ export async function fetchGoalTasks(
   userId: string,
   goalId: string,
 ): Promise<Task[]> {
-  const { data: definitions, error: definitionError } = await db
-    .from('tasks')
-    .select('id,status,task_schedules!left(id,is_active),goals!inner(status)')
-    .eq('user_id', userId)
-    .eq('goal_id', goalId);
-  if (definitionError) throw definitionError;
-
-  const reconciliationResults = await Promise.all((definitions ?? []).flatMap((row: Row) =>
-    row.status === 'active' && row.goals?.status === 'active'
-      && (row.task_schedules ?? []).some((item: Row) => item.is_active)
-      ? [db.rpc('reconcile_task_occurrences_v1', { p_task_id: row.id })]
-      : [],
-  ));
-  const reconciliationFailure = reconciliationResults.find((result) => result.error)?.error;
-  if (reconciliationFailure) throw reconciliationFailure;
+  // One set-based reconcile for the Goal's active scheduled Tasks (Migration 081), not one RPC per Task.
+  const { error: reconciliationError } = await db.rpc('reconcile_my_tasks_v1', { p_goal_ids: [goalId] });
+  if (reconciliationError) throw reconciliationError;
 
   const { data, error } = await db
     .from('tasks')
@@ -193,17 +181,9 @@ export async function fetchTodayTaskItems(
   db: SupabaseClient,
   userId: string,
 ): Promise<TodayTaskItem[]> {
-  const { data: definitions, error: definitionError } = await db.from('tasks')
-    .select('id,status,task_schedules!left(id,is_active),goals!inner(status)')
-    .eq('user_id', userId).eq('status', 'active').eq('goals.status', 'active');
-  if (definitionError) throw definitionError;
-  const reconciliationResults = await Promise.all((definitions ?? []).flatMap((row: Row) =>
-    (row.task_schedules ?? []).some((item: Row) => item.is_active)
-      ? [db.rpc('reconcile_task_occurrences_v1', { p_task_id: row.id })]
-      : [],
-  ));
-  const reconciliationFailure = reconciliationResults.find((result) => result.error)?.error;
-  if (reconciliationFailure) throw reconciliationFailure;
+  // One set-based reconcile of every active scheduled Task on active Goals (Migration 081).
+  const { error: reconciliationError } = await db.rpc('reconcile_my_tasks_v1', { p_goal_ids: null });
+  if (reconciliationError) throw reconciliationError;
 
   const { data, error } = await db.from('tasks')
     .select(`${TASK_SELECT}, goals!inner(id,title,status)`)

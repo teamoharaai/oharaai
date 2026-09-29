@@ -68,7 +68,7 @@ Suites receive one env contract: `GOAL_TEST_SOCKET`, `GOAL_TEST_PORT`, `GOAL_TES
 
 ## Hosted preflight
 
-`scripts/test-manual-goal-hosted.mjs` is the pre-deploy gate. In **one transaction** it applies every local migration after `--applied-through`, runs the probes in `scripts/goal-hosted-preflight/`, prints hosted facts (grants, executor access to `auth`, triggers), then rolls back. The server then confirms the transaction's xid is `aborted`.
+`scripts/test-manual-goal-hosted.mjs` is the pre-deploy gate. In **one transaction** it applies every local migration after `--applied-through`, runs the probes in `scripts/goal-hosted-preflight/`, prints hosted facts (grants, executor access to `auth` and, from 081, read access to `storage.objects`, triggers), then rolls back. The server then confirms the transaction's xid is `aborted`.
 
 Guards, all checked before anything is applied:
 - the project ref must match `supabase/.temp/project-ref`;
