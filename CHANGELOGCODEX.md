@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+### Deployed — Migration 081 to production (2026-09-29; backend not yet pushed)
+- **Preflight** (approved by Justin): history exactly 001–080; probes 072–078, 080 and 081 passed; transaction 19941 aborted (server-verified). **B9: the storage grant works on hosted:** the executor has `usage` on `storage` and `select` on `storage.objects` (owner `supabase_storage_admin`), and the probe's photo check answered `PHOTO_NOT_FOUND`, so no fallback is needed.
+- **Apply** (approved): transaction 20027 committed (server-verified); probes passed and rolled back; history now exactly 001–081, and the recorded statements match the file; PostgREST notified.
+- **Existing rows unchanged** (`invariants-before.sql` = `invariants-after.sql`, now including `goal_events`):
+
+  | Table | Rows | Digest |
+  | --- | --- | --- |
+  | goal_private.goal_events | 134 | `2df80afff211830932162a50c0729bc1` |
+  | goals | 61 | `59a3f0b34232fe059401b64d6c275371` |
+  | milestones | 46 | `db273f1389631695bc703ddc709d44c2` |
+  | tasks | 138 | `dc35b7600e76410db544aae4da92f5bd` |
+  | task_schedules | 30 | `da8abb1e662ade134161f6bde5f0c677` |
+  | task_occurrences | 688 | `f7132ba948087a9ec8b24e49643e65b7` |
+  | task_mutation_receipts | 108 | `38082f6f1211b34bdc017f6b8742e56c` |
+  | goal_private.operations / goal_mutations / work_mutations / provenance | 0 each | empty-set digest |
+
+- **080 in production:** real use has added events since its apply (notes 2→3, reflections 25→26, Task completions 83→86). Legacy-only Echo goal links are still 0.
+- `scripts/db-chain/hosted-applied-through` is now 081; both rehearsals skip until 082 exists.
+- **Still pending:** the backend push (desktop's Task lists and Momentum switch to `reconcile_my_tasks_v1` with it), the live run, the native push.
+
 ### Added — Migration 081: goal_work_v1 for desktop, batch Task reconcile (TD-005 phase a; local only, not deployed, 2026-09-29)
 - **Design:** `design/ios-core/TD-005-desktop-work-cutover.md` (iOS repo), agreed with Justin 2026-09-29 (D1–D6, B1–B10), plus two decisions taken while implementing (B11 completed-Milestone evidence, B12 interval/end date deferred).
 - **`goal_work_v1` (additive; existing requests, digests and responses unchanged):**
