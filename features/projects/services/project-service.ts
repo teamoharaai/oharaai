@@ -4,7 +4,6 @@ import type { IncomingProjectInvitation, Project, ProjectActivity, ProjectChatMe
 import type { GoalWithDetails } from '@/features/goals/types';
 import type { EntryRecord } from '@/features/entries/types';
 import { enrichGoalsWithSignals, GOAL_SELECT, mapGoal, type DbGoal } from '@/features/goals/services/goal-service';
-import { fetchEntries } from '@/features/entries/services/entry-service';
 import { buildProjectVaultActivity, deriveProjectVisualCategory, mergeProjectActivity } from '../model';
 import { selectProjectTaskPreviews } from '../model';
 import { mapTask } from '@/lib/db/tasks';
@@ -71,9 +70,6 @@ export async function fetchProjectSummaries(userId: string): Promise<ProjectSumm
 }
 
 export async function fetchProjectWithGoals(projectId: string): Promise<ProjectWithGoals | null> {
-  const { error: reconciliationError } = await supabase.rpc('reconcile_goal_expiration_v1');
-  if (reconciliationError) throw reconciliationError;
-
   const { data: projectData, error: projectError } = await supabase
     .from('projects')
     .select(PROJECT_SELECT)
@@ -235,30 +231,33 @@ export async function fetchProjectCollaboration(projectId: string): Promise<Proj
   return data as unknown as ProjectCollaboration;
 }
 
-export async function fetchProjectWorkspace(projectId: string): Promise<ProjectWorkspace | null> {
+export async function fetchProjectWorkspace(
+  projectId: string,
+  options: { includeSecondary?: boolean } = {},
+): Promise<ProjectWorkspace | null> {
   const base = await fetchProjectWithGoals(projectId);
   if (!base) return null;
-  const [entriesResult, sharedEntriesResult, vaultResult, eventResult, taskResult, entryLinkResult, taskPreviewResult, collaborationResult, collaborationActivityResult, commentsResult, momentumResult] = await Promise.allSettled([
-    fetchEntries(), fetchProjectEntries(projectId),
-    authedFetch(`/api/projects/${projectId}/vault`).then(async (response) => {
+  const includeSecondary = options.includeSecondary !== false;
+  const [sharedEntriesResult, vaultResult, eventResult, taskResult, entryLinkResult, taskPreviewResult, collaborationResult, collaborationActivityResult, commentsResult, momentumResult] = await Promise.allSettled([
+    fetchProjectEntries(projectId),
+    includeSecondary ? authedFetch(`/api/projects/${projectId}/vault`).then(async (response) => {
       if (!response.ok) {
         const payload = await response.json().catch(() => null) as { error?: string } | null;
         throw new Error(payload?.error ?? `Project Vault could not be loaded (${response.status})`);
       }
       return response.json() as Promise<{ vault: NonNullable<ProjectWorkspace['vault']>; items: ProjectVaultItem[] }>;
-    }),
-    supabase.from('project_goal_events').select('id, project_id, prior_project_id, goal_id, event_type, occurred_at')
-      .or(`project_id.eq.${projectId},prior_project_id.eq.${projectId}`).order('occurred_at', { ascending: false }).limit(30),
-    fetchProjectTaskActivity(base.goals),
-    fetchProjectEntryLinkActivity(base.goals),
+    }) : Promise.resolve({ vault: null, items: [] as ProjectVaultItem[] }),
+    includeSecondary ? supabase.from('project_goal_events').select('id, project_id, prior_project_id, goal_id, event_type, occurred_at')
+      .or(`project_id.eq.${projectId},prior_project_id.eq.${projectId}`).order('occurred_at', { ascending: false }).limit(30) : Promise.resolve({ data: [], error: null }),
+    includeSecondary ? fetchProjectTaskActivity(base.goals) : Promise.resolve([]),
+    includeSecondary ? fetchProjectEntryLinkActivity(base.goals) : Promise.resolve([]),
     fetchProjectTaskPreviews(base.goals),
     fetchProjectCollaboration(projectId),
-    supabase.from('project_activity_events').select('id,actor_id,event_type,target_type,target_id,label,metadata,occurred_at').eq('project_id',projectId).order('occurred_at',{ascending:false}).limit(30),
-    supabase.from('project_comments').select('id,author_id,target_type,target_id,body,created_at,edited_at').eq('project_id',projectId).eq('target_type','task').is('deleted_at',null).order('created_at',{ascending:false}).limit(50),
+    includeSecondary ? supabase.from('project_activity_events').select('id,actor_id,event_type,target_type,target_id,label,metadata,occurred_at').eq('project_id',projectId).order('occurred_at',{ascending:false}).limit(30) : Promise.resolve({ data: [], error: null }),
+    includeSecondary ? supabase.from('project_comments').select('id,author_id,target_type,target_id,body,created_at,edited_at').eq('project_id',projectId).eq('target_type','task').is('deleted_at',null).order('created_at',{ascending:false}).limit(50) : Promise.resolve({ data: [], error: null }),
     supabase.rpc('get_project_goal_momentum_v11',{p_project_id:projectId}),
   ]);
   const partialErrors: string[] = [];
-  const entries = entriesResult.status === 'fulfilled' ? entriesResult.value : (partialErrors.push('Echo content'), []);
   const projectEntries = sharedEntriesResult.status === 'fulfilled' ? sharedEntriesResult.value : (partialErrors.push('shared Echo content'), []);
   const vaultPayload = vaultResult.status === 'fulfilled' ? vaultResult.value : (partialErrors.push('Vault content'), { vault: null, items: [] as ProjectVaultItem[] });
   const eventRows = eventResult.status === 'fulfilled' && !eventResult.value.error
@@ -296,8 +295,7 @@ export async function fetchProjectWorkspace(projectId: string): Promise<ProjectW
   }));
   const comments: ProjectComment[] = commentsResult.status === 'fulfilled' && !commentsResult.value.error ? (commentsResult.value.data ?? []).map((row:any)=>({id:row.id,authorId:row.author_id,targetType:row.target_type,targetId:row.target_id,body:row.body,createdAt:row.created_at,editedAt:row.edited_at})) : (partialErrors.push('comments'), []);
   const goalMomentum: ProjectGoalMomentum[] = momentumResult.status === 'fulfilled' && !momentumResult.value.error ? (momentumResult.value.data ?? []).map((row:any)=>({goalId:row.goal_id,displayedValue:row.current_value === null ? null : Math.round(Number(row.current_value)),weeklyChange:row.weekly_change === null ? null : Number(row.weekly_change),status:row.status})) : (partialErrors.push('Momentum'), []);
-  const goalIds = new Set(base.goals.map((goal) => goal.id));
-  const linkedEntries = Array.from(new Map([...entries.filter((entry) => entry.project?.id === projectId || entry.goals.some((goal) => goalIds.has(goal.id))), ...projectEntries].map((entry) => [entry.id, entry])).values());
+  const linkedEntries = projectEntries;
   const eventActivity: ProjectActivity[] = eventRows.map((event: any) => ({
     id: `association-${event.id}`,
     label: event.event_type === 'detached' ? 'Goal removed from Project' : event.event_type === 'reassigned' ? 'Goal moved to Project' : 'Goal added to Project',
@@ -329,6 +327,7 @@ export async function fetchProjectWorkspace(projectId: string): Promise<ProjectW
   return {
     ...base,
     entries: linkedEntries,
+    secondaryLoaded: includeSecondary,
     partialErrors,
     vault: vaultPayload.vault,
     vaultItems: vaultPayload.items,

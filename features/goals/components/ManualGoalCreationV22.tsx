@@ -23,6 +23,7 @@ import { createMilestone, fetchGoalById } from '../services/goal-service';
 import { useGoalStore } from '../store';
 import { goalWorkspaceHref } from '../navigation';
 import { planSuggestions } from '../plan-suggestions';
+import { refreshMomentumAfterMeaningfulMutation } from '@/features/momentum/hooks/useMomentumHomeSummary';
 import type { GoalMilestoneInput } from '../types';
 
 function deadlineIn(days: number) { const date = new Date(); date.setDate(date.getDate() + days); return dateInTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone, date); }
@@ -87,6 +88,7 @@ export function ManualGoalCreationV22({ initialProjectId, onAI }: { initialProje
       }
       await saveGoalVisibility(id, visibility, audience);
       const goal = await fetchGoalById(id); if (goal) upsert(goal);
+      void refreshMomentumAfterMeaningfulMutation();
       setDone(id);
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not save Goal.'); }
     finally { setBusy(false); }

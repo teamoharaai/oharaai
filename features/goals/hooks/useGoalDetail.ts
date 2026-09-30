@@ -265,6 +265,7 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
       return;
     }
     upsertTracker(goalId, saved);
+    void refreshMomentumAfterMeaningfulMutation();
   }, [goalId, readOnlyGoal, upsertTracker]);
 
   const onDeleteTracker = useCallback(async (trackerId: string) => {
@@ -276,6 +277,8 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
     if (!await deleteTracker(goalId, trackerId)) {
       upsertTracker(goalId, current);
       setTrackerError('Failed to delete tracker. Please try again.');
+    } else {
+      void refreshMomentumAfterMeaningfulMutation();
     }
   }, [goalId, readOnlyGoal, removeTracker, upsertTracker]);
 
@@ -292,6 +295,7 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
       return;
     }
     upsertTracker(goalId, saved);
+    void refreshMomentumAfterMeaningfulMutation();
   }, [goalId, readOnlyGoal, upsertTracker]);
 
   const onCompleteTracker = useCallback(async (trackerId: string) => {
@@ -361,6 +365,8 @@ export function useGoalDetail(goalId: string): UseGoalDetailResult {
     if (!await deleteMilestone(goalId, milestoneId)) {
       upsertMilestone(goalId, current);
       setMilestoneError('Failed to delete milestone. Please try again.');
+    } else {
+      void refreshMomentumAfterMeaningfulMutation();
     }
   }, [goalId, readOnlyGoal, removeMilestone, upsertMilestone]);
 

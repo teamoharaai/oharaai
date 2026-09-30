@@ -236,7 +236,10 @@ async function handlePatch(
       }
     }
 
-    return Response.json({ success: true });
+    return Response.json({
+      success: true,
+      echoReconciliationEntryId: contentChanged && currentRow.ai_insight_requested ? entryId : null,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
     console.error('[entries] PATCH failed', { entryId, error: message });

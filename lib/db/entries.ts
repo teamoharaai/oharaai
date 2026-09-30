@@ -274,9 +274,6 @@ export async function getEntryGoalOptions(
   db: SupabaseClient,
   userId: string,
 ): Promise<EntryGoalOption[]> {
-  const { error: reconciliationError } = await db.rpc('reconcile_goal_expiration_v1');
-  if (reconciliationError) throw reconciliationError;
-
   const { data: goalData, error: goalError } = await db
     .from('goals')
     .select('id, title, category, status, project_id')

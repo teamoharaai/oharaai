@@ -101,6 +101,14 @@ test('Project activity is truthful, bounded, and partial-source failures degrade
   assert.match(workspace, /on: \$\{item\.origin\}/);
 });
 
+test('Project first render avoids full-account Momentum and full Entry library hydration', () => {
+  assert.doesNotMatch(workspace, /useMomentumHomeSummary/);
+  assert.match(service, /get_project_goal_momentum_v11/);
+  assert.doesNotMatch(service, /fetchEntries\(\)/);
+  assert.match(workspace, /includeSecondary: !deferSecondary/);
+  assert.match(service, /includeSecondary \? authedFetch/);
+});
+
 test('collaboration UI exposes modes, bounded membership, responsibility, and contextual comments', () => {
   for (const label of ['Personal', 'Team', 'OHARA Guide', 'Goal Lead', 'Invite to Project', 'Invite Guide', 'Access / Mode']) assert.match(manage, new RegExp(label));
   assert.match(manage, /PROJECT_MEMBER_LIMIT/);

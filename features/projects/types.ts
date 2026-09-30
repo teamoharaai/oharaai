@@ -134,6 +134,7 @@ export type ProjectWorkspace = ProjectWithGoals & {
   activity: ProjectActivity[];
   entries: EntryRecord[];
   partialErrors: string[];
+  secondaryLoaded: boolean;
   taskPreviews: ProjectTaskPreview[];
   collaboration: ProjectCollaboration;
   comments: ProjectComment[];

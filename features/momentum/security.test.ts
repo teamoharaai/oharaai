@@ -14,6 +14,9 @@ const v1RecalculationMigrationPath = decodeURIComponent(
 const v11BaselineMigrationPath = decodeURIComponent(
   new URL('../../supabase/migrations/043_momentum_v1_1_cross_version_baseline.sql', import.meta.url).pathname,
 );
+const domainJobsMigrationPath = decodeURIComponent(
+  new URL('../../supabase/migrations/083_domain_computation_jobs.sql', import.meta.url).pathname,
+);
 
 test('Momentum tables are private and owner-readable only', async () => {
   const sql = await readFile(migrationPath, 'utf8');
@@ -81,6 +84,18 @@ test('snapshot publication locks the profile and deduplicates identical hashes',
   assert.match(sql, /supersedes_snapshot_id/i);
   assert.match(sql, /on conflict \(user_id, deduplication_key\) do nothing/i);
   assert.match(sql, /recalculation baseline does not match the stored snapshot/i);
+});
+
+test('domain recalculation uses expiring service-only single-flight leases', async () => {
+  const sql = await readFile(domainJobsMigrationPath, 'utf8');
+  assert.match(sql, /primary key \(user_id, week_start\)/i);
+  assert.match(sql, /lease_expires_at <= statement_timestamp\(\)/i);
+  assert.match(sql, /p_lease_seconds < 30 or p_lease_seconds > 600/i);
+  assert.match(sql, /claim_momentum_recalculation_v1[\s\S]*auth\.role\(\) <> 'service_role'/i);
+  assert.match(sql, /revoke all on function public\.claim_momentum_recalculation_v1[\s\S]*from public, anon, authenticated/i);
+  assert.match(sql, /grant execute on function public\.claim_momentum_recalculation_v1[\s\S]*to service_role/i);
+  assert.match(sql, /get_project_goal_momentum_v11[\s\S]*portfolio\.current_summary->'goals'/i);
+  assert.match(sql, /is_project_member_v11\(p_project_id, auth\.uid\(\)\)/i);
 });
 
 test('Momentum publication is trusted-server-only and rejects invalid inputs', async () => {

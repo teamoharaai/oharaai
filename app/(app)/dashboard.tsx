@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { BrandIcon } from '@/components/ui/BrandIcon';
@@ -23,7 +23,6 @@ import {
   DASHBOARD_GOAL_FILTER_PARAM,
 } from '@/lib/navigation/dashboard';
 import { useThemeColors } from '@/store/uiStore';
-import { authedFetch } from '@/lib/api/client';
 import { RADIUS, SPACE } from '@/constants/design';
 
 /*
@@ -197,29 +196,6 @@ export default function DashboardScreen() {
   useEffect(() => {
     loadProjects();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Fire-and-forget: reconcile any unsummarized Echo entries in the background.
-  // Home is the only caller; keep it when changing this screen.
-  const reconcileInFlight = useRef(false);
-  useEffect(() => {
-    if (reconcileInFlight.current) return;
-    reconcileInFlight.current = true;
-
-    async function reconcile() {
-      try {
-        const res = await authedFetch('/api/echo/reconcile', { method: 'POST' });
-        if (!res.ok) {
-          console.warn(`Echo reconcile: server responded with status ${res.status}`);
-        }
-      } catch (err: unknown) {
-        console.warn('Echo reconcile: fetch error:', err);
-      } finally {
-        reconcileInFlight.current = false;
-      }
-    }
-
-    void reconcile();
   }, []);
 
   const draftGoals = useMemo(

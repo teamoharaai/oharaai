@@ -76,35 +76,42 @@ function parseReflection(rawText: string): ParsedReflection {
 // --- Route handler ---
 
 type ReconcileResult = { reconciled: number; failed?: number };
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+async function requestedEntryIds(request: Request): Promise<string[] | null> {
+  const raw = await request.json().catch(() => null) as { entryIds?: unknown } | null;
+  if (!raw || raw.entryIds === undefined) return null;
+  if (!Array.isArray(raw.entryIds) || raw.entryIds.length < 1 || raw.entryIds.length > 3
+    || !raw.entryIds.every((entryId) => typeof entryId === 'string' && UUID_PATTERN.test(entryId))) {
+    throw new Error('entryIds must be an array of one to three UUIDs');
+  }
+  return [...new Set(raw.entryIds as string[])];
+}
 
 export async function POST(request: Request): Promise<Response> {
   return withAuth(handlePost)(request);
 }
 
 async function handlePost(
-  _request: Request,
+  request: Request,
   _params: Record<string, string>,
   auth: AuthContext,
 ): Promise<Response> {
   try {
     const authedDb = createAuthedClient(auth.accessToken);
+    const entryIds = await requestedEntryIds(request);
+    const leaseToken = crypto.randomUUID();
+    const { data: entries, error: claimError } = await authedDb.rpc(
+      'claim_echo_reconciliation_v1',
+      {
+        p_entry_ids: entryIds,
+        p_limit: entryIds ? entryIds.length : 3,
+        p_lease_token: leaseToken,
+        p_lease_seconds: 300,
+      },
+    );
 
-    // ai_status is the single gate. Two arms:
-    //   1. not_requested/pending — first attempt, no retry cap.
-    //   2. failed — retry eligible: fewer than 3 prior attempts AND cooldown
-    //      of 10 minutes since last attempt (or never attempted).
-    // summarized/ai_insight_requested are preserved elsewhere but no longer
-    // used as filters here.
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-    const { data: entries, error: fetchError } = await authedDb
-      .from('echo_entries')
-      .select('id, content, retry_count')
-      .eq('user_id', auth.userId)
-      .or(
-        `ai_status.in.(not_requested,pending),and(ai_status.eq.failed,retry_count.lt.3,or(last_attempted_at.is.null,last_attempted_at.lt.${tenMinutesAgo}))`,
-      );
-
-    if (fetchError) throw fetchError;
+    if (claimError) throw claimError;
 
     if (!entries || entries.length === 0) {
       return Response.json({ reconciled: 0 } satisfies ReconcileResult);
@@ -125,14 +132,16 @@ async function handlePost(
         const parsed = parseReflection(llmResult.text);
 
         if (!parsed.summarized) {
-          void authedDb
+          await authedDb
             .from('echo_entries')
             .update({
               ai_status: 'failed',
               retry_count: entry.retry_count + 1,
-              last_attempted_at: new Date().toISOString(),
+              reconcile_lease_token: null,
+              reconcile_lease_expires_at: null,
             })
-            .eq('id', entry.id);
+            .eq('id', entry.id)
+            .eq('reconcile_lease_token', leaseToken);
           failed++;
           continue;
         }
@@ -149,22 +158,27 @@ async function handlePost(
             processed_at: new Date().toISOString(),
             summarized: true,
             ai_status: 'completed',
+            reconcile_lease_token: null,
+            reconcile_lease_expires_at: null,
           })
-          .eq('id', entry.id);
+          .eq('id', entry.id)
+          .eq('reconcile_lease_token', leaseToken);
 
         if (updateError) {
           console.error(
             `[echo/reconcile] DB update failed for entry ${entry.id}:`,
             updateError.message,
           );
-          void authedDb
+          await authedDb
             .from('echo_entries')
             .update({
               ai_status: 'failed',
               retry_count: entry.retry_count + 1,
-              last_attempted_at: new Date().toISOString(),
+              reconcile_lease_token: null,
+              reconcile_lease_expires_at: null,
             })
-            .eq('id', entry.id);
+            .eq('id', entry.id)
+            .eq('reconcile_lease_token', leaseToken);
           failed++;
         } else {
           reconciled++;
@@ -174,14 +188,16 @@ async function handlePost(
           `[echo/reconcile] Summarization failed for entry ${entry.id}:`,
           err instanceof Error ? err.message : String(err),
         );
-        void authedDb
+        await authedDb
           .from('echo_entries')
           .update({
             ai_status: 'failed',
             retry_count: entry.retry_count + 1,
-            last_attempted_at: new Date().toISOString(),
+            reconcile_lease_token: null,
+            reconcile_lease_expires_at: null,
           })
-          .eq('id', entry.id);
+          .eq('id', entry.id)
+          .eq('reconcile_lease_token', leaseToken);
         failed++;
       }
     }

@@ -281,12 +281,6 @@ async function fetchTaskEvidence(
   goalStatuses: ReadonlyMap<string, string>,
 ): Promise<ReturnType<typeof adaptTasksToMomentum>> {
   if (!goalIds.length) return { actions: [], trackers: [], trackerLogs: [], completedOccurrenceCount: 0 };
-  const activeGoalIds = goalIds.filter((goalId) => goalStatuses.get(goalId) === 'active');
-  if (activeGoalIds.length) {
-    // One set-based reconcile for these Goals (Migration 081), not one sequential RPC per Task.
-    const { error } = await db.rpc('reconcile_my_tasks_v1', { p_goal_ids: activeGoalIds });
-    if (error) throw new Error(`Momentum Task reconciliation failed: ${error.message}`);
-  }
   const { data, error } = await db.from('tasks').select(`
     id, user_id, goal_id, title, completion_mode, target_quantity, status, due_date,
     source, legacy_tracker_id, legacy_action_log_id, legacy_current_value,
@@ -1094,7 +1088,7 @@ async function closeCompletedWeekIfNeeded(
   await publishOharaDiagnostic(writeDb, userId, oharaDiagnostic);
 }
 
-export async function getMomentumV11Summary(
+async function calculateMomentumV11Summary(
   readDb: SupabaseClient,
   writeDb: SupabaseClient,
   userId: string,
@@ -1104,21 +1098,6 @@ export async function getMomentumV11Summary(
   goalDiagnostics: GoalMomentumDiagnostic[];
   summary: MomentumHomeSummary;
 }> {
-  // Best-effort maintenance: flip past-deadline goals to `expired`. This is a
-  // rare, self-healing write — anything it misses this pass is reconciled next
-  // load — so it must NOT gate the momentum read. Awaiting it here previously put
-  // a serial ~1s write (measured) on Home's critical path before any momentum
-  // query could start. Fire-and-forget; log, never throw. Mirrors fetchGoals
-  // (goal-service.ts) and the "Reconcile off the read path" rule in CLAUDE.md.
-  void (async () => {
-    try {
-      const { error } = await readDb.rpc('reconcile_goal_expiration_v1');
-      if (error) console.warn('reconcile_goal_expiration_v1 failed:', error.message);
-    } catch (err: unknown) {
-      console.warn('reconcile_goal_expiration_v1 error:', err);
-    }
-  })();
-
   const { data: profile, error: profileError } = await readDb.from('profiles')
     .select('timezone').eq('id', userId).single();
   if (profileError) throw new Error(`Momentum timezone read failed: ${profileError.message}`);
@@ -1233,6 +1212,115 @@ export async function getMomentumV11Summary(
   };
 }
 
+async function reconcileMomentumInputs(readDb: SupabaseClient, userId: string): Promise<void> {
+  const { error: expirationError } = await readDb.rpc('reconcile_goal_expiration_v1');
+  if (expirationError) throw new Error(`Momentum Goal reconciliation failed: ${expirationError.message}`);
+
+  const { data: goals, error: goalsError } = await readDb.from('goals')
+    .select('id').eq('user_id', userId).eq('status', 'active');
+  if (goalsError) throw new Error(`Momentum reconciliation scope failed: ${goalsError.message}`);
+  const goalIds = (goals ?? []).map((goal) => String(goal.id));
+  if (!goalIds.length) return;
+
+  // Migration 081 performs one set-based occurrence reconciliation for the
+  // changed account scope. Calculation reads never invoke this RPC themselves.
+  const { error: taskError } = await readDb.rpc('reconcile_my_tasks_v1', { p_goal_ids: goalIds });
+  if (taskError) throw new Error(`Momentum Task reconciliation failed: ${taskError.message}`);
+}
+
+export async function recalculateMomentumV11Summary(
+  readDb: SupabaseClient,
+  writeDb: SupabaseClient,
+  userId: string,
+  now = new Date(),
+): ReturnType<typeof calculateMomentumV11Summary> {
+  await reconcileMomentumInputs(readDb, userId);
+  return calculateMomentumV11Summary(readDb, writeDb, userId, now);
+}
+
+function isMomentumHomeSummary(value: unknown): value is MomentumHomeSummary {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const candidate = value as Partial<MomentumHomeSummary>;
+  return candidate.algorithmVersion === OHARA_MOMENTUM_VERSION
+    && typeof candidate.asOf === 'string'
+    && Array.isArray(candidate.goals)
+    && Array.isArray(candidate.history)
+    && Array.isArray(candidate.trendLabels)
+    && Array.isArray(candidate.trendPoints);
+}
+
+export async function readPublishedMomentumV11Summary(
+  readDb: SupabaseClient,
+  userId: string,
+  now = new Date(),
+): Promise<MomentumHomeSummary> {
+  const [{ data: projection, error: projectionError }, { data: profile, error: profileError }] = await Promise.all([
+    readDb.from('momentum_profiles')
+      .select('current_summary').eq('user_id', userId).maybeSingle(),
+    readDb.from('profiles').select('timezone').eq('id', userId).single(),
+  ]);
+  if (projectionError) throw new Error(`Momentum projection read failed: ${projectionError.message}`);
+  if (profileError) throw new Error(`Momentum timezone read failed: ${profileError.message}`);
+  const stored = (projection as { current_summary?: unknown } | null)?.current_summary;
+  if (isMomentumHomeSummary(stored)) return stored;
+
+  // Accounts are backfilled through the explicit recalculation job. Until then,
+  // expose the latest immutable closed snapshot without reconstructing current
+  // state or mutating anything during a page read.
+  const timezone = normalizeTimezone((profile as { timezone?: string } | null)?.timezone);
+  const boundary = getMomentumWeek(now, timezone);
+  const history = await fetchOharaHistory(readDb, userId);
+  const latest = history.at(-1) ?? null;
+  const currentValue = latest?.value ?? null;
+  const weeklyChange = latest ? latest.value - latest.previousValue : null;
+  return {
+    algorithmVersion: OHARA_MOMENTUM_VERSION,
+    asOf: now.toISOString(),
+    components: {
+      portfolioProgress: null,
+      milestoneVelocity: null,
+      growthCadence: null,
+      sustainedGrowth: null,
+      portfolioCoverage: null,
+    },
+    currentValue,
+    displayedValue: currentValue === null ? null : Math.round(currentValue),
+    goals: [],
+    history,
+    periodState: latest ? 'closed' : 'provisional',
+    reasons: latest ? [] : reasonsForCodes(['NO_ELIGIBLE_ACTIVITY']),
+    status: latest ? 'active' : 'unavailable',
+    tasksCompletedThisWeek: 0,
+    trendLabels: history.map((point) => point.periodStart),
+    trendPoints: history.map((point) => point.value),
+    trend: weeklyChange === null ? 'unavailable' : weeklyChange > 0.005 ? 'up' : weeklyChange < -0.005 ? 'down' : 'steady',
+    weekEnd: latest?.periodEnd ?? boundary.weekEnd,
+    weekStart: latest?.periodStart ?? boundary.weekStart,
+    weeklyChange,
+    weeklyStreak: 0,
+  };
+}
+
+export async function publishCurrentMomentumV11Summary(
+  writeDb: SupabaseClient,
+  userId: string,
+  summary: MomentumHomeSummary,
+  calculationHashValue: string,
+): Promise<void> {
+  const { error } = await writeDb.from('momentum_profiles').upsert({
+    user_id: userId,
+    current_value: summary.currentValue ?? 0,
+    current_version: OHARA_MOMENTUM_VERSION,
+    status: summary.status,
+    last_calculated_at: summary.asOf,
+    current_week_start: summary.weekStart,
+    current_summary: summary,
+    current_calculation_hash: calculationHashValue,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id' });
+  if (error) throw new Error(`Momentum projection publish failed: ${error.message}`);
+}
+
 export async function getMomentumTaskParity(
   readDb: SupabaseClient,
   userId: string,
@@ -1300,9 +1388,10 @@ export async function getMomentumTaskParity(
   return { boundary, goals };
 }
 
-// Retained function name keeps the authenticated API and existing consumers stable.
-export const getMomentumHomeSummary = getMomentumV11Summary;
-export const getMomentumV1Summary = getMomentumV11Summary;
+// Retained read aliases keep UI consumers stable while making their contract
+// explicitly read-only. Recalculation has its own exported mutation above.
+export const getMomentumHomeSummary = readPublishedMomentumV11Summary;
+export const getMomentumV1Summary = readPublishedMomentumV11Summary;
 
 export function safeGoalDiagnostic(diagnostic: GoalMomentumDiagnostic): GoalMomentumDiagnostic {
   return {

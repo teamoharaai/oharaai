@@ -222,6 +222,36 @@ begin
 end;
 $$;
 
+-- Phase 2 recalculation is single-flight per user/week and releases only by token.
+do $$
+begin
+  if not public.claim_momentum_recalculation_v1(
+    '10000000-0000-0000-0000-000000000001', '2026-08-10',
+    '91000000-0000-4000-8000-000000000001', 180
+  ) then raise exception 'First Momentum lease was not claimed'; end if;
+  if public.claim_momentum_recalculation_v1(
+    '10000000-0000-0000-0000-000000000001', '2026-08-10',
+    '91000000-0000-4000-8000-000000000002', 180
+  ) then raise exception 'Concurrent Momentum lease was not deduplicated'; end if;
+  if public.release_momentum_recalculation_v1(
+    '10000000-0000-0000-0000-000000000001', '2026-08-10',
+    '91000000-0000-4000-8000-000000000002'
+  ) then raise exception 'Wrong token released a Momentum lease'; end if;
+  if not public.release_momentum_recalculation_v1(
+    '10000000-0000-0000-0000-000000000001', '2026-08-10',
+    '91000000-0000-4000-8000-000000000001'
+  ) then raise exception 'Correct token did not release Momentum lease'; end if;
+end;
+$$;
+
+insert into public.echo_entries (
+  id, user_id, content, ai_insight_requested, ai_status
+) values (
+  '92000000-0000-4000-8000-000000000001',
+  '10000000-0000-0000-0000-000000000001',
+  'Bounded Echo reconciliation fixture', true, 'pending'
+);
+
 reset role;
 set role authenticated;
 select set_config('request.jwt.claim.role', 'authenticated', false);
@@ -253,6 +283,30 @@ begin
     or has_table_privilege('authenticated', 'public.goal_momentum_weekly_snapshots', 'UPDATE')
     or has_table_privilege('authenticated', 'public.goal_momentum_weekly_snapshots', 'DELETE') then
     raise exception 'Authenticated role has direct Goal Momentum snapshot mutation privileges';
+  end if;
+  if has_function_privilege('authenticated',
+    'public.claim_momentum_recalculation_v1(uuid,date,uuid,integer)', 'EXECUTE') then
+    raise exception 'Authenticated role can claim trusted Momentum leases';
+  end if;
+end;
+$$;
+
+-- Echo claims are owner-scoped, bounded, and exclude an already-leased row.
+do $$
+declare
+  first_count integer;
+  second_count integer;
+begin
+  select count(*) into first_count from public.claim_echo_reconciliation_v1(
+    array['92000000-0000-4000-8000-000000000001'::uuid], 1,
+    '93000000-0000-4000-8000-000000000001', 300
+  );
+  select count(*) into second_count from public.claim_echo_reconciliation_v1(
+    array['92000000-0000-4000-8000-000000000001'::uuid], 1,
+    '93000000-0000-4000-8000-000000000002', 300
+  );
+  if first_count <> 1 or second_count <> 0 then
+    raise exception 'Echo reconciliation claim was not single-flight: %, %', first_count, second_count;
   end if;
 end;
 $$;
@@ -301,6 +355,12 @@ begin
   end if;
   if (select count(*) from public.goal_difficulty_profiles) <> 0 then
     raise exception 'Cross-user Goal Difficulty read escaped RLS';
+  end if;
+  if (select count(*) from public.claim_echo_reconciliation_v1(
+    array['92000000-0000-4000-8000-000000000001'::uuid], 1,
+    '93000000-0000-4000-8000-000000000003', 300
+  )) <> 0 then
+    raise exception 'Cross-user Echo reconciliation claim escaped ownership';
   end if;
 end;
 $$;

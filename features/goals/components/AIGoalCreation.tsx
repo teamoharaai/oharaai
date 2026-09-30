@@ -20,6 +20,7 @@ import { fetchGoalById } from '@/features/goals/services/goal-service';
 import { useGoalStore } from '@/features/goals/store';
 import { useThemeColors } from '@/store/uiStore';
 import { goalWorkspaceHref } from '@/features/goals/navigation';
+import { refreshMomentumAfterMeaningfulMutation } from '@/features/momentum/hooks/useMomentumHomeSummary';
 
 const INITIAL_GREETING =
   "What's on your mind? Tell me about something you want to achieve.";
@@ -198,6 +199,7 @@ export function AIGoalCreation({ onSwitchToManual }: AIGoalCreationProps) {
       const body = (await response.json()) as ApiResponse<CreateGoalWithMilestonesAndTrackersResult>;
       if (!body.ok) throw new Error(body.error.message || 'Could not create the goal.');
       if (!body.data.goalId) throw new Error(body.data.error || 'Could not create the goal.');
+      void refreshMomentumAfterMeaningfulMutation();
 
       if (status === 'draft') {
         router.replace(DASHBOARD_DRAFT_SAVED_ROUTE as never);

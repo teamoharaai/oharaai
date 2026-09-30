@@ -17,7 +17,16 @@ const { data: signedIn, error: signInError } = await client.auth.signInWithPassw
 assert.equal(signInError, null);
 assert.ok(signedIn.session?.access_token);
 
-const response = await fetch(`${webOrigin}/api/momentum?diagnostics=1&score=99&hash=${'f'.repeat(64)}`, {
+const recalculation = await fetch(`${webOrigin}/api/momentum/recalculate?diagnostics=1&score=99&hash=${'f'.repeat(64)}`, {
+  method: 'POST',
+  headers: { Authorization: `Bearer ${signedIn.session.access_token}` },
+});
+assert.equal(recalculation.status, 200);
+const recalculationPayload = await recalculation.json();
+assert.ok(recalculationPayload.diagnostic.calculationHash);
+assert.notEqual(recalculationPayload.diagnostic.calculationHash, 'f'.repeat(64));
+
+const response = await fetch(`${webOrigin}/api/momentum`, {
   headers: { Authorization: `Bearer ${signedIn.session.access_token}` },
 });
 assert.equal(response.status, 200);
@@ -26,13 +35,11 @@ assert.equal(payload.data.algorithmVersion, 'ohara-momentum-v1.1');
 assert.equal(payload.data.periodState, 'provisional');
 assert.equal(payload.data.tasksCompletedThisWeek, 1);
 assert.equal(payload.data.weeklyStreak, 3);
-assert.ok(payload.data.diagnostic.calculationHash);
-assert.notEqual(payload.data.diagnostic.calculationHash, 'f'.repeat(64));
 assert.notEqual(payload.data.currentValue, 99);
 assert.ok(payload.data.goals[0]?.goalId);
 
 const goalResponse = await fetch(
-  `${webOrigin}/api/momentum/goals/${encodeURIComponent(payload.data.goals[0].goalId)}?diagnostics=1`,
+  `${webOrigin}/api/momentum/goals/${encodeURIComponent(payload.data.goals[0].goalId)}`,
   { headers: { Authorization: `Bearer ${signedIn.session.access_token}` } },
 );
 assert.equal(goalResponse.status, 200);
@@ -40,7 +47,6 @@ const goalPayload = await goalResponse.json();
 assert.equal(goalPayload.data.algorithmVersion, 'goal-momentum-v1.1');
 assert.equal(goalPayload.data.periodState, 'provisional');
 assert.equal(goalPayload.data.goalId, payload.data.goals[0].goalId);
-assert.equal(goalPayload.data.diagnostic.result.algorithmVersion, 'goal-momentum-v1.1');
 
 const missingGoal = await fetch(
   `${webOrigin}/api/momentum/goals/00000000-0000-0000-0000-000000000000`,
@@ -50,6 +56,8 @@ assert.equal(missingGoal.status, 404);
 
 const unauthorized = await fetch(`${webOrigin}/api/momentum`);
 assert.equal(unauthorized.status, 401);
+const unauthorizedRecalculation = await fetch(`${webOrigin}/api/momentum/recalculate`, { method: 'POST' });
+assert.equal(unauthorizedRecalculation.status, 401);
 const unauthorizedGoal = await fetch(
   `${webOrigin}/api/momentum/goals/${encodeURIComponent(payload.data.goals[0].goalId)}`,
 );
@@ -60,8 +68,8 @@ console.log(JSON.stringify({
     algorithmVersion: payload.data.algorithmVersion,
     currentValue: payload.data.currentValue,
     diagnostic: {
-      calculationVersion: payload.data.diagnostic.result.algorithmVersion,
-      reasonCodes: payload.data.diagnostic.result.reasonCodes,
+      calculationVersion: recalculationPayload.diagnostic.result.algorithmVersion,
+      reasonCodes: recalculationPayload.diagnostic.result.reasonCodes,
     },
     status: payload.data.status,
     tasksCompletedThisWeek: payload.data.tasksCompletedThisWeek,
@@ -76,5 +84,6 @@ console.log(JSON.stringify({
   localApi: webOrigin,
   missingGoalStatus: missingGoal.status,
   unauthorizedGoalStatus: unauthorizedGoal.status,
+  unauthorizedRecalculationStatus: unauthorizedRecalculation.status,
   unauthorizedStatus: unauthorized.status,
 }));

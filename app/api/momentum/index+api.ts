@@ -1,13 +1,6 @@
 import { withAuth, type AuthContext } from '@/lib/api/auth';
 import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
-import { createServiceRoleClient } from '@/lib/db/service-client';
-import {
-  getMomentumHomeSummary,
-  getMomentumTaskParity,
-  safeDiagnostic,
-  safeGoalDiagnostic,
-} from '@/features/momentum/services/momentum-service';
-import { FEATURES } from '@/constants/features';
+import { getMomentumHomeSummary } from '@/features/momentum/services/momentum-service';
 
 export async function GET(request: Request): Promise<Response> {
   if (!isDatabaseConfigured) {
@@ -16,28 +9,14 @@ export async function GET(request: Request): Promise<Response> {
   return withAuth(handleGet)(request);
 }
 
-async function handleGet(request: Request, _params: Record<string, string>, auth: AuthContext): Promise<Response> {
+async function handleGet(_request: Request, _params: Record<string, string>, auth: AuthContext): Promise<Response> {
   try {
     const readDb = createAuthedClient(auth.accessToken);
-    const writeDb = createServiceRoleClient();
-    const result = await getMomentumHomeSummary(readDb, writeDb, auth.userId);
-    const diagnosticsRequested = new URL(request.url).searchParams.get('diagnostics') === '1';
-    const taskParity = diagnosticsRequested && FEATURES.TASKS_V2_COMPARE_LEGACY
-      ? await getMomentumTaskParity(readDb, auth.userId)
-      : null;
-    return Response.json({
-      data: {
-        ...result.summary,
-        ...(diagnosticsRequested ? {
-          diagnostic: safeDiagnostic(result.diagnostic),
-          goalDiagnostics: result.goalDiagnostics.map(safeGoalDiagnostic),
-          ...(taskParity ? { taskParity } : {}),
-        } : {}),
-      },
-    });
+    const summary = await getMomentumHomeSummary(readDb, auth.userId);
+    return Response.json({ data: summary });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Momentum calculation failed';
-    console.error('[momentum] authoritative calculation failed', {
+    const message = error instanceof Error ? error.message : 'Momentum read failed';
+    console.error('[momentum] published projection read failed', {
       algorithmVersion: 'ohara-momentum-v1.1',
       error: message,
       userId: auth.userId,

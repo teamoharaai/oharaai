@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Added
+- Added local migration `083_domain_computation_jobs.sql` with a canonical open-week Momentum projection, expiring per-user/week recalculation leases, and bounded change-scoped Echo reconciliation leases.
+
+### Changed
+- Separated Momentum reads from recalculation/publication and moved meaningful-write refreshes to a dedicated recalculation mutation.
+- Removed broad Echo reconciliation from Dashboard mount and bounded legacy Echo generation to explicitly claimed changed entries.
+- Reduced Project Detail critical-path work by reading Project Goal Momentum directly and deferring secondary Project panels.
+
+### Removed
+- Removed confirmed-unused legacy dashboard summary and guided Reflection runtime code.
+
 ### Deployed — Migration 082 shared Entry reliability (2026-09-30)
 - **Preflight:** production history was exactly 001–081; migration 082 and probes 072–078, 080–082 passed; transaction 20351 was server-verified aborted.
 - **Apply:** transaction 20436 committed; existing Goal/Task rows were fingerprint-identical; synthetic probes rolled back; PostgREST was notified.

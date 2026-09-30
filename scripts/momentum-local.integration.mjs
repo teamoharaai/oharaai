@@ -7,7 +7,7 @@ const { origin, values } = verifyLocalTarget({
 });
 for (const [key, value] of Object.entries(values)) process.env[key] = value;
 
-const { getMomentumHomeSummary } = await import('../features/momentum/services/momentum-service.ts');
+const { recalculateMomentumV11Summary } = await import('../features/momentum/services/momentum-service.ts');
 const { addLocalDays, getMomentumWeek, getPreviousMomentumWeek, localDateForInstant, localDateToUtcStart } = await import('../features/momentum/time.ts');
 
 const anonKey = values.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -102,7 +102,7 @@ console.log(`Verified isolated Supabase API target: ${origin}`);
 const owner = await createTestUser('owner', ownerTimezone);
 const ownerGoal = await createGoal(owner.userId, 'Owner validation goal');
 
-const empty = await getMomentumHomeSummary(owner.client, service, owner.userId, now);
+const empty = await recalculateMomentumV11Summary(owner.client, service, owner.userId, now);
 assert.equal(empty.summary.tasksCompletedThisWeek, 0);
 assert.equal(empty.summary.weeklyStreak, 0);
 assert.equal(empty.summary.currentValue, 0);
@@ -114,7 +114,7 @@ await createAction({
   id: actionIds.ownerCurrent,
   userId: owner.userId,
 });
-const current = await getMomentumHomeSummary(owner.client, service, owner.userId, now);
+const current = await recalculateMomentumV11Summary(owner.client, service, owner.userId, now);
 assert.equal(current.summary.tasksCompletedThisWeek, 1);
 assert.equal(current.summary.weeklyStreak, 1);
 assert.equal(current.summary.periodState, 'provisional');
@@ -141,7 +141,7 @@ await createAction({
   userId: owner.userId,
 });
 
-const populated = await getMomentumHomeSummary(owner.client, service, owner.userId, now);
+const populated = await recalculateMomentumV11Summary(owner.client, service, owner.userId, now);
 assert.equal(populated.summary.tasksCompletedThisWeek, 1);
 assert.equal(populated.summary.weeklyStreak, 3);
 assert.equal(populated.summary.algorithmVersion, 'ohara-momentum-v1.1');
@@ -153,7 +153,7 @@ assert.ok(populated.goalDiagnostics[0].normalizedInput.consistency.completedComm
 
 const afterFirstPopulated = await snapshotRows(owner.userId, completedBoundary.weekStart);
 assert.equal(afterFirstPopulated.length, 1);
-const replay = await getMomentumHomeSummary(owner.client, service, owner.userId, now);
+const replay = await recalculateMomentumV11Summary(owner.client, service, owner.userId, now);
 const afterReplay = await snapshotRows(owner.userId, completedBoundary.weekStart);
 assert.equal(afterReplay.length, afterFirstPopulated.length);
 assert.equal(replay.diagnostic.calculationHash, populated.diagnostic.calculationHash);
@@ -178,7 +178,7 @@ await createAction({
   id: actionIds.ownerLate,
   userId: owner.userId,
 });
-const late = await getMomentumHomeSummary(owner.client, service, owner.userId, now);
+const late = await recalculateMomentumV11Summary(owner.client, service, owner.userId, now);
 const afterLate = await snapshotRows(owner.userId, completedBoundary.weekStart);
 assert.equal(afterLate.length, 1);
 assert.equal(late.diagnostic.calculationHash, replay.diagnostic.calculationHash);
@@ -200,7 +200,7 @@ await createAction({
   id: actionIds.otherOlder,
   userId: other.userId,
 });
-const gap = await getMomentumHomeSummary(other.client, service, other.userId, now);
+const gap = await recalculateMomentumV11Summary(other.client, service, other.userId, now);
 assert.equal(gap.summary.weeklyStreak, 1);
 
 const boundaryUser = await createTestUser('timezone', 'Pacific/Kiritimati');
@@ -219,7 +219,7 @@ await createAction({
   id: actionIds.boundarySunday,
   userId: boundaryUser.userId,
 });
-const timezone = await getMomentumHomeSummary(
+const timezone = await recalculateMomentumV11Summary(
   boundaryUser.client,
   service,
   boundaryUser.userId,

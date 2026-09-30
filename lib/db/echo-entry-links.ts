@@ -223,9 +223,6 @@ export async function getUnconfirmedLinksForUserGoals(
   userId: string,
   client: DbClient = supabase,
 ): Promise<EchoGoalLink[]> {
-  const { error: reconciliationError } = await client.rpc('reconcile_goal_expiration_v1');
-  if (reconciliationError) throw reconciliationError;
-
   const { data: goals, error: goalError } = await client
     .from('goals')
     .select('id')

@@ -69,6 +69,14 @@ async function loadMomentum(userId: string | null, force = false): Promise<void>
 export async function refreshMomentumAfterMeaningfulMutation(): Promise<void> {
   const userId = cacheUserId ?? useAuthStore.getState().session?.user.id ?? null;
   if (!userId) return;
+  try {
+    const response = await authedFetch('/api/momentum/recalculate', { method: 'POST' });
+    if (!response.ok && response.status !== 202) return;
+  } catch {
+    // Domain writes remain committed even when the best-effort calculation job
+    // is unavailable. A later meaningful mutation can safely retry the lease.
+    return;
+  }
   await loadMomentum(userId, true);
 }
 

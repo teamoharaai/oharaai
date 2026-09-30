@@ -485,9 +485,6 @@ export async function createEntry(params: {
 export async function fetchGoalsForPicker(
   userId: string,
 ): Promise<EchoGoalOption[]> {
-  const { error: reconciliationError } = await supabase.rpc('reconcile_goal_expiration_v1');
-  if (reconciliationError) return [];
-
   const { data, error } = await supabase
     .from('goals')
     .select('id, title, project_id')
@@ -700,14 +697,24 @@ export async function moveEntryRequest(
     };
   }
 
-  let body: { success?: boolean; error?: string };
+  let body: { success?: boolean; error?: string; echoReconciliationEntryId?: string | null };
   try {
-    body = (await response.json()) as { success?: boolean; error?: string };
+    body = (await response.json()) as typeof body;
   } catch {
     return { status: 'error', kind: 'generic', message: 'Move failed. Please try again.' };
   }
 
   if (response.ok && body.success) {
+    if (body.echoReconciliationEntryId) {
+      // Explicitly scope regeneration to the entry changed by this save. The
+      // editor never waits for the external AI call, and page mounts never act
+      // as a scheduler.
+      void authedFetch('/api/echo/reconcile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entryIds: [body.echoReconciliationEntryId] }),
+      }).catch(() => undefined);
+    }
     return { status: 'success' };
   }
 

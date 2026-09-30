@@ -37,5 +37,18 @@ test('forced refresh invalidates the authenticated provisional summary cache', (
 
   assert.match(hook, /useAuthStore\.getState\(\)\.session\?\.user\.id/);
   assert.match(hook, /refreshMomentumAfterMeaningfulMutation/);
+  assert.match(hook, /authedFetch\('\/api\/momentum\/recalculate', \{ method: 'POST' \}\)/);
   assert.match(hook, /loadMomentum\(userId, true\)/);
+});
+
+test('ordinary Momentum reads cannot reconcile or publish domain state', () => {
+  const route = read('../..//app/api/momentum/index+api.ts');
+  const service = read('./services/momentum-service.ts');
+
+  assert.doesNotMatch(route, /createServiceRoleClient|recalculateMomentumV11Summary/);
+  assert.match(service, /getMomentumHomeSummary = readPublishedMomentumV11Summary/);
+  assert.doesNotMatch(
+    service.slice(service.indexOf('export async function readPublishedMomentumV11Summary'), service.indexOf('export async function publishCurrentMomentumV11Summary')),
+    /\.rpc\(|publish|reconcile/,
+  );
 });

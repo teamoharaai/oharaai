@@ -21,7 +21,6 @@ import { ProjectComments } from '@/features/projects/components/ProjectComments'
 import { ProjectChat } from '@/features/projects/components/ProjectChat';
 import { assignGoalsToProject, assignProjectTask, createProjectComment, deleteProjectComment, editProjectComment, fetchOwnedGoalsForProjects, fetchProjectWorkspace, setEntryProjectShare } from '@/features/projects/services/project-service';
 import { buildProjectIntelligence } from '@/features/projects/intelligence';
-import { useMomentumHomeSummary } from '@/features/momentum/hooks/useMomentumHomeSummary';
 import type { GoalWithDetails } from '@/features/goals/types';
 import type { ProjectWorkspace } from '@/features/projects/types';
 
@@ -62,14 +61,21 @@ export default function ProjectDetailScreen() {
   const [assignmentTaskId, setAssignmentTaskId] = useState<string | null>(null);
   const [assignmentBusy, setAssignmentBusy] = useState(false);
   const [assignmentError, setAssignmentError] = useState<string | null>(null);
-  const momentum = useMomentumHomeSummary();
 
   async function load(showPageLoading = false) {
     if (!projectId) return;
     if (showPageLoading) { setLoading(true); setError(null); }
     try {
-      const data = await fetchProjectWorkspace(projectId);
-      if (data) setProject(data);
+      const deferSecondary = showPageLoading && params.view !== 'vault';
+      const data = await fetchProjectWorkspace(projectId, { includeSecondary: !deferSecondary });
+      if (data) {
+        setProject(data);
+        if (deferSecondary) {
+          void fetchProjectWorkspace(projectId).then((complete) => {
+            if (complete) setProject(complete);
+          }).catch(() => undefined);
+        }
+      }
       else if (showPageLoading || !project) setError('Project not found.');
     }
     catch (caught) {
@@ -88,12 +94,9 @@ export default function ProjectDetailScreen() {
   const sources = project?.vaultItems.filter(isSourceVaultItem) ?? [];
   const momentumByGoal = useMemo(() => {
     const summaries = new Map<string, NonNullable<ProjectWorkspace['goalMomentum']>[number]>();
-    for (const item of [...(momentum.summary?.goals ?? []), ...(project?.goalMomentum ?? [])]) {
-      const current = summaries.get(item.goalId);
-      if (!current || current.displayedValue == null || item.displayedValue != null) summaries.set(item.goalId, item);
-    }
+    for (const item of project?.goalMomentum ?? []) summaries.set(item.goalId, item);
     return summaries;
-  }, [momentum.summary, project?.goalMomentum]);
+  }, [project?.goalMomentum]);
 
   function switchMode(next: 'overview' | 'vault', vaultFilter: VaultFilter = 'all') { setMode(next); router.setParams({ view: next === 'vault' ? 'vault' : undefined, vaultFilter: next === 'vault' && vaultFilter !== 'all' ? vaultFilter : undefined }); }
   async function openGoalPicker() {
@@ -220,8 +223,8 @@ export default function ProjectDetailScreen() {
   </Surface>;
   const snapshotRow = (label: string, value: string | number, filter?: VaultFilter) => <Pressable accessibilityRole={filter ? 'button' : undefined} onPress={filter ? () => switchMode('vault', filter) : undefined} style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 34 }}><Typography variant="body-small">{label}</Typography><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>{value}</Typography></Pressable>;
   const snapshotCard = <Surface accessibilityLabel="Project Snapshot card" title="Project Snapshot">{snapshotRow('Active Goals', activeGoals.length)}{snapshotRow('Sticky Notes', sticky.length, 'sticky')}{snapshotRow('Notes', notes.length, 'notes')}{snapshotRow('Reflections', reflections.length, 'reflections')}{snapshotRow('Sources', sources.length, 'sources')}<Typography variant="caption">Last activity {new Date(lastActivity).toLocaleDateString()}</Typography></Surface>;
-  const momentumCard = <Surface accessibilityLabel="Momentum Snapshot card" title="Momentum Snapshot">{activeGoals.slice(0, 5).map((goal) => { const summary = momentumByGoal.get(goal.id); const available = summary?.displayedValue !== null && summary?.displayedValue !== undefined; const delta = summary?.weeklyChange ?? 0; const stable = Math.abs(delta) < 1; const direction = stable ? '→' : delta > 0 ? '↗' : '↘'; return <Pressable accessibilityRole="button" key={goal.id} onPress={() => router.push(goalWorkspaceHref(goal.id, 'active') as never)} style={({ pressed }) => ({ borderBottomColor: colors.border.divider, borderBottomWidth: 1, gap: SPACE.sm, opacity: pressed ? 0.7 : 1, paddingBottom: SPACE.lg })}><Typography variant="emphasis-sm" numberOfLines={1}>{goal.title}</Typography><View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md, justifyContent: 'space-between' }}><Typography variant="title" style={{ color: available ? colors.text.accent : colors.text.secondary }}>{available ? `${summary!.displayedValue} / 100` : momentum.isLoading ? 'Loading…' : 'Unavailable'}</Typography>{available ? <Typography variant="caption" style={{ color: stable ? colors.text.muted : delta > 0 ? colors.text.accent : colors.feedback.danger.text }}>{stable ? '→ no change' : `${direction} ${delta > 0 ? '+' : ''}${Math.round(delta * 10) / 10} this week`}</Typography> : null}</View></Pressable>; })}{!activeGoals.length ? <Typography variant="body-small">Active Goal Momentum will appear here.</Typography> : null}{actionLink('View Momentum', () => router.push('/(app)/momentum'))}</Surface>;
-  const activityCard = <Surface accessibilityLabel="Recent Activity card" title="Recent Activity">{project.activity.slice(0, 4).map((item) => { const isComment = item.label.toLowerCase().startsWith('commented on'); const targetLabel = item.targetType ? `${item.targetType[0].toUpperCase()}${item.targetType.slice(1)}` : item.label.replace(/^Commented on\s*/i, '') || 'Item'; return <View key={item.id} style={{ borderBottomColor: colors.border.divider, borderBottomWidth: 1, gap: SPACE.xs, paddingBottom: SPACE.md }}><View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm, justifyContent: 'space-between' }}><Typography variant="body-small" numberOfLines={1} style={{ flex: 1 }}>{isComment ? `${item.actorName ?? 'Someone'} commented on ${targetLabel}` : `${item.actorName ? `${item.actorName} · ` : ''}${item.label}`}</Typography><Typography variant="caption">{new Date(item.occurredAt).toLocaleDateString()}</Typography></View>{item.origin ? <Typography variant="caption" numberOfLines={1}>{isComment ? `on: ${item.origin}` : item.origin}</Typography> : null}</View>; })}{!project.activity.length ? <Typography variant="body-small">Meaningful Project activity will appear here.</Typography> : null}{project.activity.length ? actionLink('View all', () => setActivityOpen(true)) : null}</Surface>;
+  const momentumCard = <Surface accessibilityLabel="Momentum Snapshot card" title="Momentum Snapshot">{activeGoals.slice(0, 5).map((goal) => { const summary = momentumByGoal.get(goal.id); const available = summary?.displayedValue !== null && summary?.displayedValue !== undefined; const delta = summary?.weeklyChange ?? 0; const stable = Math.abs(delta) < 1; const direction = stable ? '→' : delta > 0 ? '↗' : '↘'; return <Pressable accessibilityRole="button" key={goal.id} onPress={() => router.push(goalWorkspaceHref(goal.id, 'active') as never)} style={({ pressed }) => ({ borderBottomColor: colors.border.divider, borderBottomWidth: 1, gap: SPACE.sm, opacity: pressed ? 0.7 : 1, paddingBottom: SPACE.lg })}><Typography variant="emphasis-sm" numberOfLines={1}>{goal.title}</Typography><View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md, justifyContent: 'space-between' }}><Typography variant="title" style={{ color: available ? colors.text.accent : colors.text.secondary }}>{available ? `${summary!.displayedValue} / 100` : 'Unavailable'}</Typography>{available ? <Typography variant="caption" style={{ color: stable ? colors.text.muted : delta > 0 ? colors.text.accent : colors.feedback.danger.text }}>{stable ? '→ no change' : `${direction} ${delta > 0 ? '+' : ''}${Math.round(delta * 10) / 10} this week`}</Typography> : null}</View></Pressable>; })}{!activeGoals.length ? <Typography variant="body-small">Active Goal Momentum will appear here.</Typography> : null}{actionLink('View Momentum', () => router.push('/(app)/momentum'))}</Surface>;
+  const activityCard = <Surface accessibilityLabel="Recent Activity card" title="Recent Activity">{project.activity.slice(0, 4).map((item) => { const isComment = item.label.toLowerCase().startsWith('commented on'); const targetLabel = item.targetType ? `${item.targetType[0].toUpperCase()}${item.targetType.slice(1)}` : item.label.replace(/^Commented on\s*/i, '') || 'Item'; return <View key={item.id} style={{ borderBottomColor: colors.border.divider, borderBottomWidth: 1, gap: SPACE.xs, paddingBottom: SPACE.md }}><View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm, justifyContent: 'space-between' }}><Typography variant="body-small" numberOfLines={1} style={{ flex: 1 }}>{isComment ? `${item.actorName ?? 'Someone'} commented on ${targetLabel}` : `${item.actorName ? `${item.actorName} · ` : ''}${item.label}`}</Typography><Typography variant="caption">{new Date(item.occurredAt).toLocaleDateString()}</Typography></View>{item.origin ? <Typography variant="caption" numberOfLines={1}>{isComment ? `on: ${item.origin}` : item.origin}</Typography> : null}</View>; })}{!project.secondaryLoaded ? <Typography variant="body-small">Loading recent activity…</Typography> : !project.activity.length ? <Typography variant="body-small">Meaningful Project activity will appear here.</Typography> : null}{project.activity.length ? actionLink('View all', () => setActivityOpen(true)) : null}</Surface>;
 
   return <>
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ alignSelf: 'center', gap: SPACE.xl, maxWidth: 1520, padding: compact ? SPACE.xl : LAYOUT.wideGutter, width: '100%' }}>
