@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 const landing = readFileSync(resolve(process.cwd(), 'app/(app)/projects/index.tsx'), 'utf8');
+const projectCard = readFileSync(resolve(process.cwd(), 'features/projects/components/ProjectCard.tsx'), 'utf8');
 const workspace = readFileSync(resolve(process.cwd(), 'app/(app)/projects/[id].tsx'), 'utf8');
 const vault = readFileSync(resolve(process.cwd(), 'features/projects/components/ProjectVaultWorkspace.tsx'), 'utf8');
 const nav = readFileSync(resolve(process.cwd(), 'components/layout/AppNavigation.tsx'), 'utf8');
@@ -29,6 +30,15 @@ test('landing uses meaningful data without progress percentages or imagery', () 
   assert.match(landing, /Your bigger picture/);
   assert.match(landing, /fetchProjectSummaries/);
   assert.doesNotMatch(landing, /progress percentage|scenic|quote/i);
+});
+
+test('Projects landing uses fixed responsive column tracks instead of content-sized flex cards', () => {
+  assert.match(landing, /width >= 1180 \? 3 : width >= 720 \? 2 : 1/);
+  assert.match(landing, /projectGridWidth - SPACE\.xl \* \(projectColumns - 1\)/);
+  assert.match(landing, /accessibilityLabel=\{`\$\{projectColumns\}-column Project grid`\}/);
+  assert.doesNotMatch(projectCard, /flexBasis: 380|flexGrow: 1|maxWidth: 520/);
+  assert.match(projectCard, /minWidth: 0[\s\S]*width: width \?\? '100%'/);
+  assert.match(projectCard, /maxWidth: '100%'[\s\S]*numberOfLines=\{1\}/);
 });
 
 test('workspace contains approved overview and owner-only Vault hierarchy', () => {

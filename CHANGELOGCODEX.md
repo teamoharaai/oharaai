@@ -9,6 +9,7 @@
 - Separated Momentum reads from recalculation/publication and moved meaningful-write refreshes to a dedicated recalculation mutation.
 - Removed broad Echo reconciliation from Dashboard mount and bounded legacy Echo generation to explicitly claimed changed entries.
 - Reduced Project Detail critical-path work by reading Project Goal Momentum directly and deferring secondary Project panels.
+- Replaced content-sized Project landing cards with fixed responsive three/two/one-column tracks so incomplete rows align exactly without card-width growth (`app/(app)/projects/index.tsx`, `features/projects/components/ProjectCard.tsx`).
 
 ### Removed
 - Removed confirmed-unused legacy dashboard summary and guided Reflection runtime code.

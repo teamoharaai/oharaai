@@ -17,6 +17,8 @@ export default function ProjectsScreen() {
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
   const compact = width < 720;
+  const projectColumns = width >= 1180 ? 3 : width >= 720 ? 2 : 1;
+  const [projectGridWidth, setProjectGridWidth] = useState(0);
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +69,17 @@ export default function ProjectsScreen() {
           <View style={{ flexDirection: 'row', gap: SPACE.sm }}><Button size="compact" disabled={inviteBusy === invitation.id} onPress={() => void respond(invitation.id, 'accepted')}>Accept</Button><Button size="compact" variant="secondary" disabled={inviteBusy === invitation.id} onPress={() => void respond(invitation.id, 'declined')}>Decline</Button></View>
         </View>)}
       </View> : null}
-      {loading ? <ActivityIndicator color={colors.accent.primary} /> : error ? <View style={{ alignItems: 'center', gap: SPACE.lg, padding: SPACE['4xl'] }}><Typography variant="body">{error}</Typography><Button onPress={() => void load()} variant="secondary">Retry</Button></View> : visible.length ? <View style={{ flexDirection: compact ? 'column' : 'row', flexWrap: 'wrap', gap: SPACE.xl }}>{visible.map((project) => <ProjectCard key={project.id} project={project} />)}</View> : <View style={{ alignItems: 'center', borderColor: colors.border.divider, borderRadius: RADIUS.xl, borderStyle: 'dashed', borderWidth: 1, gap: SPACE.md, padding: SPACE['5xl'] }}><Ionicons color={colors.text.muted} name="folder-outline" size={30} /><Typography variant="title">No Projects yet.</Typography><Typography variant="body">Bring related Goals, Notes, and ideas together around what you’re building.</Typography><Button onPress={() => setCreateOpen(true)}>New Project</Button></View>}
+      {loading ? <ActivityIndicator color={colors.accent.primary} /> : error ? <View style={{ alignItems: 'center', gap: SPACE.lg, padding: SPACE['4xl'] }}><Typography variant="body">{error}</Typography><Button onPress={() => void load()} variant="secondary">Retry</Button></View> : visible.length ? <View
+        accessibilityLabel={`${projectColumns}-column Project grid`}
+        onLayout={(event) => setProjectGridWidth(event.nativeEvent.layout.width)}
+        style={{ alignItems: 'stretch', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.xl, width: '100%' }}
+      >{visible.map((project) => <ProjectCard
+        key={project.id}
+        project={project}
+        width={projectGridWidth > 0
+          ? Math.max(0, (projectGridWidth - SPACE.xl * (projectColumns - 1)) / projectColumns)
+          : undefined}
+      />)}</View> : <View style={{ alignItems: 'center', borderColor: colors.border.divider, borderRadius: RADIUS.xl, borderStyle: 'dashed', borderWidth: 1, gap: SPACE.md, padding: SPACE['5xl'] }}><Ionicons color={colors.text.muted} name="folder-outline" size={30} /><Typography variant="title">No Projects yet.</Typography><Typography variant="body">Bring related Goals, Notes, and ideas together around what you’re building.</Typography><Button onPress={() => setCreateOpen(true)}>New Project</Button></View>}
     </ScrollView>
     <CreateProjectModal visible={createOpen} onClose={() => { setCreateOpen(false); void load(); }} />
   </>;

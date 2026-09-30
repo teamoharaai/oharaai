@@ -23,23 +23,23 @@ function relativeDate(value: string): string {
   return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`;
 }
 
-export function ProjectCard({ project }: { project: ProjectSummary }) {
+export function ProjectCard({ project, width }: { project: ProjectSummary; width?: number }) {
   const colors = useThemeColors();
   const accent = categoryPresentation(project.visualCategory, colors);
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`Open Project ${project.title}`}
       onPress={() => router.push(`/(app)/projects/${project.id}` as never)}
-      style={({ pressed }) => ({ backgroundColor: accent.bg, borderColor: colors.border.warmSubtle, borderRadius: RADIUS.xl, borderWidth: 1, flexBasis: 380, flexGrow: 1, maxWidth: 520, minHeight: 238, opacity: pressed ? 0.78 : 1, padding: SPACE['2xl'] })}>
+      style={({ pressed }) => ({ alignSelf: 'stretch', backgroundColor: accent.bg, borderColor: colors.border.warmSubtle, borderRadius: RADIUS.xl, borderWidth: 1, minHeight: 238, minWidth: 0, opacity: pressed ? 0.78 : 1, padding: SPACE['2xl'], width: width ?? '100%' })}>
       <View style={{ alignItems: 'flex-start', flexDirection: 'row', gap: SPACE.xl }}>
-        <View style={{ alignItems: 'center', backgroundColor: colors.background.card, borderColor: colors.border.divider, borderRadius: RADIUS.lg, borderWidth: 1, height: 58, justifyContent: 'center', width: 58 }}>
+        <View style={{ alignItems: 'center', backgroundColor: colors.background.card, borderColor: colors.border.divider, borderRadius: RADIUS.lg, borderWidth: 1, flexShrink: 0, height: 58, justifyContent: 'center', width: 58 }}>
           <Ionicons color={accent.color} name="folder-outline" size={28} />
         </View>
-        <View style={{ flex: 1, gap: SPACE.xs }}>
+        <View style={{ flex: 1, gap: SPACE.xs, minWidth: 0 }}>
           <Typography variant="title" numberOfLines={1}>{project.title}</Typography>
           <Typography variant="body-small" numberOfLines={2}>{project.description || 'Bring related Goals and material together.'}</Typography>
           <Typography variant="caption">{project.mode === 'guide' ? 'OHARA Guide' : project.mode[0].toUpperCase() + project.mode.slice(1)} · {project.memberCount} {project.memberCount === 1 ? 'person' : 'people'}</Typography>
         </View>
-        <Ionicons color={colors.text.muted} name="ellipsis-horizontal" size={18} />
+        <Ionicons color={colors.text.muted} name="ellipsis-horizontal" size={18} style={{ flexShrink: 0 }} />
       </View>
       <View style={{ borderBottomColor: colors.border.divider, borderBottomWidth: 1, flexDirection: 'row', flexWrap: 'wrap', gap: SPACE['2xl'], marginTop: SPACE['2xl'], paddingBottom: SPACE.xl }}>
         <View><Typography variant="emphasis-sm">{project.activeGoalCount}</Typography><Typography variant="caption">Active Goals</Typography></View>
@@ -49,7 +49,7 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
       <View style={{ gap: SPACE.sm, marginTop: SPACE.lg }}>
         <Typography variant="eyebrow">Goals</Typography>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>
-          {project.goalNames.length ? project.goalNames.map((name) => <View key={name} style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider, borderRadius: RADIUS.round, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6 }}><Typography variant="caption">{name}</Typography></View>) : <Typography variant="caption">No active Goals yet.</Typography>}
+          {project.goalNames.length ? project.goalNames.map((name) => <View key={name} style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider, borderRadius: RADIUS.round, borderWidth: 1, maxWidth: '100%', paddingHorizontal: 12, paddingVertical: 6 }}><Typography numberOfLines={1} variant="caption">{name}</Typography></View>) : <Typography variant="caption">No active Goals yet.</Typography>}
         </View>
       </View>
     </Pressable>
