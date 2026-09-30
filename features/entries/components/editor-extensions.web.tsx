@@ -6,6 +6,7 @@ import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { useEntriesStore } from '../store';
 import { createSignedNoteImageUrl } from '../services/note-image-service';
 import { goalWorkspaceHref } from '@/features/goals/navigation';
+import type { EntryGoalOption } from '../types';
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -128,9 +129,11 @@ export const IntelligenceReferenceMark = Mark.create({
   },
 });
 
-function GoalCardView({ node, selected, deleteNode }: ReactNodeViewProps) {
+function GoalCardView({ node, selected, deleteNode, editor, extension }: ReactNodeViewProps) {
   const goalId = String(node.attrs.goalId ?? '');
-  const goal = useEntriesStore((state) => state.goals.find((item) => item.id === goalId));
+  const storeGoal = useEntriesStore((state) => state.goals.find((item) => item.id === goalId));
+  const configuredGoals = (extension.options.goals ?? []) as EntryGoalOption[];
+  const goal = configuredGoals.find((item) => item.id === goalId) ?? storeGoal;
   const nextMilestone = goal?.milestones.find((milestone) => !milestone.completedAt);
   return (
     <NodeViewWrapper
@@ -153,13 +156,16 @@ function GoalCardView({ node, selected, deleteNode }: ReactNodeViewProps) {
           Open
         </button>
       ) : null}
-      <button type="button" aria-label="Remove embedded Goal" onClick={deleteNode}>×</button>
+      {editor.isEditable ? (
+        <button type="button" aria-label="Remove embedded Goal" onClick={deleteNode}>×</button>
+      ) : null}
     </NodeViewWrapper>
   );
 }
 
-export const GoalCardNode = Node.create({
+export const GoalCardNode = Node.create<{ goals: EntryGoalOption[] }>({
   name: 'goalCard',
+  addOptions() { return { goals: [] }; },
   group: 'block',
   atom: true,
   selectable: true,
@@ -190,7 +196,7 @@ export const GoalCardNode = Node.create({
   addNodeView() { return ReactNodeViewRenderer(GoalCardView); },
 });
 
-function NoteImageView({ node, selected, deleteNode, updateAttributes }: ReactNodeViewProps) {
+function NoteImageView({ node, selected, deleteNode, updateAttributes, editor }: ReactNodeViewProps) {
   const [src, setSrc] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const storagePath = String(node.attrs.storagePath ?? '');
@@ -210,7 +216,7 @@ function NoteImageView({ node, selected, deleteNode, updateAttributes }: ReactNo
       {src && !error
         ? <img src={src} alt={String(node.attrs.alt ?? 'Note image')} />
         : <div className="ohara-note-image-placeholder">{error ? 'Image unavailable' : 'Loading image…'}</div>}
-      <div className="ohara-note-image-actions" contentEditable={false}>
+      {editor.isEditable ? <div className="ohara-note-image-actions" contentEditable={false}>
         {(['left', 'center', 'right'] as const).map((align) => (
           <button
             type="button"
@@ -223,7 +229,7 @@ function NoteImageView({ node, selected, deleteNode, updateAttributes }: ReactNo
           </button>
         ))}
         <button type="button" aria-label="Delete image" onClick={deleteNode}>×</button>
-      </div>
+      </div> : null}
     </NodeViewWrapper>
   );
 }

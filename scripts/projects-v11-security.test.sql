@@ -54,9 +54,17 @@ end $$;
 reset role;
 insert into public.entries(id,user_id,entry_type,title,project_id,project_share_scope) values
   ('c1100000-0000-0000-0000-000000000001','11000000-0000-0000-0000-000000000001','note','Private Note','a1100000-0000-0000-0000-000000000001','private'),
+  ('c1110000-0000-0000-0000-000000000001','11000000-0000-0000-0000-000000000001','reflection','Private Reflection','a1100000-0000-0000-0000-000000000001','private'),
+  ('c1210000-0000-0000-0000-000000000002','11000000-0000-0000-0000-000000000001','note','Shared Note','a1100000-0000-0000-0000-000000000001','project'),
   ('c1200000-0000-0000-0000-000000000002','11000000-0000-0000-0000-000000000001','reflection','Shared Reflection','a1100000-0000-0000-0000-000000000001','project'),
+  ('c1520000-0000-0000-0000-000000000005','11000000-0000-0000-0000-000000000001','note','Guide Note','a1500000-0000-0000-0000-000000000005','guide'),
+  ('c1530000-0000-0000-0000-000000000005','11000000-0000-0000-0000-000000000001','note','Guide Private Note','a1500000-0000-0000-0000-000000000005','private'),
   ('c1500000-0000-0000-0000-000000000005','11000000-0000-0000-0000-000000000001','reflection','Guide Reflection','a1500000-0000-0000-0000-000000000005','guide'),
   ('c1510000-0000-0000-0000-000000000005','11000000-0000-0000-0000-000000000001','reflection','Guide Private','a1500000-0000-0000-0000-000000000005','private');
+
+insert into storage.objects(bucket_id,name,owner) values
+  ('note-images','11000000-0000-0000-0000-000000000001/c1100000-0000-0000-0000-000000000001/private.webp','11000000-0000-0000-0000-000000000001'),
+  ('note-images','11000000-0000-0000-0000-000000000001/c1210000-0000-0000-0000-000000000002/shared.webp','11000000-0000-0000-0000-000000000001');
 
 insert into public.vault_items(vault_id,item_type,content_kind,title,visibility,created_by)
 select id,'note','sticky_note','Private Sticky','private','11000000-0000-0000-0000-000000000001' from public.vaults where project_id='a1100000-0000-0000-0000-000000000001';
@@ -64,11 +72,30 @@ insert into public.vault_items(vault_id,item_type,content_kind,title,visibility,
 select id,'note','sticky_note','Shared Sticky','vault_members','11000000-0000-0000-0000-000000000001' from public.vaults where project_id='a1100000-0000-0000-0000-000000000001';
 
 set local role authenticated;
+select set_config('request.jwt.claim.sub','11000000-0000-0000-0000-000000000001',true);
+do $$ declare affected integer; begin
+  if (select count(*) from public.entries where project_id='a1100000-0000-0000-0000-000000000001')<>4 then raise exception 'Owner cannot read every private and shared Note/Reflection'; end if;
+  update public.entries set title='Private Note' where id='c1100000-0000-0000-0000-000000000001';
+  get diagnostics affected = row_count;
+  if affected<>1 then raise exception 'Owner cannot edit private Note'; end if;
+  update public.entries set title='Shared Reflection' where id='c1200000-0000-0000-0000-000000000002';
+  get diagnostics affected = row_count;
+  if affected<>1 then raise exception 'Owner cannot edit shared Reflection'; end if;
+end $$;
+
 select set_config('request.jwt.claim.sub','13000000-0000-0000-0000-000000000003',true);
-do $$ begin
+do $$ declare affected integer; begin
   if (select count(*) from public.projects where id='a1100000-0000-0000-0000-000000000001')<>1 then raise exception 'Member cannot read Project'; end if;
-  if (select count(*) from public.entries where project_id='a1100000-0000-0000-0000-000000000001')<>1 then raise exception 'Entry privacy leaked or shared Entry missing'; end if;
+  if (select count(*) from public.entries where project_id='a1100000-0000-0000-0000-000000000001')<>2 then raise exception 'Entry privacy leaked or shared Entries missing'; end if;
   if exists(select 1 from public.entries where id='c1100000-0000-0000-0000-000000000001') then raise exception 'Private Note leaked'; end if;
+  if exists(select 1 from public.entries where id='c1110000-0000-0000-0000-000000000001') then raise exception 'Private Reflection leaked'; end if;
+  if not exists(select 1 from public.entries where id='c1210000-0000-0000-0000-000000000002') then raise exception 'Shared Note missing for member'; end if;
+  if not exists(select 1 from public.entries where id='c1200000-0000-0000-0000-000000000002') then raise exception 'Shared Reflection missing for member'; end if;
+  update public.entries set title='Member rewrite' where id in ('c1210000-0000-0000-0000-000000000002','c1200000-0000-0000-0000-000000000002');
+  get diagnostics affected = row_count;
+  if affected<>0 then raise exception 'Member edited a shared Entry'; end if;
+  if not exists(select 1 from storage.objects where bucket_id='note-images' and name like '%/shared.webp') then raise exception 'Shared Note image missing'; end if;
+  if exists(select 1 from storage.objects where bucket_id='note-images' and name like '%/private.webp') then raise exception 'Private Note image leaked'; end if;
   if (select count(*) from public.vault_items vi join public.vaults v on v.id=vi.vault_id where v.project_id='a1100000-0000-0000-0000-000000000001')<>1 then raise exception 'Sticky Note privacy leaked or shared item missing'; end if;
   begin perform public.assign_project_task_v11((select id from public.tasks where title='Assigned Task'),'13000000-0000-0000-0000-000000000003'); raise exception 'Member assigned a Task';
   exception when others then if sqlerrm='Member assigned a Task' then raise; end if; end;
@@ -97,6 +124,16 @@ end $$;
 
 select set_config('request.jwt.claim.sub','12000000-0000-0000-0000-000000000002',true);
 select public.assign_project_task_v11((select id from public.tasks where title='Assigned Task'),'12000000-0000-0000-0000-000000000002');
+do $$ declare affected integer; begin
+  if (select count(*) from public.entries where project_id='a1100000-0000-0000-0000-000000000001')<>2 then raise exception 'Admin Entry privacy leaked or shared Entries missing'; end if;
+  if exists(select 1 from public.entries where id in ('c1100000-0000-0000-0000-000000000001','c1110000-0000-0000-0000-000000000001')) then raise exception 'Private Note or Reflection leaked to Admin'; end if;
+  if not exists(select 1 from public.entries where id='c1210000-0000-0000-0000-000000000002') then raise exception 'Shared Note missing for Admin'; end if;
+  if not exists(select 1 from public.entries where id='c1200000-0000-0000-0000-000000000002') then raise exception 'Shared Reflection missing for Admin'; end if;
+  if exists(select 1 from public.entries where id in ('c1520000-0000-0000-0000-000000000005','c1500000-0000-0000-0000-000000000005')) then raise exception 'Guide-only Entry leaked to unrelated Admin'; end if;
+  update public.entries set title='Admin rewrite' where id in ('c1210000-0000-0000-0000-000000000002','c1200000-0000-0000-0000-000000000002');
+  get diagnostics affected = row_count;
+  if affected<>0 then raise exception 'Admin edited another owner shared Entry'; end if;
+end $$;
 select public.save_entry_v4(
   null,'note','Admin Project Note','{"type":"doc","blocks":[]}'::jsonb,'Admin Project Note',
   null,'[]'::jsonb,null,false,false,null,'{}'::uuid[],'{}'::text[],'{}'::uuid[],
@@ -121,9 +158,14 @@ do $$ begin
 end $$;
 
 select set_config('request.jwt.claim.sub','15000000-0000-0000-0000-000000000005',true);
-do $$ begin
+do $$ declare affected integer; begin
+  if not exists(select 1 from public.entries where id='c1520000-0000-0000-0000-000000000005') then raise exception 'Guide-shared Note missing'; end if;
+  if exists(select 1 from public.entries where id='c1530000-0000-0000-0000-000000000005') then raise exception 'Private Guide Note leaked'; end if;
   if not exists(select 1 from public.entries where id='c1500000-0000-0000-0000-000000000005') then raise exception 'Guide-shared Reflection missing'; end if;
   if exists(select 1 from public.entries where id='c1510000-0000-0000-0000-000000000005') then raise exception 'Private Guide Reflection leaked'; end if;
+  update public.entries set title='Guide rewrite' where id in ('c1520000-0000-0000-0000-000000000005','c1500000-0000-0000-0000-000000000005');
+  get diagnostics affected = row_count;
+  if affected<>0 then raise exception 'Guide edited an owner shared Entry'; end if;
   if not exists(select 1 from public.get_project_goal_momentum_v11('a1500000-0000-0000-0000-000000000005') where goal_id='b1500000-0000-0000-0000-000000000005' and current_value=64) then raise exception 'Guide Momentum projection missing'; end if;
 end $$;
 select public.create_project_task_v11('b1500000-0000-0000-0000-000000000005','Guide Task',current_date+1,'11000000-0000-0000-0000-000000000001','guide-task');
@@ -135,6 +177,8 @@ do $$ begin
   if exists(select 1 from public.projects where id='a1100000-0000-0000-0000-000000000001') then raise exception 'Cross-Project access leaked'; end if;
   if exists(select 1 from public.project_comments where project_id='a1100000-0000-0000-0000-000000000001') then raise exception 'Cross-Project comments leaked'; end if;
   if exists(select 1 from public.project_chat_messages where project_id='a1100000-0000-0000-0000-000000000001') then raise exception 'Cross-Project chat leaked'; end if;
+  if exists(select 1 from public.entries where project_id='a1100000-0000-0000-0000-000000000001') then raise exception 'Cross-Project Entry access leaked'; end if;
+  if exists(select 1 from storage.objects where bucket_id='note-images' and name like '%/shared.webp') then raise exception 'Cross-Project image access leaked'; end if;
   begin perform public.create_project_comment_v11('a1100000-0000-0000-0000-000000000001','goal','b1100000-0000-0000-0000-000000000001','Unauthorized'); raise exception 'Non-member commented';
   exception when others then if sqlerrm='Non-member commented' then raise; end if; end;
   if public.edit_project_comment_v11('d1300000-0000-0000-0000-000000000003','Outsider rewrite') then raise exception 'Non-member edited a comment'; end if;
@@ -168,9 +212,17 @@ do $$ begin
   if public.project_has_capability_v11('a1100000-0000-0000-0000-000000000001','11000000-0000-0000-0000-000000000001','create_task') then raise exception 'Archived Project retained mutation capability'; end if;
 end $$;
 
+select set_config('request.jwt.claim.sub','12000000-0000-0000-0000-000000000002',true);
+do $$ begin
+  if not exists(select 1 from public.entries where id='c1210000-0000-0000-0000-000000000002') then raise exception 'Archived Project unexpectedly hid shared Entry from current member'; end if;
+  if not exists(select 1 from storage.objects where bucket_id='note-images' and name like '%/shared.webp') then raise exception 'Archived Project unexpectedly hid shared image from current member'; end if;
+end $$;
+
 select set_config('request.jwt.claim.sub','13000000-0000-0000-0000-000000000003',true);
 do $$ begin
   if exists(select 1 from public.projects where id='a1100000-0000-0000-0000-000000000001') then raise exception 'Removed member retained Project access'; end if;
+  if exists(select 1 from public.entries where id='c1210000-0000-0000-0000-000000000002') then raise exception 'Removed member retained shared Entry access'; end if;
+  if exists(select 1 from storage.objects where bucket_id='note-images' and name like '%/shared.webp') then raise exception 'Removed member retained shared image access'; end if;
 end $$;
 
 reset role;

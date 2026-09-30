@@ -133,6 +133,36 @@ export interface EntryRecord {
   milestones: EntryMilestoneLink[];
 }
 
+export interface EntryAuthor {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export interface EntryCapabilities {
+  canView: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  canChangeShare: boolean;
+}
+
+export interface EntryDetailContext {
+  project: EntryProjectLink | null;
+  goals: Array<Pick<EntryGoalLink, 'id' | 'title'>>;
+  shareScope: 'private' | 'project' | 'guide';
+  viewerRole: 'owner' | 'admin' | 'member' | 'guide' | null;
+}
+
+/** Minimal, viewer-authorized detail contract shared by Notes and Reflections. */
+export interface EntryDetailDto {
+  version: 'entry-detail.v1';
+  entry: EntryRecord;
+  author: EntryAuthor;
+  context: EntryDetailContext;
+  capabilities: EntryCapabilities;
+  requestId: string;
+}
+
 export interface EntryRelationships {
   goalIds: string[];
   projectId?: string | null;

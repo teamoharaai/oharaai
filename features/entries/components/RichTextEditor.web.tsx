@@ -63,6 +63,7 @@ export interface RichTextEditorProps {
   onReferenceActivated?: (referenceId: string, kind: 'goal' | 'intelligence') => void;
   onReferenceRemoved?: (referenceId: string) => void;
   placeholder?: string;
+  readOnly?: boolean;
   sidePanel?: ReactNode;
 }
 
@@ -203,6 +204,7 @@ export function RichTextEditor({
   onReferenceActivated,
   onReferenceRemoved,
   placeholder = 'Start writing…',
+  readOnly = false,
   sidePanel,
 }: RichTextEditorProps) {
   const colors = useThemeColors();
@@ -241,6 +243,7 @@ export function RichTextEditor({
   const editor = useEditor({
     immediatelyRender: false,
     shouldRerenderOnTransaction: true,
+    editable: !readOnly,
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
@@ -261,18 +264,20 @@ export function RichTextEditor({
       }),
       GoalReferenceMark,
       IntelligenceReferenceMark,
-      GoalCardNode,
+      GoalCardNode.configure({ goals }),
       NoteImageNode,
     ],
     content: initialContent,
     editorProps: {
       attributes: {
         class: 'ohara-rich-editor',
-        role: 'textbox',
+        role: readOnly ? 'document' : 'textbox',
         'aria-label': 'Note content',
-        'aria-multiline': 'true',
+        'aria-multiline': readOnly ? 'false' : 'true',
+        'aria-readonly': readOnly ? 'true' : 'false',
       },
       handleClick: (_view, _pos, event) => {
+        if (readOnly) return false;
         const element = event.target instanceof Element ? event.target : null;
         const intelligenceElement = element?.closest('[data-intelligence-reference]');
         const goalElement = element?.closest('[data-goal-reference]');
@@ -295,6 +300,7 @@ export function RichTextEditor({
         return false;
       },
       handleKeyDown: (_view, event) => {
+        if (readOnly) return false;
         if (event.key !== 'Enter' && event.key !== ' ') return false;
         const element = event.target instanceof Element ? event.target : null;
         const intelligenceElement = element?.closest('[data-intelligence-reference]');
@@ -319,6 +325,10 @@ export function RichTextEditor({
       },
     },
     onSelectionUpdate: ({ editor: nextEditor }) => {
+      if (readOnly) {
+        setSelectionToolbar(null);
+        return;
+      }
       savedSelection.current = {
         from: nextEditor.state.selection.from,
         to: nextEditor.state.selection.to,
@@ -326,6 +336,7 @@ export function RichTextEditor({
       syncSelectionToolbar(nextEditor);
     },
     onUpdate: ({ editor: nextEditor }) => {
+      if (readOnly) return;
       const nextDocument = toV2Document(
         nextEditor.getJSON() as { type?: string; content?: import('../types').RichTextNode[] },
       );
@@ -336,6 +347,15 @@ export function RichTextEditor({
       );
     },
   });
+
+  useEffect(() => {
+    editor?.setEditable(!readOnly);
+    if (readOnly) {
+      setMenu(null);
+      setReferenceMenu(null);
+      setSelectionToolbar(null);
+    }
+  }, [editor, readOnly]);
 
   useEffect(() => {
     if (!editor) return;
@@ -605,7 +625,7 @@ export function RichTextEditor({
     : null;
   return (
     <div
-      className="ohara-editor-shell"
+      className={`ohara-editor-shell${readOnly ? ' is-read-only' : ''}`}
       style={{
         '--ohara-editor-accent': colors.accent.primary,
         '--ohara-editor-secondary': colors.text.secondary,
@@ -622,7 +642,7 @@ export function RichTextEditor({
         '--ohara-editor-shadow': colors.effects.shadow,
       } as CSSProperties}
     >
-      <div className="ohara-editor-toolbar" role="toolbar" aria-label="Note formatting">
+      {readOnly ? null : <div className="ohara-editor-toolbar" role="toolbar" aria-label="Note formatting">
         <select
           aria-label="Text style"
           className="ohara-editor-style-select"
@@ -690,8 +710,8 @@ export function RichTextEditor({
             <button type="button" role="menuitem" onClick={() => { editor.chain().focus().toggleBlockquote().run(); setMenu(null); }}>Quote</button>
           </div> : null}
         </div>
-      </div>
-      {message ? <div className="ohara-editor-message" role="status">{message}<button type="button" aria-label="Dismiss message" onClick={() => setMessage(null)}>×</button></div> : null}
+      </div>}
+      {!readOnly && message ? <div className="ohara-editor-message" role="status">{message}<button type="button" aria-label="Dismiss message" onClick={() => setMessage(null)}>×</button></div> : null}
       <div className="ohara-editor-body">
         <div className="ohara-editor-content" onScroll={() => setSelectionToolbar(null)} ref={scrollContainer}>
           <div className="ohara-editor-page" onPointerDown={handlePagePointerDown}>
@@ -700,7 +720,7 @@ export function RichTextEditor({
         </div>
         {sidePanel}
       </div>
-      {selectionToolbar ? (
+      {!readOnly && selectionToolbar ? (
         <div
           aria-label="Selected text actions"
           className="ohara-editor-selection-toolbar"
@@ -714,7 +734,7 @@ export function RichTextEditor({
           <ToolButton label="Create Echo reference" onClick={() => askOhara('ask')}><BrandIcon name="echo" color="currentColor" size={17} /></ToolButton>
         </div>
       ) : null}
-      {referenceMenu && referenceAttributes ? (
+      {!readOnly && referenceMenu && referenceAttributes ? (
         <div
           aria-label={referenceMenu.kind === 'goal' ? 'Goal Reference actions' : 'Echo Reference actions'}
           className="ohara-reference-popover"

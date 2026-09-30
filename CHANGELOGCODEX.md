@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+### Deployed — Migration 082 shared Entry reliability (2026-09-30)
+- **Preflight:** production history was exactly 001–081; migration 082 and probes 072–078, 080–082 passed; transaction 20351 was server-verified aborted.
+- **Apply:** transaction 20436 committed; existing Goal/Task rows were fingerprint-identical; synthetic probes rolled back; PostgREST was notified.
+- **Verification:** production history is exactly 001–082, migration 082 appears once with byte-matching statements, and the read-only 082 probe confirms the partial Project Entry index plus the authenticated, Entry-RLS-backed shared-image SELECT policy with no collaborator write policy.
+- Updated `scripts/db-chain/hosted-applied-through` to 082 so future rehearsals and releases start from the verified production ledger.
+
+### PHASE 1 — Shared Entry Reliability
+- **Authorization:** replaced the owner-filtered Entry detail lookup with a viewer-scoped RLS read, then derives owner/admin/member/Guide capabilities without enabling collaborator writes (`lib/db/entries.ts`, `app/api/entries/library/[id]+api.ts`).
+- **Entry contract:** added the versioned `entry-detail.v1` DTO with minimal author, authorized Project/Goal context, share scope, capabilities, and request timing headers; optional author metadata now degrades safely (`features/entries/types.ts`, `features/entries/services/entry-service.ts`).
+- **Notes and Reflections:** direct detail routes now fetch the requested canonical Entry rather than hydrating the full personal library; collaborators receive a dedicated read-only presentation while owners retain the existing editors (`app/(app)/notes/[id].tsx`, `app/(app)/reflections/[id].tsx`, `features/entries/components/EntryDetailScreen.tsx`, `features/entries/components/SharedEntryReadView.tsx`).
+- **Read-only rendering:** rich Note documents, Goal cards, and images render without editing toolbars, removal actions, or writable controls for non-owners (`features/entries/components/RichTextEditor.tsx`, `features/entries/components/RichTextEditor.web.tsx`, `features/entries/components/editor-extensions.web.tsx`).
+- **Shared media:** added an Entry-RLS-backed storage read policy for images belonging to explicitly shared Notes while preserving private objects and all existing write restrictions (`supabase/migrations/082_shared_entry_reliability.sql`; renumbered from 081 after upstream assigned 081 to Goal work).
+- **Reliability:** unmounted the closed Friends popover and deferred Goal-invite hydration so Friends/Circles are absent from the shared Entry critical path; mapped plain Supabase conflict objects to HTTP 409 (`components/layout/AvatarMenu.tsx`, `features/circles/components/GoalInvitesPane.tsx`, `features/entries/conflict.ts`).
+- **Autosave:** serialized overlapping Note and Reflection saves, advanced content versions monotonically, retained newer local drafts after older acknowledgements, and blocked destructive navigation when the final save fails (`features/entries/components/NoteEditor.tsx`, `features/entries/components/QuickReflectionEditor.tsx`).
+- **Query performance:** added a partial `(project_id, updated_at desc)` index for active Project Entry lists, matching the existing filter/order shape (`supabase/migrations/082_shared_entry_reliability.sql`).
+- **Validation:** added Phase 1 contract tests, a hosted read-only 082 index/policy probe, and an expanded Project security matrix for shared/private Notes, Reflections, image objects, archived Projects, outsiders, and removed members; captured owner/admin/member UI checkpoints (`features/entries/shared-entry-phase1.test.ts`, `scripts/goal-hosted-preflight/082-shared-entry-reliability.sql`, `scripts/projects-v11-security.test.sql`, `docs/ui-checkpoints/phase1-shared-entry-reliability/`).
+
 ### Deployed — Migration 081 to production (2026-09-29; backend not yet pushed)
 - **Preflight** (approved by Justin): history exactly 001–080; probes 072–078, 080 and 081 passed; transaction 19941 aborted (server-verified). **B9: the storage grant works on hosted:** the executor has `usage` on `storage` and `select` on `storage.objects` (owner `supabase_storage_admin`), and the probe's photo check answered `PHOTO_NOT_FOUND`, so no fallback is needed.
 - **Apply** (approved): transaction 20027 committed (server-verified); probes passed and rolled back; history now exactly 001–081, and the recorded statements match the file; PostgREST notified.
@@ -45,7 +62,6 @@
 - **Push** (approved): `0587f9b..9fa9914` to `main`; Vercel production deployment 6722945035 succeeded; Database chain green.
 - **Live run** (approved as one sequence), `live-20260929-ae70f7b1`: 4/4 opt-in native tests passed. Cleanup evidence included **goal_events 3** (and operation_ledger 22); afterwards every count was 0 and admission was closed (`enabled false`, allowlist 0). Record: `docs/goal-events-e2e-verification-2026-09-29.md`.
 - **Next:** TD-005 (design agreed 2026-09-29, `design/ios-core/TD-005-desktop-work-cutover.md` in the iOS repo): Migration 081 (work-v1 Milestone delete/reorder/photo path with a `storage.objects` existence check, schedule interval/end date, `reconcile_my_tasks_v1`), 082 (Echo → canonical mirror triggers), 083 (revoke direct Milestone writes), desktop behind a per-account flag.
-
 ### Deployed — Migration 080 to production (2026-09-28; backend not yet pushed)
 - **Preflight** (approved by Justin): `node scripts/test-manual-goal-hosted.mjs --project-ref rrgiqemscnyaqkculnmb --applied-through 079`. **PASS:**
   - history exactly 001–079; nobody upstream had taken 080 (`git fetch` before preflight and again before apply);

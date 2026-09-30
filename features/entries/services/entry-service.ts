@@ -1,5 +1,11 @@
 import { authedFetch, UnauthorizedError } from '@/lib/api/client';
-import type { EntryDraft, EntryGoalOption, EntryRecord, EntryType } from '../types';
+import type {
+  EntryDetailDto,
+  EntryDraft,
+  EntryGoalOption,
+  EntryRecord,
+  EntryType,
+} from '../types';
 
 type SerializedEntry = Omit<EntryRecord, 'createdAt' | 'updatedAt' | 'completedAt'> & {
   createdAt: string;
@@ -14,6 +20,14 @@ function hydrateEntry(entry: SerializedEntry): EntryRecord {
     updatedAt: new Date(entry.updatedAt),
     completedAt: entry.completedAt ? new Date(entry.completedAt) : null,
   };
+}
+
+type SerializedEntryDetail = Omit<EntryDetailDto, 'entry'> & {
+  entry: SerializedEntry;
+};
+
+function hydrateEntryDetail(detail: SerializedEntryDetail): EntryDetailDto {
+  return { ...detail, entry: hydrateEntry(detail.entry) };
 }
 
 async function responseBody<T>(response: Response): Promise<T> {
@@ -40,6 +54,13 @@ export async function fetchEntry(entryId: string): Promise<EntryRecord | null> {
   if (response.status === 404) return null;
   const body = await responseBody<{ entry: SerializedEntry }>(response);
   return hydrateEntry(body.entry);
+}
+
+export async function fetchEntryDetail(entryId: string): Promise<EntryDetailDto | null> {
+  const response = await authedFetch(`/api/entries/library/${entryId}`);
+  if (response.status === 404) return null;
+  const body = await responseBody<SerializedEntryDetail>(response);
+  return hydrateEntryDetail(body);
 }
 
 export async function createEntry(draft: EntryDraft): Promise<EntryRecord> {

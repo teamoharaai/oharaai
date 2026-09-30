@@ -2,6 +2,9 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { normalizeGoalCategoryForEntries } from '@/lib/goals/catalog';
 import type {
   EntryDraft,
+  EntryCapabilities,
+  EntryDetailContext,
+  EntryDetailDto,
   EntryGoalLink,
   EntryGoalOption,
   EntryMilestoneLink,
@@ -65,6 +68,28 @@ type RelationshipRows = {
   categoryIds: string[];
   milestoneRows: MilestoneRow[];
 };
+
+export type EntryDetailReadResult = {
+  detail: Omit<EntryDetailDto, 'requestId'> | null;
+  timings: {
+    entryReadMs: number;
+    membershipMs: number;
+    authorContextMs: number;
+  };
+};
+
+export function deriveEntryCapabilities(
+  viewerId: string,
+  ownerId: string,
+): EntryCapabilities {
+  const isOwner = viewerId === ownerId;
+  return {
+    canView: true,
+    canEdit: isOwner,
+    canDelete: isOwner,
+    canChangeShare: isOwner,
+  };
+}
 
 function requireUuid(value: string, label: string): string {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
@@ -290,14 +315,12 @@ export async function getEntryGoalOptions(
 
 export async function getEntry(
   db: SupabaseClient,
-  userId: string,
   entryId: string,
 ): Promise<EntryRecord | null> {
   const { data, error } = await db
     .from('entries')
     .select('*')
     .eq('id', entryId)
-    .eq('user_id', userId)
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
@@ -311,6 +334,131 @@ export async function getEntry(
     relationships.get(entryId) ?? { goalRows: [], categoryIds: [], milestoneRows: [] },
     row.project_id ? projects.get(row.project_id) ?? null : null,
   );
+}
+
+/**
+ * Canonical Entry detail read. The authenticated client's RLS policy is the
+ * authority for visibility; application code only derives owner-only mutation
+ * capabilities after that read succeeds.
+ */
+export async function getEntryDetail(
+  db: SupabaseClient,
+  metadataDb: SupabaseClient | null,
+  viewerId: string,
+  entryId: string,
+): Promise<EntryDetailReadResult> {
+  const entryStartedAt = Date.now();
+  const { data, error } = await db
+    .from('entries')
+    .select('*')
+    .eq('id', entryId)
+    .maybeSingle();
+  const entryReadMs = Date.now() - entryStartedAt;
+  if (error) throw error;
+  if (!data) {
+    return {
+      detail: null,
+      timings: { entryReadMs, membershipMs: 0, authorContextMs: 0 },
+    };
+  }
+
+  const row = data as DbEntryRow;
+  const isOwner = row.user_id === viewerId;
+  const membershipStartedAt = Date.now();
+  const membershipPromise = row.project_id
+    ? db
+      .from('project_members')
+      .select('role')
+      .eq('project_id', row.project_id)
+      .eq('user_id', viewerId)
+      .maybeSingle()
+    : Promise.resolve({ data: null, error: null });
+  const relationshipsPromise = isOwner
+    ? loadRelationships(db, [entryId])
+    : loadSharedEntryRelationships(db, entryId, row.project_id);
+
+  const authorContextStartedAt = Date.now();
+  const authorPromise = (async (): Promise<{
+    data: { id: string; display_name: string | null; avatar_url: string | null } | null;
+    error: null;
+  }> => {
+    if (!metadataDb) return { data: null, error: null };
+    try {
+      const result = await metadataDb
+        .from('profiles')
+        .select('id, display_name, avatar_url')
+        .eq('id', row.user_id)
+        .maybeSingle();
+      return { data: result.error ? null : result.data, error: null };
+    } catch {
+      return { data: null, error: null };
+    }
+  })();
+  const [membershipResult, relationships, projects, authorResult] = await Promise.all([
+    membershipPromise,
+    relationshipsPromise,
+    loadEntryProjects(db, [row]),
+    authorPromise,
+  ]);
+  const authorContextMs = Date.now() - authorContextStartedAt;
+  const membershipMs = Date.now() - membershipStartedAt;
+  if (membershipResult.error) throw membershipResult.error;
+
+  const relationship = relationships.get(entryId)
+    ?? { goalRows: [], categoryIds: [], milestoneRows: [] };
+  const project = row.project_id ? projects.get(row.project_id) ?? null : null;
+  const entry = mapEntry(row, relationship, project);
+  const viewerRole = isOwner
+    ? 'owner'
+    : (membershipResult.data?.role as EntryDetailContext['viewerRole'] | undefined) ?? null;
+
+  return {
+    detail: {
+      version: 'entry-detail.v1',
+      entry,
+      author: {
+        id: row.user_id,
+        displayName: authorResult.data?.display_name ?? 'Project collaborator',
+        avatarUrl: authorResult.data?.avatar_url ?? null,
+      },
+      context: {
+        project,
+        goals: relationship.goalRows.map((goal) => ({ id: goal.id, title: goal.title })),
+        shareScope: row.project_share_scope ?? 'private',
+        viewerRole,
+      },
+      capabilities: deriveEntryCapabilities(viewerId, row.user_id),
+    },
+    timings: { entryReadMs, membershipMs, authorContextMs },
+  };
+}
+
+async function loadSharedEntryRelationships(
+  db: SupabaseClient,
+  entryId: string,
+  projectId: string | null,
+): Promise<Map<string, RelationshipRows>> {
+  const empty: RelationshipRows = { goalRows: [], categoryIds: [], milestoneRows: [] };
+  const result = new Map([[entryId, empty]]);
+  const { data: linkData, error: linkError } = await db
+    .from('entry_goal_links')
+    .select('goal_id')
+    .eq('entry_id', entryId);
+  if (linkError) throw linkError;
+  const goalIds = [...new Set((linkData ?? []).map((link: { goal_id: string }) => link.goal_id))];
+  if (!goalIds.length) return result;
+  let query = db
+    .from('goals')
+    .select('id, title, category, status, project_id')
+    .in('id', goalIds);
+  if (projectId) query = query.eq('project_id', projectId);
+  const { data: goalData, error: goalError } = await query;
+  if (goalError) throw goalError;
+  result.set(entryId, {
+    ...empty,
+    goalRows: (goalData ?? []) as GoalRow[],
+  });
+  return result;
 }
 
 async function saveEntry(
@@ -365,7 +513,7 @@ export async function createEntry(
   draft: EntryDraft,
 ): Promise<EntryRecord> {
   const entryId = await saveEntry(db, null, draft);
-  const entry = await getEntry(db, userId, entryId);
+  const entry = await getEntry(db, entryId);
   if (!entry) throw new Error('Entry was created but could not be reloaded');
   return entry;
 }
@@ -392,7 +540,7 @@ export async function updateEntry(
   }
 
   await saveEntry(db, entryId, draft);
-  return getEntry(db, userId, entryId);
+  return getEntry(db, entryId);
 }
 
 export async function deleteEntry(
@@ -485,7 +633,7 @@ export async function getEntryContextBundle(
   userId: string,
   entryId: string,
 ): Promise<{ entry: EntryRecord; retrieval: EntryRetrievalDocument } | null> {
-  const entry = await getEntry(db, userId, entryId);
+  const entry = await getEntry(db, entryId);
   if (!entry) return null;
 
   const goalIds = entry.goals.map((goal) => goal.id);

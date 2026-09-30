@@ -91,8 +91,10 @@ export function AvatarMenu() {
   const [savedOpen, setSavedOpen] = useState(false);
   const [circlesOpen, setCirclesOpen] = useState(false);
   const [invitesOpen, setInvitesOpen] = useState(false);
-  const goalInviteCount = useGoalInviteCount();
   const [friendsTab, setFriendsTab] = useState<FriendsTab>('friends');
+  const goalInviteCount = useGoalInviteCount(
+    menuOpen || circlesOpen || invitesOpen || (friendsOpen && (friendsTab === 'requests' || friendsTab === 'circles')),
+  );
   const [avatarFocused, setAvatarFocused] = useState(false);
   const [anchorRect, setAnchorRect] =
     useState<FriendsAnchorRect | null>(null);
@@ -442,7 +444,7 @@ export function AvatarMenu() {
         </ScrollView>
       </OharaModal>
 
-      {FEATURES.SOCIAL_ENABLED ? (
+      {FEATURES.SOCIAL_ENABLED && friendsOpen ? (
         <FriendsPopover
           key={activeUserId ?? 'signed-out'}
           anchorRect={anchorRect}

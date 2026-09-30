@@ -72,7 +72,10 @@ export function QuickReflectionEditor({
   const [exportMessage, setExportMessage] = useState<string | null>(null);
   const lastSavedVersion = useRef(0);
   const lastAttemptedVersion = useRef(0);
-  const savingRef = useRef(false);
+  const requestedSaveVersionRef = useRef(0);
+  const latestDirtyVersionRef = useRef(0);
+  const contentVersionRef = useRef(initialEntry.contentVersion);
+  const savePromiseRef = useRef<Promise<boolean> | null>(null);
   const latestDraftRef = useRef<EntryDraft | null>(null);
   const goals = useMemo(() => {
     const options = new Map(activeGoalOptions.map((goal) => [goal.id, goal]));
@@ -105,7 +108,11 @@ export function QuickReflectionEditor({
       setProjectId(draft.relationships.projectId ?? null);
       setSaveStatus('error');
       setSaveError('Recovered an unsaved reflection from this device.');
-      setDirtyVersion((version) => version + 1);
+      setDirtyVersion((version) => {
+        const next = version + 1;
+        latestDirtyVersionRef.current = next;
+        return next;
+      });
     } catch {
       window.localStorage.removeItem(localDraftKey(entry.id));
     }
@@ -135,32 +142,63 @@ export function QuickReflectionEditor({
     window.localStorage.setItem(localDraftKey(entry.id), JSON.stringify(draft));
   }, [dirtyVersion, draft, entry.id]);
 
-  const persist = useCallback(async (version: number): Promise<boolean> => {
-    if (version <= lastSavedVersion.current) return true;
-    if (savingRef.current) return false;
-    savingRef.current = true;
-    lastAttemptedVersion.current = version;
-    setSaveStatus('saving');
-    setSaveError(null);
-    try {
-      const saved = await updateEntry(entry.id, latestDraftRef.current as EntryDraft);
-      setEntry(saved);
-      lastSavedVersion.current = version;
-      setSaveStatus('saved');
-      if (typeof window !== 'undefined') window.localStorage.removeItem(localDraftKey(entry.id));
+  const persist = useCallback((version: number): Promise<boolean> => {
+    if (version <= lastSavedVersion.current) return Promise.resolve(true);
+    requestedSaveVersionRef.current = Math.max(requestedSaveVersionRef.current, version);
+    if (savePromiseRef.current) return savePromiseRef.current;
+
+    const run = async (): Promise<boolean> => {
+      while (requestedSaveVersionRef.current > lastSavedVersion.current) {
+        const savingVersion = requestedSaveVersionRef.current;
+        const currentDraft = latestDraftRef.current;
+        if (!currentDraft) return false;
+        lastAttemptedVersion.current = savingVersion;
+        setSaveStatus('saving');
+        setSaveError(null);
+        try {
+          const saved = await updateEntry(entry.id, {
+            ...currentDraft,
+            expectedContentVersion: contentVersionRef.current,
+          });
+          setEntry(saved);
+          contentVersionRef.current = saved.contentVersion;
+          lastSavedVersion.current = savingVersion;
+          setSaveStatus('saved');
+          if (typeof window !== 'undefined') {
+            if (latestDirtyVersionRef.current <= savingVersion) {
+              window.localStorage.removeItem(localDraftKey(entry.id));
+            } else {
+              window.localStorage.setItem(localDraftKey(entry.id), JSON.stringify({
+                ...latestDraftRef.current,
+                expectedContentVersion: saved.contentVersion,
+              }));
+            }
+          }
+        } catch (error) {
+          setSaveStatus('error');
+          const localDraftAvailable = typeof window !== 'undefined';
+          setSaveError(isPersistenceUnavailable(error)
+            ? localDraftAvailable
+              ? 'You appear to be offline. This reflection is kept on this device.'
+              : 'You appear to be offline. Stay here and retry so your reflection is not lost.'
+            : error instanceof Error ? error.message : 'Autosave failed. Your reflection is still here.');
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem(localDraftKey(entry.id), JSON.stringify({
+              ...latestDraftRef.current,
+              expectedContentVersion: contentVersionRef.current,
+            }));
+          }
+          return false;
+        }
+      }
       return true;
-    } catch (error) {
-      setSaveStatus('error');
-      const localDraftAvailable = typeof window !== 'undefined';
-      setSaveError(isPersistenceUnavailable(error)
-        ? localDraftAvailable
-          ? 'You appear to be offline. This reflection is kept on this device.'
-          : 'You appear to be offline. Stay here and retry so your reflection is not lost.'
-        : error instanceof Error ? error.message : 'Autosave failed. Your reflection is still here.');
-      return false;
-    } finally {
-      savingRef.current = false;
-    }
+    };
+
+    const promise = run().finally(() => {
+      savePromiseRef.current = null;
+    });
+    savePromiseRef.current = promise;
+    return promise;
   }, [entry.id, updateEntry]);
 
   useEffect(() => {
@@ -174,13 +212,17 @@ export function QuickReflectionEditor({
   }, [dirtyVersion, persist, saveStatus]);
 
   function markDirty() {
-    setDirtyVersion((version) => version + 1);
+    setDirtyVersion((version) => {
+      const next = version + 1;
+      latestDirtyVersionRef.current = next;
+      return next;
+    });
     setSaveStatus('idle');
   }
 
   async function leave() {
-    if (dirtyVersion > lastSavedVersion.current) {
-      const saved = await persist(dirtyVersion);
+    if (latestDirtyVersionRef.current > lastSavedVersion.current) {
+      const saved = await persist(latestDirtyVersionRef.current);
       if (!saved) return;
     }
     onBack();

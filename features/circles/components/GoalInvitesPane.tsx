@@ -14,12 +14,12 @@ import { CategoryGlyph, PersonAvatar } from './primitives';
  * Count of pending incoming goal invites, for the avatar-menu badge. Gated on the
  * flag: with Circles off it returns 0 and never triggers a fetch.
  */
-export function useGoalInviteCount(): number {
+export function useGoalInviteCount(enabled = true): number {
   const count = useCirclesStore((state) => state.goalInvites.length);
   const ensureLoaded = useCirclesStore((state) => state.ensureLoaded);
   useEffect(() => {
-    if (FEATURES.CIRCLES_ENABLED) void ensureLoaded();
-  }, [ensureLoaded]);
+    if (FEATURES.CIRCLES_ENABLED && enabled) void ensureLoaded();
+  }, [enabled, ensureLoaded]);
   return FEATURES.CIRCLES_ENABLED ? count : 0;
 }
 

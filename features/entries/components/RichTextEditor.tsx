@@ -39,6 +39,7 @@ export function RichTextEditor({
   document,
   onChange,
   placeholder = 'Start writing…',
+  readOnly = false,
   sidePanel,
 }: {
   document: RichTextDocument;
@@ -52,6 +53,7 @@ export function RichTextEditor({
   onReferenceActivated?: (referenceId: string, kind: 'goal' | 'intelligence') => void;
   onReferenceRemoved?: (referenceId: string) => void;
   placeholder?: string;
+  readOnly?: boolean;
   sidePanel?: ReactNode;
 }) {
   const colors = useThemeColors();
@@ -73,7 +75,7 @@ export function RichTextEditor({
 
   return (
     <View style={{ flex: 1, minHeight: 0 }}>
-      {richV2 ? (
+      {richV2 && !readOnly ? (
         <View style={{
           backgroundColor: colors.background.card,
           borderBottomColor: colors.border.divider,
@@ -89,7 +91,7 @@ export function RichTextEditor({
       <View style={{ flex: 1, flexDirection: 'row', minHeight: 0, minWidth: 0 }}>
         <TextInput
           accessibilityLabel="Note content"
-          editable={!richV2}
+          editable={!readOnly && !richV2}
           multiline
           onChangeText={update}
           placeholder={placeholder}
