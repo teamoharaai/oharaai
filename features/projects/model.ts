@@ -43,13 +43,32 @@ export function selectProjectTaskPreviews(
   const today = now.toISOString().slice(0, 10);
   const rank = { overdue: 0, today: 1, upcoming: 2, anytime: 3 } as const;
   return groups.flatMap(({ goalId, goalTitle, tasks }) => tasks.flatMap((task): ProjectTaskPreview[] => {
-    if (task.status !== 'active') return [];
-    const pending = task.occurrences
-      .filter((occurrence) => occurrence.status === 'pending')
+    if (task.status === 'archived') return [];
+    const actionable = task.occurrences
+      .filter((occurrence) => occurrence.status === 'pending' || occurrence.status === 'missed')
       .sort((a, b) => (a.scheduledLocalDate ?? '9999').localeCompare(b.scheduledLocalDate ?? '9999'))[0] ?? null;
-    const date = pending?.scheduledLocalDate ?? task.dueDate;
+    const completed = task.occurrences
+      .filter((occurrence) => occurrence.status === 'completed')
+      .sort((a, b) => (b.completedAt ?? b.updatedAt).localeCompare(a.completedAt ?? a.updatedAt))[0] ?? null;
+    // Active recurring Tasks advance to their next actionable occurrence. A completed
+    // one-time Task keeps its completed occurrence so the Project can truthfully show
+    // and reopen the canonical result after a refresh.
+    const occurrence = actionable ?? (task.status === 'complete' ? completed : null);
+    if (!occurrence && task.status === 'complete') return [];
+    const date = occurrence?.scheduledLocalDate ?? task.dueDate;
     const timing: ProjectTaskPreview['timing'] = !date ? 'anytime' : date < today ? 'overdue' : date === today ? 'today' : 'upcoming';
-    return [{ id: task.id, goalId, goalTitle, occurrence: pending, title: task.title, timing, assignedTo: task.assignedTo ?? null }];
+    return [{
+      id: task.id,
+      goalId,
+      goalTitle,
+      occurrence,
+      title: task.title,
+      timing,
+      assignedTo: task.assignedTo ?? null,
+      completionMode: task.completionMode,
+      targetQuantity: task.targetQuantity,
+      quantityUnit: task.quantityUnit,
+    }];
   })).sort((a, b) => rank[a.timing] - rank[b.timing]
     || (a.occurrence?.scheduledLocalDate ?? '9999').localeCompare(b.occurrence?.scheduledLocalDate ?? '9999'))
     .slice(0, limit);

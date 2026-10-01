@@ -6,6 +6,7 @@ import test from 'node:test';
 const migration = readFileSync(resolve(process.cwd(), 'supabase/migrations/071_projects_v1_foundation.sql'), 'utf8');
 const collaboration = readFileSync(resolve(process.cwd(), 'supabase/migrations/073_projects_v1_1_collaboration.sql'), 'utf8');
 const chatMigration = readFileSync(resolve(process.cwd(), 'supabase/migrations/079_project_chat.sql'), 'utf8');
+const executionMigration = readFileSync(resolve(process.cwd(), 'supabase/migrations/085_project_task_execution.sql'), 'utf8');
 const api = readFileSync(resolve(process.cwd(), 'app/api/projects/[projectId]/vault+api.ts'), 'utf8');
 const auth = readFileSync(resolve(process.cwd(), 'lib/api/auth.ts'), 'utf8');
 const apiClient = readFileSync(resolve(process.cwd(), 'lib/api/client.ts'), 'utf8');
@@ -86,4 +87,17 @@ test('Project Chat is member-scoped, author-mutable, and body-safe in activity',
   assert.match(chatMigration, /delete_project_chat_message_v11/);
   assert.match(chatMigration, /supabase_realtime/);
   assert.doesNotMatch(chatMigration, /jsonb_build_object\('body'/);
+});
+
+test('Project Task execution stays canonical, permissioned, and retry-safe', () => {
+  assert.match(executionMigration, /mutate_project_task_occurrence_v12/);
+  assert.match(executionMigration, /project_has_capability_v11\(v_project, v_actor, 'complete_task'\)/);
+  assert.match(executionMigration, /Task is assigned to another member/);
+  assert.match(executionMigration, /on conflict \(user_id, idempotency_key\) do nothing/);
+  assert.match(executionMigration, /for update/);
+  assert.match(executionMigration, /completion_mode <> 'quantity'/);
+  assert.match(executionMigration, /actual_quantity = v_next_quantity/);
+  assert.match(executionMigration, /schedule_id is null and v_changed/);
+  assert.match(executionMigration, /'task\.completed'/);
+  assert.doesNotMatch(executionMigration, /create table public\.project_tasks/);
 });

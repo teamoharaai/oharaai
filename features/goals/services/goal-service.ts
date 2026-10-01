@@ -478,12 +478,18 @@ export async function enrichGoalsWithSignals(
 
 export async function fetchGoals(
   userId: string,
-  options?: { status?: GoalStatus },
+  options?: { status?: GoalStatus; includeGoalId?: string | null },
 ): Promise<GoalWithDetails[]> {
   let query = supabase
     .from('goals')
-    .select(GOAL_SELECT)
-    .eq('user_id', userId);
+    .select(GOAL_SELECT);
+
+  const includeGoalId = options?.includeGoalId && /^[0-9a-f-]{36}$/i.test(options.includeGoalId)
+    ? options.includeGoalId
+    : null;
+  query = includeGoalId
+    ? query.or(`user_id.eq.${userId},id.eq.${includeGoalId}`)
+    : query.eq('user_id', userId);
 
   if (options?.status) {
     query = query.eq('status', options.status);

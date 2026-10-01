@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### Fixed
+- Aligned the Goals Playwright server and navigation port in `tests/goals/playwright.config.ts` so the prelaunch browser gate exercises the application instead of failing with connection refusals.
+- Kept the new Project Task projection fixture type-safe so tracked TypeScript validation covers the canonical occurrence assertions without introducing a release diagnostic (`features/projects/model.test.ts`).
+
+### Added — Projects & Goals prelaunch stabilization (local only)
+- Added direct canonical Task execution to Project Detail: binary Tasks use a checkbox, quantity Tasks use atomic progress controls, recurring Tasks mutate only the selected occurrence, and successful writes refresh the Project projection immediately while Momentum refresh remains asynchronous (`app/(app)/projects/[id].tsx`, `app/api/task-occurrences/[id]+api.ts`, `features/projects/model.ts`).
+- Added migration `085_project_task_execution.sql` with capability- and assignment-aware collaborator mutations, row locking, actor-scoped idempotency receipts, one-time Task lifecycle updates, and truthful Project completion activity; added a hosted preflight probe covering retry, reopen, quantity, authorization, and cleanup (`supabase/migrations/085_project_task_execution.sql`, `scripts/goal-hosted-preflight/085-project-task-execution.sql`).
+- Preserved Project context when opening a Task’s canonical Goal and visibly focuses that Task; authorized collaborators can now load the RLS-visible Goal and its canonical Tasks without owner filters (`features/goals/navigation.ts`, `features/goals/components/GoalsWorkspace.tsx`, `features/goals/hooks/useGoals.ts`, `features/goals/services/goal-service.ts`, `features/tasks/components/TasksPanel.tsx`, `lib/db/tasks.ts`).
+- Added Project and Goal route error boundaries so a route render failure has an explicit retry/back path rather than taking down the execution flow (`app/(app)/projects/[id].tsx`, `app/(app)/goals/index.tsx`).
+- Fixed the reproduced Project → Goal crash: `GoalAnalyticsCard` dereferenced `history.length` on an older partial Goal Momentum projection. Goal rendering now normalizes missing `history` and `reasons` arrays before reading them (`features/goals/components/GoalsWorkspace.tsx`).
+
+### Changed — Projects & Goals prelaunch stabilization (local only)
+- Reduced Project first-render work by omitting unused Goal signal enrichment, full Entry documents, shared Entries, and Project Momentum from the critical render path; secondary panels still hydrate independently and report partial failures (`features/projects/services/project-service.ts`).
+- Added Projects 1.1 internal release notes plus unit, security, architecture, and browser acceptance coverage for direct completion, quantity progress, Project-to-Goal context, secondary failure isolation, canonical data ownership, and migration authorization (`config/internal-release.ts`, `features/projects/*.test.ts`, `features/tasks/architecture.test.ts`, `tests/projects/collaboration-ui.spec.ts`).
+
 ### Retired — Sticky Notes product surface (Phase 3, local only)
 - Removed Sticky Notes from Goal and Project Vault filters, create menus, Project Snapshot counts, Recent Activity, and Goal detail hydration while preserving canonical Notes, Reflections, Sources, and Quick Create behavior (`features/goals/components/GoalVault.tsx`, `features/goals/components/GoalsWorkspace.tsx`, `features/projects/components/ProjectVaultWorkspace.tsx`, `app/(app)/projects/[id].tsx`).
 - Hid archived `sticky_note` rows from domain reads and counts, removed the now-unreferenced Sticky Notes panel and Goal-detail writer callbacks, and made legacy Sticky Note/folder mutation endpoints return `410 Gone`; compatibility readers and historical classifications remain for future export or conversion.

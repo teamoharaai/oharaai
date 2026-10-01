@@ -23,6 +23,7 @@ for (const theme of ['light', 'dark']) test(`Projects V1 workspace ${theme}`, as
     localStorage.setItem('ohara:release:goals-v2-3-1:seen', 'seen');
     localStorage.setItem('ohara:release:vault-v2-3:seen', 'seen');
     localStorage.setItem('ohara:release:projects-v1-0:seen', 'seen');
+    localStorage.setItem('ohara:release:projects-v1-1-execution:seen', 'seen');
   }, { session, theme });
   await page.route(/https?:\/\/[^/]+\/(?:auth|rest)\/v1\/.*/, async (route) => {
     const url = new URL(route.request().url());
@@ -113,6 +114,7 @@ test('Guide workspace exposes permitted coordination without owner controls or p
     localStorage.setItem('ohara:release:goals-v2-3-1:seen', 'seen');
     localStorage.setItem('ohara:release:vault-v2-3:seen', 'seen');
     localStorage.setItem('ohara:release:projects-v1-0:seen', 'seen');
+    localStorage.setItem('ohara:release:projects-v1-1-execution:seen', 'seen');
   }, { session });
   await page.route(/https?:\/\/[^/]+\/(?:auth|rest)\/v1\/.*/, async (route) => {
     const url = new URL(route.request().url());

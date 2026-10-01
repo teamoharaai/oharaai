@@ -702,6 +702,7 @@ function GoalTabContent({
   linkedEntries,
   tab,
   externalVaultAddRequest,
+  focusedTaskId,
 }: {
   activityError: string | null;
   activityItems: readonly ActivityItem[];
@@ -712,6 +713,7 @@ function GoalTabContent({
   linkedEntries: readonly EntryRecord[];
   tab: WorkspaceTab;
   externalVaultAddRequest: number;
+  focusedTaskId?: string;
 }) {
   const colors = useThemeColors();
   const { density: deadlineDensity } = useDeadlineDensity();
@@ -731,7 +733,7 @@ function GoalTabContent({
   return (
     <View style={{ gap: SPACE.xl }}>
       <Surface>
-      <TasksPanel deadlineDensity={deadlineDensity} full={allTasks} goalId={goal.id} goalStatus={goal.status}
+      <TasksPanel deadlineDensity={deadlineDensity} focusedTaskId={focusedTaskId} full={allTasks} goalId={goal.id} goalStatus={goal.status}
         milestones={goal.milestones} onSeeAll={() => setAllTasks(true)} />
       {allTasks ? <Pressable accessibilityRole="button" onPress={() => setAllTasks(false)}
         style={{ paddingHorizontal: SPACE['3xl'], minHeight: 44 }}>
@@ -792,6 +794,10 @@ function GoalAnalyticsCard({ goal }: { goal: GoalWithDetails }) {
   const activity = useGoalActivityWindow(goal.id, 70);
   const momentum = useGoalMomentumSummary(goal.id);
   const summary = momentum.goalSummary;
+  // Published projections can outlive the web bundle that created them. Keep
+  // an older/partial Goal Momentum DTO from crashing the entire Goal route.
+  const history = Array.isArray(summary?.history) ? summary.history : [];
+  const reasons = Array.isArray(summary?.reasons) ? summary.reasons : [];
   const trend = buildDailyActivityTrend(activity.buckets);
   return (
     <View style={{ padding: SPACE.xl, gap: SPACE.lg }}>
@@ -831,12 +837,12 @@ function GoalAnalyticsCard({ goal }: { goal: GoalWithDetails }) {
       </View>
       <View style={{ borderTopWidth: 1, borderTopColor: colors.border.divider, paddingTop: SPACE['3xl'], gap: SPACE.lg }}>
       <SectionHeading>MOMENTUM TREND</SectionHeading>
-      {summary?.history.length ? <MomentumTrendChart height={287} fitHeight
-        points={summary.history.map((point) => point.value)}
-        xLabels={summary.history.map((point, index, all) => (
+      {history.length ? <MomentumTrendChart height={287} fitHeight
+        points={history.map((point) => point.value)}
+        xLabels={history.map((point, index, all) => (
           index === 0 || index === all.length - 1 ? new Date(point.periodStart.slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''
         ))} yDomainMax={100} /> : null}
-      <Typography variant="body">{summary?.reasons[0]?.message ?? momentum.error ?? 'Momentum history will appear after calculation.'}</Typography>
+      <Typography variant="body">{reasons[0]?.message ?? momentum.error ?? 'Momentum history will appear after calculation.'}</Typography>
       </View>
     </View>
   );
@@ -914,6 +920,7 @@ function SelectedGoalWorkspace({
   tab,
   onWorkspaceChange,
   sourceProjectId,
+  focusedTaskId,
 }: {
   activityError: string | null;
   activityItems: readonly ActivityItem[];
@@ -924,6 +931,7 @@ function SelectedGoalWorkspace({
   goalDetail: UseGoalDetailResult;
   onWorkspaceChange: (value: WorkspaceTab) => void;
   sourceProjectId?: string;
+  focusedTaskId?: string;
   tab: WorkspaceTab;
 }) {
   const colors = useThemeColors();
@@ -1031,6 +1039,7 @@ function SelectedGoalWorkspace({
             linkedEntries={linkedEntries}
             tab={tab}
             externalVaultAddRequest={vaultAddRequest}
+            focusedTaskId={focusedTaskId}
         />
       </View>
       <GoalProjectPickerModal
@@ -1078,6 +1087,7 @@ export function GoalsWorkspace() {
     status?: string | string[];
     view?: string | string[];
     projectId?: string | string[];
+    taskId?: string | string[];
   }>();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [workspaceWidth, setWorkspaceWidth] = useState(0);
@@ -1099,12 +1109,16 @@ export function GoalsWorkspace() {
       ? requestedStatus as GoalWorkspaceStatusFilter
       : 'active'
   ));
-  const { goals, isLoading } = useGoals({ status: workspaceStatusToGoalStatus(status) });
+  const routeSelected = getGoalWorkspaceSelection(params);
+  const sourceProjectId = Array.isArray(params.projectId) ? params.projectId[0] : params.projectId;
+  const focusedTaskId = Array.isArray(params.taskId) ? params.taskId[0] : params.taskId;
+  const { goals, isLoading } = useGoals({
+    status: workspaceStatusToGoalStatus(status),
+    includeGoalId: sourceProjectId ? routeSelected : null,
+  });
   const loadProjects = useProjectStore((state) => state.loadProjects);
   const selectedGoalId = useGoalStore((state) => state.selectedGoalId);
   const setSelectedGoalId = useGoalStore((state) => state.setSelectedGoalId);
-  const routeSelected = getGoalWorkspaceSelection(params);
-  const sourceProjectId = Array.isArray(params.projectId) ? params.projectId[0] : params.projectId;
   const [query, setQuery] = useState('');
   const [libraryScope, setLibraryScope] = useState<'all' | 'project' | 'personal'>('all');
   const [category, setCategory] = useState<GoalWithDetails['category'] | null>(null);
@@ -1173,12 +1187,12 @@ export function GoalsWorkspace() {
 
   function selectGoal(goalId: string) {
     setSelectedGoalId(goalId);
-    router.setParams({ goal: goalId, view: 'overview', projectId: undefined } as never);
+    router.setParams({ goal: goalId, view: 'overview', projectId: undefined, taskId: undefined } as never);
   }
 
   function changeWorkspace(mode: WorkspaceTab) {
     if (!workspaceGoal || mode === tab) return;
-    router.push({ pathname: '/(app)/goals', params: { goal: workspaceGoal.id, status, view: mode, ...(sourceProjectId ? { projectId: sourceProjectId } : {}) } } as never);
+    router.push({ pathname: '/(app)/goals', params: { goal: workspaceGoal.id, status, view: mode, ...(sourceProjectId ? { projectId: sourceProjectId } : {}), ...(focusedTaskId ? { taskId: focusedTaskId } : {}) } } as never);
   }
 
   return (
@@ -1239,6 +1253,7 @@ export function GoalsWorkspace() {
                   goalDetail={selectedGoalDetail}
                   onWorkspaceChange={changeWorkspace}
                   sourceProjectId={sourceProjectId}
+                  focusedTaskId={focusedTaskId}
                   tab={tab}
                 />
               ) : null}
@@ -1283,6 +1298,7 @@ export function GoalsWorkspace() {
                     goalDetail={selectedGoalDetail}
                     onWorkspaceChange={changeWorkspace}
                     sourceProjectId={sourceProjectId}
+                    focusedTaskId={focusedTaskId}
                     tab={tab}
                   />
                   {tab === 'overview' ? <ContextRail
@@ -1321,6 +1337,7 @@ export function GoalsWorkspace() {
                   goalDetail={selectedGoalDetail}
                   onWorkspaceChange={changeWorkspace}
                   sourceProjectId={sourceProjectId}
+                  focusedTaskId={focusedTaskId}
                   tab={tab}
                 />
                 {tab === 'overview' ? <ContextRail

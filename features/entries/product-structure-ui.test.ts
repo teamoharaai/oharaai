@@ -52,7 +52,7 @@ test('Reflections uses a submitted chronological journal model', () => {
 });
 
 test('Project flows preserve context across Goals, Notes, and Reflections', () => {
-  assert.match(projects, /baseGoalWorkspaceHref\(goalId, status, \{ projectId \}\)/);
+  assert.match(projects, /baseGoalWorkspaceHref\(goalId, status, \{ projectId, taskId \}\)/);
   assert.match(projects, /'\/\(app\)\/notes' : '\/\(app\)\/reflections'/);
   assert.match(projects, /projectId: project\.id/);
   assert.match(goals, /Projects<\/Typography>/);

@@ -10,8 +10,8 @@ test('encodes the selected goal in the canonical workspace URL', () => {
     '/(app)/goals?goal=archived-goal&status=archived',
   );
   assert.equal(
-    goalWorkspaceHref('goal-one', 'active', { projectId: 'project-one' }),
-    '/(app)/goals?goal=goal-one&status=active&projectId=project-one',
+    goalWorkspaceHref('goal-one', 'active', { projectId: 'project-one', taskId: 'task-one' }),
+    '/(app)/goals?goal=goal-one&status=active&projectId=project-one&taskId=task-one',
   );
 });
 

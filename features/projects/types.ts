@@ -2,7 +2,7 @@ import type { GoalWithDetails } from '@/features/goals/types';
 import type { GoalCategory } from '@/lib/goals/schema';
 import type { EntryRecord } from '@/features/entries/types';
 import type { Vault, VaultItem } from '@/types/vault';
-import type { TaskOccurrence } from '@/features/tasks/types';
+import type { TaskCompletionMode, TaskOccurrence } from '@/features/tasks/types';
 
 export type ProjectStatus = 'active' | 'complete' | 'archived';
 export type ProjectMode = 'personal' | 'team' | 'guide';
@@ -82,6 +82,9 @@ export type ProjectTaskPreview = {
   title: string;
   timing: 'overdue' | 'today' | 'upcoming' | 'anytime';
   assignedTo: string | null;
+  completionMode: TaskCompletionMode;
+  targetQuantity: number | null;
+  quantityUnit: string | null;
 };
 
 export type ProjectMember = {

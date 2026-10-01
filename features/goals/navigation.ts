@@ -3,11 +3,12 @@ import type { GoalWorkspaceStatusFilter } from './goals-workspace';
 export function goalWorkspaceHref(
   goalId: string,
   status?: GoalWorkspaceStatusFilter,
-  context?: { projectId?: string },
+  context?: { projectId?: string; taskId?: string },
 ): string {
   const statusQuery = status ? `&status=${encodeURIComponent(status)}` : '';
   const projectQuery = context?.projectId ? `&projectId=${encodeURIComponent(context.projectId)}` : '';
-  return `/(app)/goals?goal=${encodeURIComponent(goalId)}${statusQuery}${projectQuery}`;
+  const taskQuery = context?.taskId ? `&taskId=${encodeURIComponent(context.taskId)}` : '';
+  return `/(app)/goals?goal=${encodeURIComponent(goalId)}${statusQuery}${projectQuery}${taskQuery}`;
 }
 
 export function getGoalWorkspaceSelection(params: {

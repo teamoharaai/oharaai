@@ -94,7 +94,7 @@ const TASK_SELECT = '*, task_schedules(*), task_occurrences(*)';
 
 export async function fetchGoalTasks(
   db: SupabaseClient,
-  userId: string,
+  _userId: string,
   goalId: string,
 ): Promise<Task[]> {
   // One set-based reconcile for the Goal's active scheduled Tasks (Migration 081), not one RPC per Task.
@@ -104,7 +104,6 @@ export async function fetchGoalTasks(
   const { data, error } = await db
     .from('tasks')
     .select(TASK_SELECT)
-    .eq('user_id', userId)
     .eq('goal_id', goalId)
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true });
@@ -114,11 +113,11 @@ export async function fetchGoalTasks(
 
 export async function fetchTaskById(
   db: SupabaseClient,
-  userId: string,
+  _userId: string,
   taskId: string,
 ): Promise<Task | null> {
   const { data, error } = await db.from('tasks').select(TASK_SELECT)
-    .eq('id', taskId).eq('user_id', userId).maybeSingle();
+    .eq('id', taskId).maybeSingle();
   if (error) throw error;
   return data ? mapTask(data as Row) : null;
 }

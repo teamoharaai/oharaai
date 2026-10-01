@@ -13,6 +13,14 @@ export const SHOW_INTERNAL_RELEASE_NOTES = true;
 
 export const INTERNAL_RELEASE_NOTES: readonly FeaturePatchNote[] = [
   {
+    id: 'projects-v1-1-execution',
+    category: 'Projects',
+    version: '1.1',
+    title: 'Projects are ready for execution',
+    summary: 'Complete Tasks directly from Projects with faster, more reliable Project-to-Goal navigation and improved collaboration reliability.',
+    releasedAt: '2026-10-01T12:00:00.000Z',
+  },
+  {
     id: 'projects-v1-0',
     category: 'Projects',
     version: '1.0',

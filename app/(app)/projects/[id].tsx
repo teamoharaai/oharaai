@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, type ErrorBoundaryProps } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Badge } from '@/components/ui/Badge';
 import { BrandIcon } from '@/components/ui/BrandIcon';
@@ -14,6 +14,9 @@ import { useThemeColors } from '@/store/uiStore';
 import supabase from '@/lib/db/client';
 import { goalWorkspaceHref as baseGoalWorkspaceHref } from '@/features/goals/navigation';
 import { isSourceVaultItem } from '@/features/goals/vault-classification';
+import { refreshMomentumAfterMeaningfulMutation } from '@/features/momentum/hooks/useMomentumHomeSummary';
+import { mutateTaskOccurrence } from '@/features/tasks/services/task-service';
+import { newTaskIdempotencyKey } from '@/features/tasks/utils';
 import type { VaultFilter } from '@/features/goals/components/GoalVault';
 import { ProjectVaultWorkspace } from '@/features/projects/components/ProjectVaultWorkspace';
 import { ManageProjectModal } from '@/features/projects/components/ManageProjectModal';
@@ -22,11 +25,38 @@ import { ProjectChat } from '@/features/projects/components/ProjectChat';
 import { assignGoalsToProject, assignProjectTask, createProjectComment, deleteProjectComment, editProjectComment, fetchOwnedGoalsForProjects, fetchProjectWorkspace, setEntryProjectShare } from '@/features/projects/services/project-service';
 import { buildProjectIntelligence } from '@/features/projects/intelligence';
 import type { GoalWithDetails } from '@/features/goals/types';
-import type { ProjectWorkspace } from '@/features/projects/types';
+import type { ProjectActivity, ProjectTaskPreview, ProjectWorkspace } from '@/features/projects/types';
 
 function Surface({ accessibilityLabel, children, intelligence = false, title }: { accessibilityLabel?: string; children: ReactNode; intelligence?: boolean; title?: string }) {
   const colors = useThemeColors();
   return <View accessibilityLabel={accessibilityLabel} style={{ backgroundColor: intelligence ? colors.background.selectedRow : colors.background.card, borderColor: intelligence ? colors.border.accent : colors.border.warmSubtle, borderRadius: RADIUS.xl, borderWidth: 1, gap: SPACE.lg, padding: SPACE.xl }}>{title ? <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}>{intelligence ? <BrandIcon color={colors.accent.primary} name="echo" size={19} /> : null}<Typography variant="section-header" style={intelligence ? { color: colors.text.accent } : undefined}>{title}</Typography></View> : null}{children}</View>;
+}
+
+function mergeTaskCompletionActivity(
+  activity: ProjectActivity[],
+  occurrenceId: string,
+  task: ProjectTaskPreview | undefined,
+): ProjectActivity[] {
+  if (!task) return activity;
+  const item: ProjectActivity = {
+    id: `task-${occurrenceId}`,
+    label: `Task completed — ${task.title}`,
+    occurredAt: new Date().toISOString(),
+    origin: `From: ${task.goalTitle}`,
+    targetId: task.id,
+    targetType: 'task',
+  };
+  return [item, ...activity.filter((existing) => existing.id !== item.id)].slice(0, 30);
+}
+
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  const colors = useThemeColors();
+  return <View accessibilityRole="alert" style={{ alignItems: 'center', backgroundColor: colors.background.page, flex: 1, gap: SPACE.lg, justifyContent: 'center', padding: SPACE['3xl'] }}>
+    <Typography accessibilityRole="header" variant="heading">This Project couldn’t open.</Typography>
+    <Typography variant="body" style={{ maxWidth: 520, textAlign: 'center' }}>The rest of OHARA is still available. Retry this Project or return to Projects.</Typography>
+    {__DEV__ ? <Typography variant="caption">{error.message}</Typography> : null}
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md }}><Button onPress={retry}>Retry Project</Button><Button variant="secondary" onPress={() => router.replace('/(app)/projects')}>Back to Projects</Button></View>
+  </View>;
 }
 
 export default function ProjectDetailScreen() {
@@ -36,8 +66,8 @@ export default function ProjectDetailScreen() {
   const compact = width < 720;
   const params = useLocalSearchParams<{ id: string; view?: string; vaultFilter?: VaultFilter }>();
   const projectId = Array.isArray(params.id) ? params.id[0] : params.id;
-  const goalWorkspaceHref = (goalId: string, status?: Parameters<typeof baseGoalWorkspaceHref>[1]) => (
-    baseGoalWorkspaceHref(goalId, status, { projectId })
+  const goalWorkspaceHref = (goalId: string, status?: Parameters<typeof baseGoalWorkspaceHref>[1], taskId?: string) => (
+    baseGoalWorkspaceHref(goalId, status, { projectId, taskId })
   );
   const [project, setProject] = useState<ProjectWorkspace | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,6 +91,8 @@ export default function ProjectDetailScreen() {
   const [assignmentTaskId, setAssignmentTaskId] = useState<string | null>(null);
   const [assignmentBusy, setAssignmentBusy] = useState(false);
   const [assignmentError, setAssignmentError] = useState<string | null>(null);
+  const [taskMutationIds, setTaskMutationIds] = useState<Set<string>>(new Set());
+  const [taskMutationErrors, setTaskMutationErrors] = useState<Record<string, string>>({});
 
   async function load(showPageLoading = false) {
     if (!projectId) return;
@@ -112,6 +144,28 @@ export default function ProjectDetailScreen() {
     catch (caught) { setFormError(caught instanceof Error ? caught.message : 'Goals could not be added.'); }
     finally { setBusy(false); }
   }
+  async function mutateProjectTask(occurrenceId: string, input: { completed?: boolean; delta?: number }) {
+    if (taskMutationIds.has(occurrenceId)) return;
+    setTaskMutationIds((current) => new Set(current).add(occurrenceId));
+    setTaskMutationErrors((current) => { const next = { ...current }; delete next[occurrenceId]; return next; });
+    try {
+      const occurrence = await mutateTaskOccurrence(occurrenceId, input.delta !== undefined
+        ? { delta: input.delta, idempotencyKey: newTaskIdempotencyKey('project-quantity') }
+        : { status: input.completed ? 'completed' : 'pending', idempotencyKey: newTaskIdempotencyKey('project-status') });
+      setProject((current) => current ? {
+        ...current,
+        taskPreviews: current.taskPreviews.map((task) => task.occurrence?.id === occurrence.id ? { ...task, occurrence } : task),
+        activity: occurrence.status === 'completed'
+          ? mergeTaskCompletionActivity(current.activity, occurrence.id, current.taskPreviews.find((task) => task.occurrence?.id === occurrence.id))
+          : current.activity.filter((item) => item.id !== `task-${occurrence.id}`),
+      } : current);
+      void refreshMomentumAfterMeaningfulMutation();
+    } catch (caught) {
+      setTaskMutationErrors((current) => ({ ...current, [occurrenceId]: caught instanceof Error ? caught.message : 'Task progress could not be saved.' }));
+    } finally {
+      setTaskMutationIds((current) => { const next = new Set(current); next.delete(occurrenceId); return next; });
+    }
+  }
   function openManage(initialTab: typeof manageInitialTab = 'details') { if (!project) return; setFormError(null); setManageInitialTab(initialTab); setManageOpen(true); }
 
   if (loading) return <View style={{ alignItems: 'center', flex: 1, justifyContent: 'center' }}><ActivityIndicator color={colors.accent.primary} /></View>;
@@ -131,7 +185,10 @@ export default function ProjectDetailScreen() {
     authorizedSourceCount: sources.length,
     latestActivityAt: project.activity[0]?.occurredAt ?? null,
   });
-  const visibleTasks = project.taskPreviews.filter((task) => taskFilter === 'everyone' || (taskFilter === 'mine' ? task.assignedTo === currentUserId : task.timing === 'upcoming'));
+  const visibleTasks = project.taskPreviews.filter((task) => taskFilter === 'everyone'
+    || (taskFilter === 'mine'
+      ? task.assignedTo === currentUserId
+      : task.timing === 'upcoming' && task.occurrence?.status !== 'completed'));
   const upcomingMilestones = activeGoals
     .flatMap((goal) => goal.milestones
       .filter((milestone) => !milestone.completedAt)
@@ -149,7 +206,9 @@ export default function ProjectDetailScreen() {
   </Surface>;
   const currentGoalsCard = <Surface accessibilityLabel="Current Goals card" title="Current Goals">
     {activeGoals.length ? <View style={{ gap: SPACE.md }}>{activeGoals.slice(0, 3).map((goal) => {
-      const attentionCount = project.taskPreviews.filter((task) => task.goalId === goal.id && (task.timing === 'overdue' || task.timing === 'today')).length;
+      const attentionCount = project.taskPreviews.filter((task) => task.goalId === goal.id
+        && task.occurrence?.status !== 'completed'
+        && (task.timing === 'overdue' || task.timing === 'today')).length;
       const leadName = memberName.get(goal.projectLeadId ?? '') ?? 'Unassigned';
       const targetDate = goal.deadline?.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) ?? 'No target date';
       return <View key={goal.id} style={{ backgroundColor: colors.background.subtle, borderColor: colors.border.divider, borderRadius: RADIUS.lg, borderWidth: 1, overflow: 'hidden' }}>
@@ -199,17 +258,35 @@ export default function ProjectDetailScreen() {
       const commentsExpanded = expandedCommentTaskId === task.id;
       const assignmentExpanded = assignmentTaskId === task.id;
       const assigneeName = task.assignedTo ? memberName.get(task.assignedTo) ?? 'Assigned member' : 'Unassigned';
+      const occurrence = task.occurrence;
+      const completed = occurrence?.status === 'completed';
+      const taskMutationPending = occurrence ? taskMutationIds.has(occurrence.id) : false;
+      const taskMutationError = occurrence ? taskMutationErrors[occurrence.id] : null;
+      const canMutateTask = Boolean(occurrence)
+        && capabilities.has('complete_task')
+        && (!task.assignedTo || task.assignedTo === currentUserId || capabilities.has('assign_task'));
+      const statusLabel = completed ? 'Completed' : task.timing === 'anytime' ? 'Anytime' : task.timing[0].toUpperCase() + task.timing.slice(1);
+      const quantity = occurrence?.actualQuantity ?? 0;
       return <View key={task.id} style={{ borderBottomColor: colors.border.divider, borderBottomWidth: 1, gap: SPACE.md, paddingBottom: SPACE.lg }}>
-        <Pressable accessibilityRole="button" onPress={() => router.push(goalWorkspaceHref(task.goalId, 'active') as never)} style={({ pressed }) => ({ gap: SPACE.sm, opacity: pressed ? 0.7 : 1 })}>
-          <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}><Ionicons color={task.timing === 'overdue' ? colors.feedback.danger.text : colors.accent.primary} name="ellipse-outline" size={16} /><Typography variant="emphasis-sm" numberOfLines={1} style={{ flex: 1 }}>{task.title}</Typography><Typography variant="caption">{task.timing === 'anytime' ? 'Anytime' : task.timing[0].toUpperCase() + task.timing.slice(1)}</Typography></View>
-          <Typography variant="caption">From: {task.goalTitle}</Typography>
-        </Pressable>
+        <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
+          {task.completionMode === 'binary' && canMutateTask ? <Pressable accessibilityLabel={completed ? `Mark ${task.title} incomplete` : `Complete ${task.title}`} accessibilityRole="checkbox" accessibilityState={{ checked: completed, disabled: taskMutationPending }} disabled={taskMutationPending} onPress={() => occurrence && void mutateProjectTask(occurrence.id, { completed: !completed })} style={({ pressed }) => ({ alignItems: 'center', backgroundColor: completed ? colors.accent.primary : 'transparent', borderColor: completed ? colors.accent.primary : colors.border.input, borderRadius: RADIUS.round, borderWidth: 2, height: 25, justifyContent: 'center', opacity: taskMutationPending ? 0.5 : pressed ? 0.7 : 1, width: 25 })}>{taskMutationPending ? <ActivityIndicator color={completed ? colors.text.onAccent : colors.accent.primary} size="small" /> : completed ? <Ionicons color={colors.text.onAccent} name="checkmark" size={16} /> : null}</Pressable> : <View accessibilityLabel={task.completionMode === 'quantity' ? `${task.title} uses quantity progress` : `${task.title} completion is read only`} style={{ alignItems: 'center', backgroundColor: completed ? colors.accent.primary : 'transparent', borderColor: completed ? colors.accent.primary : colors.border.input, borderRadius: RADIUS.round, borderWidth: 2, height: 25, justifyContent: 'center', width: 25 }}>{completed ? <Ionicons color={colors.text.onAccent} name="checkmark" size={16} /> : null}</View>}
+          <Pressable accessibilityHint="Opens this Goal and focuses the Task" accessibilityLabel={`Open ${task.title} in ${task.goalTitle}`} accessibilityRole="button" onPress={() => router.push(goalWorkspaceHref(task.goalId, 'active', task.id) as never)} style={({ pressed }) => ({ flex: 1, gap: SPACE.xs, minWidth: 0, opacity: pressed ? 0.7 : 1 })}>
+            <Typography variant="emphasis-sm" numberOfLines={1} style={completed ? { color: colors.text.muted, textDecorationLine: 'line-through' } : undefined}>{task.title}</Typography>
+            <Typography variant="caption">From: {task.goalTitle}</Typography>
+          </Pressable>
+          <Typography variant="caption" style={completed ? { color: colors.text.accent } : task.timing === 'overdue' ? { color: colors.feedback.danger.text } : undefined}>{statusLabel}</Typography>
+        </View>
+        {task.completionMode === 'quantity' ? <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>
+          <Typography variant="caption">{quantity}{task.targetQuantity ? ` / ${task.targetQuantity}` : ''}{task.quantityUnit ? ` ${task.quantityUnit}` : ''}</Typography>
+          {canMutateTask ? <><Button accessibilityLabel={`Decrease progress for ${task.title}`} disabled={taskMutationPending || quantity <= 0} size="compact" variant="secondary" onPress={() => occurrence && void mutateProjectTask(occurrence.id, { delta: -1 })}>−</Button><Button accessibilityLabel={`Log progress for ${task.title}`} disabled={taskMutationPending} size="compact" variant="secondary" onPress={() => occurrence && void mutateProjectTask(occurrence.id, { delta: 1 })}>{taskMutationPending ? 'Saving…' : 'Log +1'}</Button></> : null}
+        </View> : null}
+        {taskMutationError ? <Typography accessibilityRole="alert" variant="caption" style={{ color: colors.feedback.danger.text }}>{taskMutationError}</Typography> : null}
         <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md, justifyContent: 'space-between' }}>
           {capabilities.has('assign_task') ? <Pressable accessibilityLabel={`Change assignee for ${task.title}. Currently ${assigneeName}`} accessibilityRole="button" accessibilityState={{ expanded: assignmentExpanded }} disabled={assignmentBusy} onPress={() => { setAssignmentError(null); setAssignmentTaskId((current) => current === task.id ? null : task.id); }} style={({ pressed }) => ({ alignItems: 'center', backgroundColor: colors.background.subtle, borderColor: assignmentExpanded ? colors.border.accent : colors.border.divider, borderRadius: RADIUS.round, borderWidth: 1, flexDirection: 'row', gap: SPACE.xs, minHeight: 34, opacity: assignmentBusy ? 0.5 : pressed ? 0.7 : 1, paddingHorizontal: SPACE.md })}><Typography variant="caption" style={{ color: assignmentExpanded ? colors.text.accent : colors.text.secondary }}>{task.assignedTo ? `Assigned to: ${assigneeName}` : 'Assign: Unassigned'}</Typography><Ionicons color={assignmentExpanded ? colors.text.accent : colors.text.muted} name={assignmentExpanded ? 'chevron-up' : 'chevron-down'} size={14} /></Pressable> : <Typography variant="body-small" style={{ color: colors.text.secondary }}>Assigned to: {assigneeName}</Typography>}
           {capabilities.has('comment') ? <Pressable accessibilityLabel={`${commentsExpanded ? 'Hide' : 'Show'} comments for ${task.title}`} accessibilityRole="button" accessibilityState={{ expanded: commentsExpanded }} onPress={() => setExpandedCommentTaskId((current) => current === task.id ? null : task.id)} style={({ pressed }) => ({ alignItems: 'center', borderLeftColor: colors.border.divider, borderLeftWidth: 1, flexDirection: 'row', gap: SPACE.xs, minHeight: 32, opacity: pressed ? 0.65 : 1, paddingLeft: SPACE.md, paddingVertical: SPACE.xs })}><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>{taskComments.length ? `${taskComments.length} ${taskComments.length === 1 ? 'Comment' : 'Comments'}` : 'Comments'}</Typography><Ionicons color={colors.text.accent} name={commentsExpanded ? 'chevron-up' : 'chevron-down'} size={15} /></Pressable> : null}
         </View>
         {assignmentExpanded ? <View accessibilityLabel={`Assignee options for ${task.title}`} style={{ backgroundColor: colors.background.subtle, borderColor: colors.border.divider, borderRadius: RADIUS.md, borderWidth: 1, gap: SPACE.xs, padding: SPACE.sm }}>
-          {[{ userId: null, displayName: 'Unassigned' }, ...project.collaboration.members].map((member) => { const selected = task.assignedTo === member.userId; return <Pressable key={member.userId ?? 'unassigned'} accessibilityRole="menuitem" accessibilityState={{ selected }} disabled={assignmentBusy} onPress={() => void (async () => { const previousAssignee = task.assignedTo; setAssignmentBusy(true); setAssignmentError(null); setAssignmentTaskId(null); setProject((current) => current ? { ...current, taskPreviews: current.taskPreviews.map((item) => item.id === task.id ? { ...item, assignedTo: member.userId } : item) } : current); try { await assignProjectTask(task.id, member.userId); await load(); } catch (caught) { setProject((current) => current ? { ...current, taskPreviews: current.taskPreviews.map((item) => item.id === task.id ? { ...item, assignedTo: previousAssignee } : item) } : current); setAssignmentTaskId(task.id); setAssignmentError(caught instanceof Error ? caught.message : 'Assignee could not be updated.'); } finally { setAssignmentBusy(false); } })()} style={({ pressed }) => ({ alignItems: 'center', backgroundColor: selected ? colors.background.selectedRow : 'transparent', borderRadius: RADIUS.sm, flexDirection: 'row', gap: SPACE.sm, minHeight: 38, opacity: pressed ? 0.7 : 1, paddingHorizontal: SPACE.md })}><Ionicons color={selected ? colors.accent.primary : colors.text.muted} name={selected ? 'checkmark-circle' : 'ellipse-outline'} size={16} /><Typography variant="body-small" style={selected ? { color: colors.text.accent } : undefined}>{member.displayName}</Typography></Pressable>; })}
+          {[{ userId: null, displayName: 'Unassigned' }, ...project.collaboration.members].map((member) => { const selected = task.assignedTo === member.userId; return <Pressable key={member.userId ?? 'unassigned'} accessibilityRole="menuitem" accessibilityState={{ selected }} disabled={assignmentBusy} onPress={() => void (async () => { const previousAssignee = task.assignedTo; setAssignmentBusy(true); setAssignmentError(null); setAssignmentTaskId(null); setProject((current) => current ? { ...current, taskPreviews: current.taskPreviews.map((item) => item.id === task.id ? { ...item, assignedTo: member.userId } : item) } : current); try { await assignProjectTask(task.id, member.userId); } catch (caught) { setProject((current) => current ? { ...current, taskPreviews: current.taskPreviews.map((item) => item.id === task.id ? { ...item, assignedTo: previousAssignee } : item) } : current); setAssignmentTaskId(task.id); setAssignmentError(caught instanceof Error ? caught.message : 'Assignee could not be updated.'); } finally { setAssignmentBusy(false); } })()} style={({ pressed }) => ({ alignItems: 'center', backgroundColor: selected ? colors.background.selectedRow : 'transparent', borderRadius: RADIUS.sm, flexDirection: 'row', gap: SPACE.sm, minHeight: 38, opacity: pressed ? 0.7 : 1, paddingHorizontal: SPACE.md })}><Ionicons color={selected ? colors.accent.primary : colors.text.muted} name={selected ? 'checkmark-circle' : 'ellipse-outline'} size={16} /><Typography variant="body-small" style={selected ? { color: colors.text.accent } : undefined}>{member.displayName}</Typography></Pressable>; })}
           {assignmentError ? <Typography accessibilityRole="alert" variant="caption" style={{ color: colors.feedback.danger.text }}>{assignmentError}</Typography> : null}
         </View> : null}
         {commentsExpanded ? <View accessibilityLabel={`Comments for ${task.title}`} style={{ backgroundColor: colors.background.subtle, borderRadius: RADIUS.md, gap: SPACE.md, padding: SPACE.lg }}>

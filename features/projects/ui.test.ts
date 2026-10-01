@@ -20,6 +20,9 @@ const chat = readFileSync(resolve(process.cwd(), 'features/projects/components/P
 const intelligenceHeader = readFileSync(resolve(process.cwd(), 'components/ui/IntelligenceHeader.tsx'), 'utf8');
 const momentum = readFileSync(resolve(process.cwd(), 'app/(app)/momentum.tsx'), 'utf8');
 const goalIntelligence = readFileSync(resolve(process.cwd(), 'features/goals/components/IntelligencePanel.tsx'), 'utf8');
+const taskEndpoint = readFileSync(resolve(process.cwd(), 'app/api/task-occurrences/[id]+api.ts'), 'utf8');
+const goalsWorkspace = readFileSync(resolve(process.cwd(), 'features/goals/components/GoalsWorkspace.tsx'), 'utf8');
+const tasksPanel = readFileSync(resolve(process.cwd(), 'features/tasks/components/TasksPanel.tsx'), 'utf8');
 
 test('Projects is a first-class horizontal navigation destination', () => {
   assert.match(nav, /label: 'Projects'.*href: '\/\(app\)\/projects'/);
@@ -73,6 +76,17 @@ test('workspace presents an actionable Task assignment menu and separated contex
   assert.doesNotMatch(workspace, /project\.comments\.slice\(0, 2\)/);
 });
 
+test('Project Tasks execute canonical occurrences and preserve Goal return context', () => {
+  assert.match(workspace, /mutateTaskOccurrence/);
+  assert.match(workspace, /accessibilityRole="checkbox"/);
+  assert.match(workspace, /Log \+1/);
+  assert.match(workspace, /refreshMomentumAfterMeaningfulMutation/);
+  assert.match(workspace, /goalWorkspaceHref\(task\.goalId, 'active', task\.id\)/);
+  assert.match(taskEndpoint, /mutate_project_task_occurrence_v12/);
+  assert.match(goalsWorkspace, /focusedTaskId/);
+  assert.match(tasksPanel, /OPENED FROM PROJECT/);
+});
+
 test('Notes and Reflections cards use canonical project-aware destinations', () => {
   assert.match(workspace, /\+ New \{kind === 'note' \? 'Note' : 'Reflection'\}/);
   assert.match(workspace, /kind === 'note' \? '\/\(app\)\/notes' : '\/\(app\)\/reflections'/);
@@ -112,11 +126,28 @@ test('Project activity is truthful, bounded, and partial-source failures degrade
 });
 
 test('Project first render avoids full-account Momentum and full Entry library hydration', () => {
-  assert.doesNotMatch(workspace, /useMomentumHomeSummary/);
+  assert.doesNotMatch(workspace, /useMomentumHomeSummary\(/);
   assert.match(service, /get_project_goal_momentum_v11/);
   assert.doesNotMatch(service, /fetchEntries\(\)/);
   assert.match(workspace, /includeSecondary: !deferSecondary/);
   assert.match(service, /includeSecondary \? authedFetch/);
+  assert.doesNotMatch(service, /enrichGoalsWithSignals/);
+  assert.doesNotMatch(service, /\.select\('[^']*(?:conversation_turns|takeaway)/);
+});
+
+test('Project and Goal routes isolate render failures behind route boundaries', () => {
+  const goalRoute = readFileSync(resolve(process.cwd(), 'app/(app)/goals/index.tsx'), 'utf8');
+  assert.match(workspace, /export function ErrorBoundary/);
+  assert.match(goalRoute, /export function ErrorBoundary/);
+  assert.match(workspace, /Retry Project/);
+  assert.match(goalRoute, /Retry Goal/);
+});
+
+test('Goal context tolerates older partial Momentum projections', () => {
+  assert.match(goalsWorkspace, /Array\.isArray\(summary\?\.history\)/);
+  assert.match(goalsWorkspace, /Array\.isArray\(summary\?\.reasons\)/);
+  assert.doesNotMatch(goalsWorkspace, /summary\?\.history\.length/);
+  assert.doesNotMatch(goalsWorkspace, /summary\?\.reasons\[0\]/);
 });
 
 test('collaboration UI exposes modes, bounded membership, responsibility, and contextual comments', () => {

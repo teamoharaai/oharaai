@@ -3,7 +3,7 @@ import { authedFetch } from '@/lib/api/client';
 import type { IncomingProjectInvitation, Project, ProjectActivity, ProjectChatMessage, ProjectCollaboration, ProjectComment, ProjectGoalMomentum, ProjectMode, ProjectRole, ProjectSummary, ProjectVaultItem, ProjectWithGoals, ProjectWorkspace } from '@/features/projects/types';
 import type { GoalWithDetails } from '@/features/goals/types';
 import type { EntryRecord } from '@/features/entries/types';
-import { enrichGoalsWithSignals, GOAL_SELECT, mapGoal, type DbGoal } from '@/features/goals/services/goal-service';
+import { GOAL_SELECT, mapGoal, type DbGoal } from '@/features/goals/services/goal-service';
 import { buildProjectVaultActivity, deriveProjectVisualCategory, mergeProjectActivity } from '../model';
 import { selectProjectTaskPreviews } from '../model';
 import { mapTask } from '@/lib/db/tasks';
@@ -95,9 +95,10 @@ export async function fetchGoalsByProject(projectId: string): Promise<GoalWithDe
   if (error) throw error;
 
   const goals = ((data ?? []) as unknown as DbGoal[]).map(mapGoal);
-  if (goals.length === 0) return goals;
-
-  return enrichGoalsWithSignals(goals, goals[0].userId);
+  // Project identity, lifecycle, Milestones, and Tasks are the required render
+  // path. Vault/Echo signal enrichment is not consumed by the Project workspace
+  // and must not hold its first meaningful render behind secondary queries.
+  return goals;
 }
 
 export async function createProject(payload: {
@@ -185,14 +186,16 @@ async function fetchProjectTaskActivity(goals: GoalWithDetails[]): Promise<Proje
 
 async function fetchProjectEntries(projectId: string): Promise<EntryRecord[]> {
   const { data, error } = await supabase.from('entries')
-    .select('id,user_id,entry_type,title,content,plain_text,reflection_type,conversation_turns,takeaway,pinned,archived,content_version,schema_version,completed_at,created_at,updated_at,project_id,project_share_scope')
+    .select('id,user_id,entry_type,title,plain_text,reflection_type,pinned,archived,content_version,schema_version,completed_at,created_at,updated_at,project_id,project_share_scope')
     .eq('project_id', projectId).eq('archived', false).order('updated_at', { ascending: false });
   if (error) throw error;
   return (data ?? []).map((row: any) => ({
     id: row.id, userId: row.user_id, entryType: row.entry_type, title: row.title,
-    content: row.content, plainText: row.plain_text, brtCategory: null,
-    reflectionType: row.reflection_type, conversationTurns: row.conversation_turns ?? [],
-    takeaway: row.takeaway, pinned: row.pinned, archived: row.archived,
+    // Project cards need metadata and a bounded plain-text preview only. Full
+    // Entry documents stay on the canonical Note/Reflection detail routes.
+    content: { type: 'doc', content: [] }, plainText: row.plain_text, brtCategory: null,
+    reflectionType: row.reflection_type, conversationTurns: [],
+    takeaway: null, pinned: row.pinned, archived: row.archived,
     contentVersion: row.content_version, schemaVersion: row.schema_version,
     completedAt: row.completed_at ? new Date(row.completed_at) : null,
     createdAt: new Date(row.created_at), updatedAt: new Date(row.updated_at),
@@ -240,7 +243,7 @@ export async function fetchProjectWorkspace(
   if (!base) return null;
   const includeSecondary = options.includeSecondary !== false;
   const [sharedEntriesResult, vaultResult, eventResult, taskResult, entryLinkResult, taskPreviewResult, collaborationResult, collaborationActivityResult, commentsResult, momentumResult] = await Promise.allSettled([
-    fetchProjectEntries(projectId),
+    includeSecondary ? fetchProjectEntries(projectId) : Promise.resolve([]),
     includeSecondary ? authedFetch(`/api/projects/${projectId}/vault`).then(async (response) => {
       if (!response.ok) {
         const payload = await response.json().catch(() => null) as { error?: string } | null;
@@ -256,10 +259,10 @@ export async function fetchProjectWorkspace(
     fetchProjectCollaboration(projectId),
     includeSecondary ? supabase.from('project_activity_events').select('id,actor_id,event_type,target_type,target_id,label,metadata,occurred_at').eq('project_id',projectId).order('occurred_at',{ascending:false}).limit(30) : Promise.resolve({ data: [], error: null }),
     includeSecondary ? supabase.from('project_comments').select('id,author_id,target_type,target_id,body,created_at,edited_at').eq('project_id',projectId).eq('target_type','task').is('deleted_at',null).order('created_at',{ascending:false}).limit(50) : Promise.resolve({ data: [], error: null }),
-    supabase.rpc('get_project_goal_momentum_v11',{p_project_id:projectId}),
+    includeSecondary ? supabase.rpc('get_project_goal_momentum_v11',{p_project_id:projectId}) : Promise.resolve({ data: [], error: null }),
   ]);
   const partialErrors: string[] = [];
-  const projectEntries = sharedEntriesResult.status === 'fulfilled' ? sharedEntriesResult.value : (partialErrors.push('shared Echo content'), []);
+  const projectEntries = sharedEntriesResult.status === 'fulfilled' ? sharedEntriesResult.value : (partialErrors.push('shared Entries'), []);
   const vaultPayload = vaultResult.status === 'fulfilled' ? vaultResult.value : (partialErrors.push('Vault content'), { vault: null, items: [] as ProjectVaultItem[] });
   const eventRows = eventResult.status === 'fulfilled' && !eventResult.value.error
     ? eventResult.value.data ?? []

@@ -27,14 +27,15 @@ let lastLoadedAt = 0;
 let inFlight: Promise<void> | null = null;
 let inFlightKey: string | null = null;
 
-export function useGoals(options?: { status?: GoalStatus }) {
+export function useGoals(options?: { status?: GoalStatus; includeGoalId?: string | null }) {
   const goals = useGoalStore((state) => state.goals);
   const isLoading = useGoalStore((state) => state.isLoading);
   const userId = useAuthStore((state) => state.session?.user.id ?? null);
   const requestedStatus = options?.status;
+  const includeGoalId = options?.includeGoalId ?? null;
 
   useEffect(() => {
-    const cacheKey = `${userId ?? 'anon'}:${requestedStatus ?? 'active'}`;
+    const cacheKey = `${userId ?? 'anon'}:${requestedStatus ?? 'active'}:${includeGoalId ?? 'owned'}`;
     const { setGoals, setIsLoading } = useGoalStore.getState();
 
     const cacheMatches = lastCacheKey === cacheKey && lastLoadedAt > 0;
@@ -77,7 +78,7 @@ export function useGoals(options?: { status?: GoalStatus }) {
           }
           const data = await fetchGoals(
             userId,
-            requestedStatus ? { status: requestedStatus } : undefined,
+            { status: requestedStatus, includeGoalId },
           );
           setGoals(data);
           lastCacheKey = cacheKey;
@@ -110,7 +111,7 @@ export function useGoals(options?: { status?: GoalStatus }) {
     return () => {
       cancelled = true;
     };
-  }, [requestedStatus, userId]);
+  }, [includeGoalId, requestedStatus, userId]);
 
   return { goals, isLoading };
 }

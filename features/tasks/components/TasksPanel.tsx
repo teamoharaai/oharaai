@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Button } from '@/components/ui/Button';
@@ -846,6 +846,7 @@ export function TasksPanel({
   deadlineDensity,
   full = false,
   onSeeAll,
+  focusedTaskId,
 }: {
   goalId: string;
   goalStatus: GoalStatus;
@@ -858,6 +859,7 @@ export function TasksPanel({
   deadlineDensity?: DatePickerDensity;
   full?: boolean;
   onSeeAll?: () => void;
+  focusedTaskId?: string;
 }) {
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
@@ -878,11 +880,18 @@ export function TasksPanel({
   const planItems = useMemo(() => buildPlanItems(taskState.tasks, scope), [taskState.tasks, scope]);
   const buckets = useMemo(() => bucketPlanItems(planItems, scope), [planItems, scope]);
   const taskById = useMemo(() => new Map(taskState.tasks.map((task) => [task.id, task])), [taskState.tasks]);
+  const focusedTask = focusedTaskId ? taskById.get(focusedTaskId) ?? null : null;
+  const focusedTaskRef = useRef<View>(null);
   const occurrenceById = useMemo(() => {
     const map = new Map<string, TaskOccurrence>();
     for (const task of taskState.tasks) for (const occurrence of task.occurrences) map.set(occurrence.id, occurrence);
     return map;
   }, [taskState.tasks]);
+
+  useEffect(() => {
+    if (!focusedTask || taskState.isLoading || Platform.OS !== 'web') return;
+    (focusedTaskRef.current as unknown as HTMLElement)?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+  }, [focusedTask, taskState.isLoading]);
 
   const openEditForm = (task: Task) => { setEditing(task); setFormVisible(true); };
   // The one create write for the unified add row: repeating (weekdays chosen) →
@@ -999,6 +1008,7 @@ export function TasksPanel({
         </View>
       </View>
       {readOnly ? <Typography variant="caption" style={{ marginTop: SPACE.md }}>This Goal is historical. Its Tasks remain available as read-only context.</Typography> : null}
+      {focusedTask ? <View ref={focusedTaskRef} accessibilityLabel={`Focused Task: ${focusedTask.title}`} style={{ backgroundColor: colors.background.selectedRow, borderColor: colors.border.accent, borderRadius: RADIUS.md, borderWidth: 1, marginTop: SPACE.lg, padding: SPACE.md }}><Typography variant="micro-label" style={{ color: colors.text.accent }}>OPENED FROM PROJECT</Typography><Typography variant="emphasis-sm" style={{ marginTop: SPACE.xs }}>{focusedTask.title}</Typography></View> : null}
       {taskState.error ? <Typography variant="caption" style={{ color: colors.feedback.danger.text, marginTop: SPACE.lg }}>{taskState.error}</Typography> : null}
       {taskState.isLoading ? <ActivityIndicator color={colors.accent.primary} style={{ marginVertical: SPACE['3xl'] }} /> : (
         <View style={{ marginTop: SPACE.xl }}>

@@ -53,6 +53,18 @@ test('the Tasks V2 cutover switch covers every canonical API surface', () => {
   }
 });
 
+test('Project collaborators use the canonical occurrence endpoint with narrow authorization', () => {
+  const endpoint = read('app/api/task-occurrences/[id]+api.ts');
+  const project = read('app/(app)/projects/[id].tsx');
+  const db = read('lib/db/tasks.ts');
+  const goalTaskRead = db.slice(db.indexOf('export async function fetchGoalTasks'), db.indexOf('export async function fetchTaskById'));
+  assert.match(project, /mutateTaskOccurrence/);
+  assert.match(endpoint, /mutate_project_task_occurrence_v12/);
+  assert.match(endpoint, /Project quantity changes must use an atomic delta/);
+  assert.doesNotMatch(goalTaskRead, /\.eq\('user_id'/);
+  assert.match(goalTaskRead, /\.eq\('goal_id', goalId\)/);
+});
+
 test('Goal creation persists canonical Tasks and uses Task terminology', () => {
   const persistence = read('lib/db/goals.ts');
   const wizard = read('app/goals/create.tsx');

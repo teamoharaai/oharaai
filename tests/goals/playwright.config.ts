@@ -8,8 +8,8 @@ export default defineConfig({
   expect: { timeout: 15000 },
   use: { browserName: 'chromium', headless: true },
   webServer: {
-    command: 'CI=1 EXPO_PUBLIC_SUPABASE_URL=https://goals-preview.invalid EXPO_PUBLIC_SUPABASE_ANON_KEY=preview-only npm run web -- --port 4181 --clear',
-    port: 4181,
+    command: 'CI=1 EXPO_PUBLIC_SUPABASE_URL=https://goals-preview.invalid EXPO_PUBLIC_SUPABASE_ANON_KEY=preview-only npm run web -- --port 8091 --clear',
+    port: 8091,
     reuseExistingServer: true,
     timeout: 120000,
   },
