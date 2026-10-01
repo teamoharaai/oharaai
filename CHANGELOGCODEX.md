@@ -4,6 +4,7 @@
 
 ### Added
 - Added local migration `083_domain_computation_jobs.sql` with a canonical open-week Momentum projection, expiring per-user/week recalculation leases, and bounded change-scoped Echo reconciliation leases.
+- Added a hosted migration 083 probe and expanded apply fingerprints to prove existing Momentum snapshots, profiles, Echo rows, Goals, and Tasks remain unchanged during release.
 
 ### Changed
 - Separated Momentum reads from recalculation/publication and moved meaningful-write refreshes to a dedicated recalculation mutation.

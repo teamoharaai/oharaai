@@ -22,7 +22,11 @@ where c.oid in ('public.goals'::regclass, 'public.milestones'::regclass, 'public
                 'goal_private.operations'::regclass, 'goal_private.goal_mutations'::regclass,
                 'goal_private.work_mutations'::regclass, 'goal_private.provenance'::regclass,
                 -- Goal events (080) once the target has them; a later apply must not change history.
-                to_regclass('goal_private.goal_events'));
+                to_regclass('goal_private.goal_events'),
+                -- Phase 2 is additive: open/closed Momentum and queued Echo rows must remain byte-identical.
+                'public.momentum_profiles'::regclass, 'public.momentum_weekly_snapshots'::regclass,
+                'public.goal_momentum_profiles'::regclass, 'public.goal_momentum_weekly_snapshots'::regclass,
+                'public.echo_entries'::regclass);
 alter table apply_invariants add column row_count bigint, add column digest text;
 update apply_invariants i set (row_count, digest) = (select f.row_count, f.digest from pg_temp.table_fingerprint(i.tbl, i.keys) f);
 

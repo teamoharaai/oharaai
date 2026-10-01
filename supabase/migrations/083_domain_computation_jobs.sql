@@ -5,6 +5,8 @@
 -- Echo reconciliation claims a bounded set of changed legacy entries and uses
 -- expiring leases so failed workers can be retried without duplicate AI calls.
 
+begin;
+
 alter table public.momentum_profiles
   add column if not exists current_week_start date,
   add column if not exists current_summary jsonb,
@@ -215,3 +217,5 @@ comment on table public.momentum_recalculation_leases is
   'Expiring single-flight leases for trusted Momentum recalculation by user and authoritative week.';
 comment on function public.claim_echo_reconciliation_v1(uuid[], integer, uuid, integer) is
   'Atomically claims a bounded, optionally change-scoped set of retryable Echo entries for the authenticated user.';
+
+commit;
