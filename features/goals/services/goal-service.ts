@@ -358,7 +358,8 @@ async function fetchGoalSignals(
       const { data: itemRows } = await supabase
         .from('vault_items')
         .select('vault_id')
-        .in('vault_id', vaultIds);
+        .in('vault_id', vaultIds)
+        .neq('content_kind', 'sticky_note');
 
       for (const item of (itemRows as Array<{ vault_id: string }> ?? [])) {
         const goalId = vaultIdToGoalId.get(item.vault_id);

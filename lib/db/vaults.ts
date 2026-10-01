@@ -214,6 +214,7 @@ export async function getVaultItems(
     .from('vault_items')
     .select('id, vault_id, item_type, content_kind, title, content, metadata, folder_id, visibility, created_by, sort_order, created_at, updated_at')
     .eq('vault_id', vaultId)
+    .neq('content_kind', 'sticky_note')
     .order('sort_order', { ascending: true });
 
   if (error) throw new Error(error.message);
@@ -230,6 +231,7 @@ export async function getVaultItemsByType(
     .select('id, vault_id, item_type, content_kind, title, content, metadata, folder_id, visibility, created_by, sort_order, created_at, updated_at')
     .eq('vault_id', vaultId)
     .eq('item_type', itemType)
+    .neq('content_kind', 'sticky_note')
     .order('sort_order', { ascending: true });
 
   if (error) throw new Error(error.message);

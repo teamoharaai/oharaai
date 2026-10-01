@@ -26,7 +26,10 @@ where c.oid in ('public.goals'::regclass, 'public.milestones'::regclass, 'public
                 -- Phase 2 is additive: open/closed Momentum and queued Echo rows must remain byte-identical.
                 'public.momentum_profiles'::regclass, 'public.momentum_weekly_snapshots'::regclass,
                 'public.goal_momentum_profiles'::regclass, 'public.goal_momentum_weekly_snapshots'::regclass,
-                'public.echo_entries'::regclass);
+                'public.echo_entries'::regclass,
+                -- Phase 3 freezes historical Vault cards and media without changing any row or object.
+                'public.goal_notes'::regclass, 'public.vault_items'::regclass,
+                'public.vault_note_folders'::regclass, 'storage.objects'::regclass);
 alter table apply_invariants add column row_count bigint, add column digest text;
 update apply_invariants i set (row_count, digest) = (select f.row_count, f.digest from pg_temp.table_fingerprint(i.tbl, i.keys) f);
 

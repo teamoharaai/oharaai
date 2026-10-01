@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 const user = { id: '11111111-1111-4111-8111-111111111111', email: 'projects@example.test', role: 'authenticated', aud: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' };
+const previewAccessToken = (userId: string) => `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ aud: 'authenticated', exp: 1893456000, role: 'authenticated', sub: userId })).toString('base64url')}.preview`;
 const now = '2026-09-23T12:00:00Z';
 const project = { id: 'project-1', user_id: user.id, title: 'Run a 5K Journey', description: 'Build a steady running rhythm.', status: 'active', mode: 'team', start_date: null, end_date: null, period_key: null, created_at: now, updated_at: now };
 const goal = { id: 'goal-1', user_id: user.id, title: 'Run a 5K', description: 'Build endurance.', category: 'Health & Fitness', status: 'active', color_theme: 'ocean', smart_data: {}, target_frequency: null, visibility: 'private', progress: 30, deadline: '2026-12-01T12:00:00Z', completed_at: null, archived_at: null, expired_at: null, ai_generated: false, project_id: project.id, project_lead_id: user.id, previous_goal_id: null, prior_phase_summary: null, reflection: null, reflected_at: null, created_at: now, updated_at: now, milestones: [], trackers: [] };
@@ -10,15 +11,20 @@ const items = [{ id: 'sticky-1', vaultId: 'goal-vault', itemType: 'note', conten
 for (const theme of ['light', 'dark']) test(`Projects V1 workspace ${theme}`, async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  const session = { access_token: 'preview-token', refresh_token: 'preview-refresh', token_type: 'bearer', expires_at: Math.floor(Date.now() / 1000) + 3600, expires_in: 3600, user };
+  const session = { access_token: previewAccessToken(user.id), refresh_token: 'preview-refresh', token_type: 'bearer', expires_at: Math.floor(Date.now() / 1000) + 3600, expires_in: 3600, user };
   await page.addInitScript(({ session, theme }) => {
+    const originalGetItem = Storage.prototype.getItem;
+    Storage.prototype.getItem = function getItem(key: string) {
+      if (key.startsWith('sb-') && key.endsWith('-auth-token')) return JSON.stringify(session);
+      return originalGetItem.call(this, key);
+    };
     localStorage.setItem('sb-projects-preview-auth-token', JSON.stringify(session));
     localStorage.setItem('ohara-ui-state', JSON.stringify({ state: { themeMode: theme }, version: 0 }));
     localStorage.setItem('ohara:release:goals-v2-3-1:seen', 'seen');
     localStorage.setItem('ohara:release:vault-v2-3:seen', 'seen');
     localStorage.setItem('ohara:release:projects-v1-0:seen', 'seen');
   }, { session, theme });
-  await page.route('https://projects-preview.invalid/**', async (route) => {
+  await page.route(/https?:\/\/[^/]+\/(?:auth|rest)\/v1\/.*/, async (route) => {
     const url = new URL(route.request().url());
     const json = (body: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
     if (url.pathname.includes('/auth/v1/user')) return json(user);
@@ -31,7 +37,7 @@ for (const theme of ['light', 'dark']) test(`Projects V1 workspace ${theme}`, as
     if (url.pathname.endsWith('/goals')) return json([goal]);
     if (url.pathname.endsWith('/tasks')) return json([{ id: 'task-1', user_id: user.id, goal_id: goal.id, milestone_id: null, title: 'Easy run', description: null, completion_mode: 'binary', target_quantity: null, quantity_unit: null, status: 'active', due_date: null, source: 'user', legacy_current_value: null, legacy_frequency: null, sort_order: 0, created_at: now, updated_at: now, completed_at: null, archived_at: null, assigned_to: user.id, task_schedules: [], task_occurrences: [{ id: 'occurrence-1', task_id: 'task-1', schedule_id: null, occurrence_key: 'one-time', scheduled_local_date: '2026-09-23', scheduled_local_time: null, schedule_timezone: 'UTC', scheduled_at: null, status: 'pending', actual_quantity: null, note: null, completed_at: null, skipped_at: null, source: 'user', created_at: now, updated_at: now }] }]);
     if (url.pathname.endsWith('/task_occurrences')) return json([]);
-    if (url.pathname.endsWith('/entries')) return json([]);
+    if (url.pathname.endsWith('/entries')) return json([{ id: 'entry-1', user_id: user.id, entry_type: 'note', title: 'Training research', content: { type: 'doc', content: [] }, plain_text: 'Research', reflection_type: null, conversation_turns: [], takeaway: null, pinned: false, archived: false, content_version: 1, schema_version: 2, completed_at: null, created_at: now, updated_at: now, project_id: project.id, project_share_scope: 'project' }]);
     if (url.pathname.endsWith('/project_activity_events')) return json([]);
     if (url.pathname.endsWith('/project_comments')) return json([]);
     if (url.pathname.endsWith('/project_chat_messages')) return json([]);
@@ -57,7 +63,7 @@ for (const theme of ['light', 'dark']) test(`Projects V1 workspace ${theme}`, as
   await expect(page.getByText('1', { exact: true }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Open Project Run a 5K Journey' }).click();
   await expect(page.getByRole('heading', { name: project.title })).toBeVisible();
-  for (const text of ['Current Goals', 'Project Chat', 'Notes', 'Reflections', 'Upcoming Milestones', 'Project Tasks', 'Recent Activity', 'Project Snapshot', 'Momentum Snapshot', 'OHARA Intelligence']) await expect(page.getByText(text, { exact: true }).first()).toBeVisible();
+  for (const text of ['Current Goals', 'Project Chat', 'Notes', 'Reflections', 'Upcoming Milestones', 'Project Tasks', 'Recent Activity', 'Project Snapshot', 'Momentum Snapshot', 'Echo']) await expect(page.getByText(text, { exact: true }).first()).toBeVisible();
   await expect(page.getByText('Aerobic base', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Training research', { exact: true })).toBeVisible();
   await expect(page.getByText('Easy run', { exact: true })).toBeVisible();
@@ -67,9 +73,9 @@ for (const theme of ['light', 'dark']) test(`Projects V1 workspace ${theme}`, as
   await expect(page).toHaveURL(/view=vault/);
   await expect(page.getByRole('button', { name: 'Overview', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add to Vault', exact: true })).toBeVisible();
-  for (const filter of ['All', 'Sticky Notes', 'Notes', 'Reflections', 'Sources']) await expect(page.getByRole('tab', { name: filter, exact: true })).toBeVisible();
-  await expect(page.getByText('Aerobic base', { exact: true })).toBeVisible();
-  await expect(page.getByText('From: Run a 5K', { exact: true })).toBeVisible();
+  for (const filter of ['All', 'Notes', 'Reflections', 'Sources']) await expect(page.getByRole('tab', { name: filter, exact: true })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Sticky Notes', exact: true })).toHaveCount(0);
+  await expect(page.getByText('Aerobic base', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Notes', { exact: true }).last()).toBeVisible();
   await expect(page.getByText('Reflections', { exact: true }).last()).toBeVisible();
   await page.getByRole('tab', { name: 'Sources', exact: true }).click();
@@ -95,15 +101,20 @@ test('Guide workspace exposes permitted coordination without owner controls or p
     project_lead_id: clientId,
     milestones: [{ id: 'milestone-guide', goal_id: 'goal-guide', user_id: clientId, title: 'Practice 5K', description: null, due_date: '2026-09-29', completed_at: null, sort_order: 0, is_ai_suggested: false, kind: 'achievement', parent_id: null, target_count: null, photo_url: null, created_at: now, updated_at: now }],
   };
-  const session = { access_token: 'preview-token', refresh_token: 'preview-refresh', token_type: 'bearer', expires_at: Math.floor(Date.now() / 1000) + 3600, expires_in: 3600, user };
+  const session = { access_token: previewAccessToken(user.id), refresh_token: 'preview-refresh', token_type: 'bearer', expires_at: Math.floor(Date.now() / 1000) + 3600, expires_in: 3600, user };
   await page.addInitScript(({ session }) => {
+    const originalGetItem = Storage.prototype.getItem;
+    Storage.prototype.getItem = function getItem(key: string) {
+      if (key.startsWith('sb-') && key.endsWith('-auth-token')) return JSON.stringify(session);
+      return originalGetItem.call(this, key);
+    };
     localStorage.setItem('sb-projects-preview-auth-token', JSON.stringify(session));
     localStorage.setItem('ohara-ui-state', JSON.stringify({ state: { themeMode: 'light' }, version: 0 }));
     localStorage.setItem('ohara:release:goals-v2-3-1:seen', 'seen');
     localStorage.setItem('ohara:release:vault-v2-3:seen', 'seen');
     localStorage.setItem('ohara:release:projects-v1-0:seen', 'seen');
   }, { session });
-  await page.route('https://projects-preview.invalid/**', async (route) => {
+  await page.route(/https?:\/\/[^/]+\/(?:auth|rest)\/v1\/.*/, async (route) => {
     const url = new URL(route.request().url());
     const json = (body: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
     if (url.pathname.includes('/auth/v1/user')) return json(user);

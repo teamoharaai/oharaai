@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 const user = { id: '11111111-1111-4111-8111-111111111111', email: 'preview@example.test', role: 'authenticated', aud: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' };
+const previewAccessToken = (userId: string) => `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ aud: 'authenticated', exp: 1893456000, role: 'authenticated', sub: userId })).toString('base64url')}.preview`;
 const titles = ['Run a 5K', 'Launch portfolio', 'Read twelve books', 'Restore an old bicycle'];
 const goals = titles.map((title, index) => ({
   id: `goal-${index}`, user_id: user.id, title, description: index === 0 ? 'Build a steady running rhythm and enjoy the journey.' : null,
@@ -28,8 +29,6 @@ for (const appearance of ['light', 'dark']) {
     let sharedRequests = 0;
     let failAudienceOnce = true;
     const visibilityWrites: unknown[] = [];
-    let noteCreated = false;
-    const privateNote = { id: 'private-note-1', vaultId: 'vault-1', createdBy: user.id, itemType: 'note', contentKind: 'sticky_note', title: 'Private training thought', content: 'Owner only', metadata: {}, visibility: 'private', createdAt: date, updatedAt: date };
     const sharedGoals = ['Read the entire Bible', 'Run my first 10K', 'Learn piano', 'Build a garden'].map((title, index) => ({
       id: `shared-${index}`, ownerId: 'friend-1', title, category: 'Life & Relationships', status: 'active', access: 'invited',
       owner: { id: 'friend-1', displayName: 'Justin', username: 'justin', avatarUrl: null },
@@ -37,14 +36,19 @@ for (const appearance of ['light', 'dark']) {
     }));
     page.on('pageerror', (error) => errors.push(error.message));
     const userSession = {
-      access_token: 'preview-token', refresh_token: 'preview-refresh', token_type: 'bearer',
+      access_token: previewAccessToken(user.id), refresh_token: 'preview-refresh', token_type: 'bearer',
       expires_at: Math.floor(Date.now() / 1000) + 3600, expires_in: 3600, user,
     };
     await page.addInitScript(({ session, theme }) => {
+      const originalGetItem = Storage.prototype.getItem;
+      Storage.prototype.getItem = function getItem(key: string) {
+        if (key.startsWith('sb-') && key.endsWith('-auth-token')) return JSON.stringify(session);
+        return originalGetItem.call(this, key);
+      };
       localStorage.setItem('sb-goals-preview-auth-token', JSON.stringify(session));
       localStorage.setItem('ohara-ui-state', JSON.stringify({ state: { themeMode: theme }, version: 0 }));
     }, { session: userSession, theme: appearance });
-    await page.route('https://goals-preview.invalid/**', async (route) => {
+    await page.route(/https?:\/\/[^/]+\/(?:auth|rest)\/v1\/.*/, async (route) => {
       const url = new URL(route.request().url());
       const json = (body: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
       if (url.pathname.includes('/auth/v1/user')) return json(user);
@@ -63,11 +67,6 @@ for (const appearance of ['light', 'dark']) {
     });
     await page.route('**/api/**', async (route) => {
       const path = new URL(route.request().url()).pathname;
-      if (path.startsWith('/api/vaults/') && ['POST', 'PUT'].includes(route.request().method())) {
-        noteCreated = true;
-        Object.assign(privateNote, route.request().postDataJSON());
-        return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ item: privateNote }) });
-      }
       if (path === '/api/circles/shared-with-me') {
         sharedRequests += 1;
         if (sharedRequests === 1) return route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
@@ -97,7 +96,7 @@ for (const appearance of ['light', 'dark']) {
       }) };
       if (path.startsWith('/api/vaults/')) body = { vault: { id: 'vault-1' }, items: [{
         id: 'source-1', itemType: 'link', contentKind: 'generic', title: 'Race preparation guide', metadata: { url: 'https://example.test' }, createdAt: date,
-      }, ...(noteCreated ? [privateNote] : [])] };
+      }] };
       if (path === '/api/momentum') body = { data: { goals: [{
         goalId: 'goal-0', displayedValue: 58, status: 'active', periodState: 'provisional',
         history: [30, 45, 39, 58].map((value, index) => ({ value, periodStart: `2026-09-${String(1 + index * 7).padStart(2, '0')}` })),
@@ -106,7 +105,7 @@ for (const appearance of ['light', 'dark']) {
       await route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
     });
     await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto('http://localhost:4181/goals');
+    await page.goto('http://localhost:8091/goals');
     await expect(page.getByRole('button', { name: 'Select Run a 5K', exact: true })).toBeVisible();
     const continueButton = page.getByRole('button', { name: 'Continue', exact: true });
     if (await continueButton.isVisible()) await continueButton.click();
@@ -132,7 +131,7 @@ for (const appearance of ['light', 'dark']) {
     await expect.poll(() => visibilityWrites.length).toBe(1);
     expect(visibilityWrites[0]).toEqual({ p_goal_id: 'goal-0', p_visibility: 'private', p_audience: [] });
     await expect(page.getByRole('button', { name: 'Save visibility', exact: true })).toBeEnabled();
-    await page.getByText('Close', { exact: true }).click();
+    await page.getByText('Close', { exact: true }).filter({ visible: true }).click();
     await expect(page.getByText('Close', { exact: true })).toBeHidden();
     const sharedCard = page.getByTestId('goals-shared-preview');
     await expect(sharedCard.getByText("Shared Goals couldn't load.")).toBeVisible();
@@ -173,9 +172,10 @@ for (const appearance of ['light', 'dark']) {
     await page.getByRole('button', { name: 'Retry', exact: true }).click();
     await expect(page.getByText("Sources couldn't load.")).toHaveCount(0);
     await expect(page.getByText('Goal Analytics', { exact: true }).filter({ visible: true })).toHaveCount(0);
-    for (const filter of ['All', 'Sticky Notes', 'Notes', 'Reflections', 'Sources']) {
+    for (const filter of ['All', 'Notes', 'Reflections', 'Sources']) {
       await expect(page.getByRole('tab', { name: filter, exact: true })).toBeVisible();
     }
+    await expect(page.getByRole('tab', { name: 'Sticky Notes', exact: true })).toHaveCount(0);
     await page.getByRole('tab', { name: 'Notes', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Open Training plan' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Open Race preparation guide' })).toHaveCount(0);
@@ -186,23 +186,15 @@ for (const appearance of ['light', 'dark']) {
     await expect(page.getByRole('button', { name: 'Add Note', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Add Reflection', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Add Source', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Add Sticky Note', exact: true }).click();
-    await page.getByRole('textbox', { name: 'Note title' }).fill('Private training thought');
-    await page.getByTestId('goal-private-notes').getByRole('button', { name: 'Create', exact: true }).click();
-    await expect(page.getByTestId('goal-private-notes').getByText('Private training thought')).toBeVisible();
-    await page.getByRole('button', { name: 'Actions for Private training thought' }).click();
-    await page.getByText('Edit', { exact: true }).click();
-    await page.getByRole('textbox', { name: 'Note title' }).fill('Edited private thought');
-    await page.getByRole('button', { name: 'Save note', exact: true }).click();
-    await expect(page.getByTestId('goal-private-notes').getByText('Edited private thought')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add Sticky Note', exact: true })).toHaveCount(0);
+    await page.getByText('Close', { exact: true }).filter({ visible: true }).click();
     await page.getByRole('tab', { name: 'All', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Open Training plan' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Open Race preparation guide' })).toBeVisible();
     await expect(page.getByText('Private contents should stay hidden')).toHaveCount(0);
     await page.getByRole('button', { name: 'Open Race preparation guide' }).click();
-    await expect(page.getByText('Close', { exact: true })).toBeVisible();
-    await page.getByText('Close', { exact: true }).click();
-    await expect(page.getByText('Close', { exact: true })).toBeHidden();
+    await expect(page.getByText('Close', { exact: true }).last()).toBeVisible();
+    await page.getByText('Close', { exact: true }).last().click();
     await expect(page.getByText('Source added — Race preparation guide', { exact: true })).toBeVisible();
     await expect(page.getByText('Goal created', { exact: true }).filter({ visible: true })).toHaveCount(0);
     await page.getByText('Recent Vault Activity', { exact: true }).scrollIntoViewIfNeeded();

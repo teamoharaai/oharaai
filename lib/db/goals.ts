@@ -752,6 +752,7 @@ export async function getActivityByGoalId(
       .from('vault_items')
       .select('id, item_type, content_kind, title, content, metadata, created_at, updated_at')
       .eq('vault_id', vaultId)
+      .neq('content_kind', 'sticky_note')
       .in('item_type', ['note', 'link', 'insight']);
 
     for (const row of (vaultItemData as unknown as DbVaultItemRowForActivity[] ?? [])) {

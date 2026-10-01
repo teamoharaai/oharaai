@@ -66,7 +66,7 @@ begin
 end $$;
 
 insert into public.vault_items (vault_id, item_type, content_kind, title, content, created_by)
-select id, 'note', 'sticky_note', 'Owner private', 'Secret preview', '10000000-0000-0000-0000-000000000001'
+select id, 'note', 'generic', 'Owner private', 'Secret preview', '10000000-0000-0000-0000-000000000001'
 from public.vaults where project_id = 'a1000000-0000-0000-0000-000000000001';
 
 update public.projects set status = 'archived'

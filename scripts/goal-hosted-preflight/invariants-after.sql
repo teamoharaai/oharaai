@@ -10,4 +10,4 @@ begin
     raise exception 'APPLY_INVARIANT_CHANGED: existing rows changed in %; nothing is committed', changed;
   end if;
 end $$;
-\echo 'invariants: existing Goal and Task rows unchanged'
+\echo 'invariants: existing domain rows and archived media unchanged'

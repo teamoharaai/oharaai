@@ -45,9 +45,8 @@ test('workspace contains approved overview and owner-only Vault hierarchy', () =
   for (const label of ['Current Goals', 'Project Chat', 'Recent Activity', 'Notes', 'Reflections', 'Upcoming Milestones', 'Project Tasks', 'Project Snapshot', 'Momentum Snapshot', 'Echo']) assert.match(`${workspace}\n${chat}`, new RegExp(label));
   assert.doesNotMatch(workspace, /Project Notice/);
   assert.doesNotMatch(workspace, /title="Sticky Notes"/);
-  assert.match(vault, /Project Sticky Note/);
-  assert.match(vault, /Private to you/);
-  assert.match(vault, /origins/);
+  assert.doesNotMatch(vault, /Project Sticky Note|Add Sticky Note|Sticky Notes/);
+  assert.match(sharedVault, /origins/);
   assert.match(workspace, /\{projectHeader\}\{milestonesCard\}\{tasksCard\}/);
   assert.match(workspace, /\{snapshotCard\}\{intelligenceCard\}\{momentumCard\}\{activityCard\}/);
 });
@@ -93,6 +92,7 @@ test('Project Vault separates Notes and Reflections and applies strict Source se
   assert.match(sharedVault, /title="Notes"/);
   assert.match(sharedVault, /title="Reflections"/);
   assert.match(sharedVault, /filter\(isSourceVaultItem\)/);
+  assert.doesNotMatch(sharedVault, /label: 'Sticky Notes'/);
 });
 
 test('Goal title and sibling actions share the intentional header row', () => {

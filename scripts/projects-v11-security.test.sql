@@ -67,9 +67,9 @@ insert into storage.objects(bucket_id,name,owner) values
   ('note-images','11000000-0000-0000-0000-000000000001/c1210000-0000-0000-0000-000000000002/shared.webp','11000000-0000-0000-0000-000000000001');
 
 insert into public.vault_items(vault_id,item_type,content_kind,title,visibility,created_by)
-select id,'note','sticky_note','Private Sticky','private','11000000-0000-0000-0000-000000000001' from public.vaults where project_id='a1100000-0000-0000-0000-000000000001';
+select id,'note','generic','Private Vault Item','private','11000000-0000-0000-0000-000000000001' from public.vaults where project_id='a1100000-0000-0000-0000-000000000001';
 insert into public.vault_items(vault_id,item_type,content_kind,title,visibility,created_by)
-select id,'note','sticky_note','Shared Sticky','vault_members','11000000-0000-0000-0000-000000000001' from public.vaults where project_id='a1100000-0000-0000-0000-000000000001';
+select id,'note','generic','Shared Vault Item','vault_members','11000000-0000-0000-0000-000000000001' from public.vaults where project_id='a1100000-0000-0000-0000-000000000001';
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub','11000000-0000-0000-0000-000000000001',true);
@@ -96,7 +96,7 @@ do $$ declare affected integer; begin
   if affected<>0 then raise exception 'Member edited a shared Entry'; end if;
   if not exists(select 1 from storage.objects where bucket_id='note-images' and name like '%/shared.webp') then raise exception 'Shared Note image missing'; end if;
   if exists(select 1 from storage.objects where bucket_id='note-images' and name like '%/private.webp') then raise exception 'Private Note image leaked'; end if;
-  if (select count(*) from public.vault_items vi join public.vaults v on v.id=vi.vault_id where v.project_id='a1100000-0000-0000-0000-000000000001')<>1 then raise exception 'Sticky Note privacy leaked or shared item missing'; end if;
+  if (select count(*) from public.vault_items vi join public.vaults v on v.id=vi.vault_id where v.project_id='a1100000-0000-0000-0000-000000000001')<>1 then raise exception 'Vault item privacy leaked or shared item missing'; end if;
   begin perform public.assign_project_task_v11((select id from public.tasks where title='Assigned Task'),'13000000-0000-0000-0000-000000000003'); raise exception 'Member assigned a Task';
   exception when others then if sqlerrm='Member assigned a Task' then raise; end if; end;
 end $$;
@@ -145,7 +145,7 @@ select public.set_entry_project_share_v11(
   'project'
 );
 insert into public.vault_items(vault_id,item_type,content_kind,title,visibility,created_by)
-select id,'note','sticky_note','Admin Shared Note','vault_members','12000000-0000-0000-0000-000000000002'
+select id,'note','generic','Admin Shared Note','vault_members','12000000-0000-0000-0000-000000000002'
   from public.vaults where project_id='a1100000-0000-0000-0000-000000000001';
 do $$ begin
   if not public.project_has_capability_v11('a1100000-0000-0000-0000-000000000001','12000000-0000-0000-0000-000000000002','add_shared_content') then raise exception 'Admin missing shared Vault capability'; end if;

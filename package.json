@@ -17,6 +17,7 @@
     "test:entries:db": "bash scripts/test-notes-editor-security.sh",
     "test:sticky-folders:db": "bash scripts/test-sticky-note-folders-security.sh",
     "test:vault-v23:db": "bash scripts/test-vault-v23-security.sh",
+    "test:retirement": "node --experimental-strip-types --test features/goals/sticky-retirement.test.ts",
     "test:auth": "node --experimental-strip-types --test features/auth/internal-release.test.ts features/auth/internal-release-ui.test.ts",
     "test:projects": "node --experimental-strip-types --test features/intelligence/contextual-insights.test.ts features/projects/model.test.ts features/projects/intelligence.test.ts features/projects/security.test.ts features/projects/ui.test.ts",
     "test:projects:db": "bash scripts/test-projects-v1-security.sh",

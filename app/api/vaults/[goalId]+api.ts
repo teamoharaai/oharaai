@@ -155,13 +155,11 @@ async function handlePost(
       throw new Error(`itemType must be one of: ${VAULT_ITEM_TYPES.join(', ')}`);
     }
     itemType = body.itemType as VaultItemType;
-    if (body.contentKind === undefined) contentKind = 'generic';
-    else if (body.contentKind === 'generic' || body.contentKind === 'sticky_note') {
-      contentKind = body.contentKind;
-    } else throw new Error('contentKind must be generic or sticky_note');
-    if (contentKind === 'sticky_note' && itemType !== 'note') {
-      throw new Error('sticky_note contentKind requires note itemType');
+    if (body.contentKind === 'sticky_note') {
+      return Response.json({ error: 'This legacy content type is retired and read-only' }, { status: 410 });
     }
+    if (body.contentKind === undefined || body.contentKind === 'generic') contentKind = 'generic';
+    else throw new Error('contentKind must be generic');
     title = sanitizeOptionalString(body.title, MAX_TITLE_LENGTH);
     content = sanitizeOptionalString(body.content, MAX_CONTENT_LENGTH);
     metadata = sanitizeMetadata(body.metadata);

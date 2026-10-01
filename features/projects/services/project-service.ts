@@ -43,6 +43,7 @@ export async function fetchProjectSummaries(userId: string): Promise<ProjectSumm
   const vaultIds = vaults.map((vault) => vault.id);
   const { data: itemRows, error: itemError } = vaultIds.length
     ? await supabase.from('vault_items').select('id, vault_id, updated_at').in('vault_id', vaultIds)
+      .neq('content_kind', 'sticky_note')
     : { data: [], error: null };
   if (itemError) throw itemError;
   const items = (itemRows ?? []) as Array<{ id: string; vault_id: string; updated_at: string }>;

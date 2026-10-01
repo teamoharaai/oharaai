@@ -33,7 +33,7 @@ export const INTERNAL_RELEASE_NOTES: readonly FeaturePatchNote[] = [
     category: 'Vault',
     version: '2.3',
     title: 'Vault is now a full workspace',
-    summary: 'Sticky Notes, Notes, Reflections, and Sources now have more room and clearer organization.',
+    summary: 'Notes, Reflections, and Sources now have more room and clearer organization.',
     releasedAt: '2026-09-23T13:01:19.000Z',
   },
   {

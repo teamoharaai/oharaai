@@ -14,18 +14,16 @@ export function deriveProjectVisualCategory(goals: readonly Pick<GoalWithDetails
 }
 
 export function buildProjectVaultActivity(items: readonly ProjectVaultItem[]): ProjectActivity[] {
-  return items.map((item) => ({
+  return items.flatMap((item): ProjectActivity[] => item.contentKind === 'sticky_note' ? [] : [{
     id: `vault-${item.id}`,
-    label: item.contentKind === 'sticky_note'
-      ? `Sticky Note created — ${item.title || 'Untitled'}`
-      : item.itemType === 'link' || item.itemType === 'document'
+    label: item.itemType === 'link' || item.itemType === 'document'
         ? `Source added — ${item.title || 'Untitled'}`
         : `Vault item added — ${item.title || 'Untitled'}`,
     occurredAt: item.createdAt,
     origin: item.origins.length
       ? `From: ${item.origins.map((origin) => origin.goalTitle).join(', ')}`
       : 'Project item',
-  }));
+  }]);
 }
 
 export function mergeProjectActivity(groups: readonly ProjectActivity[][], limit = 30): ProjectActivity[] {

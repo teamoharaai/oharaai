@@ -7,6 +7,7 @@ mkdirSync(screenshots, { recursive: true });
 mkdirSync(steeringScreenshots, { recursive: true });
 
 const now = '2026-09-23T12:00:00Z';
+const previewAccessToken = (userId: string) => `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ aud: 'authenticated', exp: 1893456000, role: 'authenticated', sub: userId })).toString('base64url')}.preview`;
 const ids = {
   owner: '11111111-1111-4111-8111-111111111111',
   admin: '22222222-2222-4222-8222-222222222222',
@@ -67,14 +68,19 @@ async function installScenario(page: Page, scenario: Scenario) {
   const otherComment = { id: 'comment-other', author_id: scenario.mode === 'guide' ? ids.owner : ids.admin, target_type: 'task', target_id: task.id, body: 'The next checkpoint looks clear.', created_at: '2026-09-23T11:00:00Z', edited_at: null, deleted_at: null };
   const sharedReflection = { id: 'entry-shared', userId: ids.owner, entryType: 'reflection', title: 'Weekly Reflection', content: { type: 'doc', content: [] }, plainText: scenario.reflectionText === undefined ? 'Training felt more consistent this week, especially during the longer sessions.' : scenario.reflectionText ?? '', brtCategory: null, reflectionType: 'weekly', conversationTurns: [], takeaway: null, pinned: false, archived: false, contentVersion: 1, schemaVersion: 2, completedAt: null, createdAt: now, updatedAt: now, projectShareScope: scenario.mode === 'guide' ? 'guide' : 'project', goals: [{ id: goalId, title: goal.title, category: goal.category, status: goal.status, projectId }], project: { id: projectId, title: project.title }, categoryIds: [], milestones: [] };
 
-  const session = { access_token: 'preview-token', refresh_token: 'preview-refresh', token_type: 'bearer', expires_at: Math.floor(Date.now() / 1000) + 3600, expires_in: 3600, user };
+  const session = { access_token: previewAccessToken(user.id), refresh_token: 'preview-refresh', token_type: 'bearer', expires_at: Math.floor(Date.now() / 1000) + 3600, expires_in: 3600, user };
   await page.addInitScript(({ session: value, theme }) => {
+    const originalGetItem = Storage.prototype.getItem;
+    Storage.prototype.getItem = function getItem(key: string) {
+      if (key.startsWith('sb-') && key.endsWith('-auth-token')) return JSON.stringify(value);
+      return originalGetItem.call(this, key);
+    };
     localStorage.setItem('sb-projects-preview-auth-token', JSON.stringify(value));
     localStorage.setItem('ohara-ui-state', JSON.stringify({ state: { themeMode: theme }, version: 0 }));
     for (const patch of ['goals-v2-3-1', 'vault-v2-3', 'projects-v1-0']) localStorage.setItem(`ohara:release:${patch}:seen`, 'seen');
   }, { session, theme: scenario.theme ?? 'dark' });
 
-  await page.route('https://projects-preview.invalid/**', async (route) => {
+  await page.route(/https?:\/\/[^/]+\/(?:auth|rest)\/v1\/.*/, async (route) => {
     const url = new URL(route.request().url());
     const json = (body: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
     if (url.pathname.includes('/auth/v1/user')) return json(user);
@@ -90,7 +96,26 @@ async function installScenario(page: Page, scenario: Scenario) {
     if (url.pathname.endsWith('/goals')) return json([goal]);
     if (url.pathname.endsWith('/tasks')) return json([task]);
     if (url.pathname.endsWith('/task_occurrences')) return json([]);
-    if (url.pathname.endsWith('/entries')) return json([]);
+    if (url.pathname.endsWith('/entries')) return json([{
+      id: sharedReflection.id,
+      user_id: sharedReflection.userId,
+      entry_type: sharedReflection.entryType,
+      title: sharedReflection.title,
+      content: sharedReflection.content,
+      plain_text: sharedReflection.plainText,
+      reflection_type: sharedReflection.reflectionType,
+      conversation_turns: sharedReflection.conversationTurns,
+      takeaway: sharedReflection.takeaway,
+      pinned: sharedReflection.pinned,
+      archived: sharedReflection.archived,
+      content_version: sharedReflection.contentVersion,
+      schema_version: sharedReflection.schemaVersion,
+      completed_at: sharedReflection.completedAt,
+      created_at: sharedReflection.createdAt,
+      updated_at: sharedReflection.updatedAt,
+      project_id: projectId,
+      project_share_scope: sharedReflection.projectShareScope,
+    }]);
     if (url.pathname.endsWith('/project_activity_events')) return json([
       { id: 'activity-comment', actor_id: ids.admin, event_type: 'comment.created', target_type: 'task', target_id: task.id, label: 'Commented on Task', metadata: {}, occurred_at: now },
       { id: 'activity-1', actor_id: ids.admin, event_type: 'task.assigned', target_type: 'task', target_id: task.id, label: 'Assigned a Task to Maya', metadata: { title: task.title }, occurred_at: '2026-09-23T11:30:00Z' },
@@ -149,8 +174,8 @@ test('Team owner collaboration, assignments, comments, and responsive states', a
   await expect(page.getByLabel('1 Task needs attention')).toBeVisible();
   await steeringShot(page.getByLabel('Current Goals card'), '05-current-goals-attention-badge');
   await steeringShot(page.getByLabel('Reflections card'), '06-reflection-with-real-preview');
-  await steeringShot(page.getByLabel('OHARA Intelligence card'), '08-intelligence-inline-header');
-  await steeringShot(page.getByLabel('OHARA Intelligence card'), '09-intelligence-dark-contrast');
+  await steeringShot(page.getByLabel('Echo Project Insight card'), '08-intelligence-inline-header');
+  await steeringShot(page.getByLabel('Echo Project Insight card'), '09-intelligence-dark-contrast');
   await steeringShot(page.getByLabel('Upcoming Milestones card'), '11-upcoming-milestones');
   await steeringShot(page.getByLabel('Project Tasks card'), '12-project-tasks-compact-assignees');
   await page.getByRole('button', { name: /Change assignee for Finalize onboarding/ }).click();
@@ -225,9 +250,9 @@ test('Team owner collaboration, assignments, comments, and responsive states', a
 
 test('Team workspace remains readable in light mode', async ({ page }) => {
   await openProject(page, { mode: 'team', viewer: 'owner', full: true, theme: 'light' });
-  await expect(page.getByLabel('OHARA Intelligence card')).toBeVisible();
+  await expect(page.getByLabel('Echo Project Insight card')).toBeVisible();
   await steeringShot(page, '02-team-project-desktop-light', true);
-  await steeringShot(page.getByLabel('OHARA Intelligence card'), '10-intelligence-light-contrast');
+  await steeringShot(page.getByLabel('Echo Project Insight card'), '10-intelligence-light-contrast');
 });
 
 test('Reflection without content omits a generic preview', async ({ page }) => {

@@ -22,11 +22,8 @@ interface ReorderBody {
   folderIds?: unknown;
 }
 
-export async function POST(request: Request, params: Record<string, string>): Promise<Response> {
-  if (!isDatabaseConfigured) {
-    return Response.json({ error: 'Database not configured' }, { status: 503 });
-  }
-  return withAuth(handlePost)(request, params);
+export async function POST(_request: Request, _params: Record<string, string>): Promise<Response> {
+  return Response.json({ error: 'This archived organization feature is read-only' }, { status: 410 });
 }
 
 async function handlePost(

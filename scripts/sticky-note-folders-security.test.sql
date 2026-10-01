@@ -17,99 +17,68 @@ insert into public.vaults (id, user_id, goal_id) values
   ('30000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001'),
   ('30000000-0000-0000-0000-00000000000b', '10000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002');
 
--- A note living in A's vault.
+-- Historical folder rows and a note are seeded as the migration owner. Migration
+-- 084 preserves these rows but revokes every authenticated folder writer.
 insert into public.vault_items (id, vault_id, item_type, title, created_by) values
   ('40000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-00000000000a', 'note', 'A note', '10000000-0000-0000-0000-000000000001');
 
--- ── A creates a folder in A's own vault (happy path) ──────────────────────────
-set role authenticated;
-select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000001', false);
 insert into public.vault_note_folders (id, vault_id, user_id, name) values
-  ('50000000-0000-0000-0000-0000000000a1', '30000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-000000000001', 'Research');
-
--- ── B creates a folder in B's own vault (happy path) ──────────────────────────
-select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000002', false);
-insert into public.vault_note_folders (id, vault_id, user_id, name) values
+  ('50000000-0000-0000-0000-0000000000a1', '30000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-000000000001', 'Research'),
   ('50000000-0000-0000-0000-0000000000b1', '30000000-0000-0000-0000-00000000000b', '10000000-0000-0000-0000-000000000002', 'Ideas');
 
--- ── Cross-user isolation: B must not see, edit, or delete A's folder ───────────
-do $$
-begin
-  if (select count(*) from public.vault_note_folders
-      where id = '50000000-0000-0000-0000-0000000000a1') <> 0 then
-    raise exception 'SECURITY: user B can read user A''s folder';
-  end if;
-end $$;
-
--- B's UPDATE/DELETE against A's folder are RLS-filtered (affect 0 rows). Verify
--- below (as superuser) that A's folder is untouched.
-update public.vault_note_folders set name = 'hacked' where id = '50000000-0000-0000-0000-0000000000a1';
-delete from public.vault_note_folders where id = '50000000-0000-0000-0000-0000000000a1';
-
--- ── Vault-ownership write guard (migration 066) ───────────────────────────────
--- B (still the active subject) must not create a folder pointing at A's vault,
--- with either A's or B's user_id.
-do $$
-begin
-  begin
-    insert into public.vault_note_folders (vault_id, user_id, name)
-    values ('30000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-000000000002', 'sneaky-b');
-    raise exception 'SECURITY: user B created a folder in user A''s vault (own user_id)';
-  exception when insufficient_privilege then null; -- expected: RLS with-check blocked it
-  end;
-
-  begin
-    insert into public.vault_note_folders (vault_id, user_id, name)
-    values ('30000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-000000000001', 'sneaky-a');
-    raise exception 'SECURITY: user B forged a folder owned by user A';
-  exception when insufficient_privilege then null; -- expected
-  end;
-end $$;
-
--- ── Case-insensitive unique folder name per vault ─────────────────────────────
+-- ── Historical rows stay owner-readable, but all writes are retired ───────────
+set role authenticated;
 select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000001', false);
 do $$
 begin
+  if (select count(*) from public.vault_note_folders) <> 1 then
+    raise exception 'ARCHIVE: owner cannot read exactly their historical folder';
+  end if;
   begin
     insert into public.vault_note_folders (vault_id, user_id, name)
-    values ('30000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-000000000001', 'research');
-    raise exception 'INTEGRITY: duplicate folder name (case-insensitive) was allowed in one vault';
-  exception when unique_violation then null; -- expected
+    values ('30000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-000000000001', 'New folder');
+    raise exception 'RETIREMENT: authenticated folder insert succeeded';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    update public.vault_note_folders set name = 'Changed'
+      where id = '50000000-0000-0000-0000-0000000000a1';
+    raise exception 'RETIREMENT: authenticated folder update succeeded';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    delete from public.vault_note_folders
+      where id = '50000000-0000-0000-0000-0000000000a1';
+    raise exception 'RETIREMENT: authenticated folder delete succeeded';
+  exception when insufficient_privilege then null;
   end;
 end $$;
 
--- ── FK ON DELETE SET NULL: deleting a folder falls its notes back to General ──
--- A files the note into Research, then deletes Research; the note must survive
--- with folder_id NULL (General), never be destroyed.
-update public.vault_items set folder_id = '50000000-0000-0000-0000-0000000000a1'
-  where id = '40000000-0000-0000-0000-000000000001';
+select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000002', false);
 do $$
 begin
-  if (select folder_id from public.vault_items where id = '40000000-0000-0000-0000-000000000001')
-     is distinct from '50000000-0000-0000-0000-0000000000a1'::uuid then
-    raise exception 'A could not file its own note into its own folder';
+  if exists (select 1 from public.vault_note_folders where id = '50000000-0000-0000-0000-0000000000a1') then
+    raise exception 'SECURITY: user B can read user A''s historical folder';
   end if;
 end $$;
-
-delete from public.vault_note_folders where id = '50000000-0000-0000-0000-0000000000a1';
 
 reset role;
 
--- ── Final state checks as superuser ───────────────────────────────────────────
+-- ── Final preservation checks as superuser ───────────────────────────────────
 do $$
 begin
-  -- A's other folder (never created) aside, the note must still exist, now General.
   if not exists (select 1 from public.vault_items where id = '40000000-0000-0000-0000-000000000001') then
-    raise exception 'FK cascade destroyed the note instead of nulling folder_id';
+    raise exception 'ARCHIVE: historical note was lost';
   end if;
-  if (select folder_id from public.vault_items where id = '40000000-0000-0000-0000-000000000001') is not null then
-    raise exception 'Deleting a folder did not reassign its note to General (folder_id NULL)';
+  if (select count(*) from public.vault_note_folders where id in (
+    '50000000-0000-0000-0000-0000000000a1',
+    '50000000-0000-0000-0000-0000000000b1'
+  )) <> 2 then
+    raise exception 'ARCHIVE: historical folders were lost';
   end if;
-  -- B's failed edits left A's data alone — but A deleted Research above, so only
-  -- confirm B's own folder is intact and A has no lingering folders.
-  if not exists (select 1 from public.vault_note_folders where id = '50000000-0000-0000-0000-0000000000b1') then
-    raise exception 'user B''s own folder was lost';
+  if (select name from public.vault_note_folders where id = '50000000-0000-0000-0000-0000000000a1') <> 'Research' then
+    raise exception 'ARCHIVE: historical folder was modified';
   end if;
 end $$;
 
-\echo 'sticky-note-folders security assertions passed'
+\echo 'sticky-note-folders retirement and archive assertions passed'

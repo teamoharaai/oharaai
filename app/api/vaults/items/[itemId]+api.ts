@@ -128,6 +128,9 @@ async function handlePut(
     if (!existingItem) {
       return Response.json({ error: 'Not found' }, { status: 404 });
     }
+    if (existingItem.contentKind === 'sticky_note') {
+      return Response.json({ error: 'This archived item is read-only' }, { status: 410 });
+    }
 
     if (folderIdProvided) {
       // A non-General target must be a folder in the item's own vault.
@@ -179,6 +182,9 @@ async function handleDelete(
     const existingItem = await getVaultItemByIdForUser(itemId, auth.userId, authedDb);
     if (!existingItem) {
       return Response.json({ error: 'Not found' }, { status: 404 });
+    }
+    if (existingItem.contentKind === 'sticky_note') {
+      return Response.json({ error: 'This archived item is read-only' }, { status: 410 });
     }
 
     await deleteVaultItem(itemId, authedDb);

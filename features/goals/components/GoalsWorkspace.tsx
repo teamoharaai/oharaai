@@ -55,7 +55,6 @@ import { GoalVault } from './GoalVault';
 import { GoalDetailHeader } from './GoalDetailHeader';
 import { GoalProjectPickerModal } from './GoalProjectPickerModal';
 import { MilestonesPanel } from './MilestonesPanel';
-import { StickyNotesPanel } from './StickyNotesPanel';
 
 type WorkspaceTab = 'overview' | 'vault';
 
@@ -717,7 +716,6 @@ function GoalTabContent({
   const colors = useThemeColors();
   const { density: deadlineDensity } = useDeadlineDensity();
   const [allTasks, setAllTasks] = useState(false);
-  const [stickyCreateRequest, setStickyCreateRequest] = useState(0);
   const next = getNextGoalMilestone(goal.milestones);
   const milestoneRef = useRef<View>(null);
   const scrollToContent = useScrollToPageContent();
@@ -726,17 +724,6 @@ function GoalTabContent({
     <GoalVault key={goal.id} goal={goal} entries={linkedEntries} entriesError={entriesError}
       externalAddRequest={externalVaultAddRequest}
       showAddButton={false}
-      onAddStickyNote={() => setStickyCreateRequest((value) => value + 1)}
-      privateNotes={<StickyNotesPanel embedded creationRequestKey={stickyCreateRequest} notes={goal.notes} folders={goal.noteFolders}
-        error={goalDetail.noteError} folderError={goalDetail.folderError}
-        onAdd={goalDetail.onAddNote} onSave={goalDetail.onSaveNote} onDelete={goalDetail.onDeleteNote}
-        onAttachPhoto={goalDetail.onAttachNotePhoto} onDismissError={goalDetail.clearNoteError}
-        onDismissFolderError={goalDetail.clearFolderError}
-        onAddFolder={goalDetail.onAddNoteFolder} onRenameFolder={goalDetail.onRenameNoteFolder}
-        onDeleteFolder={goalDetail.onDeleteNoteFolder} onReorderFolders={goalDetail.onReorderNoteFolders}
-        onMoveNotes={goalDetail.onMoveNotes}
-        resolvePhotoUrl={goalDetail.resolveNotePhotoUrl}
-        readOnly={goal.has_successor || goal.status === 'complete' || goal.status === 'archived'} />}
       activityItems={activityItems} activityLoading={activityLoading} activityError={activityError} />
   );
   const deadlineProgress = getGoalRingProgress(goal);

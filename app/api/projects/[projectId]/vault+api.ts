@@ -53,7 +53,8 @@ async function handleGet(_request: Request, params: Record<string, string>, auth
     }
     const vaultIds = [vault.id, ...goalVaults.map((item) => item.id)];
     const { data: itemRows, error: itemsError } = await db.from('vault_items')
-      .select(ITEM_SELECT).in('vault_id', vaultIds).order('updated_at', { ascending: false });
+      .select(ITEM_SELECT).in('vault_id', vaultIds).neq('content_kind', 'sticky_note')
+      .order('updated_at', { ascending: false });
     if (itemsError) throw itemsError;
     const originByVault = new Map(goalVaults.map((item) => [item.id, {
       goalId: item.goal_id,
@@ -92,8 +93,10 @@ async function handlePost(request: Request, params: Record<string, string>, auth
     const itemType = raw.itemType as VaultItemType;
     const allowed: VaultItemType[] = ['note', 'link', 'document'];
     if (!allowed.includes(itemType)) return Response.json({ error: 'Unsupported item type' }, { status: 400 });
-    const contentKind: VaultContentKind = raw.contentKind === 'sticky_note' ? 'sticky_note' : 'generic';
-    if (contentKind === 'sticky_note' && itemType !== 'note') return Response.json({ error: 'Invalid content kind' }, { status: 400 });
+    if (raw.contentKind === 'sticky_note') {
+      return Response.json({ error: 'This legacy content type is retired and read-only' }, { status: 410 });
+    }
+    const contentKind: VaultContentKind = 'generic';
     const title = typeof raw.title === 'string' ? raw.title.trim().slice(0, 200) || null : null;
     const content = typeof raw.content === 'string' ? raw.content.trim().slice(0, 10000) || null : null;
     const metadata = raw.metadata && typeof raw.metadata === 'object' && !Array.isArray(raw.metadata)

@@ -56,11 +56,8 @@ interface RenameFolderBody {
   name?: unknown;
 }
 
-export async function PATCH(request: Request, params: Record<string, string>): Promise<Response> {
-  if (!isDatabaseConfigured) {
-    return Response.json({ error: 'Database not configured' }, { status: 503 });
-  }
-  return withAuth(handlePatch)(request, params);
+export async function PATCH(_request: Request, _params: Record<string, string>): Promise<Response> {
+  return Response.json({ error: 'This archived organization feature is read-only' }, { status: 410 });
 }
 
 async function handlePatch(
@@ -108,11 +105,8 @@ async function handlePatch(
 // The folder's notes fall back to General (folder_id -> NULL) via the FK's
 // ON DELETE SET NULL (migration 065). Notes are never destroyed.
 
-export async function DELETE(request: Request, params: Record<string, string>): Promise<Response> {
-  if (!isDatabaseConfigured) {
-    return Response.json({ error: 'Database not configured' }, { status: 503 });
-  }
-  return withAuth(handleDelete)(request, params);
+export async function DELETE(_request: Request, _params: Record<string, string>): Promise<Response> {
+  return Response.json({ error: 'This archived organization feature is read-only' }, { status: 410 });
 }
 
 async function handleDelete(

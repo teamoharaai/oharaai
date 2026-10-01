@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Retired — Sticky Notes product surface (Phase 3, local only)
+- Removed Sticky Notes from Goal and Project Vault filters, create menus, Project Snapshot counts, Recent Activity, and Goal detail hydration while preserving canonical Notes, Reflections, Sources, and Quick Create behavior (`features/goals/components/GoalVault.tsx`, `features/goals/components/GoalsWorkspace.tsx`, `features/projects/components/ProjectVaultWorkspace.tsx`, `app/(app)/projects/[id].tsx`).
+- Hid archived `sticky_note` rows from domain reads and counts, removed the now-unreferenced Sticky Notes panel and Goal-detail writer callbacks, and made legacy Sticky Note/folder mutation endpoints return `410 Gone`; compatibility readers and historical classifications remain for future export or conversion.
+- Added local-only migration `084_retire_sticky_notes.sql` to freeze archived rows, folder organization, and legacy media writes without deleting or rewriting any user data; retained owner media reads and added hosted-probe/invariant coverage (`supabase/migrations/084_retire_sticky_notes.sql`, `scripts/goal-hosted-preflight/084-sticky-retirement.sql`).
+- Updated Vault database, static contract, and browser acceptance tests to prove archived Sticky Notes remain intact, read-only, and absent from active UI surfaces. Migration 084 is not applied to production and Phase 3 is not deployed.
+- Stabilized Goal/Project browser acceptance with an explicit release-note clock, cleared preview bundle, and syntactically valid mock JWTs, avoiding wall-clock expiry, stale Expo env reuse, and current Supabase Auth rejecting literal placeholder tokens (`tests/goals`, `tests/projects`).
+
 ### Deployed — Migration 083 domain computation jobs (2026-09-30)
 - **Preflight:** production history was exactly 001–082; migration 083 and probes 072–078, 080–083 passed; transaction 20812 was server-verified aborted.
 - **Apply:** transaction 20896 committed; production history is exactly 001–083 and its recorded statements byte-match `083_domain_computation_jobs.sql`; PostgREST was notified.

@@ -1,19 +1,27 @@
 import { test, expect } from '@playwright/test';
 
+const previewAccessToken = (userId: string) => `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ aud: 'authenticated', exp: 1893456000, role: 'authenticated', sub: userId })).toString('base64url')}.preview`;
+
 for (const theme of ['light', 'dark']) for (const width of [1440, 390]) {
   test(`V2.2 manual creation ${theme} ${width}`, async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-09-24T12:00:00.000Z') });
     const user = { id: '11111111-1111-4111-8111-111111111111', email: 'preview@example.test', role: 'authenticated', aud: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' };
-    const session = { access_token: 'preview-token', refresh_token: 'preview-refresh', token_type: 'bearer', expires_at: Math.floor(Date.now()/1000)+3600, expires_in: 3600, user };
+    const session = { access_token: previewAccessToken(user.id), refresh_token: 'preview-refresh', token_type: 'bearer', expires_at: Math.floor(Date.now()/1000)+3600, expires_in: 3600, user };
     let creation: Record<string, unknown> | null = null;
     const writes: string[] = [];
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.setViewportSize({ width, height: 1000 });
     await page.addInitScript(({ session, theme }) => {
+      const originalGetItem = Storage.prototype.getItem;
+      Storage.prototype.getItem = function getItem(key: string) {
+        if (key.startsWith('sb-') && key.endsWith('-auth-token')) return JSON.stringify(session);
+        return originalGetItem.call(this, key);
+      };
       localStorage.setItem('sb-goals-preview-auth-token', JSON.stringify(session));
       localStorage.setItem('ohara-ui-state', JSON.stringify({ state: { themeMode: theme }, version: 0 }));
     }, { session, theme });
-    await page.route('https://goals-preview.invalid/**', async (route) => {
+    await page.route(/https?:\/\/[^/]+\/(?:auth|rest)\/v1\/.*/, async (route) => {
       const url = new URL(route.request().url());
       const json = (body: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
       if (route.request().method() !== 'GET') writes.push(url.pathname);
@@ -40,7 +48,7 @@ for (const theme of ['light', 'dark']) for (const width of [1440, 390]) {
       if (path === '/api/friends') return json({ ok: true, data: { friends: [{ id: '33333333-3333-4333-8333-333333333333', display_name: 'Preview Friend', username: 'friend', avatar_url: null }], incoming_requests: [], sent_requests: [], friend_count: 1 } });
       return json({ data: [], entries: [], items: [], ok: true });
     });
-    await page.goto('http://localhost:4181/goals/create');
+    await page.goto('http://localhost:8091/goals/create');
     await expect(page.getByText("What's new in OHARA", { exact: true })).toBeVisible();
     await expect(page.getByText('Goals · Version 2.3.1', { exact: true })).toBeVisible();
     await expect(page.getByText('Vault · Version 2.3', { exact: true })).toBeVisible();

@@ -16,7 +16,7 @@ import { fetchEntries } from '@/features/entries/services/entry-service';
 import { VaultItemCard } from './VaultItemCard';
 import { isSourceVaultItem } from '../vault-classification';
 
-export type VaultFilter = 'all' | 'sticky' | 'notes' | 'reflections' | 'sources';
+export type VaultFilter = 'all' | 'notes' | 'reflections' | 'sources';
 
 export interface VaultWorkspaceParent {
   id: string;
@@ -39,21 +39,17 @@ interface VaultWorkspaceProps {
   activityLoading: boolean;
   entries: readonly EntryRecord[];
   entriesError: string | null;
-  onAddStickyNote: () => void;
   parent: VaultWorkspaceParent;
-  privateNotes: ReactNode;
   activityContent?: ReactNode;
   onAddSource?: () => void;
   vaultData?: VaultDataSource;
   externalAddRequest?: number;
   showAddButton?: boolean;
   initialFilter?: VaultFilter;
-  stickyPrivacyCopy?: string;
 }
 
 const FILTERS: ReadonlyArray<{ label: string; value: VaultFilter }> = [
   { label: 'All', value: 'all' },
-  { label: 'Sticky Notes', value: 'sticky' },
   { label: 'Notes', value: 'notes' },
   { label: 'Reflections', value: 'reflections' },
   { label: 'Sources', value: 'sources' },
@@ -73,7 +69,7 @@ function VaultSection({ children, icon, title }: { children: ReactNode; icon: ke
 }
 
 /** Parent-neutral Vault presentation. Goal-specific data is supplied by GoalVault. */
-export function VaultWorkspace({ activityContent, activityError, activityItems, activityLoading, entries, entriesError, externalAddRequest, initialFilter = 'all', onAddSource, onAddStickyNote, parent, privateNotes, showAddButton = true, stickyPrivacyCopy, vaultData }: VaultWorkspaceProps) {
+export function VaultWorkspace({ activityContent, activityError, activityItems, activityLoading, entries, entriesError, externalAddRequest, initialFilter = 'all', onAddSource, parent, showAddButton = true, vaultData }: VaultWorkspaceProps) {
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
   const compact = width < 620;
@@ -97,7 +93,7 @@ export function VaultWorkspace({ activityContent, activityError, activityItems, 
   const reflections = linkedEntries.filter((entry) => entry.entryType === 'reflection');
   const sources = vault.items.filter(isSourceVaultItem);
   const recentActivity = useMemo(() => [...activityItems]
-    .filter((item) => item.kind === 'vault_item_added' || item.kind === 'echo_linked')
+    .filter((item) => (item.kind === 'vault_item_added' && item.contentKind !== 'sticky_note') || item.kind === 'echo_linked')
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [activityItems]);
 
   async function retrySources() {
@@ -118,17 +114,10 @@ export function VaultWorkspace({ activityContent, activityError, activityItems, 
     router.push({ pathname: entryType === 'note' ? '/(app)/notes' : '/(app)/reflections', params: { create: entryType === 'note' ? 'note' : 'new', ...(parent.type === 'goal' ? { goalId: parent.id } : { projectId: parent.id }) } } as never);
   }
 
-  function addStickyNote() {
-    setAddOpen(false);
-    setFilter('sticky');
-    onAddStickyNote();
-  }
-
   const dateLabel = (value: string | Date) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const activityLabel = (item: ActivityItem) => {
     if (item.kind === 'echo_linked') return 'Note or Reflection linked';
     if (item.kind !== 'vault_item_added') return 'Vault activity';
-    if (item.contentKind === 'sticky_note') return `Sticky Note created — ${item.title}`;
     if (item.itemType === 'link' || item.itemType === 'document') return `Source added — ${item.title}`;
     return `Vault item added — ${item.title}`;
   };
@@ -146,7 +135,6 @@ export function VaultWorkspace({ activityContent, activityError, activityItems, 
     const goalTitles = entry.goals.filter((goal) => goal.projectId === parent.id).map((goal) => goal.title);
     return goalTitles.length ? `From: ${goalTitles.join(', ')}` : 'Project note';
   };
-  const showSticky = filter === 'all' || filter === 'sticky';
   const showNotes = filter === 'all' || filter === 'notes';
   const showReflections = filter === 'all' || filter === 'reflections';
   const showSources = filter === 'all' || filter === 'sources';
@@ -183,11 +171,6 @@ export function VaultWorkspace({ activityContent, activityError, activityItems, 
         </ScrollView>
       </View>
 
-      {showSticky ? <VaultSection icon="document-text-outline" title="Sticky Notes">
-        <Typography variant="caption">{stickyPrivacyCopy ?? (parent.type === 'goal' ? 'Private to you. Sticky Notes appear in Projects only through owner-authorized aggregation.' : 'Private items remain owner-only; shared items are visible only to authorized Project members.')}</Typography>
-        <View testID="goal-private-notes">{privateNotes}</View>
-      </VaultSection> : null}
-
       {showNotes ? <VaultSection icon="reader-outline" title="Notes">
         {entryLoadError ? <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md }}><Typography variant="caption">Linked entries couldn't load.</Typography><Pressable accessibilityRole="button" disabled={retrying} onPress={() => void retrySources()} style={{ minHeight: 44, justifyContent: 'center' }}><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>{retrying ? 'Retrying…' : 'Retry'}</Typography></Pressable></View> : null}
         {!notes.length && !entryLoadError ? <Typography variant="body">Linked Notes will appear here.</Typography> : null}
@@ -217,7 +200,6 @@ export function VaultWorkspace({ activityContent, activityError, activityItems, 
       <Modal visible={addOpen} onClose={() => setAddOpen(false)} contentStyle={{ maxWidth: 520 }}>
         <View style={{ gap: SPACE.lg }}><Typography variant="title">Add to Vault</Typography>
           {[
-            { key: 'sticky', icon: 'document-text-outline' as const, title: 'Sticky Note', detail: 'Capture a private note for this Goal.', action: addStickyNote },
             { key: 'note', icon: 'reader-outline' as const, title: 'Note', detail: 'Create a linked Note in Echo.', action: () => createEchoEntry('note') },
             { key: 'reflection', icon: 'create-outline' as const, title: 'Reflection', detail: 'Create a linked Reflection in Echo.', action: () => createEchoEntry('reflection') },
             { key: 'source', icon: 'link-outline' as const, title: 'Source', detail: 'Add a link, document, or other material.', action: () => { setAddOpen(false); if (onAddSource) onAddSource(); else router.push(`/(app)/goals/${parent.id}/vault` as never); } },
