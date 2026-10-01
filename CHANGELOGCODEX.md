@@ -2,26 +2,32 @@
 
 ## [Unreleased]
 
+### Deployed — Migrations 084–085 prelaunch stabilization (2026-10-01)
+- **Preflight:** production history was exactly 001–083; migrations 084 and 085 plus probes 072, 074–078, and 080–085 passed; transaction 21187 was server-verified aborted.
+- **Apply:** transaction 21280 committed; production history is exactly 001–085, recorded statements match the local migration files, and PostgREST was notified.
+- **Data preservation:** all 20 protected datasets were fingerprint-identical before and after; synthetic Task execution and Sticky Note retirement probes were rolled back with no residual rows.
+- Updated `scripts/db-chain/hosted-applied-through` to 085 so future rehearsals start from the verified production ledger.
+
 ### Fixed
 - Aligned the Goals Playwright server and navigation port in `tests/goals/playwright.config.ts` so the prelaunch browser gate exercises the application instead of failing with connection refusals.
 - Kept the new Project Task projection fixture type-safe so tracked TypeScript validation covers the canonical occurrence assertions without introducing a release diagnostic (`features/projects/model.test.ts`).
 
-### Added — Projects & Goals prelaunch stabilization (local only)
+### Added — Projects & Goals prelaunch stabilization
 - Added direct canonical Task execution to Project Detail: binary Tasks use a checkbox, quantity Tasks use atomic progress controls, recurring Tasks mutate only the selected occurrence, and successful writes refresh the Project projection immediately while Momentum refresh remains asynchronous (`app/(app)/projects/[id].tsx`, `app/api/task-occurrences/[id]+api.ts`, `features/projects/model.ts`).
 - Added migration `085_project_task_execution.sql` with capability- and assignment-aware collaborator mutations, row locking, actor-scoped idempotency receipts, one-time Task lifecycle updates, and truthful Project completion activity; added a hosted preflight probe covering retry, reopen, quantity, authorization, and cleanup (`supabase/migrations/085_project_task_execution.sql`, `scripts/goal-hosted-preflight/085-project-task-execution.sql`).
 - Preserved Project context when opening a Task’s canonical Goal and visibly focuses that Task; authorized collaborators can now load the RLS-visible Goal and its canonical Tasks without owner filters (`features/goals/navigation.ts`, `features/goals/components/GoalsWorkspace.tsx`, `features/goals/hooks/useGoals.ts`, `features/goals/services/goal-service.ts`, `features/tasks/components/TasksPanel.tsx`, `lib/db/tasks.ts`).
 - Added Project and Goal route error boundaries so a route render failure has an explicit retry/back path rather than taking down the execution flow (`app/(app)/projects/[id].tsx`, `app/(app)/goals/index.tsx`).
 - Fixed the reproduced Project → Goal crash: `GoalAnalyticsCard` dereferenced `history.length` on an older partial Goal Momentum projection. Goal rendering now normalizes missing `history` and `reasons` arrays before reading them (`features/goals/components/GoalsWorkspace.tsx`).
 
-### Changed — Projects & Goals prelaunch stabilization (local only)
+### Changed — Projects & Goals prelaunch stabilization
 - Reduced Project first-render work by omitting unused Goal signal enrichment, full Entry documents, shared Entries, and Project Momentum from the critical render path; secondary panels still hydrate independently and report partial failures (`features/projects/services/project-service.ts`).
 - Added Projects 1.1 internal release notes plus unit, security, architecture, and browser acceptance coverage for direct completion, quantity progress, Project-to-Goal context, secondary failure isolation, canonical data ownership, and migration authorization (`config/internal-release.ts`, `features/projects/*.test.ts`, `features/tasks/architecture.test.ts`, `tests/projects/collaboration-ui.spec.ts`).
 
-### Retired — Sticky Notes product surface (Phase 3, local only)
+### Retired — Sticky Notes product surface (Phase 3)
 - Removed Sticky Notes from Goal and Project Vault filters, create menus, Project Snapshot counts, Recent Activity, and Goal detail hydration while preserving canonical Notes, Reflections, Sources, and Quick Create behavior (`features/goals/components/GoalVault.tsx`, `features/goals/components/GoalsWorkspace.tsx`, `features/projects/components/ProjectVaultWorkspace.tsx`, `app/(app)/projects/[id].tsx`).
 - Hid archived `sticky_note` rows from domain reads and counts, removed the now-unreferenced Sticky Notes panel and Goal-detail writer callbacks, and made legacy Sticky Note/folder mutation endpoints return `410 Gone`; compatibility readers and historical classifications remain for future export or conversion.
-- Added local-only migration `084_retire_sticky_notes.sql` to freeze archived rows, folder organization, and legacy media writes without deleting or rewriting any user data; retained owner media reads and added hosted-probe/invariant coverage (`supabase/migrations/084_retire_sticky_notes.sql`, `scripts/goal-hosted-preflight/084-sticky-retirement.sql`).
-- Updated Vault database, static contract, and browser acceptance tests to prove archived Sticky Notes remain intact, read-only, and absent from active UI surfaces. Migration 084 is not applied to production and Phase 3 is not deployed.
+- Added migration `084_retire_sticky_notes.sql` to freeze archived rows, folder organization, and legacy media writes without deleting or rewriting any user data; retained owner media reads and added hosted-probe/invariant coverage (`supabase/migrations/084_retire_sticky_notes.sql`, `scripts/goal-hosted-preflight/084-sticky-retirement.sql`).
+- Updated Vault database, static contract, and browser acceptance tests to prove archived Sticky Notes remain intact, read-only, and absent from active UI surfaces. Migration 084 was applied with migration 085 in verified production transaction 21280.
 - Stabilized Goal/Project browser acceptance with an explicit release-note clock, cleared preview bundle, and syntactically valid mock JWTs, avoiding wall-clock expiry, stale Expo env reuse, and current Supabase Auth rejecting literal placeholder tokens (`tests/goals`, `tests/projects`).
 
 ### Deployed — Migration 083 domain computation jobs (2026-09-30)
