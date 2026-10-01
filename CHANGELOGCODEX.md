@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Deployed — Migration 083 domain computation jobs (2026-09-30)
+- **Preflight:** production history was exactly 001–082; migration 083 and probes 072–078, 080–083 passed; transaction 20812 was server-verified aborted.
+- **Apply:** transaction 20896 committed; production history is exactly 001–083 and its recorded statements byte-match `083_domain_computation_jobs.sql`; PostgREST was notified.
+- **Data preservation:** 16 protected datasets were fingerprint-identical before and after, including Momentum profiles/snapshots, Goal Momentum profiles/snapshots, Echo rows, Goals, Tasks, schedules, occurrences, receipts, and Goal events.
+- Updated `scripts/db-chain/hosted-applied-through` to 083 so future rehearsals start from the verified production ledger.
+
 ### Added
 - Added local migration `083_domain_computation_jobs.sql` with a canonical open-week Momentum projection, expiring per-user/week recalculation leases, and bounded change-scoped Echo reconciliation leases.
 - Added a hosted migration 083 probe and expanded apply fingerprints to prove existing Momentum snapshots, profiles, Echo rows, Goals, and Tasks remain unchanged during release.
