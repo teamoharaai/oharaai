@@ -78,6 +78,8 @@ Guards, all checked before anything is applied:
 
 Before 076 it counts, read-only, the Task-days 076 would abort on (`TASK_OCCURRENCE_DAY_CONFLICTS`) and the redundant rows it would cancel. A non-zero conflict count skips 076 and exits 2 (BLOCKED).
 
+Before 086 it reports, counts only, what 086's one-time Echo backlog copy will add (Echo entries with no canonical Entry, Goal links Echo shows with no canonical link) and what B10 makes read-only (canonical copies edited in the library, copy links Echo doesn't show, copy Milestone links). The 086 pre-check never blocks (`086-precheck.sql`).
+
 - **Hosted:** `node scripts/test-manual-goal-hosted.mjs --project-ref <ref> --applied-through $(cat scripts/db-chain/hosted-applied-through)`. **This needs explicit approval every time.** The project is production.
 - **Local rehearsal:** `npm run test:preflight:rehearsal` (below). CI runs it.
 
@@ -86,6 +88,7 @@ Before 076 it counts, read-only, the Task-days 076 would abort on (`TASK_OCCURRE
 `--apply` on the same script is the deploy. It keeps every preflight guard and runs the same transaction, with these differences:
 - **Before:** it fingerprints the existing rows of `goals`, `milestones`, `tasks`, `task_schedules`, `task_occurrences` and `task_mutation_receipts`: a row count plus an md5 over each row as JSON, restricted to the columns the table already had (`scripts/goal-hosted-preflight/invariants-*.sql`).
 - **076 pre-check:** any conflict, or any redundant row 076 would cancel, ends the session before 076 (exit 2, nothing committed). An apply therefore never changes existing Task data.
+- **`goal_events` is append-only during an apply** (from 086): its existing rows must stay byte-identical, and new rows are allowed only for Entries Echo owns, which is what 086's backlog copy adds (an Echo capture linked to a Goal becomes a canonical Entry with an event). Any other new event aborts with `APPLY_INVARIANT_CHANGED`. The apply prints `added_echo_entry_events`.
 - **Probes** run inside a savepoint that is rolled back, so no synthetic row survives.
 - **Then:** the fingerprints must be unchanged (`APPLY_INVARIANT_CHANGED` aborts), the pending migrations are recorded in `supabase_migrations.schema_migrations` (version, name, and the whole file as the single `statements` element), `notify pgrst, 'reload schema'` is queued, and it COMMITs.
 - **After:** the server must report the transaction `committed`, the history must equal local 001..last, and each new row's `statements` must hash to its local file.
@@ -99,7 +102,7 @@ Deploy steps (**each hosted step needs explicit approval**):
 2. `node scripts/test-manual-goal-hosted.mjs --project-ref <ref> --applied-through <hosted last> --apply`. Keep the output.
 3. Set `scripts/db-chain/hosted-applied-through` to the new last migration. Both rehearsals read it, and skip while nothing is pending.
 
-**Local rehearsal:** `npm run test:apply:rehearsal`. It builds the chain through `hosted-applied-through`, loads `fixtures/apply-rehearsal-seed.sql`, and proves: a pending migration that edits an existing row aborts with nothing kept; an unclean 076 pre-check blocks; the real apply commits with rows unchanged, the full history and no probe rows; a rerun is refused. CI runs it.
+**Local rehearsal:** `npm run test:apply:rehearsal`. It builds the chain through `hosted-applied-through`, loads `fixtures/apply-rehearsal-seed.sql`, and proves: a pending migration that edits an existing row aborts with nothing kept; while 086 is pending (with `fixtures/apply-rehearsal-echo-seed.sql`), so does one that adds a `goal_events` row that is not an Echo-owned Entry event, and the real apply copies the seeded capture with exactly one event; an unclean 076 pre-check blocks; the real apply commits with rows unchanged, the full history and no probe rows; a rerun is refused. CI runs it.
 
 The chain records each migration in `supabase_migrations.schema_migrations` (created by `supabase-platform.sql` in the CLI's shape), so the history guard also runs locally.
 
@@ -117,7 +120,8 @@ Every hosted script imports it; nothing in it connects.
 - `cleanup` closes admission, deletes only the recorded accounts and verifies that no row remains.
 - **Each step needs explicit approval. Run cleanup even when the tests fail.**
 - The full command sequence is in `docs/goal-work-e2e-verification-2026-09-27.md`. The ledger run is recorded in `docs/goal-operations-e2e-verification-2026-09-27.md`.
-- Cleanup's evidence and "nothing remains" counts include `goal_private.operation_ledger` and `goal_private.goal_events`. From 078, every protocol writes the ledger; from 080, every Task, Milestone and Entry write also writes an event. Any new receipt or event store a live test writes needs a count here too, or cleanup can't tell whether it's empty.
+- From 086, `echo` (between the native tests and cleanup) signs in as the synthetic owner and drives desktop's Echo routes on the deployed site: capture, the library's `ECHO_OWNED` refusals, edit, move to a folder, delete, checking the canonical Entry, its Goal link and `goal_events` after each.
+- Cleanup's evidence and "nothing remains" counts include `goal_private.operation_ledger`, `goal_private.goal_events`, and (from 086) `entries` and `echo_entries`. From 078, every protocol writes the ledger; from 080, every Task, Milestone and Entry write also writes an event. Any new receipt or event store a live test writes needs a count here too, or cleanup can't tell whether it's empty.
 
 ## Invariants and receipts (078 onward)
 

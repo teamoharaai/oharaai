@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
-import { databaseErrorMessage, isEntryConflictError } from './conflict.ts';
+import { databaseErrorMessage, isEchoOwnedError, isEntryConflictError } from './conflict.ts';
 
 function source(path: string): string {
   return readFileSync(resolve(process.cwd(), path), 'utf8');
@@ -52,7 +52,8 @@ test('direct Notes and Reflections routes do not mount owner libraries or option
   }
   assert.match(detailScreen, /fetchEntryDetail/);
   assert.match(detailScreen, /SharedEntryReadView/);
-  assert.doesNotMatch(detailScreen + sharedView, /Echo|Momentum|useCirclesStore|useFriends/);
+  // No Echo, Momentum or social modules on the direct route. (Echo-owned Entries name Echo and link to it; 086.)
+  assert.doesNotMatch(detailScreen + sharedView, /from '@\/features\/(echo|momentum)|Momentum|useCirclesStore|useFriends/);
 });
 
 test('collaborator renderer preserves rich content and removes mutation controls', () => {
@@ -97,4 +98,24 @@ test('shared Note images follow Entry RLS and active Project Entries have a supp
   assert.match(migration, /e\.id::text = \(storage\.foldername\(name\)\)\[2\]/);
   assert.match(migration, /e\.user_id::text = \(storage\.foldername\(name\)\)\[1\]/);
   assert.doesNotMatch(migration, /for insert|for update|for delete/);
+});
+
+test('Entries captured in Echo are read-only outside Echo (Migration 086, TD-005 B10)', () => {
+  // The flag comes from echo_entries, the same source the database guard uses, in the batched relationship read.
+  assert.match(entriesDb, /db\.from\('echo_entries'\)\.select\('id'\)\.in\('id', entryIds\)/);
+  assert.match(entriesDb, /canEdit: isOwner && !echoOwned/);
+  assert.match(entriesDb, /canDelete: isOwner && !echoOwned/);
+  assert.match(entriesDb, /deriveEntryCapabilities\(viewerId, row\.user_id, relationship\.echoOwned\)/);
+  assert.match(types, /echoOwned: boolean/);
+  // The detail screen already renders the read-only view whenever canEdit is false; it names Echo and links there.
+  assert.match(sharedView, /entry\.echoOwned \? 'Echo Reflection'/);
+  assert.match(sharedView, /Edit in Echo/);
+  // The library list offers only "Edit in Echo" for them.
+  const list = source('features/entries/components/ReflectionsScreen.tsx');
+  assert.match(list, /entry\.echoOwned \?[\s\S]*Edit in Echo[\s\S]*Edit Reflection/);
+  // The database refusal maps to 409 ECHO_OWNED on both PATCH and DELETE.
+  assert.equal(detailRoute.match(/isEchoOwnedError\(error\)\) return echoOwnedResponse\(\)/g)?.length, 2);
+  assert.match(detailRoute, /code: 'ECHO_OWNED'/);
+  assert.equal(isEchoOwnedError({ message: 'ECHO_OWNED: this Entry was captured in Echo and can only be changed there' }), true);
+  assert.equal(isEchoOwnedError(new Error('Entry changed in another session. Reload before saving again.')), false);
 });

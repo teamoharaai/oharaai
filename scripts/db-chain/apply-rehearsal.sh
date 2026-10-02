@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Rehearses `scripts/test-manual-goal-hosted.mjs --apply` locally, on the real chain stopped where hosted is
 # (HOSTED_APPLIED_THROUGH) with production-shaped rows loaded (fixtures/apply-rehearsal-seed.sql). Proves, in order:
-#   1. a pending migration that changes an existing row aborts the apply, and nothing is kept;
+#   1. a pending migration that changes an existing row aborts the apply, and nothing is kept; so does one that adds
+#      a goal_events row that is not an Echo-owned Entry event (while 086 is pending: its backlog adds only those);
 #   2. a redundant scheduled occurrence 076 would cancel blocks the apply before anything runs (exit 2);
 #   3. the real apply commits: history is the full local chain, each new row stores its whole file as `statements`,
-#      existing rows are unchanged, and no probe row is left;
+#      existing rows are unchanged, and no probe row is left (and, while 086 is pending, the Echo backlog is copied);
 #   4. running it again is refused by the history guard.
 #
 #   HOSTED_APPLIED_THROUGH  override the last migration hosted has applied (default: scripts/db-chain/hosted-applied-through,
@@ -57,15 +58,25 @@ sql -f "$ROOT_DIR/scripts/db-chain/fixtures/apply-rehearsal-seed.sql"
 if [[ "$THROUGH" > 077 ]]; then
   sql -f "$ROOT_DIR/scripts/db-chain/fixtures/apply-rehearsal-ledger-seed.sql"
 fi
+if [[ "$THROUGH" < 086 ]]; then
+  sql -f "$ROOT_DIR/scripts/db-chain/fixtures/apply-rehearsal-echo-seed.sql"
+fi
 before="$(state)"
 
+defect() { # <label> <statement appended to the last pending migration>
+  rm -rf "$WORK/defect"; cp -R "$ROOT_DIR/supabase/migrations" "$WORK/defect"
+  local last; last="$(ls "$WORK/defect"/[0-9][0-9][0-9]_*.sql | tail -1)"
+  DEFECT="$2" perl -0pi -e 's/\ncommit;\s*\z/\n$ENV{DEFECT}\ncommit;\n/i' "$last"
+  run_apply 1 "$1" OHARA_MIGRATIONS_DIR="$WORK/defect"
+  grep -q APPLY_INVARIANT_CHANGED "$WORK/apply.log" || { echo "FAIL: the invariant did not catch $1" >&2; tail -40 "$WORK/apply.log" >&2; exit 1; }
+  unchanged "the aborted apply ($1)"
+}
 echo "1. A pending migration that changes an existing row"
-cp -R "$ROOT_DIR/supabase/migrations" "$WORK/defect"
-last="$(ls "$WORK/defect"/[0-9][0-9][0-9]_*.sql | tail -1)"
-perl -0pi -e "s/\ncommit;\s*\z/\nupdate public.milestones set title = title || ' (changed)';\ncommit;\n/i" "$last"
-run_apply 1 "seeded defect" OHARA_MIGRATIONS_DIR="$WORK/defect"
-grep -q APPLY_INVARIANT_CHANGED "$WORK/apply.log" || { echo "FAIL: the invariant did not catch the change" >&2; tail -40 "$WORK/apply.log" >&2; exit 1; }
-unchanged "the aborted apply"
+defect "seeded defect" "update public.milestones set title = title || ' (changed)';"
+if [[ "$THROUGH" < 086 ]]; then
+  echo "1b. A pending migration that adds a goal_events row that is not an Echo-owned Entry event"
+  defect "non-Echo goal event" "insert into public.entry_goal_links(entry_id, goal_id) values ('5eed0000-0000-4000-8000-0000000000a2', '5eed0000-0000-4000-8000-00000000000a');"
+fi
 
 if [[ "$THROUGH" < 076 ]]; then
   echo "2. A redundant scheduled occurrence 076 would cancel"
@@ -82,6 +93,13 @@ expected_history="$(cd "$ROOT_DIR/supabase/migrations" && ls [0-9][0-9][0-9]_*.s
 after="$(state)"
 [[ "${after%% | *}" == "$expected_history" ]] || { echo "FAIL: history after apply is not the full local chain" >&2; exit 1; }
 [[ "${after#* | }" == "${before#* | }" ]] || { echo "FAIL: the apply changed existing rows or left probe rows" >&2; exit 1; }
+if [[ "$THROUGH" < 086 ]]; then
+  # 086 copies the seeded capture (one Echo-owned goal_events row; the apply's own invariant checked the rest).
+  copied="$(sql -c "select count(*) from public.entries e join public.entry_goal_links l on l.entry_id = e.id
+    join goal_private.goal_events g on g.entity_id = e.id where e.id = '5eed0000-0000-4000-8000-0000000000a1'")"
+  [[ "$copied" == 1 ]] || { echo "FAIL: expected the seeded Echo capture copied with one event, found $copied" >&2; exit 1; }
+  grep -A2 "added_echo_entry_events" "$WORK/apply.log" | sed "s/^/  /"
+fi
 if [[ "$THROUGH" < 078 ]]; then
   # 078 copies the six seeded receipts into the operation ledger (the probe checks each one field by field).
   copied="$(sql -c "select count(*) from goal_private.operation_ledger where owner_id = '5eed0000-0000-4000-8000-000000000001'")"

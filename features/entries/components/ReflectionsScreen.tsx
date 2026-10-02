@@ -383,8 +383,15 @@ export function ReflectionsScreen({ selectedEntryId }: { selectedEntryId?: strin
                     </View>
                     {menuEntryId === entry.id ? (
                       <View style={{ alignSelf: 'flex-end', backgroundColor: colors.background.input, borderColor: colors.border.input, borderRadius: RADIUS.md, borderWidth: 1, gap: SPACE.xs, marginBottom: SPACE.lg, padding: SPACE.sm }}>
-                        <Button onPress={() => editReflection(entry)} size="compact" variant="ghost">Edit Reflection</Button>
-                        <Button onPress={() => { setMenuEntryId(null); setDeleteTarget(entry); }} size="compact" variant="danger">Delete</Button>
+                        {entry.echoOwned ? (
+                          // Captured in Echo: changed only there (TD-005 B10).
+                          <Button onPress={() => { setMenuEntryId(null); router.push('/(app)/echo' as never); }} size="compact" variant="ghost">Edit in Echo</Button>
+                        ) : (
+                          <>
+                            <Button onPress={() => editReflection(entry)} size="compact" variant="ghost">Edit Reflection</Button>
+                            <Button onPress={() => { setMenuEntryId(null); setDeleteTarget(entry); }} size="compact" variant="danger">Delete</Button>
+                          </>
+                        )}
                       </View>
                     ) : null}
                     <Typography style={{ color: colors.text.primary, fontFamily: FONT.editorial.regular, fontSize: compact ? 17 : 19, lineHeight: compact ? 28 : 31 }}>

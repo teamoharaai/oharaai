@@ -200,6 +200,8 @@ async function fetchProjectEntries(projectId: string): Promise<EntryRecord[]> {
     completedAt: row.completed_at ? new Date(row.completed_at) : null,
     createdAt: new Date(row.created_at), updatedAt: new Date(row.updated_at),
     goals: [], project: { id: projectId, title: '', status: 'active' }, projectShareScope: row.project_share_scope, categoryIds: [], milestones: [],
+    // Echo copies never belong to a Project (Migration 086 refuses assigning one).
+    echoOwned: false,
   }));
 }
 

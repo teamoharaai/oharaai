@@ -210,3 +210,64 @@ end
 $$;
 
 select 'Echo V1 Project relationship harness passed.' as result;
+
+-- Echo owns its Entries (Migration 086, TD-005 B5/B10): every canonical writer refuses an Echo-origin Entry and
+-- its links with ECHO_OWNED; the Echo write itself still reaches the canonical copy.
+insert into public.milestones (id, goal_id, user_id, title) values (
+  '20000000-0000-0000-0000-0000000000e1', '20000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000001', 'Echo guard milestone'
+);
+set role authenticated;
+select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000001', false);
+select set_config('ohara.echo_entry', public.create_echo_entry_with_container(
+  'Captured in Echo', null, '20000000-0000-0000-0000-000000000001', false, null, null, null)::text, false);
+
+do $$
+declare
+  echo_id uuid := current_setting('ohara.echo_entry')::uuid;
+  linked_goal uuid := '20000000-0000-0000-0000-000000000001';
+  writer text;
+begin
+  if not exists (select 1 from public.entries where id = echo_id) then
+    raise exception 'The Echo capture did not reach its canonical Entry';
+  end if;
+  foreach writer in array array[
+    format($q$select public.save_entry(%L, 'reflection', 't', '{"type":"doc","blocks":[]}', '', 'open', '[]', null, false, false, null, '{}', '{}', '{}')$q$, echo_id),
+    format($q$select public.save_entry_v2(%L, 'reflection', 't', '{"type":"doc","blocks":[]}', '', 'open', '[]', null, false, false, null, '{}', '{}', '{}', 1, '[]')$q$, echo_id),
+    format($q$select public.save_entry_v4(%L, 'reflection', 't', '{"type":"doc","blocks":[]}', '', 'open', '[]', null, false, false, null, '{}', '{}', '{}', null, 1, '[]', null, false, null)$q$, echo_id),
+    format($q$select public.replace_entry_relationships(%L, '{}', '{}', '{}')$q$, echo_id),
+    format($q$select public.set_entry_project_share_v11(%L, 'private')$q$, echo_id),
+    format($q$update public.entries set pinned = true where id = %L$q$, echo_id),
+    format($q$delete from public.entries where id = %L$q$, echo_id),
+    format($q$delete from public.entry_goal_links where entry_id = %L$q$, echo_id),
+    format($q$insert into public.entry_category_links (entry_id, category_id, link_source) values (%L, 'Health & Fitness', 'category_only')$q$, echo_id),
+    format($q$insert into public.reflection_milestone_links (entry_id, milestone_id) values (%L, '20000000-0000-0000-0000-0000000000e1')$q$, echo_id)
+  ] loop
+    begin
+      execute writer;
+      raise exception 'Echo-owned write unexpectedly succeeded: %', writer;
+    exception
+      when others then
+        if sqlerrm not like 'ECHO_OWNED:%' then raise; end if;
+    end;
+  end loop;
+  if not exists (select 1 from public.entry_goal_links l where l.entry_id = echo_id and l.goal_id = linked_goal) then
+    raise exception 'A refused write changed the Echo-owned links';
+  end if;
+end
+$$;
+
+reset role;
+set role service_role;
+do $$
+begin
+  update public.entries set title = 'Service edit' where id = current_setting('ohara.echo_entry')::uuid;
+  raise exception 'The service role edited an Echo-owned Entry';
+exception
+  when others then
+    if sqlerrm not like 'ECHO_OWNED:%' then raise; end if;
+end
+$$;
+reset role;
+
+select 'Echo-owned Entry guard passed.' as result;

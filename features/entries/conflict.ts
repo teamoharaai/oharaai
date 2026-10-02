@@ -10,3 +10,8 @@ export function databaseErrorMessage(error: unknown): string {
 export function isEntryConflictError(error: unknown): boolean {
   return databaseErrorMessage(error).startsWith('Entry changed in another session');
 }
+
+/** The database refuses canonical writes to an Entry captured in Echo (Migration 086, TD-005 B10). */
+export function isEchoOwnedError(error: unknown): boolean {
+  return databaseErrorMessage(error).startsWith('ECHO_OWNED');
+}

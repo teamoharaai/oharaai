@@ -54,6 +54,7 @@ function entry(overrides: Partial<EntryRecord> = {}): EntryRecord {
     project: overrides.project ?? null,
     categoryIds: overrides.categoryIds ?? [],
     milestones: overrides.milestones ?? [],
+    echoOwned: overrides.echoOwned ?? false,
   };
 }
 

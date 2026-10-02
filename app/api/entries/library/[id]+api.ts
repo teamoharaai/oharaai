@@ -2,7 +2,7 @@ import { withAuth, type AuthContext } from '@/lib/api/auth';
 import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 import { createServiceRoleClient } from '@/lib/db/service-client';
 import { deleteEntry, getEntryDetail, updateEntry } from '@/lib/db/entries';
-import { databaseErrorMessage, isEntryConflictError } from '@/features/entries/conflict';
+import { databaseErrorMessage, isEchoOwnedError, isEntryConflictError } from '@/features/entries/conflict';
 import { isUuid, parseEntryDraft } from '@/features/entries/validation';
 
 function validId(params: Record<string, string>): string | null {
@@ -117,6 +117,7 @@ async function handlePatch(
       : Response.json({ error: 'Not found' }, { status: 404 });
   } catch (error) {
     const message = databaseErrorMessage(error);
+    if (isEchoOwnedError(error)) return echoOwnedResponse();
     if (isEntryConflictError(error)) {
       return Response.json({ error: message }, { status: 409 });
     }
@@ -147,7 +148,16 @@ async function handleDelete(
     return deleted
       ? Response.json({ success: true })
       : Response.json({ error: 'Not found' }, { status: 404 });
-  } catch {
+  } catch (error) {
+    if (isEchoOwnedError(error)) return echoOwnedResponse();
     return Response.json({ error: 'Could not delete entry' }, { status: 500 });
   }
+}
+
+// Entries captured in Echo are changed only in Echo (TD-005 B10); the database refuses the write.
+function echoOwnedResponse(): Response {
+  return Response.json(
+    { error: 'This Reflection was captured in Echo. Edit or delete it in Echo.', code: 'ECHO_OWNED' },
+    { status: 409 },
+  );
 }

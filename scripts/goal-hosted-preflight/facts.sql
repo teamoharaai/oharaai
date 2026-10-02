@@ -16,10 +16,11 @@ select has_schema_privilege('goal_manual_executor', 'auth', 'USAGE') as executor
 select has_schema_privilege('goal_manual_executor', 'storage', 'USAGE') as executor_storage_usage,
        has_table_privilege('goal_manual_executor', 'storage.objects', 'SELECT') as executor_objects_select,
        pg_get_userbyid((select relowner from pg_class where oid = 'storage.objects'::regclass)) as objects_owner;
-\echo '-- Facts: user triggers on the tables the Goal RPCs write'
+\echo '-- Facts: user triggers on the tables the Goal RPCs and the Echo mirror (086) write'
 select c.oid::regclass as table, count(t.oid) as triggers, string_agg(t.tgname, ', ' order by t.tgname) as names
 from pg_class c left join pg_trigger t on t.tgrelid = c.oid and not t.tgisinternal
-where c.oid in ('public.goals'::regclass, 'public.tasks'::regclass, 'public.task_occurrences'::regclass, 'public.milestones'::regclass)
+where c.oid in ('public.goals'::regclass, 'public.tasks'::regclass, 'public.task_occurrences'::regclass, 'public.milestones'::regclass,
+                'public.entries'::regclass, 'public.echo_entries'::regclass, 'public.echo_entry_links'::regclass)
 group by 1 order by 1::text;
 \echo '-- Facts: migration history shape (--apply records version, name and the whole file as statements, as 072 was recorded)'
 select column_name, data_type, is_nullable, column_default
@@ -47,3 +48,5 @@ select count(*) as legacy_only_goal_links, count(distinct l.goal_id) as goals,
 from public.echo_entry_links l
 where l.container_type = 'goal' and l.confirmed and l.goal_id is not null
   and not exists (select 1 from public.entry_goal_links c where c.entry_id = l.echo_entry_id and c.goal_id = l.goal_id);
+\echo '-- Facts: Echo entries with no canonical Entry (086 mirrors every Echo write and copied the backlog; expected 0 once 086 is applied)'
+select count(*) as echo_entries_without_canonical from public.echo_entries ee where not exists (select 1 from public.entries e where e.id = ee.id);

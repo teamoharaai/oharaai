@@ -6,11 +6,15 @@
 //              allow-lists ONLY the owner and opens admission (enabled = true, verification_only stays true, so no
 //              other account is admitted); writes a private copy of the built .xctestrun with the credentials in
 //              the OharaAITests environment. The password exists only in memory and in that 0600 file.
+//   echo       (after the native tests, Migration 086) signs in as the provisioned owner and drives desktop's Echo routes
+//              on the deployed site: capture, the library's read-only answer (ECHO_OWNED), edit, move to a folder and
+//              delete, checking after each that the canonical Entry, its Goal link and goal_events followed (TD-005 B3/B10).
 //   cleanup    prints the synthetic owners' row counts (evidence), closes admission, deletes ONLY the recorded
 //              synthetic accounts (their rows cascade), deletes the private .xctestrun and verifies nothing remains.
 //
 // Usage:
 //   node scripts/goal-live-verification.mjs provision --project-ref <ref> --xctestrun <built .xctestrun> [--out <dir>]
+//   node scripts/goal-live-verification.mjs echo      --project-ref <ref> [--out <dir>] [--site https://www.oharaai.com]
 //   node scripts/goal-live-verification.mjs cleanup   --project-ref <ref> [--out <dir>]
 // Run state (ids, emails, file paths; never the password) is kept in <out>/run.json, default /tmp/ohara-goal-live.
 import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -24,7 +28,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const SUFFIX = '@goal-e2e.ohara.test';
 const arg = (name) => { const i = process.argv.indexOf(name); return i < 0 ? undefined : process.argv[i + 1]; };
 const command = process.argv[2];
-if (!['provision', 'cleanup'].includes(command)) throw Error('Usage: goal-live-verification.mjs provision|cleanup --project-ref <ref> ...');
+if (!['provision', 'echo', 'cleanup'].includes(command)) throw Error('Usage: goal-live-verification.mjs provision|echo|cleanup --project-ref <ref> ...');
 const out = arg('--out') ?? '/tmp/ohara-goal-live';
 const statePath = join(out, 'run.json');
 const { env, label, apiOrigin, values } = resolveHostedTarget(root, arg('--project-ref'));
@@ -112,6 +116,68 @@ if (command === 'provision') {
   console.log(`PROVISIONED on ${label}: run ${run}; only ${owner} is admitted. Run cleanup when the tests finish.`);
 }
 
+if (command === 'echo') {
+  if (!existsSync(statePath)) throw Error(`No ${statePath}: provision first`);
+  const state = JSON.parse(readFileSync(statePath, 'utf8'));
+  if (state.label !== label || !state.xctestrun || !existsSync(state.xctestrun)) throw Error('The recorded run belongs to another target or has no private .xctestrun');
+  const site = new URL(arg('--site') ?? 'https://www.oharaai.com').origin;
+  const owner = uuid(state.users.owner.id);
+  // The password exists only in the private .xctestrun that provision wrote.
+  const plist = JSON.parse(spawnSync('plutil', ['-convert', 'json', '-o', '-', state.xctestrun], { encoding: 'utf8' }).stdout);
+  const password = plist.TestConfigurations?.flatMap((c) => c.TestTargets ?? []).find((t) => t.BlueprintName === 'OharaAITests')
+    ?.EnvironmentVariables?.OHARA_LIVE_GOAL_PASSWORD;
+  if (!password || !values.EXPO_PUBLIC_SUPABASE_ANON_KEY) throw Error('Need the run password and the anon key');
+  const signIn = await fetch(`${apiOrigin}/auth/v1/token?grant_type=password`, {
+    method: 'POST', headers: { apikey: values.EXPO_PUBLIC_SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: state.users.owner.email, password }),
+  });
+  if (!signIn.ok) throw Error(`Sign-in failed: HTTP ${signIn.status}`);
+  const { access_token: token } = await signIn.json();
+  const call = async (method, path, body) => {
+    const response = await fetch(`${site}${path}`, {
+      method, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined,
+    });
+    const text = await response.text();
+    return { status: response.status, body: text ? JSON.parse(text) : null };
+  };
+  const expect = (ok, what, detail) => { if (!ok) throw Error(`ECHO LIVE FAILED: ${what}: ${JSON.stringify(detail)}`); console.log(`PASS echo: ${what}`); };
+  const canonical = (id) => psql(`select coalesce((select plain_text || '|' || content_version from public.entries where id = '${id}'), 'none')
+    || '|' || (select count(*) from public.entry_goal_links where entry_id = '${id}')
+    || '|' || (select count(*) from goal_private.goal_events where entity_id = '${id}');`);
+  // The native tests leave the owner at least one Goal; capture into it.
+  const goal = psql(`select id from public.goals where user_id = '${owner}' order by created_at limit 1;`);
+  if (!goal) throw Error('The owner has no Goal: run the native live tests first');
+
+  let r = await call('POST', '/api/entries', { content: `Live Echo capture ${state.run}`, title: '', goalId: uuid(goal) });
+  const entry = r.body?.entry?.id;
+  expect(r.status === 201 && entry, 'capture through POST /api/entries', r);
+  expect(canonical(entry) === `Live Echo capture ${state.run}|1|1|1`, 'the capture wrote its canonical Entry, Goal link and event', canonical(entry));
+  r = await call('GET', '/api/entries/library?type=reflection');
+  expect(r.body?.entries?.some((e) => e.id === entry && e.echoOwned === true), 'the library lists it as Echo-owned', r.status);
+  const draft = { entryType: 'reflection', title: '', content: { type: 'doc', blocks: [{ id: `${entry}-body`, type: 'paragraph', text: 'Library edit' }] },
+    plainText: 'Library edit', reflectionType: 'open', conversationTurns: [], takeaway: null, pinned: false, archived: false,
+    completedAt: new Date().toISOString(), relationships: { goalIds: [], categoryIds: [], milestoneIds: [] } };
+  r = await call('PATCH', `/api/entries/library/${entry}`, draft);
+  expect(r.status === 409 && r.body?.code === 'ECHO_OWNED', 'the library edit is refused with ECHO_OWNED', r);
+  r = await call('DELETE', `/api/entries/library/${entry}`);
+  expect(r.status === 409 && r.body?.code === 'ECHO_OWNED', 'the library delete is refused with ECHO_OWNED', r);
+  r = await call('PATCH', `/api/entries/${entry}`, { content: `Live Echo edit ${state.run}` });
+  expect(r.status === 200, 'edit through PATCH /api/entries/:id', r);
+  expect(canonical(entry) === `Live Echo edit ${state.run}|2|1|1`, 'the edit reached the canonical Entry', canonical(entry));
+  // A capture with no Goal files into General (and creates the folder); move the first one there too.
+  r = await call('POST', '/api/entries', { content: `Live Echo filed ${state.run}`, title: '' });
+  const filed = r.body?.entry?.id, folder = r.body?.container?.folderId;
+  expect(r.status === 201 && filed && folder && canonical(filed) === `Live Echo filed ${state.run}|1|0|0`, 'a General capture has a canonical Entry and no Goal', r.status);
+  r = await call('PATCH', `/api/entries/${entry}/move`, { target_type: 'folder', target_id: folder });
+  expect(r.status === 200, 'move through PATCH /api/entries/:id/move', r);
+  expect(canonical(entry) === `Live Echo edit ${state.run}|2|0|0`, 'the move removed the Goal link and its event', canonical(entry));
+  for (const id of [entry, filed]) {
+    r = await call('DELETE', `/api/entries/${id}`);
+    expect(r.status === 200 && canonical(id) === 'none|0|0', 'delete through DELETE /api/entries/:id removed the canonical Entry', r);
+  }
+  console.log(`ECHO LIVE PASSED on ${site} and ${label} for run ${state.run}. Run cleanup next.`);
+}
+
 if (command === 'cleanup') {
   if (!existsSync(statePath)) throw Error(`No ${statePath}: nothing recorded to clean up`);
   const state = JSON.parse(readFileSync(statePath, 'utf8'));
@@ -120,12 +186,14 @@ if (command === 'cleanup') {
   for (const user of users) if (!user.email.endsWith(SUFFIX)) throw Error('Refusing a non-synthetic account');
   const ids = users.map((u) => `'${uuid(u.id)}'`).join(',') || 'null';
   // From 078 every protocol writes operation_ledger; the three frozen stores stay counted until a migration drops them.
-  // From 080 every Task/Milestone/Entry write also writes goal_events (TD-004).
+  // From 080 every Task/Milestone/Entry write also writes goal_events (TD-004); from 086 every Echo write an Entry.
   const counts = () => psql(`select 'auth_users ' || (select count(*) from auth.users where id in (${ids}))
     || ' profiles ' || (select count(*) from public.profiles where id in (${ids}))
     || ' goals ' || (select count(*) from public.goals where user_id in (${ids}))
     || ' tasks ' || (select count(*) from public.tasks where user_id in (${ids}))
     || ' milestones ' || (select count(*) from public.milestones where user_id in (${ids}))
+    || ' entries ' || (select count(*) from public.entries where user_id in (${ids}))
+    || ' echo_entries ' || (select count(*) from public.echo_entries where user_id in (${ids}))
     || ' goal_events ' || (select count(*) from goal_private.goal_events where owner_id in (${ids}))
     || ' operation_ledger ' || (select count(*) from goal_private.operation_ledger where owner_id in (${ids}))
     || ' manual_operations ' || (select count(*) from goal_private.operations where owner_id in (${ids}))

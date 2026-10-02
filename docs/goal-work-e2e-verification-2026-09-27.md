@@ -71,10 +71,11 @@ node scripts/goal-live-verification.mjs provision --project-ref rrgiqemscnyaqkcu
   --xctestrun /tmp/ohara-goal-live-build/dd/Build/Products/<built>.xctestrun
 xcodebuild test-without-building -xctestrun /tmp/ohara-goal-live-build/dd/Build/Products/ohara-<run>.xctestrun \
   -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' -only-testing:OharaAITests/ManualGoalLiveIntegrationTests
+node scripts/goal-live-verification.mjs echo --project-ref rrgiqemscnyaqkculnmb   # from Migration 086 (TD-005 Echo mirror)
 node scripts/goal-live-verification.mjs cleanup --project-ref rrgiqemscnyaqkculnmb
 ```
 
-Run cleanup even when the tests fail. `provision` refuses to start while a previous run's `run.json` is still present.
+`echo` runs after the native tests (it captures into a Goal they leave) and drives desktop's Echo routes on www.oharaai.com as the synthetic owner. Run cleanup even when the tests fail. `provision` refuses to start while a previous run's `run.json` is still present.
 
 Local evidence: `/tmp/ohara-goal-live-provision.log`, `/tmp/ohara-goal-live-build/native-live.log` and `.xcresult`, `/tmp/ohara-goal-live-cleanup.log`.
 

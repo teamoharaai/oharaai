@@ -131,6 +131,8 @@ export interface EntryRecord {
   projectShareScope?: 'private' | 'project' | 'guide';
   categoryIds: GoalCreationCategory[];
   milestones: EntryMilestoneLink[];
+  /** Captured in Echo and mirrored here (Migration 086): read-only outside Echo. */
+  echoOwned: boolean;
 }
 
 export interface EntryAuthor {

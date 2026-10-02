@@ -39,8 +39,8 @@ const PROBES = { '072': '072-manual-goal.sql', '074': '074-goal-card.sql', '075'
   '077': '077-note-evidence-synchronizer.sql', '078': '078-operation-ledger.sql', '080': '080-goal-events.sql',
   '081': '081-goal-work-desktop.sql', '082': '082-shared-entry-reliability.sql',
   '083': '083-domain-computation-jobs.sql', '084': '084-sticky-retirement.sql',
-  '085': '085-project-task-execution.sql' };
-const PRECHECKS = { '076': '076-precheck.sql' };
+  '085': '085-project-task-execution.sql', '086': '086-echo-mirror.sql' };
+const PRECHECKS = { '076': '076-precheck.sql', '086': '086-precheck.sql' };
 
 // Target -----------------------------------------------------------------------
 let env, label, migrationsDir = `${root}/supabase/migrations`;

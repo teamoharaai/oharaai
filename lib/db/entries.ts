@@ -67,6 +67,8 @@ type RelationshipRows = {
   goalRows: GoalRow[];
   categoryIds: string[];
   milestoneRows: MilestoneRow[];
+  /** Captured in Echo: Migration 086 mirrors it here and refuses canonical writes (ECHO_OWNED). */
+  echoOwned: boolean;
 };
 
 export type EntryDetailReadResult = {
@@ -81,13 +83,15 @@ export type EntryDetailReadResult = {
 export function deriveEntryCapabilities(
   viewerId: string,
   ownerId: string,
+  echoOwned = false,
 ): EntryCapabilities {
   const isOwner = viewerId === ownerId;
+  // An Entry captured in Echo is changed only in Echo (TD-005 B10); the database refuses the rest.
   return {
     canView: true,
-    canEdit: isOwner,
-    canDelete: isOwner,
-    canChangeShare: isOwner,
+    canEdit: isOwner && !echoOwned,
+    canDelete: isOwner && !echoOwned,
+    canChangeShare: isOwner && !echoOwned,
   };
 }
 
@@ -160,6 +164,7 @@ function mapEntry(
     projectShareScope: row.project_share_scope ?? 'private',
     categoryIds: relationships.categoryIds.map((category) => normalizeGoalCategoryForEntries(category)),
     milestones,
+    echoOwned: relationships.echoOwned,
   };
 }
 
@@ -184,19 +189,25 @@ async function loadRelationships(
   entryIds: string[],
 ): Promise<Map<string, RelationshipRows>> {
   const result = new Map<string, RelationshipRows>(
-    entryIds.map((id) => [id, { goalRows: [], categoryIds: [], milestoneRows: [] }]),
+    entryIds.map((id) => [id, { goalRows: [], categoryIds: [], milestoneRows: [], echoOwned: false }]),
   );
   if (entryIds.length === 0) return result;
 
-  const [goalLinksResult, categoryLinksResult, milestoneLinksResult] = await Promise.all([
+  const [goalLinksResult, categoryLinksResult, milestoneLinksResult, echoResult] = await Promise.all([
     db.from('entry_goal_links').select('entry_id, goal_id').in('entry_id', entryIds),
     db.from('entry_category_links').select('entry_id, category_id, link_source').in('entry_id', entryIds),
     db.from('reflection_milestone_links').select('entry_id, milestone_id').in('entry_id', entryIds),
+    db.from('echo_entries').select('id').in('id', entryIds),
   ]);
 
   if (goalLinksResult.error) throw goalLinksResult.error;
   if (categoryLinksResult.error) throw categoryLinksResult.error;
   if (milestoneLinksResult.error) throw milestoneLinksResult.error;
+  if (echoResult.error) throw echoResult.error;
+  for (const echo of (echoResult.data ?? []) as Array<{ id: string }>) {
+    const relationship = result.get(echo.id);
+    if (relationship) relationship.echoOwned = true;
+  }
 
   const goalLinks = (goalLinksResult.data ?? []) as Array<{ entry_id: string; goal_id: string }>;
   const milestoneLinks = (milestoneLinksResult.data ?? []) as Array<{
@@ -265,7 +276,7 @@ export async function getEntries(
   ]);
   return rows.map((row) => mapEntry(
     row,
-    relationships.get(row.id) ?? { goalRows: [], categoryIds: [], milestoneRows: [] },
+    relationships.get(row.id) ?? { goalRows: [], categoryIds: [], milestoneRows: [], echoOwned: false },
     row.project_id ? projects.get(row.project_id) ?? null : null,
   ));
 }
@@ -328,7 +339,7 @@ export async function getEntry(
   ]);
   return mapEntry(
     row,
-    relationships.get(entryId) ?? { goalRows: [], categoryIds: [], milestoneRows: [] },
+    relationships.get(entryId) ?? { goalRows: [], categoryIds: [], milestoneRows: [], echoOwned: false },
     row.project_id ? projects.get(row.project_id) ?? null : null,
   );
 }
@@ -402,7 +413,7 @@ export async function getEntryDetail(
   if (membershipResult.error) throw membershipResult.error;
 
   const relationship = relationships.get(entryId)
-    ?? { goalRows: [], categoryIds: [], milestoneRows: [] };
+    ?? { goalRows: [], categoryIds: [], milestoneRows: [], echoOwned: false };
   const project = row.project_id ? projects.get(row.project_id) ?? null : null;
   const entry = mapEntry(row, relationship, project);
   const viewerRole = isOwner
@@ -424,7 +435,7 @@ export async function getEntryDetail(
         shareScope: row.project_share_scope ?? 'private',
         viewerRole,
       },
-      capabilities: deriveEntryCapabilities(viewerId, row.user_id),
+      capabilities: deriveEntryCapabilities(viewerId, row.user_id, relationship.echoOwned),
     },
     timings: { entryReadMs, membershipMs, authorContextMs },
   };
@@ -435,7 +446,7 @@ async function loadSharedEntryRelationships(
   entryId: string,
   projectId: string | null,
 ): Promise<Map<string, RelationshipRows>> {
-  const empty: RelationshipRows = { goalRows: [], categoryIds: [], milestoneRows: [] };
+  const empty: RelationshipRows = { goalRows: [], categoryIds: [], milestoneRows: [], echoOwned: false };
   const result = new Map([[entryId, empty]]);
   const { data: linkData, error: linkError } = await db
     .from('entry_goal_links')

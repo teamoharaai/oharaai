@@ -30,6 +30,7 @@ function entry(
     goals: [],
     categoryIds: [],
     milestones: [],
+    echoOwned: false,
     ...overrides,
   };
 }
