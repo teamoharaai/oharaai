@@ -148,7 +148,7 @@ if (command === 'echo') {
   const goal = psql(`select id from public.goals where user_id = '${owner}' order by created_at limit 1;`);
   if (!goal) throw Error('The owner has no Goal: run the native live tests first');
 
-  let r = await call('POST', '/api/entries', { content: `Live Echo capture ${state.run}`, title: '', goalId: uuid(goal) });
+  let r = await call('POST', '/api/entries', { content: `Live Echo capture ${state.run}`, title: 'Live Echo capture', goalId: uuid(goal) });
   const entry = r.body?.entry?.id;
   expect(r.status === 201 && entry, 'capture through POST /api/entries', r);
   expect(canonical(entry) === `Live Echo capture ${state.run}|1|1|1`, 'the capture wrote its canonical Entry, Goal link and event', canonical(entry));
@@ -165,7 +165,7 @@ if (command === 'echo') {
   expect(r.status === 200, 'edit through PATCH /api/entries/:id', r);
   expect(canonical(entry) === `Live Echo edit ${state.run}|2|1|1`, 'the edit reached the canonical Entry', canonical(entry));
   // A capture with no Goal files into General (and creates the folder); move the first one there too.
-  r = await call('POST', '/api/entries', { content: `Live Echo filed ${state.run}`, title: '' });
+  r = await call('POST', '/api/entries', { content: `Live Echo filed ${state.run}`, title: 'Live Echo filed' });
   const filed = r.body?.entry?.id, folder = r.body?.container?.folderId;
   expect(r.status === 201 && filed && folder && canonical(filed) === `Live Echo filed ${state.run}|1|0|0`, 'a General capture has a canonical Entry and no Goal', r.status);
   r = await call('PATCH', `/api/entries/${entry}/move`, { target_type: 'folder', target_id: folder });
