@@ -156,7 +156,7 @@ if (command === 'echo') {
   expect(r.body?.entries?.some((e) => e.id === entry && e.echoOwned === true), 'the library lists it as Echo-owned', r.status);
   const draft = { entryType: 'reflection', title: '', content: { type: 'doc', blocks: [{ id: `${entry}-body`, type: 'paragraph', text: 'Library edit' }] },
     plainText: 'Library edit', reflectionType: 'open', conversationTurns: [], takeaway: null, pinned: false, archived: false,
-    completedAt: new Date().toISOString(), relationships: { goalIds: [], categoryIds: [], milestoneIds: [] } };
+    completedAt: new Date().toISOString(), expectedContentVersion: 1, relationships: { goalIds: [], categoryIds: [], milestoneIds: [] } };
   r = await call('PATCH', `/api/entries/library/${entry}`, draft);
   expect(r.status === 409 && r.body?.code === 'ECHO_OWNED', 'the library edit is refused with ECHO_OWNED', r);
   r = await call('DELETE', `/api/entries/library/${entry}`);
