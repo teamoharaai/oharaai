@@ -143,6 +143,11 @@ test('Project and Goal routes isolate render failures behind route boundaries', 
   assert.match(goalRoute, /Retry Goal/);
 });
 
+test('deferred Project hydration preserves confirmed Task execution state', () => {
+  assert.match(workspace, /taskPreviews:\s*current\.taskPreviews/);
+  assert.match(workspace, /mergeProjectActivity\(\[current\.activity, complete\.activity\]\)/);
+});
+
 test('Goal context tolerates older partial Momentum projections', () => {
   assert.match(goalsWorkspace, /Array\.isArray\(summary\?\.history\)/);
   assert.match(goalsWorkspace, /Array\.isArray\(summary\?\.reasons\)/);

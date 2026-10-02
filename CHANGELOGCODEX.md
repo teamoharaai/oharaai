@@ -11,6 +11,7 @@
 ### Fixed
 - Aligned the Goals Playwright server and navigation port in `tests/goals/playwright.config.ts` so the prelaunch browser gate exercises the application instead of failing with connection refusals.
 - Kept the new Project Task projection fixture type-safe so tracked TypeScript validation covers the canonical occurrence assertions without introducing a release diagnostic (`features/projects/model.test.ts`).
+- Prevented a slower deferred Project workspace response from overwriting a just-confirmed Task completion or quantity update; secondary hydration now preserves current Task previews and merges activity (`app/(app)/projects/[id].tsx`, `tests/projects/collaboration-ui.spec.ts`).
 
 ### Added — Projects & Goals prelaunch stabilization
 - Added direct canonical Task execution to Project Detail: binary Tasks use a checkbox, quantity Tasks use atomic progress controls, recurring Tasks mutate only the selected occurrence, and successful writes refresh the Project projection immediately while Momentum refresh remains asynchronous (`app/(app)/projects/[id].tsx`, `app/api/task-occurrences/[id]+api.ts`, `features/projects/model.ts`).

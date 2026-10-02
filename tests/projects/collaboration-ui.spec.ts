@@ -25,6 +25,7 @@ type Scenario = {
   full?: boolean;
   completionMode?: 'binary' | 'quantity';
   failVault?: boolean;
+  secondaryDelayMs?: number;
   reflectionText?: string | null;
   theme?: 'light' | 'dark';
 };
@@ -155,9 +156,12 @@ async function installScenario(page: Page, scenario: Scenario) {
     const path = new URL(route.request().url()).pathname;
     const ok = (data: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, data, error: null }) });
     const json = (body: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
-    if (path === `/api/projects/${projectId}/vault`) return scenario.failVault
-      ? route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Synthetic Vault outage' }) })
-      : json({ vault: { id: 'project-vault', ownerId: ids.owner, goalId: null, projectId, spaceId: null, vaultType: 'personal', createdAt: now, updatedAt: now }, items: [] });
+    if (path === `/api/projects/${projectId}/vault`) {
+      if (scenario.secondaryDelayMs) await new Promise((resolve) => setTimeout(resolve, scenario.secondaryDelayMs));
+      return scenario.failVault
+        ? route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Synthetic Vault outage' }) })
+        : json({ vault: { id: 'project-vault', ownerId: ids.owner, goalId: null, projectId, spaceId: null, vaultType: 'personal', createdAt: now, updatedAt: now }, items: [] });
+    }
     if (path === '/api/tasks') return json({ data: [taskJson()] });
     if (path === '/api/task-occurrences/occurrence-1' && route.request().method() === 'PATCH') {
       const body = route.request().postDataJSON() as { status?: 'pending' | 'completed'; delta?: number };
@@ -293,7 +297,7 @@ test('Project binary Task completes in place and opens its canonical Goal contex
     const url = new URL(request.url());
     if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/rest/v1/') || url.pathname.startsWith('/auth/v1/')) domainRequests.push(`${request.method()} ${url.pathname}`);
   });
-  const data = await openProject(page, { mode: 'team', viewer: 'owner', full: true });
+  const data = await openProject(page, { mode: 'team', viewer: 'owner', full: true, secondaryDelayMs: 2500 });
   await expect(page.getByLabel('Reflections card')).toBeVisible();
   const projectReadRequestCount = domainRequests.length;
   const checkbox = page.getByRole('checkbox', { name: 'Complete Finalize onboarding' });
@@ -301,6 +305,9 @@ test('Project binary Task completes in place and opens its canonical Goal contex
   await checkbox.click();
   await expect(page.getByText('Completed', { exact: true })).toBeVisible();
   await expect.poll(data.taskMutationCount).toBe(1);
+  await expect(page.getByText('Task completed — Finalize onboarding', { exact: true })).toBeVisible();
+  await page.waitForTimeout(2800);
+  await expect(page.getByText('Completed', { exact: true })).toBeVisible();
   await expect(page.getByText('Task completed — Finalize onboarding', { exact: true })).toBeVisible();
   await steeringShot(page.getByLabel('Project Tasks card'), '17-project-task-completed-in-place');
 

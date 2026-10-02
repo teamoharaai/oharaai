@@ -24,6 +24,7 @@ import { ProjectComments } from '@/features/projects/components/ProjectComments'
 import { ProjectChat } from '@/features/projects/components/ProjectChat';
 import { assignGoalsToProject, assignProjectTask, createProjectComment, deleteProjectComment, editProjectComment, fetchOwnedGoalsForProjects, fetchProjectWorkspace, setEntryProjectShare } from '@/features/projects/services/project-service';
 import { buildProjectIntelligence } from '@/features/projects/intelligence';
+import { mergeProjectActivity } from '@/features/projects/model';
 import type { GoalWithDetails } from '@/features/goals/types';
 import type { ProjectActivity, ProjectTaskPreview, ProjectWorkspace } from '@/features/projects/types';
 
@@ -104,7 +105,14 @@ export default function ProjectDetailScreen() {
         setProject(data);
         if (deferSecondary) {
           void fetchProjectWorkspace(projectId).then((complete) => {
-            if (complete) setProject(complete);
+            if (complete) setProject((current) => current ? {
+              ...complete,
+              // A confirmed Task mutation may finish while this slower secondary
+              // projection is in flight. Preserve that canonical local result
+              // instead of letting an older Project snapshot visually revert it.
+              taskPreviews: current.taskPreviews,
+              activity: mergeProjectActivity([current.activity, complete.activity]),
+            } : complete);
           }).catch(() => undefined);
         }
       }
