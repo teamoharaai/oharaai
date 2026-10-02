@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Deployed — Migration 086 to production (2026-10-02; backend not yet pushed)
+- **Preflight** (approved by Justin as part of the named 086 sequence): history exactly 001–085; probes 072, 074–078 and 080–086 passed; transaction 21712 aborted (server-verified).
+- **086 pre-check on hosted:** 26 Echo entries, **0** without a canonical Entry, **0** Goal links to add (so the backlog copy is a no-op), 0 copies edited in the library, **1** canonical copy Goal link that Echo doesn't show (kept; dropped only if that entry is later edited or moved in Echo, B4a/B10), 0 copy Milestone links.
+- **Apply** (approved): transaction 21809 committed (server-verified); probes passed and rolled back; history now exactly 001–086 and the recorded statements match the file; PostgREST notified.
+- **Existing rows unchanged** (all fingerprints equal, `goal_events` included); `added_echo_entry_events` = 0. Facts: triggers present on `echo_entries` (3), `echo_entry_links` (3), `entries` (guard); legacy-only goal links 0; Echo entries without canonical 0.
+- B4a (Goal link = the Goal Echo shows, 068 categories, user BRT mirrored) accepted with Justin's approval of the deploy sequence.
+- `scripts/db-chain/hosted-applied-through` is now 086.
+
 ### Added — Migration 086: Echo writes mirror to canonical Entries; Echo-origin Entries are read-only (TD-005 D3, B3/B4/B10; local, not deployed)
 - **Numbering:** TD-005 planned this as "082"; Arthur's 082–085 took those numbers first (fetched 2026-10-02), so it is `086_echo_canonical_mirror.sql`. Nothing of ours was renamed.
 - **Mirror (desktop-visible):** AFTER triggers on `echo_entries` (insert; update of `title`/`content`/`goal_id`; delete) and `echo_entry_links` (confirmed links only) call one `goal_private.mirror_echo_entries`. Every Echo writer (the 023 capture RPC and session pipeline, the PATCH/DELETE routes, `moveEntryContainer`, cascades) now also writes the canonical Entry (same ID, 036's completed 'open' Reflection shape, the user's BRT category), its Goal link and inherited category in the same transaction, so `goal_events` (080) follow. No TypeScript changed for this. AI updates (ai_status, brt, emotion, embeddings, processed_at, 083's reconcile leases) don't fire it (WHEN clauses), and re-saving the same text isn't a change.
