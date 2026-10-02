@@ -8,6 +8,11 @@
 - **Application:** `2614baf..a01426c` fast-forwarded to `main`; Vercel Production deployment 6862486899 completed successfully for `a01426c1f91e9dfdcc63493e8fac6d00de46798d`, Database chain run 37329043301 passed, and the canonical production health endpoint returned HTTP 200.
 - Updated `scripts/db-chain/hosted-applied-through` to 087 so subsequent migration rehearsals start from the verified production ledger.
 
+### Verified — Migration 086 live run; echo mirror exercised end to end on production (2026-10-02)
+- **Fixes** (both approved as part of the live-run sequence): `85970b0` — the `echo` step's capture draft now sends a title (the Echo capture route requires one). `ff5bc8b` — the `echo` step's library-edit draft now sends `expectedContentVersion: 1` (`save_entry_v2` refuses a missing content version before the `ECHO_OWNED` guard runs).
+- **Live run** `live-20261002-7726c913` (approved): native 4/4 passed from native `8968e76`. The new `echo` step passed all 12 assertions: capture mirrors to a canonical Entry/Goal link/event; the library lists it `echoOwned`; a library edit or delete of it is refused with `ECHO_OWNED`; an Echo edit reaches the canonical copy; a General (no-Goal) capture mirrors with no Goal link; a move removes the mirrored Goal link and its event; an Echo delete removes the canonical Entry. Evidence before cleanup: entries 0, echo_entries 0 (the `echo` step's own deletes already removed both captures), goal_events 3, operation_ledger 22; every count 0 after cleanup; admission closed.
+- Two earlier attempts in session 022 failed on script defects (empty capture title; missing `expectedContentVersion`), not on 086 itself; both cleaned up without residue. Record: `docs/goal-work-echo-e2e-verification-2026-10-02.md`.
+
 ### Deployed — Migration 086 to production (2026-10-02; backend not yet pushed)
 - **Preflight** (approved by Justin as part of the named 086 sequence): history exactly 001–085; probes 072, 074–078 and 080–086 passed; transaction 21712 aborted (server-verified).
 - **086 pre-check on hosted:** 26 Echo entries, **0** without a canonical Entry, **0** Goal links to add (so the backlog copy is a no-op), 0 copies edited in the library, **1** canonical copy Goal link that Echo doesn't show (kept; dropped only if that entry is later edited or moved in Echo, B4a/B10), 0 copy Milestone links.
