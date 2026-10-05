@@ -6,6 +6,8 @@
 -- No assignment row means Unfiled. Deleting a folder cascades only assignment
 -- rows, so every affected Note safely returns to Unfiled.
 
+begin;
+
 create table public.note_folders (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -126,3 +128,5 @@ comment on table public.note_folders is
   'Viewer-owned personal organization for canonical Notes; never grants content access.';
 comment on table public.note_folder_assignments is
   'At most one personal folder per viewer and accessible canonical Note; absence means Unfiled.';
+
+commit;

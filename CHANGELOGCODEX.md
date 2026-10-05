@@ -30,6 +30,7 @@
 ### Changed — Notes Library prelaunch redesign
 - Kept the existing full-screen Note workspace while making Echo closed by default on every Note open and preserving return context when Notes are opened from a Project or Goal (`features/entries/components/NoteEditor.tsx`, `store/uiStore.ts`, `app/(app)/notes/[id].tsx`, `features/goals/components/GoalVault.tsx`).
 - Standardized Notes relationship copy on “Linked to” while using the shorter “Linked” label for the primary library filter button; no “Connected” label is used in the redesigned library.
+- Preserved Migration 086's Echo-owned read-only contract in the Notes library capability projection, wrapped Migration 087 for the established atomic release workflow, and added the hosted 087 authorization/data-preservation probe (`lib/db/notes-library.ts`, `supabase/migrations/087_notes_library_folders.sql`, `scripts/goal-hosted-preflight/087-notes-library-folders.sql`, `scripts/test-manual-goal-hosted.mjs`).
 - Added the active internal-release summary for the new Notes library and personal organization experience (`config/internal-release.ts`).
 
 ### Deployed — Migrations 084–085 prelaunch stabilization (2026-10-01)

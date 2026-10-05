@@ -43,6 +43,8 @@ test('library tabs are client projections over one viewer-authorized payload', (
   assert.match(selection, /args\.view === 'my-library'/);
   assert.match(selection, /args\.view === 'shared-with-me'/);
   assert.match(selection, /args\.view === 'linked-to'/);
+  assert.match(libraryDb, /db\.from\('echo_entries'\)\.select\('id'\)/);
+  assert.match(libraryDb, /deriveEntryCapabilities\([\s\S]*echoOwnedIds\.has\(row\.id\)/);
 });
 
 test('Sources are federated from authorized Vault documents and links only', () => {

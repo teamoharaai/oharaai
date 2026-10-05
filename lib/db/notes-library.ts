@@ -100,16 +100,20 @@ async function loadAuthorizedNotes(db: SupabaseClient, viewerId: string): Promis
   const rows = (data ?? []) as NoteRow[];
   const entryIds = rows.map((row) => row.id);
 
-  const [linkResult, assignmentResult] = await Promise.all([
+  const [linkResult, assignmentResult, echoResult] = await Promise.all([
     entryIds.length
       ? db.from('entry_goal_links').select('entry_id,goal_id').in('entry_id', entryIds)
       : Promise.resolve({ data: [], error: null }),
     entryIds.length
       ? db.from('note_folder_assignments').select('entry_id,folder_id').eq('user_id', viewerId).in('entry_id', entryIds)
       : Promise.resolve({ data: [], error: null }),
+    entryIds.length
+      ? db.from('echo_entries').select('id').in('id', entryIds)
+      : Promise.resolve({ data: [], error: null }),
   ]);
   if (linkResult.error) throw linkResult.error;
   if (assignmentResult.error) throw assignmentResult.error;
+  if (echoResult.error) throw echoResult.error;
   const links = (linkResult.data ?? []) as Array<{ entry_id: string; goal_id: string }>;
   const goalIds = [...new Set(links.map((link) => link.goal_id))];
   const { data: goalData, error: goalError } = goalIds.length
@@ -138,6 +142,7 @@ async function loadAuthorizedNotes(db: SupabaseClient, viewerId: string): Promis
     if (goal) linksByEntry.set(link.entry_id, [...(linksByEntry.get(link.entry_id) ?? []), goal]);
   }
   const folderByEntry = new Map((assignmentResult.data ?? []).map((assignment) => [assignment.entry_id, assignment.folder_id]));
+  const echoOwnedIds = new Set((echoResult.data ?? []).map((entry) => entry.id));
 
   return {
     ownerIds: rows.map((row) => row.user_id),
@@ -152,7 +157,11 @@ async function loadAuthorizedNotes(db: SupabaseClient, viewerId: string): Promis
         title: projectRow.title,
         status: projectRow.status,
       } : null;
-      const capabilities: EntryCapabilities = deriveEntryCapabilities(viewerId, row.user_id);
+      const capabilities: EntryCapabilities = deriveEntryCapabilities(
+        viewerId,
+        row.user_id,
+        echoOwnedIds.has(row.id),
+      );
       return {
         id: row.id,
         ownerId: row.user_id,
