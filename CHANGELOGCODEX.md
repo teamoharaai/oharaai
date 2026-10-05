@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Deployed — Migration 087 Notes Library folders (2026-10-05; application push pending)
+- **Preflight:** production history was exactly 001–086; migration 087 and probes 072, 074–078, and 080–087 passed; transaction 22373 was server-verified aborted.
+- **Apply:** transaction 22479 committed; existing rows across all 20 protected datasets were fingerprint-identical, synthetic probes rolled back, no Goal events were added, PostgREST was notified, and production history is now exactly 001–087 with byte-matching recorded statements.
+- Updated `scripts/db-chain/hosted-applied-through` to 087 so subsequent migration rehearsals start from the verified production ledger.
+
 ### Deployed — Migration 086 to production (2026-10-02; backend not yet pushed)
 - **Preflight** (approved by Justin as part of the named 086 sequence): history exactly 001–085; probes 072, 074–078 and 080–086 passed; transaction 21712 aborted (server-verified).
 - **086 pre-check on hosted:** 26 Echo entries, **0** without a canonical Entry, **0** Goal links to add (so the backlog copy is a no-op), 0 copies edited in the library, **1** canonical copy Goal link that Echo doesn't show (kept; dropped only if that entry is later edited or moved in Echo, B4a/B10), 0 copy Milestone links.
