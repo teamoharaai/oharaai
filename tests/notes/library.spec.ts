@@ -64,7 +64,7 @@ async function openLibrary(page: Page, width = 1440) {
   await page.setViewportSize({ width, height: 1000 });
   await page.goto('/notes', { waitUntil: 'domcontentloaded', timeout: 240_000 });
   await expect(page.getByRole('heading', { name: 'Notes', exact: true })).toBeVisible();
-  await expect(page.getByRole('tab', { name: 'Linked to', exact: true })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Linked', exact: true })).toBeVisible();
   await expect(page.getByText('New Note', { exact: true })).toBeVisible();
   await page.waitForTimeout(400);
 }
@@ -78,7 +78,7 @@ test('Notes library visual states', async ({ page }) => {
   await expect(page.getByText('Beta synthesis', { exact: true })).toBeVisible();
   await page.screenshot({ path: `${screenshots}/shared-with-me-light.png`, fullPage: true });
 
-  await page.getByRole('tab', { name: 'Linked to', exact: true }).click();
+  await page.getByRole('tab', { name: 'Linked', exact: true }).click();
   await expect(page.getByText('Launch positioning', { exact: true })).toBeVisible();
   await page.screenshot({ path: `${screenshots}/linked-to-light.png`, fullPage: true });
 

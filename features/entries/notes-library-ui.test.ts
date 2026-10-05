@@ -12,7 +12,7 @@ const selection = source('features/entries/notes-library.ts');
 const libraryApi = source('app/api/notes/library+api.ts');
 const libraryDb = source('lib/db/notes-library.ts');
 const folderApi = source('app/api/notes/folders+api.ts');
-const migration = source('supabase/migrations/086_notes_library_folders.sql');
+const migration = source('supabase/migrations/087_notes_library_folders.sql');
 const noteRoute = source('app/(app)/notes/[id].tsx');
 const noteEditor = source('features/entries/components/NoteEditor.tsx');
 const uiStore = source('store/uiStore.ts');
@@ -20,7 +20,8 @@ const uiStore = source('store/uiStore.ts');
 test('Notes library exposes the approved information architecture and terminology', () => {
   assert.match(library, /My Library/);
   assert.match(library, /Shared with Me/);
-  assert.match(library, /Linked to/);
+  assert.match(library, /id: 'linked-to', label: 'Linked'/);
+  assert.doesNotMatch(library, /id: 'linked-to', label: 'Linked to'/);
   assert.match(library, /Sources/);
   assert.doesNotMatch(library, /Connected/);
   assert.match(library, /Search Notes/);

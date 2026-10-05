@@ -47,7 +47,7 @@ import { EchoCreationModal } from './EchoCreationModal';
 const TABS: ReadonlyArray<{ id: NotesLibraryView; label: string; icon?: keyof typeof Ionicons.glyphMap }> = [
   { id: 'my-library', label: 'My Library' },
   { id: 'shared-with-me', label: 'Shared with Me' },
-  { id: 'linked-to', label: 'Linked to' },
+  { id: 'linked-to', label: 'Linked' },
   { id: 'sources', label: 'Sources', icon: 'document-attach-outline' },
 ];
 

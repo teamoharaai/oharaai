@@ -23,13 +23,13 @@
 - **Seen, not ours:** `npm run test:constellation` fails one test on `origin/main` too (`fixture-boundary.test.ts:100`: `docs/constellation/reference/5df3a3b/concepts` is missing). `npx tsc --noEmit` still reports only `lib/goals/manual-create-v1.test.ts(6,41)`.
 
 ### Added — Notes Library prelaunch redesign
-- Added a Drive-style Notes library with My Library, Shared with Me, Linked to, and Sources views; searchable/sortable/filterable rows; compact responsive layouts; clickable Project/Goal relationship labels; and federated authorized Vault Sources (`app/(app)/notes.tsx`, `features/entries/components/NotesLibraryScreen.tsx`, `features/entries/notes-library.ts`, `app/api/notes/library+api.ts`, `lib/db/notes-library.ts`).
-- Added migration `086_notes_library_folders.sql` for viewer-owned personal Note folders with RLS-isolated assignments; deleting a folder returns its Notes to Unfiled without changing content, sharing, or canonical Project/Goal relationships (`supabase/migrations/086_notes_library_folders.sql`, `app/api/notes/folders+api.ts`).
+- Added a Drive-style Notes library with My Library, Shared with Me, Linked, and Sources views; searchable/sortable/filterable rows; compact responsive layouts; clickable Project/Goal relationship labels; and federated authorized Vault Sources (`app/(app)/notes.tsx`, `features/entries/components/NotesLibraryScreen.tsx`, `features/entries/notes-library.ts`, `app/api/notes/library+api.ts`, `lib/db/notes-library.ts`).
+- Added migration `087_notes_library_folders.sql` for viewer-owned personal Note folders with RLS-isolated assignments; deleting a folder returns its Notes to Unfiled without changing content, sharing, or canonical Project/Goal relationships. The migration was renumbered from 086 after upstream assigned 086 to the Echo canonical mirror (`supabase/migrations/087_notes_library_folders.sql`, `app/api/notes/folders+api.ts`).
 - Added Notes Library projection, UI contract, database authorization, and browser visual regression coverage, including shared-Note filing, cross-viewer folder isolation, folder-deletion data preservation, light/dark layouts, filtering, search, Sources, and shared read-only rendering (`features/entries/notes-library*.test.ts`, `scripts/notes-editor-security.test.sql`, `tests/notes/`).
 
 ### Changed — Notes Library prelaunch redesign
 - Kept the existing full-screen Note workspace while making Echo closed by default on every Note open and preserving return context when Notes are opened from a Project or Goal (`features/entries/components/NoteEditor.tsx`, `store/uiStore.ts`, `app/(app)/notes/[id].tsx`, `features/goals/components/GoalVault.tsx`).
-- Standardized all new Notes information architecture and user-facing copy on “Linked to” for Notes related to a Project, a Goal, or both; no “Connected” label is used in the redesigned library.
+- Standardized Notes relationship copy on “Linked to” while using the shorter “Linked” label for the primary library filter button; no “Connected” label is used in the redesigned library.
 - Added the active internal-release summary for the new Notes library and personal organization experience (`config/internal-release.ts`).
 
 ### Deployed — Migrations 084–085 prelaunch stabilization (2026-10-01)

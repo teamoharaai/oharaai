@@ -1,4 +1,5 @@
 -- Notes Library prelaunch redesign: personal, viewer-specific Note folders.
+-- Migration 087 follows the production Echo mirror migration at 086.
 --
 -- A folder assignment is organization metadata owned by the viewer. It never
 -- changes the canonical Entry, its Project/Goal relationships, or its sharing.
