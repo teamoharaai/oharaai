@@ -271,3 +271,92 @@ $$;
 reset role;
 
 select 'Echo-owned Entry guard passed.' as result;
+
+-- Notes Library folders are per-viewer organization for any Note that Entry
+-- RLS lets that viewer read. They never grant access or own Note content.
+insert into public.project_members (project_id, user_id, role)
+values (
+  '40000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000002',
+  'member'
+);
+update public.entries
+set project_share_scope = 'project'
+where id = '30000000-0000-0000-0000-000000000001';
+
+set role authenticated;
+select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000002', false);
+
+insert into public.note_folders (id, user_id, name)
+values (
+  '50000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000002',
+  'Shared research'
+);
+insert into public.note_folder_assignments (user_id, entry_id, folder_id)
+values (
+  '10000000-0000-0000-0000-000000000002',
+  '30000000-0000-0000-0000-000000000001',
+  '50000000-0000-0000-0000-000000000001'
+);
+
+do $$
+begin
+  if not exists (
+    select 1 from public.note_folder_assignments
+    where user_id = auth.uid()
+      and entry_id = '30000000-0000-0000-0000-000000000001'
+  ) then
+    raise exception 'Collaborator could not file an authorized shared Note';
+  end if;
+end
+$$;
+
+reset role;
+
+set role authenticated;
+select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000001', false);
+
+do $$
+begin
+  if exists (
+    select 1 from public.note_folders
+    where id = '50000000-0000-0000-0000-000000000001'
+  ) then
+    raise exception 'One viewer could read another viewer folder';
+  end if;
+  if exists (
+    select 1 from public.note_folder_assignments
+    where folder_id = '50000000-0000-0000-0000-000000000001'
+  ) then
+    raise exception 'One viewer could read another viewer assignment';
+  end if;
+end
+$$;
+
+reset role;
+
+set role authenticated;
+select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000002', false);
+delete from public.note_folders
+where id = '50000000-0000-0000-0000-000000000001';
+reset role;
+
+do $$
+begin
+  if exists (
+    select 1 from public.note_folder_assignments
+    where folder_id = '50000000-0000-0000-0000-000000000001'
+  ) then
+    raise exception 'Deleting a folder did not return its Note assignment to Unfiled';
+  end if;
+  if not exists (
+    select 1 from public.entries
+    where id = '30000000-0000-0000-0000-000000000001'
+  ) then
+    raise exception 'Deleting a personal folder deleted the canonical Note';
+  end if;
+end
+$$;
+
+select 'Notes Library folder authorization harness passed.' as result;

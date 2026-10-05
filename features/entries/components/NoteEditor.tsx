@@ -142,6 +142,10 @@ export function NoteEditor({
   }, [activeGoalOptions, entry?.goals, entry?.milestones]);
 
   useEffect(() => {
+    setIntelligenceOpen(false);
+  }, [entryId, setIntelligenceOpen]);
+
+  useEffect(() => {
     if (activeGoalOptions.length === 0) void loadContext();
     if (projects.length === 0) void loadProjects();
   }, [activeGoalOptions.length, loadContext, loadProjects, projects.length]);

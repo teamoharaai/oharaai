@@ -3,8 +3,10 @@ import type {
   EntryDetailDto,
   EntryDraft,
   EntryGoalOption,
+  NoteFolder,
   EntryRecord,
   EntryType,
+  NotesLibraryPayload,
 } from '../types';
 
 type SerializedEntry = Omit<EntryRecord, 'createdAt' | 'updatedAt' | 'completedAt'> & {
@@ -41,6 +43,39 @@ export async function fetchEntries(entryType?: EntryType): Promise<EntryRecord[]
   const response = await authedFetch(`/api/entries/library${suffix}`);
   const body = await responseBody<{ entries: SerializedEntry[] }>(response);
   return body.entries.map(hydrateEntry);
+}
+
+export async function fetchNotesLibrary(): Promise<NotesLibraryPayload> {
+  const response = await authedFetch('/api/notes/library');
+  return responseBody<NotesLibraryPayload>(response);
+}
+
+export async function createNoteFolder(name: string): Promise<NoteFolder> {
+  const response = await authedFetch('/api/notes/folders', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }),
+  });
+  return (await responseBody<{ folder: NoteFolder }>(response)).folder;
+}
+
+export async function renameNoteFolder(folderId: string, name: string): Promise<void> {
+  const response = await authedFetch('/api/notes/folders', {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'rename', folderId, name }),
+  });
+  await responseBody(response);
+}
+
+export async function assignNoteFolder(entryId: string, folderId: string | null): Promise<void> {
+  const response = await authedFetch('/api/notes/folders', {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'assign', entryId, folderId }),
+  });
+  await responseBody(response);
+}
+
+export async function deleteNoteFolder(folderId: string): Promise<void> {
+  const response = await authedFetch('/api/notes/folders', {
+    method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ folderId }),
+  });
+  if (!response.ok && response.status !== 404) await responseBody(response);
 }
 
 export async function fetchEntryGoalOptions(): Promise<EntryGoalOption[]> {

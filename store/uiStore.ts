@@ -53,7 +53,7 @@ export const useUIStore = create<UIStore>()(
       echoMiddleMode: 'list',
       dashboardGoalsView: 'list',
       constellationLegendCollapsed: false,
-      entriesIntelligenceOpen: true,
+      entriesIntelligenceOpen: false,
       entriesLibraryCollapsed: false,
       themeMode: 'light',
       setRightPaneWidth: (width) => set({ rightPaneWidth: width }),

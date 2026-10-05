@@ -148,6 +148,63 @@ export interface EntryCapabilities {
   canChangeShare: boolean;
 }
 
+export type NotesLibraryView = 'my-library' | 'shared-with-me' | 'linked-to' | 'sources';
+export type NotesLibrarySort = 'updated-desc' | 'created-desc' | 'title-asc';
+
+export interface NoteFolder {
+  id: string;
+  name: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NotesLibraryAuthor {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export interface NotesLibraryItem {
+  id: string;
+  ownerId: string;
+  title: string;
+  plainText: string;
+  createdAt: string;
+  updatedAt: string;
+  project: EntryProjectLink | null;
+  goals: Array<Pick<EntryGoalLink, 'id' | 'title' | 'projectId'>>;
+  author: NotesLibraryAuthor;
+  shareScope: 'private' | 'project' | 'guide';
+  viewerRole: 'owner' | 'admin' | 'member' | 'guide' | null;
+  capabilities: EntryCapabilities;
+  folderId: string | null;
+}
+
+export interface NotesLibrarySource {
+  id: string;
+  ownerId: string;
+  title: string;
+  itemType: 'link' | 'document';
+  url: string | null;
+  fileType: string | null;
+  provider: string;
+  visibility: 'private' | 'vault_members' | 'public';
+  createdAt: string;
+  updatedAt: string;
+  project: EntryProjectLink | null;
+  goal: Pick<EntryGoalLink, 'id' | 'title' | 'projectId'> | null;
+  author: NotesLibraryAuthor;
+}
+
+export interface NotesLibraryPayload {
+  version: 'notes-library.v1';
+  viewerId: string;
+  folders: NoteFolder[];
+  notes: NotesLibraryItem[];
+  sources: NotesLibrarySource[];
+}
+
 export interface EntryDetailContext {
   project: EntryProjectLink | null;
   goals: Array<Pick<EntryGoalLink, 'id' | 'title'>>;

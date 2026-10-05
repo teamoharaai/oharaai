@@ -13,6 +13,14 @@ export const SHOW_INTERNAL_RELEASE_NOTES = true;
 
 export const INTERNAL_RELEASE_NOTES: readonly FeaturePatchNote[] = [
   {
+    id: 'notes-prelaunch-library',
+    category: 'Notes',
+    version: 'PreLaunch',
+    title: 'A new library for organizing your Notes',
+    summary: 'Find shared and Linked to Notes more easily, and organize accessible Notes with personal folders.',
+    releasedAt: '2026-10-04T12:00:00.000Z',
+  },
+  {
     id: 'projects-v1-1-execution',
     category: 'Projects',
     version: '1.1',

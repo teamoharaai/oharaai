@@ -1,5 +1,5 @@
-import { EntriesScreen } from '@/features/entries/components/EntriesScreen';
+import { NotesLibraryScreen } from '@/features/entries/components/NotesLibraryScreen';
 
 export default function NotesRoute() {
-  return <EntriesScreen feature="notes" />;
+  return <NotesLibraryScreen />;
 }
