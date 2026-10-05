@@ -2,9 +2,10 @@
 
 ## [Unreleased]
 
-### Deployed — Migration 087 Notes Library folders (2026-10-05; application push pending)
+### Deployed — Notes Library and Migration 087 (2026-10-05)
 - **Preflight:** production history was exactly 001–086; migration 087 and probes 072, 074–078, and 080–087 passed; transaction 22373 was server-verified aborted.
 - **Apply:** transaction 22479 committed; existing rows across all 20 protected datasets were fingerprint-identical, synthetic probes rolled back, no Goal events were added, PostgREST was notified, and production history is now exactly 001–087 with byte-matching recorded statements.
+- **Application:** `2614baf..a01426c` fast-forwarded to `main`; Vercel Production deployment 6862486899 completed successfully for `a01426c1f91e9dfdcc63493e8fac6d00de46798d`, Database chain run 37329043301 passed, and the canonical production health endpoint returned HTTP 200.
 - Updated `scripts/db-chain/hosted-applied-through` to 087 so subsequent migration rehearsals start from the verified production ledger.
 
 ### Deployed — Migration 086 to production (2026-10-02; backend not yet pushed)
