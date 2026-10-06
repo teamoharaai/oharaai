@@ -57,6 +57,7 @@ test('Projects landing offers color-preserving Grid and List views', () => {
   assert.match(projectCard, /projectCategoryPresentation\(project\.visualCategory, colors\)/);
   assert.match(projectCard, /backgroundColor: accent\.bg/);
   assert.match(projectCard, /<Typography numberOfLines=\{1\} variant="emphasis-sm"/);
+  assert.match(projectCard, /project\.activeGoalCount === 1 \? 'ACTIVE GOAL' : 'ACTIVE GOALS'/);
 });
 
 test('metric and supporting labels use one uppercase caption treatment', () => {

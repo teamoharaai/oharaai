@@ -68,6 +68,8 @@ test('Projects toggles between color-coded Grid and compact List views', async (
   await expect(page.getByRole('button', { name: 'List view, selected', exact: true })).toBeVisible();
   await expect(page.getByLabel('Project list', { exact: true })).toBeVisible();
   await expect(page.getByLabel('Open Project Health Improvement', { exact: true })).toBeVisible();
+  await expect(page.getByText('1 ACTIVE GOAL', { exact: true })).toHaveCount(3);
+  await expect(page.getByText('0 ACTIVE GOALS', { exact: true })).toBeVisible();
   await expect(page.getByText('Build durable strength and running consistency.', { exact: true })).toHaveCount(0);
   await page.screenshot({ path: `${screenshots}/projects-list-light.png`, fullPage: true });
 });
@@ -78,6 +80,7 @@ test('Project list remains scan-friendly on mobile', async ({ page }) => {
   await page.goto('/projects', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'List view', exact: true }).click();
   await expect(page.getByLabel('Project list', { exact: true })).toBeVisible();
+  await expect(page.getByText('1 ACTIVE GOAL', { exact: true }).first()).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   await page.screenshot({ path: `${screenshots}/projects-list-mobile.png`, fullPage: true });
 });

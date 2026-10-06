@@ -3,7 +3,7 @@
 ## [Unreleased]
 
 ### Added — Projects and Notes Polish
-- Added a Finder-style Grid/List view toggle to the Projects library. Grid remains the default, while List presents compact, title-first rows that retain the same category-derived background and folder colors (`app/(app)/projects/index.tsx`, `features/projects/components/ProjectCard.tsx`).
+- Added a Finder-style Grid/List view toggle to the Projects library. Grid remains the default, while List presents compact, title-first rows with active Goal counts that retain the same category-derived background and folder colors (`app/(app)/projects/index.tsx`, `features/projects/components/ProjectCard.tsx`).
 - Added desktop Grid/List, mobile List, and Note formatting-toolbar browser coverage with visual checkpoints (`tests/projects/landing.spec.ts`, `tests/projects/landing.playwright.config.ts`, `tests/notes/library.spec.ts`, `docs/ui-checkpoints/projects-notes-polish/`).
 
 ### Changed — Projects and Notes Polish

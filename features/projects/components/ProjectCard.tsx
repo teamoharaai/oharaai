@@ -83,6 +83,9 @@ export function ProjectListRow({ project }: { project: ProjectSummary }) {
         <Ionicons color={accent.color} name="folder-outline" size={21} />
       </View>
       <Typography numberOfLines={1} variant="emphasis-sm" style={{ flex: 1 }}>{project.title}</Typography>
+      <Typography numberOfLines={1} variant="micro-label">
+        {project.activeGoalCount} {project.activeGoalCount === 1 ? 'ACTIVE GOAL' : 'ACTIVE GOALS'}
+      </Typography>
       <Ionicons color={colors.text.muted} name="chevron-forward" size={18} />
     </Pressable>
   );
