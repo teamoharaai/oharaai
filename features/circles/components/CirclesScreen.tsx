@@ -20,7 +20,7 @@ import { CategoryGlyph, PersonAvatar, ProgressTrack, useCategoryTone } from './p
 
 const FILTER_OPTIONS: { value: FeedFilter; label: string }[] = [
   { value: 'all', label: 'All updates' },
-  { value: 'reflections', label: 'Reflections' },
+  { value: 'reflections', label: 'Journal' },
   { value: 'milestones', label: 'Milestones' },
   { value: 'completed', label: 'Completed' },
 ];

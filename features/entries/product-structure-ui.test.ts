@@ -11,6 +11,7 @@ const navigation = source('components/layout/AppNavigation.tsx');
 const create = source('components/layout/GlobalCreateControl.tsx');
 const notes = source('features/entries/components/EntriesScreen.tsx');
 const reflections = source('features/entries/components/ReflectionsScreen.tsx');
+const journalLibrary = source('features/entries/journal-library.ts');
 const legacyEntries = source('app/(app)/entries.tsx');
 const legacyEcho = source('app/(app)/echo.tsx');
 const projects = source('app/(app)/projects/[id].tsx');
@@ -20,13 +21,13 @@ const momentum = source('app/(app)/momentum.tsx');
 const entriesDb = source('lib/db/entries.ts');
 
 test('global navigation exposes the product model without an Echo library tab', () => {
-  for (const label of ['Home', 'Goals', 'Projects', 'Notes', 'Reflections', 'Momentum', 'Roots']) {
+  for (const label of ['Home', 'Goals', 'Projects', 'Notes', 'Journal', 'Momentum', 'Roots']) {
     assert.match(navigation, new RegExp(`label: '${label}'`));
   }
   assert.doesNotMatch(navigation, /label: 'Echo'/);
   assert.match(navigation, /DESKTOP_NAVIGATION_MIN_WIDTH = 1220/);
   assert.match(create, /New note/);
-  assert.match(create, /New reflection/);
+  assert.match(create, /New journal entry/);
   assert.doesNotMatch(create, /New Echo/);
 });
 
@@ -34,26 +35,26 @@ test('Notes remains the existing document workspace on canonical routes', () => 
   assert.match(notes, /feature === 'notes'/);
   assert.match(notes, /New Note/);
   assert.match(notes, /\/(?:\(app\)\/)?notes\/\[id\]/);
-  assert.match(legacyEntries, /reflection \? '\/\(app\)\/reflections' : '\/\(app\)\/notes'/);
+  assert.match(legacyEntries, /reflection \? '\/\(app\)\/journal' : '\/\(app\)\/notes'/);
   assert.match(legacyEcho, /'\/\(app\)\/notes'/);
 });
 
-test('Reflections uses a submitted chronological journal model', () => {
-  assert.match(reflections, /How are things going\?/);
-  assert.match(reflections, /Save Reflection/);
-  assert.match(reflections, /right\.createdAt\.getTime\(\) - left\.createdAt\.getTime\(\)/);
-  assert.match(reflections, /completedAt: editingEntry\?\.completedAt\?\.toISOString\(\) \?\? now\.toISOString\(\)/);
-  assert.match(reflections, /Edit Reflection/);
-  assert.match(reflections, /Delete Reflection/);
+test('Journal uses a submitted chronological entry model', () => {
+  assert.match(reflections, />Journal<\/Typography>/);
+  assert.match(reflections, /Save Entry/);
+  assert.match(journalLibrary, /Date\.parse\(right\.createdAt\) - Date\.parse\(left\.createdAt\)/);
+  assert.match(reflections, /completedAt: editingEntry\?\.completedAt \?\? now\.toISOString\(\)/);
+  assert.match(reflections, /Edit Entry/);
+  assert.match(reflections, /Delete Entry/);
   assert.match(reflections, /Private to me/);
   assert.match(reflections, /Shared with Project/);
   assert.match(reflections, /Shared with Guide/);
   assert.match(entriesDb, /projectShareScope: row\.project_share_scope \?\? 'private'/);
 });
 
-test('Project flows preserve context across Goals, Notes, and Reflections', () => {
+test('Project flows preserve context across Goals, Notes, and Journal', () => {
   assert.match(projects, /baseGoalWorkspaceHref\(goalId, status, \{ projectId, taskId \}\)/);
-  assert.match(projects, /'\/\(app\)\/notes' : '\/\(app\)\/reflections'/);
+  assert.match(projects, /'\/\(app\)\/notes' : '\/\(app\)\/journal'/);
   assert.match(projects, /projectId: project\.id/);
   assert.match(goals, /Projects<\/Typography>/);
   assert.match(goals, /Project: \{associatedProject\.title\}/);

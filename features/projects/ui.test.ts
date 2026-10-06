@@ -45,7 +45,7 @@ test('Projects landing uses fixed responsive column tracks instead of content-si
 });
 
 test('workspace contains approved overview and owner-only Vault hierarchy', () => {
-  for (const label of ['Current Goals', 'Project Chat', 'Recent Activity', 'Notes', 'Reflections', 'Upcoming Milestones', 'Project Tasks', 'Project Snapshot', 'Momentum Snapshot', 'Echo']) assert.match(`${workspace}\n${chat}`, new RegExp(label));
+  for (const label of ['Current Goals', 'Project Chat', 'Recent Activity', 'Notes', 'Journal', 'Upcoming Milestones', 'Project Tasks', 'Project Snapshot', 'Momentum Snapshot', 'Echo']) assert.match(`${workspace}\n${chat}`, new RegExp(label));
   assert.doesNotMatch(workspace, /Project Notice/);
   assert.doesNotMatch(workspace, /title="Sticky Notes"/);
   assert.doesNotMatch(vault, /Project Sticky Note|Add Sticky Note|Sticky Notes/);
@@ -87,9 +87,9 @@ test('Project Tasks execute canonical occurrences and preserve Goal return conte
   assert.match(tasksPanel, /OPENED FROM PROJECT/);
 });
 
-test('Notes and Reflections cards use canonical project-aware destinations', () => {
-  assert.match(workspace, /\+ New \{kind === 'note' \? 'Note' : 'Reflection'\}/);
-  assert.match(workspace, /kind === 'note' \? '\/\(app\)\/notes' : '\/\(app\)\/reflections'/);
+test('Notes and Journal cards use canonical project-aware destinations', () => {
+  assert.match(workspace, /\+ New \{kind === 'note' \? 'Note' : 'Entry'\}/);
+  assert.match(workspace, /kind === 'note' \? '\/\(app\)\/notes' : '\/\(app\)\/journal'/);
   assert.match(workspace, /params: \{ create: kind, projectId: project\.id \}/);
 });
 
@@ -102,9 +102,9 @@ test('Echo uses one presentation hierarchy without changing facts', () => {
   assert.match(workspace, /variant="ai-italic"/);
 });
 
-test('Project Vault separates Notes and Reflections and applies strict Source semantics', () => {
+test('Project Vault separates Notes and Journal entries and applies strict Source semantics', () => {
   assert.match(sharedVault, /title="Notes"/);
-  assert.match(sharedVault, /title="Reflections"/);
+  assert.match(sharedVault, /title="Journal"/);
   assert.match(sharedVault, /filter\(isSourceVaultItem\)/);
   assert.doesNotMatch(sharedVault, /label: 'Sticky Notes'/);
 });

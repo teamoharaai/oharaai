@@ -20,8 +20,8 @@ function eventTitle(item: ActivityItem): string {
     case 'tracker_logged': return `Logged ${item.label}`;
     case 'vault_item_added': return `Added ${item.title}`;
     case 'insight_confirmed': return 'Insight confirmed';
-    case 'echo_linked': return 'Reflection linked';
-    case 'echo_entry': return 'Reflection recorded';
+    case 'echo_linked': return 'Journal entry linked';
+    case 'echo_entry': return 'Journal entry recorded';
   }
 }
 

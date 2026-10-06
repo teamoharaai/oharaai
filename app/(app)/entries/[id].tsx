@@ -21,6 +21,6 @@ export default function EntryDetailRoute() {
     }).catch(() => setMissing(true));
   }, [entryId]);
 
-  if (entryId && entryType) return <Redirect href={`/(app)/${entryType === 'note' ? 'notes' : 'reflections'}/${entryId}` as never} />;
+  if (entryId && entryType) return <Redirect href={`/(app)/${entryType === 'note' ? 'notes' : 'journal'}/${entryId}` as never} />;
   return <View style={{ alignItems: 'center', flex: 1, justifyContent: 'center' }}>{missing ? <Typography variant="body">Entry unavailable.</Typography> : <ActivityIndicator color={colors.accent.primary} />}</View>;
 }

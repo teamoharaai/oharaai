@@ -192,7 +192,7 @@ async function fetchProjectEntries(projectId: string): Promise<EntryRecord[]> {
   return (data ?? []).map((row: any) => ({
     id: row.id, userId: row.user_id, entryType: row.entry_type, title: row.title,
     // Project cards need metadata and a bounded plain-text preview only. Full
-    // Entry documents stay on the canonical Note/Reflection detail routes.
+    // Entry documents stay on the canonical Note/Journal detail routes.
     content: { type: 'doc', content: [] }, plainText: row.plain_text, brtCategory: null,
     reflectionType: row.reflection_type, conversationTurns: [],
     takeaway: null, pinned: row.pinned, archived: row.archived,
@@ -327,7 +327,7 @@ export async function fetchProjectWorkspace(
       if (!existing.origin?.includes(origin)) existing.origin = `${existing.origin}, ${origin}`;
       continue;
     }
-    const item = { id: `entry-link-${link.entryId}`, label: `${entry.entryType === 'reflection' ? 'Reflection' : 'Note'} linked — ${entry.title || 'Untitled'}`, occurredAt: link.occurredAt, origin: `From: ${origin}` };
+    const item = { id: `entry-link-${link.entryId}`, label: `${entry.entryType === 'reflection' ? 'Journal entry' : 'Note'} linked — ${entry.title || 'Untitled'}`, occurredAt: link.occurredAt, origin: `From: ${origin}` };
     entryActivityById.set(link.entryId, item); entryActivity.push(item);
   }
   return {

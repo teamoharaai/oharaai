@@ -197,7 +197,7 @@ export function EchoCreationModal({
         ) : null}
         <View style={{ flex: 1 }}>
           <Typography variant="title">
-            {step === 'choose' ? 'New' : step === 'note' ? 'New Note' : 'New Reflection'}
+            {step === 'choose' ? 'New' : step === 'note' ? 'New Note' : 'New Journal Entry'}
           </Typography>
           <Typography variant="caption" style={{ marginTop: 2 }}>
             {step === 'choose'
@@ -234,7 +234,7 @@ export function EchoCreationModal({
               description="Write freely about what you are thinking, feeling, or learning."
               icon={<BrandIcon name="echo" color={colors.text.accent} size={24} />}
               onPress={() => setStep('reflection')}
-              title="New Reflection"
+              title="New Journal Entry"
             />
           </View>
         ) : null}
@@ -311,7 +311,7 @@ export function EchoCreationModal({
             </View>
 
             <Typography variant="body-small">
-              These links organize your work inside OHARA. They do not share the Note or Reflection with anyone.
+              These links organize your work inside OHARA. They do not share the Note or Journal entry with anyone.
             </Typography>
 
             {creationType === 'reflection' ? (

@@ -86,7 +86,7 @@ export function EchoNewMenu({
     {
       description: 'Write privately about what you think, feel, or learn.',
       icon: 'echo',
-      label: 'New Reflection',
+      label: 'New Journal Entry',
       type: 'reflection',
     },
   ];
@@ -95,8 +95,8 @@ export function EchoNewMenu({
     <>
       <View collapsable={false} ref={triggerRef}>
         <Button
-          accessibilityHint="Opens Note and Reflection creation choices"
-          accessibilityLabel="New Note or Reflection"
+          accessibilityHint="Opens Note and Journal entry creation choices"
+          accessibilityLabel="New Note or Journal entry"
           accessibilityState={{ expanded: open }}
           onPress={openMenu}
           style={{ minWidth: compact ? 98 : 112 }}

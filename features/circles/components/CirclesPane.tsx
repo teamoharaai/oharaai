@@ -46,7 +46,7 @@ function ViewOnlyNote() {
       <Ionicons color={colors.text.secondary} name="eye-outline" size={15} style={{ marginTop: 1 }} />
       <Typography variant="caption" style={{ color: colors.text.secondary, flex: 1 }}>
         View only. Friends see the title, milestone titles, progress, and this week’s Task count — never
-        your notes, reflections, Entries, or Vault.
+        your Notes, Journal entries, other Entries, or Vault.
       </Typography>
     </View>
   );

@@ -255,7 +255,7 @@ function renderFact(fact: InsightFact, context: InsightContext): string {
     case 'milestone_upcoming':
       return `${fact.subjectName} is ${days === 0 ? 'due today' : `due in ${days} ${days === 1 ? 'day' : 'days'}`}.`;
     case 'reflection_count_change':
-      return `${value} shared ${value === 1 ? 'Reflection was' : 'Reflections were'} added this week.`;
+      return `${value} shared Journal ${value === 1 ? 'entry was' : 'entries were'} added this week.`;
     case 'note_activity':
       return `${value} shared ${value === 1 ? 'Note is' : 'Notes are'} available in this Project.`;
     case 'source_activity':
@@ -372,7 +372,7 @@ export function buildProjectInsightFacts(input: ProjectFactInput): InsightFact[]
     if (inactiveDays >= 5) facts.push(fact({ id: `inactivity-${input.projectId}`, type: 'goal_inactivity', subjectType: 'project', subjectId: input.projectId, subjectName: 'Project', timeWindow: 'current', currentValue: inactiveDays, previousValue: null, delta: null, metadata: { days: inactiveDays }, priorityHint: Math.min(inactiveDays, 20) }));
   }
 
-  if (input.authorizedReflectionCount) facts.push(fact({ id: `reflections-${input.projectId}`, type: 'reflection_count_change', subjectType: 'reflection', subjectId: input.projectId, subjectName: 'Reflections', timeWindow: 'week', currentValue: input.authorizedReflectionCount, previousValue: null, delta: null, metadata: {}, priorityHint: 0 }));
+  if (input.authorizedReflectionCount) facts.push(fact({ id: `reflections-${input.projectId}`, type: 'reflection_count_change', subjectType: 'reflection', subjectId: input.projectId, subjectName: 'Journal', timeWindow: 'week', currentValue: input.authorizedReflectionCount, previousValue: null, delta: null, metadata: {}, priorityHint: 0 }));
   if (input.authorizedNoteCount) facts.push(fact({ id: `notes-${input.projectId}`, type: 'note_activity', subjectType: 'note', subjectId: input.projectId, subjectName: 'Notes', timeWindow: 'current', currentValue: input.authorizedNoteCount, previousValue: null, delta: null, metadata: {}, priorityHint: 0 }));
   if (input.authorizedSourceCount) facts.push(fact({ id: `sources-${input.projectId}`, type: 'source_activity', subjectType: 'source', subjectId: input.projectId, subjectName: 'Sources', timeWindow: 'current', currentValue: input.authorizedSourceCount, previousValue: null, delta: null, metadata: {}, priorityHint: 0 }));
   return facts;
@@ -396,7 +396,7 @@ export function buildGoalInsightFacts(input: GoalFactInput): InsightFact[] {
     const days = Math.max(0, Math.floor((now.getTime() - new Date(input.latestActivityAt).getTime()) / 86_400_000));
     if (days >= 5) facts.push(fact({ id: `goal-inactivity-${input.goalId}`, type: 'goal_inactivity', subjectType: 'goal', subjectId: input.goalId, subjectName: input.goalTitle, timeWindow: 'current', currentValue: days, previousValue: null, delta: null, metadata: { days }, priorityHint: days }));
   }
-  if (input.authorizedReflectionCount) facts.push(fact({ id: `goal-reflections-${input.goalId}`, type: 'reflection_count_change', subjectType: 'reflection', subjectId: input.goalId, subjectName: 'Reflections', timeWindow: 'week', currentValue: input.authorizedReflectionCount, previousValue: null, delta: null, metadata: {}, priorityHint: 0 }));
+  if (input.authorizedReflectionCount) facts.push(fact({ id: `goal-reflections-${input.goalId}`, type: 'reflection_count_change', subjectType: 'reflection', subjectId: input.goalId, subjectName: 'Journal', timeWindow: 'week', currentValue: input.authorizedReflectionCount, previousValue: null, delta: null, metadata: {}, priorityHint: 0 }));
   return facts;
 }
 

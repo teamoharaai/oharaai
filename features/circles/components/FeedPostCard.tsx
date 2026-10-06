@@ -12,7 +12,7 @@ import { CategoryGlyph, PersonAvatar, QuietAction } from './primitives';
 const LINK_META = {
   goal: { eyebrow: 'Goal', icon: 'flag-outline' },
   milestone: { eyebrow: 'Milestone', icon: 'checkmark-circle-outline' },
-  reflection: { eyebrow: 'Reflection', icon: 'leaf-outline' },
+  reflection: { eyebrow: 'Journal Entry', icon: 'leaf-outline' },
 } as const;
 
 /**

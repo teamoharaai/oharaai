@@ -157,7 +157,7 @@ async function handleDelete(
 // Entries captured in Echo are changed only in Echo (TD-005 B10); the database refuses the write.
 function echoOwnedResponse(): Response {
   return Response.json(
-    { error: 'This Reflection was captured in Echo. Edit or delete it in Echo.', code: 'ECHO_OWNED' },
+    { error: 'This Journal entry was captured in Echo. Edit or delete it in Echo.', code: 'ECHO_OWNED' },
     { status: 409 },
   );
 }

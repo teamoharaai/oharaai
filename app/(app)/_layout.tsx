@@ -51,6 +51,8 @@ export default function AppLayout() {
           <Stack.Screen name="echo" />
           <Stack.Screen name="notes" />
           <Stack.Screen name="notes/[id]" />
+          <Stack.Screen name="journal" />
+          <Stack.Screen name="journal/[id]" />
           <Stack.Screen name="reflections" />
           <Stack.Screen name="reflections/[id]" />
           <Stack.Screen name="goals/index" />

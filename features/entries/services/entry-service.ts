@@ -3,6 +3,7 @@ import type {
   EntryDetailDto,
   EntryDraft,
   EntryGoalOption,
+  JournalLibraryPayload,
   NoteFolder,
   EntryRecord,
   EntryType,
@@ -48,6 +49,11 @@ export async function fetchEntries(entryType?: EntryType): Promise<EntryRecord[]
 export async function fetchNotesLibrary(): Promise<NotesLibraryPayload> {
   const response = await authedFetch('/api/notes/library');
   return responseBody<NotesLibraryPayload>(response);
+}
+
+export async function fetchJournalLibrary(): Promise<JournalLibraryPayload> {
+  const response = await authedFetch('/api/journal/library');
+  return responseBody<JournalLibraryPayload>(response);
 }
 
 export async function createNoteFolder(name: string): Promise<NoteFolder> {

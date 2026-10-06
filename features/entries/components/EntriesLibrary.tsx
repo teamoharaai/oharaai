@@ -26,7 +26,7 @@ function formatUpdatedAt(date: Date): string {
 
 function entryTitle(entry: EntryRecord): string {
   if (entry.title.trim()) return entry.title.trim();
-  return entry.entryType === 'reflection' ? 'Reflection' : 'Untitled note';
+  return entry.entryType === 'reflection' ? 'Journal Entry' : 'Untitled note';
 }
 
 function EntryRow({
@@ -43,7 +43,7 @@ function EntryRow({
 
   return (
     <Pressable
-      accessibilityLabel={`Open ${reflection ? 'reflection' : 'note'} ${entryTitle(entry)}`}
+      accessibilityLabel={`Open ${reflection ? 'Journal entry' : 'note'} ${entryTitle(entry)}`}
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={onPress}
@@ -88,7 +88,7 @@ function EntryRow({
             {entryTitle(entry)}
           </Typography>
           <Typography numberOfLines={1} variant="caption" style={{ marginTop: 2 }}>
-            {reflection ? 'Reflection' : 'Note'}
+            {reflection ? 'Journal Entry' : 'Note'}
             {entry.project?.title ? ` · ${entry.project.title}` : ''}
           </Typography>
         </View>
@@ -333,7 +333,7 @@ export function EntriesLibrary({
           {([
             { id: 'all', label: 'All' },
             { id: 'note', label: 'Notes' },
-            { id: 'reflection', label: 'Reflections' },
+            { id: 'reflection', label: 'Journal' },
           ] as const).map((option) => {
             const selected = filter === option.id;
             return (
@@ -399,7 +399,7 @@ export function EntriesLibrary({
             <BrandIcon name="echo" color={colors.text.accent} size={25} />
             <Typography variant="title">
               {selectedProject
-                ? `No ${feature === 'notes' ? 'Notes' : filter === 'all' ? 'Echo entries' : filter === 'note' ? 'Notes' : 'Reflections'} in this Project`
+                ? `No ${feature === 'notes' ? 'Notes' : filter === 'all' ? 'Echo entries' : filter === 'note' ? 'Notes' : 'Journal entries'} in this Project`
                 : filter === 'reflection'
                   ? 'A private place to reflect'
                   : filter === 'all'
@@ -408,13 +408,13 @@ export function EntriesLibrary({
             </Typography>
             <Typography variant="body-small">
               {selectedProject
-                ? `${feature === 'notes' ? 'Notes' : filter === 'all' ? 'Notes and Reflections' : filter === 'note' ? 'Notes' : 'Reflections'} added to this Project will appear here by recency.`
+                ? `${feature === 'notes' ? 'Notes' : filter === 'all' ? 'Notes and Journal entries' : filter === 'note' ? 'Notes' : 'Journal entries'} added to this Project will appear here by recency.`
                 : query
-                  ? `No ${filter === 'all' ? 'Notes or Reflections' : filter === 'note' ? 'Notes' : 'Reflections'} match this search.`
+                  ? `No ${filter === 'all' ? 'Notes or Journal entries' : filter === 'note' ? 'Notes' : 'Journal entries'} match this search.`
                   : filter === 'reflection'
-                    ? 'Reflections are private by default. Start with what you are thinking, feeling, or learning.'
+                    ? 'Journal entries are private by default. Start with what you are thinking, feeling, or learning.'
                     : filter === 'all'
-                    ? feature === 'notes' ? 'Your Notes will appear here as you create them.' : 'Your Notes and Reflections will appear here as you create them.'
+                    ? feature === 'notes' ? 'Your Notes will appear here as you create them.' : 'Your Notes and Journal entries will appear here as you create them.'
                       : 'Notes are for ideas, research, plans, and anything you want to develop.'}
             </Typography>
             {!query ? <Button onPress={onNew} size="compact">New</Button> : null}

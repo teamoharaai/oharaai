@@ -61,12 +61,12 @@ export function SharedEntryReadView({
   return (
     <View style={{ backgroundColor: colors.background.page, flex: 1, minHeight: 0 }}>
       <View style={{ alignItems: 'center', backgroundColor: colors.background.card, borderBottomColor: colors.border.divider, borderBottomWidth: 1, flexDirection: 'row', gap: SPACE.md, minHeight: 64, paddingHorizontal: compact ? SPACE.lg : SPACE['2xl'] }}>
-        <Pressable accessibilityLabel={`Back to ${entry.entryType === 'note' ? 'Notes' : 'Reflections'}`} accessibilityRole="button" hitSlop={8} onPress={onBack} style={{ alignItems: 'center', height: 42, justifyContent: 'center', width: 42 }}>
+        <Pressable accessibilityLabel={`Back to ${entry.entryType === 'note' ? 'Notes' : 'Journal'}`} accessibilityRole="button" hitSlop={8} onPress={onBack} style={{ alignItems: 'center', height: 42, justifyContent: 'center', width: 42 }}>
           <Ionicons color={colors.text.primary} name="arrow-back" size={22} />
         </Pressable>
         <BrandIcon color={colors.text.accent} name={entry.entryType === 'note' ? 'notes' : 'reflections'} size={22} />
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Typography numberOfLines={1} variant="nav-title">{entry.echoOwned ? 'Echo Reflection' : entry.entryType === 'note' ? 'Shared Note' : 'Shared Reflection'}</Typography>
+          <Typography numberOfLines={1} variant="nav-title">{entry.echoOwned ? 'Echo Journal Entry' : entry.entryType === 'note' ? 'Shared Note' : 'Shared Journal Entry'}</Typography>
           <Typography numberOfLines={1} variant="caption" style={{ color: colors.text.secondary }}>{sharingLabel(detail)}</Typography>
         </View>
         {entry.echoOwned ? (
@@ -126,7 +126,7 @@ export function SharedEntryReadView({
           }, elevationStyle('sm', colors, darkMode)]}>
             <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}>
               <BrandIcon color={colors.text.accent} name="reflections" size={22} />
-              <Typography variant="eyebrow" style={{ color: colors.text.accent }}>REFLECTION</Typography>
+              <Typography variant="eyebrow" style={{ color: colors.text.accent }}>JOURNAL ENTRY</Typography>
             </View>
             <Typography accessibilityRole="header" style={{ color: colors.text.primary, fontFamily: FONT.editorial.semibold, fontSize: compact ? 28 : 38, lineHeight: compact ? 36 : 48 }}>
               {entry.title}

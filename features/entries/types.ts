@@ -205,6 +205,39 @@ export interface NotesLibraryPayload {
   sources: NotesLibrarySource[];
 }
 
+export type JournalContextFilter =
+  | { kind: 'all' }
+  | { kind: 'unlinked' }
+  | { kind: 'project'; id: string }
+  | { kind: 'goal'; id: string };
+export type JournalSort = 'newest' | 'oldest';
+export type JournalDateRange = 'all' | '7d' | '30d' | '90d';
+export type JournalShareFilter = 'all' | 'private' | 'project' | 'guide';
+
+export interface JournalLibraryItem {
+  id: string;
+  ownerId: string;
+  title: string;
+  plainText: string;
+  reflectionType: ReflectionType | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  contentVersion: number;
+  project: EntryProjectLink | null;
+  goals: EntryGoalLink[];
+  shareScope: 'private' | 'project' | 'guide';
+  capabilities: EntryCapabilities;
+  echoOwned: boolean;
+}
+
+export interface JournalLibraryPayload {
+  version: 'journal-library.v1';
+  viewerId: string;
+  entries: JournalLibraryItem[];
+  browseAvailable: boolean;
+}
+
 export interface EntryDetailContext {
   project: EntryProjectLink | null;
   goals: Array<Pick<EntryGoalLink, 'id' | 'title'>>;

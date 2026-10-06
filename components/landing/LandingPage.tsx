@@ -87,7 +87,7 @@ function EchoPreviewCard({ stageMode }: { stageMode: HeroStageMode }) {
           : { width: '100%' }),
       }}
     >
-        <PreviewLabel icon="echo-add-entry">Reflection</PreviewLabel>
+        <PreviewLabel icon="echo-add-entry">Journal Entry</PreviewLabel>
         <Typography style={{ color: PUBLIC_COLORS.ink, fontSize: 13, lineHeight: 20, marginTop: 14 }}>
           I showed up for my run even though I was tired. Small win, meaningful signal.
         </Typography>
@@ -175,7 +175,7 @@ function HeroPreviews({ width }: { width: number }) {
 function EchoPreview() {
   return (
     <PreviewSurface>
-      <PreviewLabel icon="echo-add-entry">Reflection</PreviewLabel>
+      <PreviewLabel icon="echo-add-entry">Journal Entry</PreviewLabel>
       <Typography className="font-inter-medium" style={{ color: PUBLIC_COLORS.ink, fontSize: 15, lineHeight: 22, marginTop: 14 }}>
         What happened today that moved you closer to who you want to become?
       </Typography>
@@ -185,7 +185,7 @@ function EchoPreview() {
       <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 }}>
         <Typography style={{ color: PUBLIC_COLORS.forest, fontSize: 11 }}>Self-Discipline</Typography>
         <View style={{ backgroundColor: PUBLIC_COLORS.forest, borderRadius: 8, paddingHorizontal: 15, paddingVertical: 8 }}>
-          <Typography className="font-inter-semibold" style={{ color: '#F7F4EE', fontSize: 10 }}>Save reflection</Typography>
+          <Typography className="font-inter-semibold" style={{ color: '#F7F4EE', fontSize: 10 }}>Save entry</Typography>
         </View>
       </View>
     </PreviewSurface>
@@ -325,7 +325,7 @@ export default function LandingPage() {
           body="Use the guided builder manually or shape your goal in conversation with Echo—step by step, with the same clear structure beneath both paths."
           visual={<AIGoalCreationPreview />}
         />
-        <FeatureSection id="echo" stacked={stacked} reverse eyebrow="Notes & Reflections" title="Reflect daily. Grow intentionally." body="Notes develop what you learn. Reflections preserve meaningful moments and connect them to your goals, actions, and growth." visual={<EchoPreview />} />
+        <FeatureSection id="echo" stacked={stacked} reverse eyebrow="Notes & Journal" title="Reflect daily. Grow intentionally." body="Notes develop what you learn. Journal entries preserve meaningful moments and connect them to your goals, actions, and growth." visual={<EchoPreview />} />
         <FeatureSection
           id="momentum"
           stacked={stacked}

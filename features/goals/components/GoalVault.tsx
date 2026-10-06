@@ -51,7 +51,7 @@ interface VaultWorkspaceProps {
 const FILTERS: ReadonlyArray<{ label: string; value: VaultFilter }> = [
   { label: 'All', value: 'all' },
   { label: 'Notes', value: 'notes' },
-  { label: 'Reflections', value: 'reflections' },
+  { label: 'Journal', value: 'reflections' },
   { label: 'Sources', value: 'sources' },
 ];
 
@@ -111,12 +111,12 @@ export function VaultWorkspace({ activityContent, activityError, activityItems, 
 
   function createEchoEntry(entryType: 'note' | 'reflection') {
     setAddOpen(false);
-    router.push({ pathname: entryType === 'note' ? '/(app)/notes' : '/(app)/reflections', params: { create: entryType === 'note' ? 'note' : 'new', ...(parent.type === 'goal' ? { goalId: parent.id } : { projectId: parent.id }) } } as never);
+    router.push({ pathname: entryType === 'note' ? '/(app)/notes' : '/(app)/journal', params: { create: entryType === 'note' ? 'note' : 'new', ...(parent.type === 'goal' ? { goalId: parent.id } : { projectId: parent.id }) } } as never);
   }
 
   const dateLabel = (value: string | Date) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const activityLabel = (item: ActivityItem) => {
-    if (item.kind === 'echo_linked') return 'Note or Reflection linked';
+    if (item.kind === 'echo_linked') return 'Note or Journal entry linked';
     if (item.kind !== 'vault_item_added') return 'Vault activity';
     if (item.itemType === 'link' || item.itemType === 'document') return `Source added — ${item.title}`;
     return `Vault item added — ${item.title}`;
@@ -140,8 +140,8 @@ export function VaultWorkspace({ activityContent, activityError, activityItems, 
   const showSources = filter === 'all' || filter === 'sources';
 
   const entryCards = (items: readonly EntryRecord[]) => <View style={{ flexDirection: compact ? 'column' : 'row', flexWrap: 'wrap', gap: SPACE.md }}>
-    {items.map((entry) => <Pressable key={entry.id} accessibilityLabel={`Open ${entry.title || 'Untitled entry'}`} accessibilityRole="button" onPress={() => router.push({ pathname: entry.entryType === 'note' ? '/(app)/notes/[id]' : '/(app)/reflections/[id]', params: { id: entry.id, ...(parent.type === 'goal' ? { goalId: parent.id } : { projectId: parent.id }) } } as never)} style={({ pressed }) => ({ backgroundColor: colors.background.subtle, borderColor: colors.border.divider, borderRadius: RADIUS.lg, borderWidth: 1, flexBasis: compact ? undefined : 280, flexGrow: 1, gap: SPACE.sm, minWidth: compact ? 0 : 250, opacity: pressed ? 0.7 : 1, padding: SPACE.lg })}>
-      <Typography variant="caption">{entry.entryType === 'reflection' ? 'Reflection' : 'Note'}</Typography><Typography variant="emphasis-sm">{entry.title || 'Untitled entry'}</Typography><Typography variant="caption">{dateLabel(entry.entryType === 'reflection' ? entry.createdAt : entry.updatedAt)} · {entryProvenance(entry)}</Typography>
+    {items.map((entry) => <Pressable key={entry.id} accessibilityLabel={`Open ${entry.title || 'Untitled entry'}`} accessibilityRole="button" onPress={() => router.push({ pathname: entry.entryType === 'note' ? '/(app)/notes/[id]' : '/(app)/journal/[id]', params: { id: entry.id, ...(parent.type === 'goal' ? { goalId: parent.id } : { projectId: parent.id }) } } as never)} style={({ pressed }) => ({ backgroundColor: colors.background.subtle, borderColor: colors.border.divider, borderRadius: RADIUS.lg, borderWidth: 1, flexBasis: compact ? undefined : 280, flexGrow: 1, gap: SPACE.sm, minWidth: compact ? 0 : 250, opacity: pressed ? 0.7 : 1, padding: SPACE.lg })}>
+      <Typography variant="caption">{entry.entryType === 'reflection' ? 'Journal Entry' : 'Note'}</Typography><Typography variant="emphasis-sm">{entry.title || 'Untitled entry'}</Typography><Typography variant="caption">{dateLabel(entry.entryType === 'reflection' ? entry.createdAt : entry.updatedAt)} · {entryProvenance(entry)}</Typography>
     </Pressable>)}
   </View>;
 
@@ -177,8 +177,8 @@ export function VaultWorkspace({ activityContent, activityError, activityItems, 
         {entryCards(notes)}
       </VaultSection> : null}
 
-      {showReflections ? <VaultSection icon="create-outline" title="Reflections">
-        {!reflections.length && !entryLoadError ? <Typography variant="body">Linked Reflections will appear here.</Typography> : null}
+      {showReflections ? <VaultSection icon="create-outline" title="Journal">
+        {!reflections.length && !entryLoadError ? <Typography variant="body">Linked Journal entries will appear here.</Typography> : null}
         {entryCards(reflections)}
       </VaultSection> : null}
 
@@ -201,7 +201,7 @@ export function VaultWorkspace({ activityContent, activityError, activityItems, 
         <View style={{ gap: SPACE.lg }}><Typography variant="title">Add to Vault</Typography>
           {[
             { key: 'note', icon: 'reader-outline' as const, title: 'Note', detail: 'Create a linked Note in Echo.', action: () => createEchoEntry('note') },
-            { key: 'reflection', icon: 'create-outline' as const, title: 'Reflection', detail: 'Create a linked Reflection in Echo.', action: () => createEchoEntry('reflection') },
+            { key: 'reflection', icon: 'create-outline' as const, title: 'Journal Entry', detail: 'Create a linked Journal entry.', action: () => createEchoEntry('reflection') },
             { key: 'source', icon: 'link-outline' as const, title: 'Source', detail: 'Add a link, document, or other material.', action: () => { setAddOpen(false); if (onAddSource) onAddSource(); else router.push(`/(app)/goals/${parent.id}/vault` as never); } },
           ].map((option) => <Pressable key={option.key} accessibilityRole="button" accessibilityLabel={`Add ${option.title}`} onPress={option.action} style={({ pressed }) => ({ alignItems: 'center', backgroundColor: pressed ? colors.background.selectedRow : colors.background.subtle, borderRadius: RADIUS.md, flexDirection: 'row', gap: SPACE.lg, minHeight: 64, padding: SPACE.lg })}><Ionicons color={colors.text.accent} name={option.icon} size={22} /><View style={{ flex: 1 }}><Typography variant="emphasis-sm">{option.title}</Typography><Typography variant="caption">{option.detail}</Typography></View><Ionicons color={colors.text.muted} name="chevron-forward" size={17} /></Pressable>)}
         </View>

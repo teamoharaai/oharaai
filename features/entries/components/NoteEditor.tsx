@@ -615,7 +615,7 @@ export function NoteEditor({
               <Typography variant="meta">{related.title || 'Untitled entry'}</Typography>
             </View>
           )) : (
-            <Typography variant="body-small">Related Notes and Reflections will appear here.</Typography>
+            <Typography variant="body-small">Related Notes and Journal entries will appear here.</Typography>
           )}
           <View
             style={{

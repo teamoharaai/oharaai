@@ -58,7 +58,7 @@ export function CompletedReflection({
       });
       setEditing(false);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Could not save reflection');
+      setError(saveError instanceof Error ? saveError.message : 'Could not save this Journal entry');
     } finally {
       setSaving(false);
     }
@@ -70,7 +70,7 @@ export function CompletedReflection({
       if (onBack) onBack();
       else router.replace('/(app)/entries' as never);
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : 'Could not delete reflection');
+      setError(deleteError instanceof Error ? deleteError.message : 'Could not delete this Journal entry');
     }
   }
 
@@ -104,14 +104,14 @@ export function CompletedReflection({
       >
         {showBack ? (
           <Pressable
-            accessibilityLabel="Back to Reflections"
+            accessibilityLabel="Back to Journal"
             onPress={() => onBack ? onBack() : router.replace('/(app)/entries' as never)}
           >
             <Ionicons name="arrow-back" color={colors.text.primary} size={22} />
           </Pressable>
         ) : null}
         <Typography variant="nav-title" numberOfLines={1} style={{ flex: 1 }}>
-          Reflection
+          Journal Entry
         </Typography>
         <Button onPress={() => setExportOpen(true)} size="compact" variant="secondary">
           Export
@@ -119,7 +119,7 @@ export function CompletedReflection({
         <Button onPress={() => setEditing((current) => !current)} size="compact" variant="secondary">
           {editing ? 'Cancel' : 'Edit'}
         </Button>
-        <Pressable accessibilityLabel="Delete reflection" onPress={() => setDeleteConfirmOpen(true)}>
+        <Pressable accessibilityLabel="Delete Journal entry" onPress={() => setDeleteConfirmOpen(true)}>
           <Ionicons name="trash-outline" color={colors.feedback.danger.text} size={20} />
         </Pressable>
       </View>
@@ -137,7 +137,7 @@ export function CompletedReflection({
         <View>
           {editing ? (
             <TextInput
-              accessibilityLabel="Reflection title"
+              accessibilityLabel="Journal entry title"
               onChangeText={setTitle}
               style={{
                 borderBottomColor: colors.border.input,
@@ -201,7 +201,7 @@ export function CompletedReflection({
           <Typography variant="eyebrow">TAKEAWAY</Typography>
           {editing ? (
             <TextInput
-              accessibilityLabel="Your reflection takeaway"
+              accessibilityLabel="Your Journal entry takeaway"
               multiline
               onChangeText={setTakeaway}
               placeholder="Add an optional takeaway in your own words."
@@ -287,7 +287,7 @@ export function CompletedReflection({
         closeOnBackdropPress
         showCloseButton={false}
       >
-        <Typography variant="title">Export reflection</Typography>
+        <Typography variant="title">Export Journal entry</Typography>
         <View style={{ gap: 8, marginTop: 16 }}>
           <Button onPress={() => void exportAction('pdf')} variant="secondary">Export as PDF</Button>
           <Button onPress={() => void exportAction('text')} variant="secondary">Export as plain text</Button>
@@ -303,13 +303,13 @@ export function CompletedReflection({
         closeOnBackdropPress
         showCloseButton={false}
         cancelText="Cancel"
-        confirmText="Delete reflection"
+        confirmText="Delete entry"
         confirmVariant="destructive"
         onConfirm={() => void remove()}
       >
-        <Typography variant="title">Delete this reflection?</Typography>
+        <Typography variant="title">Delete this Journal entry?</Typography>
         <Typography variant="body" style={{ marginTop: 8 }}>
-          This permanently removes the reflection and its entry relationships.
+          This permanently removes the Journal entry and its relationships.
         </Typography>
       </Modal>
     </View>

@@ -10,7 +10,7 @@ export default function EntriesRoute() {
   const value = (candidate: string | string[] | undefined) => Array.isArray(candidate) ? candidate[0] : candidate;
   const reflection = value(params.view) === 'reflection' || value(params.create) === 'reflection';
   return <Redirect href={{
-    pathname: reflection ? '/(app)/reflections' : '/(app)/notes',
+    pathname: reflection ? '/(app)/journal' : '/(app)/notes',
     params: {
       ...(value(params.create) ? { create: reflection ? 'new' : 'note' } : {}),
       ...(value(params.goalId) ? { goalId: value(params.goalId) } : {}),

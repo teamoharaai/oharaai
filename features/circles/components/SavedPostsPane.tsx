@@ -13,7 +13,7 @@ import { PersonAvatar, QuietAction } from './primitives';
 function linkLabel(saved: SavedPost): string | null {
   const link = saved.post.link;
   if (!link) return null;
-  const eyebrow = link.kind === 'goal' ? 'Goal' : link.kind === 'milestone' ? 'Milestone' : 'Reflection';
+  const eyebrow = link.kind === 'goal' ? 'Goal' : link.kind === 'milestone' ? 'Milestone' : 'Journal Entry';
   return `${eyebrow} · ${link.title}`;
 }
 

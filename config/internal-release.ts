@@ -13,6 +13,14 @@ export const SHOW_INTERNAL_RELEASE_NOTES = true;
 
 export const INTERNAL_RELEASE_NOTES: readonly FeaturePatchNote[] = [
   {
+    id: 'journal-prelaunch-redesign',
+    category: 'Journal',
+    version: 'PreLaunch',
+    title: 'Reflections are now Journal',
+    summary: 'Browse entries by Project or Goal, then search and filter your journal history.',
+    releasedAt: '2026-10-05T17:00:00.000Z',
+  },
+  {
     id: 'notes-prelaunch-library',
     category: 'Notes',
     version: 'PreLaunch',
@@ -49,7 +57,7 @@ export const INTERNAL_RELEASE_NOTES: readonly FeaturePatchNote[] = [
     category: 'Vault',
     version: '2.3',
     title: 'Vault is now a full workspace',
-    summary: 'Notes, Reflections, and Sources now have more room and clearer organization.',
+    summary: 'Notes, Journal entries, and Sources now have more room and clearer organization.',
     releasedAt: '2026-09-23T13:01:19.000Z',
   },
   {

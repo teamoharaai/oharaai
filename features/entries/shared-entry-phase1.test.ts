@@ -15,7 +15,8 @@ const detailScreen = source('features/entries/components/EntryDetailScreen.tsx')
 const sharedView = source('features/entries/components/SharedEntryReadView.tsx');
 const webEditor = source('features/entries/components/RichTextEditor.web.tsx');
 const noteRoute = source('app/(app)/notes/[id].tsx');
-const reflectionRoute = source('app/(app)/reflections/[id].tsx');
+const journalRoute = source('app/(app)/journal/[id].tsx');
+const legacyReflectionRoute = source('app/(app)/reflections/[id].tsx');
 const noteEditor = source('features/entries/components/NoteEditor.tsx');
 const reflectionEditor = source('features/entries/components/QuickReflectionEditor.tsx');
 const avatarMenu = source('components/layout/AvatarMenu.tsx');
@@ -45,11 +46,13 @@ test('canonical read response is minimal, private, timed, and metadata-tolerant'
   assert.doesNotMatch(detailRoute, /plainText|content:/);
 });
 
-test('direct Notes and Reflections routes do not mount owner libraries or optional AI services', () => {
-  for (const route of [noteRoute, reflectionRoute]) {
+test('direct Notes and Journal routes do not mount owner libraries or optional AI services', () => {
+  for (const route of [noteRoute, journalRoute]) {
     assert.match(route, /EntryDetailScreen/);
     assert.doesNotMatch(route, /EntriesScreen|ReflectionsScreen|Echo|Momentum|useCirclesStore|useFriends/);
   }
+  assert.match(legacyReflectionRoute, /Redirect/);
+  assert.match(legacyReflectionRoute, /\/\(app\)\/journal\/\[id\]/);
   assert.match(detailScreen, /fetchEntryDetail/);
   assert.match(detailScreen, /SharedEntryReadView/);
   // No Echo, Momentum or social modules on the direct route. (Echo-owned Entries name Echo and link to it; 086.)
@@ -108,11 +111,11 @@ test('Entries captured in Echo are read-only outside Echo (Migration 086, TD-005
   assert.match(entriesDb, /deriveEntryCapabilities\(viewerId, row\.user_id, relationship\.echoOwned\)/);
   assert.match(types, /echoOwned: boolean/);
   // The detail screen already renders the read-only view whenever canEdit is false; it names Echo and links there.
-  assert.match(sharedView, /entry\.echoOwned \? 'Echo Reflection'/);
+  assert.match(sharedView, /entry\.echoOwned \? 'Echo Journal Entry'/);
   assert.match(sharedView, /Edit in Echo/);
   // The library list offers only "Edit in Echo" for them.
   const list = source('features/entries/components/ReflectionsScreen.tsx');
-  assert.match(list, /entry\.echoOwned \?[\s\S]*Edit in Echo[\s\S]*Edit Reflection/);
+  assert.match(list, /entry\.echoOwned \?[\s\S]*Edit in Echo[\s\S]*Edit Entry/);
   // The database refusal maps to 409 ECHO_OWNED on both PATCH and DELETE.
   assert.equal(detailRoute.match(/isEchoOwnedError\(error\)\) return echoOwnedResponse\(\)/g)?.length, 2);
   assert.match(detailRoute, /code: 'ECHO_OWNED'/);

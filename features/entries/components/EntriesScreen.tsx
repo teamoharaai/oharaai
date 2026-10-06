@@ -210,8 +210,8 @@ export function EntriesScreen({
         </Typography>
         <Typography variant="body" style={{ color: colors.text.secondary, lineHeight: 24, marginTop: SPACE.md, textAlign: 'center' }}>
           {selectedProject
-            ? feature === 'notes' ? 'Choose a Note from this Project, or create something new for it.' : 'Choose a Note or Reflection from this Project, or create something new for it.'
-            : feature === 'notes' ? 'Choose a Note, open a Project collection, or begin writing.' : 'Choose something from Most Recent, open a Project, or begin with a new Note or Reflection.'}
+            ? feature === 'notes' ? 'Choose a Note from this Project, or create something new for it.' : 'Choose a Note or Journal entry from this Project, or create something new for it.'
+            : feature === 'notes' ? 'Choose a Note, open a Project collection, or begin writing.' : 'Choose something from Most Recent, open a Project, or begin with a new Note or Journal entry.'}
         </Typography>
       </View>
     </View>

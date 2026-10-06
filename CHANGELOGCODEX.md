@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Added — Journal PreLaunch Redesign
+- Added a lightweight, owner-scoped Journal library projection and authorized API that loads timeline text plus only the Project/Goal metadata needed for browsing; full Project, Goal, Momentum, Echo, Circles, and Vault payloads stay off the first-render path (`lib/db/journal-library.ts`, `app/api/journal/library+api.ts`, `features/entries/services/entry-service.ts`).
+- Added the responsive Browse Journal experience with All Entries, Unlinked, Project, and Goal contexts; authorization-aware counts; in-context search; Newest/Oldest ordering; visibility/date filters; contextual entry creation; and a mobile browse sheet (`features/entries/components/ReflectionsScreen.tsx`, `features/entries/journal-library.ts`).
+- Added focused Journal filtering, route-compatibility, UI contract, and browser acceptance coverage, including the required desktop, dark, contextual, search, filter, composer, shared, mobile, and Vault visual checkpoints (`features/entries/journal-*.test.ts`, `tests/journal/`).
+
+### Changed — Journal PreLaunch Redesign
+- Renamed the user-facing Reflections feature to Journal across navigation, creation, Project/Goal/Vault integrations, shared views, Echo entry controls, Circles labels, and active product copy while retaining canonical `reflection` types, database fields, scoring evidence, and other internal identifiers.
+- Made `/journal` and `/journal/[id]` canonical while preserving `/reflections` and `/reflections/[id]` as parameter-preserving compatibility redirects; existing entry and Project/Goal links now resolve to Journal-filtered contexts (`app/(app)/journal*`, `app/(app)/reflections*`, `app/(app)/entries*`).
+- Preserved the established chronological Journal card design and existing entry editor behavior; no migration or schema change was introduced.
+
 ### Deployed — Notes Library and Migration 087 (2026-10-05)
 - **Preflight:** production history was exactly 001–086; migration 087 and probes 072, 074–078, and 080–087 passed; transaction 22373 was server-verified aborted.
 - **Apply:** transaction 22479 committed; existing rows across all 20 protected datasets were fingerprint-identical, synthetic probes rolled back, no Goal events were added, PostgREST was notified, and production history is now exactly 001–087 with byte-matching recorded statements.

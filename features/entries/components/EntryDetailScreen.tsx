@@ -69,7 +69,7 @@ export function EntryDetailScreen({
     );
   }
   const entry = detail.entry;
-  const back = onBack ?? (() => router.replace(entry.entryType === 'note' ? '/(app)/notes' as never : '/(app)/reflections' as never));
+  const back = onBack ?? (() => router.replace(entry.entryType === 'note' ? '/(app)/notes' as never : '/(app)/journal' as never));
   if (!detail.capabilities.canEdit) {
     return <SharedEntryReadView detail={detail} onBack={back} />;
   }

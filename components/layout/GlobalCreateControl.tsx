@@ -82,8 +82,8 @@ export function GlobalCreateControl({
     },
     {
       icon: 'reflections' as BrandIconName,
-      label: 'New reflection',
-      onPress: () => router.push({ pathname: '/reflections', params: { create: 'new' } }),
+      label: 'New journal entry',
+      onPress: () => router.push({ pathname: '/journal', params: { create: 'new' } }),
     },
     {
       icon: 'goals' as BrandIconName,

@@ -1,4 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { mkdirSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const journalScreenshots = resolve(process.cwd(), 'docs/ui-checkpoints/journal-prelaunch');
+mkdirSync(journalScreenshots, { recursive: true });
 
 const user = { id: '11111111-1111-4111-8111-111111111111', email: 'preview@example.test', role: 'authenticated', aud: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' };
 const previewAccessToken = (userId: string) => `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ aud: 'authenticated', exp: 1893456000, role: 'authenticated', sub: userId })).toString('base64url')}.preview`;
@@ -80,10 +85,10 @@ for (const appearance of ['light', 'dark']) {
       }
       let body: unknown = { data: [] };
       if (path === '/api/tasks') body = { data: [task] };
-      if (path === '/api/entries/library') body = { entries: [{
-        id: 'entry-1', entryType: 'note', title: 'Training plan', plainText: 'Private contents should stay hidden',
-        createdAt: date, updatedAt: date, completedAt: null, goals: [{ id: 'goal-0' }],
-      }] };
+      if (path === '/api/entries/library') body = { entries: [
+        { id: 'entry-1', entryType: 'note', title: 'Training plan', plainText: 'Private contents should stay hidden', createdAt: date, updatedAt: date, completedAt: null, goals: [{ id: 'goal-0' }] },
+        { id: 'entry-2', entryType: 'reflection', title: 'A steadier rhythm', plainText: 'Journal contents should stay hidden', createdAt: date, updatedAt: date, completedAt: date, goals: [{ id: 'goal-0' }] },
+      ] };
       if (path === '/api/goals/activity') body = { items: [
         { id: 'created', kind: 'goal_created', timestamp: date },
         { id: 'task-done', kind: 'task_completed', label: 'Mobility', timestamp: date },
@@ -172,7 +177,7 @@ for (const appearance of ['light', 'dark']) {
     await page.getByRole('button', { name: 'Retry', exact: true }).click();
     await expect(page.getByText("Sources couldn't load.")).toHaveCount(0);
     await expect(page.getByText('Goal Analytics', { exact: true }).filter({ visible: true })).toHaveCount(0);
-    for (const filter of ['All', 'Notes', 'Reflections', 'Sources']) {
+    for (const filter of ['All', 'Notes', 'Journal', 'Sources']) {
       await expect(page.getByRole('tab', { name: filter, exact: true })).toBeVisible();
     }
     await expect(page.getByRole('tab', { name: 'Sticky Notes', exact: true })).toHaveCount(0);
@@ -184,13 +189,15 @@ for (const appearance of ['light', 'dark']) {
     await page.getByRole('tab', { name: 'All', exact: true }).click();
     await page.getByRole('button', { name: 'Add to Vault', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Add Note', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Add Reflection', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add Journal Entry', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Add Source', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Add Sticky Note', exact: true })).toHaveCount(0);
     await page.getByText('Close', { exact: true }).filter({ visible: true }).click();
     await page.getByRole('tab', { name: 'All', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Open Training plan' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open A steadier rhythm' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Open Race preparation guide' })).toBeVisible();
+    if (appearance === 'light') await page.screenshot({ path: `${journalScreenshots}/vault-journal-terminology.png`, fullPage: true });
     await expect(page.getByText('Private contents should stay hidden')).toHaveCount(0);
     await page.getByRole('button', { name: 'Open Race preparation guide' }).click();
     await expect(page.getByText('Close', { exact: true }).last()).toBeVisible();
