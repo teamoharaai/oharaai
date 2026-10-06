@@ -18,7 +18,11 @@ import {
   journalBrowseCounts,
   type JournalFilters,
 } from '../journal-library';
-import { fetchJournalLibrary } from '../services/entry-service';
+import {
+  deleteLegacyJournalEntry,
+  fetchJournalLibrary,
+  updateLegacyJournalEntry,
+} from '../services/entry-service';
 import { useEntriesStore } from '../store';
 import type {
   EntryDraft,
@@ -289,7 +293,9 @@ export function ReflectionsScreen({ selectedEntryId }: { selectedEntryId?: strin
   const browseGoals = useMemo(() => {
     const byId = new Map<string, { id: string; title: string; projectId: string | null }>();
     for (const entry of entries) {
-      for (const goal of entry.goals) byId.set(goal.id, { id: goal.id, title: goal.title, projectId: goal.projectId });
+      for (const goal of entry.goals) {
+        if (goal.status === 'active') byId.set(goal.id, { id: goal.id, title: goal.title, projectId: goal.projectId });
+      }
     }
     return [...byId.values()].filter((goal) => (browseCounts.goals.get(goal.id) ?? 0) > 0)
       .sort((left, right) => left.title.localeCompare(right.title));
@@ -400,11 +406,15 @@ export function ReflectionsScreen({ selectedEntryId }: { selectedEntryId?: strin
       },
     };
     try {
-      if (editingEntry) upsertEntry(itemAsEntryRecord(editingEntry));
-      const saved = editingEntry
-        ? await updateEntry(editingEntry.id, draft)
-        : await createEntry(draft);
-      await setEntryProjectShare(saved.id, projectId ? visibility : 'private');
+      if (editingEntry?.echoOwned) {
+        await updateLegacyJournalEntry(editingEntry.id, { content: text, title: draft.title });
+      } else {
+        if (editingEntry) upsertEntry(itemAsEntryRecord(editingEntry));
+        const saved = editingEntry
+          ? await updateEntry(editingEntry.id, draft)
+          : await createEntry(draft);
+        await setEntryProjectShare(saved.id, projectId ? visibility : 'private');
+      }
       await loadJournal();
       resetComposer();
     } catch (caught) {
@@ -418,8 +428,13 @@ export function ReflectionsScreen({ selectedEntryId }: { selectedEntryId?: strin
     if (!deleteTarget) return;
     setSaving(true);
     try {
-      upsertEntry(itemAsEntryRecord(deleteTarget));
-      await deleteEntry(deleteTarget.id);
+      if (deleteTarget.echoOwned) {
+        await deleteLegacyJournalEntry(deleteTarget.id);
+        useEntriesStore.setState((state) => ({ entries: state.entries.filter((entry) => entry.id !== deleteTarget.id) }));
+      } else {
+        upsertEntry(itemAsEntryRecord(deleteTarget));
+        await deleteEntry(deleteTarget.id);
+      }
       setDeleteTarget(null);
       await loadJournal();
     } catch (caught) {
@@ -537,10 +552,12 @@ export function ReflectionsScreen({ selectedEntryId }: { selectedEntryId?: strin
                   <Pressable accessibilityLabel="Close Journal Entry composer" accessibilityRole="button" hitSlop={8} onPress={resetComposer}><Ionicons color={colors.text.secondary} name="close" size={23} /></Pressable>
                 </View>
                 <TextInput accessibilityLabel="Journal Entry" autoFocus multiline onChangeText={setBody} placeholder="Write what you notice, what you learned, or how this moment feels…" placeholderTextColor={colors.text.muted} style={{ backgroundColor: colors.background.input, borderColor: colors.border.input, borderRadius: RADIUS.lg, borderWidth: 1, color: colors.text.primary, fontFamily: FONT.editorial.regular, fontSize: compact ? 17 : 19, lineHeight: compact ? 27 : 31, minHeight: compact ? 220 : 270, outlineStyle: 'none', padding: compact ? SPACE.xl : SPACE['2xl'], textAlignVertical: 'top' } as never} value={body} />
-                <ChoiceRow label="PROJECT · OPTIONAL"><Choice active={!projectId} label="None" onPress={() => { setProjectId(''); setGoalId(''); setVisibility('private'); }} />{activeProjects.map((project) => <Choice active={project.id === projectId} key={project.id} label={project.title} onPress={() => { setProjectId(project.id); setGoalId(''); setVisibility('private'); }} />)}</ChoiceRow>
-                <ChoiceRow label="GOAL · OPTIONAL"><Choice active={!goalId} label="None" onPress={() => setGoalId('')} />{activeGoals.map((goal) => <Choice active={goal.id === goalId} key={goal.id} label={goal.title} onPress={() => { setGoalId(goal.id); if (goal.projectId) setProjectId(goal.projectId); }} />)}</ChoiceRow>
-                <ChoiceRow label="VISIBILITY">{visibilityOptions.map((option) => <Choice active={option.id === visibility} key={option.id} label={option.label} onPress={() => setVisibility(option.id)} />)}</ChoiceRow>
-                <View style={{ alignItems: compact ? 'stretch' : 'center', flexDirection: compact ? 'column' : 'row', gap: SPACE.lg, justifyContent: 'space-between' }}><View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}><Ionicons color={colors.text.accent} name="lock-closed-outline" size={16} /><Typography variant="caption">Private is always the default.</Typography></View><Button disabled={!body.trim()} loading={saving} onPress={() => void saveJournalEntry()}>{editingEntry ? 'Save Changes' : 'Save Entry'}</Button></View>
+                {!editingEntry?.echoOwned ? <>
+                  <ChoiceRow label="PROJECT · OPTIONAL"><Choice active={!projectId} label="None" onPress={() => { setProjectId(''); setGoalId(''); setVisibility('private'); }} />{activeProjects.map((project) => <Choice active={project.id === projectId} key={project.id} label={project.title} onPress={() => { setProjectId(project.id); setGoalId(''); setVisibility('private'); }} />)}</ChoiceRow>
+                  <ChoiceRow label="GOAL · OPTIONAL"><Choice active={!goalId} label="None" onPress={() => setGoalId('')} />{activeGoals.map((goal) => <Choice active={goal.id === goalId} key={goal.id} label={goal.title} onPress={() => { setGoalId(goal.id); if (goal.projectId) setProjectId(goal.projectId); }} />)}</ChoiceRow>
+                  <ChoiceRow label="VISIBILITY">{visibilityOptions.map((option) => <Choice active={option.id === visibility} key={option.id} label={option.label} onPress={() => setVisibility(option.id)} />)}</ChoiceRow>
+                </> : null}
+                <View style={{ alignItems: compact ? 'stretch' : 'center', flexDirection: compact ? 'column' : 'row', gap: SPACE.lg, justifyContent: 'space-between' }}>{!editingEntry?.echoOwned ? <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}><Ionicons color={colors.text.accent} name="lock-closed-outline" size={16} /><Typography variant="caption">Private is always the default.</Typography></View> : <View />}<Button disabled={!body.trim()} loading={saving} onPress={() => void saveJournalEntry()}>{editingEntry ? 'Save Changes' : 'Save Entry'}</Button></View>
                 {saveError ? <Typography accessibilityRole="alert" variant="caption" style={{ color: colors.feedback.danger.text }}>{saveError}</Typography> : null}
               </View>
             ) : null}
@@ -551,9 +568,9 @@ export function ReflectionsScreen({ selectedEntryId }: { selectedEntryId?: strin
                   <Typography variant="eyebrow" style={{ color: colors.text.secondary, letterSpacing: 1.4 }}>{group.label}</Typography>
                   {group.items.map((entry) => {
                     const highlighted = entry.id === selectedEntryId;
-                    return <View key={entry.id} style={{ backgroundColor: highlighted ? colors.background.selectedRow : colors.background.card, borderColor: highlighted ? colors.border.accent : colors.border.warmSubtle, borderRadius: RADIUS.xl, borderWidth: 1, padding: compact ? SPACE.xl : SPACE['3xl'] }}>
+                    return <View accessibilityLabel={`Journal entry: ${entry.title}`} key={entry.id} style={{ backgroundColor: highlighted ? colors.background.selectedRow : colors.background.card, borderColor: highlighted ? colors.border.accent : colors.border.warmSubtle, borderRadius: RADIUS.xl, borderWidth: 1, padding: compact ? SPACE.xl : SPACE['3xl'] }}>
                       <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}><Typography variant="caption" style={{ color: colors.text.secondary }}>{timeLabel(new Date(entry.createdAt))}</Typography><Pressable accessibilityLabel="Journal entry actions" accessibilityRole="button" onPress={() => setMenuEntryId(menuEntryId === entry.id ? null : entry.id)} style={{ alignItems: 'center', height: 38, justifyContent: 'center', width: 38 }}><Ionicons color={colors.text.secondary} name="ellipsis-horizontal" size={20} /></Pressable></View>
-                      {menuEntryId === entry.id ? <View style={{ alignSelf: 'flex-end', backgroundColor: colors.background.input, borderColor: colors.border.input, borderRadius: RADIUS.md, borderWidth: 1, gap: SPACE.xs, marginBottom: SPACE.lg, padding: SPACE.sm }}>{entry.echoOwned ? <Button onPress={() => { setMenuEntryId(null); router.push('/(app)/echo' as never); }} size="compact" variant="ghost">Edit in Echo</Button> : <><Button onPress={() => editJournalEntry(entry)} size="compact" variant="ghost">Edit Entry</Button><Button onPress={() => { setMenuEntryId(null); setDeleteTarget(entry); }} size="compact" variant="danger">Delete</Button></>}</View> : null}
+                      {menuEntryId === entry.id ? <View style={{ alignSelf: 'flex-end', backgroundColor: colors.background.input, borderColor: colors.border.input, borderRadius: RADIUS.md, borderWidth: 1, gap: SPACE.xs, marginBottom: SPACE.lg, padding: SPACE.sm }}><Button onPress={() => editJournalEntry(entry)} size="compact" variant="ghost">Edit Entry</Button><Button onPress={() => { setMenuEntryId(null); setDeleteTarget(entry); }} size="compact" variant="danger">Delete</Button></View> : null}
                       <Typography style={{ color: colors.text.primary, fontFamily: FONT.editorial.regular, fontSize: compact ? 17 : 19, lineHeight: compact ? 28 : 31 }}>{entry.plainText}</Typography>
                       {(entry.project || entry.goals.length) ? <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm, marginTop: SPACE['2xl'] }}>{entry.project ? <Pressable accessibilityRole="link" onPress={() => router.push(`/(app)/projects/${entry.project!.id}` as never)}><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>{entry.project.title}</Typography></Pressable> : null}{entry.project && entry.goals.length ? <Typography variant="caption">·</Typography> : null}{entry.goals.map((goal) => <Pressable accessibilityRole="link" key={goal.id} onPress={() => router.push(goalWorkspaceHref(goal.id, 'active', entry.project?.id ? { projectId: entry.project.id } : undefined) as never)}><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>{goal.title}</Typography></Pressable>)}</View> : null}
                       <View style={{ alignItems: 'center', borderTopColor: colors.border.divider, borderTopWidth: 1, flexDirection: 'row', gap: SPACE.sm, marginTop: SPACE['2xl'], paddingTop: SPACE.lg }}><Ionicons color={colors.text.muted} name={entry.shareScope === 'private' ? 'lock-closed-outline' : 'people-outline'} size={15} /><Typography variant="caption" style={{ color: colors.text.secondary }}>{visibilityLabel(entry.shareScope)}</Typography>{entry.updatedAt !== entry.createdAt ? <Typography variant="caption" style={{ color: colors.text.muted }}>· Edited {new Date(entry.updatedAt).toLocaleDateString()}</Typography> : null}</View>

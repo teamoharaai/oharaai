@@ -5,6 +5,7 @@ import test from 'node:test';
 
 const source = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
 const screen = source('features/entries/components/ReflectionsScreen.tsx');
+const service = source('features/entries/services/entry-service.ts');
 const db = source('lib/db/journal-library.ts');
 const api = source('app/api/journal/library+api.ts');
 const navigation = source('components/layout/AppNavigation.tsx');
@@ -38,6 +39,11 @@ test('Browse Journal, search, temporal sorting, filters, and mobile disclosure a
   assert.match(screen, /visible=\{browseOpen\}/);
   assert.match(screen, /Shared with Guide/);
   assert.match(screen, /Last 30 days/);
+  assert.match(screen, /goal\.status === 'active'/);
+  assert.doesNotMatch(screen, /Edit in Echo/);
+  assert.match(screen, /updateLegacyJournalEntry/);
+  assert.match(screen, /deleteLegacyJournalEntry/);
+  assert.match(service, /\/api\/entries\/\$\{entryId\}/);
 });
 
 test('Journal routes are canonical and Reflections deep links remain redirects', () => {

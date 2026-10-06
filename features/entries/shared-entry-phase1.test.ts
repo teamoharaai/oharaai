@@ -55,7 +55,7 @@ test('direct Notes and Journal routes do not mount owner libraries or optional A
   assert.match(legacyReflectionRoute, /\/\(app\)\/journal\/\[id\]/);
   assert.match(detailScreen, /fetchEntryDetail/);
   assert.match(detailScreen, /SharedEntryReadView/);
-  // No Echo, Momentum or social modules on the direct route. (Echo-owned Entries name Echo and link to it; 086.)
+  // No Echo, Momentum or social modules on the direct route.
   assert.doesNotMatch(detailScreen + sharedView, /from '@\/features\/(echo|momentum)|Momentum|useCirclesStore|useFriends/);
 });
 
@@ -103,19 +103,24 @@ test('shared Note images follow Entry RLS and active Project Entries have a supp
   assert.doesNotMatch(migration, /for insert|for update|for delete/);
 });
 
-test('Entries captured in Echo are read-only outside Echo (Migration 086, TD-005 B10)', () => {
+test('legacy mirrored Entries remain database-protected without stale Echo product actions', () => {
   // The flag comes from echo_entries, the same source the database guard uses, in the batched relationship read.
   assert.match(entriesDb, /db\.from\('echo_entries'\)\.select\('id'\)\.in\('id', entryIds\)/);
   assert.match(entriesDb, /canEdit: isOwner && !echoOwned/);
   assert.match(entriesDb, /canDelete: isOwner && !echoOwned/);
   assert.match(entriesDb, /deriveEntryCapabilities\(viewerId, row\.user_id, relationship\.echoOwned\)/);
   assert.match(types, /echoOwned: boolean/);
-  // The detail screen already renders the read-only view whenever canEdit is false; it names Echo and links there.
-  assert.match(sharedView, /entry\.echoOwned \? 'Echo Journal Entry'/);
-  assert.match(sharedView, /Edit in Echo/);
-  // The library list offers only "Edit in Echo" for them.
+  // The detail screen remains read-only, but no longer presents Echo as an Entry product surface.
+  assert.doesNotMatch(sharedView, /Echo Journal Entry|Captured in Echo|Edit in Echo/);
+  // Journal supplies its normal actions and delegates owner writes to the protected source row.
   const list = source('features/entries/components/ReflectionsScreen.tsx');
-  assert.match(list, /entry\.echoOwned \?[\s\S]*Edit in Echo[\s\S]*Edit Entry/);
+  const service = source('features/entries/services/entry-service.ts');
+  assert.match(list, /updateLegacyJournalEntry/);
+  assert.match(list, /deleteLegacyJournalEntry/);
+  assert.match(list, />Edit Entry<\/Button>[\s\S]*>Delete<\/Button>/);
+  assert.doesNotMatch(list, /Edit in Echo/);
+  assert.match(service, /export async function updateLegacyJournalEntry/);
+  assert.match(service, /export async function deleteLegacyJournalEntry/);
   // The database refusal maps to 409 ECHO_OWNED on both PATCH and DELETE.
   assert.equal(detailRoute.match(/isEchoOwnedError\(error\)\) return echoOwnedResponse\(\)/g)?.length, 2);
   assert.match(detailRoute, /code: 'ECHO_OWNED'/);

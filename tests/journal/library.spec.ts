@@ -13,6 +13,7 @@ const winter = { id: 'project-winter', title: 'Winter Arc', status: 'active' };
 const health = { id: 'project-health', title: 'Health Improvement', status: 'active' };
 const mobility = { id: 'goal-mobility', title: 'Ego Lifting & Mobility', category: 'Health & Fitness', status: 'active', projectId: winter.id };
 const running = { id: 'goal-running', title: 'Run my first 10K', category: 'Health & Fitness', status: 'active', projectId: health.id };
+const archived = { id: 'goal-archived', title: 'Archived Training Cycle', category: 'Health & Fitness', status: 'archived', projectId: health.id };
 const capabilities = { canView: true, canEdit: true, canDelete: true, canChangeShare: true };
 
 const entries = [
@@ -21,6 +22,7 @@ const entries = [
   { id: 'journal-3', ownerId: viewerId, title: 'Journal Entry · 30 Sep', plainText: 'Today was less about output and more about noticing what restores my attention.', reflectionType: 'open', completedAt: '2026-09-30T21:10:00Z', createdAt: '2026-09-30T21:10:00Z', updatedAt: '2026-09-30T21:10:00Z', contentVersion: 1, project: null, goals: [], shareScope: 'private', capabilities, echoOwned: false },
   { id: 'journal-4', ownerId: viewerId, title: 'Journal Entry · 27 Sep', plainText: 'A short walk changed the tone of the whole afternoon. Leave more space between commitments.', reflectionType: 'open', completedAt: '2026-09-27T15:20:00Z', createdAt: '2026-09-27T15:20:00Z', updatedAt: '2026-09-28T10:00:00Z', contentVersion: 3, project: winter, goals: [], shareScope: 'private', capabilities, echoOwned: false },
   { id: 'journal-5', ownerId: viewerId, title: 'Journal Entry · 18 Sep', plainText: 'Strength is returning because I am listening earlier instead of waiting for pain.', reflectionType: 'open', completedAt: '2026-09-18T12:00:00Z', createdAt: '2026-09-18T12:00:00Z', updatedAt: '2026-09-18T12:00:00Z', contentVersion: 1, project: winter, goals: [mobility], shareScope: 'private', capabilities, echoOwned: false },
+  { id: 'journal-legacy', ownerId: viewerId, title: 'Journal Entry · 22 Jul', plainText: 'A historical Journal entry remains editable without exposing its retired capture source.', reflectionType: 'open', completedAt: '2026-07-22T14:30:00Z', createdAt: '2026-07-22T14:30:00Z', updatedAt: '2026-07-22T14:30:00Z', contentVersion: 1, project: health, goals: [archived], shareScope: 'private', capabilities: { canView: true, canEdit: false, canDelete: false, canChangeShare: false }, echoOwned: true },
 ];
 
 const projectRows = [
@@ -72,7 +74,30 @@ async function openJournal(page: Page, path = '/journal', width = 1440) {
 test('Journal desktop light visual states', async ({ page }) => {
   await installPreview(page, 'light');
   await openJournal(page);
+  await expect(page.getByRole('button', { name: 'Show Archived Training Cycle', exact: true })).toHaveCount(0);
+  const legacyEntry = page.getByLabel('Journal entry: Journal Entry · 22 Jul', { exact: true });
+  await legacyEntry.getByRole('button', { name: 'Journal entry actions', exact: true }).click();
+  await expect(legacyEntry.getByRole('button', { name: 'Edit Entry', exact: true })).toBeVisible();
+  await expect(legacyEntry.getByRole('button', { name: 'Delete', exact: true })).toBeVisible();
+  await expect(page.getByText('Edit in Echo', { exact: true })).toHaveCount(0);
   await page.screenshot({ path: `${screenshots}/desktop-light-all.png`, fullPage: true });
+
+  await legacyEntry.getByRole('button', { name: 'Edit Entry', exact: true }).click();
+  const legacyComposer = page.getByLabel('Edit Journal Entry composer', { exact: true });
+  await expect(legacyComposer).toBeVisible();
+  await expect(legacyComposer.getByRole('button', { name: 'Health Improvement', exact: true })).toHaveCount(0);
+  await legacyComposer.getByRole('textbox', { name: 'Journal Entry', exact: true }).fill('Updated historical Journal entry.');
+  const updateRequest = page.waitForRequest((request) => new URL(request.url()).pathname === '/api/entries/journal-legacy' && request.method() === 'PATCH');
+  await legacyComposer.getByRole('button', { name: 'Save Changes', exact: true }).click();
+  expect((await updateRequest).postDataJSON()).toMatchObject({ content: 'Updated historical Journal entry.' });
+  await expect(legacyComposer).toBeHidden();
+
+  await legacyEntry.getByRole('button', { name: 'Journal entry actions', exact: true }).click();
+  await legacyEntry.getByRole('button', { name: 'Delete', exact: true }).click();
+  await expect(page.getByText('Delete this Journal entry?', { exact: true })).toBeVisible();
+  const deleteRequest = page.waitForRequest((request) => new URL(request.url()).pathname === '/api/entries/journal-legacy' && request.method() === 'DELETE');
+  await page.getByRole('button', { name: 'Delete Entry', exact: true }).click();
+  await deleteRequest;
 
   await page.getByRole('button', { name: 'Show Winter Arc', exact: true }).click();
   await expect(page.getByText('3 journal entries', { exact: true })).toBeVisible();

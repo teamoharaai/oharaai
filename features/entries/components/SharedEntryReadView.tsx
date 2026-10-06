@@ -1,7 +1,5 @@
 import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Typography } from '@/components/ui/Typography';
@@ -11,9 +9,11 @@ import type { EntryDetailDto, EntryGoalOption } from '../types';
 import { RichTextEditor } from './RichTextEditor';
 
 function sharingLabel(detail: EntryDetailDto): string {
-  if (detail.entry.echoOwned) return 'Captured in Echo';
   const project = detail.context.project?.title;
-  if (!project) return detail.context.shareScope === 'guide' ? 'Shared with Guide' : 'Shared with Project';
+  if (!project) {
+    if (detail.context.shareScope === 'private') return 'Private to me';
+    return detail.context.shareScope === 'guide' ? 'Shared with Guide' : 'Shared with Project';
+  }
   return detail.context.shareScope === 'guide'
     ? `Shared with Guide via ${project}`
     : `Shared via ${project}`;
@@ -66,13 +66,9 @@ export function SharedEntryReadView({
         </Pressable>
         <BrandIcon color={colors.text.accent} name={entry.entryType === 'note' ? 'notes' : 'reflections'} size={22} />
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Typography numberOfLines={1} variant="nav-title">{entry.echoOwned ? 'Echo Journal Entry' : entry.entryType === 'note' ? 'Shared Note' : 'Shared Journal Entry'}</Typography>
+          <Typography numberOfLines={1} variant="nav-title">{entry.entryType === 'note' ? 'Shared Note' : entry.echoOwned ? 'Journal Entry' : 'Shared Journal Entry'}</Typography>
           <Typography numberOfLines={1} variant="caption" style={{ color: colors.text.secondary }}>{sharingLabel(detail)}</Typography>
         </View>
-        {entry.echoOwned ? (
-          // Echo owns this Entry (TD-005 B10): it is edited and deleted there.
-          <Button onPress={() => router.push('/(app)/echo' as never)} size="compact" variant="ghost">Edit in Echo</Button>
-        ) : null}
       </View>
 
       {entry.entryType === 'note' ? (

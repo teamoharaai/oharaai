@@ -56,6 +56,28 @@ export async function fetchJournalLibrary(): Promise<JournalLibraryPayload> {
   return responseBody<JournalLibraryPayload>(response);
 }
 
+/**
+ * Journal entries created by the retired capture surface still have a legacy
+ * source row that owns their canonical mirror. Keep that storage detail out of
+ * the UI while using its authorized writer so owner edits remain lossless.
+ */
+export async function updateLegacyJournalEntry(
+  entryId: string,
+  changes: { content: string; title: string },
+): Promise<void> {
+  const response = await authedFetch(`/api/entries/${entryId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(changes),
+  });
+  await responseBody(response);
+}
+
+export async function deleteLegacyJournalEntry(entryId: string): Promise<void> {
+  const response = await authedFetch(`/api/entries/${entryId}`, { method: 'DELETE' });
+  if (!response.ok && response.status !== 404) await responseBody(response);
+}
+
 export async function createNoteFolder(name: string): Promise<NoteFolder> {
   const response = await authedFetch('/api/notes/folders', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }),

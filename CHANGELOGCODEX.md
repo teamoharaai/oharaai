@@ -14,6 +14,10 @@
 ### Fixed — Projects and Notes Polish
 - Corrected inconsistent empty-state casing and missing terminal punctuation in Notes and Project fallback/error copy, including the related authorized API responses.
 
+### Fixed — Journal compatibility polish
+- Hid archived Goals from the Journal browse list while preserving their historical relationships on existing entries.
+- Replaced the obsolete “Edit in Echo” action with normal Journal edit/delete controls. Entries originating in the retired capture surface now use its authorized compatibility writer behind the scenes, keeping Migration 086's mirror protection intact without presenting Echo as a Note/Journal product area (`features/entries/components/ReflectionsScreen.tsx`, `features/entries/services/entry-service.ts`, `features/entries/components/SharedEntryReadView.tsx`, `app/api/entries/library/[id]+api.ts`).
+
 ### Added — Journal PreLaunch Redesign
 - Added a lightweight, owner-scoped Journal library projection and authorized API that loads timeline text plus only the Project/Goal metadata needed for browsing; full Project, Goal, Momentum, Echo, Circles, and Vault payloads stay off the first-render path (`lib/db/journal-library.ts`, `app/api/journal/library+api.ts`, `features/entries/services/entry-service.ts`).
 - Added the responsive Browse Journal experience with All Entries, Unlinked, Project, and Goal contexts; authorization-aware counts; in-context search; Newest/Oldest ordering; visibility/date filters; contextual entry creation; and a mobile browse sheet (`features/entries/components/ReflectionsScreen.tsx`, `features/entries/journal-library.ts`).

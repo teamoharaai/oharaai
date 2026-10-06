@@ -154,10 +154,11 @@ async function handleDelete(
   }
 }
 
-// Entries captured in Echo are changed only in Echo (TD-005 B10); the database refuses the write.
+// Migration 086 still refuses canonical writes to legacy mirrored rows. Journal
+// routes owner changes through the authorized source-row compatibility writer.
 function echoOwnedResponse(): Response {
   return Response.json(
-    { error: 'This Journal entry was captured in Echo. Edit or delete it in Echo.', code: 'ECHO_OWNED' },
+    { error: 'This Journal entry uses a legacy storage format and could not be changed.', code: 'ECHO_OWNED' },
     { status: 409 },
   );
 }
