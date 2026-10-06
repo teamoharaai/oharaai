@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Added — Projects and Notes Polish
+- Added a Finder-style Grid/List view toggle to the Projects library. Grid remains the default, while List presents compact, title-first rows that retain the same category-derived background and folder colors (`app/(app)/projects/index.tsx`, `features/projects/components/ProjectCard.tsx`).
+- Added desktop Grid/List, mobile List, and Note formatting-toolbar browser coverage with visual checkpoints (`tests/projects/landing.spec.ts`, `tests/projects/landing.playwright.config.ts`, `tests/notes/library.spec.ts`, `docs/ui-checkpoints/projects-notes-polish/`).
+
+### Changed — Projects and Notes Polish
+- Standardized true UI labels and table/metric captions on the uppercase micro-label treatment while preserving sentence case for descriptions, metadata, buttons, and user-authored content (`components/ui/Typography.tsx`, Projects, Notes, Goal, Journal, Settings, and Constellation presentation components).
+- Polished the Note workspace formatting toolbar with clearer surfaces, bordered hover/active states, stronger grouping contrast, keyboard-visible focus, and concise hover/focus tooltips (`features/entries/components/RichTextEditor.web.tsx`, `global.css`).
+- Refreshed the tracked Notes library visual checkpoints after the label and read-only badge consistency pass (`docs/ui-checkpoints/notes-library-prelaunch/`).
+
+### Fixed — Projects and Notes Polish
+- Corrected inconsistent empty-state casing and missing terminal punctuation in Notes and Project fallback/error copy, including the related authorized API responses.
+
 ### Added — Journal PreLaunch Redesign
 - Added a lightweight, owner-scoped Journal library projection and authorized API that loads timeline text plus only the Project/Goal metadata needed for browsing; full Project, Goal, Momentum, Echo, Circles, and Vault payloads stay off the first-render path (`lib/db/journal-library.ts`, `app/api/journal/library+api.ts`, `features/entries/services/entry-service.ts`).
 - Added the responsive Browse Journal experience with All Entries, Unlinked, Project, and Goal contexts; authorization-aware counts; in-context search; Newest/Oldest ordering; visibility/date filters; contextual entry creation; and a mobile browse sheet (`features/entries/components/ReflectionsScreen.tsx`, `features/entries/journal-library.ts`).

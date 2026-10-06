@@ -179,9 +179,9 @@ function ToolButton({
   return (
     <button
       type="button"
-      title={label}
       aria-label={label}
       aria-pressed={active === undefined ? undefined : active}
+      data-tooltip={label}
       disabled={disabled}
       className={`ohara-editor-tool${active ? ' is-active' : ''}`}
       onMouseDown={(event) => event.preventDefault()}

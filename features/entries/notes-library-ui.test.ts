@@ -16,6 +16,8 @@ const migration = source('supabase/migrations/087_notes_library_folders.sql');
 const noteRoute = source('app/(app)/notes/[id].tsx');
 const noteEditor = source('features/entries/components/NoteEditor.tsx');
 const uiStore = source('store/uiStore.ts');
+const richEditor = source('features/entries/components/RichTextEditor.web.tsx');
+const globalCss = source('global.css');
 
 test('Notes library exposes the approved information architecture and terminology', () => {
   assert.match(library, /My Library/);
@@ -69,4 +71,17 @@ test('full-screen Note workspace stays canonical and Echo starts closed', () => 
   assert.match(noteRoute, /projects\/\$\{projectId\}/);
   assert.match(uiStore, /entriesIntelligenceOpen: false/);
   assert.match(noteEditor, /setIntelligenceOpen\(false\)/);
+});
+
+test('Notes labels and workspace formatting controls use the polished copy hierarchy', () => {
+  assert.match(library, /variant="eyebrow">FOLDERS/);
+  for (const label of ['NAME', 'LINKED TO', 'LAST UPDATED']) {
+    assert.match(library, new RegExp(`variant="micro-label"[^>]*>${label}`));
+  }
+  assert.match(library, /No linked Notes yet/);
+  assert.doesNotMatch(library, /No Notes are Linked to anything yet/);
+  assert.match(richEditor, /data-tooltip=\{label\}/);
+  assert.match(globalCss, /\.ohara-editor-tool::after/);
+  assert.match(globalCss, /border-color: color-mix/);
+  assert.match(noteEditor, /variant="micro-label"[^>]*>LINKED TO/);
 });

@@ -61,7 +61,7 @@ test('direct Notes and Journal routes do not mount owner libraries or optional A
 
 test('collaborator renderer preserves rich content and removes mutation controls', () => {
   assert.match(sharedView, /readOnly/);
-  assert.match(sharedView, /View only/);
+  assert.match(sharedView, /VIEW ONLY/);
   assert.match(sharedView, /Shared via/);
   assert.match(webEditor, /editable: !readOnly/);
   assert.match(webEditor, /aria-readonly/);

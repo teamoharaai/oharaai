@@ -177,7 +177,7 @@ export function ConstellationAnnotationPanel({
             padding: 13,
           }}
         >
-          <Typography variant="caption">Anchor</Typography>
+          <Typography variant="micro-label">ANCHOR</Typography>
           <Typography variant="label">
             {anchorNode?.label ?? 'No active earned-node anchor'}
           </Typography>

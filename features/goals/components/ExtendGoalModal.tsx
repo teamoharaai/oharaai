@@ -309,7 +309,7 @@ function DeadlineStep({
 
       {deadline && deadlineValid && (
         <View style={{ backgroundColor: colors.background.subtle, borderRadius: RADIUS.md, marginBottom: SPACE['2xl'], paddingHorizontal: SPACE.lg, paddingVertical: SPACE.lg }}>
-          <Typography variant="caption" style={{ marginBottom: SPACE.xs }}>New deadline</Typography>
+          <Typography variant="micro-label" style={{ marginBottom: SPACE.xs }}>NEW DEADLINE</Typography>
           <Text style={{ color: colors.text.accent, ...TYPE.control, fontFamily: FONT.ui.semibold }}>
             {formatDeadlineReadout(deadline)}
           </Text>

@@ -169,7 +169,7 @@ export function NotesLibraryScreen() {
   async function load() {
     setError(null);
     try { setPayload(await fetchNotesLibrary()); }
-    catch (caught) { setError(caught instanceof Error ? caught.message : 'Notes library could not be loaded'); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : 'Notes library could not be loaded.'); }
     finally { setLoading(false); }
   }
 
@@ -213,7 +213,7 @@ export function NotesLibraryScreen() {
       if (editingFolder) await renameNoteFolder(editingFolder.id, folderName);
       else await createNoteFolder(folderName);
       setFolderName(''); setEditingFolder(null); await load();
-    } catch (caught) { setFolderError(caught instanceof Error ? caught.message : 'Folder could not be saved'); }
+    } catch (caught) { setFolderError(caught instanceof Error ? caught.message : 'Folder could not be saved.'); }
     finally { setFolderBusy(false); }
   }
 
@@ -221,7 +221,7 @@ export function NotesLibraryScreen() {
     if (!deleteFolderTarget || folderBusy) return;
     setFolderBusy(true);
     try { await deleteNoteFolder(deleteFolderTarget.id); setDeleteFolderTarget(null); selectFolder(null); await load(); }
-    catch (caught) { setFolderError(caught instanceof Error ? caught.message : 'Folder could not be deleted'); }
+    catch (caught) { setFolderError(caught instanceof Error ? caught.message : 'Folder could not be deleted.'); }
     finally { setFolderBusy(false); }
   }
 
@@ -229,17 +229,17 @@ export function NotesLibraryScreen() {
     if (!moveTarget || folderBusy) return;
     setFolderBusy(true); setFolderError(null);
     try { await assignNoteFolder(moveTarget.id, folderId); setMoveTarget(null); await load(); }
-    catch (caught) { setFolderError(caught instanceof Error ? caught.message : 'Note could not be moved'); }
+    catch (caught) { setFolderError(caught instanceof Error ? caught.message : 'Note could not be moved.'); }
     finally { setFolderBusy(false); }
   }
 
   async function confirmDeleteNote() {
     if (!deleteTarget) return;
     try { await deleteEntry(deleteTarget.id); setDeleteTarget(null); await load(); }
-    catch (caught) { setError(caught instanceof Error ? caught.message : 'Note could not be deleted'); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : 'Note could not be deleted.'); }
   }
 
-  const emptyTitle = query ? 'No matching results' : view === 'my-library' ? 'No Notes yet' : view === 'shared-with-me' ? 'Nothing has been shared with you yet' : view === 'linked-to' ? 'No Notes are Linked to anything yet' : 'No Sources yet';
+  const emptyTitle = query ? 'No matching results' : view === 'my-library' ? 'No Notes yet' : view === 'shared-with-me' ? 'Nothing shared with you yet' : view === 'linked-to' ? 'No linked Notes yet' : 'No Sources yet';
   const emptyBody = query ? 'Try a different search or clear your filters.' : view === 'my-library' ? 'Create a Note to start capturing ideas, research, or plans.' : view === 'linked-to' ? 'Link a Note to a Goal or Project to see it here.' : view === 'sources' ? 'Authorized links, PDFs, documents, and media from your Vaults will appear here.' : '';
 
   return <ScrollView style={{ flex: 1, backgroundColor: colors.background.page }} contentContainerStyle={{ alignSelf: 'center', gap: SPACE['2xl'], maxWidth: LAYOUT.contentMaxWidth, paddingHorizontal: compact ? SPACE.xl : LAYOUT.wideGutter, paddingVertical: compact ? SPACE.xl : SPACE['3xl'], width: '100%' }} keyboardShouldPersistTaps="handled">
@@ -253,7 +253,7 @@ export function NotesLibraryScreen() {
     </ScrollView>
 
     {view !== 'sources' ? <View style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider, borderRadius: RADIUS.xl, borderWidth: 1, gap: SPACE.lg, padding: compact ? SPACE.lg : SPACE.xl }}>
-      <Typography variant="emphasis-sm">Folders</Typography>
+      <Typography variant="eyebrow">FOLDERS</Typography>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACE.md }}>
         <FolderTile label="All Notes" selected={filters.folderId === null} onPress={() => selectFolder(null)} />
         {folders.map((folder) => <FolderTile key={folder.id} label={folder.name} selected={filters.folderId === folder.id} onPress={() => selectFolder(folder.id)} />)}
@@ -271,7 +271,7 @@ export function NotesLibraryScreen() {
     </View>
 
     <View accessibilityLabel={`${resultCount} ${view === 'sources' ? 'Sources' : 'Notes'} shown`} accessibilityLiveRegion="polite" style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider, borderRadius: RADIUS.xl, borderWidth: 1, overflow: 'hidden' }}>
-      {!compact && !loading && resultCount ? <View style={{ alignItems: 'center', backgroundColor: colors.background.subtle, borderBottomColor: colors.border.divider, borderBottomWidth: 1, flexDirection: 'row', gap: SPACE.xl, minHeight: 46, paddingHorizontal: SPACE.xl }}><Typography variant="caption" style={{ flex: 1.35 }}>Name</Typography><Typography variant="caption" style={{ flex: 1.15 }}>Linked to</Typography><Typography variant="caption" style={{ minWidth: 140, textAlign: 'right' }}>Last updated</Typography></View> : null}
+      {!compact && !loading && resultCount ? <View style={{ alignItems: 'center', backgroundColor: colors.background.subtle, borderBottomColor: colors.border.divider, borderBottomWidth: 1, flexDirection: 'row', gap: SPACE.xl, minHeight: 46, paddingHorizontal: SPACE.xl }}><Typography variant="micro-label" style={{ flex: 1.35 }}>NAME</Typography><Typography variant="micro-label" style={{ flex: 1.15 }}>LINKED TO</Typography><Typography variant="micro-label" style={{ minWidth: 140, textAlign: 'right' }}>LAST UPDATED</Typography></View> : null}
       {loading ? <View style={{ alignItems: 'center', gap: SPACE.md, padding: SPACE['5xl'] }}><ActivityIndicator color={colors.accent.primary} /><Typography variant="caption">Loading Notes…</Typography></View> : error ? <View accessibilityRole="alert" style={{ alignItems: 'center', gap: SPACE.lg, padding: SPACE['4xl'] }}><Typography variant="title">Notes couldn’t load</Typography><Typography variant="body">{error}</Typography><Button onPress={() => { setLoading(true); void load(); }} variant="secondary">Retry</Button></View> : resultCount ? view === 'sources' ? sources.map((source) => <SourceRow compact={compact} key={source.id} source={source} />) : notes.map((note) => <NoteRow compact={compact} folder={note.folderId ? folderById.get(note.folderId) ?? null : null} key={note.id} note={note} onDelete={() => setDeleteTarget(note)} onMove={() => setMoveTarget(note)} />) : <View style={{ alignItems: 'center', gap: SPACE.md, paddingHorizontal: SPACE.xl, paddingVertical: SPACE['5xl'] }}><BrandIcon color={colors.text.accent} name="notes" size={28} /><Typography variant="title" style={{ textAlign: 'center' }}>{emptyTitle}</Typography>{emptyBody ? <Typography variant="body" style={{ maxWidth: 440, textAlign: 'center' }}>{emptyBody}</Typography> : null}{view === 'my-library' && !query ? <Button onPress={() => setCreationOpen(true)} size="compact">New Note</Button> : null}</View>}
     </View>
 

@@ -35,7 +35,7 @@ async function installPreview(page: Page, theme: 'light' | 'dark') {
     };
     localStorage.setItem('sb-notes-preview-auth-token', JSON.stringify(value));
     localStorage.setItem('ohara-ui-state', JSON.stringify({ state: { themeMode: appearance }, version: 5 }));
-    for (const patch of ['notes-prelaunch-library', 'projects-v1-1-execution', 'projects-v1-0', 'goals-v2-3-1', 'vault-v2-3', 'notes-v1-1', 'momentum-v1-1']) {
+    for (const patch of ['journal-prelaunch-redesign', 'notes-prelaunch-library', 'projects-v1-1-execution', 'projects-v1-0', 'goals-v2-3-1', 'vault-v2-3', 'notes-v1-1', 'momentum-v1-1']) {
       localStorage.setItem(`ohara:release:${patch}:seen`, 'seen');
     }
   }, { value: session, appearance: theme });
@@ -55,6 +55,12 @@ async function installPreview(page: Page, theme: 'light' | 'dark') {
       entry: { id: 'shared-note', userId: collaboratorId, entryType: 'note', title: 'Beta synthesis', content: { type: 'doc', schemaVersion: 2, content: [{ type: 'paragraph', attrs: { id: 'paragraph-1' }, content: [{ type: 'text', text: 'The strongest signal is faster recovery of context without losing the thread.' }] }] }, plainText: 'The strongest signal is faster recovery of context without losing the thread.', brtCategory: null, reflectionType: null, conversationTurns: [], takeaway: null, pinned: false, archived: false, contentVersion: 1, schemaVersion: 2, completedAt: null, createdAt: now, updatedAt: now, goals: [{ ...goal, category: 'Work & Money', status: 'active' }], project, projectShareScope: 'project', categoryIds: [], milestones: [] },
       author: { id: collaboratorId, displayName: 'Maya Chen', avatarUrl: null }, context: { project, goals: [goal], shareScope: 'project', viewerRole: 'member' }, capabilities: { canView: true, canEdit: false, canDelete: false, canChangeShare: false },
     }) });
+    if (path === '/api/entries/library/note-1') return route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+      version: 'entry-detail.v1', requestId: 'preview-owner',
+      entry: { id: 'note-1', userId: viewerId, entryType: 'note', title: 'Launch positioning', content: { type: 'doc', schemaVersion: 2, content: [{ type: 'heading', attrs: { id: 'heading-1', level: 1 }, content: [{ type: 'text', text: 'Launch positioning' }] }, { type: 'paragraph', attrs: { id: 'paragraph-1' }, content: [{ type: 'text', text: 'Audience, promise, and launch sequence.' }] }] }, plainText: 'Launch positioning\nAudience, promise, and launch sequence.', brtCategory: null, reflectionType: null, conversationTurns: [], takeaway: null, pinned: false, archived: false, contentVersion: 2, schemaVersion: 2, completedAt: null, createdAt: notes[0].createdAt, updatedAt: notes[0].updatedAt, goals: [{ ...goal, category: 'Work & Money', status: 'active' }], project, projectShareScope: 'project', categoryIds: [], milestones: [], echoOwned: false },
+      author: { id: viewerId, displayName: 'Arthur', avatarUrl: null }, context: { project, goals: [goal], shareScope: 'project', viewerRole: 'owner' }, capabilities: { canView: true, canEdit: true, canDelete: true, canChangeShare: true },
+    }) });
+    if (path === '/api/entries/context') return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ goals: [{ ...goal, category: 'Work & Money', status: 'active', milestones: [] }] }) });
     if (path === '/api/profile') return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ profile: { id: viewerId, displayName: 'Arthur' } }) });
     return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ data: [], entries: [], items: [] }) });
   });
@@ -109,7 +115,7 @@ test('Notes library visual states', async ({ page }) => {
 
   await page.getByRole('tab', { name: 'Shared with Me', exact: true }).click();
   await page.getByRole('link', { name: 'Open Note Beta synthesis' }).click();
-  await expect(page.getByText('View only', { exact: true })).toBeVisible();
+  await expect(page.getByText('VIEW ONLY', { exact: true })).toBeVisible();
   await page.screenshot({ path: `${screenshots}/shared-note-read-only-light.png`, fullPage: true });
 });
 
@@ -121,4 +127,16 @@ test('Notes library dark and narrow layouts', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Notes', exact: true })).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   await page.screenshot({ path: `${screenshots}/my-library-narrow-dark.png`, fullPage: true });
+});
+
+test('Note workspace formatting controls have polished states and discoverable labels', async ({ page }) => {
+  await installPreview(page, 'light');
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/notes/note-1', { waitUntil: 'domcontentloaded', timeout: 240_000 });
+  await expect(page.getByRole('toolbar', { name: 'Note formatting', exact: true })).toBeVisible();
+  const bold = page.getByRole('button', { name: 'Bold (⌘/Ctrl+B)', exact: true });
+  await expect(bold).toBeVisible();
+  await bold.hover();
+  await page.waitForTimeout(180);
+  await page.screenshot({ path: resolve(process.cwd(), 'docs/ui-checkpoints/projects-notes-polish/note-formatting-toolbar-light.png') });
 });

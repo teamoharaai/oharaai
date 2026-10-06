@@ -14,10 +14,10 @@ export async function uploadNoteImage(
   entryId: string,
   file: Blob & { name?: string },
 ): Promise<{ storagePath: string; alt: string }> {
-  if (!file.type.startsWith('image/')) throw new Error('Choose an image file');
-  if (file.size > 10 * 1024 * 1024) throw new Error('Images must be 10 MB or smaller');
+  if (!file.type.startsWith('image/')) throw new Error('Choose an image file.');
+  if (file.size > 10 * 1024 * 1024) throw new Error('Images must be 10 MB or smaller.');
   const { data: auth, error: authError } = await supabase.auth.getUser();
-  if (authError || !auth.user) throw new Error('Sign in to insert an image');
+  if (authError || !auth.user) throw new Error('Sign in to insert an image.');
   const imageId = createReferenceId('image').replace('image-', '');
   const storagePath = `${auth.user.id}/${entryId}/${imageId}.${extensionForFile(file)}`;
   const { error } = await supabase.storage

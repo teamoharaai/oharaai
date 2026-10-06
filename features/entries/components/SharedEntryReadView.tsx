@@ -53,7 +53,7 @@ export function SharedEntryReadView({
       <View style={{ flex: 1 }} />
       <View style={{ alignItems: 'center', backgroundColor: colors.background.selectedRow, borderRadius: RADIUS.round, flexDirection: 'row', gap: SPACE.xs, paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm }}>
         <Ionicons color={colors.text.accent} name="eye-outline" size={15} />
-        <Typography variant="caption" style={{ color: colors.text.accent }}>View only</Typography>
+        <Typography variant="micro-label" style={{ color: colors.text.accent }}>VIEW ONLY</Typography>
       </View>
     </View>
   );

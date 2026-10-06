@@ -45,7 +45,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
 
   createProject: async (payload) => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
+    if (!user) throw new Error('Sign in to view Projects.');
 
     const project = await createCollaborativeProject({
       title: payload.title,

@@ -16,6 +16,6 @@ async function handleGet(
     const library = await getJournalLibrary(createAuthedClient(auth.accessToken), auth.userId);
     return Response.json(library, { headers: { 'Cache-Control': 'private, no-store' } });
   } catch {
-    return Response.json({ error: 'Journal could not be loaded' }, { status: 500 });
+    return Response.json({ error: 'Journal could not be loaded.' }, { status: 500 });
   }
 }

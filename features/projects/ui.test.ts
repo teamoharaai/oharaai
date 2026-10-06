@@ -5,6 +5,7 @@ import test from 'node:test';
 
 const landing = readFileSync(resolve(process.cwd(), 'app/(app)/projects/index.tsx'), 'utf8');
 const projectCard = readFileSync(resolve(process.cwd(), 'features/projects/components/ProjectCard.tsx'), 'utf8');
+const typography = readFileSync(resolve(process.cwd(), 'components/ui/Typography.tsx'), 'utf8');
 const workspace = readFileSync(resolve(process.cwd(), 'app/(app)/projects/[id].tsx'), 'utf8');
 const vault = readFileSync(resolve(process.cwd(), 'features/projects/components/ProjectVaultWorkspace.tsx'), 'utf8');
 const nav = readFileSync(resolve(process.cwd(), 'components/layout/AppNavigation.tsx'), 'utf8');
@@ -42,6 +43,29 @@ test('Projects landing uses fixed responsive column tracks instead of content-si
   assert.doesNotMatch(projectCard, /flexBasis: 380|flexGrow: 1|maxWidth: 520/);
   assert.match(projectCard, /minWidth: 0[\s\S]*width: width \?\? '100%'/);
   assert.match(projectCard, /maxWidth: '100%'[\s\S]*numberOfLines=\{1\}/);
+});
+
+test('Projects landing offers color-preserving Grid and List views', () => {
+  assert.match(landing, /type ProjectView = 'grid' \| 'list'/);
+  assert.match(landing, /accessibilityLabel="Grid view"|label: 'Grid view'/);
+  assert.match(landing, /accessibilityLabel="List view"|label: 'List view'/);
+  assert.match(landing, /accessibilityRole="toolbar"/);
+  assert.match(landing, /accessibilityState=\{\{ selected \}\}/);
+  assert.match(landing, /option\.label\}\$\{selected \? ', selected' : ''\}/);
+  assert.match(landing, /<ProjectListRow/);
+  assert.match(projectCard, /export function ProjectListRow/);
+  assert.match(projectCard, /projectCategoryPresentation\(project\.visualCategory, colors\)/);
+  assert.match(projectCard, /backgroundColor: accent\.bg/);
+  assert.match(projectCard, /<Typography numberOfLines=\{1\} variant="emphasis-sm"/);
+});
+
+test('metric and supporting labels use one uppercase caption treatment', () => {
+  assert.match(typography, /'micro-label': \{[\s\S]*textTransform: 'uppercase'/);
+  for (const label of ['ACTIVE GOALS', 'VAULT ITEMS', 'LAST ACTIVITY']) {
+    assert.match(projectCard, new RegExp(`variant="micro-label">${label}`));
+  }
+  assert.match(landing, /Project Invitations/);
+  assert.doesNotMatch(landing, /No Projects yet\./);
 });
 
 test('workspace contains approved overview and owner-only Vault hierarchy', () => {
@@ -156,7 +180,7 @@ test('Goal context tolerates older partial Momentum projections', () => {
 });
 
 test('collaboration UI exposes modes, bounded membership, responsibility, and contextual comments', () => {
-  for (const label of ['Personal', 'Team', 'OHARA Guide', 'Goal Lead', 'Invite to Project', 'Invite Guide', 'Access / Mode']) assert.match(manage, new RegExp(label));
+  for (const label of ['Personal', 'Team', 'OHARA Guide', 'GOAL LEAD', 'Invite to Project', 'Invite Guide', 'Access / Mode']) assert.match(manage, new RegExp(label));
   assert.match(manage, /PROJECT_MEMBER_LIMIT/);
   assert.match(manage, /assignProjectMilestone/);
   assert.doesNotMatch(manage, /createProjectComment/);

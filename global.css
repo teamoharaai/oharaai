@@ -128,17 +128,17 @@ body {
 
 .ohara-editor-toolbar {
   align-items: center;
-  background: var(--ohara-editor-surface);
+  background: var(--ohara-editor-workspace);
   border-bottom: 1px solid var(--ohara-editor-border);
   box-sizing: border-box;
   display: flex;
   flex: 0 0 auto;
-  gap: 2px;
+  gap: 4px;
   max-width: 100%;
   min-height: 56px;
   min-width: 0;
   overflow: visible;
-  padding: 7px 18px;
+  padding: 8px 18px;
   position: sticky;
   top: 0;
   z-index: 5;
@@ -155,8 +155,8 @@ body {
 .ohara-editor-tool,
 .ohara-editor-style-select {
   align-items: center;
-  background: transparent;
-  border: 0;
+  background: var(--ohara-editor-surface);
+  border: 1px solid transparent;
   border-radius: 8px;
   color: var(--ohara-editor-secondary);
   cursor: pointer;
@@ -171,6 +171,7 @@ body {
 }
 
 .ohara-editor-style-select {
+  border-color: var(--ohara-editor-border);
   color: var(--ohara-editor-primary);
   font-weight: 500;
   min-width: 118px;
@@ -180,7 +181,41 @@ body {
 .ohara-editor-tool.is-active,
 .ohara-editor-style-select:hover {
   background: var(--ohara-editor-selected);
+  border-color: color-mix(in srgb, var(--ohara-editor-accent) 28%, var(--ohara-editor-border));
   color: var(--ohara-editor-accent);
+}
+
+.ohara-editor-tool {
+  position: relative;
+}
+
+.ohara-editor-tool::after {
+  background: var(--ohara-editor-primary);
+  border-radius: 6px;
+  color: var(--ohara-editor-surface);
+  content: attr(data-tooltip);
+  font-family: var(--ohara-font-ui-medium);
+  font-size: 11px;
+  left: 50%;
+  line-height: 16px;
+  max-width: 220px;
+  opacity: 0;
+  padding: 5px 8px;
+  pointer-events: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  transform: translate(-50%, -3px);
+  transition: opacity 120ms ease, transform 120ms ease;
+  visibility: hidden;
+  white-space: nowrap;
+  z-index: 30;
+}
+
+.ohara-editor-tool:hover::after,
+.ohara-editor-tool:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  visibility: visible;
 }
 
 .ohara-editor-tool[aria-pressed="true"] {
@@ -868,6 +903,10 @@ body {
   .ohara-editor-toolbar {
     min-height: 52px;
     padding: 6px 10px;
+  }
+
+  .ohara-editor-tool::after {
+    display: none;
   }
 
   .ohara-editor-page {

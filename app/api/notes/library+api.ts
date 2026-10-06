@@ -30,6 +30,6 @@ async function handleGet(
     console.error('[notes/library] GET failed', {
       error: error instanceof Error ? error.message : 'unknown',
     });
-    return Response.json({ error: 'Notes library could not be loaded' }, { status: 500 });
+    return Response.json({ error: 'Notes library could not be loaded.' }, { status: 500 });
   }
 }

@@ -35,7 +35,7 @@ function hydrateEntryDetail(detail: SerializedEntryDetail): EntryDetailDto {
 
 async function responseBody<T>(response: Response): Promise<T> {
   const body = await response.json() as T & { error?: string };
-  if (!response.ok) throw new Error(body.error || 'Entry request failed');
+  if (!response.ok) throw new Error(body.error || 'Entry request failed.');
   return body;
 }
 
@@ -127,10 +127,10 @@ export async function updateEntry(entryId: string, draft: EntryDraft): Promise<E
 export async function deleteEntry(entryId: string): Promise<void> {
   const response = await authedFetch(`/api/entries/library/${entryId}`, { method: 'DELETE' });
   if (!response.ok && response.status !== 404) {
-    const body = await response.json().catch(() => ({ error: 'Could not delete entry' })) as {
+    const body = await response.json().catch(() => ({ error: 'Could not delete entry.' })) as {
       error?: string;
     };
-    throw new Error(body.error || 'Could not delete entry');
+    throw new Error(body.error || 'Could not delete entry.');
   }
 }
 

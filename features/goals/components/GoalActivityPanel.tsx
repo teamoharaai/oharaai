@@ -105,9 +105,9 @@ function DayTooltip({ slot, colors }: { slot: CalendarDaySlot; colors: ThemeColo
         {dateLabel}
       </Typography>
       {slot.isFuture ? (
-        <Typography variant="caption" style={{ color: colors.text.muted }}>Upcoming</Typography>
+        <Typography variant="micro-label" style={{ color: colors.text.muted }}>UPCOMING</Typography>
       ) : slot.count === 0 ? (
-        <Typography variant="caption" style={{ color: colors.text.muted }}>No activity</Typography>
+        <Typography variant="micro-label" style={{ color: colors.text.muted }}>NO ACTIVITY</Typography>
       ) : (
         GOAL_ACTIVITY_KIND_ORDER.map((kind) => {
           const value = slot.byKind[kind];

@@ -115,9 +115,9 @@ export async function createProject(payload: {
     p_mode: 'personal', p_goal_ids: [],
     p_allow_reassignment: false,
   });
-  if (error || !id) throw new Error(error?.message ?? 'Failed to create project');
+  if (error || !id) throw new Error(error?.message ?? 'Project could not be created.');
   const { data, error: readError } = await supabase.from('projects').select(PROJECT_SELECT).eq('id', id).single();
-  if (readError || !data) throw new Error(readError?.message ?? 'Failed to read project');
+  if (readError || !data) throw new Error(readError?.message ?? 'Created Project could not be loaded.');
   return data as Project;
 }
 
@@ -126,9 +126,9 @@ export async function createProjectWithGoals(payload: { title: string; descripti
     p_title: payload.title.trim(), p_description: payload.description?.trim() || null,
     p_mode: 'personal', p_goal_ids: payload.goalIds, p_allow_reassignment: payload.allowReassignment,
   });
-  if (error || !id) throw new Error(error?.message ?? 'Failed to create project');
+  if (error || !id) throw new Error(error?.message ?? 'Project could not be created.');
   const { data, error: readError } = await supabase.from('projects').select(PROJECT_SELECT).eq('id', id).single();
-  if (readError || !data) throw new Error(readError?.message ?? 'Failed to read project');
+  if (readError || !data) throw new Error(readError?.message ?? 'Created Project could not be loaded.');
   return data as Project;
 }
 
@@ -137,9 +137,9 @@ export async function createCollaborativeProject(payload: { title: string; descr
     p_title: payload.title.trim(), p_description: payload.description?.trim() || null,
     p_mode: payload.mode, p_goal_ids: payload.goalIds, p_allow_reassignment: payload.allowReassignment,
   });
-  if (error || !id) throw new Error(error?.message ?? 'Failed to create Project');
+  if (error || !id) throw new Error(error?.message ?? 'Project could not be created.');
   const { data, error: readError } = await supabase.from('projects').select(PROJECT_SELECT).eq('id', id).single();
-  if (readError || !data) throw new Error(readError?.message ?? 'Failed to read Project');
+  if (readError || !data) throw new Error(readError?.message ?? 'Created Project could not be loaded.');
   return data as Project;
 }
 
@@ -233,7 +233,7 @@ async function fetchProjectTaskPreviews(goals: GoalWithDetails[]) {
 
 export async function fetchProjectCollaboration(projectId: string): Promise<ProjectCollaboration> {
   const { data, error } = await supabase.rpc('get_project_collaboration_v11', { p_project_id: projectId });
-  if (error || !data) throw new Error(error?.message ?? 'Project members could not be loaded');
+  if (error || !data) throw new Error(error?.message ?? 'Project members could not be loaded.');
   return data as unknown as ProjectCollaboration;
 }
 
@@ -351,7 +351,7 @@ export async function setProjectMode(projectId: string, mode: ProjectMode): Prom
 export async function updateProjectDetails(projectId:string,title:string,description:string):Promise<void>{ const {error}=await supabase.rpc('update_project_details_v11',{p_project_id:projectId,p_title:title,p_description:description}); if(error) throw new Error(error.message); }
 export async function fetchIncomingProjectInvitations(): Promise<IncomingProjectInvitation[]> { const { data, error } = await supabase.rpc('get_my_project_invitations_v11'); if (error) throw new Error(error.message); return ((data ?? []) as any[]).map((row) => ({ id:row.id,projectId:row.project_id,projectTitle:row.project_title,inviterName:row.inviter_name,role:row.role,relationshipLabel:row.relationship_label,expiresAt:row.expires_at,createdAt:row.created_at })); }
 export async function inviteProjectMember(projectId:string,userId:string,role:Exclude<ProjectRole,'owner'>,relationshipLabel?:string):Promise<void>{ const {error}=await supabase.rpc('create_project_invitation_v11',{p_project_id:projectId,p_invited_user_id:userId,p_invited_email:null,p_role:role,p_relationship_label:relationshipLabel??null}); if(error) throw new Error(error.message); }
-export async function respondProjectInvitation(invitationId:string,response:'accepted'|'declined'):Promise<string>{ const {data,error}=await supabase.rpc('respond_project_invitation_v11',{p_invitation_id:invitationId,p_response:response}); if(error||!data) throw new Error(error?.message??'Invitation could not be updated'); return data as string; }
+export async function respondProjectInvitation(invitationId:string,response:'accepted'|'declined'):Promise<string>{ const {data,error}=await supabase.rpc('respond_project_invitation_v11',{p_invitation_id:invitationId,p_response:response}); if(error||!data) throw new Error(error?.message??'Invitation could not be updated.'); return data as string; }
 export async function revokeProjectInvitation(invitationId:string):Promise<void>{ const {error}=await supabase.rpc('revoke_project_invitation_v11',{p_invitation_id:invitationId}); if(error) throw new Error(error.message); }
 export async function setProjectMemberRole(projectId:string,userId:string,role:Exclude<ProjectRole,'owner'>,label?:string):Promise<void>{ const {error}=await supabase.rpc('set_project_member_role_v11',{p_project_id:projectId,p_user_id:userId,p_role:role,p_label:label??null}); if(error) throw new Error(error.message); }
 export async function removeProjectMember(projectId:string,userId:string):Promise<void>{ const {error}=await supabase.rpc('remove_project_member_v11',{p_project_id:projectId,p_user_id:userId}); if(error) throw new Error(error.message); }
@@ -390,7 +390,7 @@ export async function updateProject(
     .select(PROJECT_SELECT)
     .single();
 
-  if (error || !data) throw new Error(error?.message ?? 'Failed to update project');
+  if (error || !data) throw new Error(error?.message ?? 'Project could not be updated.');
   return data as Project;
 }
 

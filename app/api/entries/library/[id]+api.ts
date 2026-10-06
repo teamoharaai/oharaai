@@ -150,7 +150,7 @@ async function handleDelete(
       : Response.json({ error: 'Not found' }, { status: 404 });
   } catch (error) {
     if (isEchoOwnedError(error)) return echoOwnedResponse();
-    return Response.json({ error: 'Could not delete entry' }, { status: 500 });
+    return Response.json({ error: 'Could not delete entry.' }, { status: 500 });
   }
 }
 

@@ -137,8 +137,8 @@ export function ManageGoalControl({ goal, superseded, onComplete, onArchive, onO
           <View style={{ gap: SPACE.md }}>
             <FieldLabel>Dates</FieldLabel>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE['3xl'] }}>
-              <View><Typography variant="caption">Started</Typography><Typography variant="body">{formatDate(goal.createdAt)}</Typography></View>
-              <View><Typography variant="caption">End date</Typography><Typography variant="body">{formatDate(goal.deadline)}</Typography></View>
+              <View><Typography variant="micro-label">STARTED</Typography><Typography variant="body">{formatDate(goal.createdAt)}</Typography></View>
+              <View><Typography variant="micro-label">END DATE</Typography><Typography variant="body">{formatDate(goal.deadline)}</Typography></View>
             </View>
             <Button disabled={busy || superseded || goal.status === 'archived'} variant="secondary" onPress={() => { setOpen(false); onEditDeadline(); }}>Edit end date</Button>
           </View>

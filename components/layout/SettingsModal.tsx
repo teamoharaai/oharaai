@@ -221,7 +221,7 @@ export function SettingsPane({ active, onClose }: SettingsPaneProps) {
                     >
                       {goal.title}
                     </Typography>
-                    <Typography variant="caption">Archived goal</Typography>
+                    <Typography variant="micro-label">ARCHIVED GOAL</Typography>
                   </View>
                   <Typography variant="caption" style={{ fontSize: 17 }}>›</Typography>
                 </Pressable>

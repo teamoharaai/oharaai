@@ -22,6 +22,7 @@
     "test:retirement": "node --experimental-strip-types --test features/goals/sticky-retirement.test.ts",
     "test:auth": "node --experimental-strip-types --test features/auth/internal-release.test.ts features/auth/internal-release-ui.test.ts",
     "test:projects": "node --experimental-strip-types --test features/intelligence/contextual-insights.test.ts features/projects/model.test.ts features/projects/intelligence.test.ts features/projects/security.test.ts features/projects/ui.test.ts",
+    "test:projects:landing": "playwright test --config tests/projects/landing.playwright.config.ts",
     "test:projects:db": "bash scripts/test-projects-v1-security.sh",
     "test:projects:v11:db": "bash scripts/test-projects-v11-security.sh",
     "test:momentum": "node --experimental-strip-types --test features/momentum/engine.test.ts features/momentum/time.test.ts features/momentum/normalization.test.ts features/momentum/service.test.ts features/momentum/security.test.ts features/momentum/trust-boundary.test.ts features/momentum/refresh.test.ts features/momentum/local-target.test.ts features/momentum/task-adapter.test.ts",

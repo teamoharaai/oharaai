@@ -73,7 +73,7 @@ export async function exportEntryPdf(
     goals?: ReadonlyArray<{ id: string; title: string }>;
   },
 ): Promise<void> {
-  if (typeof document === 'undefined') throw new Error('PDF export is available on web');
+  if (typeof document === 'undefined') throw new Error('PDF export is available on web.');
   const pdf = await createNotePdf({
     title,
     plainText,
@@ -85,7 +85,7 @@ export async function exportEntryPdf(
 }
 
 export function exportEntryText(title: string, plainText: string): void {
-  if (typeof document === 'undefined') throw new Error('Text export is available on web');
+  if (typeof document === 'undefined') throw new Error('Text export is available on web.');
   downloadBlob(
     new Blob([`${title || 'Untitled entry'}\n\n${plainText}`], { type: 'text/plain;charset=utf-8' }),
     safeFilename(title, 'txt'),
@@ -93,6 +93,6 @@ export function exportEntryText(title: string, plainText: string): void {
 }
 
 export async function copyEntryText(title: string, plainText: string): Promise<void> {
-  if (!navigator?.clipboard) throw new Error('Clipboard access is unavailable');
+  if (!navigator?.clipboard) throw new Error('Clipboard access is unavailable.');
   await navigator.clipboard.writeText(`${title || 'Untitled entry'}\n\n${plainText}`);
 }

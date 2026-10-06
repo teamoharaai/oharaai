@@ -7,11 +7,12 @@ import { LAYOUT, RADIUS, SPACE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
 import supabase from '@/lib/db/client';
 import { fetchIncomingProjectInvitations, fetchProjectSummaries, respondProjectInvitation } from '@/features/projects/services/project-service';
-import { ProjectCard } from '@/features/projects/components/ProjectCard';
+import { ProjectCard, ProjectListRow } from '@/features/projects/components/ProjectCard';
 import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal';
 import type { IncomingProjectInvitation, ProjectStatus, ProjectSummary } from '@/features/projects/types';
 
 type Filter = 'all' | ProjectStatus;
+type ProjectView = 'grid' | 'list';
 
 export default function ProjectsScreen() {
   const colors = useThemeColors();
@@ -23,6 +24,7 @@ export default function ProjectsScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
+  const [view, setView] = useState<ProjectView>('grid');
   const [search, setSearch] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [invitations, setInvitations] = useState<IncomingProjectInvitation[]>([]);
@@ -60,16 +62,27 @@ export default function ProjectsScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACE.xs }}>
           {(['all', 'active', 'complete', 'archived'] as Filter[]).map((value) => <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: filter === value }} onPress={() => setFilter(value)} style={{ backgroundColor: filter === value ? colors.accent.primary : 'transparent', borderColor: colors.border.divider, borderRadius: RADIUS.round, borderWidth: 1, minWidth: 82, paddingHorizontal: 14, paddingVertical: 9 }}><Typography variant="emphasis-sm" style={{ color: filter === value ? colors.text.onAccent : colors.text.secondary, textAlign: 'center' }}>{value === 'all' ? 'All' : value === 'complete' ? 'Completed' : value[0].toUpperCase() + value.slice(1)}</Typography></Pressable>)}
         </ScrollView>
-        <View style={{ alignItems: 'center', backgroundColor: colors.background.input, borderColor: colors.border.input, borderRadius: RADIUS.md, borderWidth: 1, flexDirection: 'row', gap: SPACE.md, minWidth: compact ? 0 : 280, paddingHorizontal: SPACE.lg }}><Ionicons color={colors.text.muted} name="search-outline" size={18} /><TextInput accessibilityLabel="Search Projects" placeholder="Search Projects…" placeholderTextColor={colors.text.muted} value={search} onChangeText={setSearch} style={{ color: colors.text.primary, flex: 1, minHeight: 44 }} /></View>
+        <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}>
+          <View accessibilityLabel="Project view" accessibilityRole="toolbar" style={{ alignItems: 'center', backgroundColor: colors.background.input, borderColor: colors.border.input, borderRadius: RADIUS.md, borderWidth: 1, flexDirection: 'row', padding: 3 }}>
+            {([
+              { id: 'grid', icon: 'grid-outline', label: 'Grid view' },
+              { id: 'list', icon: 'list-outline', label: 'List view' },
+            ] as const).map((option) => {
+              const selected = view === option.id;
+              return <Pressable key={option.id} accessibilityLabel={`${option.label}${selected ? ', selected' : ''}`} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => setView(option.id)} style={({ pressed }) => ({ alignItems: 'center', backgroundColor: selected ? colors.background.card : 'transparent', borderRadius: RADIUS.sm, height: 38, justifyContent: 'center', opacity: pressed ? 0.7 : 1, width: 42 })}><Ionicons color={selected ? colors.accent.primary : colors.text.secondary} name={option.icon} size={19} /></Pressable>;
+            })}
+          </View>
+          <View style={{ alignItems: 'center', backgroundColor: colors.background.input, borderColor: colors.border.input, borderRadius: RADIUS.md, borderWidth: 1, flex: 1, flexDirection: 'row', gap: SPACE.md, minWidth: compact ? 0 : 280, paddingHorizontal: SPACE.lg }}><Ionicons color={colors.text.muted} name="search-outline" size={18} /><TextInput accessibilityLabel="Search Projects" placeholder="Search Projects…" placeholderTextColor={colors.text.muted} value={search} onChangeText={setSearch} style={{ color: colors.text.primary, flex: 1, minHeight: 44 }} /></View>
+        </View>
       </View>
       {invitations.length ? <View style={{ backgroundColor: colors.background.selectedRow, borderColor: colors.border.accent, borderRadius: RADIUS.xl, borderWidth: 1, gap: SPACE.lg, padding: SPACE.xl }}>
-        <Typography variant="section-header">Project invitations</Typography>
+        <Typography variant="section-header">Project Invitations</Typography>
         {invitations.map((invitation) => <View key={invitation.id} style={{ alignItems: compact ? 'stretch' : 'center', borderBottomColor: colors.border.divider, borderBottomWidth: 1, flexDirection: compact ? 'column' : 'row', gap: SPACE.md, justifyContent: 'space-between', paddingBottom: SPACE.md }}>
           <View style={{ flex: 1 }}><Typography variant="emphasis-sm">{invitation.projectTitle}</Typography><Typography variant="caption">{invitation.inviterName} invited you as {invitation.relationshipLabel || invitation.role}.</Typography></View>
           <View style={{ flexDirection: 'row', gap: SPACE.sm }}><Button size="compact" disabled={inviteBusy === invitation.id} onPress={() => void respond(invitation.id, 'accepted')}>Accept</Button><Button size="compact" variant="secondary" disabled={inviteBusy === invitation.id} onPress={() => void respond(invitation.id, 'declined')}>Decline</Button></View>
         </View>)}
       </View> : null}
-      {loading ? <ActivityIndicator color={colors.accent.primary} /> : error ? <View style={{ alignItems: 'center', gap: SPACE.lg, padding: SPACE['4xl'] }}><Typography variant="body">{error}</Typography><Button onPress={() => void load()} variant="secondary">Retry</Button></View> : visible.length ? <View
+      {loading ? <ActivityIndicator color={colors.accent.primary} /> : error ? <View style={{ alignItems: 'center', gap: SPACE.lg, padding: SPACE['4xl'] }}><Typography variant="body">{error}</Typography><Button onPress={() => void load()} variant="secondary">Retry</Button></View> : visible.length ? view === 'grid' ? <View
         accessibilityLabel={`${projectColumns}-column Project grid`}
         onLayout={(event) => setProjectGridWidth(event.nativeEvent.layout.width)}
         style={{ alignItems: 'stretch', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.xl, width: '100%' }}
@@ -79,7 +92,7 @@ export default function ProjectsScreen() {
         width={projectGridWidth > 0
           ? Math.max(0, (projectGridWidth - SPACE.xl * (projectColumns - 1)) / projectColumns)
           : undefined}
-      />)}</View> : <View style={{ alignItems: 'center', borderColor: colors.border.divider, borderRadius: RADIUS.xl, borderStyle: 'dashed', borderWidth: 1, gap: SPACE.md, padding: SPACE['5xl'] }}><Ionicons color={colors.text.muted} name="folder-outline" size={30} /><Typography variant="title">No Projects yet.</Typography><Typography variant="body">Bring related Goals, Notes, and ideas together around what you’re building.</Typography><Button onPress={() => setCreateOpen(true)}>New Project</Button></View>}
+      />)}</View> : <View accessibilityLabel="Project list" style={{ gap: SPACE.sm, width: '100%' }}>{visible.map((project) => <ProjectListRow key={project.id} project={project} />)}</View> : <View style={{ alignItems: 'center', borderColor: colors.border.divider, borderRadius: RADIUS.xl, borderStyle: 'dashed', borderWidth: 1, gap: SPACE.md, padding: SPACE['5xl'] }}><Ionicons color={colors.text.muted} name="folder-outline" size={30} /><Typography variant="title">No Projects yet</Typography><Typography variant="body">Bring related Goals, Notes, and ideas together around what you’re building.</Typography><Button onPress={() => setCreateOpen(true)}>New Project</Button></View>}
     </ScrollView>
     <CreateProjectModal visible={createOpen} onClose={() => { setCreateOpen(false); void load(); }} />
   </>;

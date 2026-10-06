@@ -16,7 +16,7 @@ export function useProjectVault(projectId: string, initialItems: ProjectVaultIte
       if (!response.ok) { const payload = await response.json().catch(() => null) as { error?: string } | null; throw new Error(payload?.error ?? `Project Vault could not load (${response.status})`); }
       const body = await response.json() as { items: ProjectVaultItem[] };
       setItems(body.items);
-    } catch (caught) { setError(caught instanceof Error ? caught.message : 'Project Vault could not load'); }
+    } catch (caught) { setError(caught instanceof Error ? caught.message : 'Project Vault could not load.'); }
     finally { setLoading(false); }
   }, [projectId]);
   const addItem = useCallback(async (payload: { itemType: 'note' | 'link'; contentKind?: 'generic' | 'sticky_note'; title?: string; content?: string; metadata?: VaultItem['metadata']; visibility?: 'private' | 'vault_members' }) => {
@@ -27,13 +27,13 @@ export function useProjectVault(projectId: string, initialItems: ProjectVaultIte
   }, [projectId]);
   const updateItem = useCallback(async (itemId: string, updates: Partial<VaultItem>) => {
     const response = await authedFetch(`/api/vaults/items/${itemId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updates) });
-    if (!response.ok) throw new Error('Vault item could not be updated');
+    if (!response.ok) throw new Error('Vault item could not be updated.');
     const body = await response.json() as { item: VaultItem };
     setItems((current) => current.map((item) => item.id === itemId ? { ...item, ...body.item } : item));
   }, []);
   const removeItem = useCallback(async (itemId: string) => {
     const response = await authedFetch(`/api/vaults/items/${itemId}`, { method: 'DELETE' });
-    if (!response.ok) throw new Error('Vault item could not be removed');
+    if (!response.ok) throw new Error('Vault item could not be removed.');
     setItems((current) => current.filter((item) => item.id !== itemId));
   }, []);
   return { items, loading, error, refresh, addItem, updateItem, removeItem };

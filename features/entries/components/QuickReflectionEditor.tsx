@@ -372,7 +372,7 @@ export function QuickReflectionEditor({
           contentContainerStyle={{ alignItems: 'center', gap: SPACE.md, paddingHorizontal: SPACE['2xl'] }}
           style={{ borderBottomColor: colors.border.divider, borderBottomWidth: 1, flexGrow: 0, minHeight: 52 }}
         >
-          <Typography variant="caption">Linked to</Typography>
+          <Typography variant="micro-label">LINKED TO</Typography>
           {selectedGoals.map((goal) => (
             <View key={goal.id} style={{ backgroundColor: colors.background.selectedRow, borderRadius: RADIUS.round, paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm }}>
               <Typography variant="emphasis-sm">{goal.title}</Typography>

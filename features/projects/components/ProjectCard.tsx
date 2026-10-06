@@ -6,7 +6,7 @@ import { RADIUS, SPACE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
 import type { ProjectSummary, ProjectVisualCategory } from '../types';
 
-function categoryPresentation(category: ProjectVisualCategory, colors: ReturnType<typeof useThemeColors>) {
+export function projectCategoryPresentation(category: ProjectVisualCategory, colors: ReturnType<typeof useThemeColors>) {
   if (category === 'Health & Fitness') return { bg: colors.background.selectedRow, color: colors.accent.primary };
   if (category === 'Work & Money') return { bg: colors.feedback.pending.bg, color: colors.feedback.pending.text };
   if (category === 'Learning & Creativity') return { bg: colors.feedback.info.bg, color: colors.accent.teal };
@@ -14,7 +14,7 @@ function categoryPresentation(category: ProjectVisualCategory, colors: ReturnTyp
   return { bg: colors.background.subtle, color: colors.text.secondary };
 }
 
-function relativeDate(value: string): string {
+export function relativeProjectActivity(value: string): string {
   const days = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86400000));
   if (days === 0) return 'Today';
   if (days === 1) return '1 day ago';
@@ -25,7 +25,7 @@ function relativeDate(value: string): string {
 
 export function ProjectCard({ project, width }: { project: ProjectSummary; width?: number }) {
   const colors = useThemeColors();
-  const accent = categoryPresentation(project.visualCategory, colors);
+  const accent = projectCategoryPresentation(project.visualCategory, colors);
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`Open Project ${project.title}`}
       onPress={() => router.push(`/(app)/projects/${project.id}` as never)}
@@ -42,9 +42,9 @@ export function ProjectCard({ project, width }: { project: ProjectSummary; width
         <Ionicons color={colors.text.muted} name="ellipsis-horizontal" size={18} style={{ flexShrink: 0 }} />
       </View>
       <View style={{ borderBottomColor: colors.border.divider, borderBottomWidth: 1, flexDirection: 'row', flexWrap: 'wrap', gap: SPACE['2xl'], marginTop: SPACE['2xl'], paddingBottom: SPACE.xl }}>
-        <View><Typography variant="emphasis-sm">{project.activeGoalCount}</Typography><Typography variant="caption">Active Goals</Typography></View>
-        <View><Typography variant="emphasis-sm">{project.vaultItemCount}</Typography><Typography variant="caption">Vault Items</Typography></View>
-        <View><Typography variant="emphasis-sm">{relativeDate(project.lastActivityAt)}</Typography><Typography variant="caption">Last Activity</Typography></View>
+        <View><Typography variant="emphasis-sm">{project.activeGoalCount}</Typography><Typography variant="micro-label">ACTIVE GOALS</Typography></View>
+        <View><Typography variant="emphasis-sm">{project.vaultItemCount}</Typography><Typography variant="micro-label">VAULT ITEMS</Typography></View>
+        <View><Typography variant="emphasis-sm">{relativeProjectActivity(project.lastActivityAt)}</Typography><Typography variant="micro-label">LAST ACTIVITY</Typography></View>
       </View>
       <View style={{ gap: SPACE.sm, marginTop: SPACE.lg }}>
         <Typography variant="eyebrow">Goals</Typography>
@@ -52,6 +52,38 @@ export function ProjectCard({ project, width }: { project: ProjectSummary; width
           {project.goalNames.length ? project.goalNames.map((name) => <View key={name} style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider, borderRadius: RADIUS.round, borderWidth: 1, maxWidth: '100%', paddingHorizontal: 12, paddingVertical: 6 }}><Typography numberOfLines={1} variant="caption">{name}</Typography></View>) : <Typography variant="caption">No active Goals yet.</Typography>}
         </View>
       </View>
+    </Pressable>
+  );
+}
+
+export function ProjectListRow({ project }: { project: ProjectSummary }) {
+  const colors = useThemeColors();
+  const accent = projectCategoryPresentation(project.visualCategory, colors);
+  return (
+    <Pressable
+      accessibilityLabel={`Open Project ${project.title}`}
+      accessibilityRole="button"
+      onPress={() => router.push(`/(app)/projects/${project.id}` as never)}
+      style={({ pressed }) => ({
+        alignItems: 'center',
+        alignSelf: 'stretch',
+        backgroundColor: accent.bg,
+        borderColor: colors.border.warmSubtle,
+        borderRadius: RADIUS.lg,
+        borderWidth: 1,
+        flexDirection: 'row',
+        gap: SPACE.lg,
+        minHeight: 64,
+        opacity: pressed ? 0.76 : 1,
+        paddingHorizontal: SPACE.xl,
+        paddingVertical: SPACE.md,
+      })}
+    >
+      <View style={{ alignItems: 'center', backgroundColor: colors.background.card, borderColor: colors.border.divider, borderRadius: RADIUS.md, borderWidth: 1, height: 40, justifyContent: 'center', width: 40 }}>
+        <Ionicons color={accent.color} name="folder-outline" size={21} />
+      </View>
+      <Typography numberOfLines={1} variant="emphasis-sm" style={{ flex: 1 }}>{project.title}</Typography>
+      <Ionicons color={colors.text.muted} name="chevron-forward" size={18} />
     </Pressable>
   );
 }

@@ -762,7 +762,7 @@ export function NoteEditor({
             minHeight: 56,
           }}
         >
-          <Typography variant="label" style={{ fontSize: 14, marginRight: SPACE.xs }}>Linked to:</Typography>
+          <Typography variant="micro-label" style={{ marginRight: SPACE.xs }}>LINKED TO</Typography>
           {selectedGoals.map((goal) => (
             <View
               key={goal.id}

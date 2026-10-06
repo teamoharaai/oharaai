@@ -88,7 +88,7 @@ export function GoalEchoAnalysisCard({
             </View>
           </View>
           <View style={{ width: rowStacked ? '100%' : '16%' }}>
-            <Typography variant="caption" style={{ color: colors.text.muted }}>Goal Momentum</Typography>
+            <Typography variant="micro-label" style={{ color: colors.text.muted }}>GOAL MOMENTUM</Typography>
             <Typography variant="title" style={{ color: colors.text.primary, marginTop: 3 }}>{statusLabel(summary?.status)}</Typography>
             {summary ? <Typography variant="caption">This week · {summary.periodState}</Typography> : null}
           </View>

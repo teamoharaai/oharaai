@@ -86,7 +86,7 @@ const VARIANT_STYLES: Record<Variant, TextStyle> = {
   hint: TYPE.caption,
   description: { ...TYPE.body, fontSize: 15, lineHeight: 23 },
   'badge-text': { ...TYPE.meta, lineHeight: 16 },
-  'micro-label': TYPE.meta,
+  'micro-label': { ...TYPE.meta, letterSpacing: 0.8, textTransform: 'uppercase' },
   'card-title': TYPE.cardTitle,
   'card-description': TYPE.bodySmall,
   'goal-title': TYPE.cardTitle,

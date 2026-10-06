@@ -4,9 +4,9 @@ import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function folderName(value: unknown): string {
-  if (typeof value !== 'string') throw new Error('Folder name is required');
+  if (typeof value !== 'string') throw new Error('Folder name is required.');
   const name = value.trim();
-  if (!name || name.length > 80) throw new Error('Folder name must be between 1 and 80 characters');
+  if (!name || name.length > 80) throw new Error('Folder name must be between 1 and 80 characters.');
   return name;
 }
 
@@ -33,9 +33,9 @@ async function handlePost(request: Request, _params: Record<string, string>, aut
     }
     return Response.json({ folder: { id: data.id, name: data.name, sortOrder: data.sort_order, createdAt: data.created_at, updatedAt: data.updated_at } }, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Folder could not be created';
+    const message = error instanceof Error ? error.message : 'Folder could not be created.';
     const status = /required|between/i.test(message) ? 400 : 500;
-    return Response.json({ error: status === 400 ? message : 'Folder could not be created' }, { status });
+    return Response.json({ error: status === 400 ? message : 'Folder could not be created.' }, { status });
   }
 }
 
@@ -77,9 +77,9 @@ async function handlePatch(request: Request, _params: Record<string, string>, au
     }
     return Response.json({ error: 'Folder action is invalid' }, { status: 400 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Folder could not be updated';
+    const message = error instanceof Error ? error.message : 'Folder could not be updated.';
     const status = /invalid|required|between/i.test(message) ? 400 : 500;
-    return Response.json({ error: status === 400 ? message : 'Folder could not be updated' }, { status });
+    return Response.json({ error: status === 400 ? message : 'Folder could not be updated.' }, { status });
   }
 }
 
@@ -98,7 +98,7 @@ async function handleDelete(request: Request, _params: Record<string, string>, a
     if (error) throw error;
     return new Response(null, { status: 204 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Folder could not be deleted';
-    return Response.json({ error: /invalid/i.test(message) ? message : 'Folder could not be deleted' }, { status: /invalid/i.test(message) ? 400 : 500 });
+    const message = error instanceof Error ? error.message : 'Folder could not be deleted.';
+    return Response.json({ error: /invalid/i.test(message) ? message : 'Folder could not be deleted.' }, { status: /invalid/i.test(message) ? 400 : 500 });
   }
 }
