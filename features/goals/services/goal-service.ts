@@ -1,5 +1,6 @@
 import supabase from '@/lib/db/client';
 import { authedFetch } from '@/lib/api/client';
+import { hasClientCutover } from '@/lib/goals/client-cutover';
 import { productCategory } from '@/lib/goals/product-categories';
 import { fetchLatestReflectionTimestamps } from '@/lib/db/echo-entry-links';
 import { getSuccessorGoalId, getSuccessorGoalIds } from '@/lib/db/goals';
@@ -640,12 +641,97 @@ export async function deleteTracker(goalId: string, trackerId: string): Promise<
   return false;
 }
 
+// ── TD-005 B6/B7: Milestone writes behind the milestone_work_v1 account allowlist ──────────────────
+// Flag off (the default): the direct RLS writes below, unchanged. Flag on: goal_work_v1 through
+// /api/goals/work-v1 (Plane B), which enforces lifecycle/hierarchy rules and leaves a receipt. The
+// return value is always read back from the plain `milestones` row (mapMilestone), so callers see the
+// same shape either way; goal_work_v1's own DTO omits createdAt/updatedAt/sortOrder.
+
+type GoalWorkMutateResult = { state: string; reason: string | null; milestone: { id: string } | null };
+
+async function mutateGoalWork(
+  goalId: string,
+  operationType: string,
+  extra: Record<string, unknown>,
+): Promise<GoalWorkMutateResult | null> {
+  try {
+    const res = await authedFetch('/api/goals/work-v1?action=mutate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        operationId: crypto.randomUUID(),
+        operationType,
+        contractVersion: 1,
+        goalId,
+        ...extra,
+      }),
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { ok: boolean; data?: GoalWorkMutateResult };
+    return body.ok ? body.data ?? null : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The exact revision string goal_work_v1 expects back on milestone.update, read fresh (not derived
+ * client-side: the DTO's revision is a microsecond-precision hash of updated_at that a JS Date can't
+ * reconstruct). Searches both top-level items and their children across every page. */
+async function findMilestoneRevision(goalId: string, milestoneId: string): Promise<string | null> {
+  let cursor: string | null = null;
+  for (let page = 0; page < 10; page += 1) {
+    const params = new URLSearchParams({ action: 'milestones', goalId });
+    if (cursor) params.set('cursor', cursor);
+    let res: Response;
+    try {
+      res = await authedFetch(`/api/goals/work-v1?${params.toString()}`);
+    } catch {
+      return null;
+    }
+    if (!res.ok) return null;
+    const body = (await res.json()) as {
+      ok: boolean;
+      data?: { items?: Array<{ id: string; revision: string; children?: Array<{ id: string; revision: string }> }>; hasMore?: boolean; nextCursor?: string | null };
+    };
+    if (!body.ok || !body.data) return null;
+    for (const item of body.data.items ?? []) {
+      if (item.id === milestoneId) return item.revision;
+      const child = item.children?.find((c) => c.id === milestoneId);
+      if (child) return child.revision;
+    }
+    if (!body.data.hasMore || !body.data.nextCursor) return null;
+    cursor = body.data.nextCursor;
+  }
+  return null;
+}
+
+async function readMilestoneRow(milestoneId: string): Promise<GoalMilestone | null> {
+  const { data, error } = await supabase.from('milestones').select().eq('id', milestoneId).maybeSingle();
+  if (error || !data) return null;
+  return mapMilestone(data as unknown as DbMilestone);
+}
+
 export async function createMilestone(
   goalId: string,
   userId: string,
   input: GoalMilestoneInput,
 ): Promise<GoalMilestone | null> {
   if (!await canWriteGoal(goalId)) return null;
+
+  if (await hasClientCutover('milestone_work_v1')) {
+    const result = await mutateGoalWork(goalId, 'milestone.create', {
+      parentId: input.parentId ?? null,
+      fields: {
+        title: input.title.trim(),
+        description: input.description?.trim() || null,
+        dueDate: input.dueDate ? input.dueDate.toISOString().slice(0, 10) : null,
+        targetCount: input.targetCount ?? null,
+        isAiSuggested: input.isAiSuggested ?? false,
+      },
+    });
+    if (result?.state !== 'committed' || !result.milestone) return null;
+    return readMilestoneRow(result.milestone.id);
+  }
 
   const { data, error } = await supabase
     .from('milestones')
@@ -676,6 +762,28 @@ export async function updateMilestone(
 ): Promise<GoalMilestone | null> {
   if (!await canWriteGoal(goalId)) return null;
 
+  // milestone.update has no field for kind or sortOrder (reorder is a separate action with no desktop
+  // caller yet); those changes always take the direct path even when the account is cut over.
+  const supportedByWorkV1 = updates.kind === undefined && updates.sortOrder === undefined;
+  if (supportedByWorkV1 && await hasClientCutover('milestone_work_v1')) {
+    const changes: Record<string, unknown> = {};
+    if (updates.title !== undefined) changes.title = updates.title.trim();
+    if ('description' in updates) changes.description = updates.description?.trim() || null;
+    if ('dueDate' in updates) changes.dueDate = updates.dueDate ? updates.dueDate.toISOString().slice(0, 10) : null;
+    if ('targetCount' in updates) changes.targetCount = updates.targetCount ?? null;
+    if ('photoUrl' in updates) changes.photoPath = updates.photoUrl ?? null;
+
+    if (Object.keys(changes).length > 0) {
+      const revision = await findMilestoneRevision(goalId, milestoneId);
+      // No revision found (e.g. a row the read action can't see) is safe to fall through on: nothing
+      // has been written yet. Once mutateGoalWork is called, its outcome is final either way.
+      if (revision) {
+        const result = await mutateGoalWork(goalId, 'milestone.update', { milestoneId, expectedRevision: revision, changes });
+        return result?.state === 'committed' ? readMilestoneRow(milestoneId) : null;
+      }
+    }
+  }
+
   const patch: Record<string, unknown> = {};
   if (updates.title !== undefined) patch.title = updates.title.trim();
   if ('description' in updates) patch.description = updates.description?.trim() || null;
@@ -704,6 +812,11 @@ export async function completeMilestone(
 ): Promise<GoalMilestone | null> {
   if (!await canWriteGoal(goalId)) return null;
 
+  if (await hasClientCutover('milestone_work_v1')) {
+    const result = await mutateGoalWork(goalId, 'milestone.complete', { milestoneId });
+    return result?.state === 'committed' ? readMilestoneRow(milestoneId) : null;
+  }
+
   const { data, error } = await supabase
     .from('milestones')
     .update({ completed_at: new Date().toISOString() })
@@ -718,6 +831,11 @@ export async function completeMilestone(
 
 export async function deleteMilestone(goalId: string, milestoneId: string): Promise<boolean> {
   if (!await canWriteGoal(goalId)) return false;
+
+  if (await hasClientCutover('milestone_work_v1')) {
+    const result = await mutateGoalWork(goalId, 'milestone.delete', { milestoneId });
+    return result?.state === 'committed';
+  }
 
   const { error } = await supabase
     .from('milestones')

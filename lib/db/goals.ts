@@ -14,6 +14,8 @@ import type {
 import type { ActivityItem } from '@/types/activity';
 import type { VaultItemType } from '@/types/vault';
 import type { EchoBrt } from '@/features/echo/types';
+import { hasClientCutover } from '@/lib/goals/client-cutover';
+import { milestoneCreateOperationId } from '@/lib/goals/milestone-operation-id';
 
 export interface CreateGoalWithMilestonesAndTrackersResult {
   goalId: string | null;
@@ -273,17 +275,55 @@ export async function createGoalWithMilestonesAndTrackers(
   }
 
   const goalId = goalRow.id as string;
-  const milestoneInserts = input.milestones.map((milestone, index) => ({
-    goal_id: goalId,
-    user_id: userId,
-    title: milestone.title.trim(),
-    description: milestone.description?.trim() || null,
-    due_date: milestone.dueDate ?? null,
-    sort_order: index,
-    is_ai_suggested: isAiGenerated,
-  }));
 
-  if (milestoneInserts.length > 0) {
+  if (input.milestones.length > 0 && await hasClientCutover('milestone_work_v1', db)) {
+    // B7: one milestone.create per row, with an operationId deterministic in (goalId, index) so a
+    // retried Goal create replays through goal_work_v1's own identity check instead of duplicating.
+    const results = await Promise.all(input.milestones.map((milestone, index) => db.rpc('goal_work_v1', {
+      action: 'mutate',
+      payload: {
+        operationId: milestoneCreateOperationId(goalId, index),
+        operationType: 'milestone.create',
+        contractVersion: 1,
+        goalId,
+        fields: {
+          title: milestone.title.trim(),
+          description: milestone.description?.trim() || null,
+          dueDate: milestone.dueDate ? milestone.dueDate.slice(0, 10) : null,
+          isAiSuggested: isAiGenerated,
+        },
+      },
+    })));
+    const failed = results.find((result) => result.error || result.data?.ok !== true || result.data.data?.state !== 'committed');
+
+    if (failed) {
+      const message = failed.error?.message ?? failed.data?.data?.reason ?? 'Milestone create via goal_work_v1 failed';
+      warning = [warning, message].filter(Boolean).join(' | ');
+      console.error('[goal-create] persistence failed', {
+        requestId,
+        stage: 'persistence',
+        goalId,
+        error: message,
+      });
+    } else {
+      console.info('[goal-create] persistence milestones saved', {
+        requestId,
+        stage: 'persistence',
+        goalId,
+        milestoneCount: input.milestones.length,
+        path: 'goal_work_v1',
+      });
+    }
+  } else if (input.milestones.length > 0) {
+    const milestoneInserts = input.milestones.map((milestone, index) => ({
+      goal_id: goalId,
+      user_id: userId,
+      title: milestone.title.trim(),
+      description: milestone.description?.trim() || null,
+      due_date: milestone.dueDate ?? null,
+      sort_order: index,
+      is_ai_suggested: isAiGenerated,
+    }));
     const { error: milestoneError } = await db.from('milestones').insert(milestoneInserts);
 
     if (milestoneError) {

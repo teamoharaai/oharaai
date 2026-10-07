@@ -9,17 +9,21 @@
 //   echo       (after the native tests, Migration 086) signs in as the provisioned owner and drives desktop's Echo routes
 //              on the deployed site: capture, the library's read-only answer (ECHO_OWNED), edit, move to a folder and
 //              delete, checking after each that the canonical Entry, its Goal link and goal_events followed (TD-005 B3/B10).
+//   desktop    (TD-005 B8(2), Migration 089) allow-lists the owner for milestone_work_v1, signs in and drives
+//              /api/goals/work-v1 on the deployed site exactly as goal-service.ts does when an account is cut over:
+//              create, read back the revision, update, complete, delete. Checks the database after each step.
 //   cleanup    prints the synthetic owners' row counts (evidence), closes admission, deletes ONLY the recorded
 //              synthetic accounts (their rows cascade), deletes the private .xctestrun and verifies nothing remains.
 //
 // Usage:
 //   node scripts/goal-live-verification.mjs provision --project-ref <ref> --xctestrun <built .xctestrun> [--out <dir>]
 //   node scripts/goal-live-verification.mjs echo      --project-ref <ref> [--out <dir>] [--site https://www.oharaai.com]
+//   node scripts/goal-live-verification.mjs desktop   --project-ref <ref> [--out <dir>] [--site https://www.oharaai.com]
 //   node scripts/goal-live-verification.mjs cleanup   --project-ref <ref> [--out <dir>]
 // Run state (ids, emails, file paths; never the password) is kept in <out>/run.json, default /tmp/ohara-goal-live.
 import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolveHostedTarget } from './db-chain/hosted-target.mjs';
@@ -28,7 +32,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const SUFFIX = '@goal-e2e.ohara.test';
 const arg = (name) => { const i = process.argv.indexOf(name); return i < 0 ? undefined : process.argv[i + 1]; };
 const command = process.argv[2];
-if (!['provision', 'echo', 'cleanup'].includes(command)) throw Error('Usage: goal-live-verification.mjs provision|echo|cleanup --project-ref <ref> ...');
+if (!['provision', 'echo', 'desktop', 'cleanup'].includes(command)) throw Error('Usage: goal-live-verification.mjs provision|echo|desktop|cleanup --project-ref <ref> ...');
 const out = arg('--out') ?? '/tmp/ohara-goal-live';
 const statePath = join(out, 'run.json');
 const { env, label, apiOrigin, values } = resolveHostedTarget(root, arg('--project-ref'));
@@ -51,6 +55,20 @@ async function admin(method, path, body) {
   return text ? JSON.parse(text) : null;
 }
 const saveState = (state) => { writeFileSync(statePath, JSON.stringify(state, null, 2) + '\n', { mode: 0o600 }); chmodSync(statePath, 0o600); };
+// Shared by echo and desktop: the password exists only in the private .xctestrun that provision wrote.
+async function signInAsOwner(state) {
+  const plist = JSON.parse(spawnSync('plutil', ['-convert', 'json', '-o', '-', state.xctestrun], { encoding: 'utf8' }).stdout);
+  const password = plist.TestConfigurations?.flatMap((c) => c.TestTargets ?? []).find((t) => t.BlueprintName === 'OharaAITests')
+    ?.EnvironmentVariables?.OHARA_LIVE_GOAL_PASSWORD;
+  if (!password || !values.EXPO_PUBLIC_SUPABASE_ANON_KEY) throw Error('Need the run password and the anon key');
+  const signIn = await fetch(`${apiOrigin}/auth/v1/token?grant_type=password`, {
+    method: 'POST', headers: { apikey: values.EXPO_PUBLIC_SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: state.users.owner.email, password }),
+  });
+  if (!signIn.ok) throw Error(`Sign-in failed: HTTP ${signIn.status}`);
+  const { access_token: token } = await signIn.json();
+  return token;
+}
 const admissionState = () => {
   const [enabled, verificationOnly, allowlisted, leftovers] = psql(`select a.enabled, a.verification_only,
     (select count(*) from goal_private.verification_owners), (select count(*) from auth.users where email like '%${SUFFIX}')
@@ -122,17 +140,7 @@ if (command === 'echo') {
   if (state.label !== label || !state.xctestrun || !existsSync(state.xctestrun)) throw Error('The recorded run belongs to another target or has no private .xctestrun');
   const site = new URL(arg('--site') ?? 'https://www.oharaai.com').origin;
   const owner = uuid(state.users.owner.id);
-  // The password exists only in the private .xctestrun that provision wrote.
-  const plist = JSON.parse(spawnSync('plutil', ['-convert', 'json', '-o', '-', state.xctestrun], { encoding: 'utf8' }).stdout);
-  const password = plist.TestConfigurations?.flatMap((c) => c.TestTargets ?? []).find((t) => t.BlueprintName === 'OharaAITests')
-    ?.EnvironmentVariables?.OHARA_LIVE_GOAL_PASSWORD;
-  if (!password || !values.EXPO_PUBLIC_SUPABASE_ANON_KEY) throw Error('Need the run password and the anon key');
-  const signIn = await fetch(`${apiOrigin}/auth/v1/token?grant_type=password`, {
-    method: 'POST', headers: { apikey: values.EXPO_PUBLIC_SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: state.users.owner.email, password }),
-  });
-  if (!signIn.ok) throw Error(`Sign-in failed: HTTP ${signIn.status}`);
-  const { access_token: token } = await signIn.json();
+  const token = await signInAsOwner(state);
   const call = async (method, path, body) => {
     const response = await fetch(`${site}${path}`, {
       method, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined,
@@ -178,6 +186,58 @@ if (command === 'echo') {
   console.log(`ECHO LIVE PASSED on ${site} and ${label} for run ${state.run}. Run cleanup next.`);
 }
 
+if (command === 'desktop') {
+  if (!existsSync(statePath)) throw Error(`No ${statePath}: provision first`);
+  const state = JSON.parse(readFileSync(statePath, 'utf8'));
+  if (state.label !== label || !state.xctestrun || !existsSync(state.xctestrun)) throw Error('The recorded run belongs to another target or has no private .xctestrun');
+  const site = new URL(arg('--site') ?? 'https://www.oharaai.com').origin;
+  const owner = uuid(state.users.owner.id);
+  console.log(psql(`begin;
+    insert into goal_private.client_cutover(owner_id, feature) values ('${owner}', 'milestone_work_v1') on conflict do nothing;
+    select 'CUTOVER ' || (select string_agg(feature, ',' order by feature) from goal_private.client_cutover where owner_id = '${owner}');
+    commit;`));
+  const token = await signInAsOwner(state);
+  const call = async (method, path, body) => {
+    const response = await fetch(`${site}${path}`, {
+      method, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined,
+    });
+    const text = await response.text();
+    return { status: response.status, body: text ? JSON.parse(text) : null };
+  };
+  const expect = (ok, what, detail) => { if (!ok) throw Error(`DESKTOP LIVE FAILED: ${what}: ${JSON.stringify(detail)}`); console.log(`PASS desktop: ${what}`); };
+  const row = (id) => psql(`select coalesce((select title || '|' || coalesce(completed_at::text,'none') from public.milestones where id = '${id}'), 'none');`);
+  const mutate = (goalId, operationType, extra) => call('POST', '/api/goals/work-v1?action=mutate', {
+    operationId: randomUUID(), operationType, contractVersion: 1, goalId, ...extra,
+  });
+  // The native tests leave the owner at least one Goal; create the Milestone there, exactly as
+  // goal-service.ts does when the account is cut over (TD-005 B6/B8(2), Migration 089).
+  const goal = uuid(psql(`select id from public.goals where user_id = '${owner}' order by created_at limit 1;`));
+  if (!goal) throw Error('The owner has no Goal: run the native live tests first');
+
+  let r = await mutate(goal, 'milestone.create', { fields: { title: `Live work-v1 milestone ${state.run}`, isAiSuggested: false } });
+  const milestoneId = r.body?.data?.milestone?.id;
+  expect(r.status === 200 && r.body?.data?.state === 'committed' && milestoneId, 'create through /api/goals/work-v1 (milestone.create)', r);
+  expect(row(milestoneId) === `Live work-v1 milestone ${state.run}|none`, 'the create wrote the Milestone row', row(milestoneId));
+
+  r = await call('GET', `/api/goals/work-v1?action=milestones&goalId=${goal}`);
+  const found = r.body?.data?.items?.find((item) => item.id === milestoneId);
+  expect(r.status === 200 && found?.revision, 'read back the revision through the milestones read action, as findMilestoneRevision does', r);
+
+  r = await mutate(goal, 'milestone.update', { milestoneId, expectedRevision: found.revision, changes: { title: `Live work-v1 milestone ${state.run} edited` } });
+  expect(r.status === 200 && r.body?.data?.state === 'committed', 'update through /api/goals/work-v1 (milestone.update)', r);
+  expect(row(milestoneId) === `Live work-v1 milestone ${state.run} edited|none`, 'the update changed the Milestone row', row(milestoneId));
+
+  r = await mutate(goal, 'milestone.complete', { milestoneId });
+  expect(r.status === 200 && r.body?.data?.state === 'committed', 'complete through /api/goals/work-v1 (milestone.complete)', r);
+  expect(!row(milestoneId).endsWith('|none'), 'the complete set completed_at', row(milestoneId));
+
+  r = await mutate(goal, 'milestone.delete', { milestoneId });
+  expect(r.status === 200 && r.body?.data?.state === 'committed', 'delete through /api/goals/work-v1 (milestone.delete)', r);
+  expect(row(milestoneId) === 'none', 'the delete removed the Milestone row', row(milestoneId));
+
+  console.log(`DESKTOP LIVE PASSED on ${site} and ${label} for run ${state.run}. Run cleanup next (it removes the client_cutover row too).`);
+}
+
 if (command === 'cleanup') {
   if (!existsSync(statePath)) throw Error(`No ${statePath}: nothing recorded to clean up`);
   const state = JSON.parse(readFileSync(statePath, 'utf8'));
@@ -199,7 +259,8 @@ if (command === 'cleanup') {
     || ' manual_operations ' || (select count(*) from goal_private.operations where owner_id in (${ids}))
     || ' goal_mutations ' || (select count(*) from goal_private.goal_mutations where owner_id in (${ids}))
     || ' work_mutations ' || (select count(*) from goal_private.work_mutations where owner_id in (${ids}))
-    || ' allowlisted ' || (select count(*) from goal_private.verification_owners where owner_id in (${ids}));`);
+    || ' allowlisted ' || (select count(*) from goal_private.verification_owners where owner_id in (${ids}))
+    || ' client_cutover ' || (select count(*) from goal_private.client_cutover where owner_id in (${ids}));`);
   console.log(`EVIDENCE before cleanup: ${counts()}`);
   console.log(psql(`begin; update goal_private.admission set enabled = false;
     select 'ADMISSION ' || enabled || ' verification_only ' || verification_only from goal_private.admission; commit;`));
