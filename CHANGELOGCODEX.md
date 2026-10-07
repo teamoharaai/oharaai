@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Fixed — Calendar ownership and Project membership
+- Scoped the default Calendar projection to OHARA Tasks and Milestones the viewer created or is assigned to, plus Goals they own or lead. Merely having access to a shared or Guide Project no longer floods Home or Calendar with another member’s work (`features/calendar/scope.ts`, `lib/db/calendar.ts`, `app/api/calendar/items+api.ts`).
+- Added a permission-safe “Leave Project” flow for Admins, Members, and Guides. Leaving clears the departing user’s Goal/Task/Milestone responsibility pointers without deleting Project content; owners cannot leave without a future ownership-transfer flow (`supabase/migrations/088_project_member_self_leave.sql`, `features/projects/components/ManageProjectModal.tsx`, `features/projects/services/project-service.ts`).
+- Added Calendar scope, Project UI, local-chain security, and hosted preflight regressions for shared visibility, self-removal, assignment cleanup, owner protection, and outsider denial (`features/calendar/scope.test.ts`, `features/projects/ui.test.ts`, `scripts/projects-v11-security.test.sql`, `scripts/goal-hosted-preflight/088-project-member-self-leave.sql`).
+
+### Deployed — Migration 088 (2026-10-07)
+- Production history was verified at exactly 001–087 before application. The rollback-only hosted preflight applied migration 088, passed every registered probe through 088, and server-confirmed transaction 22899 was aborted.
+- Migration 088 was then applied through the guarded transactional release path. Production now records `088_project_member_self_leave` exactly once with its full statement block; the new RPC is restricted to authenticated users, and `scripts/db-chain/hosted-applied-through` now records 088.
+
 ### Added — Home & Calendar PreLaunch Foundation
 - Added a first-class, responsive Calendar with Today, Week, and Month views; All, OHARA, Personal, and Projects filters; canonical Task completion; Goal/Milestone navigation; accessible date controls; and calm empty/failure states (`app/(app)/calendar.tsx`, `features/calendar/components/`).
 - Added a bounded, read-only `CalendarItem` projection for RLS-visible Task occurrences, Milestones, and Goal deadlines. Date-only deadlines remain all-day values and timed occurrences preserve canonical schedule timestamps/timezones (`app/api/calendar/items+api.ts`, `lib/db/calendar.ts`, `features/calendar/types.ts`).

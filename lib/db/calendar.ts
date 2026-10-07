@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { isGoalInViewerCalendar, isMilestoneInViewerCalendar, isTaskInViewerCalendar } from '@/features/calendar/scope';
 import type { CalendarItem, CalendarRange } from '@/features/calendar/types';
 import { addLocalDays } from '@/lib/time/zoned-calendar';
 
@@ -20,10 +21,11 @@ function dateOnly(value: string): string {
 export async function fetchOharaCalendarItems(
   db: SupabaseClient,
   range: CalendarRange,
+  viewerId: string,
 ): Promise<CalendarItem[]> {
   const { data: goalRows, error: goalsError } = await db
     .from('goals')
-    .select('id,title,deadline,project_id,visibility,status')
+    .select('id,user_id,title,deadline,project_id,project_lead_id,visibility,status')
     .eq('status', 'active');
   if (goalsError) throw goalsError;
 
@@ -42,7 +44,7 @@ export async function fetchOharaCalendarItems(
   const [occurrences, milestones] = await Promise.all([
     db
       .from('task_occurrences')
-      .select('id,task_id,scheduled_local_date,scheduled_local_time,schedule_timezone,scheduled_at,status,tasks!inner(id,goal_id,title,status,milestone_id)')
+      .select('id,task_id,scheduled_local_date,scheduled_local_time,schedule_timezone,scheduled_at,status,tasks!inner(id,user_id,goal_id,title,status,milestone_id,assigned_to,created_by)')
       .in('tasks.goal_id', goalIds)
       .eq('tasks.status', 'active')
       .gte('scheduled_local_date', range.startDate)
@@ -50,7 +52,7 @@ export async function fetchOharaCalendarItems(
       .neq('status', 'cancelled'),
     db
       .from('milestones')
-      .select('id,goal_id,title,due_date,completed_at')
+      .select('id,user_id,goal_id,title,due_date,completed_at,responsible_user_id,created_by')
       .in('goal_id', goalIds)
       .gte('due_date', range.startDate)
       .lte('due_date', range.endDate),
@@ -63,7 +65,7 @@ export async function fetchOharaCalendarItems(
     const task = related(row.tasks);
     const goal = task ? goalById.get(task.goal_id as string) : null;
     const scheduledDate = row.scheduled_local_date as string | null;
-    if (!task || !goal || !scheduledDate) continue;
+    if (!task || !goal || !scheduledDate || !isTaskInViewerCalendar(task, viewerId)) continue;
     const projectId = (goal.project_id as string | null) ?? null;
     const hasTime = typeof row.scheduled_local_time === 'string' && row.scheduled_local_time.length > 0;
     items.push({
@@ -92,7 +94,7 @@ export async function fetchOharaCalendarItems(
 
   for (const row of (milestones.data ?? []) as Row[]) {
     const goal = goalById.get(row.goal_id as string);
-    if (!goal || !row.due_date) continue;
+    if (!goal || !row.due_date || !isMilestoneInViewerCalendar(row, viewerId)) continue;
     const projectId = (goal.project_id as string | null) ?? null;
     items.push({
       id: `milestone:${row.id}`,
@@ -119,7 +121,7 @@ export async function fetchOharaCalendarItems(
   }
 
   for (const goal of goals) {
-    if (!goal.deadline) continue;
+    if (!goal.deadline || !isGoalInViewerCalendar(goal, viewerId)) continue;
     const deadline = dateOnly(goal.deadline as string);
     if (deadline < range.startDate || deadline > range.endDate) continue;
     const projectId = (goal.project_id as string | null) ?? null;

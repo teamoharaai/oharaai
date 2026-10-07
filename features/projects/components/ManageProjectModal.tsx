@@ -17,6 +17,7 @@ import {
   createProjectTask,
   detachGoalFromProject,
   inviteProjectMember,
+  leaveProject,
   removeProjectMember,
   revokeProjectInvitation,
   setProjectMemberRole,
@@ -47,6 +48,7 @@ export function ManageProjectModal({ initialTab = 'details', onClose, onOpenGoal
   const [relationship, setRelationship] = useState('Fitness Coach');
   const [inviteRole, setInviteRole] = useState<'member' | 'admin'>('member');
   const [managedMemberId, setManagedMemberId] = useState<string | null>(null);
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [draftKind, setDraftKind] = useState<'task' | 'milestone' | null>(null);
   const [draftGoal, setDraftGoal] = useState('');
   const [draftTitle, setDraftTitle] = useState('');
@@ -55,7 +57,7 @@ export function ManageProjectModal({ initialTab = 'details', onClose, onOpenGoal
 
   useEffect(() => {
     if (!visible) return;
-    setTitle(project.title); setDescription(project.description ?? ''); setError(null); setManagedMemberId(null);
+    setTitle(project.title); setDescription(project.description ?? ''); setError(null); setManagedMemberId(null); setLeaveConfirmOpen(false);
     setTab(capabilities.has('manage_project') || initialTab === 'goals' || initialTab === 'members' ? initialTab : 'goals');
     if (capabilities.has('invite_members')) void fetchInviteableFriends().then(setFriends).catch(() => setFriends([]));
   }, [capabilities, initialTab, project.description, project.title, visible]);
@@ -92,6 +94,22 @@ export function ManageProjectModal({ initialTab = 'details', onClose, onOpenGoal
     });
   }
 
+  async function leaveCurrentProject() {
+    if (busy || isOwner) return;
+    setBusy(true); setError(null);
+    try {
+      await leaveProject(project.id);
+      setLeaveConfirmOpen(false);
+      onClose();
+      router.replace('/(app)/projects');
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Project could not be left.');
+      setLeaveConfirmOpen(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const tabs = (['details', 'goals', 'members', 'access', 'status'] as Tab[]).filter((item) => {
     if (item === 'details') return capabilities.has('manage_project');
     if (item === 'members') return true;
@@ -115,7 +133,7 @@ export function ManageProjectModal({ initialTab = 'details', onClose, onOpenGoal
           </View>)}
           {pending.map((invitation) => <View key={invitation.id} style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}><View style={{ flex: 1 }}><Typography variant="body-small">Pending invitation</Typography><Typography variant="caption">{invitation.invitedEmail || invitation.invitedUserId} · {invitation.relationshipLabel || invitation.role}</Typography></View>{capabilities.has('invite_members') ? <Button size="compact" variant="secondary" onPress={() => void run(() => revokeProjectInvitation(invitation.id))}>Revoke</Button> : null}</View>)}
           {capabilities.has('invite_members') && project.mode !== 'personal' ? <View style={{ gap: SPACE.md }}><Typography variant="eyebrow">{project.mode === 'guide' ? 'Invite Guide' : 'Invite to Project'}</Typography>{project.mode === 'team' ? <><Typography variant="micro-label">ROLE</Typography><View style={{ flexDirection: 'row', gap: SPACE.sm }}><Button size="compact" variant={inviteRole === 'member' ? 'primary' : 'secondary'} onPress={() => setInviteRole('member')}>Member</Button>{capabilities.has('manage_members') ? <Button size="compact" variant={inviteRole === 'admin' ? 'primary' : 'secondary'} onPress={() => setInviteRole('admin')}>Admin</Button> : null}</View></> : <><Typography variant="micro-label">GUIDE TYPE</Typography><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.xs }}>{GUIDE_RELATIONSHIP_LABELS.map((label) => <Button key={label} size="compact" variant={relationship === label ? 'primary' : 'secondary'} onPress={() => setRelationship(label)}>{label}</Button>)}</View></>}{participantSlots >= PROJECT_MEMBER_LIMIT ? <Typography variant="caption">Participant limit reached. This Project supports {PROJECT_MEMBER_LIMIT} people including pending invitations.</Typography> : inviteable.length ? inviteable.map((friend) => <View key={friend.id} style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}><View style={{ flex: 1 }}><Typography variant="emphasis-sm">{friend.displayName || friend.username}</Typography><Typography variant="caption">@{friend.username}</Typography></View><Button size="compact" disabled={busy || participantSlots >= PROJECT_MEMBER_LIMIT} onPress={() => void invite(friend)}>Invite</Button></View>) : <Typography variant="caption">Accepted Circles friends who are not already members will appear here.</Typography>}</View> : null}
-          {isOwner ? <Typography variant="caption">Ownership transfer is deferred while canonical Goals remain bound to their personal owner. No Goal or private content will be transferred implicitly.</Typography> : null}
+          {isOwner ? <Typography variant="caption">Ownership transfer is deferred while canonical Goals remain bound to their personal owner. No Goal or private content will be transferred implicitly.</Typography> : <View style={{ borderTopColor: colors.border.divider, borderTopWidth: 1, gap: SPACE.md, paddingTop: SPACE.xl }}><Typography variant="eyebrow">LEAVE PROJECT</Typography><Typography variant="caption">You’ll lose access to shared Project content. Items you created remain with the Project, and assignments to you are cleared.</Typography><Button variant="danger" disabled={busy} onPress={() => setLeaveConfirmOpen(true)}>Leave Project</Button></View>}
         </> : null}
 
         {tab === 'access' ? <><Typography variant="body">Choose one collaboration preset. All modes use the same membership and capability architecture.</Typography>{([['personal', 'Personal', 'Just me. Remove members and pending invitations first.'], ['team', 'Team', 'Work toward shared outcomes together.'], ['guide', 'OHARA Guide', 'Work with someone helping guide your progress.']] as const).map(([value, label, detail]) => <Pressable key={value} accessibilityRole="radio" accessibilityState={{ checked: project.mode === value }} onPress={() => void run(() => setProjectMode(project.id, value as ProjectMode))} style={{ backgroundColor: project.mode === value ? colors.background.selectedRow : colors.background.subtle, borderColor: project.mode === value ? colors.border.accent : colors.border.divider, borderRadius: RADIUS.lg, borderWidth: 1, gap: SPACE.xs, padding: SPACE.lg }}><Typography variant="emphasis-sm">{label}</Typography><Typography variant="caption">{detail}</Typography></Pressable>)}</> : null}
@@ -128,6 +146,10 @@ export function ManageProjectModal({ initialTab = 'details', onClose, onOpenGoal
 
     <Modal visible={draftKind !== null} onClose={() => !busy && setDraftKind(null)} showCloseButton={false} cancelText="Cancel" onCancel={() => setDraftKind(null)} confirmText={busy ? 'Saving…' : `Add ${draftKind === 'task' ? 'Task' : 'Milestone'}`} onConfirm={() => void saveDraft()} confirmDisabled={!draftTitle.trim() || busy}>
       <View style={{ gap: SPACE.lg }}><Typography variant="title">Add {draftKind === 'task' ? 'Task' : 'Milestone'}</Typography><Typography variant="caption">This remains a canonical Goal {draftKind === 'task' ? 'Task' : 'Milestone'}.</Typography><Typography variant="caption">Goal · {project.goals.find((goal) => goal.id === draftGoal)?.title ?? 'Selected Goal'}</Typography><TextInput accessibilityLabel={`${draftKind} title`} value={draftTitle} onChangeText={setDraftTitle} placeholder="Title" placeholderTextColor={colors.text.muted} style={inputStyle} /><TextInput accessibilityLabel="Due date" value={draftDue} onChangeText={setDraftDue} placeholder="YYYY-MM-DD (optional)" placeholderTextColor={colors.text.muted} style={inputStyle} /><Typography variant="caption">{draftKind === 'task' ? 'Assigned to' : 'Responsible'}</Typography><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>{project.collaboration.members.map((member) => <Button key={member.userId} size="compact" variant={draftAssignee === member.userId ? 'primary' : 'secondary'} onPress={() => setDraftAssignee(member.userId)}>{member.displayName}</Button>)}</View></View>
+    </Modal>
+
+    <Modal visible={leaveConfirmOpen} onClose={() => !busy && setLeaveConfirmOpen(false)} showCloseButton={false} closeDisabled={busy} cancelText="Cancel" onCancel={() => setLeaveConfirmOpen(false)} cancelDisabled={busy} confirmText={busy ? 'Leaving…' : 'Leave Project'} onConfirm={() => void leaveCurrentProject()} confirmDisabled={busy} confirmVariant="destructive">
+      <View style={{ gap: SPACE.md }}><Typography variant="title">Leave {project.title}?</Typography><Typography variant="body">You’ll lose access to its shared Goals, Notes, Journal entries, and Project history. The owner’s content and your existing contributions will not be deleted.</Typography></View>
     </Modal>
 
   </>;

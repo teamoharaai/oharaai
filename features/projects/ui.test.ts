@@ -101,6 +101,13 @@ test('workspace presents an actionable Task assignment menu and separated contex
   assert.doesNotMatch(workspace, /project\.comments\.slice\(0, 2\)/);
 });
 
+test('non-owner Project members can leave without exposing owner removal', () => {
+  assert.match(manage, /Leave Project/);
+  assert.match(manage, /leaveProject\(project\.id\)/);
+  assert.match(manage, /isOwner \? .*Ownership transfer[\s\S]*LEAVE PROJECT/);
+  assert.match(service, /leave_project_v11/);
+});
+
 test('Project Tasks execute canonical occurrences and preserve Goal return context', () => {
   assert.match(workspace, /mutateTaskOccurrence/);
   assert.match(workspace, /accessibilityRole="checkbox"/);

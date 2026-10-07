@@ -30,7 +30,7 @@ export async function GET(request: Request): Promise<Response> {
 async function handleGet(request: Request, _params: Record<string, string>, auth: AuthContext) {
   try {
     const range = parseRange(request);
-    const data = await fetchOharaCalendarItems(createAuthedClient(auth.accessToken), range);
+    const data = await fetchOharaCalendarItems(createAuthedClient(auth.accessToken), range, auth.userId);
     return Response.json({ data }, { headers: { 'Cache-Control': 'private, max-age=15, stale-while-revalidate=30' } });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Calendar could not be loaded';

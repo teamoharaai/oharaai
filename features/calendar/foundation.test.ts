@@ -21,7 +21,11 @@ test('calendar projection is bounded, read-only, and keeps date-only items all d
   const route = read('app/api/calendar/items+api.ts');
   const projection = read('lib/db/calendar.ts');
   assert.match(route, /cannot exceed 63 days/);
+  assert.match(route, /range, auth\.userId/);
   assert.doesNotMatch(projection, /\.insert\(|\.update\(|\.delete\(|\.rpc\(/);
+  assert.match(projection, /isTaskInViewerCalendar/);
+  assert.match(projection, /isMilestoneInViewerCalendar/);
+  assert.match(projection, /isGoalInViewerCalendar/);
   assert.match(projection, /sourceType: 'milestone'[\s\S]*allDay: true/);
   assert.match(projection, /sourceType: 'goal_deadline'[\s\S]*allDay: true/);
 });

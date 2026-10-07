@@ -45,6 +45,8 @@ select public.create_project_task_v11('b1100000-0000-0000-0000-000000000001','As
 select public.create_project_milestone_v11('b1100000-0000-0000-0000-000000000001','Responsible Milestone',current_date+3,'12000000-0000-0000-0000-000000000002');
 
 do $$ begin
+  begin perform public.leave_project_v11('a1100000-0000-0000-0000-000000000001'); raise exception 'Project owner left their Project';
+  exception when others then if sqlerrm='Project owner left their Project' then raise; end if; end;
   begin perform public.assign_project_goal_lead_v11('b1100000-0000-0000-0000-000000000001','14000000-0000-0000-0000-000000000004'); raise exception 'Invalid Goal Lead accepted';
   exception when others then if sqlerrm='Invalid Goal Lead accepted' then raise; end if; end;
   begin perform public.set_project_mode_v11('a1100000-0000-0000-0000-000000000001','personal'); raise exception 'Unsafe Personal transition accepted';
@@ -171,6 +173,20 @@ end $$;
 select public.create_project_task_v11('b1500000-0000-0000-0000-000000000005','Guide Task',current_date+1,'11000000-0000-0000-0000-000000000001','guide-task');
 select public.create_project_milestone_v11('b1500000-0000-0000-0000-000000000005','Guide Milestone',current_date+5,'11000000-0000-0000-0000-000000000001');
 select public.create_project_comment_v11('a1500000-0000-0000-0000-000000000005','goal','b1500000-0000-0000-0000-000000000005','Guide context');
+select public.assign_project_goal_lead_v11('b1500000-0000-0000-0000-000000000005','15000000-0000-0000-0000-000000000005');
+select public.assign_project_task_v11((select id from public.tasks where title='Guide Task'),'15000000-0000-0000-0000-000000000005');
+select public.assign_project_milestone_v11((select id from public.milestones where title='Guide Milestone'),'15000000-0000-0000-0000-000000000005');
+select public.leave_project_v11('a1500000-0000-0000-0000-000000000005');
+
+reset role;
+do $$ begin
+  if exists(select 1 from public.project_members where project_id='a1500000-0000-0000-0000-000000000005' and user_id='15000000-0000-0000-0000-000000000005') then raise exception 'Guide membership remained after leaving'; end if;
+  if exists(select 1 from public.goals where id='b1500000-0000-0000-0000-000000000005' and project_lead_id is not null) then raise exception 'Departed Guide remained Goal Lead'; end if;
+  if exists(select 1 from public.tasks where title='Guide Task' and assigned_to is not null) then raise exception 'Departed Guide remained assigned to Task'; end if;
+  if exists(select 1 from public.milestones where title='Guide Milestone' and responsible_user_id is not null) then raise exception 'Departed Guide remained responsible for Milestone'; end if;
+end $$;
+
+set local role authenticated;
 
 select set_config('request.jwt.claim.sub','14000000-0000-0000-0000-000000000004',true);
 do $$ begin
@@ -185,6 +201,8 @@ do $$ begin
   if public.delete_project_comment_v11('d1300000-0000-0000-0000-000000000003') then raise exception 'Non-member deleted a comment'; end if;
   begin perform public.create_project_chat_message_v11('a1100000-0000-0000-0000-000000000001','Unauthorized'); raise exception 'Non-member chatted';
   exception when others then if sqlerrm='Non-member chatted' then raise; end if; end;
+  begin perform public.leave_project_v11('a1100000-0000-0000-0000-000000000001'); raise exception 'Non-member left a Project';
+  exception when others then if sqlerrm='Non-member left a Project' then raise; end if; end;
 end $$;
 
 select set_config('request.jwt.claim.sub','13000000-0000-0000-0000-000000000003',true);
