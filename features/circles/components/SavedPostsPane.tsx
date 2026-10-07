@@ -40,7 +40,7 @@ export function SavedPostsPane() {
         <Ionicons color={colors.text.muted} name="bookmark-outline" size={22} />
         <Typography variant="emphasis-sm">Nothing saved yet</Typography>
         <Typography variant="caption" style={{ color: colors.text.secondary, textAlign: 'center' }}>
-          Tap Save on a post in Home to keep it here. Only you can see what you save.
+          Tap Save on a post in Circles to keep it here. Only you can see what you save.
         </Typography>
       </View>
     );

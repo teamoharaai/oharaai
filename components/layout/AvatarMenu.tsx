@@ -402,7 +402,7 @@ export function AvatarMenu() {
 
       <SettingsModal visible={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
-      <OharaModal
+      {savedOpen ? <OharaModal
         closeOnBackdropPress
         contentStyle={{ maxHeight: '90%', maxWidth: 520, width: '100%' }}
         onClose={() => setSavedOpen(false)}
@@ -415,9 +415,9 @@ export function AvatarMenu() {
         <ScrollView style={{ flexShrink: 1, marginHorizontal: -24 }}>
           <SavedPostsPane />
         </ScrollView>
-      </OharaModal>
+      </OharaModal> : null}
 
-      <OharaModal
+      {circlesOpen ? <OharaModal
         closeOnBackdropPress
         contentStyle={{ maxHeight: '90%', maxWidth: 520, width: '100%' }}
         onClose={() => setCirclesOpen(false)}
@@ -430,19 +430,19 @@ export function AvatarMenu() {
         <ScrollView style={{ flexShrink: 1, marginHorizontal: -24 }}>
           <CirclesPane />
         </ScrollView>
-      </OharaModal>
+      </OharaModal> : null}
 
-      <OharaModal
+      {invitesOpen && goalInviteCount > 0 ? <OharaModal
         closeOnBackdropPress
         contentStyle={{ maxHeight: '90%', maxWidth: 520, width: '100%' }}
         onClose={() => setInvitesOpen(false)}
-        visible={invitesOpen && goalInviteCount > 0}
+        visible
       >
         <Typography accessibilityRole="header" variant="section-header">Goal invitations</Typography>
         <ScrollView style={{ flexShrink: 1, marginHorizontal: -12 }}>
           <GoalInvitesPane />
         </ScrollView>
-      </OharaModal>
+      </OharaModal> : null}
 
       {FEATURES.SOCIAL_ENABLED && friendsOpen ? (
         <FriendsPopover

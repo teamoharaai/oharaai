@@ -19,6 +19,7 @@ type NavItem = {
 
 const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Home', href: '/(app)/dashboard', matches: ['/dashboard'], enabled: true, icon: 'home' },
+  { label: 'Circles', href: '/(app)/circles', matches: ['/circles'], enabled: FEATURES.CIRCLES_ENABLED, icon: 'circles' },
   { label: 'Goals', href: '/(app)/goals', matches: ['/goals'], enabled: true, icon: 'goals' },
   { label: 'Projects', href: '/(app)/projects', matches: ['/projects'], enabled: true, icon: 'project' },
   { label: 'Notes', href: '/(app)/notes', matches: ['/notes', '/entries'], enabled: FEATURES.ECHO_ENABLED, icon: 'notes' },
@@ -34,6 +35,43 @@ const NAV_ITEMS: readonly NavItem[] = [
 ];
 
 const DESKTOP_NAVIGATION_MIN_WIDTH = 1220;
+
+function CalendarControl({ pathname }: { pathname: string }) {
+  const colors = useThemeColors();
+  const [hovered, setHovered] = useState(false);
+  const active = pathname === '/calendar' || pathname.startsWith('/calendar/');
+  return (
+    <View style={{ position: 'relative' }}>
+      <Pressable
+        accessibilityHint="Opens your OHARA calendar"
+        accessibilityLabel="Calendar"
+        accessibilityRole="button"
+        accessibilityState={{ selected: active }}
+        onHoverIn={() => setHovered(true)}
+        onHoverOut={() => setHovered(false)}
+        onPress={() => router.push('/calendar')}
+        style={({ pressed }) => ({
+          alignItems: 'center',
+          backgroundColor: active || hovered ? colors.background.selectedRow : colors.background.card,
+          borderColor: active ? colors.border.accent : colors.border.subtle,
+          borderRadius: RADIUS.md,
+          borderWidth: 1,
+          height: CONTROL.iconSize,
+          justifyContent: 'center',
+          opacity: pressed ? 0.68 : 1,
+          width: CONTROL.iconSize,
+        })}
+      >
+        <BrandIcon color={active ? colors.text.accent : colors.text.secondary} name="calendar" size={20} />
+      </Pressable>
+      {hovered ? (
+        <View style={{ backgroundColor: colors.text.primary, borderRadius: RADIUS.sm, paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs, position: 'absolute', right: 0, top: CONTROL.iconSize + SPACE.xs, zIndex: 30 }}>
+          <Text style={{ ...TYPE.meta, color: colors.background.card }}>Calendar</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
 
 function isActiveRoute(pathname: string, item: NavItem): boolean {
   return item.matches.some((match) => pathname === match || pathname.startsWith(`${match}/`));
@@ -183,6 +221,7 @@ export function AppNavigation({
             onNewEntry={createEntry}
             onNewProject={createProject}
           />
+          <CalendarControl pathname={pathname} />
           <AvatarMenu />
         </View>
       </View>

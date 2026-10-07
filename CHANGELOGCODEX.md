@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### Added — Home & Calendar PreLaunch Foundation
+- Added a first-class, responsive Calendar with Today, Week, and Month views; All, OHARA, Personal, and Projects filters; canonical Task completion; Goal/Milestone navigation; accessible date controls; and calm empty/failure states (`app/(app)/calendar.tsx`, `features/calendar/components/`).
+- Added a bounded, read-only `CalendarItem` projection for RLS-visible Task occurrences, Milestones, and Goal deadlines. Date-only deadlines remain all-day values and timed occurrences preserve canonical schedule timestamps/timezones (`app/api/calendar/items+api.ts`, `lib/db/calendar.ts`, `features/calendar/types.ts`).
+- Added a provider-neutral calendar boundary and an Expo 55-compatible Apple EventKit implementation. Apple access is requested only from the explicit Connect control; provider failures never block OHARA items, and one-way “Add to Calendar” keeps OHARA canonical (`features/calendar/providers/`, `app.json`, `package.json`).
+- Added global Calendar access between Create and Profile on desktop and mobile, plus focused domain tests and provider architecture/Google preparation notes (`components/layout/AppNavigation.tsx`, `features/calendar/domain.test.ts`, `docs/calendar-provider-architecture.md`).
+
+### Changed — Home & Calendar PreLaunch Foundation
+- Rebuilt Home as a personal, goal-first execution surface that preserves the familiar Today’s Focus and Next Steps cards in the left column while adding a selectable week calendar and daily agenda across the middle/right. Home no longer mounts or requests the social feed (`app/(app)/dashboard.tsx`, `features/calendar/components/HomeCalendarPreview.tsx`).
+- Updated the global Calendar destination to open as a full Month workspace by default, with Task, Milestone, Goal deadline, and connected-calendar item names rendered directly inside each day (`features/calendar/components/CalendarScreen.tsx`).
+- Moved the existing social feed and shared Goal context into the dedicated Circles route without duplicating feed records or changing privacy semantics (`app/(app)/circles.tsx`, `features/circles/components/CirclesScreen.tsx`).
+
+### User-facing summary — Home & Calendar PreLaunch Foundation
+- A new goal-first Home keeps today’s work and next steps in view.
+- Calendar is now easier to access and brings scheduled OHARA work into one calm view.
+- Community activity now lives in Circles.
+
 ### Added — Projects and Notes Polish
 - Added a Finder-style Grid/List view toggle to the Projects library. Grid remains the default, while List presents compact, title-first rows with active Goal counts that retain the same category-derived background and folder colors (`app/(app)/projects/index.tsx`, `features/projects/components/ProjectCard.tsx`).
 - Added desktop Grid/List, mobile List, and Note formatting-toolbar browser coverage with visual checkpoints (`tests/projects/landing.spec.ts`, `tests/projects/landing.playwright.config.ts`, `tests/notes/library.spec.ts`, `docs/ui-checkpoints/projects-notes-polish/`).

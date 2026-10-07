@@ -44,6 +44,8 @@ export default function AppLayout() {
           }}
         >
           <Stack.Screen name="dashboard" />
+          <Stack.Screen name="circles" />
+          <Stack.Screen name="calendar" />
           <Stack.Screen name="momentum" />
           <Stack.Screen name="entries" />
           <Stack.Screen name="entries/[id]" />

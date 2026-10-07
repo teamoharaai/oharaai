@@ -23,6 +23,12 @@
         {
           "unstable_useServerRendering": true
         }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Allow OHARA to show your Apple Calendar events alongside your scheduled Tasks, Milestones, and Goal deadlines."
+        }
       ]
     ],
     "experiments": {

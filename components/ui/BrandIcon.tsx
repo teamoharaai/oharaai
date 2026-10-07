@@ -28,6 +28,8 @@ export type BrandIconName =
   | 'project'
   | 'notes'
   | 'reflections'
+  | 'calendar'
+  | 'circles'
   | 'theme-mode';
 
 const BRAND_ICON_SOURCES: Partial<Record<BrandIconName, ImageSourcePropType>> = {
@@ -70,6 +72,14 @@ export function BrandIcon({ color, name, size = 20, style, tintColor }: BrandIco
 
   if (name === 'reflections') {
     return <Ionicons color={resolvedColor} name="book-outline" size={size} style={style as never} />;
+  }
+
+  if (name === 'calendar') {
+    return <Ionicons color={resolvedColor} name="calendar-outline" size={size} style={style as never} />;
+  }
+
+  if (name === 'circles') {
+    return <Ionicons color={resolvedColor} name="people-outline" size={size} style={style as never} />;
   }
 
   if (VectorIcon) {

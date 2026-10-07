@@ -9,9 +9,8 @@ export const FEATURES = {
   COLLAGE_ENABLED: false,
   TASKS_V2_ENABLED: true,
   TASKS_V2_COMPARE_LEGACY: true,
-  // Circles friends-only social layer (Home). Live as of the Phase 8 go-live
-  // (2026-09-17). When false, Home renders greeting + Today's Focus + drafts
-  // with no feed and no Circles fetches on mount.
+  // Circles friends-only social layer. It is intentionally route-scoped: Home
+  // never mounts the feed or initializes its requests.
   CIRCLES_ENABLED: true,
 } as const;
 

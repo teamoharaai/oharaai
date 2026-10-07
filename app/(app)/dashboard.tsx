@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Card } from '@/components/ui/Card';
 import { Toast } from '@/components/ui/Toast';
 import { Typography } from '@/components/ui/Typography';
-import { CirclesScreen } from '@/features/circles/components/CirclesScreen';
+import { AuthenticatedPageShell } from '@/components/layout/AuthenticatedPageShell';
+import { HomeCalendarPreview } from '@/features/calendar/components/HomeCalendarPreview';
+import { deviceTimezone, rangeForView, todayYmd } from '@/features/calendar/domain';
+import { useCalendarItems } from '@/features/calendar/hooks/useCalendarItems';
 import { useGoals } from '@/features/goals/hooks/useGoals';
 import { useSession } from '@/features/auth/hooks/useSession';
 import { useProjectStore } from '@/features/projects/store';
@@ -25,11 +28,7 @@ import {
 import { useThemeColors } from '@/store/uiStore';
 import { RADIUS, SPACE } from '@/constants/design';
 
-/*
- * Home. Internally this surface is "Circles" (features/circles): the social
- * feed plus shared goals. From the previous Home it keeps only the greeting and
- * Today's Focus, and the drafts list reached via DASHBOARD_DRAFTS_ROUTE.
- */
+/* Home is the personal execution surface. Social/feed work lives in /circles. */
 
 // --- Helpers ---
 
@@ -169,6 +168,7 @@ function DraftsCard({ drafts }: { drafts: ReturnType<typeof useGoals>['goals'] }
 }
 
 export default function DashboardScreen() {
+  const { width } = useWindowDimensions();
   const routeParams = useLocalSearchParams<{
     draftSaved?: string | string[];
     goalFilter?: string | string[];
@@ -181,6 +181,10 @@ export default function DashboardScreen() {
   // so return-navigation is instant. No longer waterfalled behind the client
   // goal load — the server resolves the caller's active goals itself.
   const { reflectionTimestamps, weeklyTaskCounts } = useHomeSummary();
+  const today = todayYmd();
+  // Home reads one bounded current-week projection for its Calendar canvas.
+  // Social data and full month/year Calendar work stay off this route.
+  const homeCalendar = useCalendarItems(rangeForView(today, 'week', deviceTimezone()));
 
   const draftsRequested = routeParams[DASHBOARD_GOAL_FILTER_PARAM] === 'drafts';
   const draftSaved = routeParams[DASHBOARD_DRAFT_SAVED_PARAM] === '1';
@@ -216,23 +220,38 @@ export default function DashboardScreen() {
 
   return (
     <>
-      <CirclesScreen
-        feedNotice={draftsRequested ? <DraftsCard drafts={draftGoals} /> : null}
-        greeting={(
+      <AuthenticatedPageShell>
+        <View style={{ alignSelf: 'center', maxWidth: 1280, minWidth: 0, width: '100%' }}>
+          <View style={{ marginBottom: SPACE['3xl'] }}>
           <DashboardGreeting
             displayName={displayName}
             momentumLoading={momentum.isLoading}
             weeklyStreak={momentum.summary?.weeklyStreak ?? null}
           />
-        )}
-        todayFocus={(
-          <TodayFocus
-            goals={todayGoals}
-            weeklyTaskCounts={weeklyTaskCounts}
-            isLoading={goalsLoading}
-          />
-        )}
-      />
+          </View>
+
+          <View
+            style={{
+              alignItems: width >= 980 ? 'flex-start' : 'stretch',
+              flexDirection: width >= 980 ? 'row' : 'column',
+              gap: SPACE['3xl'],
+            }}
+          >
+            <View style={{ flexBasis: width >= 980 ? '34%' : undefined, maxWidth: width >= 980 ? 430 : undefined, minWidth: width >= 980 ? 340 : 0 }}>
+              <TodayFocus
+                goals={todayGoals}
+                weeklyTaskCounts={weeklyTaskCounts}
+                isLoading={goalsLoading}
+              />
+            </View>
+            <View style={{ flex: 1, minWidth: 0, width: width >= 980 ? undefined : '100%' }}>
+              <HomeCalendarPreview accessState={homeCalendar.accessState} items={homeCalendar.items} isLoading={homeCalendar.isLoading} />
+            </View>
+          </View>
+
+          {draftsRequested ? <View style={{ marginTop: SPACE['3xl'] }}><DraftsCard drafts={draftGoals} /></View> : null}
+        </View>
+      </AuthenticatedPageShell>
       <Toast
         message="Saved as draft — pick it back up anytime"
         visible={draftToastVisible}

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { AuthenticatedPageShell } from '@/components/layout/AuthenticatedPageShell';
@@ -112,21 +112,9 @@ function EncouragersModal({ postId, onClose }: { postId: string | null; onClose:
   );
 }
 
-/**
- * Home, internally "Circles". The route owns non-social Home pieces (greeting,
- * Today's Focus, drafts) and passes them in as slots so this feature never
- * imports goals/momentum/profile code.
- */
-export function CirclesScreen({
-  greeting,
-  todayFocus,
-  feedNotice,
-}: {
-  greeting: ReactNode;
-  todayFocus: ReactNode;
-  /** Optional card shown above the composer (e.g. the drafts list). */
-  feedNotice?: ReactNode;
-}) {
+/** Dedicated community surface. Mounting this route is the only normal page
+ * lifecycle that initializes the social feed. */
+export function CirclesScreen() {
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
   const twoColumn = width >= TWO_COLUMN_MIN_WIDTH;
@@ -156,6 +144,14 @@ export function CirclesScreen({
       : null;
   const selectedGoalId = scope.kind === 'goal' ? scope.goalId : null;
   const ownerName = (goal: CircleGoalSummary) => firstName(goal.owner);
+  const header = (
+    <View style={{ marginBottom: SPACE['3xl'] }}>
+      <Typography accessibilityRole="header" variant="heading">Circles</Typography>
+      <Typography variant="body" style={{ color: colors.text.secondary, marginTop: SPACE.xs }}>
+        Shared progress, encouragement, and the people growing alongside you.
+      </Typography>
+    </View>
+  );
 
   const sharedCard = (
     <SharedWithYouCard
@@ -169,7 +165,6 @@ export function CirclesScreen({
 
   const feed = (
     <View style={{ gap: SPACE['3xl'], minWidth: 0 }}>
-      {feedNotice}
       <PostComposer
         compact={compact}
         me={circles.me}
@@ -240,16 +235,13 @@ export function CirclesScreen({
     </View>
   );
 
-  // Flag off: Home keeps greeting + Today's Focus + drafts, no feed.
+  // Flag off: keep a calm route-level unavailable state and make no requests.
   if (!circles.enabled) {
     return (
       <AuthenticatedPageShell>
         <View style={{ alignSelf: 'center', maxWidth: PAGE_MAX_WIDTH, minWidth: 0, width: '100%' }}>
-          <View style={{ marginBottom: SPACE['3xl'] }}>{greeting}</View>
-          <View style={{ gap: SPACE['3xl'] }}>
-            {todayFocus}
-            {feedNotice}
-          </View>
+          {header}
+          <Typography variant="body">Circles is currently unavailable.</Typography>
         </View>
       </AuthenticatedPageShell>
     );
@@ -258,20 +250,15 @@ export function CirclesScreen({
   return (
     <AuthenticatedPageShell>
       <View style={{ alignSelf: 'center', maxWidth: PAGE_MAX_WIDTH, minWidth: 0, width: '100%' }}>
-        <View style={{ marginBottom: SPACE['3xl'] }}>{greeting}</View>
+        {header}
 
         {twoColumn ? (
           <View style={{ alignItems: 'flex-start', flexDirection: 'row', gap: SPACE['3xl'] }}>
-            <View style={{ flexBasis: '33%', gap: SPACE['3xl'], maxWidth: 420, minWidth: 340 }}>
-              {todayFocus}
-              {sharedCard}
-            </View>
+            <View style={{ flexBasis: '33%', gap: SPACE['3xl'], maxWidth: 420, minWidth: 340 }}>{sharedCard}</View>
             <View style={{ flex: 1, minWidth: 0 }}>{feed}</View>
           </View>
         ) : (
           <View style={{ gap: SPACE['3xl'] }}>
-            {todayFocus}
-
             <View>
               <Typography accessibilityRole="header" variant="title" style={{ marginBottom: SPACE.xs }}>Shared with You</Typography>
               <Typography variant="caption" style={{ color: colors.text.secondary, marginBottom: SPACE.lg }}>
