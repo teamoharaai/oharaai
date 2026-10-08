@@ -1000,7 +1000,7 @@ export function TasksPanel({
   const nearTermTodos = buckets.overdue.length + buckets.inScope.length + buckets.upcoming.length;
 
   return (
-    <View style={{ padding: compact ? SPACE.xl : SPACE['2xl'] }}>
+    <View style={{ padding: compact ? SPACE.lg : SPACE.xl }}>
       <View style={{ alignItems: 'flex-start', flexDirection: 'row', gap: SPACE.md }}>
         <View style={{ flex: 1 }}>
           <Typography variant="section-eyebrow">Tasks</Typography>
@@ -1011,7 +1011,7 @@ export function TasksPanel({
       {focusedTask ? <View ref={focusedTaskRef} accessibilityLabel={`Focused Task: ${focusedTask.title}`} style={{ backgroundColor: colors.background.selectedRow, borderColor: colors.border.accent, borderRadius: RADIUS.md, borderWidth: 1, marginTop: SPACE.lg, padding: SPACE.md }}><Typography variant="micro-label" style={{ color: colors.text.accent }}>OPENED FROM PROJECT</Typography><Typography variant="emphasis-sm" style={{ marginTop: SPACE.xs }}>{focusedTask.title}</Typography></View> : null}
       {taskState.error ? <Typography variant="caption" style={{ color: colors.feedback.danger.text, marginTop: SPACE.lg }}>{taskState.error}</Typography> : null}
       {taskState.isLoading ? <ActivityIndicator color={colors.accent.primary} style={{ marginVertical: SPACE['3xl'] }} /> : (
-        <View style={{ marginTop: SPACE.xl }}>
+        <View style={{ marginTop: SPACE.lg }}>
           {/* Scope selector — one control over the whole plan (To-Dos + Metrics). */}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>
             {PLAN_SCOPES.map((option) => (
@@ -1055,10 +1055,9 @@ export function TasksPanel({
           ) : null}
 
           {!hasVisibleWork ? (
-            <View style={{ alignItems: 'flex-start', paddingVertical: SPACE.xl }}>
-              <Ionicons color={colors.text.accent} name="checkmark-circle-outline" size={30} />
-              <Typography variant="emphasis-sm" style={{ marginTop: SPACE.md }}>No Tasks yet.</Typography>
-              <Typography variant="caption" style={{ marginTop: SPACE.xs }}>Add one clear next action to get started.</Typography>
+            <View style={{ alignItems: 'center', paddingVertical: SPACE.lg }}>
+              <Typography variant="emphasis-sm" style={{ textAlign: 'center' }}>No Tasks yet.</Typography>
+              <Typography variant="caption" style={{ marginTop: SPACE.xs, textAlign: 'center' }}>Add one clear next action to get started.</Typography>
             </View>
           ) : null}
 

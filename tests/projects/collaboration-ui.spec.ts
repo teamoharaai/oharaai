@@ -256,11 +256,13 @@ test('Team owner collaboration, assignments, comments, and responsive states', a
   await page.getByRole('tab', { name: 'Goals', exact: true }).click();
   await shot(page, '12-goal-lead-ui');
   await prelaunchShot(page, '09-manage-project-goals');
-  await page.getByRole('button', { name: '+ Task', exact: true }).click();
+  await page.getByRole('button', { name: 'New', exact: true }).first().click();
+  await page.getByRole('button', { name: 'New Task', exact: true }).click();
   await expect(page.getByText('Assigned to', { exact: true })).toBeVisible();
   await shot(page, '10-task-assignment-ui');
   await page.getByRole('button', { name: 'Cancel', exact: true }).first().click();
-  await page.getByRole('button', { name: '+ Milestone', exact: true }).click();
+  await page.getByRole('button', { name: 'New', exact: true }).first().click();
+  await page.getByRole('button', { name: 'New Milestone', exact: true }).click();
   await expect(page.getByText('Responsible', { exact: true })).toBeVisible();
   await shot(page, '11-milestone-responsibility-ui');
   await page.getByRole('button', { name: 'Cancel', exact: true }).last().click();
@@ -396,7 +398,7 @@ test('Team Member and Admin views follow capabilities', async ({ page }) => {
   await page.getByRole('button', { name: 'Manage Project ▾', exact: true }).click();
   await expect(page.getByRole('tab', { name: 'Overview', exact: true })).toHaveCount(0);
   await expect(page.getByRole('tab', { name: 'Access', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Detach', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Remove .* from Project/ })).toHaveCount(0);
   await page.getByLabel('Close', { exact: true }).click();
   await shot(page, '03-team-project-member-view');
 
@@ -440,8 +442,7 @@ test('Guide sees permitted collaboration and no private content or owner control
   await steeringShot(page, '03-guide-project-desktop-dark', true);
   await shot(page, '19-private-reflection-denial-guide-view');
   await page.getByRole('button', { name: 'Manage Project ▾', exact: true }).click();
-  await expect(page.getByRole('button', { name: '+ Task', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: '+ Milestone', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'New', exact: true })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Overview', exact: true })).toHaveCount(0);
   await expect(page.getByRole('tab', { name: 'Settings', exact: true })).toHaveCount(0);
   await page.getByLabel('Close', { exact: true }).click();

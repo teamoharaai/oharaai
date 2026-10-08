@@ -20,10 +20,10 @@ for (const theme of ['light', 'dark']) test(`Projects V1 workspace ${theme}`, as
     };
     localStorage.setItem('sb-projects-preview-auth-token', JSON.stringify(session));
     localStorage.setItem('ohara-ui-state', JSON.stringify({ state: { themeMode: theme }, version: 0 }));
-    localStorage.setItem('ohara:release:goals-v2-3-1:seen', 'seen');
-    localStorage.setItem('ohara:release:vault-v2-3:seen', 'seen');
-    localStorage.setItem('ohara:release:projects-v1-0:seen', 'seen');
-    localStorage.setItem('ohara:release:projects-v1-1-execution:seen', 'seen');
+    for (const patch of ['journal-prelaunch-redesign', 'notes-prelaunch-library', 'projects-v1-1-execution', 'projects-v1-0', 'goals-v2-3-1', 'vault-v2-3', 'notes-v1-1', 'momentum-v1-1']) {
+      localStorage.setItem(`ohara:release:${patch}:seen`, 'seen');
+      sessionStorage.setItem(`ohara:release:${patch}:seen`, 'seen');
+    }
   }, { session, theme });
   await page.route(/https?:\/\/[^/]+\/(?:auth|rest)\/v1\/.*/, async (route) => {
     const url = new URL(route.request().url());
@@ -64,7 +64,7 @@ for (const theme of ['light', 'dark']) test(`Projects V1 workspace ${theme}`, as
   await expect(page.getByText('1', { exact: true }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Open Project Run a 5K Journey' }).click();
   await expect(page.getByRole('heading', { name: project.title })).toBeVisible();
-  for (const text of ['Current Goals', 'Project Chat', 'Notes', 'Reflections', 'Upcoming Milestones', 'Project Tasks', 'Recent Activity', 'Project Snapshot', 'Momentum Snapshot', 'Echo']) await expect(page.getByText(text, { exact: true }).first()).toBeVisible();
+  for (const text of ['Current Goals', 'Project Chat', 'Notes', 'Journal', 'Upcoming Milestones', 'Project Tasks', 'Recent Activity', 'Project Snapshot', 'Momentum Snapshot', 'Echo']) await expect(page.getByText(text, { exact: true }).first()).toBeVisible();
   await expect(page.getByText('Aerobic base', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Training research', { exact: true })).toBeVisible();
   await expect(page.getByText('Easy run', { exact: true })).toBeVisible();
@@ -74,19 +74,19 @@ for (const theme of ['light', 'dark']) test(`Projects V1 workspace ${theme}`, as
   await expect(page).toHaveURL(/view=vault/);
   await expect(page.getByRole('button', { name: 'Overview', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add to Vault', exact: true })).toBeVisible();
-  for (const filter of ['All', 'Notes', 'Reflections', 'Sources']) await expect(page.getByRole('tab', { name: filter, exact: true })).toBeVisible();
+  for (const filter of ['All', 'Notes', 'Journal', 'Sources']) await expect(page.getByRole('tab', { name: filter, exact: true })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Sticky Notes', exact: true })).toHaveCount(0);
   await expect(page.getByText('Aerobic base', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Notes', { exact: true }).last()).toBeVisible();
-  await expect(page.getByText('Reflections', { exact: true }).last()).toBeVisible();
+  await expect(page.getByText('Journal', { exact: true }).last()).toBeVisible();
   await page.getByRole('tab', { name: 'Sources', exact: true }).click();
   await expect(page.getByText('Training guide', { exact: true })).toBeVisible();
   await expect(page.getByText('Creatine Brand', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Overview', exact: true }).click();
   await page.getByRole('button', { name: 'Manage Project ▾', exact: true }).click();
-  for (const tab of ['Details', 'Goals', 'Members', 'Access / Mode', 'Status']) await expect(page.getByRole('tab', { name: tab, exact: true })).toBeVisible();
+  for (const tab of ['Overview', 'Goals', 'Members', 'Access', 'Settings']) await expect(page.getByRole('tab', { name: tab, exact: true })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 900 });
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(errors).toEqual([]);
 });
@@ -111,10 +111,10 @@ test('Guide workspace exposes permitted coordination without owner controls or p
     };
     localStorage.setItem('sb-projects-preview-auth-token', JSON.stringify(session));
     localStorage.setItem('ohara-ui-state', JSON.stringify({ state: { themeMode: 'light' }, version: 0 }));
-    localStorage.setItem('ohara:release:goals-v2-3-1:seen', 'seen');
-    localStorage.setItem('ohara:release:vault-v2-3:seen', 'seen');
-    localStorage.setItem('ohara:release:projects-v1-0:seen', 'seen');
-    localStorage.setItem('ohara:release:projects-v1-1-execution:seen', 'seen');
+    for (const patch of ['journal-prelaunch-redesign', 'notes-prelaunch-library', 'projects-v1-1-execution', 'projects-v1-0', 'goals-v2-3-1', 'vault-v2-3', 'notes-v1-1', 'momentum-v1-1']) {
+      localStorage.setItem(`ohara:release:${patch}:seen`, 'seen');
+      sessionStorage.setItem(`ohara:release:${patch}:seen`, 'seen');
+    }
   }, { session });
   await page.route(/https?:\/\/[^/]+\/(?:auth|rest)\/v1\/.*/, async (route) => {
     const url = new URL(route.request().url());
@@ -153,7 +153,6 @@ test('Guide workspace exposes permitted coordination without owner controls or p
   await expect(page.getByRole('tab', { name: 'Details', exact: true })).toHaveCount(0);
   await expect(page.getByRole('tab', { name: 'Access / Mode', exact: true })).toHaveCount(0);
   await expect(page.getByRole('tab', { name: 'Status', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '+ Task', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: '+ Milestone', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Detach', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'New', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Remove .* from Project/ })).toHaveCount(0);
 });

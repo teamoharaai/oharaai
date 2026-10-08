@@ -24,6 +24,7 @@ const goalIntelligence = readFileSync(resolve(process.cwd(), 'features/goals/com
 const taskEndpoint = readFileSync(resolve(process.cwd(), 'app/api/task-occurrences/[id]+api.ts'), 'utf8');
 const goalsWorkspace = readFileSync(resolve(process.cwd(), 'features/goals/components/GoalsWorkspace.tsx'), 'utf8');
 const tasksPanel = readFileSync(resolve(process.cwd(), 'features/tasks/components/TasksPanel.tsx'), 'utf8');
+const manageGoal = readFileSync(resolve(process.cwd(), 'features/goals/components/ManageGoalControl.tsx'), 'utf8');
 
 test('Projects is a first-class horizontal navigation destination', () => {
   assert.match(nav, /label: 'Projects'.*href: '\/\(app\)\/projects'/);
@@ -58,6 +59,17 @@ test('Projects landing offers color-preserving Grid and List views', () => {
   assert.match(projectCard, /backgroundColor: accent\.bg/);
   assert.match(projectCard, /<Typography numberOfLines=\{1\} variant="emphasis-sm"/);
   assert.match(projectCard, /project\.activeGoalCount === 1 \? 'ACTIVE GOAL' : 'ACTIVE GOALS'/);
+});
+
+test('Project and Goal management use compact disclosure controls instead of button walls', () => {
+  assert.match(manage, /Change Goal Lead for/);
+  assert.match(manage, />New<\/Button>/);
+  assert.match(manage, /New Task/);
+  assert.match(manage, /New Milestone/);
+  assert.match(manage, /Remove Goal\?/);
+  assert.doesNotMatch(manage, />\+ Task<\/Button>|>\+ Milestone<\/Button>|>Detach<\/Button>/);
+  assert.match(manageGoal, /accessibilityLabel="Change Goal category"/);
+  assert.match(manageGoal, /Goal category options/);
 });
 
 test('metric and supporting labels use one uppercase caption treatment', () => {

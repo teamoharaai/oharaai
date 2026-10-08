@@ -161,6 +161,9 @@ for (const appearance of ['light', 'dark']) {
     await page.waitForTimeout(400);
     await expect(page.getByRole('button', { name: 'Move to Project', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Edit end date', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Change Goal category', exact: true }).click();
+    await expect(page.getByLabel('Goal category options')).toBeVisible();
+    await page.getByRole('menuitem', { name: 'Health & Fitness', exact: true }).click();
     await page.getByRole('tab', { name: 'Status & Access', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Retry visibility', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Save visibility', exact: true })).toBeDisabled();

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
@@ -46,6 +47,7 @@ export function ManageGoalControl({ goal, superseded, onComplete, onArchive, onO
   const [title, setTitle] = useState(goal.title);
   const [description, setDescription] = useState(goal.description ?? '');
   const [category, setCategory] = useState(goal.category);
+  const [categoryOpen, setCategoryOpen] = useState(false);
   const upsert = useGoalStore((state) => state.upsertGoal);
   const deleteGoal = useGoalStore((state) => state.deleteGoal);
   const currentUserId = useAuthStore((state) => state.session?.user.id ?? null);
@@ -84,6 +86,7 @@ export function ManageGoalControl({ goal, superseded, onComplete, onArchive, onO
     setTitle(goal.title);
     setDescription(goal.description ?? '');
     setCategory(goal.category);
+    setCategoryOpen(false);
     await loadAudience();
   }
 
@@ -152,9 +155,27 @@ export function ManageGoalControl({ goal, superseded, onComplete, onArchive, onO
           </View>
           <View style={{ gap: SPACE.md }}>
             <FieldLabel>Category</FieldLabel>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>
-              {PRODUCT_CATEGORIES.map((item) => <Button key={item} size="compact" variant={category === item ? 'primary' : 'secondary'} onPress={() => setCategory(item)}>{item}</Button>)}
-            </View>
+            <Pressable
+              accessibilityLabel="Change Goal category"
+              accessibilityRole="button"
+              onPress={() => setCategoryOpen((value) => !value)}
+              style={{ alignItems: 'center', backgroundColor: colors.background.input, borderColor: colors.border.input, borderRadius: RADIUS.md, borderWidth: 1, flexDirection: 'row', minHeight: 46, paddingHorizontal: SPACE.lg }}
+            >
+              <Typography variant="body" style={{ flex: 1 }}>{category}</Typography>
+              <Ionicons color={colors.text.secondary} name={categoryOpen ? 'chevron-up' : 'chevron-down'} size={18} />
+            </Pressable>
+            {categoryOpen ? <View accessibilityLabel="Goal category options" style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider, borderRadius: RADIUS.md, borderWidth: 1, overflow: 'hidden' }}>
+              {PRODUCT_CATEGORIES.map((item, index) => <Pressable
+                accessibilityLabel={item}
+                accessibilityRole="menuitem"
+                key={item}
+                onPress={() => { setCategory(item); setCategoryOpen(false); }}
+                style={{ alignItems: 'center', borderBottomColor: colors.border.divider, borderBottomWidth: index === PRODUCT_CATEGORIES.length - 1 ? 0 : 1, flexDirection: 'row', minHeight: 44, paddingHorizontal: SPACE.lg }}
+              >
+                <Typography variant="body-small" style={{ flex: 1 }}>{item}</Typography>
+                {category === item ? <Ionicons color={colors.text.accent} name="checkmark" size={18} /> : null}
+              </Pressable>)}
+            </View> : null}
             <Typography variant="caption">Changing category does not change your Momentum scoring profile.</Typography>
           </View>
           <View style={{ gap: SPACE.md }}>

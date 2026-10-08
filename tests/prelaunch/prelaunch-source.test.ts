@@ -41,6 +41,8 @@ test('Project Snapshot and Goal execution cards use the finalized compact hierar
   for (const label of ['Active Goals', 'Notes', 'Journal', 'Sources']) assert.match(snapshot, new RegExp(label));
   assert.doesNotMatch(snapshot, /Last Activity|lastActivity/);
   assert.match(tasks, /No Tasks yet\./);
+  assert.match(tasks, /alignItems: 'center'/);
+  assert.doesNotMatch(tasks, /checkmark-circle-outline/);
   assert.match(milestones, /No Milestones yet\./);
   assert.match(milestones, /\+ Add Milestone/);
 });

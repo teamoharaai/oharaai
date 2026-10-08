@@ -1069,8 +1069,8 @@ export function MilestonesPanel({
         borderRadius: embedded ? 0 : 20,
         borderWidth: embedded ? 0 : 1,
         elevation: embedded ? 0 : 1,
-        paddingHorizontal: embedded ? 0 : compact ? 18 : 26,
-        paddingVertical: embedded ? 0 : 24,
+        paddingHorizontal: embedded ? 0 : compact ? SPACE.lg : SPACE.xl,
+        paddingVertical: embedded ? 0 : SPACE.xl,
         shadowColor: colors.background.sidebar,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: embedded ? 0 : 0.05,
@@ -1083,7 +1083,7 @@ export function MilestonesPanel({
           flexDirection: 'row',
           gap: 8,
           justifyContent: 'space-between',
-          marginBottom: SPACE['3xl'],
+          marginBottom: achievements.length || showAddForm ? SPACE.xl : SPACE.lg,
         }}
       >
         <View style={{ flexShrink: 1 }}>
@@ -1142,7 +1142,7 @@ export function MilestonesPanel({
         <View style={{ gap: 12 }}>
           {achievements.map((milestone) => renderTopLevelAchievement(milestone))}
         </View>
-      ) : !showAddForm ? <Typography variant="body-small">No Milestones yet.</Typography> : null}
+      ) : !showAddForm ? <View style={{ alignItems: 'center', paddingVertical: SPACE.md }}><Typography variant="body-small" style={{ textAlign: 'center' }}>No Milestones yet.</Typography></View> : null}
 
       {showAddForm && !readOnly ? (
         <View style={{ marginTop: achievements.length > 0 ? 12 : 4 }}>

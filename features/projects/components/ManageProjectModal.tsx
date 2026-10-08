@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
@@ -51,6 +52,10 @@ export function ManageProjectModal({ initialTab = 'details', onClose, onOpenGoal
   const [managedMemberId, setManagedMemberId] = useState<string | null>(null);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [detachGoalId, setDetachGoalId] = useState<string | null>(null);
+  const [leadMenuGoalId, setLeadMenuGoalId] = useState<string | null>(null);
+  const [responsibleMenuMilestoneId, setResponsibleMenuMilestoneId] = useState<string | null>(null);
+  const [newItemGoalId, setNewItemGoalId] = useState<string | null>(null);
   const [draftKind, setDraftKind] = useState<'task' | 'milestone' | null>(null);
   const [draftGoal, setDraftGoal] = useState('');
   const [draftTitle, setDraftTitle] = useState('');
@@ -59,7 +64,7 @@ export function ManageProjectModal({ initialTab = 'details', onClose, onOpenGoal
 
   useEffect(() => {
     if (!visible) return;
-    setTitle(project.title); setDescription(project.description ?? ''); setError(null); setManagedMemberId(null); setLeaveConfirmOpen(false); setDeleteConfirmOpen(false);
+    setTitle(project.title); setDescription(project.description ?? ''); setError(null); setManagedMemberId(null); setLeaveConfirmOpen(false); setDeleteConfirmOpen(false); setDetachGoalId(null); setLeadMenuGoalId(null); setResponsibleMenuMilestoneId(null); setNewItemGoalId(null);
     setTab(capabilities.has('manage_project') || initialTab === 'goals' || initialTab === 'members' ? initialTab : 'goals');
     if (capabilities.has('invite_members')) void fetchInviteableFriends().then(setFriends).catch(() => setFriends([]));
   }, [capabilities, initialTab, project.description, project.title, visible]);
@@ -77,6 +82,7 @@ export function ManageProjectModal({ initialTab = 'details', onClose, onOpenGoal
   const existingIds = new Set([...project.collaboration.members.map((member) => member.userId), ...pending.map((invite) => invite.invitedUserId)]);
   const inviteable = friends.filter((friend) => !existingIds.has(friend.id));
   const inputStyle = { backgroundColor: colors.background.input, borderColor: colors.border.input, borderRadius: RADIUS.md, borderWidth: 1, color: colors.text.primary, minHeight: 44, padding: 12 } as const;
+  const memberName = (userId: string | null | undefined) => project.collaboration.members.find((member) => member.userId === userId)?.displayName ?? 'Unassigned';
 
   async function invite(friend: CirclesAuthor) {
     const role: Exclude<ProjectRole, 'owner'> = project.mode === 'guide' ? 'guide' : inviteRole;
@@ -141,7 +147,65 @@ export function ManageProjectModal({ initialTab = 'details', onClose, onOpenGoal
       <ScrollView contentContainerStyle={{ gap: SPACE.xl, padding: SPACE['3xl'] }}>
         {tab === 'details' ? <><TextInput accessibilityLabel="Project name" value={title} onChangeText={setTitle} style={inputStyle} /><TextInput accessibilityLabel="Project description" multiline value={description} onChangeText={setDescription} style={[inputStyle, { minHeight: 100, textAlignVertical: 'top' }]} /><Button loading={busy} disabled={!title.trim()} onPress={() => void run(() => updateProjectDetails(project.id, title, description), true)}>Save details</Button></> : null}
 
-        {tab === 'goals' ? <>{project.goals.map((goal) => <View key={goal.id} style={{ borderBottomColor: colors.border.divider, borderBottomWidth: 1, gap: SPACE.md, paddingBottom: SPACE.lg }}><View><Typography variant="emphasis-sm">{goal.title}</Typography><Typography variant="caption">{goal.category} · {goal.status}</Typography></View><Typography variant="micro-label">GOAL LEAD</Typography><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>{capabilities.has('assign_goal_lead') ? project.collaboration.members.map((member) => <Button key={member.userId} size="compact" variant={goal.projectLeadId === member.userId ? 'primary' : 'secondary'} onPress={() => void run(() => assignGoalLead(goal.id, member.userId))}>{member.displayName}</Button>) : <Typography variant="body-small">{project.collaboration.members.find((member) => member.userId === goal.projectLeadId)?.displayName ?? 'Unassigned'}</Typography>}</View><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>{capabilities.has('create_task') ? <Button size="compact" variant="secondary" onPress={() => openDraft('task', goal.id)}>+ Task</Button> : null}{capabilities.has('create_milestone') ? <Button size="compact" variant="secondary" onPress={() => openDraft('milestone', goal.id)}>+ Milestone</Button> : null}{isOwner ? <Button size="compact" variant="secondary" disabled={busy} onPress={() => void run(() => detachGoalFromProject(project.id, goal.id))}>Detach</Button> : null}</View>{goal.milestones.slice(0, 4).map((milestone) => <View key={milestone.id} style={{ gap: SPACE.xs, paddingLeft: SPACE.md }}><Typography variant="body-small">{milestone.title}{milestone.dueDate ? ` · ${milestone.dueDate.toLocaleDateString()}` : ''}</Typography><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.xs }}>{capabilities.has('assign_milestone') ? project.collaboration.members.map((member) => <Button key={member.userId} size="compact" variant={milestone.responsibleUserId === member.userId ? 'primary' : 'secondary'} onPress={() => void run(() => assignProjectMilestone(milestone.id, member.userId))}>{member.displayName}</Button>) : null}</View></View>)}</View>)}<View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md }}>{isOwner ? <Button onPress={() => { onClose(); onOpenGoalPicker(); }}>Add existing Goal</Button> : null}{capabilities.has('create_goal') ? <Button variant="secondary" onPress={() => { onClose(); router.push({ pathname: '/goals/create', params: { projectId: project.id } } as never); }}>+ New Goal</Button> : null}</View></> : null}
+        {tab === 'goals' ? <>
+          <View style={{ gap: SPACE.lg }}>
+            {project.goals.map((goal) => {
+              const leadMenuOpen = leadMenuGoalId === goal.id;
+              return <View key={goal.id} style={{ backgroundColor: colors.background.subtle, borderColor: colors.border.divider, borderRadius: RADIUS.lg, borderWidth: 1, gap: SPACE.lg, padding: SPACE.lg }}>
+                <View style={{ alignItems: 'flex-start', flexDirection: 'row', gap: SPACE.md }}>
+                  <View style={{ flex: 1 }}>
+                    <Typography variant="emphasis-sm">{goal.title}</Typography>
+                    <Typography variant="caption" style={{ marginTop: SPACE.xs }}>{goal.category} · {goal.status}</Typography>
+                  </View>
+                  {isOwner ? <Pressable accessibilityLabel={`Remove ${goal.title} from Project`} accessibilityRole="button" disabled={busy} onPress={() => setDetachGoalId(goal.id)} style={{ alignItems: 'center', borderRadius: RADIUS.round, height: 32, justifyContent: 'center', width: 32 }}>
+                    <Ionicons color={colors.feedback.danger.text} name="close" size={18} />
+                  </Pressable> : null}
+                </View>
+
+                <View style={{ gap: SPACE.sm }}>
+                  <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md, justifyContent: 'space-between' }}>
+                    <Typography variant="micro-label">GOAL LEAD</Typography>
+                    {capabilities.has('assign_goal_lead') ? <Pressable accessibilityLabel={`Change Goal Lead for ${goal.title}`} accessibilityRole="button" onPress={() => setLeadMenuGoalId(leadMenuOpen ? null : goal.id)} style={{ alignItems: 'center', backgroundColor: colors.background.input, borderColor: colors.border.input, borderRadius: RADIUS.md, borderWidth: 1, flexDirection: 'row', gap: SPACE.sm, minHeight: 40, paddingHorizontal: SPACE.md }}>
+                      <Typography variant="body-small">{memberName(goal.projectLeadId)}</Typography>
+                      <Ionicons color={colors.text.secondary} name={leadMenuOpen ? 'chevron-up' : 'chevron-down'} size={16} />
+                    </Pressable> : <Typography variant="body-small">{memberName(goal.projectLeadId)}</Typography>}
+                  </View>
+                  {leadMenuOpen ? <View accessibilityLabel={`Goal Lead options for ${goal.title}`} style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider, borderRadius: RADIUS.md, borderWidth: 1, overflow: 'hidden' }}>
+                    {project.collaboration.members.map((member, index) => <Pressable key={member.userId} accessibilityRole="menuitem" onPress={() => { setLeadMenuGoalId(null); void run(() => assignGoalLead(goal.id, member.userId)); }} style={{ alignItems: 'center', borderBottomColor: colors.border.divider, borderBottomWidth: index === project.collaboration.members.length - 1 ? 0 : 1, flexDirection: 'row', gap: SPACE.md, minHeight: 42, paddingHorizontal: SPACE.md }}>
+                      <Typography variant="body-small" style={{ flex: 1 }}>{member.displayName}</Typography>
+                      {goal.projectLeadId === member.userId ? <Ionicons color={colors.text.accent} name="checkmark" size={17} /> : null}
+                    </Pressable>)}
+                  </View> : null}
+                </View>
+
+                {goal.milestones.length ? <View style={{ borderTopColor: colors.border.divider, borderTopWidth: 1, gap: SPACE.sm, paddingTop: SPACE.md }}>
+                  <Typography variant="micro-label">MILESTONES</Typography>
+                  {goal.milestones.slice(0, 4).map((milestone) => {
+                    const responsibleMenuOpen = responsibleMenuMilestoneId === milestone.id;
+                    return <View key={milestone.id} style={{ gap: SPACE.xs }}>
+                      <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
+                        <View style={{ flex: 1 }}><Typography variant="body-small">{milestone.title}</Typography>{milestone.dueDate ? <Typography variant="caption">{milestone.dueDate.toLocaleDateString()}</Typography> : null}</View>
+                        {capabilities.has('assign_milestone') ? <Pressable accessibilityLabel={`Change responsible person for ${milestone.title}`} accessibilityRole="button" onPress={() => setResponsibleMenuMilestoneId(responsibleMenuOpen ? null : milestone.id)} style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.xs, minHeight: 36, paddingHorizontal: SPACE.sm }}>
+                          <Typography variant="caption">{memberName(milestone.responsibleUserId)}</Typography>
+                          <Ionicons color={colors.text.secondary} name={responsibleMenuOpen ? 'chevron-up' : 'chevron-down'} size={14} />
+                        </Pressable> : <Typography variant="caption">{memberName(milestone.responsibleUserId)}</Typography>}
+                      </View>
+                      {responsibleMenuOpen ? <View style={{ backgroundColor: colors.background.card, borderColor: colors.border.divider, borderRadius: RADIUS.md, borderWidth: 1, overflow: 'hidden' }}>{project.collaboration.members.map((member, index) => <Pressable key={member.userId} accessibilityRole="menuitem" onPress={() => { setResponsibleMenuMilestoneId(null); void run(() => assignProjectMilestone(milestone.id, member.userId)); }} style={{ alignItems: 'center', borderBottomColor: colors.border.divider, borderBottomWidth: index === project.collaboration.members.length - 1 ? 0 : 1, flexDirection: 'row', minHeight: 40, paddingHorizontal: SPACE.md }}><Typography variant="body-small" style={{ flex: 1 }}>{member.displayName}</Typography>{milestone.responsibleUserId === member.userId ? <Ionicons color={colors.text.accent} name="checkmark" size={17} /> : null}</Pressable>)}</View> : null}
+                    </View>;
+                  })}
+                </View> : null}
+
+                {capabilities.has('create_task') || capabilities.has('create_milestone') ? <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'flex-end' }}>
+                  <Button accessibilityLabel="New" leftIcon={<Ionicons color={colors.text.onAccent} name="add" size={16} />} size="compact" onPress={() => setNewItemGoalId(goal.id)}>New</Button>
+                </View> : null}
+              </View>;
+            })}
+          </View>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md }}>
+            {isOwner ? <Button variant="outline" onPress={() => { onClose(); onOpenGoalPicker(); }}>Link existing Goal</Button> : null}
+            {capabilities.has('create_goal') ? <Button onPress={() => { onClose(); router.push({ pathname: '/goals/create', params: { projectId: project.id } } as never); }}>Create new Goal</Button> : null}
+          </View>
+        </> : null}
 
         {tab === 'members' ? <>
           <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}><Typography variant="body">{project.mode === 'guide' ? 'OHARA Guide' : project.mode[0].toUpperCase() + project.mode.slice(1)}</Typography><Typography variant="emphasis-sm">{project.collaboration.members.length} / {PROJECT_MEMBER_LIMIT}</Typography></View>
@@ -160,6 +224,24 @@ export function ManageProjectModal({ initialTab = 'details', onClose, onOpenGoal
 
         {error ? <Typography variant="caption" accessibilityRole="alert" style={{ color: colors.feedback.danger.text }}>{error}</Typography> : null}
       </ScrollView>
+    </Modal>
+
+    <Modal visible={newItemGoalId !== null} onClose={() => setNewItemGoalId(null)} showCloseButton={false} cancelText="Cancel" onCancel={() => setNewItemGoalId(null)}>
+      <View style={{ gap: SPACE.lg }}>
+        <Typography variant="title">Add to Goal</Typography>
+        <Typography variant="caption">Choose what to add to {project.goals.find((goal) => goal.id === newItemGoalId)?.title ?? 'this Goal'}.</Typography>
+        <View style={{ gap: SPACE.sm }}>
+          {capabilities.has('create_task') ? <Button onPress={() => { const goalId = newItemGoalId; setNewItemGoalId(null); if (goalId) openDraft('task', goalId); }}>New Task</Button> : null}
+          {capabilities.has('create_milestone') ? <Button variant="secondary" onPress={() => { const goalId = newItemGoalId; setNewItemGoalId(null); if (goalId) openDraft('milestone', goalId); }}>New Milestone</Button> : null}
+        </View>
+      </View>
+    </Modal>
+
+    <Modal visible={detachGoalId !== null} onClose={() => !busy && setDetachGoalId(null)} showCloseButton={false} closeDisabled={busy} cancelText="Cancel" onCancel={() => setDetachGoalId(null)} cancelDisabled={busy} confirmText={busy ? 'Removing…' : 'Remove Goal'} onConfirm={() => { const goalId = detachGoalId; if (!goalId) return; void run(() => detachGoalFromProject(project.id, goalId)).then(() => setDetachGoalId(null)); }} confirmDisabled={busy} confirmVariant="destructive">
+      <View style={{ gap: SPACE.md }}>
+        <Typography variant="title">Remove Goal?</Typography>
+        <Typography variant="body">“{project.goals.find((goal) => goal.id === detachGoalId)?.title ?? 'This Goal'}” will be unlinked from this Project. The Goal and its work will not be deleted.</Typography>
+      </View>
     </Modal>
 
     <Modal visible={draftKind !== null} onClose={() => !busy && setDraftKind(null)} showCloseButton={false} cancelText="Cancel" onCancel={() => setDraftKind(null)} confirmText={busy ? 'Saving…' : `Add ${draftKind === 'task' ? 'Task' : 'Milestone'}`} onConfirm={() => void saveDraft()} confirmDisabled={!draftTitle.trim() || busy}>
