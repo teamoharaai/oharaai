@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { filterCalendarItems, groupCalendarItems, monthBounds, rangeForView } from './domain.ts';
+import { filterCalendarItems, filterHomeCalendarItems, groupCalendarItems, monthBounds, rangeForView } from './domain.ts';
 import type { CalendarItem } from './types.ts';
 
 function item(overrides: Partial<CalendarItem>): CalendarItem {
@@ -23,9 +23,18 @@ test('calendar view ranges are bounded and Monday aligned', () => {
 
 test('filters keep OHARA, external personal, and Project contexts distinct', () => {
   const external = item({ id: 'external:1', sourceType: 'external_event', provider: 'apple', isOharaItem: false, isExternal: true });
-  const project = item({ id: 'task:project', projectId: 'project-1' });
+  const project = item({ id: 'task:project', calendarScopes: ['projects'], projectId: 'project-1' });
   assert.deepEqual(filterCalendarItems([external, project], 'personal').map((row) => row.id), ['external:1']);
   assert.deepEqual(filterCalendarItems([external, project], 'projects').map((row) => row.id), ['task:project']);
+  assert.deepEqual(filterCalendarItems([external, project], 'ohara').map((row) => row.id), []);
+  assert.deepEqual(filterCalendarItems([external, project], 'all').map((row) => row.id), ['external:1', 'task:project']);
+  assert.deepEqual(filterHomeCalendarItems([external, project]).map((row) => row.id), ['external:1']);
+});
+
+test('filters render one canonical occurrence even when relevance conditions overlap', () => {
+  const project = item({ id: 'task-occurrence:one', projectId: 'project-1' });
+  assert.deepEqual(filterCalendarItems([project, { ...project }], 'projects').map((row) => row.id), ['task-occurrence:one']);
+  assert.deepEqual(filterCalendarItems([project, { ...project }], 'all').map((row) => row.id), ['task-occurrence:one']);
 });
 
 test('all-day dates remain date-level and timed events sort afterward', () => {

@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Added — Calendar EventKit finalization (local, not released)
+- Added explicit, user-scoped EventKit calendar selection stored on-device, foreground refresh, bounded selected-calendar reads, destination-calendar export, and calm denied/disconnected/provider-failure states (`features/calendar/hooks/useCalendarItems.ts`, `features/calendar/providers/`, `features/calendar/components/AppleCalendarSettingsModal.tsx`, `features/calendar/components/CalendarExportModal.tsx`, `app.json`, `package.json`).
+- Added local migration `090_calendar_external_links.sql` with owner-private RLS, read-only client table access, authorization-aware reservation/finalization RPCs, expiring idempotent export reservations, and `active`/`missing`/`failed`/`unlinked` states. Added rollback-only hosted and full-chain security coverage (`supabase/migrations/090_calendar_external_links.sql`, `app/api/calendar/links*`, `features/calendar/services/calendar-link-service.ts`, `scripts/goal-hosted-preflight/090-calendar-external-links.sql`, `scripts/db-chain/suites/calendar.sh`).
+- Added provider architecture, browser acceptance, and physical-iOS acceptance documentation covering permissions, multiple calendars, Google-backed EventKit sources, bounded reads, all-day/timezone/DST behavior, privacy, duplicate export prevention, and synthetic screenshot evidence (`tests/calendar/foundation.spec.ts`, `docs/calendar-provider-architecture.md`, `docs/calendar-eventkit-device-validation.md`).
+
+### Changed — Calendar relevance finalization (local, not released)
+- Split direct schedule relevance from broader Project relevance. Calendar → Projects includes Project Tasks/Milestones the viewer created or is assigned/responsible for, while Home excludes creator-only work delegated to somebody else; canonical identities prevent duplicate rendering (`features/calendar/scope.ts`, `features/calendar/types.ts`, `lib/db/calendar.ts`, `features/calendar/domain.ts`, `app/(app)/dashboard.tsx`).
+- Kept Calendar reads projection-only: no Momentum/Echo/expiration/occurrence reconciliation or full Project hydration was added. EventKit calendar enumeration happens on connection/foreground/manual refresh, while date navigation re-reads only the already selected calendars (`features/calendar/hooks/useCalendarItems.ts`).
+
+### Fixed — Calendar provider reliability (local, not released)
+- Prevented state changes after an EventKit refresh from repeating the same provider read, cleared stale export-link UI when switching items, and isolated Apple read/write/link failures from canonical OHARA Calendar rendering (`features/calendar/hooks/useCalendarItems.ts`, `features/calendar/components/CalendarExportModal.tsx`).
+- Patched `react-native-css-interop@0.2.3` to stop its `box-shadow` parser from falling through into `aspect-ratio`, which previously crashed every iOS production export before application code could bundle (`patches/react-native-css-interop+0.2.3.patch`).
+- Preserved upstream TD-005 Milestone operation IDs byte-for-byte while replacing its `node:crypto`-only UUIDv5 helper with platform-neutral TypeScript, preventing the server helper from breaking the iOS route bundle (`lib/goals/milestone-operation-id.ts`, `lib/goals/milestone-operation-id.test.ts`).
+
 ### Fixed — Calendar ownership and Project membership
 - Scoped the default Calendar projection to OHARA Tasks and Milestones the viewer created or is assigned to, plus Goals they own or lead. Merely having access to a shared or Guide Project no longer floods Home or Calendar with another member’s work (`features/calendar/scope.ts`, `lib/db/calendar.ts`, `app/api/calendar/items+api.ts`).
 - Added a permission-safe “Leave Project” flow for Admins, Members, and Guides. Leaving clears the departing user’s Goal/Task/Milestone responsibility pointers without deleting Project content; owners cannot leave without a future ownership-transfer flow (`supabase/migrations/088_project_member_self_leave.sql`, `features/projects/components/ManageProjectModal.tsx`, `features/projects/services/project-service.ts`).

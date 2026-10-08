@@ -1,5 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { isGoalInViewerCalendar, isMilestoneInViewerCalendar, isTaskInViewerCalendar } from '@/features/calendar/scope';
+import {
+  calendarScopesForGoal,
+  calendarScopesForMilestone,
+  calendarScopesForTask,
+} from '@/features/calendar/scope';
 import type { CalendarItem, CalendarRange } from '@/features/calendar/types';
 import { addLocalDays } from '@/lib/time/zoned-calendar';
 
@@ -65,8 +69,10 @@ export async function fetchOharaCalendarItems(
     const task = related(row.tasks);
     const goal = task ? goalById.get(task.goal_id as string) : null;
     const scheduledDate = row.scheduled_local_date as string | null;
-    if (!task || !goal || !scheduledDate || !isTaskInViewerCalendar(task, viewerId)) continue;
+    if (!task || !goal || !scheduledDate) continue;
     const projectId = (goal.project_id as string | null) ?? null;
+    const calendarScopes = calendarScopesForTask(task, viewerId, projectId);
+    if (!calendarScopes.length) continue;
     const hasTime = typeof row.scheduled_local_time === 'string' && row.scheduled_local_time.length > 0;
     items.push({
       id: `task-occurrence:${row.id}`,
@@ -87,6 +93,7 @@ export async function fetchOharaCalendarItems(
       occurrenceId: row.id,
       isOharaItem: true,
       isExternal: false,
+      calendarScopes,
       status: row.status,
       visibility: goal.visibility ?? 'private',
     });
@@ -94,8 +101,10 @@ export async function fetchOharaCalendarItems(
 
   for (const row of (milestones.data ?? []) as Row[]) {
     const goal = goalById.get(row.goal_id as string);
-    if (!goal || !row.due_date || !isMilestoneInViewerCalendar(row, viewerId)) continue;
+    if (!goal || !row.due_date) continue;
     const projectId = (goal.project_id as string | null) ?? null;
+    const calendarScopes = calendarScopesForMilestone(row, viewerId, projectId);
+    if (!calendarScopes.length) continue;
     items.push({
       id: `milestone:${row.id}`,
       sourceType: 'milestone',
@@ -115,16 +124,19 @@ export async function fetchOharaCalendarItems(
       occurrenceId: null,
       isOharaItem: true,
       isExternal: false,
+      calendarScopes,
       status: row.completed_at ? 'completed' : 'active',
       visibility: goal.visibility ?? 'private',
     });
   }
 
   for (const goal of goals) {
-    if (!goal.deadline || !isGoalInViewerCalendar(goal, viewerId)) continue;
+    if (!goal.deadline) continue;
     const deadline = dateOnly(goal.deadline as string);
     if (deadline < range.startDate || deadline > range.endDate) continue;
     const projectId = (goal.project_id as string | null) ?? null;
+    const calendarScopes = calendarScopesForGoal(goal, viewerId, projectId);
+    if (!calendarScopes.length) continue;
     items.push({
       id: `goal-deadline:${goal.id}`,
       sourceType: 'goal_deadline',
@@ -144,6 +156,7 @@ export async function fetchOharaCalendarItems(
       occurrenceId: null,
       isOharaItem: true,
       isExternal: false,
+      calendarScopes,
       status: 'active',
       visibility: goal.visibility ?? 'private',
     });

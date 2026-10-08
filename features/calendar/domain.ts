@@ -56,10 +56,18 @@ export function calendarItemLocalDate(item: CalendarItem): string {
 }
 
 export function filterCalendarItems(items: readonly CalendarItem[], filter: CalendarFilter): CalendarItem[] {
-  if (filter === 'all') return [...items];
-  if (filter === 'ohara') return items.filter((item) => item.isOharaItem);
-  if (filter === 'personal') return items.filter((item) => item.isExternal);
-  return items.filter((item) => item.isOharaItem && item.projectId !== null);
+  const unique = [...new Map(items.map((item) => [item.id, item])).values()];
+  if (filter === 'all') return unique;
+  if (filter === 'ohara') return unique.filter((item) => item.isOharaItem && (item.calendarScopes?.includes('ohara') ?? true));
+  if (filter === 'personal') return unique.filter((item) => item.isExternal);
+  return unique.filter((item) => item.isOharaItem && (item.calendarScopes?.includes('projects') ?? item.projectId !== null));
+}
+
+/** Home combines private provider events with only directly scheduled OHARA work. */
+export function filterHomeCalendarItems(items: readonly CalendarItem[]): CalendarItem[] {
+  const unique = [...new Map(items.map((item) => [item.id, item])).values()];
+  return unique.filter((item) => item.isExternal
+    || (item.isOharaItem && (item.calendarScopes?.includes('ohara') ?? true)));
 }
 
 export function groupCalendarItems(items: readonly CalendarItem[]): Array<{ date: string; items: CalendarItem[] }> {

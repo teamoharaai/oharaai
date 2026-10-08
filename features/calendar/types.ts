@@ -1,6 +1,7 @@
 export type CalendarSourceType = 'task_occurrence' | 'milestone' | 'goal_deadline' | 'external_event';
 export type CalendarProviderId = 'ohara' | 'apple' | 'google';
 export type CalendarItemStatus = 'pending' | 'completed' | 'skipped' | 'missed' | 'cancelled' | 'active';
+export type CalendarRelevanceScope = 'ohara' | 'projects';
 
 /**
  * Provider-neutral item consumed by every OHARA calendar surface. OHARA rows
@@ -26,6 +27,12 @@ export interface CalendarItem {
   occurrenceId: string | null;
   isOharaItem: boolean;
   isExternal: boolean;
+  /**
+   * Product relevance is narrower than RLS visibility. `ohara` means the item
+   * belongs on the viewer's direct schedule; `projects` also includes Project
+   * work the viewer created and delegated to somebody else.
+   */
+  calendarScopes?: CalendarRelevanceScope[];
   status: CalendarItemStatus;
   visibility: string;
 }

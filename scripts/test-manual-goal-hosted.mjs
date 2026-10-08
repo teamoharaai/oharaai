@@ -40,7 +40,8 @@ const PROBES = { '072': '072-manual-goal.sql', '074': '074-goal-card.sql', '075'
   '081': '081-goal-work-desktop.sql', '082': '082-shared-entry-reliability.sql',
   '083': '083-domain-computation-jobs.sql', '084': '084-sticky-retirement.sql',
   '085': '085-project-task-execution.sql', '086': '086-echo-mirror.sql',
-  '087': '087-notes-library-folders.sql', '088': '088-project-member-self-leave.sql' };
+  '087': '087-notes-library-folders.sql', '088': '088-project-member-self-leave.sql',
+  '090': '090-calendar-external-links.sql' };
 const PRECHECKS = { '076': '076-precheck.sql', '086': '086-precheck.sql' };
 
 // Target -----------------------------------------------------------------------

@@ -19,8 +19,9 @@ import {
   todayYmd,
 } from '../domain';
 import { useCalendarItems } from '../hooks/useCalendarItems';
-import { appleEventKitProvider } from '../providers/apple-eventkit';
 import type { CalendarFilter, CalendarItem, CalendarView } from '../types';
+import { AppleCalendarSettingsModal } from './AppleCalendarSettingsModal';
+import { CalendarExportModal } from './CalendarExportModal';
 import { calendarTimeLabel, CalendarItemRow } from './CalendarItemRow';
 
 const VIEWS = [
@@ -55,17 +56,30 @@ function ProviderCard({
   accessState,
   canConnect,
   onConnect,
+  onManage,
+  providerConnected,
+  selectedCount,
 }: {
   accessState: ReturnType<typeof useCalendarItems>['accessState'];
   canConnect: boolean;
-  onConnect: () => void;
+  onConnect: () => Promise<void>;
+  onManage: () => void;
+  providerConnected: boolean;
+  selectedCount: number;
 }) {
   const colors = useThemeColors();
-  if (accessState === 'granted') {
+  if (accessState === 'granted' && providerConnected) {
     return (
-      <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}>
-        <Ionicons color={colors.text.accent} name="checkmark-circle" size={18} />
-        <Typography variant="caption" style={{ color: colors.text.secondary }}>Apple Calendar connected</Typography>
+      <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm, justifyContent: 'space-between' }}>
+        <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}>
+          <Ionicons color={colors.text.accent} name="checkmark-circle" size={18} />
+          <Typography variant="caption" style={{ color: colors.text.secondary }}>
+            Apple Calendar connected · {selectedCount} {selectedCount === 1 ? 'calendar' : 'calendars'} visible
+          </Typography>
+        </View>
+        <Pressable accessibilityLabel="Manage Apple Calendar" accessibilityRole="button" onPress={onManage}>
+          <Typography variant="label" style={{ color: colors.text.accent }}>Manage</Typography>
+        </Pressable>
       </View>
     );
   }
@@ -76,15 +90,16 @@ function ProviderCard({
       </Typography>
     );
   }
+  const blocked = accessState === 'denied' || accessState === 'restricted' || accessState === 'write_only';
   return (
     <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.lg }}>
       <View style={{ flex: 1, minWidth: 210 }}>
         <Typography variant="emphasis-sm">Apple Calendar</Typography>
         <Typography variant="caption" style={{ color: colors.text.secondary, marginTop: 2 }}>
-          Uses calendars configured on this iPhone. Access is optional and private to you.
+          See selected events alongside OHARA Tasks, Goals, and Milestones. Access is optional and private to you.
         </Typography>
       </View>
-      {accessState === 'denied' ? (
+      {blocked ? (
         <Pressable accessibilityLabel="Open Settings for Calendar access" accessibilityRole="button" onPress={() => void Linking.openSettings()}>
           <Typography variant="label" style={{ color: colors.text.accent }}>Open Settings</Typography>
         </Pressable>
@@ -93,7 +108,7 @@ function ProviderCard({
           accessibilityHint="Shows the native Calendar permission prompt"
           accessibilityLabel="Connect Apple Calendar"
           accessibilityRole="button"
-          onPress={onConnect}
+          onPress={() => void onConnect()}
           style={({ pressed }) => ({ backgroundColor: colors.accent.primary, borderRadius: RADIUS.round, minHeight: 42, justifyContent: 'center', opacity: pressed ? 0.72 : 1, paddingHorizontal: SPACE.xl })}
         >
           <Typography variant="control" style={{ color: colors.text.onAccent }}>Connect</Typography>
@@ -234,22 +249,8 @@ export function CalendarScreen() {
   const allItems = useMemo(() => [...calendar.items, ...previewItems], [calendar.items, previewConnected]);
   const visible = useMemo(() => filterCalendarItems(allItems, filter), [allItems, filter]);
   const grouped = useMemo(() => groupCalendarItems(visible), [visible]);
-  const [notice, setNotice] = useState<string | null>(null);
-
-  async function exportItem(item: CalendarItem) {
-    try {
-      await appleEventKitProvider.createEvent({
-        title: item.title,
-        startAt: item.startAt,
-        endAt: item.endAt,
-        allDay: item.allDay,
-        notes: `OHARA${item.contextTitle ? ` · ${item.contextTitle}` : ''}`,
-      });
-      setNotice('Added to Apple Calendar. OHARA remains the source of truth.');
-    } catch {
-      setNotice('Apple Calendar could not add this item.');
-    }
-  }
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [exportItem, setExportItem] = useState<CalendarItem | null>(null);
 
   return (
     <AuthenticatedPageShell>
@@ -263,7 +264,17 @@ export function CalendarScreen() {
         </View>
 
         <Card elevation="sm" padding="spacious" style={{ borderWidth: 0, marginTop: SPACE['3xl'] }}>
-          <ProviderCard accessState={previewConnected ? 'granted' : calendar.accessState} canConnect={calendar.canConnectApple} onConnect={() => void calendar.connect()} />
+          <ProviderCard
+            accessState={previewConnected ? 'granted' : calendar.accessState}
+            canConnect={calendar.canConnectApple}
+            onConnect={async () => {
+              const result = await calendar.connect();
+              if (result === 'granted') setSettingsOpen(true);
+            }}
+            onManage={() => setSettingsOpen(true)}
+            providerConnected={previewConnected || calendar.providerConnected}
+            selectedCount={previewConnected ? 1 : calendar.selectedCalendarIds.length}
+          />
         </Card>
 
         <View style={{ alignItems: compact ? 'stretch' : 'center', flexDirection: compact ? 'column' : 'row', gap: SPACE.xl, justifyContent: 'space-between', marginTop: SPACE['3xl'] }}>
@@ -281,7 +292,6 @@ export function CalendarScreen() {
           <SegmentedControl accessibilityLabel="Calendar filters" compact onChange={setFilter} options={FILTERS} value={filter} />
         </View>
 
-        {notice ? <Typography variant="caption" style={{ color: colors.text.accent, marginTop: SPACE.lg }}>{notice}</Typography> : null}
         {calendar.error ? <Typography variant="caption" style={{ color: colors.feedback.danger.text, marginTop: SPACE.lg }}>{calendar.error}</Typography> : null}
 
         {view === 'month' ? (
@@ -308,7 +318,7 @@ export function CalendarScreen() {
                     item={item}
                     key={item.id}
                     onChanged={calendar.refresh}
-                    onExport={(previewConnected || calendar.accessState === 'granted') ? (row) => void exportItem(row) : undefined}
+                    onExport={(calendar.accessState === 'granted' && calendar.providerConnected) ? setExportItem : undefined}
                   />
                 ))}
               </View>
@@ -328,6 +338,20 @@ export function CalendarScreen() {
             External calendars are read-only context in OHARA. Google Calendar connection is planned separately from sign-in.
           </Typography>
         ) : null}
+        <AppleCalendarSettingsModal
+          calendars={calendar.calendars}
+          onClose={() => setSettingsOpen(false)}
+          onDisconnect={calendar.disconnect}
+          onSave={calendar.saveSelection}
+          selectedCalendarIds={calendar.selectedCalendarIds}
+          visible={settingsOpen && !previewConnected}
+        />
+        <CalendarExportModal
+          calendars={calendar.calendars}
+          item={exportItem}
+          onClose={() => setExportItem(null)}
+          visible={!!exportItem && !previewConnected}
+        />
       </View>
     </AuthenticatedPageShell>
   );

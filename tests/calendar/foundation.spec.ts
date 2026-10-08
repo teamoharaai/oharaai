@@ -114,7 +114,7 @@ test('captures Home, Circles, and Calendar foundation states', async ({ page }) 
   await page.screenshot({ path: `${screenshots}/14-global-header-calendar-icon.png`, fullPage: true });
 
   await open(page, '/calendar?providerPreview=connected');
-  await expect(page.getByText('Apple Calendar connected', { exact: true })).toBeVisible();
+  await expect(page.getByText(/Apple Calendar connected/)).toBeVisible();
   await expect(page.getByText('Dentist', { exact: true })).toBeVisible();
   await page.screenshot({ path: `${screenshots}/10-calendar-connected-provider-state.png`, fullPage: true });
 

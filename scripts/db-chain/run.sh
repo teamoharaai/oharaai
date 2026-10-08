@@ -52,6 +52,7 @@ SUITES=(
   "scripts/db-chain/suites/tasks.sh:046"
   "scripts/db-chain/suites/projects-v1.sh:all"
   "scripts/db-chain/suites/projects-v11.sh:all"
+  "scripts/db-chain/suites/calendar.sh:all"
 )
 
 CHAIN_ONLY=false

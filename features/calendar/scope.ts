@@ -1,3 +1,5 @@
+import type { CalendarRelevanceScope } from './types';
+
 type GoalScopeRow = {
   project_lead_id?: string | null;
   user_id?: string | null;
@@ -26,12 +28,47 @@ export function isTaskInViewerCalendar(task: TaskScopeRow, viewerId: string): bo
     || (task.created_by == null && task.user_id === viewerId);
 }
 
+export function calendarScopesForTask(
+  task: TaskScopeRow,
+  viewerId: string,
+  projectId: string | null,
+): CalendarRelevanceScope[] {
+  const legacyOwned = task.created_by == null && task.user_id === viewerId;
+  const assigned = task.assigned_to === viewerId;
+  const created = task.created_by === viewerId;
+  if (!assigned && !created && !legacyOwned) return [];
+  if (!projectId) return ['ohara'];
+  return assigned || legacyOwned ? ['ohara', 'projects'] : ['projects'];
+}
+
 export function isMilestoneInViewerCalendar(milestone: MilestoneScopeRow, viewerId: string): boolean {
   return milestone.responsible_user_id === viewerId
     || milestone.created_by === viewerId
     || (milestone.created_by == null && milestone.user_id === viewerId);
 }
 
+export function calendarScopesForMilestone(
+  milestone: MilestoneScopeRow,
+  viewerId: string,
+  projectId: string | null,
+): CalendarRelevanceScope[] {
+  const legacyOwned = milestone.created_by == null && milestone.user_id === viewerId;
+  const responsible = milestone.responsible_user_id === viewerId;
+  const created = milestone.created_by === viewerId;
+  if (!responsible && !created && !legacyOwned) return [];
+  if (!projectId) return ['ohara'];
+  return responsible || legacyOwned ? ['ohara', 'projects'] : ['projects'];
+}
+
 export function isGoalInViewerCalendar(goal: GoalScopeRow, viewerId: string): boolean {
   return goal.user_id === viewerId || goal.project_lead_id === viewerId;
+}
+
+export function calendarScopesForGoal(
+  goal: GoalScopeRow,
+  viewerId: string,
+  projectId: string | null,
+): CalendarRelevanceScope[] {
+  if (!isGoalInViewerCalendar(goal, viewerId)) return [];
+  return projectId ? ['ohara', 'projects'] : ['ohara'];
 }

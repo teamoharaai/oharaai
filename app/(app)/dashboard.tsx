@@ -7,7 +7,7 @@ import { Toast } from '@/components/ui/Toast';
 import { Typography } from '@/components/ui/Typography';
 import { AuthenticatedPageShell } from '@/components/layout/AuthenticatedPageShell';
 import { HomeCalendarPreview } from '@/features/calendar/components/HomeCalendarPreview';
-import { deviceTimezone, rangeForView, todayYmd } from '@/features/calendar/domain';
+import { deviceTimezone, filterHomeCalendarItems, rangeForView, todayYmd } from '@/features/calendar/domain';
 import { useCalendarItems } from '@/features/calendar/hooks/useCalendarItems';
 import { useGoals } from '@/features/goals/hooks/useGoals';
 import { useSession } from '@/features/auth/hooks/useSession';
@@ -245,7 +245,7 @@ export default function DashboardScreen() {
               />
             </View>
             <View style={{ flex: 1, minWidth: 0, width: width >= 980 ? undefined : '100%' }}>
-              <HomeCalendarPreview accessState={homeCalendar.accessState} items={homeCalendar.items} isLoading={homeCalendar.isLoading} />
+              <HomeCalendarPreview accessState={homeCalendar.accessState} items={filterHomeCalendarItems(homeCalendar.items)} isLoading={homeCalendar.isLoading} />
             </View>
           </View>
 

@@ -27,7 +27,7 @@
       [
         "expo-calendar",
         {
-          "calendarPermission": "Allow OHARA to show your Apple Calendar events alongside your scheduled Tasks, Milestones, and Goal deadlines."
+          "calendarPermission": "Allow OHARA to show the Apple Calendar events you choose alongside your scheduled Tasks, Milestones, and Goal deadlines."
         }
       ]
     ],
