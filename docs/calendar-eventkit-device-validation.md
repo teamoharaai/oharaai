@@ -2,6 +2,33 @@
 
 This checklist is the release gate for Calendar native behavior. Run it on a physical iPhone when possible, or a working iOS simulator with seeded Calendar data. Use synthetic titles only; do not capture private event content.
 
+## CEO validation sequence
+
+Complete and record all 20 items before this branch is considered production-ready:
+
+1. Install and launch the full Xcode application, not only Command Line Tools.
+2. Open the generated OHARA iOS project/workspace in Xcode and build a fresh native binary with the `expo-calendar` config plugin applied.
+3. Prefer a physical iPhone; use a functioning iOS simulator only when a physical device is unavailable.
+4. Confirm Calendar permission is requested only after tapping **Connect Apple Calendar**.
+5. Deny permission and confirm OHARA Calendar items remain usable without an automatic re-prompt.
+6. Grant full permission and confirm the connected state refreshes correctly.
+7. Confirm EventKit enumerates real calendars available on the device.
+8. Select multiple calendars and confirm their selection persists for this signed-in user on this device.
+9. If available, confirm a Google-backed calendar exposed through EventKit can be selected and read.
+10. Confirm external reads remain bounded to the requested visible date range.
+11. Exercise Today, Week, and Month and confirm each reads only its intended range.
+12. Add one OHARA Task occurrence to a chosen writable Apple calendar.
+13. Add one OHARA Milestone to a chosen writable Apple calendar.
+14. Add one OHARA Goal deadline to a chosen writable Apple calendar.
+15. Repeat each export action and confirm the existing link prevents a duplicate Apple event.
+16. Delete an exported Apple event externally and confirm OHARA marks the link missing and permits an explicit re-export without changing the canonical OHARA item.
+17. Revoke permission in iOS Settings, foreground OHARA, and confirm external items clear while OHARA items remain available.
+18. Disconnect and reconnect; confirm reads stop while disconnected, local selection clears, Apple events remain, and reconnect can restore a valid selection.
+19. Validate timed, all-day, timezone, and `America/New_York` DST-boundary events on the intended local date/time.
+20. Background and foreground OHARA after permission, calendar-name, and selection changes; confirm the provider refreshes and removes stale calendar identifiers.
+
+These are unverified acceptance steps, not recorded pass results. Capture only synthetic evidence and report any failure before merge, migration, or deployment.
+
 ## Build and setup
 
 - Build a fresh native binary/TestFlight build after installing `expo-calendar` and applying the config plugin.
