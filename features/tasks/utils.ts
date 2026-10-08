@@ -196,6 +196,24 @@ function occurrenceSortValue(occurrence: TaskOccurrence): string {
   return `${occurrence.scheduledLocalDate ?? '9999-12-31'}T${occurrence.scheduledLocalTime ?? '23:59:59'}`;
 }
 
+/**
+ * Pick the occurrence a current-action surface should mutate.
+ *
+ * A missed scheduled occurrence is historical evidence, not a gate in front of
+ * a later repetition. Recurring Tasks therefore advance to their earliest
+ * pending occurrence. One-time Tasks intentionally keep their overdue/missed
+ * occurrence actionable until the user completes, reschedules, or removes it.
+ */
+export function currentActionableOccurrence(
+  task: Task,
+): TaskOccurrence | null {
+  const open = task.occurrences
+    .filter((occurrence) => occurrence.status === 'pending' || occurrence.status === 'missed')
+    .sort((a, b) => occurrenceSortValue(a).localeCompare(occurrenceSortValue(b)));
+  if (!activeTaskSchedule(task)) return open[0] ?? null;
+  return open.find((occurrence) => occurrence.status === 'pending') ?? null;
+}
+
 export function buildTaskSections(tasks: readonly Task[], now = new Date()): TaskSections {
   const sections: TaskSections = { today: [], upcoming: [], anytime: [], completed: [] };
   for (const task of tasks) {
@@ -440,11 +458,9 @@ export function buildPlanItems(tasks: readonly Task[], scope: PlanScope = 'today
       task.completionMode === 'quantity'
         ? { done: occ.actualQuantity ?? task.legacyCurrentValue ?? 0, target: task.targetQuantity ?? 0 }
         : null;
-    const actionable = task.occurrences
-      .filter((occ) => occ.status === 'pending' || occ.status === 'missed')
-      .sort((a, b) => occurrenceSortValue(a).localeCompare(occurrenceSortValue(b)));
-    if (actionable.length) {
-      const occ = actionable[0];
+    const actionable = currentActionableOccurrence(task);
+    if (actionable) {
+      const occ = actionable;
       items.push({
         taskId: task.id,
         occurrenceId: occ.id,

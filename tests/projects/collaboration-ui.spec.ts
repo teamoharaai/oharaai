@@ -1,10 +1,13 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 const screenshots = process.env.PROJECT_UI_ACCEPTANCE_DIR ?? '/private/tmp/ohara-projects-v11-ui-acceptance';
 const steeringScreenshots = process.env.PROJECT_STEERING_ACCEPTANCE_DIR ?? '/private/tmp/ohara-projects-v11-workspace-steering';
 mkdirSync(screenshots, { recursive: true });
 mkdirSync(steeringScreenshots, { recursive: true });
+const prelaunchScreenshots = resolve(process.cwd(), 'docs/ui-checkpoints/prelaunch-cleanup');
+mkdirSync(prelaunchScreenshots, { recursive: true });
 
 const now = '2026-09-23T12:00:00Z';
 const previewAccessToken = (userId: string) => `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ aud: 'authenticated', exp: 1893456000, role: 'authenticated', sub: userId })).toString('base64url')}.preview`;
@@ -43,6 +46,10 @@ function shot(page: Page, name: string) {
 
 function steeringShot(target: Page | Locator, name: string, fullPage = false) {
   return target.screenshot({ path: `${steeringScreenshots}/${name}.png`, ...(fullPage ? { fullPage: true } : {}) });
+}
+
+function prelaunchShot(page: Page, name: string) {
+  return page.screenshot({ path: `${prelaunchScreenshots}/${name}.png`, fullPage: true });
 }
 
 async function setCommentInput(page: Page, value: string) {
@@ -102,7 +109,10 @@ async function installScenario(page: Page, scenario: Scenario) {
     };
     localStorage.setItem('sb-projects-preview-auth-token', JSON.stringify(value));
     localStorage.setItem('ohara-ui-state', JSON.stringify({ state: { themeMode: theme }, version: 0 }));
-    for (const patch of ['goals-v2-3-1', 'vault-v2-3', 'projects-v1-0', 'projects-v1-1-execution']) localStorage.setItem(`ohara:release:${patch}:seen`, 'seen');
+    for (const patch of ['journal-prelaunch-redesign', 'notes-prelaunch-library', 'goals-v2-3-1', 'vault-v2-3', 'projects-v1-0', 'projects-v1-1-execution', 'notes-v1-1', 'momentum-v1-1']) {
+      localStorage.setItem(`ohara:release:${patch}:seen`, 'seen');
+      sessionStorage.setItem(`ohara:release:${patch}:seen`, 'seen');
+    }
   }, { session, theme: scenario.theme ?? 'dark' });
 
   await page.route(/https?:\/\/[^/]+\/(?:auth|rest)\/v1\/.*/, async (route) => {
@@ -206,14 +216,15 @@ test('Team owner collaboration, assignments, comments, and responsive states', a
   await expect(page.getByLabel('Project Chat message')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Send', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '+ New Note', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: '+ New Reflection', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '+ New Entry', exact: true })).toBeVisible();
   await expect(page.getByText('Justin commented on Task', { exact: true })).toBeVisible();
   await expect(page.getByText('on: Finalize onboarding', { exact: true })).toBeVisible();
   await shot(page, '02-team-project-owner-three-members');
+  await prelaunchShot(page, '22-global-nav-active-projects');
   await steeringShot(page, '01-team-project-desktop-dark', true);
   await expect(page.getByLabel('1 Task needs attention')).toBeVisible();
   await steeringShot(page.getByLabel('Current Goals card'), '05-current-goals-attention-badge');
-  await steeringShot(page.getByLabel('Reflections card'), '06-reflection-with-real-preview');
+  await steeringShot(page.getByLabel('Journal card'), '06-reflection-with-real-preview');
   await steeringShot(page.getByLabel('Echo Project Insight card'), '08-intelligence-inline-header');
   await steeringShot(page.getByLabel('Echo Project Insight card'), '09-intelligence-dark-contrast');
   await steeringShot(page.getByLabel('Upcoming Milestones card'), '11-upcoming-milestones');
@@ -234,12 +245,17 @@ test('Team owner collaboration, assignments, comments, and responsive states', a
   await expect(page.getByText('3 / 3', { exact: true })).toBeVisible();
   await page.waitForTimeout(400);
   await shot(page, '06-manage-members-team');
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await prelaunchShot(page, '10-manage-project-members');
+  await page.getByLabel('Close', { exact: true }).click();
   await page.waitForTimeout(400);
 
   await page.getByRole('button', { name: 'Manage Project ▾', exact: true }).click();
+  await expect(page.getByRole('tab', { name: 'Overview', exact: true })).toBeVisible();
+  await page.waitForTimeout(400);
+  await prelaunchShot(page, '08-manage-project-overview');
   await page.getByRole('tab', { name: 'Goals', exact: true }).click();
   await shot(page, '12-goal-lead-ui');
+  await prelaunchShot(page, '09-manage-project-goals');
   await page.getByRole('button', { name: '+ Task', exact: true }).click();
   await expect(page.getByText('Assigned to', { exact: true })).toBeVisible();
   await shot(page, '10-task-assignment-ui');
@@ -248,8 +264,17 @@ test('Team owner collaboration, assignments, comments, and responsive states', a
   await expect(page.getByText('Responsible', { exact: true })).toBeVisible();
   await shot(page, '11-milestone-responsibility-ui');
   await page.getByRole('button', { name: 'Cancel', exact: true }).last().click();
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await page.getByLabel('Close', { exact: true }).click();
   await page.waitForTimeout(400);
+
+  await page.getByRole('button', { name: 'Manage Project ▾', exact: true }).click();
+  await page.getByRole('tab', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Delete Project', exact: true }).click();
+  await expect(page.getByText('Delete Project?', { exact: true })).toBeVisible();
+  await page.waitForTimeout(300);
+  await prelaunchShot(page, '13-delete-project-confirmation');
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await page.getByLabel('Close', { exact: true }).click();
 
   await page.getByRole('button', { name: 'Show comments for Finalize onboarding' }).click();
   await expect(page.getByRole('button', { name: 'Edit comment by Arthur Silva' })).toBeVisible();
@@ -298,7 +323,7 @@ test('Project binary Task completes in place and opens its canonical Goal contex
     if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/rest/v1/') || url.pathname.startsWith('/auth/v1/')) domainRequests.push(`${request.method()} ${url.pathname}`);
   });
   const data = await openProject(page, { mode: 'team', viewer: 'owner', full: true, secondaryDelayMs: 2500 });
-  await expect(page.getByLabel('Reflections card')).toBeVisible();
+  await expect(page.getByLabel('Journal card')).toBeVisible();
   const projectReadRequestCount = domainRequests.length;
   const checkbox = page.getByRole('checkbox', { name: 'Complete Finalize onboarding' });
   await expect(checkbox).toBeVisible();
@@ -352,7 +377,7 @@ test('Team workspace remains readable in light mode', async ({ page }) => {
 test('Reflection without content omits a generic preview', async ({ page }) => {
   await openProject(page, { mode: 'team', viewer: 'owner', full: true, reflectionText: null });
   await expect(page.getByText('Training felt more consistent this week, especially during the longer sessions.', { exact: true })).toHaveCount(0);
-  await steeringShot(page.getByLabel('Reflections card'), '07-reflection-without-preview');
+  await steeringShot(page.getByLabel('Journal card'), '07-reflection-without-preview');
 });
 
 test('Team invitation stays role-based and lightweight', async ({ page }) => {
@@ -369,10 +394,10 @@ test('Team Member and Admin views follow capabilities', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Members', exact: true })).toBeVisible();
   await expect(page.getByText('TEAM · 3 MEMBERS', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Manage Project ▾', exact: true }).click();
-  await expect(page.getByRole('tab', { name: 'Details', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('tab', { name: 'Access / Mode', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('tab', { name: 'Overview', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('tab', { name: 'Access', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Detach', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await page.getByLabel('Close', { exact: true }).click();
   await shot(page, '03-team-project-member-view');
 
   await page.getByRole('button', { name: 'Open Finalize onboarding in Beta Launch' }).click();
@@ -385,10 +410,10 @@ test('Team Member and Admin views follow capabilities', async ({ page }) => {
 test('Admin view exposes collaboration management but not owner-only controls', async ({ page }) => {
   await openProject(page, { mode: 'team', viewer: 'admin', full: true });
   await page.getByRole('button', { name: 'Manage Project ▾', exact: true }).click();
-  await expect(page.getByRole('tab', { name: 'Details', exact: true })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Overview', exact: true })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Members', exact: true })).toBeVisible();
-  await expect(page.getByRole('tab', { name: 'Access / Mode', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('tab', { name: 'Status', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('tab', { name: 'Access', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('tab', { name: 'Settings', exact: true })).toHaveCount(0);
 });
 
 test('Guide owner view communicates Client and Guide relationship', async ({ page }) => {
@@ -417,8 +442,8 @@ test('Guide sees permitted collaboration and no private content or owner control
   await page.getByRole('button', { name: 'Manage Project ▾', exact: true }).click();
   await expect(page.getByRole('button', { name: '+ Task', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '+ Milestone', exact: true })).toBeVisible();
-  await expect(page.getByRole('tab', { name: 'Details', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('tab', { name: 'Status', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await expect(page.getByRole('tab', { name: 'Overview', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('tab', { name: 'Settings', exact: true })).toHaveCount(0);
+  await page.getByLabel('Close', { exact: true }).click();
   await shot(page, '17-guide-ohara-intelligence');
 });

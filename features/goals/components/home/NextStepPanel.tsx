@@ -104,7 +104,7 @@ export function NextStepPanel({ goals }: { goals: TodayCarouselGoal[] }) {
         <View style={{ marginTop: SPACE.xl }}>
           <Typography variant="body">No dated next step yet.</Typography>
           <Typography variant="caption" style={{ color: colors.text.secondary, marginTop: SPACE.xs }}>
-            Add a milestone and give it or its Goal a date to create a reminder.
+            Add a milestone and give it a date to create a reminder.
           </Typography>
         </View>
       )}

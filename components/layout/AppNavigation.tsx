@@ -8,6 +8,7 @@ import { CONTROL, FONT, RADIUS, SPACE, TYPE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
 import { AvatarMenu } from './AvatarMenu';
 import { GlobalCreateControl } from './GlobalCreateControl';
+import { isActiveRoute } from './navigation-state';
 
 type NavItem = {
   label: string;
@@ -73,10 +74,6 @@ function CalendarControl({ pathname }: { pathname: string }) {
   );
 }
 
-function isActiveRoute(pathname: string, item: NavItem): boolean {
-  return item.matches.some((match) => pathname === match || pathname.startsWith(`${match}/`));
-}
-
 function NavigationItem({
   compact,
   item,
@@ -88,7 +85,7 @@ function NavigationItem({
 }) {
   const colors = useThemeColors();
   const [hovered, setHovered] = useState(false);
-  const active = isActiveRoute(pathname, item);
+  const active = isActiveRoute(pathname, item.matches);
 
   return (
     <Pressable
@@ -115,7 +112,7 @@ function NavigationItem({
     >
       {
         <BrandIcon
-          color={active || hovered ? colors.text.accent : colors.text.secondary}
+          color={active ? colors.text.accent : colors.text.secondary}
           name={item.icon}
           size={18}
         />
@@ -124,8 +121,8 @@ function NavigationItem({
         numberOfLines={1}
         style={{
           ...(compact ? TYPE.meta : TYPE.control),
-          color: active || hovered ? colors.text.accent : colors.text.primary,
-          fontFamily: FONT.editorial.medium,
+          color: active ? colors.text.accent : colors.text.primary,
+          fontFamily: FONT.ui.medium,
           letterSpacing: compact ? 0 : -0.1,
         }}
       >
@@ -187,7 +184,7 @@ export function AppNavigation({
           <Text
             style={{
               color: colors.text.primary,
-              fontFamily: FONT.editorial.medium,
+              fontFamily: FONT.ui.semibold,
               fontSize: desktop ? 19 : 17,
               letterSpacing: desktop ? 3.8 : 3.2,
               marginLeft: SPACE.lg,

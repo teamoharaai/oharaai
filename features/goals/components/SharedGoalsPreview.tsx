@@ -62,7 +62,7 @@ export function SharedGoalsPreview() {
     <SharedGoalSheet goal={selected} owner={selected?.owner ?? null} onClose={() => setSelectedId(null)} onViewUpdates={() => {
       if (selected) useCirclesStore.getState().setScope({ kind: 'goal', goalId: selected.id });
       setSelectedId(null);
-      router.push('/(app)/dashboard');
+      router.push('/(app)/circles');
     }} />
   </View>;
 }

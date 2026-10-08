@@ -6,6 +6,7 @@ import {
   recentWorkspaceGoals,
   getGoalCategoryLabel,
   getGoalStatusLabel,
+  goalStatusToWorkspaceStatus,
   getNextGoalMilestone,
   getUpcomingGoalSteps,
 } from './goals-workspace.ts';
@@ -103,7 +104,7 @@ test('does not promote evidence children into the next-step feature', () => {
   assert.equal(selected?.id, 'next-achievement');
 });
 
-test('builds dated Home reminders from each active Goals next top-level milestone', () => {
+test('builds Home reminders only from explicitly dated top-level milestones', () => {
   const steps = getUpcomingGoalSteps([
     goal({
       id: 'goal-later',
@@ -136,8 +137,10 @@ test('builds dated Home reminders from each active Goals next top-level mileston
     }),
   ]);
 
-  assert.deepEqual(steps.map((step) => step.milestone.id), ['sooner-step', 'later-step']);
-  assert.equal(steps[1]?.dueDate.toISOString(), '2026-09-30T12:00:00.000Z');
+  assert.deepEqual(steps.map((step) => step.milestone.id), ['sooner-step']);
+  assert.equal(getNextGoalMilestone([
+    milestone({ id: 'undated', dueDate: null }),
+  ])?.dueDate, null);
 });
 
 test('formats stored category and status identities without relabeling legacy values', () => {
@@ -146,6 +149,8 @@ test('formats stored category and status identities without relabeling legacy va
   assert.equal(getGoalStatusLabel('stagnant'), 'Paused');
   assert.equal(getGoalStatusLabel('complete'), 'Completed');
   assert.equal(getGoalStatusLabel('expired'), 'Expired');
+  assert.equal(goalStatusToWorkspaceStatus('stagnant'), 'paused');
+  assert.equal(goalStatusToWorkspaceStatus('complete'), 'completed');
 });
 
 test('recent Goals prefer visits and meaningful updates while retaining the selected Goal', () => {

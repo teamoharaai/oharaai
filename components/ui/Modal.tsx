@@ -11,10 +11,10 @@ import {
 } from 'react-native';
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { elevationStyle, RADIUS, SPACE } from '@/constants/design';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { Button } from './Button';
-import { Typography } from './Typography';
 
 interface ModalMotion {
   backdropDuration: number;
@@ -153,13 +153,25 @@ export function Modal({
       ) : null}
 
       {showCloseButton ? (
-        <TouchableOpacity className="mt-4 items-center" onPress={handleClose} disabled={closeDisabled}>
-          <Typography
-            variant="subtitle"
-            style={{ color: colors.text.secondary, opacity: closeDisabled ? 0.6 : 1 }}
-          >
-            Close
-          </Typography>
+        <TouchableOpacity
+          accessibilityLabel="Close"
+          accessibilityRole="button"
+          disabled={closeDisabled}
+          onPress={handleClose}
+          style={{
+            alignItems: 'center',
+            borderRadius: RADIUS.round,
+            height: 44,
+            justifyContent: 'center',
+            opacity: closeDisabled ? 0.5 : 1,
+            position: 'absolute',
+            right: SPACE.md,
+            top: SPACE.md,
+            width: 44,
+            zIndex: 10,
+          }}
+        >
+          <Ionicons color={colors.text.secondary} name="close" size={22} />
         </TouchableOpacity>
       ) : null}
     </>

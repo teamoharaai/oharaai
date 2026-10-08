@@ -602,12 +602,15 @@ export async function updateGoal(goalId: string, updates: Partial<Goal>): Promis
 }
 
 export async function deleteGoal(id: string): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('goals')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .select('id')
+    .maybeSingle();
 
   if (error) throw error;
+  if (!data) throw new Error('Goal could not be deleted. You may not have permission.');
 }
 
 async function canWriteGoal(goalId: string): Promise<boolean> {

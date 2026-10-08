@@ -396,10 +396,13 @@ export async function updateProject(
 }
 
 export async function deleteProject(id: string): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('projects')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .select('id')
+    .maybeSingle();
 
   if (error) throw new Error(error.message);
+  if (!data) throw new Error('Project could not be deleted. You may not have permission.');
 }

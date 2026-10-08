@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { router } from 'expo-router';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Typography } from '@/components/ui/Typography';
 import { RADIUS, SPACE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
+import { useAuthStore } from '@/features/auth/store';
 import { PRODUCT_CATEGORIES } from '@/lib/goals/product-categories';
 import { GoalVisibilityControl } from './GoalVisibilityControl';
 import { goalAudience, saveGoalVisibility, type GoalVisibilityChoice } from '../services/goal-visibility-service';
@@ -36,6 +38,7 @@ export function ManageGoalControl({ goal, superseded, onComplete, onArchive, onO
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<ManageTab>('details');
   const [busy, setBusy] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [audienceLoaded, setAudienceLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [visibility, setVisibility] = useState<GoalVisibilityChoice>('private');
@@ -44,6 +47,9 @@ export function ManageGoalControl({ goal, superseded, onComplete, onArchive, onO
   const [description, setDescription] = useState(goal.description ?? '');
   const [category, setCategory] = useState(goal.category);
   const upsert = useGoalStore((state) => state.upsertGoal);
+  const deleteGoal = useGoalStore((state) => state.deleteGoal);
+  const currentUserId = useAuthStore((state) => state.session?.user.id ?? null);
+  const isOwner = goal.userId === currentUserId;
 
   async function run(action: () => Promise<void>) {
     setBusy(true);
@@ -91,6 +97,23 @@ export function ManageGoalControl({ goal, superseded, onComplete, onArchive, onO
         if (!await onUpdateDescription(normalizedDescription)) throw new Error('Description update failed.');
       }
     });
+  }
+
+  async function deleteCurrentGoal() {
+    if (busy || !isOwner) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await deleteGoal(goal.id);
+      setDeleteConfirmOpen(false);
+      setOpen(false);
+      router.replace('/(app)/goals');
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Goal could not be deleted.');
+      setDeleteConfirmOpen(false);
+    } finally {
+      setBusy(false);
+    }
   }
 
   const tabButton = (value: ManageTab, label: string) => (
@@ -150,7 +173,7 @@ export function ManageGoalControl({ goal, superseded, onComplete, onArchive, onO
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>
               {(goal.status === 'active' || goal.status === 'stagnant') && !superseded ? <Button disabled={busy} onPress={() => void run(async () => {
                 if (!await updateGoal(goal.id, { status: goal.status === 'active' ? 'stagnant' : 'active' })) throw new Error('Status update failed.');
-              })}>{goal.status === 'active' ? 'Pause' : 'Resume'}</Button> : null}
+              })}>{goal.status === 'active' ? 'Pause Goal' : 'Resume Goal'}</Button> : null}
               <Button disabled={busy || superseded || goal.status === 'archived' || goal.status === 'complete'} onPress={() => void run(async () => {
                 if (!await onComplete()) throw new Error('Completion failed.');
               })}>Complete</Button>
@@ -166,13 +189,36 @@ export function ManageGoalControl({ goal, superseded, onComplete, onArchive, onO
           <View style={{ borderTopColor: colors.border.divider, borderTopWidth: 1, gap: SPACE.md, paddingTop: SPACE.xl }}>
             <FieldLabel>Archive</FieldLabel>
             <Typography variant="caption">Archive preserves this Goal and its history while removing it from active work.</Typography>
-            <Button disabled={busy || superseded || goal.status === 'archived'} variant="danger" onPress={() => void run(async () => {
+            <Button disabled={busy || superseded || goal.status === 'archived'} variant="secondary" onPress={() => void run(async () => {
               if (!await onArchive()) throw new Error('Archive failed.');
             })}>Archive Goal</Button>
           </View>
+          {isOwner ? <View style={{ borderTopColor: colors.border.divider, borderTopWidth: 1, gap: SPACE.md, paddingTop: SPACE.xl }}>
+            <FieldLabel>Danger zone</FieldLabel>
+            <Typography variant="caption">Delete permanently removes this Goal and its Goal-owned work. Linked Notes and Journal entries remain in their owners’ libraries.</Typography>
+            <Button disabled={busy || superseded} variant="danger" onPress={() => setDeleteConfirmOpen(true)}>Delete Goal</Button>
+          </View> : null}
         </>}
         {error ? <Typography variant="body" accessibilityRole="alert" style={{ color: colors.feedback.danger.text }}>{error}</Typography> : null}
       </ScrollView>
+    </Modal>
+    <Modal
+      cancelText="Cancel"
+      closeDisabled={busy}
+      confirmDisabled={busy}
+      confirmText={busy ? 'Deleting…' : 'Delete Goal'}
+      confirmVariant="destructive"
+      onCancel={() => setDeleteConfirmOpen(false)}
+      onClose={() => !busy && setDeleteConfirmOpen(false)}
+      onConfirm={() => void deleteCurrentGoal()}
+      showCloseButton={false}
+      visible={deleteConfirmOpen}
+    >
+      <View style={{ gap: SPACE.md }}>
+        <Typography accessibilityRole="header" variant="title">Delete Goal?</Typography>
+        <Typography variant="body">This permanently removes “{goal.title}” and its associated Goal data. Linked Notes and Journal entries remain with their owners.</Typography>
+        <Typography variant="caption">This cannot be undone.</Typography>
+      </View>
     </Modal>
   </>;
 }

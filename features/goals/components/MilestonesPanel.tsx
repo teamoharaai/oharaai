@@ -1090,9 +1090,17 @@ export function MilestonesPanel({
           <GoalSectionHeading>Milestones</GoalSectionHeading>
           <Typography variant="body" style={{ marginTop: SPACE.xs }}>{subtitle}</Typography>
         </View>
-        <Text style={{ color: colors.text.secondary, ...TYPE.caption, fontFamily: FONT.ui.medium, flexShrink: 0 }}>
-          {completedCount} of {achievements.length} reached
-        </Text>
+        <View style={{ alignItems: 'flex-end', gap: SPACE.sm }}>
+          <Text style={{ color: colors.text.secondary, ...TYPE.caption, fontFamily: FONT.ui.medium, flexShrink: 0 }}>
+            {completedCount} of {achievements.length} reached
+          </Text>
+          {!readOnly && onAdd && !showAddForm ? <Button size="compact" onPress={() => {
+            setDeletingId(null);
+            setEditingId(null);
+            setAddingChildFor(null);
+            setShowAddForm(true);
+          }}>+ Add Milestone</Button> : null}
+        </View>
       </View>
 
       {error ? (
@@ -1130,24 +1138,11 @@ export function MilestonesPanel({
         </View>
       ) : null}
 
-      {/* Milestones are one-time achievement story cards — the Prep checklist
-          zone was retired (Goal Detail Redesign); enabling work lives in Tasks. */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: SPACE.md, marginBottom: SPACE.lg }}>
-        {!readOnly && onAdd && !showAddForm ? <Button size="compact" onPress={() => {
-          setDeletingId(null);
-          setEditingId(null);
-          setAddingChildFor(null);
-          setShowAddForm(true);
-        }}>+ New Milestone</Button> : null}
-      </View>
-      <Typography variant="body" style={{ marginBottom: SPACE.lg }}>
-        Milestones capture proof of progress — a photo and a story for each real accomplishment along the way.
-      </Typography>
       {achievements.length > 0 ? (
         <View style={{ gap: 12 }}>
           {achievements.map((milestone) => renderTopLevelAchievement(milestone))}
         </View>
-      ) : null}
+      ) : !showAddForm ? <Typography variant="body-small">No Milestones yet.</Typography> : null}
 
       {showAddForm && !readOnly ? (
         <View style={{ marginTop: achievements.length > 0 ? 12 : 4 }}>

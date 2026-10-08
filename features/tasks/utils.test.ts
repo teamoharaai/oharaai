@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { Task, TaskOccurrence } from './types.ts';
-import { bucketPlanItems, buildPlanItems, buildTaskSections, computeQuickPlanDates, computeScopeWindows, computeTodoDueWindows, isToDoTask, localDateTimeInputValue, parseRetroactiveCompletionTime, type PlanItem, QUICK_PLAN_CHIPS, scheduleLabel, shortDate, TODO_DUE_FILTERS, todoMatchesDueFilter } from './utils.ts';
+import { bucketPlanItems, buildPlanItems, buildTaskSections, computeQuickPlanDates, computeScopeWindows, computeTodoDueWindows, currentActionableOccurrence, isToDoTask, localDateTimeInputValue, parseRetroactiveCompletionTime, type PlanItem, QUICK_PLAN_CHIPS, scheduleLabel, shortDate, TODO_DUE_FILTERS, todoMatchesDueFilter } from './utils.ts';
 import { scheduleInput, validateQuantityConfiguration } from './validation.ts';
 
 function occurrence(overrides: Partial<TaskOccurrence> = {}): TaskOccurrence {
@@ -144,6 +144,33 @@ test('An on-set-days task keeps exactly one next-occurrence Upcoming row', () =>
   const sections = buildTaskSections([setdays], now);
   assert.equal(sections.upcoming.length, 1);
   assert.equal(sections.upcoming[0].occurrence.scheduledLocalDate, '2026-09-14');
+});
+
+test('a missed recurring occurrence never blocks the current scheduled occurrence', () => {
+  const recurring = task({
+    id: 'three-days',
+    schedules: [schedule({ taskId: 'three-days', weekdays: [1, 3, 5] })],
+    occurrences: [
+      occurrence({ id: 'monday', taskId: 'three-days', scheduleId: 's', status: 'missed', scheduledLocalDate: '2026-09-14' }),
+      occurrence({ id: 'wednesday', taskId: 'three-days', scheduleId: 's', status: 'missed', scheduledLocalDate: '2026-09-16' }),
+      occurrence({ id: 'friday', taskId: 'three-days', scheduleId: 's', status: 'pending', scheduledLocalDate: '2026-09-18' }),
+    ],
+  });
+
+  assert.equal(currentActionableOccurrence(recurring)?.id, 'friday');
+  assert.deepEqual(
+    buildPlanItems([recurring], 'today', new Date('2026-09-18T16:00:00Z')).map((item) => item.occurrenceId),
+    ['friday'],
+  );
+});
+
+test('a one-time overdue occurrence remains actionable', () => {
+  const oneTime = task({
+    id: 'one-time',
+    dueDate: '2026-09-14',
+    occurrences: [occurrence({ id: 'overdue', taskId: 'one-time', status: 'missed', scheduledLocalDate: '2026-09-14' })],
+  });
+  assert.equal(currentActionableOccurrence(oneTime)?.id, 'overdue');
 });
 
 test('A task with only completed occurrences has no Upcoming row', () => {

@@ -4,6 +4,8 @@ import { resolve } from 'node:path';
 
 const screenshots = resolve(process.cwd(), 'docs/ui-checkpoints/home-circles-calendar-foundation');
 mkdirSync(screenshots, { recursive: true });
+const prelaunchScreenshots = resolve(process.cwd(), 'docs/ui-checkpoints/prelaunch-cleanup');
+mkdirSync(prelaunchScreenshots, { recursive: true });
 
 const viewerId = '11111111-1111-4111-8111-111111111111';
 const friendId = '22222222-2222-4222-8222-222222222222';
@@ -11,6 +13,7 @@ const now = '2026-10-07T14:00:00.000Z';
 const token = `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ aud: 'authenticated', exp: 1893456000, role: 'authenticated', sub: viewerId })).toString('base64url')}.preview`;
 const user = { id: viewerId, email: 'arthur@example.test', role: 'authenticated', aud: 'authenticated', app_metadata: {}, user_metadata: { display_name: 'Arthur' }, created_at: now };
 const project = { id: 'project-1', user_id: viewerId, title: 'Winter Arc', description: 'Build strength and consistency.', status: 'active', mode: 'personal', start_date: null, end_date: null, period_key: null, created_at: now, updated_at: now };
+const sharedProject = { id: 'project-shared', user_id: friendId, title: 'OHARA Launch', description: 'Ship the prelaunch together.', status: 'active', mode: 'team', start_date: null, end_date: null, period_key: null, created_at: now, updated_at: now };
 const goal = {
   id: 'goal-1', user_id: viewerId, title: 'Ego Lifting & Mobility', description: 'Train with intention.', category: 'Health & Fitness', smart_data: {}, color_theme: 'forest', deadline: '2026-10-30T00:00:00.000Z', completed_at: null, archived_at: null, expired_at: null, target_frequency: { times: 4, period: 'week' }, visibility: 'private', progress: 42, status: 'active', ai_generated: false, project_id: project.id, project_lead_id: null, previous_goal_id: null, prior_phase_summary: null, reflection: null, reflected_at: null, created_at: '2026-09-01T14:00:00.000Z', updated_at: now,
   milestones: [
@@ -20,7 +23,7 @@ const goal = {
 };
 const calendarItems = [
   { id: 'task-occurrence:overdue', sourceType: 'task_occurrence', sourceId: 'overdue', title: 'Mobility reset', contextTitle: goal.title, startAt: '2026-10-06', endAt: null, allDay: true, timezone: 'America/New_York', provider: 'ohara', calendarId: null, goalId: goal.id, projectId: project.id, projectTitle: project.title, taskId: 'task-overdue', occurrenceId: 'overdue', isOharaItem: true, isExternal: false, status: 'pending', visibility: 'private' },
-  { id: 'task-occurrence:one', sourceType: 'task_occurrence', sourceId: 'one', title: 'Pull Day', contextTitle: goal.title, startAt: '2026-10-07T13:00:00.000Z', endAt: null, allDay: false, timezone: 'America/New_York', provider: 'ohara', calendarId: null, goalId: goal.id, projectId: project.id, projectTitle: project.title, taskId: 'task-1', occurrenceId: 'one', isOharaItem: true, isExternal: false, status: 'pending', visibility: 'private' },
+  { id: 'task-occurrence:one', sourceType: 'task_occurrence', sourceId: 'one', title: 'Pull Day', contextTitle: goal.title, startAt: '2026-10-08T13:00:00.000Z', endAt: null, allDay: false, timezone: 'America/New_York', provider: 'ohara', calendarId: null, goalId: goal.id, projectId: project.id, projectTitle: project.title, taskId: 'task-1', occurrenceId: 'one', isOharaItem: true, isExternal: false, status: 'pending', visibility: 'private' },
   { id: 'task-occurrence:two', sourceType: 'task_occurrence', sourceId: 'two', title: 'Project review', contextTitle: 'Ship the public beta', startAt: '2026-10-07T19:00:00.000Z', endAt: null, allDay: false, timezone: 'America/New_York', provider: 'ohara', calendarId: null, goalId: 'goal-2', projectId: 'project-2', projectTitle: 'OHARA Launch', taskId: 'task-2', occurrenceId: 'two', isOharaItem: true, isExternal: false, status: 'pending', visibility: 'project' },
   { id: 'milestone:one', sourceType: 'milestone', sourceId: 'milestone-1', title: 'Complete first training block', contextTitle: goal.title, startAt: '2026-10-09', endAt: null, allDay: true, timezone: 'America/New_York', provider: 'ohara', calendarId: null, goalId: goal.id, projectId: project.id, projectTitle: project.title, taskId: null, occurrenceId: null, isOharaItem: true, isExternal: false, status: 'active', visibility: 'private' },
 ];
@@ -38,15 +41,32 @@ async function installPreview(page: Page, theme: 'light' | 'dark' = 'light') {
     };
     localStorage.setItem('sb-calendar-preview-auth-token', JSON.stringify(value));
     localStorage.setItem('ohara-ui-state', JSON.stringify({ state: { themeMode: appearance }, version: 5 }));
-    for (const patch of ['journal-prelaunch-redesign', 'notes-prelaunch-library', 'projects-v1-1-execution', 'projects-v1-0', 'goals-v2-3-1', 'vault-v2-3', 'notes-v1-1', 'momentum-v1-1']) localStorage.setItem(`ohara:release:${patch}:seen`, 'seen');
+    for (const patch of ['journal-prelaunch-redesign', 'notes-prelaunch-library', 'projects-v1-1-execution', 'projects-v1-0', 'goals-v2-3-1', 'vault-v2-3', 'notes-v1-1', 'momentum-v1-1']) {
+      localStorage.setItem(`ohara:release:${patch}:seen`, 'seen');
+      sessionStorage.setItem(`ohara:release:${patch}:seen`, 'seen');
+    }
   }, { value: session, appearance: theme });
 
   await page.route(/https?:\/\/[^/]+\/(?:auth|rest)\/v1\/.*/, async (route) => {
     const url = new URL(route.request().url());
     const json = (body: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
     if (url.pathname.includes('/auth/v1/user')) return json(user);
-    if (url.pathname.endsWith('/goals')) return json([goal]);
-    if (url.pathname.endsWith('/projects')) return json([project]);
+    if (url.pathname.endsWith('/goals')) return json([goal, {
+      ...goal,
+      id: 'goal-shared-project',
+      project_id: sharedProject.id,
+      title: 'Ship the public beta',
+      user_id: friendId,
+      milestones: goal.milestones.map((milestone) => ({ ...milestone, id: 'milestone-shared-project', goal_id: 'goal-shared-project', title: 'Prepare launch review' })),
+    }]);
+    if (url.pathname.endsWith('/projects')) return json([project, sharedProject]);
+    if (url.pathname.endsWith('/project_members')) return json([
+      { project_id: project.id },
+      { project_id: sharedProject.id },
+      { project_id: sharedProject.id },
+      { project_id: sharedProject.id },
+    ]);
+    if (url.pathname.endsWith('/vaults') || url.pathname.endsWith('/vault_items')) return json([]);
     return json([]);
   });
 
@@ -56,7 +76,13 @@ async function installPreview(page: Page, theme: 'light' | 'dark' = 'light') {
     const json = (data: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(data) });
     if (path === '/api/calendar/items') return json({ data: calendarItems });
     if (path === '/api/home/summary') return json({ reflectionTimestamps: {}, weeklyTaskCounts: { 'goal-1': { done: 2, target: 4 } } });
-    if (path === '/api/momentum') return json({ data: { weeklyStreak: 3, score: 72, goals: [] } });
+    if (path === '/api/momentum') return json({ data: {
+      algorithmVersion: 'momentum-v1.1', asOf: now, components: {}, currentValue: 72, displayedValue: 72,
+      goals: [{ goalId: goal.id, displayedValue: 68, weeklyChange: 5, status: 'active' }], history: [],
+      periodState: 'provisional', reasons: [], status: 'active', tasksCompletedThisWeek: 2,
+      trendLabels: [], trendPoints: [], trend: 'up', weekEnd: '2026-10-11', weekStart: '2026-10-05',
+      weeklyChange: 4, weeklyStreak: 3,
+    } });
     if (path === '/api/profile') return ok({ display_name: 'Arthur', username: 'arthur', avatar_url: null });
     if (path === '/api/circles/feed') return ok({ posts: [post] });
     if (path === '/api/circles/shared-with-me') return ok({ goals: [sharedGoal] });
@@ -89,18 +115,34 @@ test('captures Home, Circles, and Calendar foundation states', async ({ page }) 
   await page.screenshot({ path: `${screenshots}/01-home-desktop-light.png`, fullPage: true });
   await page.screenshot({ path: `${screenshots}/03-home-with-today-calendar.png`, fullPage: true });
   await page.screenshot({ path: `${screenshots}/04-home-with-no-external-calendar.png`, fullPage: true });
+  await page.screenshot({ path: `${prelaunchScreenshots}/01-home-final-light.png`, fullPage: true });
+  await page.screenshot({ path: `${prelaunchScreenshots}/04-home-today-focus-calendar.png`, fullPage: true });
+  await page.screenshot({ path: `${prelaunchScreenshots}/20-global-nav-active-home.png`, fullPage: true });
+  await page.getByLabel('Momentum Snapshot card').screenshot({ path: `${prelaunchScreenshots}/03-home-momentum-snapshot.png` });
 
   await page.getByRole('button', { name: 'Open account and Circles' }).click();
   await page.getByRole('switch', { name: 'Dark mode' }).click();
   await page.getByRole('button', { name: 'Close account panel' }).click();
   await page.waitForTimeout(250);
   await page.screenshot({ path: `${screenshots}/02-home-desktop-dark.png`, fullPage: true });
+  await page.screenshot({ path: `${prelaunchScreenshots}/02-home-final-dark.png`, fullPage: true });
+
+  await page.getByRole('button', { name: 'Open account and Circles' }).click();
+  await page.getByRole('switch', { name: 'Dark mode' }).click();
+  await page.getByRole('button', { name: 'Close account panel' }).click();
+  await page.waitForTimeout(250);
 
   await open(page, '/circles');
   await expect(page.getByRole('heading', { name: 'Circles', exact: true })).toBeVisible();
   await expect(page.getByText(/Finished the first training block today/)).toBeVisible();
   expect(requests.filter((path) => path === '/api/circles/feed').length).toBeGreaterThan(0);
   await page.screenshot({ path: `${screenshots}/05-circles-feed.png`, fullPage: true });
+  await expect(page.getByRole('heading', { name: 'Friends', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Shared Projects', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Open shared Project OHARA Launch', exact: true })).toBeVisible();
+  await page.screenshot({ path: `${prelaunchScreenshots}/05-circles-final.png`, fullPage: true });
+  await page.screenshot({ path: `${prelaunchScreenshots}/06-circles-friends-card.png`, fullPage: true });
+  await page.screenshot({ path: `${prelaunchScreenshots}/07-circles-shared-projects-card.png`, fullPage: true });
 
   await open(page, '/calendar');
   await expect(page.getByRole('heading', { name: 'Calendar', exact: true })).toBeVisible();
@@ -124,6 +166,7 @@ test('captures Home, Circles, and Calendar foundation states', async ({ page }) 
 
   await open(page, '/dashboard', 390, 844);
   await page.screenshot({ path: `${screenshots}/11-iphone-home.png`, fullPage: true });
+  await page.screenshot({ path: `${prelaunchScreenshots}/24-responsive-home.png`, fullPage: true });
   await open(page, '/calendar', 390, 844);
   await page.screenshot({ path: `${screenshots}/12-iphone-calendar.png`, fullPage: true });
   await page.screenshot({ path: `${screenshots}/13-calendar-permission-connect-state.png`, fullPage: true });

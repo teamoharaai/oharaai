@@ -15,6 +15,7 @@ import {
   assignProjectMilestone,
   createProjectMilestone,
   createProjectTask,
+  deleteProject,
   detachGoalFromProject,
   inviteProjectMember,
   leaveProject,
@@ -49,6 +50,7 @@ export function ManageProjectModal({ initialTab = 'details', onClose, onOpenGoal
   const [inviteRole, setInviteRole] = useState<'member' | 'admin'>('member');
   const [managedMemberId, setManagedMemberId] = useState<string | null>(null);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [draftKind, setDraftKind] = useState<'task' | 'milestone' | null>(null);
   const [draftGoal, setDraftGoal] = useState('');
   const [draftTitle, setDraftTitle] = useState('');
@@ -57,7 +59,7 @@ export function ManageProjectModal({ initialTab = 'details', onClose, onOpenGoal
 
   useEffect(() => {
     if (!visible) return;
-    setTitle(project.title); setDescription(project.description ?? ''); setError(null); setManagedMemberId(null); setLeaveConfirmOpen(false);
+    setTitle(project.title); setDescription(project.description ?? ''); setError(null); setManagedMemberId(null); setLeaveConfirmOpen(false); setDeleteConfirmOpen(false);
     setTab(capabilities.has('manage_project') || initialTab === 'goals' || initialTab === 'members' ? initialTab : 'goals');
     if (capabilities.has('invite_members')) void fetchInviteableFriends().then(setFriends).catch(() => setFriends([]));
   }, [capabilities, initialTab, project.description, project.title, visible]);
@@ -110,6 +112,22 @@ export function ManageProjectModal({ initialTab = 'details', onClose, onOpenGoal
     }
   }
 
+  async function deleteCurrentProject() {
+    if (busy || !isOwner) return;
+    setBusy(true); setError(null);
+    try {
+      await deleteProject(project.id);
+      setDeleteConfirmOpen(false);
+      onClose();
+      router.replace('/(app)/projects');
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Project could not be deleted.');
+      setDeleteConfirmOpen(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const tabs = (['details', 'goals', 'members', 'access', 'status'] as Tab[]).filter((item) => {
     if (item === 'details') return capabilities.has('manage_project');
     if (item === 'members') return true;
@@ -118,8 +136,8 @@ export function ManageProjectModal({ initialTab = 'details', onClose, onOpenGoal
   });
 
   return <>
-    <Modal visible={visible} onClose={() => !busy && onClose()} showCloseButton={false} contentStyle={{ maxWidth: 760, maxHeight: '92%', padding: 0 }}>
-      <View style={{ padding: SPACE['3xl'], paddingBottom: 0 }}><Typography variant="heading">Manage Project</Typography><ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole="tablist" contentContainerStyle={{ borderBottomColor: colors.border.divider, borderBottomWidth: 1, marginTop: SPACE.xl }}>{tabs.map((item) => <Pressable key={item} accessibilityRole="tab" accessibilityState={{ selected: tab === item }} onPress={() => setTab(item)} style={{ borderBottomColor: tab === item ? colors.accent.primary : 'transparent', borderBottomWidth: 2, minHeight: 42, justifyContent: 'center', paddingHorizontal: SPACE.lg }}><Typography variant="emphasis-sm">{item === 'access' ? 'Access / Mode' : item[0].toUpperCase() + item.slice(1)}</Typography></Pressable>)}</ScrollView></View>
+    <Modal visible={visible} onClose={() => !busy && onClose()} contentStyle={{ maxWidth: 760, maxHeight: '92%', padding: 0 }}>
+      <View style={{ padding: SPACE['3xl'], paddingBottom: 0, paddingRight: 64 }}><Typography variant="heading">Manage Project</Typography><Typography variant="caption" style={{ marginTop: SPACE.xs }}>Project details, Goals, people, and lifecycle.</Typography><ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole="tablist" contentContainerStyle={{ borderBottomColor: colors.border.divider, borderBottomWidth: 1, marginTop: SPACE.xl }}>{tabs.map((item) => <Pressable key={item} accessibilityRole="tab" accessibilityState={{ selected: tab === item }} onPress={() => setTab(item)} style={{ borderBottomColor: tab === item ? colors.accent.primary : 'transparent', borderBottomWidth: 2, minHeight: 42, justifyContent: 'center', paddingHorizontal: SPACE.lg }}><Typography variant="emphasis-sm">{item === 'details' ? 'Overview' : item === 'access' ? 'Access' : item === 'status' ? 'Settings' : item[0].toUpperCase() + item.slice(1)}</Typography></Pressable>)}</ScrollView></View>
       <ScrollView contentContainerStyle={{ gap: SPACE.xl, padding: SPACE['3xl'] }}>
         {tab === 'details' ? <><TextInput accessibilityLabel="Project name" value={title} onChangeText={setTitle} style={inputStyle} /><TextInput accessibilityLabel="Project description" multiline value={description} onChangeText={setDescription} style={[inputStyle, { minHeight: 100, textAlignVertical: 'top' }]} /><Button loading={busy} disabled={!title.trim()} onPress={() => void run(() => updateProjectDetails(project.id, title, description), true)}>Save details</Button></> : null}
 
@@ -138,9 +156,9 @@ export function ManageProjectModal({ initialTab = 'details', onClose, onOpenGoal
 
         {tab === 'access' ? <><Typography variant="body">Choose one collaboration preset. All modes use the same membership and capability architecture.</Typography>{([['personal', 'Personal', 'Just me. Remove members and pending invitations first.'], ['team', 'Team', 'Work toward shared outcomes together.'], ['guide', 'OHARA Guide', 'Work with someone helping guide your progress.']] as const).map(([value, label, detail]) => <Pressable key={value} accessibilityRole="radio" accessibilityState={{ checked: project.mode === value }} onPress={() => void run(() => setProjectMode(project.id, value as ProjectMode))} style={{ backgroundColor: project.mode === value ? colors.background.selectedRow : colors.background.subtle, borderColor: project.mode === value ? colors.border.accent : colors.border.divider, borderRadius: RADIUS.lg, borderWidth: 1, gap: SPACE.xs, padding: SPACE.lg }}><Typography variant="emphasis-sm">{label}</Typography><Typography variant="caption">{detail}</Typography></Pressable>)}</> : null}
 
-        {tab === 'status' ? <><Typography variant="body">Current status: {project.status}</Typography><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md }}><Button disabled={busy || project.status === 'active'} onPress={() => void run(() => updateProject(project.id, { status: 'active' }), true)}>Set active</Button><Button disabled={busy || project.status === 'complete'} onPress={() => void run(() => updateProject(project.id, { status: 'complete' }), true)}>Complete</Button></View><View style={{ borderTopColor: colors.border.divider, borderTopWidth: 1, gap: SPACE.md, paddingTop: SPACE.xl }}><Typography variant="eyebrow">Archive</Typography><Typography variant="caption">Archiving preserves memberships, Goal associations, and Project content while disabling collaborative actions.</Typography><Button variant="danger" disabled={busy || project.status === 'archived'} onPress={() => void run(() => updateProject(project.id, { status: 'archived' }), true)}>Archive Project</Button></View></> : null}
+        {tab === 'status' ? <><Typography variant="eyebrow">PROJECT STATUS</Typography><Typography variant="body">Current status: {project.status}</Typography><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md }}><Button disabled={busy || project.status === 'active'} onPress={() => void run(() => updateProject(project.id, { status: 'active' }), true)}>Set active</Button><Button disabled={busy || project.status === 'complete'} onPress={() => void run(() => updateProject(project.id, { status: 'complete' }), true)}>Complete</Button></View><View style={{ borderTopColor: colors.border.divider, borderTopWidth: 1, gap: SPACE.md, paddingTop: SPACE.xl }}><Typography variant="eyebrow">ARCHIVE</Typography><Typography variant="caption">Archiving preserves memberships, Goal associations, and Project content while disabling collaborative actions.</Typography><Button variant="secondary" disabled={busy || project.status === 'archived'} onPress={() => void run(() => updateProject(project.id, { status: 'archived' }), true)}>Archive Project</Button></View>{isOwner ? <View style={{ borderTopColor: colors.border.divider, borderTopWidth: 1, gap: SPACE.md, paddingTop: SPACE.xl }}><Typography variant="eyebrow" style={{ color: colors.feedback.danger.text }}>DANGER ZONE</Typography><Typography variant="caption">Deleting removes the Project workspace and collaboration records. Goals, Notes, and Journal entries remain with their owners and are unlinked.</Typography><Button variant="danger" disabled={busy} onPress={() => setDeleteConfirmOpen(true)}>Delete Project</Button></View> : null}</> : null}
 
-        {error ? <Typography variant="caption" accessibilityRole="alert" style={{ color: colors.feedback.danger.text }}>{error}</Typography> : null}<View style={{ alignItems: 'flex-end', borderTopColor: colors.border.divider, borderTopWidth: 1, paddingTop: SPACE.lg }}><Button variant="secondary" disabled={busy} onPress={onClose}>Done</Button></View>
+        {error ? <Typography variant="caption" accessibilityRole="alert" style={{ color: colors.feedback.danger.text }}>{error}</Typography> : null}
       </ScrollView>
     </Modal>
 
@@ -150,6 +168,10 @@ export function ManageProjectModal({ initialTab = 'details', onClose, onOpenGoal
 
     <Modal visible={leaveConfirmOpen} onClose={() => !busy && setLeaveConfirmOpen(false)} showCloseButton={false} closeDisabled={busy} cancelText="Cancel" onCancel={() => setLeaveConfirmOpen(false)} cancelDisabled={busy} confirmText={busy ? 'Leaving…' : 'Leave Project'} onConfirm={() => void leaveCurrentProject()} confirmDisabled={busy} confirmVariant="destructive">
       <View style={{ gap: SPACE.md }}><Typography variant="title">Leave {project.title}?</Typography><Typography variant="body">You’ll lose access to its shared Goals, Notes, Journal entries, and Project history. The owner’s content and your existing contributions will not be deleted.</Typography></View>
+    </Modal>
+
+    <Modal visible={deleteConfirmOpen} onClose={() => !busy && setDeleteConfirmOpen(false)} showCloseButton={false} closeDisabled={busy} cancelText="Cancel" onCancel={() => setDeleteConfirmOpen(false)} cancelDisabled={busy} confirmText={busy ? 'Deleting…' : 'Delete Project'} onConfirm={() => void deleteCurrentProject()} confirmDisabled={busy} confirmVariant="destructive">
+      <View style={{ gap: SPACE.md }}><Typography accessibilityRole="header" variant="title">Delete Project?</Typography><Typography variant="body">This permanently removes “{project.title}” and its Project workspace. Goals, Notes, and Journal entries remain with their owners and are unlinked.</Typography><Typography variant="caption">This cannot be undone.</Typography></View>
     </Modal>
 
   </>;

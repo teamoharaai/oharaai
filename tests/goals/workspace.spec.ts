@@ -4,6 +4,8 @@ import { resolve } from 'node:path';
 
 const journalScreenshots = resolve(process.cwd(), 'docs/ui-checkpoints/journal-prelaunch');
 mkdirSync(journalScreenshots, { recursive: true });
+const prelaunchScreenshots = resolve(process.cwd(), 'docs/ui-checkpoints/prelaunch-cleanup');
+mkdirSync(prelaunchScreenshots, { recursive: true });
 
 const user = { id: '11111111-1111-4111-8111-111111111111', email: 'preview@example.test', role: 'authenticated', aud: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' };
 const previewAccessToken = (userId: string) => `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ aud: 'authenticated', exp: 1893456000, role: 'authenticated', sub: userId })).toString('base64url')}.preview`;
@@ -15,9 +17,18 @@ const goals = titles.map((title, index) => ({
   updated_at: `2026-09-${17 - index}T12:00:00Z`, previous_goal_id: null,
   milestones: index === 0 ? [{ id: 'milestone-1', goal_id: 'goal-0', user_id: user.id, title: 'Run two miles continuously',
     completed_at: null, kind: 'achievement', parent_id: null, target_count: null, photo_url: null,
-    due_date: '2027-02-01T12:00:00Z', sort_order: 0, created_at: '2026-08-01T12:00:00Z', updated_at: '2026-09-01T12:00:00Z' }] : [],
+    due_date: '2027-02-01T12:00:00Z' as string | null, sort_order: 0, created_at: '2026-08-01T12:00:00Z', updated_at: '2026-09-01T12:00:00Z' }] : [],
   trackers: [], goal_notes: [],
 }));
+goals.push({
+  id: 'goal-paused', user_id: user.id, title: 'Creatine Maxxing', description: 'Build a consistent strength-support routine.',
+  category: 'Health & Fitness', status: 'stagnant', color_theme: 'ocean', progress: 40, deadline: '2027-03-01T17:00:00Z',
+  created_at: '2026-08-01T12:00:00Z', updated_at: '2026-09-18T12:00:00Z', previous_goal_id: null,
+  milestones: [{ id: 'milestone-paused', goal_id: 'goal-paused', user_id: user.id, title: 'Complete first monthly review',
+    completed_at: null, kind: 'achievement', parent_id: null, target_count: null, photo_url: null,
+    due_date: null, sort_order: 0, created_at: '2026-08-01T12:00:00Z', updated_at: '2026-09-01T12:00:00Z' }],
+  trackers: [], goal_notes: [],
+});
 const date = '2026-09-17T12:00:00Z';
 const task = {
   id: 'task-1', goalId: 'goal-0', title: 'Easy run', status: 'active', completionMode: 'binary',
@@ -26,6 +37,7 @@ const task = {
   schedules: [], occurrences: [{ id: 'occurrence-1', taskId: 'task-1', occurrenceKey: 'once',
     scheduledLocalDate: new Date().toLocaleDateString('en-CA'), status: 'pending', source: 'user', completedAt: null, createdAt: date, updatedAt: date }],
 };
+const pausedTask = { ...task, id: 'task-paused', goalId: 'goal-paused', title: 'Take creatine', occurrences: [{ ...task.occurrences[0], id: 'occurrence-paused', taskId: 'task-paused' }] };
 
 for (const appearance of ['light', 'dark']) {
   test(`Goal workspace ${appearance}: progressive disclosure and responsive layout`, async ({ page }) => {
@@ -52,6 +64,10 @@ for (const appearance of ['light', 'dark']) {
       };
       localStorage.setItem('sb-goals-preview-auth-token', JSON.stringify(session));
       localStorage.setItem('ohara-ui-state', JSON.stringify({ state: { themeMode: theme }, version: 0 }));
+      for (const patch of ['journal-prelaunch-redesign', 'notes-prelaunch-library', 'projects-v1-1-execution', 'projects-v1-0', 'goals-v2-3-1', 'vault-v2-3', 'notes-v1-1', 'momentum-v1-1']) {
+        localStorage.setItem(`ohara:release:${patch}:seen`, 'seen');
+        sessionStorage.setItem(`ohara:release:${patch}:seen`, 'seen');
+      }
     }, { session: userSession, theme: appearance });
     await page.route(/https?:\/\/[^/]+\/(?:auth|rest)\/v1\/.*/, async (route) => {
       const url = new URL(route.request().url());
@@ -84,7 +100,10 @@ for (const appearance of ['light', 'dark']) {
         return route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
       }
       let body: unknown = { data: [] };
-      if (path === '/api/tasks') body = { data: [task] };
+      if (path === '/api/tasks') {
+        const goalId = new URL(route.request().url()).searchParams.get('goal_id');
+        body = { data: goalId === 'goal-0' ? [task] : goalId === 'goal-paused' ? [pausedTask] : [] };
+      }
       if (path === '/api/entries/library') body = { entries: [
         { id: 'entry-1', entryType: 'note', title: 'Training plan', plainText: 'Private contents should stay hidden', createdAt: date, updatedAt: date, completedAt: null, goals: [{ id: 'goal-0' }] },
         { id: 'entry-2', entryType: 'reflection', title: 'A steadier rhythm', plainText: 'Journal contents should stay hidden', createdAt: date, updatedAt: date, completedAt: date, goals: [{ id: 'goal-0' }] },
@@ -118,8 +137,28 @@ for (const appearance of ['light', 'dark']) {
     await expect(page.getByRole('button', { name: 'Goal actions', exact: true })).toHaveCount(0);
     await expect(page.getByRole('tab', { name: 'Overview', exact: true })).toHaveCount(0);
     await expect(page.getByRole('progressbar', { name: 'Elapsed Goal time' })).toBeVisible();
+    if (appearance === 'light') {
+      await page.screenshot({ path: `${prelaunchScreenshots}/16-goal-tasks-populated.png`, fullPage: true });
+      await page.screenshot({ path: `${prelaunchScreenshots}/18-goal-milestones-populated.png`, fullPage: true });
+      await page.screenshot({ path: `${prelaunchScreenshots}/21-global-nav-active-goals.png`, fullPage: true });
+      await page.getByRole('button', { name: 'Select Launch portfolio', exact: true }).click();
+      await expect(page.getByText('No Tasks yet.', { exact: true })).toBeVisible();
+      await page.screenshot({ path: `${prelaunchScreenshots}/17-goal-tasks-empty.png`, fullPage: true });
+      await page.screenshot({ path: `${prelaunchScreenshots}/19-goal-milestones-empty.png`, fullPage: true });
+      await page.getByRole('button', { name: 'Filter', exact: true }).click();
+      await page.getByRole('tab', { name: 'Paused', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Select Creatine Maxxing', exact: true })).toBeVisible();
+      await page.screenshot({ path: `${prelaunchScreenshots}/14-paused-goals-library.png`, fullPage: true });
+      await page.getByRole('button', { name: 'Select Creatine Maxxing', exact: true }).click();
+      await expect(page.getByText('Paused', { exact: true }).first()).toBeVisible();
+      await expect(page.getByText('Take creatine', { exact: true })).toBeVisible();
+      await page.screenshot({ path: `${prelaunchScreenshots}/15-paused-goal-detail.png`, fullPage: true });
+      await page.getByRole('tab', { name: 'Active', exact: true }).click();
+      await page.getByRole('button', { name: 'Select Run a 5K', exact: true }).click();
+    }
     await page.getByRole('button', { name: 'Manage Goal ▾', exact: true }).click();
     await expect(page.getByRole('tab', { name: 'Details', exact: true })).toBeVisible();
+    await page.waitForTimeout(400);
     await expect(page.getByRole('button', { name: 'Move to Project', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Edit end date', exact: true })).toBeVisible();
     await page.getByRole('tab', { name: 'Status & Access', exact: true }).click();
@@ -128,16 +167,29 @@ for (const appearance of ['light', 'dark']) {
     expect(visibilityWrites).toEqual([]);
     await page.getByRole('button', { name: 'Retry visibility', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Save visibility', exact: true })).toBeEnabled();
-    await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Pause Goal', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Complete', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Archive Goal', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Delete Goal', exact: true })).toBeVisible();
+    if (appearance === 'light') {
+      await page.getByRole('button', { name: 'Delete Goal', exact: true }).click();
+      await expect(page.getByText('Delete Goal?', { exact: true })).toBeVisible();
+      await page.waitForTimeout(300);
+      await page.screenshot({ path: `${prelaunchScreenshots}/12-delete-goal-confirmation.png`, fullPage: true });
+      await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+      await page.getByRole('tab', { name: 'Details', exact: true }).click();
+      await page.waitForTimeout(300);
+      await page.screenshot({ path: `${prelaunchScreenshots}/11-manage-goal.png`, fullPage: true });
+      await page.screenshot({ path: `${prelaunchScreenshots}/23-modal-standardized-x.png`, fullPage: true });
+      await page.getByRole('tab', { name: 'Status & Access', exact: true }).click();
+    }
     await expect(page.getByRole('radio', { name: /^Private/ })).toHaveAttribute('aria-checked', 'true');
     await page.getByRole('button', { name: 'Save visibility', exact: true }).click();
     await expect.poll(() => visibilityWrites.length).toBe(1);
     expect(visibilityWrites[0]).toEqual({ p_goal_id: 'goal-0', p_visibility: 'private', p_audience: [] });
     await expect(page.getByRole('button', { name: 'Save visibility', exact: true })).toBeEnabled();
-    await page.getByText('Close', { exact: true }).filter({ visible: true }).click();
-    await expect(page.getByText('Close', { exact: true })).toBeHidden();
+    await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Manage Goal', exact: true })).toBeHidden();
     const sharedCard = page.getByTestId('goals-shared-preview');
     await expect(sharedCard.getByText("Shared Goals couldn't load.")).toBeVisible();
     await sharedCard.getByRole('button', { name: 'Retry', exact: true }).click();
@@ -150,8 +202,7 @@ for (const appearance of ['light', 'dark']) {
     await expect(page.getByText('Shared with You', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: /Read the entire Bible, shared by Justin/ }).click();
     await expect(page.getByText('View only', { exact: true })).toBeVisible();
-    await page.locator('div').filter({ has: page.getByText('View only', { exact: true }) })
-      .filter({ has: page.getByText('Close', { exact: true }) }).last().getByText('Close', { exact: true }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
     await expect(page.getByText('View only', { exact: true })).toBeHidden();
     await page.getByRole('button', { name: 'Goals', exact: true }).click();
     await expect(page.getByRole('button', { name: /Read the entire Bible, shared by Justin/ })).toBeVisible();
@@ -164,7 +215,7 @@ for (const appearance of ['light', 'dark']) {
     await page.getByRole('button', { name: 'Show recent Goals ↑' }).click();
     await page.screenshot({ path: `/tmp/ohara-goals-v21-${appearance}-desktop.png`, fullPage: true });
     await expect(page.getByRole('button', { name: '+ New Prep', exact: true })).toHaveCount(0);
-    await page.getByRole('button', { name: '+ New Milestone', exact: true }).click();
+    await page.getByRole('button', { name: '+ Add Milestone', exact: true }).click();
     await expect(page.getByRole('textbox', { name: 'Milestone name', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Cancel milestone changes' }).click();
     await page.screenshot({ path: `/tmp/ohara-goals-v21-${appearance}-milestones.png`, fullPage: true });
@@ -192,7 +243,7 @@ for (const appearance of ['light', 'dark']) {
     await expect(page.getByRole('button', { name: 'Add Journal Entry', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Add Source', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Add Sticky Note', exact: true })).toHaveCount(0);
-    await page.getByText('Close', { exact: true }).filter({ visible: true }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
     await page.getByRole('tab', { name: 'All', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Open Training plan' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Open A steadier rhythm' })).toBeVisible();
@@ -200,8 +251,8 @@ for (const appearance of ['light', 'dark']) {
     if (appearance === 'light') await page.screenshot({ path: `${journalScreenshots}/vault-journal-terminology.png`, fullPage: true });
     await expect(page.getByText('Private contents should stay hidden')).toHaveCount(0);
     await page.getByRole('button', { name: 'Open Race preparation guide' }).click();
-    await expect(page.getByText('Close', { exact: true }).last()).toBeVisible();
-    await page.getByText('Close', { exact: true }).last().click();
+    await expect(page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true })).toBeVisible();
+    await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
     await expect(page.getByText('Source added — Race preparation guide', { exact: true })).toBeVisible();
     await expect(page.getByText('Goal created', { exact: true }).filter({ visible: true })).toHaveCount(0);
     await page.getByText('Recent Vault Activity', { exact: true }).scrollIntoViewIfNeeded();
@@ -225,7 +276,8 @@ for (const appearance of ['light', 'dark']) {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
       expect(overflow).toBe(false);
       await page.screenshot({ path: `/tmp/ohara-goals-v21-${appearance}-${width}.png`, fullPage: true });
-      await page.getByRole('button', { name: '+ New Milestone', exact: true }).scrollIntoViewIfNeeded();
+      if (appearance === 'light' && width === 390) await page.screenshot({ path: `${prelaunchScreenshots}/25-responsive-goal-detail.png`, fullPage: true });
+      await page.getByRole('button', { name: '+ Add Milestone', exact: true }).scrollIntoViewIfNeeded();
       expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
       await page.screenshot({ path: `/tmp/ohara-goals-v21-${appearance}-milestones-${width}.png`, fullPage: true });
       await page.getByRole('button', { name: 'Open Vault', exact: true }).click();

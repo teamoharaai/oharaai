@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { router } from 'expo-router';
 import { AuthenticatedPageShell } from '@/components/layout/AuthenticatedPageShell';
 import { Modal } from '@/components/ui/Modal';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
@@ -12,7 +13,10 @@ import { fetchEncouragers } from '../services/circles-service';
 import { useCircles } from '../hooks/useCircles';
 import { milestoneLabel, milestoneProgress } from '../progress';
 import type { CircleGoalSummary, CirclesAuthor, FeedFilter } from '../types';
-import { SharedWithYouCard } from './ContextCards';
+import { FriendsCard, SharedProjectsCard, SharedWithYouCard } from './ContextCards';
+import { fetchProjectSummaries } from '@/features/projects/services/project-service';
+import type { ProjectSummary } from '@/features/projects/types';
+import { selectCirclesSharedProjects } from '../context';
 import { PersonSheet, SharedGoalSheet } from './CirclesSheets';
 import { FeedPostCard } from './FeedPostCard';
 import { PostComposer } from './PostComposer';
@@ -122,9 +126,23 @@ export function CirclesScreen() {
   const circles = useCircles();
 
   const [sharedExpanded, setSharedExpanded] = useState(false);
+  const [friendsExpanded, setFriendsExpanded] = useState(false);
+  const [projectsExpanded, setProjectsExpanded] = useState(false);
+  const [sharedProjects, setSharedProjects] = useState<ProjectSummary[]>([]);
   const [openPersonId, setOpenPersonId] = useState<string | null>(null);
   const [openGoalId, setOpenGoalId] = useState<string | null>(null);
   const [encouragersPostId, setEncouragersPostId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!circles.enabled || !circles.myId) return;
+    let active = true;
+    void fetchProjectSummaries(circles.myId)
+      .then((projects) => {
+        if (active) setSharedProjects(selectCirclesSharedProjects(projects));
+      })
+      .catch(() => { if (active) setSharedProjects([]); });
+    return () => { active = false; };
+  }, [circles.enabled, circles.myId]);
 
   const viewableGoals = [...circles.sharedWithMe, ...circles.publicGoals];
   const openGoal = viewableGoals.find((goal) => goal.id === openGoalId) ?? null;
@@ -133,6 +151,7 @@ export function CirclesScreen() {
   const authorsById = new Map<string, CirclesAuthor>();
   for (const post of circles.posts) if (post.author) authorsById.set(post.author.id, post.author);
   for (const goal of viewableGoals) if (goal.owner) authorsById.set(goal.owner.id, goal.owner);
+  for (const friend of circles.friends) authorsById.set(friend.id, friend);
   const openPerson = openPersonId ? authorsById.get(openPersonId) ?? null : null;
   const openGoalOwner = openGoal?.owner ?? null;
 
@@ -162,6 +181,8 @@ export function CirclesScreen() {
       selectedGoalId={selectedGoalId}
     />
   );
+  const friendsCard = <FriendsCard expanded={friendsExpanded} friends={circles.friends} onSelect={setOpenPersonId} onToggleExpanded={() => setFriendsExpanded((value) => !value)} />;
+  const projectsCard = <SharedProjectsCard expanded={projectsExpanded} projects={sharedProjects} onSelect={(projectId) => router.push(`/(app)/projects/${projectId}` as never)} onToggleExpanded={() => setProjectsExpanded((value) => !value)} />;
 
   const feed = (
     <View style={{ gap: SPACE['3xl'], minWidth: 0 }}>
@@ -254,11 +275,12 @@ export function CirclesScreen() {
 
         {twoColumn ? (
           <View style={{ alignItems: 'flex-start', flexDirection: 'row', gap: SPACE['3xl'] }}>
-            <View style={{ flexBasis: '33%', gap: SPACE['3xl'], maxWidth: 420, minWidth: 340 }}>{sharedCard}</View>
+            <View style={{ flexBasis: '33%', gap: SPACE['3xl'], maxWidth: 420, minWidth: 340 }}>{projectsCard}{sharedCard}{friendsCard}</View>
             <View style={{ flex: 1, minWidth: 0 }}>{feed}</View>
           </View>
         ) : (
           <View style={{ gap: SPACE['3xl'] }}>
+            {projectsCard}
             <View>
               <Typography accessibilityRole="header" variant="title" style={{ marginBottom: SPACE.xs }}>Shared with You</Typography>
               <Typography variant="caption" style={{ color: colors.text.secondary, marginBottom: SPACE.lg }}>
@@ -272,6 +294,7 @@ export function CirclesScreen() {
                 ))}
               </ScrollView>
             </View>
+            {friendsCard}
 
             {feed}
           </View>

@@ -1000,7 +1000,7 @@ export function TasksPanel({
   const nearTermTodos = buckets.overdue.length + buckets.inScope.length + buckets.upcoming.length;
 
   return (
-    <View style={{ padding: compact ? SPACE.xl : SPACE['3xl'] }}>
+    <View style={{ padding: compact ? SPACE.xl : SPACE['2xl'] }}>
       <View style={{ alignItems: 'flex-start', flexDirection: 'row', gap: SPACE.md }}>
         <View style={{ flex: 1 }}>
           <Typography variant="section-eyebrow">Tasks</Typography>
@@ -1055,10 +1055,10 @@ export function TasksPanel({
           ) : null}
 
           {!hasVisibleWork ? (
-            <View style={{ alignItems: 'center', paddingVertical: SPACE['4xl'] }}>
+            <View style={{ alignItems: 'flex-start', paddingVertical: SPACE.xl }}>
               <Ionicons color={colors.text.accent} name="checkmark-circle-outline" size={30} />
-              <Typography variant="emphasis-sm" style={{ marginTop: SPACE.md }}>No Tasks here yet.</Typography>
-              <Typography variant="caption" style={{ marginTop: SPACE.xs, textAlign: 'center' }}>Add one clear next action to get started.</Typography>
+              <Typography variant="emphasis-sm" style={{ marginTop: SPACE.md }}>No Tasks yet.</Typography>
+              <Typography variant="caption" style={{ marginTop: SPACE.xs }}>Add one clear next action to get started.</Typography>
             </View>
           ) : null}
 

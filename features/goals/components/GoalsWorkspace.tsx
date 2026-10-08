@@ -40,6 +40,7 @@ import {
   getGoalCategoryLabel,
   getGoalStatusLabel,
   getNextGoalMilestone,
+  goalStatusToWorkspaceStatus,
   goalMatchesWorkspaceStatus,
   workspaceStatusToGoalStatus,
   type GoalWorkspaceStatusFilter,
@@ -48,6 +49,7 @@ import { getGoalWorkspaceSelection } from '../navigation';
 import { useActivity } from '../hooks/useActivity';
 import { useGoalDetail, type UseGoalDetailResult } from '../hooks/useGoalDetail';
 import { useGoals } from '../hooks/useGoals';
+import { fetchGoalById } from '../services/goal-service';
 import { useGoalStore } from '../store';
 import type { GoalMilestone, GoalWithDetails } from '../types';
 import { getGoalRingProgress } from '../utils/ringProgress';
@@ -60,10 +62,10 @@ type WorkspaceTab = 'overview' | 'vault';
 
 const STATUS_OPTIONS: ReadonlyArray<{ label: string; value: GoalWorkspaceStatusFilter }> = [
   { label: 'Active', value: 'active' },
+  { label: 'Paused', value: 'paused' },
   { label: 'Completed', value: 'completed' },
   { label: 'Expired', value: 'expired' },
-  { label: 'Archive', value: 'archived' },
-  { label: 'Paused', value: 'paused' },
+  { label: 'Archived', value: 'archived' },
 ];
 
 // The goal-list rail is narrow, so only the two primary filters stay as always-
@@ -679,7 +681,7 @@ function NextStepCard({ goal, milestone, onOpen }: { goal: GoalWithDetails; mile
           </View>
           <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
             <Ionicons color={colors.text.secondary} name="calendar-clear-outline" size={15} />
-            <Typography variant="caption">{dueLabel(milestone.dueDate ?? goal.deadline)}</Typography>
+            <Typography variant="caption">{dueLabel(milestone.dueDate)}</Typography>
             <Ionicons color={colors.text.secondary} name="chevron-forward" size={16} />
           </View>
         </Pressable>
@@ -1129,6 +1131,18 @@ export function GoalsWorkspace() {
   const [entriesError, setEntriesError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!routeSelected || requestedStatus) return;
+    let active = true;
+    void fetchGoalById(routeSelected).then((goal) => {
+      if (!active || !goal) return;
+      const resolvedStatus = goalStatusToWorkspaceStatus(goal.status);
+      setStatus(resolvedStatus);
+      router.setParams({ status: resolvedStatus } as never);
+    });
+    return () => { active = false; };
+  }, [requestedStatus, routeSelected]);
+
+  useEffect(() => {
     let active = true;
     void fetchEntries()
       .then((result) => {
@@ -1190,6 +1204,12 @@ export function GoalsWorkspace() {
     router.setParams({ goal: goalId, view: 'overview', projectId: undefined, taskId: undefined } as never);
   }
 
+  function changeStatus(nextStatus: GoalWorkspaceStatusFilter) {
+    setStatus(nextStatus);
+    setSelectedGoalId(null);
+    router.setParams({ goal: undefined, status: nextStatus, taskId: undefined } as never);
+  }
+
   function changeWorkspace(mode: WorkspaceTab) {
     if (!workspaceGoal || mode === tab) return;
     router.push({ pathname: '/(app)/goals', params: { goal: workspaceGoal.id, status, view: mode, ...(sourceProjectId ? { projectId: sourceProjectId } : {}), ...(focusedTaskId ? { taskId: focusedTaskId } : {}) } } as never);
@@ -1221,7 +1241,7 @@ export function GoalsWorkspace() {
         ) : statusGoals.length === 0 ? (
           <View style={{ gap: SPACE.lg }}>
             <Surface style={{ paddingHorizontal: SPACE['3xl'], paddingVertical: SPACE.xl }}>
-              <GoalStatusTabs onChange={setStatus} value={status} />
+              <GoalStatusTabs onChange={changeStatus} value={status} />
             </Surface>
             <GoalEmptyState status={status} />
           </View>
@@ -1235,7 +1255,7 @@ export function GoalsWorkspace() {
                 goals={filteredGoals}
                 onCategoryChange={setCategory}
                 onSelect={selectGoal}
-                onStatusChange={setStatus}
+                onStatusChange={changeStatus}
                 selectedGoalId={selectedGoalId}
                 status={status}
               />
@@ -1279,7 +1299,7 @@ export function GoalsWorkspace() {
                 goals={filteredGoals}
                 onCategoryChange={setCategory}
                 onSelect={selectGoal}
-                onStatusChange={setStatus}
+                onStatusChange={changeStatus}
                 selectedGoalId={selectedGoalId}
                 status={status}
               />
@@ -1320,7 +1340,7 @@ export function GoalsWorkspace() {
               goals={filteredGoals}
               onCategoryChange={setCategory}
               onSelect={selectGoal}
-              onStatusChange={setStatus}
+              onStatusChange={changeStatus}
               selectedGoalId={selectedGoalId}
               status={status}
             />

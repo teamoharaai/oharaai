@@ -1,5 +1,6 @@
 import type { GoalWithDetails } from '@/features/goals/types';
 import type { Task } from '@/features/tasks/types';
+import { currentActionableOccurrence } from '../tasks/utils.ts';
 import type { ProjectActivity, ProjectTaskPreview, ProjectVisualCategory, ProjectVaultItem } from './types';
 
 export function deriveProjectVisualCategory(goals: readonly Pick<GoalWithDetails, 'category' | 'status'>[]): ProjectVisualCategory {
@@ -44,9 +45,7 @@ export function selectProjectTaskPreviews(
   const rank = { overdue: 0, today: 1, upcoming: 2, anytime: 3 } as const;
   return groups.flatMap(({ goalId, goalTitle, tasks }) => tasks.flatMap((task): ProjectTaskPreview[] => {
     if (task.status === 'archived') return [];
-    const actionable = task.occurrences
-      .filter((occurrence) => occurrence.status === 'pending' || occurrence.status === 'missed')
-      .sort((a, b) => (a.scheduledLocalDate ?? '9999').localeCompare(b.scheduledLocalDate ?? '9999'))[0] ?? null;
+    const actionable = currentActionableOccurrence(task);
     const completed = task.occurrences
       .filter((occurrence) => occurrence.status === 'completed')
       .sort((a, b) => (b.completedAt ?? b.updatedAt).localeCompare(a.completedAt ?? a.updatedAt))[0] ?? null;

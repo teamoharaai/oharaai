@@ -243,6 +243,71 @@ do $$ begin
   if exists(select 1 from storage.objects where bucket_id='note-images' and name like '%/shared.webp') then raise exception 'Removed member retained shared image access'; end if;
 end $$;
 
+-- Destructive lifecycle assertions use disposable parents. Project deletion must
+-- be owner-only and unlink canonical user-owned content; Goal deletion must
+-- cascade Goal-owned work while preserving linked Entries from every owner.
+reset role;
+insert into public.projects (id,user_id,title,mode) values
+  ('a1600000-0000-0000-0000-000000000006','11000000-0000-0000-0000-000000000001','Disposable Project','team');
+insert into public.project_members(project_id,user_id,role) values
+  ('a1600000-0000-0000-0000-000000000006','12000000-0000-0000-0000-000000000002','admin');
+insert into public.goals(id,user_id,title,category,project_id) values
+  ('b1600000-0000-0000-0000-000000000006','11000000-0000-0000-0000-000000000001','Disposable Goal','Work & Money','a1600000-0000-0000-0000-000000000006');
+insert into public.tasks(id,user_id,goal_id,title,completion_mode) values
+  ('f1600000-0000-0000-0000-000000000006','11000000-0000-0000-0000-000000000001','b1600000-0000-0000-0000-000000000006','Disposable Task','binary');
+insert into public.milestones(id,goal_id,user_id,title,due_date) values
+  ('f1610000-0000-0000-0000-000000000006','b1600000-0000-0000-0000-000000000006','11000000-0000-0000-0000-000000000001','Undated Disposable Milestone',null);
+insert into public.entries(id,user_id,entry_type,title,project_id,project_share_scope) values
+  ('c1600000-0000-0000-0000-000000000006','11000000-0000-0000-0000-000000000001','note','Owner Linked Note','a1600000-0000-0000-0000-000000000006','project'),
+  ('c1610000-0000-0000-0000-000000000006','12000000-0000-0000-0000-000000000002','reflection','Admin Linked Journal','a1600000-0000-0000-0000-000000000006','project');
+insert into public.entry_goal_links(entry_id,goal_id) values
+  ('c1600000-0000-0000-0000-000000000006','b1600000-0000-0000-0000-000000000006'),
+  ('c1610000-0000-0000-0000-000000000006','b1600000-0000-0000-0000-000000000006');
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub','12000000-0000-0000-0000-000000000002',true);
+do $$ declare affected integer; begin
+  delete from public.projects where id='a1600000-0000-0000-0000-000000000006';
+  get diagnostics affected = row_count;
+  if affected<>0 then raise exception 'Admin deleted an owner Project'; end if;
+  delete from public.goals where id='b1600000-0000-0000-0000-000000000006';
+  get diagnostics affected = row_count;
+  if affected<>0 then raise exception 'Admin deleted another owner Goal'; end if;
+end $$;
+
+select set_config('request.jwt.claim.sub','11000000-0000-0000-0000-000000000001',true);
+do $$ declare affected integer; begin
+  delete from public.projects where id='a1600000-0000-0000-0000-000000000006';
+  get diagnostics affected = row_count;
+  if affected<>1 then raise exception 'Owner could not delete Project'; end if;
+end $$;
+
+reset role;
+do $$ begin
+  if exists(select 1 from public.projects where id='a1600000-0000-0000-0000-000000000006') then raise exception 'Deleted Project remained'; end if;
+  if exists(select 1 from public.project_members where project_id='a1600000-0000-0000-0000-000000000006') then raise exception 'Deleted Project memberships remained'; end if;
+  if not exists(select 1 from public.goals where id='b1600000-0000-0000-0000-000000000006' and project_id is null) then raise exception 'Project Goal was deleted or not unlinked'; end if;
+  if (select count(*) from public.entries where id in ('c1600000-0000-0000-0000-000000000006','c1610000-0000-0000-0000-000000000006') and project_id is null)<>2 then raise exception 'User-owned Entries were deleted or not unlinked with Project'; end if;
+  if not exists(select 1 from public.milestones where id='f1610000-0000-0000-0000-000000000006' and due_date is null) then raise exception 'Undated Milestone acquired a date'; end if;
+end $$;
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub','11000000-0000-0000-0000-000000000001',true);
+do $$ declare affected integer; begin
+  delete from public.goals where id='b1600000-0000-0000-0000-000000000006';
+  get diagnostics affected = row_count;
+  if affected<>1 then raise exception 'Owner could not delete Goal'; end if;
+end $$;
+
+reset role;
+do $$ begin
+  if exists(select 1 from public.goals where id='b1600000-0000-0000-0000-000000000006') then raise exception 'Deleted Goal remained'; end if;
+  if exists(select 1 from public.tasks where id='f1600000-0000-0000-0000-000000000006') then raise exception 'Deleted Goal Task remained'; end if;
+  if exists(select 1 from public.milestones where id='f1610000-0000-0000-0000-000000000006') then raise exception 'Deleted Goal Milestone remained'; end if;
+  if exists(select 1 from public.entry_goal_links where goal_id='b1600000-0000-0000-0000-000000000006') then raise exception 'Deleted Goal Entry links remained'; end if;
+  if (select count(*) from public.entries where id in ('c1600000-0000-0000-0000-000000000006','c1610000-0000-0000-0000-000000000006'))<>2 then raise exception 'Linked user-owned Entries were deleted with Goal'; end if;
+end $$;
+
 reset role;
 rollback;
 \echo 'Projects V1.1 database security assertions passed.'

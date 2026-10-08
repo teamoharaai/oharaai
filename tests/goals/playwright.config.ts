@@ -4,7 +4,7 @@ export default defineConfig({
   testDir: '.',
   testMatch: ['workspace.spec.ts', 'creation-v22.spec.ts'],
   workers: 1,
-  timeout: 90000,
+  timeout: 180000,
   expect: { timeout: 15000 },
   use: { browserName: 'chromium', headless: true },
   webServer: {

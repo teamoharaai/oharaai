@@ -13,8 +13,9 @@ import { useGoals } from '@/features/goals/hooks/useGoals';
 import { useSession } from '@/features/auth/hooks/useSession';
 import { useProjectStore } from '@/features/projects/store';
 import { useMomentumHomeSummary } from '@/features/momentum/hooks/useMomentumHomeSummary';
+import { HomeMomentumSnapshot } from '@/features/momentum/components/HomeMomentumSnapshot';
 import { ProjectGoalRow } from '@/features/goals/components/ProjectGoalRow';
-import { TodayFocus } from '@/features/goals/components/home/TodayFocus';
+import { NextStepPanel } from '@/features/goals/components/home/NextStepPanel';
 import {
   orderActiveGoals,
   resolveActiveGoalProjectTitles,
@@ -173,14 +174,14 @@ export default function DashboardScreen() {
     draftSaved?: string | string[];
     goalFilter?: string | string[];
   }>();
-  const { goals, isLoading: goalsLoading } = useGoals();
+  const { goals } = useGoals();
   const { session } = useSession();
   const momentum = useMomentumHomeSummary();
   const { projects, loadProjects } = useProjectStore();
   // Goal-derived Home signals in one round-trip (Stage 2 aggregator), SWR-cached
   // so return-navigation is instant. No longer waterfalled behind the client
   // goal load — the server resolves the caller's active goals itself.
-  const { reflectionTimestamps, weeklyTaskCounts } = useHomeSummary();
+  const { reflectionTimestamps } = useHomeSummary();
   const today = todayYmd();
   // Home reads one bounded current-week projection for its Calendar canvas.
   // Social data and full month/year Calendar work stay off this route.
@@ -237,14 +238,11 @@ export default function DashboardScreen() {
               gap: SPACE['3xl'],
             }}
           >
-            <View style={{ flexBasis: width >= 980 ? '34%' : undefined, maxWidth: width >= 980 ? 430 : undefined, minWidth: width >= 980 ? 340 : 0 }}>
-              <TodayFocus
-                goals={todayGoals}
-                weeklyTaskCounts={weeklyTaskCounts}
-                isLoading={goalsLoading}
-              />
+            <View style={{ flexBasis: width >= 980 ? '34%' : undefined, gap: SPACE['3xl'], maxWidth: width >= 980 ? 430 : undefined, minWidth: width >= 980 ? 340 : 0 }}>
+              <HomeMomentumSnapshot error={momentum.error} goals={activeGoals} isLoading={momentum.isLoading} summary={momentum.summary} />
+              <NextStepPanel goals={todayGoals} />
             </View>
-            <View style={{ flex: 1, minWidth: 0, width: width >= 980 ? undefined : '100%' }}>
+            <View style={{ flex: 1, gap: SPACE['3xl'], minWidth: 0, width: width >= 980 ? undefined : '100%' }}>
               <HomeCalendarPreview accessState={homeCalendar.accessState} items={homeCalendar.items} isLoading={homeCalendar.isLoading} />
             </View>
           </View>

@@ -188,7 +188,7 @@ test('Goal context tolerates older partial Momentum projections', () => {
 });
 
 test('collaboration UI exposes modes, bounded membership, responsibility, and contextual comments', () => {
-  for (const label of ['Personal', 'Team', 'OHARA Guide', 'GOAL LEAD', 'Invite to Project', 'Invite Guide', 'Access / Mode']) assert.match(manage, new RegExp(label));
+  for (const label of ['Personal', 'Team', 'OHARA Guide', 'GOAL LEAD', 'Invite to Project', 'Invite Guide', "'Access'"]) assert.match(manage, new RegExp(label));
   assert.match(manage, /PROJECT_MEMBER_LIMIT/);
   assert.match(manage, /assignProjectMilestone/);
   assert.doesNotMatch(manage, /createProjectComment/);

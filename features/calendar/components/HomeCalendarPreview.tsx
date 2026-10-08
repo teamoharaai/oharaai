@@ -133,7 +133,7 @@ export function HomeCalendarPreview({
         <View style={{ alignItems: 'baseline', flexDirection: 'row', justifyContent: 'space-between' }}>
           <View>
             <Typography variant="eyebrow" style={{ color: selectedDate === today ? colors.text.accent : colors.text.muted }}>
-              {selectedDate === today ? 'Today' : new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(localCalendarDate(selectedDate))}
+              {selectedDate === today ? "Today's Focus" : new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(localCalendarDate(selectedDate))}
             </Typography>
             <Typography variant="title" style={{ fontSize: compact ? 19 : 22, marginTop: SPACE.xs }}>
               {new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric' }).format(localCalendarDate(selectedDate))}

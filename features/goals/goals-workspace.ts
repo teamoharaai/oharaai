@@ -28,6 +28,13 @@ export function workspaceStatusToGoalStatus(status: GoalWorkspaceStatusFilter): 
   return status;
 }
 
+export function goalStatusToWorkspaceStatus(status: GoalStatus): GoalWorkspaceStatusFilter {
+  if (status === 'stagnant') return 'paused';
+  if (status === 'complete') return 'completed';
+  if (status === 'expired' || status === 'archived') return status;
+  return 'active';
+}
+
 export function goalMatchesWorkspaceStatus(
   goal: Pick<GoalWithDetails, 'status'>,
   status: GoalWorkspaceStatusFilter,
@@ -87,9 +94,8 @@ export function getUpcomingGoalSteps(
   return goals
     .flatMap((goal) => {
       const milestone = getNextGoalMilestone(goal.milestones);
-      const dueDate = milestone?.dueDate ?? goal.deadline;
-      return milestone && dueDate
-        ? [{ dueDate, goalId: goal.id, goalTitle: goal.title, milestone }]
+      return milestone?.dueDate
+        ? [{ dueDate: milestone.dueDate, goalId: goal.id, goalTitle: goal.title, milestone }]
         : [];
     })
     .sort((left, right) => (
