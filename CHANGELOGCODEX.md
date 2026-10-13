@@ -27,6 +27,10 @@
 - Made the Calendar/Home visual acceptance fixture use its declared preview date instead of the machine clock, preventing the fixed October preview items from aging out of Today’s Focus (`tests/calendar/foundation.spec.ts`).
 - Kept the Project browser error assertion strict while excluding only the expected Realtime connection failure from its deliberately non-resolving `projects-preview.invalid` test host (`tests/projects/collaboration-ui.spec.ts`).
 
+### Deployed — PreLaunch web release (2026-10-13)
+- Production history was verified at exactly 001–088 before application. Rollback-only preflight transaction 23287 applied migrations 089 and 090, passed every registered probe through 090, and was server-confirmed aborted.
+- Guarded production transaction 23402 then applied migrations 089 and 090 in ledger order, preserved all 20 protected existing datasets byte-for-byte, rolled synthetic probes back, recorded both migrations exactly once with byte-matching statements, and notified PostgREST. `scripts/db-chain/hosted-applied-through` now records 090.
+
 ### Fixed — Calendar ownership and Project membership
 - Scoped the default Calendar projection to OHARA Tasks and Milestones the viewer created or is assigned to, plus Goals they own or lead. Merely having access to a shared or Guide Project no longer floods Home or Calendar with another member’s work (`features/calendar/scope.ts`, `lib/db/calendar.ts`, `app/api/calendar/items+api.ts`).
 - Added a permission-safe “Leave Project” flow for Admins, Members, and Guides. Leaving clears the departing user’s Goal/Task/Milestone responsibility pointers without deleting Project content; owners cannot leave without a future ownership-transfer flow (`supabase/migrations/088_project_member_self_leave.sql`, `features/projects/components/ManageProjectModal.tsx`, `features/projects/services/project-service.ts`).
