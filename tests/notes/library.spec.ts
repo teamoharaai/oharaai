@@ -104,7 +104,7 @@ test('Notes library visual states', async ({ page }) => {
   await page.getByText(/^Filters/).click();
   await expect(page.getByText('DATE UPDATED', { exact: true })).toBeVisible();
   await page.screenshot({ path: `${screenshots}/filters-open-light.png`, fullPage: true });
-  await page.getByText('Close', { exact: true }).last().click();
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(page.getByText('DATE UPDATED', { exact: true })).toBeHidden();
   await page.waitForTimeout(400);
 

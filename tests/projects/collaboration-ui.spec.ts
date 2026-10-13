@@ -319,7 +319,11 @@ test('Project binary Task completes in place and opens its canonical Goal contex
   const browserErrors: string[] = [];
   const domainRequests: string[] = [];
   page.on('pageerror', (error) => browserErrors.push(error.stack ?? error.message));
-  page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()); });
+  page.on('console', (message) => {
+    const text = message.text();
+    const expectedPreviewRealtimeFailure = text.includes('wss://projects-preview.invalid/realtime/v1/websocket?apikey=preview-only');
+    if (message.type() === 'error' && !expectedPreviewRealtimeFailure) browserErrors.push(text);
+  });
   page.on('request', (request) => {
     const url = new URL(request.url());
     if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/rest/v1/') || url.pathname.startsWith('/auth/v1/')) domainRequests.push(`${request.method()} ${url.pathname}`);

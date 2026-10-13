@@ -5,6 +5,8 @@
 -- cannot be referenced by a new history row. Skip only that synthetic detach;
 -- ordinary user-driven detach/reassignment history remains unchanged.
 
+begin;
+
 create or replace function public.record_project_goal_event_v1()
 returns trigger
 language plpgsql
@@ -36,3 +38,5 @@ begin
   return new;
 end;
 $$;
+
+commit;

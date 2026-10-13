@@ -169,7 +169,7 @@ export function ManualGoalCreationV22({ initialProjectId, onAI }: { initialProje
         </>}
       </View>
     </ScrollView>
-    <Modal visible={editor !== null} onClose={() => setEditor(null)} contentStyle={{ maxWidth: 680, maxHeight: '90%' }}>
+    <Modal visible={editor !== null} onClose={() => setEditor(null)} showCloseButton={false} contentStyle={{ maxWidth: 680, maxHeight: '90%' }}>
       <ScrollView>{editor === 'task' ? <ToDoAddRow key={`task-${seed}`} initialTitle={seed} autoFocus onClose={() => setEditor(null)} onAdd={async (draft) => { setTasks([...tasks, { ...draft, key: newTaskIdempotencyKey('manual') }]); setEditor(null); }} /> : editor === 'milestone' ?
         <MilestoneEditor key={`milestone-${seed}`} initialTitle={seed} submitLabel="Add Milestone" showTargetCount onCancel={() => setEditor(null)} onSubmit={async (draft) => { setMilestones([...milestones, draft]); setEditor(null); }} /> : null}</ScrollView>
     </Modal>

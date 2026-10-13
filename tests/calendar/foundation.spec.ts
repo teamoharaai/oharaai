@@ -10,6 +10,7 @@ mkdirSync(prelaunchScreenshots, { recursive: true });
 const viewerId = '11111111-1111-4111-8111-111111111111';
 const friendId = '22222222-2222-4222-8222-222222222222';
 const now = '2026-10-07T14:00:00.000Z';
+const previewToday = '2026-10-08T14:00:00.000Z';
 const token = `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ aud: 'authenticated', exp: 1893456000, role: 'authenticated', sub: viewerId })).toString('base64url')}.preview`;
 const user = { id: viewerId, email: 'arthur@example.test', role: 'authenticated', aud: 'authenticated', app_metadata: {}, user_metadata: { display_name: 'Arthur' }, created_at: now };
 const project = { id: 'project-1', user_id: viewerId, title: 'Winter Arc', description: 'Build strength and consistency.', status: 'active', mode: 'personal', start_date: null, end_date: null, period_key: null, created_at: now, updated_at: now };
@@ -32,6 +33,7 @@ const post = { id: 'post-1', authorId: friendId, postKind: 'milestone', body: 'F
 const sharedGoal = { id: 'shared-goal', ownerId: friendId, title: 'Run a Comfortable 10K', category: 'Health & Fitness', status: 'active', access: 'invited', milestones: [{ title: 'Build base mileage', done: true }, { title: 'Complete 8K', done: false }], weeklyTask: { done: 3, target: 4 }, owner: maya };
 
 async function installPreview(page: Page, theme: 'light' | 'dark' = 'light') {
+  await page.clock.setFixedTime(new Date(previewToday));
   const session = { access_token: token, refresh_token: 'preview-refresh', token_type: 'bearer', expires_at: Math.floor(Date.now() / 1000) + 3600, expires_in: 3600, user };
   await page.addInitScript(({ value, appearance }) => {
     const originalGetItem = Storage.prototype.getItem;
