@@ -21,6 +21,10 @@
 - Limited Source rename and delete controls to the authenticated Source creator while keeping authorized collaborators' open/preview access read-only (`features/goals/components/GoalVault.tsx`, `features/goals/components/VaultItemCard.tsx`).
 - Preserved user-owned Sources when a Project/Goal Vault is deleted or a Project member leaves by moving affected records to the creator's private personal Vault instead of cascading away another user's reference material (`supabase/migrations/091_sources_v2.sql`).
 
+### Deployed — Sources V2.0 migration (2026-10-14)
+- Production history was verified at exactly 001–090. Rollback-only transaction 23559 applied migration 091 and passed every registered probe through 091 before the server confirmed the transaction aborted.
+- Guarded production transaction 23683 then applied migration 091, preserved all 20 protected existing datasets byte-for-byte, rolled synthetic probes back, recorded the migration exactly once with byte-matching statements, and notified PostgREST. `scripts/db-chain/hosted-applied-through` now records 091.
+
 ### Added — PreLaunch UX & Functionality Cleanup
 - Added owner-only, permanently destructive Goal and Project deletion controls with explicit confirmations, fail-closed client services, and database-security coverage proving unauthorized deletion is denied while user-owned Notes and Journal entries survive parent deletion (`features/goals/components/ManageGoalControl.tsx`, `features/goals/services/goal-service.ts`, `features/projects/components/ManageProjectModal.tsx`, `features/projects/services/project-service.ts`, `scripts/projects-v11-security.test.sql`).
 - Added bounded Friends and Shared Projects context to Circles using the existing canonical friendship data and RLS-authorized Project summaries; personal, solo, and archived Projects are filtered from the social context (`features/circles/components/ContextCards.tsx`, `features/circles/components/CirclesScreen.tsx`, `features/circles/context.ts`).
