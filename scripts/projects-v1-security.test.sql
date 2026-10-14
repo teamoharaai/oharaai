@@ -33,10 +33,20 @@ begin
   end;
 
   begin
-    insert into public.vaults (user_id) values ('10000000-0000-0000-0000-000000000001');
-    raise exception 'Parentless Vault unexpectedly succeeded';
+    insert into public.vaults (user_id, vault_type) values ('10000000-0000-0000-0000-000000000001', 'shared');
+    raise exception 'Non-personal parentless Vault unexpectedly succeeded';
   exception when others then
-    if sqlerrm = 'Parentless Vault unexpectedly succeeded' then raise; end if;
+    if sqlerrm = 'Non-personal parentless Vault unexpectedly succeeded' then raise; end if;
+  end;
+
+  insert into public.vaults (user_id, vault_type)
+  values ('10000000-0000-0000-0000-000000000001', 'personal');
+
+  begin
+    insert into public.vaults (user_id, vault_type)
+    values ('10000000-0000-0000-0000-000000000001', 'personal');
+    raise exception 'Second personal parentless Vault unexpectedly succeeded';
+  exception when unique_violation then null;
   end;
 end $$;
 

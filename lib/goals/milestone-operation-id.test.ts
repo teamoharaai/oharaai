@@ -7,6 +7,7 @@ const UUID_V5 = /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f
 test('milestoneCreateOperationId is a valid, version-5 UUID', () => {
   const id = milestoneCreateOperationId('11111111-1111-4111-8111-111111111111', 0);
   assert.match(id, UUID_V5);
+  assert.equal(id, '2faadd83-07de-50bc-863c-863874d0eded');
 });
 
 test('milestoneCreateOperationId is deterministic for the same (goalId, index)', () => {

@@ -6,6 +6,8 @@ const journalScreenshots = resolve(process.cwd(), 'docs/ui-checkpoints/journal-p
 mkdirSync(journalScreenshots, { recursive: true });
 const prelaunchScreenshots = resolve(process.cwd(), 'docs/ui-checkpoints/prelaunch-cleanup');
 mkdirSync(prelaunchScreenshots, { recursive: true });
+const sourceScreenshots = resolve(process.cwd(), 'docs/ui-checkpoints/sources-v2');
+mkdirSync(sourceScreenshots, { recursive: true });
 
 const user = { id: '11111111-1111-4111-8111-111111111111', email: 'preview@example.test', role: 'authenticated', aud: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' };
 const previewAccessToken = (userId: string) => `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ aud: 'authenticated', exp: 1893456000, role: 'authenticated', sub: userId })).toString('base64url')}.preview`;
@@ -240,6 +242,7 @@ for (const appearance of ['light', 'dark']) {
     await expect(page.getByRole('button', { name: 'Open Race preparation guide' })).toHaveCount(0);
     await page.getByRole('tab', { name: 'Sources', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Open Race preparation guide' })).toBeVisible();
+    if (appearance === 'light') await page.screenshot({ path: `${sourceScreenshots}/03-goal-vault-sources.png`, fullPage: true });
     await page.getByRole('tab', { name: 'All', exact: true }).click();
     await page.getByRole('button', { name: 'Add to Vault', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Add Note', exact: true })).toBeVisible();

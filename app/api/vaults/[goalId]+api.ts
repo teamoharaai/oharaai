@@ -2,16 +2,19 @@ import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 import { withAuth, type AuthContext } from '@/lib/api/auth';
 import {
   getOrCreateVaultForUser,
+  getVaultByGoalId,
   getVaultItems,
   createVaultItem,
 } from '@/lib/db/vaults';
 import { getFolderByIdForVault } from '@/lib/db/vault-folders';
 import type { VaultContentKind, VaultItem, VaultItemType } from '@/types/vault';
+import { sanitizeSourceId, sanitizeSourceMetadata } from '@/features/sources/source-server';
 
 const VAULT_ITEM_TYPES: readonly VaultItemType[] = [
   'note',
   'link',
   'document',
+  'image',
   'insight',
   'action_update',
 ];
@@ -88,7 +91,8 @@ async function handleGet(
 
   try {
     const authedDb = createAuthedClient(auth.accessToken);
-    const vault = await getOrCreateVaultForUser(goalId, auth.userId, authedDb);
+    const vault = await getVaultByGoalId(goalId, authedDb)
+      ?? await getOrCreateVaultForUser(goalId, auth.userId, authedDb);
     if (!vault) {
       // Only reached when the goal doesn't belong to the user.
       return Response.json({ error: 'Not found' }, { status: 404 });
@@ -105,12 +109,14 @@ async function handleGet(
 // ─── POST /api/vaults/:goalId ─────────────────────────────────────────────────
 
 interface CreateVaultItemBody {
+  sourceId?: unknown;
   itemType?: unknown;
   contentKind?: unknown;
   title?: unknown;
   content?: unknown;
   metadata?: unknown;
   folderId?: unknown;
+  visibility?: unknown;
 }
 
 export async function POST(
@@ -149,6 +155,7 @@ async function handlePost(
   let content: string | null;
   let metadata: VaultItem['metadata'];
   let folderId: string | null;
+  let sourceId: string | undefined;
 
   try {
     if (!(VAULT_ITEM_TYPES as readonly unknown[]).includes(body.itemType)) {
@@ -162,7 +169,10 @@ async function handlePost(
     else throw new Error('contentKind must be generic');
     title = sanitizeOptionalString(body.title, MAX_TITLE_LENGTH);
     content = sanitizeOptionalString(body.content, MAX_CONTENT_LENGTH);
-    metadata = sanitizeMetadata(body.metadata);
+    sourceId = sanitizeSourceId(body.sourceId);
+    metadata = itemType === 'link' || itemType === 'document' || itemType === 'image'
+      ? sanitizeSourceMetadata(body.metadata, { itemType, sourceId, userId: auth.userId })
+      : sanitizeMetadata(body.metadata);
     if (body.folderId === undefined || body.folderId === null) {
       folderId = null;
     } else if (typeof body.folderId === 'string' && body.folderId.trim().length > 0) {
@@ -191,7 +201,18 @@ async function handlePost(
       }
     }
 
+    const { data: goal, error: goalError } = await authedDb.from('goals').select('project_id').eq('id', goalId).eq('user_id', auth.userId).maybeSingle();
+    if (goalError) throw goalError;
+    const visibility = body.visibility === 'vault_members' && goal?.project_id ? 'vault_members' : 'private';
+    if (sourceId) {
+      const { data: existing, error: existingError } = await authedDb.from('vault_items')
+        .select('id, vault_id, item_type, content_kind, title, content, metadata, folder_id, visibility, created_by, sort_order, created_at, updated_at')
+        .eq('id', sourceId).eq('created_by', auth.userId).maybeSingle();
+      if (existingError) throw existingError;
+      if (existing) return Response.json({ item: existing });
+    }
     const item = await createVaultItem(vault.id, {
+      id: sourceId,
       vaultId: vault.id,
       itemType,
       contentKind,
@@ -199,7 +220,7 @@ async function handlePost(
       content,
       metadata,
       folderId,
-      visibility: 'private',
+      visibility,
       createdBy: auth.userId,
       sortOrder: 0,
     }, authedDb);

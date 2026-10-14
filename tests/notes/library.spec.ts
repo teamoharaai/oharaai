@@ -3,7 +3,9 @@ import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const screenshots = resolve(process.cwd(), 'docs/ui-checkpoints/notes-library-prelaunch');
+const sourceScreenshots = resolve(process.cwd(), 'docs/ui-checkpoints/sources-v2');
 mkdirSync(screenshots, { recursive: true });
+mkdirSync(sourceScreenshots, { recursive: true });
 
 const viewerId = '11111111-1111-4111-8111-111111111111';
 const collaboratorId = '22222222-2222-4222-8222-222222222222';
@@ -21,8 +23,9 @@ const notes = [
 ];
 
 const sources = [
-  { id: 'source-1', ownerId: viewerId, title: 'Product research summary.pdf', itemType: 'document', url: 'https://example.test/research.pdf', fileType: 'pdf', provider: 'PDF', visibility: 'private', createdAt: now, updatedAt: now, project, goal, author: { id: viewerId, displayName: 'You', avatarUrl: null } },
+  { id: 'source-1', ownerId: viewerId, title: 'Product research summary.pdf', itemType: 'document', url: null, fileType: 'pdf', fileName: 'Product research summary.pdf', mimeType: 'application/pdf', fileSize: 2516582, storagePath: `${viewerId}/source-1/Product research summary.pdf`, provider: 'PDF', visibility: 'private', createdAt: now, updatedAt: now, project, goal, author: { id: viewerId, displayName: 'You', avatarUrl: null } },
   { id: 'source-2', ownerId: collaboratorId, title: 'Design systems field guide', itemType: 'link', url: 'https://example.test/design', fileType: null, provider: 'example.test', visibility: 'vault_members', createdAt: now, updatedAt: now, project, goal: null, author: { id: collaboratorId, displayName: 'Maya Chen', avatarUrl: null } },
+  { id: 'source-3', ownerId: viewerId, title: 'Launch moodboard', itemType: 'image', url: null, fileType: 'image', fileName: 'launch-moodboard.png', mimeType: 'image/png', fileSize: 1843200, storagePath: `${viewerId}/source-3/launch-moodboard.png`, provider: 'Image', visibility: 'private', createdAt: now, updatedAt: now, project: null, goal: null, author: { id: viewerId, displayName: 'You', avatarUrl: null } },
 ];
 
 async function installPreview(page: Page, theme: 'light' | 'dark') {
@@ -50,6 +53,7 @@ async function installPreview(page: Page, theme: 'light' | 'dark') {
       { id: 'folder-1', name: 'Research', sortOrder: 0, createdAt: now, updatedAt: now },
       { id: 'folder-2', name: 'Product thinking', sortOrder: 1, createdAt: now, updatedAt: now },
     ], notes, sources }) });
+    if (path.startsWith('/api/sources/') && path.endsWith('/access')) return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ url: 'https://example.test/source-preview' }) });
     if (path === '/api/entries/library/shared-note') return route.fulfill({ contentType: 'application/json', body: JSON.stringify({
       version: 'entry-detail.v1', requestId: 'preview',
       entry: { id: 'shared-note', userId: collaboratorId, entryType: 'note', title: 'Beta synthesis', content: { type: 'doc', schemaVersion: 2, content: [{ type: 'paragraph', attrs: { id: 'paragraph-1' }, content: [{ type: 'text', text: 'The strongest signal is faster recovery of context without losing the thread.' }] }] }, plainText: 'The strongest signal is faster recovery of context without losing the thread.', brtCategory: null, reflectionType: null, conversationTurns: [], takeaway: null, pinned: false, archived: false, contentVersion: 1, schemaVersion: 2, completedAt: null, createdAt: now, updatedAt: now, goals: [{ ...goal, category: 'Work & Money', status: 'active' }], project, projectShareScope: 'project', categoryIds: [], milestones: [] },
@@ -127,6 +131,43 @@ test('Notes library dark and narrow layouts', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Notes', exact: true })).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   await page.screenshot({ path: `${screenshots}/my-library-narrow-dark.png`, fullPage: true });
+});
+
+test('Sources V2 library, filters, composer, failure, and mobile states', async ({ page }) => {
+  await installPreview(page, 'light');
+  await openLibrary(page);
+  await page.getByRole('tab', { name: /Sources/ }).click();
+  await expect(page.getByText('Launch moodboard', { exact: true })).toBeVisible();
+  await page.screenshot({ path: `${sourceScreenshots}/04-notes-sources.png`, fullPage: true });
+
+  await page.getByText(/^Filters/).click();
+  await expect(page.getByText('TYPE', { exact: true })).toBeVisible();
+  await page.screenshot({ path: `${sourceScreenshots}/11-source-filters.png`, fullPage: true });
+  await page.getByRole('button', { name: 'Files', exact: true }).click();
+  await expect(page.getByText('Product research summary.pdf', { exact: true })).toBeVisible();
+  await page.screenshot({ path: `${sourceScreenshots}/06-file-source.png`, fullPage: true });
+  await page.getByRole('button', { name: 'Images', exact: true }).click();
+  await expect(page.getByText('Launch moodboard', { exact: true })).toBeVisible();
+  await page.screenshot({ path: `${sourceScreenshots}/07-image-source.png`, fullPage: true });
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+
+  await page.getByRole('button', { name: /Add Source/ }).first().click();
+  await expect(page.getByRole('button', { name: 'Add Source: File', exact: true })).toBeVisible();
+  await page.screenshot({ path: `${sourceScreenshots}/05-add-source-menu.png`, fullPage: true });
+  await page.screenshot({ path: `${sourceScreenshots}/13-ios-picker-entry-state.png`, fullPage: true });
+  await page.getByRole('button', { name: 'Add Source: Link', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Source URL', exact: true }).fill('https://example.com/research');
+  await page.getByRole('textbox', { name: 'Source title', exact: true }).fill('Product reference');
+  await page.screenshot({ path: `${sourceScreenshots}/08-link-source.png`, fullPage: true });
+  await page.getByRole('dialog').getByRole('button', { name: 'Add Source', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Source could not be saved');
+  await page.screenshot({ path: `${sourceScreenshots}/14-upload-error-state.png`, fullPage: true });
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.waitForTimeout(400);
+
+  await page.setViewportSize({ width: 390, height: 900 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  await page.screenshot({ path: `${sourceScreenshots}/12-mobile-sources.png`, fullPage: true });
 });
 
 test('Note workspace formatting controls have polished states and discoverable labels', async ({ page }) => {

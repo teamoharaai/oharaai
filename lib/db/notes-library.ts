@@ -43,9 +43,9 @@ type VaultRow = {
 type SourceRow = {
   id: string;
   vault_id: string;
-  item_type: 'link' | 'document';
+  item_type: 'link' | 'document' | 'image';
   title: string | null;
-  metadata: { url?: string; fileType?: string } | null;
+  metadata: { url?: string; fileType?: string; fileName?: string; mimeType?: string; fileSize?: number; storagePath?: string; provider?: string } | null;
   visibility: 'private' | 'vault_members' | 'public';
   created_at: string;
   updated_at: string;
@@ -60,7 +60,8 @@ function sourceProvider(row: SourceRow): string {
   if (url) {
     try { return new URL(url).hostname.replace(/^www\./, ''); } catch { /* fall through */ }
   }
-  return row.metadata?.fileType || (row.item_type === 'document' ? 'Document' : 'Web');
+  if (row.item_type === 'image') return 'Image';
+  return row.metadata?.fileType?.toUpperCase() || (row.item_type === 'document' ? 'File' : 'Web');
 }
 
 async function loadAuthors(
@@ -198,7 +199,7 @@ async function loadAuthorizedSources(db: SupabaseClient): Promise<{
   const { data: sourceData, error: sourceError } = await db.from('vault_items')
     .select('id,vault_id,item_type,title,metadata,visibility,created_at,updated_at')
     .in('vault_id', vaults.map((vault) => vault.id))
-    .in('item_type', ['link', 'document'])
+    .in('item_type', ['link', 'document', 'image'])
     .neq('content_kind', 'sticky_note')
     .order('updated_at', { ascending: false });
   if (sourceError) throw sourceError;
@@ -234,6 +235,10 @@ async function loadAuthorizedSources(db: SupabaseClient): Promise<{
       itemType: row.item_type,
       url: row.metadata?.url ?? null,
       fileType: row.metadata?.fileType ?? null,
+      fileName: row.metadata?.fileName ?? null,
+      mimeType: row.metadata?.mimeType ?? null,
+      fileSize: row.metadata?.fileSize ?? null,
+      storagePath: row.metadata?.storagePath ?? null,
       provider: sourceProvider(row),
       visibility: row.visibility,
       createdAt: row.created_at,

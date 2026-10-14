@@ -29,6 +29,20 @@
         {
           "calendarPermission": "Allow OHARA to show your Apple Calendar events alongside your scheduled Tasks, Milestones, and Goal deadlines."
         }
+      ],
+      [
+        "expo-document-picker",
+        {
+          "iCloudContainerEnvironment": "Production"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": false,
+          "microphonePermission": false,
+          "photosPermission": "Allow OHARA to import a photo you choose as private Source reference material."
+        }
       ]
     ],
     "experiments": {

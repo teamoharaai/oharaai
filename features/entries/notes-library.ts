@@ -58,6 +58,8 @@ function sourceMatchesSearch(source: NotesLibrarySource, query: string): boolean
     source.title,
     source.url ?? '',
     source.fileType ?? '',
+    source.fileName ?? '',
+    source.mimeType ?? '',
     source.provider,
     source.author.displayName,
     source.project?.title ?? '',

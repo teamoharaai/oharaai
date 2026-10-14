@@ -15,6 +15,8 @@ import { useVault } from '../hooks/useVault';
 import { fetchEntries } from '@/features/entries/services/entry-service';
 import { VaultItemCard } from './VaultItemCard';
 import { isSourceVaultItem } from '../vault-classification';
+import { SourceComposer } from '@/features/sources/components/SourceComposer';
+import { useAuthStore } from '@/features/auth/store';
 
 export type VaultFilter = 'all' | 'notes' | 'reflections' | 'sources';
 
@@ -42,7 +44,7 @@ interface VaultWorkspaceProps {
   parent: VaultWorkspaceParent;
   activityContent?: ReactNode;
   onAddSource?: () => void;
-  vaultData?: VaultDataSource;
+  vaultData: VaultDataSource;
   externalAddRequest?: number;
   showAddButton?: boolean;
   initialFilter?: VaultFilter;
@@ -71,16 +73,17 @@ function VaultSection({ children, icon, title }: { children: ReactNode; icon: ke
 /** Parent-neutral Vault presentation. Goal-specific data is supplied by GoalVault. */
 export function VaultWorkspace({ activityContent, activityError, activityItems, activityLoading, entries, entriesError, externalAddRequest, initialFilter = 'all', onAddSource, parent, showAddButton = true, vaultData }: VaultWorkspaceProps) {
   const colors = useThemeColors();
+  const viewerId = useAuthStore((state) => state.session?.user.id ?? null);
   const { width } = useWindowDimensions();
   const compact = width < 620;
-  const goalVault = useVault(parent.type === 'goal' ? parent.id : '');
-  const vault = vaultData ?? goalVault;
+  const vault = vaultData;
   const [filter, setFilter] = useState<VaultFilter>(initialFilter);
   const [addOpen, setAddOpen] = useState(false);
   const [retriedEntries, setRetriedEntries] = useState<EntryRecord[] | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [entryLoadError, setEntryLoadError] = useState(entriesError);
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
+  const [sourceType, setSourceType] = useState<'all' | 'document' | 'image' | 'link'>('all');
   const selectedSource = vault.items.find((item) => item.id === selectedSourceId);
 
   useEffect(() => setEntryLoadError(entriesError), [entriesError]);
@@ -91,7 +94,7 @@ export function VaultWorkspace({ activityContent, activityError, activityItems, 
   const linkedEntries = retriedEntries ?? entries;
   const notes = linkedEntries.filter((entry) => entry.entryType === 'note');
   const reflections = linkedEntries.filter((entry) => entry.entryType === 'reflection');
-  const sources = vault.items.filter(isSourceVaultItem);
+  const sources = vault.items.filter(isSourceVaultItem).filter((item) => sourceType === 'all' || item.itemType === sourceType);
   const recentActivity = useMemo(() => [...activityItems]
     .filter((item) => (item.kind === 'vault_item_added' && item.contentKind !== 'sticky_note') || item.kind === 'echo_linked')
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [activityItems]);
@@ -118,16 +121,17 @@ export function VaultWorkspace({ activityContent, activityError, activityItems, 
   const activityLabel = (item: ActivityItem) => {
     if (item.kind === 'echo_linked') return 'Note or Journal entry linked';
     if (item.kind !== 'vault_item_added') return 'Vault activity';
-    if (item.itemType === 'link' || item.itemType === 'document') return `Source added — ${item.title}`;
+    if (item.itemType === 'link' || item.itemType === 'document' || item.itemType === 'image') return `Source added — ${item.title}`;
     return `Vault item added — ${item.title}`;
   };
-  const sourceOrigin = (url: string | undefined) => {
-    if (!url) return 'Goal Vault';
+  const sourceOrigin = (item: VaultItem) => {
+    const url = item.metadata?.url;
+    if (!url) return item.itemType === 'image' ? 'Image' : (item.metadata?.fileType?.toUpperCase() || 'File');
     try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return 'Goal Vault'; }
   };
   const provenance = (item: VaultItem) => {
     const origins = (item as VaultItem & { origins?: Array<{ goalTitle: string }> }).origins ?? [];
-    return origins.length ? `From: ${origins.map((origin) => origin.goalTitle).join(', ')}` : 'Project note';
+    return origins.length ? `From: ${origins.map((origin) => origin.goalTitle).join(', ')}` : 'Project Source';
   };
   const entryProvenance = (entry: EntryRecord) => {
     if (parent.type === 'goal') return `From ${parent.title}`;
@@ -183,12 +187,15 @@ export function VaultWorkspace({ activityContent, activityError, activityItems, 
       </VaultSection> : null}
 
       {showSources ? <VaultSection icon="link-outline" title="Sources">
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>{([
+          ['all', 'All'], ['document', 'Files'], ['image', 'Images'], ['link', 'Links'],
+        ] as const).map(([value, label]) => <Pressable accessibilityRole="button" accessibilityState={{ selected: sourceType === value }} key={value} onPress={() => setSourceType(value)} style={({ pressed }) => ({ backgroundColor: sourceType === value ? colors.background.selectedRow : colors.background.input, borderColor: sourceType === value ? colors.border.accent : colors.border.input, borderRadius: RADIUS.round, borderWidth: 1, minHeight: 36, justifyContent: 'center', opacity: pressed ? 0.7 : 1, paddingHorizontal: SPACE.lg })}><Typography variant="body-small" style={{ color: sourceType === value ? colors.text.accent : colors.text.secondary }}>{label}</Typography></Pressable>)}</View>
         {vault.loading ? <ActivityIndicator color={colors.accent.primary} /> : null}
         {vault.error ? <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}><Typography variant="caption">Sources couldn't load.</Typography><Pressable accessibilityRole="button" onPress={() => void retrySources()}><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>Retry</Typography></Pressable></View> : null}
         {!vault.loading && !sources.length ? <Typography variant="body">Saved links, documents, and other source material will appear here.</Typography> : null}
         <View style={{ flexDirection: compact ? 'column' : 'row', flexWrap: 'wrap', gap: SPACE.md }}>
           {sources.map((item) => <Pressable key={item.id} accessibilityLabel={`Open ${item.title || 'Untitled material'}`} accessibilityRole="button" onPress={() => setSelectedSourceId(item.id)} style={({ pressed }) => ({ backgroundColor: colors.background.subtle, borderColor: colors.border.divider, borderRadius: RADIUS.lg, borderWidth: 1, flexBasis: compact ? undefined : 280, flexGrow: 1, gap: SPACE.sm, minWidth: compact ? 0 : 250, opacity: pressed ? 0.7 : 1, padding: SPACE.lg })}>
-            <Typography variant="caption">{item.itemType.replace('_', ' ')} · {sourceOrigin(item.metadata?.url)}</Typography><Typography variant="emphasis-sm">{item.title || (item.itemType === 'link' ? 'Saved link' : 'Untitled material')}</Typography><Typography variant="caption">{dateLabel(item.createdAt)} · {parent.type === 'project' ? provenance(item) : `From ${parent.title}`}</Typography>
+            <Typography variant="caption">{sourceOrigin(item)}</Typography><Typography variant="emphasis-sm">{item.title || item.metadata?.fileName || (item.itemType === 'link' ? 'Saved link' : 'Untitled material')}</Typography><Typography variant="caption">{dateLabel(item.createdAt)} · {parent.type === 'project' ? provenance(item) : `From ${parent.title}`}</Typography>
           </Pressable>)}
         </View>
       </VaultSection> : null}
@@ -200,18 +207,29 @@ export function VaultWorkspace({ activityContent, activityError, activityItems, 
       <Modal visible={addOpen} onClose={() => setAddOpen(false)} contentStyle={{ maxWidth: 520 }}>
         <View style={{ gap: SPACE.lg }}><Typography variant="title">Add to Vault</Typography>
           {[
-            { key: 'note', icon: 'reader-outline' as const, title: 'Note', detail: 'Create a linked Note in Echo.', action: () => createEchoEntry('note') },
+            { key: 'note', icon: 'reader-outline' as const, title: 'Note', detail: 'Create a linked Note.', action: () => createEchoEntry('note') },
             { key: 'reflection', icon: 'create-outline' as const, title: 'Journal Entry', detail: 'Create a linked Journal entry.', action: () => createEchoEntry('reflection') },
-            { key: 'source', icon: 'link-outline' as const, title: 'Source', detail: 'Add a link, document, or other material.', action: () => { setAddOpen(false); if (onAddSource) onAddSource(); else router.push(`/(app)/goals/${parent.id}/vault` as never); } },
+            { key: 'source', icon: 'link-outline' as const, title: 'Source', detail: 'Add a file, image, or link.', action: () => { setAddOpen(false); if (onAddSource) onAddSource(); else router.push(`/(app)/goals/${parent.id}/vault` as never); } },
           ].map((option) => <Pressable key={option.key} accessibilityRole="button" accessibilityLabel={`Add ${option.title}`} onPress={option.action} style={({ pressed }) => ({ alignItems: 'center', backgroundColor: pressed ? colors.background.selectedRow : colors.background.subtle, borderRadius: RADIUS.md, flexDirection: 'row', gap: SPACE.lg, minHeight: 64, padding: SPACE.lg })}><Ionicons color={colors.text.accent} name={option.icon} size={22} /><View style={{ flex: 1 }}><Typography variant="emphasis-sm">{option.title}</Typography><Typography variant="caption">{option.detail}</Typography></View><Ionicons color={colors.text.muted} name="chevron-forward" size={17} /></Pressable>)}
         </View>
       </Modal>
-      <Modal visible={Boolean(selectedSource)} onClose={() => setSelectedSourceId(null)} contentStyle={{ maxWidth: 620, maxHeight: '90%' }}><ScrollView style={{ flexShrink: 1 }}>{selectedSource ? <VaultItemCard item={selectedSource} goalId={parent.id} onUpdate={vault.updateItem} onDelete={vault.removeItem} /> : null}</ScrollView></Modal>
+      <Modal visible={Boolean(selectedSource)} onClose={() => setSelectedSourceId(null)} contentStyle={{ maxWidth: 620, maxHeight: '90%' }}><ScrollView style={{ flexShrink: 1 }}>{selectedSource ? <VaultItemCard canManageSource={viewerId === selectedSource.createdBy} item={selectedSource} goalId={parent.id} onUpdate={vault.updateItem} onDelete={vault.removeItem} /> : null}</ScrollView></Modal>
     </View>
   );
 }
 
-export function GoalVault(props: Omit<VaultWorkspaceProps, 'parent'> & { goal: GoalWithDetails }) {
+export function GoalVault(props: Omit<VaultWorkspaceProps, 'parent' | 'vaultData' | 'onAddSource'> & { goal: GoalWithDetails }) {
   const { goal, ...workspaceProps } = props;
-  return <VaultWorkspace {...workspaceProps} parent={{ id: goal.id, title: goal.title, type: 'goal' }} />;
+  const vault = useVault(goal.id);
+  const [sourceOpen, setSourceOpen] = useState(false);
+  return <>
+    <VaultWorkspace {...workspaceProps} vaultData={vault} onAddSource={() => setSourceOpen(true)} parent={{ id: goal.id, title: goal.title, type: 'goal' }} />
+    <SourceComposer
+      canShare={Boolean(goal.projectId)}
+      context={{ kind: 'goal', id: goal.id }}
+      onClose={() => setSourceOpen(false)}
+      onCreated={() => { void vault.refresh(); }}
+      visible={sourceOpen}
+    />
+  </>;
 }

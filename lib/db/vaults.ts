@@ -206,6 +206,28 @@ export async function getOrCreateProjectVaultForUser(
   throw new Error(error?.message ?? 'Failed to create Project Vault');
 }
 
+export async function getOrCreatePersonalSourceVaultForUser(
+  userId: string,
+  client: DbClient = supabase,
+): Promise<Vault> {
+  const selection = 'id, user_id, goal_id, project_id, space_id, vault_type, created_at, updated_at';
+  const { data: existing, error: existingError } = await client.from('vaults').select(selection)
+    .eq('user_id', userId).is('goal_id', null).is('project_id', null).maybeSingle();
+  if (existingError) throw existingError;
+  if (existing) return mapVault(existing as unknown as DbVaultRow);
+  const { data: created, error } = await client.from('vaults')
+    .insert({ user_id: userId, goal_id: null, project_id: null, vault_type: 'personal' })
+    .select(selection).single();
+  if (created) return mapVault(created as unknown as DbVaultRow);
+  if (error?.code === '23505') {
+    const { data: raced, error: racedError } = await client.from('vaults').select(selection)
+      .eq('user_id', userId).is('goal_id', null).is('project_id', null).single();
+    if (racedError) throw racedError;
+    return mapVault(raced as unknown as DbVaultRow);
+  }
+  throw new Error(error?.message ?? 'Failed to create personal Source library');
+}
+
 export async function getVaultItems(
   vaultId: string,
   client: DbClient = supabase,
@@ -240,7 +262,7 @@ export async function getVaultItemsByType(
 
 export async function createVaultItem(
   vaultId: string,
-  item: Omit<VaultItem, 'id' | 'createdAt' | 'updatedAt'>,
+  item: Omit<VaultItem, 'id' | 'createdAt' | 'updatedAt'> & { id?: string },
   client: DbClient = supabase,
 ): Promise<VaultItem> {
   const embeddingText = buildVaultItemEmbeddingText(item.content);
@@ -248,6 +270,7 @@ export async function createVaultItem(
   const { data, error } = await client
     .from('vault_items')
     .insert({
+      ...(item.id ? { id: item.id } : {}),
       vault_id: vaultId,
       item_type: item.itemType,
       content_kind: item.contentKind,
@@ -350,6 +373,21 @@ export async function getVaultItemByIdForUser(
   if (!vaultRow) return null;
 
   return mapVaultItem(row);
+}
+
+/** Returns an item only when table RLS authorizes the viewer. Mutation callers
+ * must still check creator/capability semantics before writing. */
+export async function getAuthorizedVaultItemById(
+  itemId: string,
+  client: DbClient = supabase,
+): Promise<VaultItem | null> {
+  const { data, error } = await client
+    .from('vault_items')
+    .select('id, vault_id, item_type, content_kind, title, content, metadata, folder_id, visibility, created_by, sort_order, created_at, updated_at')
+    .eq('id', itemId)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? mapVaultItem(data as unknown as DbVaultItemRow) : null;
 }
 
 export async function getVaultWithItems(

@@ -43,6 +43,9 @@ import {
   type NotesLibraryFilters,
 } from '../notes-library';
 import { EchoCreationModal } from './EchoCreationModal';
+import { formatSourceBytes } from '@/features/sources/source-domain';
+import { getSourceAccessUrl } from '@/features/sources/source-service';
+import { SourceComposer } from '@/features/sources/components/SourceComposer';
 
 const TABS: ReadonlyArray<{ id: NotesLibraryView; label: string; icon?: keyof typeof Ionicons.glyphMap }> = [
   { id: 'my-library', label: 'My Library' },
@@ -130,14 +133,26 @@ function NoteRow({ compact, folder, note, onDelete, onMove }: { compact: boolean
 
 function SourceRow({ compact, source }: { compact: boolean; source: NotesLibrarySource }) {
   const colors = useThemeColors();
-  const open = () => { if (source.url) void Linking.openURL(source.url); };
+  const [opening, setOpening] = useState(false);
+  const [openError, setOpenError] = useState<string | null>(null);
+  const open = async () => {
+    if (opening) return;
+    setOpening(true); setOpenError(null);
+    try {
+      const url = source.itemType === 'link' && source.url ? source.url : await getSourceAccessUrl(source.id);
+      await Linking.openURL(url);
+    } catch (caught) {
+      setOpenError(caught instanceof Error ? caught.message : 'Source could not be opened.');
+    } finally { setOpening(false); }
+  };
+  const sourceMeta = [source.itemType === 'image' ? 'Image' : source.itemType === 'document' ? (source.fileType?.toUpperCase() || 'File') : source.provider, formatSourceBytes(source.fileSize ?? undefined)].filter(Boolean).join(' · ');
   return <View style={{ alignItems: compact ? 'flex-start' : 'center', backgroundColor: colors.background.card, borderBottomColor: colors.border.divider, borderBottomWidth: 1, flexDirection: compact ? 'column' : 'row', gap: compact ? SPACE.md : SPACE.xl, minHeight: compact ? 118 : 72, paddingHorizontal: compact ? SPACE.lg : SPACE.xl, paddingVertical: SPACE.md }}>
     <View style={{ alignItems: 'center', flexDirection: 'row', flex: compact ? undefined : 1.35, gap: SPACE.md, minWidth: 0, width: compact ? '100%' : undefined }}>
-      <View style={{ alignItems: 'center', backgroundColor: colors.background.input, borderRadius: RADIUS.md, height: 42, justifyContent: 'center', width: 42 }}><Ionicons color={colors.text.accent} name={source.itemType === 'link' ? 'link-outline' : 'document-attach-outline'} size={20} /></View>
-      <Pressable accessibilityLabel={`${source.url ? 'Open' : 'View'} Source ${source.title}`} accessibilityRole={source.url ? 'link' : 'button'} disabled={!source.url} onPress={open} style={({ pressed }) => ({ flex: 1, minWidth: 0, opacity: pressed ? 0.65 : 1 })}><Typography numberOfLines={1} variant="emphasis-sm">{source.title}</Typography><Typography numberOfLines={1} variant="caption" style={{ marginTop: 3 }}>{source.provider} · {source.author.displayName}</Typography></Pressable>
+      <View style={{ alignItems: 'center', backgroundColor: colors.background.input, borderRadius: RADIUS.md, height: 42, justifyContent: 'center', width: 42 }}><Ionicons color={colors.text.accent} name={source.itemType === 'link' ? 'link-outline' : source.itemType === 'image' ? 'image-outline' : 'document-attach-outline'} size={20} /></View>
+      <Pressable accessibilityLabel={`Open Source ${source.title}`} accessibilityRole="link" disabled={opening} onPress={() => void open()} style={({ pressed }) => ({ flex: 1, minWidth: 0, opacity: pressed || opening ? 0.65 : 1 })}><Typography numberOfLines={1} variant="emphasis-sm">{source.title}</Typography><Typography numberOfLines={1} variant="caption" style={{ marginTop: 3 }}>{opening ? 'Opening…' : `${sourceMeta} · ${source.author.displayName}`}</Typography>{openError ? <Typography accessibilityRole="alert" variant="caption" style={{ color: colors.feedback.danger.text }}>{openError}</Typography> : null}</Pressable>
     </View>
     <View style={{ flex: compact ? undefined : 1.15, minWidth: 0, width: compact ? '100%' : undefined }}><RelationshipLinks item={source} /></View>
-    <View style={{ alignItems: 'center', alignSelf: compact ? 'stretch' : undefined, flexDirection: 'row', justifyContent: compact ? 'space-between' : 'flex-end', minWidth: compact ? 0 : 140 }}><Typography variant="caption">{dateLabel(source.updatedAt)}</Typography>{source.url ? <Ionicons color={colors.text.muted} name="open-outline" size={17} /> : null}</View>
+    <View style={{ alignItems: 'center', alignSelf: compact ? 'stretch' : undefined, flexDirection: 'row', justifyContent: compact ? 'space-between' : 'flex-end', minWidth: compact ? 0 : 140 }}><Typography variant="caption">{dateLabel(source.updatedAt)}</Typography><Ionicons color={colors.text.muted} name="open-outline" size={17} /></View>
   </View>;
 }
 
@@ -155,6 +170,7 @@ export function NotesLibraryScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creationOpen, setCreationOpen] = useState(requestedCreation === 'note');
+  const [sourceCreationOpen, setSourceCreationOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [foldersOpen, setFoldersOpen] = useState(false);
@@ -245,7 +261,7 @@ export function NotesLibraryScreen() {
   return <ScrollView style={{ flex: 1, backgroundColor: colors.background.page }} contentContainerStyle={{ alignSelf: 'center', gap: SPACE['2xl'], maxWidth: LAYOUT.contentMaxWidth, paddingHorizontal: compact ? SPACE.xl : LAYOUT.wideGutter, paddingVertical: compact ? SPACE.xl : SPACE['3xl'], width: '100%' }} keyboardShouldPersistTaps="handled">
     <View style={{ alignItems: compact ? 'stretch' : 'flex-start', flexDirection: compact ? 'column' : 'row', gap: SPACE.xl, justifyContent: 'space-between' }}>
       <View style={{ gap: SPACE.xs }}><View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}><BrandIcon color={colors.accent.primary} name="notes" size={27} /><Typography accessibilityRole="header" variant="heading">Notes</Typography></View><Typography variant="body">Capture your thinking, develop ideas, and keep what matters easy to find.</Typography></View>
-      <Button leftIcon={<Ionicons color={colors.text.onAccent} name="add" size={18} />} onPress={() => setCreationOpen(true)}>New Note</Button>
+      <Button leftIcon={<Ionicons color={colors.text.onAccent} name="add" size={18} />} onPress={() => view === 'sources' ? setSourceCreationOpen(true) : setCreationOpen(true)}>{view === 'sources' ? 'Add Source' : 'New Note'}</Button>
     </View>
 
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACE.xs }} accessibilityRole="tablist">
@@ -276,6 +292,7 @@ export function NotesLibraryScreen() {
     </View>
 
     <EchoCreationModal initialGoalId={firstParam(params.goalId)} initialProjectId={firstParam(params.projectId)} initialType="note" onClose={() => { setCreationOpen(false); if (requestedCreation) router.setParams({ create: undefined }); }} onCreated={(entryId) => { setCreationOpen(false); router.replace({ pathname: '/(app)/notes/[id]', params: { id: entryId, from: 'library', goalId: firstParam(params.goalId), projectId: firstParam(params.projectId) } } as never); }} visible={creationOpen} />
+    <SourceComposer context={{ kind: 'personal' }} onClose={() => setSourceCreationOpen(false)} onCreated={() => { setLoading(true); void load(); }} visible={sourceCreationOpen} />
 
     <Modal visible={sortOpen} onClose={() => setSortOpen(false)} contentStyle={{ maxWidth: 420 }}><View style={{ gap: SPACE.md }}><Typography variant="title">Sort Notes</Typography>{SORTS.map((option) => <FilterChoice key={option.id} label={option.label} selected={sort === option.id} onPress={() => { setSort(option.id); setSortOpen(false); }} />)}</View></Modal>
 
@@ -284,7 +301,7 @@ export function NotesLibraryScreen() {
       {goals.length ? <View style={{ gap: SPACE.sm }}><Typography variant="eyebrow">GOAL</Typography><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}><FilterChoice label="Any Goal" selected={!filters.goalId} onPress={() => setFilters((current) => ({ ...current, goalId: null }))} />{goals.map((goal) => <FilterChoice key={goal.id} label={goal.title} selected={filters.goalId === goal.id} onPress={() => setFilters((current) => ({ ...current, goalId: goal.id }))} />)}</View></View> : null}
       {(view === 'shared-with-me' || view === 'sources') && authors.length ? <View style={{ gap: SPACE.sm }}><Typography variant="eyebrow">AUTHOR / OWNER</Typography><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}><FilterChoice label="Anyone" selected={!filters.authorId} onPress={() => setFilters((current) => ({ ...current, authorId: null }))} />{authors.map((author) => <FilterChoice key={author.id} label={author.displayName} selected={filters.authorId === author.id} onPress={() => setFilters((current) => ({ ...current, authorId: author.id }))} />)}</View></View> : null}
       <View style={{ gap: SPACE.sm }}><Typography variant="eyebrow">DATE UPDATED</Typography><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}><FilterChoice label="Any time" selected={!filters.dateRange} onPress={() => setFilters((current) => ({ ...current, dateRange: null }))} /><FilterChoice label="Past 7 days" selected={filters.dateRange === '7-days'} onPress={() => setFilters((current) => ({ ...current, dateRange: '7-days' }))} /><FilterChoice label="Past 30 days" selected={filters.dateRange === '30-days'} onPress={() => setFilters((current) => ({ ...current, dateRange: '30-days' }))} /></View></View>
-      {view !== 'sources' ? <View style={{ gap: SPACE.sm }}><Typography variant="eyebrow">SHARING</Typography><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>{(['private', 'project', 'guide'] as const).map((scope) => <FilterChoice key={scope} label={scope === 'private' ? 'Private' : scope === 'project' ? 'Shared with Project' : 'Shared with Guide'} selected={filters.shareScope === scope} onPress={() => setFilters((current) => ({ ...current, shareScope: current.shareScope === scope ? null : scope }))} />)}</View></View> : <><View style={{ gap: SPACE.sm }}><Typography variant="eyebrow">TYPE</Typography><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>{(['link', 'document'] as const).map((type) => <FilterChoice key={type} label={type === 'link' ? 'Web link' : 'Document / file'} selected={filters.sourceType === type} onPress={() => setFilters((current) => ({ ...current, sourceType: current.sourceType === type ? null : type }))} />)}</View></View>{providers.length ? <View style={{ gap: SPACE.sm }}><Typography variant="eyebrow">PROVIDER</Typography><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>{providers.map((provider) => <FilterChoice key={provider} label={provider} selected={filters.provider === provider} onPress={() => setFilters((current) => ({ ...current, provider: current.provider === provider ? null : provider }))} />)}</View></View> : null}</>}
+      {view !== 'sources' ? <View style={{ gap: SPACE.sm }}><Typography variant="eyebrow">SHARING</Typography><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>{(['private', 'project', 'guide'] as const).map((scope) => <FilterChoice key={scope} label={scope === 'private' ? 'Private' : scope === 'project' ? 'Shared with Project' : 'Shared with Guide'} selected={filters.shareScope === scope} onPress={() => setFilters((current) => ({ ...current, shareScope: current.shareScope === scope ? null : scope }))} />)}</View></View> : <><View style={{ gap: SPACE.sm }}><Typography variant="eyebrow">TYPE</Typography><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>{(['link', 'document', 'image'] as const).map((type) => <FilterChoice key={type} label={type === 'link' ? 'Links' : type === 'image' ? 'Images' : 'Files'} selected={filters.sourceType === type} onPress={() => setFilters((current) => ({ ...current, sourceType: current.sourceType === type ? null : type }))} />)}</View></View>{providers.length ? <View style={{ gap: SPACE.sm }}><Typography variant="eyebrow">PROVIDER</Typography><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>{providers.map((provider) => <FilterChoice key={provider} label={provider} selected={filters.provider === provider} onPress={() => setFilters((current) => ({ ...current, provider: current.provider === provider ? null : provider }))} />)}</View></View> : null}</>}
       <Button onPress={() => setFiltersOpen(false)}>Show {resultCount} result{resultCount === 1 ? '' : 's'}</Button>
     </ScrollView></Modal>
 

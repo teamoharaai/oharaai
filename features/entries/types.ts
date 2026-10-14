@@ -185,9 +185,13 @@ export interface NotesLibrarySource {
   id: string;
   ownerId: string;
   title: string;
-  itemType: 'link' | 'document';
+  itemType: 'link' | 'document' | 'image';
   url: string | null;
   fileType: string | null;
+  fileName?: string | null;
+  mimeType?: string | null;
+  fileSize?: number | null;
+  storagePath?: string | null;
   provider: string;
   visibility: 'private' | 'vault_members' | 'public';
   createdAt: string;

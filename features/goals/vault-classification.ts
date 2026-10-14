@@ -12,5 +12,5 @@ export function isSourceVaultItem(
   item: Pick<VaultItem, 'itemType' | 'contentKind'>,
 ): boolean {
   return item.contentKind !== 'sticky_note'
-    && (item.itemType === 'link' || item.itemType === 'document');
+    && (item.itemType === 'link' || item.itemType === 'document' || item.itemType === 'image');
 }

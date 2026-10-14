@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, Pressable, TextInput, Linking } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, Pressable, TextInput, Linking, Image } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { VaultItem } from '@/types/vault';
 import { Typography } from '@/components/ui/Typography';
 import { useThemeColors } from '@/store/uiStore';
+import { formatSourceBytes, sourceDomain } from '@/features/sources/source-domain';
+import { getSourceAccessUrl } from '@/features/sources/source-service';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -12,6 +14,7 @@ type VaultItemCardProps = {
   goalId: string;
   onUpdate: (itemId: string, updates: Partial<VaultItem>) => Promise<void>;
   onDelete: (itemId: string) => Promise<void>;
+  canManageSource?: boolean;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -222,6 +225,61 @@ function LinkCard({ item }: VaultItemCardProps) {
   );
 }
 
+function SourceCard({ canManageSource = false, item, onDelete, onUpdate }: VaultItemCardProps) {
+  const colors = useThemeColors();
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [opening, setOpening] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(item.title ?? '');
+  const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    if (item.itemType !== 'image' || !item.metadata?.storagePath) return () => { active = false; };
+    void getSourceAccessUrl(item.id).then((url) => { if (active) setPreviewUrl(url); }).catch(() => undefined);
+    return () => { active = false; };
+  }, [item.id, item.itemType, item.metadata?.storagePath]);
+
+  async function open() {
+    if (opening) return;
+    setOpening(true); setError(null);
+    try {
+      const url = item.itemType === 'link' && item.metadata?.url
+        ? item.metadata.url : previewUrl ?? await getSourceAccessUrl(item.id);
+      await Linking.openURL(url);
+    } catch (caught) { setError(caught instanceof Error ? caught.message : 'Source could not be opened.'); }
+    finally { setOpening(false); }
+  }
+
+  async function rename() {
+    if (!title.trim() || saving) return;
+    setSaving(true); setError(null);
+    try { await onUpdate(item.id, { title: title.trim() }); setEditing(false); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : 'Source could not be renamed.'); }
+    finally { setSaving(false); }
+  }
+
+  async function remove() {
+    setSaving(true); setError(null);
+    try { await onDelete(item.id); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : 'Source could not be deleted.'); setSaving(false); }
+  }
+
+  const kind = item.itemType === 'link' ? 'Link' : item.itemType === 'image' ? 'Image' : (item.metadata?.fileType?.toUpperCase() || 'File');
+  const detail = item.itemType === 'link'
+    ? sourceDomain(item.metadata?.url)
+    : [item.metadata?.mimeType, formatSourceBytes(item.metadata?.fileSize)].filter(Boolean).join(' · ');
+  return <View style={{ backgroundColor: colors.background.card, borderColor: colors.border.warm, borderRadius: 14, borderWidth: 1, gap: 14, padding: 18 }}>
+    {item.itemType === 'image' && previewUrl ? <Image accessibilityLabel={item.title || item.metadata?.fileName || 'Source image'} resizeMode="contain" source={{ uri: previewUrl }} style={{ backgroundColor: colors.background.subtle, borderRadius: 10, height: 260, width: '100%' }} /> : null}
+    <View style={{ alignItems: 'flex-start', flexDirection: 'row', gap: 12 }}><Ionicons color={colors.text.accent} name={item.itemType === 'link' ? 'link-outline' : item.itemType === 'image' ? 'image-outline' : 'document-attach-outline'} size={24} /><View style={{ flex: 1, gap: 4 }}><Typography variant="eyebrow">{kind}</Typography>{editing ? <TextInput accessibilityLabel="Source title" autoFocus onChangeText={setTitle} style={{ backgroundColor: colors.background.input, borderColor: colors.border.input, borderRadius: 8, borderWidth: 1, color: colors.text.primary, minHeight: 42, paddingHorizontal: 12 }} value={title} /> : <Typography variant="title">{item.title || item.metadata?.fileName || 'Untitled Source'}</Typography>}{detail ? <Typography variant="caption">{detail}</Typography> : null}</View></View>
+    {item.content || item.metadata?.annotation ? <Typography variant="body">{item.metadata?.annotation || item.content}</Typography> : null}
+    {error ? <Typography accessibilityRole="alert" variant="caption" style={{ color: colors.feedback.danger.text }}>{error}</Typography> : null}
+    {confirmDelete ? <View style={{ backgroundColor: colors.feedback.danger.bg, borderRadius: 10, gap: 10, padding: 12 }}><Typography variant="emphasis-sm">Delete this Source?</Typography><Typography variant="caption">The Source record and its uploaded file will be removed.</Typography><View style={{ flexDirection: 'row', gap: 16 }}><Pressable disabled={saving} onPress={() => setConfirmDelete(false)}><Typography variant="emphasis-sm">Cancel</Typography></Pressable><Pressable disabled={saving} onPress={() => void remove()}><Typography variant="emphasis-sm" style={{ color: colors.feedback.danger.text }}>{saving ? 'Deleting…' : 'Delete Source'}</Typography></Pressable></View></View> : <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 18 }}><Pressable accessibilityRole="button" disabled={opening} onPress={() => void open()}><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>{opening ? 'Opening…' : item.itemType === 'link' ? 'Open Link' : 'Open File'}</Typography></Pressable>{canManageSource ? editing ? <><Pressable disabled={saving} onPress={() => void rename()}><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>{saving ? 'Saving…' : 'Save name'}</Typography></Pressable><Pressable disabled={saving} onPress={() => { setEditing(false); setTitle(item.title ?? ''); }}><Typography variant="emphasis-sm">Cancel</Typography></Pressable></> : <><Pressable onPress={() => setEditing(true)}><Typography variant="emphasis-sm">Rename</Typography></Pressable><Pressable onPress={() => setConfirmDelete(true)}><Typography variant="emphasis-sm" style={{ color: colors.feedback.danger.text }}>Delete</Typography></Pressable></> : null}</View>}
+  </View>;
+}
+
 // ─── InsightCard ──────────────────────────────────────────────────────────────
 
 function InsightCard({ item, onUpdate, onDelete }: VaultItemCardProps) {
@@ -367,13 +425,14 @@ export function VaultItemCard(props: VaultItemCardProps) {
     case 'note':
       return <NoteCard {...props} />;
     case 'link':
-      return <LinkCard {...props} />;
+      return <SourceCard {...props} />;
     case 'insight':
       return <InsightCard {...props} />;
     case 'action_update':
       return <ActionUpdateCard {...props} />;
     case 'document':
-      return <DocumentPlaceholderCard />;
+    case 'image':
+      return <SourceCard {...props} />;
     default:
       return <FallbackCard item={props.item} />;
   }

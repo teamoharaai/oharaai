@@ -1,4 +1,9 @@
 import { expect, test } from '@playwright/test';
+import { mkdirSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const sourceScreenshots = resolve(process.cwd(), 'docs/ui-checkpoints/sources-v2');
+mkdirSync(sourceScreenshots, { recursive: true });
 
 const user = { id: '11111111-1111-4111-8111-111111111111', email: 'projects@example.test', role: 'authenticated', aud: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' };
 const previewAccessToken = (userId: string) => `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ aud: 'authenticated', exp: 1893456000, role: 'authenticated', sub: userId })).toString('base64url')}.preview`;
@@ -6,7 +11,7 @@ const now = '2026-09-23T12:00:00Z';
 const project = { id: 'project-1', user_id: user.id, title: 'Run a 5K Journey', description: 'Build a steady running rhythm.', status: 'active', mode: 'team', start_date: null, end_date: null, period_key: null, created_at: now, updated_at: now };
 const goal = { id: 'goal-1', user_id: user.id, title: 'Run a 5K', description: 'Build endurance.', category: 'Health & Fitness', status: 'active', color_theme: 'ocean', smart_data: {}, target_frequency: null, visibility: 'private', progress: 30, deadline: '2026-12-01T12:00:00Z', completed_at: null, archived_at: null, expired_at: null, ai_generated: false, project_id: project.id, project_lead_id: user.id, previous_goal_id: null, prior_phase_summary: null, reflection: null, reflected_at: null, created_at: now, updated_at: now, milestones: [], trackers: [] };
 const vault = { id: 'project-vault', ownerId: user.id, goalId: null, projectId: project.id, spaceId: null, vaultType: 'personal', createdAt: now, updatedAt: now };
-const items = [{ id: 'sticky-1', vaultId: 'goal-vault', itemType: 'note', contentKind: 'sticky_note', title: 'Aerobic base', content: 'Keep most runs conversational.', metadata: {}, folderId: null, visibility: 'private', createdBy: user.id, sortOrder: 0, createdAt: now, updatedAt: now, directProjectItem: false, origins: [{ goalId: goal.id, goalTitle: goal.title }] }, { id: 'source-1', vaultId: 'project-vault', itemType: 'link', contentKind: 'generic', title: 'Training guide', content: null, metadata: { url: 'https://example.test/guide' }, folderId: null, visibility: 'private', createdBy: user.id, sortOrder: 0, createdAt: now, updatedAt: now, directProjectItem: true, origins: [] }, { id: 'generic-note-1', vaultId: 'goal-vault', itemType: 'note', contentKind: 'generic', title: 'Creatine Brand', content: 'Internal note', metadata: {}, folderId: null, visibility: 'private', createdBy: user.id, sortOrder: 0, createdAt: now, updatedAt: now, directProjectItem: false, origins: [{ goalId: goal.id, goalTitle: goal.title }] }];
+const items = [{ id: 'sticky-1', vaultId: 'goal-vault', itemType: 'note', contentKind: 'sticky_note', title: 'Aerobic base', content: 'Keep most runs conversational.', metadata: {}, folderId: null, visibility: 'private', createdBy: user.id, sortOrder: 0, createdAt: now, updatedAt: now, directProjectItem: false, origins: [{ goalId: goal.id, goalTitle: goal.title }] }, { id: 'source-1', vaultId: 'project-vault', itemType: 'link', contentKind: 'generic', title: 'Training guide', content: null, metadata: { provider: 'link', url: 'https://example.test/guide' }, folderId: null, visibility: 'private', createdBy: user.id, sortOrder: 0, createdAt: now, updatedAt: now, directProjectItem: true, origins: [] }, { id: 'source-file', vaultId: 'project-vault', itemType: 'document', contentKind: 'generic', title: '5K Training Brief', content: 'A practical reference for the next block.', metadata: { provider: 'web_upload', storagePath: `${user.id}/source-file/training-brief.pdf`, fileName: 'training-brief.pdf', mimeType: 'application/pdf', fileSize: 2516582, fileType: 'pdf' }, folderId: null, visibility: 'private', createdBy: user.id, sortOrder: 0, createdAt: now, updatedAt: now, directProjectItem: true, origins: [] }, { id: 'source-image', vaultId: 'goal-vault', itemType: 'image', contentKind: 'generic', title: 'Route Diagram', content: null, metadata: { provider: 'ios_photos', storagePath: `${user.id}/source-image/route.png`, fileName: 'route.png', mimeType: 'image/png', fileSize: 1843200, fileType: 'image' }, folderId: null, visibility: 'private', createdBy: user.id, sortOrder: 0, createdAt: now, updatedAt: now, directProjectItem: false, origins: [{ goalId: goal.id, goalTitle: goal.title }] }, { id: 'generic-note-1', vaultId: 'goal-vault', itemType: 'note', contentKind: 'generic', title: 'Creatine Brand', content: 'Internal note', metadata: {}, folderId: null, visibility: 'private', createdBy: user.id, sortOrder: 0, createdAt: now, updatedAt: now, directProjectItem: false, origins: [{ goalId: goal.id, goalTitle: goal.title }] }];
 
 for (const theme of ['light', 'dark']) test(`Projects V1 workspace ${theme}`, async ({ page }) => {
   const errors: string[] = [];
@@ -25,6 +30,10 @@ for (const theme of ['light', 'dark']) test(`Projects V1 workspace ${theme}`, as
       sessionStorage.setItem(`ohara:release:${patch}:seen`, 'seen');
     }
   }, { session, theme });
+  await page.route('**/source-preview.png', (route) => route.fulfill({
+    contentType: 'image/svg+xml',
+    body: '<svg xmlns="http://www.w3.org/2000/svg" width="900" height="420" viewBox="0 0 900 420"><rect width="900" height="420" fill="#eef6ee"/><path d="M55 330 C190 100 340 375 475 165 S735 80 845 250" fill="none" stroke="#63c174" stroke-width="18" stroke-linecap="round"/><circle cx="55" cy="330" r="18" fill="#2d6a4f"/><circle cx="845" cy="250" r="18" fill="#2d6a4f"/></svg>',
+  }));
   await page.route(/https?:\/\/[^/]+\/(?:auth|rest)\/v1\/.*/, async (route) => {
     const url = new URL(route.request().url());
     const json = (body: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
@@ -51,6 +60,7 @@ for (const theme of ['light', 'dark']) test(`Projects V1 workspace ${theme}`, as
     const path = new URL(route.request().url()).pathname;
     const json = (body: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
     if (path === `/api/projects/${project.id}/vault`) return json({ vault, items });
+    if (path.startsWith('/api/sources/') && path.endsWith('/access')) return json({ url: 'http://localhost:4207/source-preview.png' });
     if (path === '/api/tasks') return json({ data: [{ id: 'task-1', goalId: goal.id, title: 'Easy run', status: 'active', dueDate: null, occurrences: [{ id: 'occurrence-1', status: 'pending', scheduledLocalDate: '2026-09-23' }] }] });
     if (path === '/api/momentum') return json({ data: { goals: [{ goalId: goal.id, displayedValue: 71, weeklyChange: 6, status: 'active' }] } });
     if (path === '/api/entries/library') return json({ entries: [{ id: 'entry-1', userId: user.id, entryType: 'note', title: 'Training research', content: { type: 'doc', content: [] }, plainText: 'Research', brtCategory: null, reflectionType: null, conversationTurns: [], takeaway: null, pinned: false, archived: false, contentVersion: 1, schemaVersion: 2, completedAt: null, createdAt: now, updatedAt: now, goals: [{ id: goal.id, title: goal.title, category: goal.category, status: goal.status, projectId: project.id }], project: null, categoryIds: [], milestones: [] }] });
@@ -82,6 +92,19 @@ for (const theme of ['light', 'dark']) test(`Projects V1 workspace ${theme}`, as
   await page.getByRole('tab', { name: 'Sources', exact: true }).click();
   await expect(page.getByText('Training guide', { exact: true })).toBeVisible();
   await expect(page.getByText('Creatine Brand', { exact: true })).toHaveCount(0);
+  if (theme === 'light') {
+    await page.screenshot({ path: `${sourceScreenshots}/01-project-vault-sources-populated.png`, fullPage: true });
+    await page.getByRole('button', { name: 'Open 5K Training Brief', exact: true }).click();
+    await expect(page.getByText('application/pdf · 2.4 MB', { exact: true })).toBeVisible();
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `${sourceScreenshots}/10-file-detail.png`, fullPage: true });
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
+    await page.getByRole('button', { name: 'Open Route Diagram', exact: true }).click();
+    await expect(page.getByText('image/png · 1.8 MB', { exact: true })).toBeVisible();
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: `${sourceScreenshots}/09-image-preview.png`, fullPage: true });
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
+  }
   await page.getByRole('button', { name: 'Overview', exact: true }).click();
   await page.getByRole('button', { name: 'Manage Project ▾', exact: true }).click();
   for (const tab of ['Overview', 'Goals', 'Members', 'Access', 'Settings']) await expect(page.getByRole('tab', { name: tab, exact: true })).toBeVisible();
@@ -155,4 +178,10 @@ test('Guide workspace exposes permitted coordination without owner controls or p
   await expect(page.getByRole('tab', { name: 'Status', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'New', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /Remove .* from Project/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('button', { name: 'Vault', exact: true }).click();
+  await page.getByRole('tab', { name: 'Sources', exact: true }).click();
+  await expect(page.getByText('Saved links, documents, and other source material will appear here.', { exact: true })).toBeVisible();
+  await page.screenshot({ path: `${sourceScreenshots}/02-project-vault-sources-empty.png`, fullPage: true });
+  await page.screenshot({ path: `${sourceScreenshots}/15-unauthorized-collaborator-state.png`, fullPage: true });
 });

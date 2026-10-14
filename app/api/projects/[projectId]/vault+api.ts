@@ -6,6 +6,7 @@ import {
   mapVaultItem,
 } from '@/lib/db/vaults';
 import type { VaultContentKind, VaultItem, VaultItemType } from '@/types/vault';
+import { sanitizeSourceId, sanitizeSourceMetadata } from '@/features/sources/source-server';
 
 type AggregatedVaultItem = VaultItem & {
   directProjectItem: boolean;
@@ -88,19 +89,33 @@ export async function POST(request: Request, params: Record<string, string>): Pr
 async function handlePost(request: Request, params: Record<string, string>, auth: AuthContext): Promise<Response> {
   const projectId = idFrom(params);
   if (!projectId) return Response.json({ error: 'Invalid Project ID' }, { status: 400 });
+  let raw: { sourceId?: unknown; itemType?: unknown; contentKind?: unknown; title?: unknown; content?: unknown; metadata?: unknown; visibility?: unknown };
+  try { raw = await request.json() as typeof raw; }
+  catch { return Response.json({ error: 'Invalid JSON body' }, { status: 400 }); }
+  let itemType: VaultItemType;
+  let title: string | null;
+  let content: string | null;
+  let sourceId: string | undefined;
+  let metadata: VaultItem['metadata'];
   try {
-    const raw = await request.json() as { itemType?: unknown; contentKind?: unknown; title?: unknown; content?: unknown; metadata?: unknown; visibility?: unknown };
-    const itemType = raw.itemType as VaultItemType;
-    const allowed: VaultItemType[] = ['note', 'link', 'document'];
+    itemType = raw.itemType as VaultItemType;
+    const allowed: VaultItemType[] = ['note', 'link', 'document', 'image'];
     if (!allowed.includes(itemType)) return Response.json({ error: 'Unsupported item type' }, { status: 400 });
     if (raw.contentKind === 'sticky_note') {
       return Response.json({ error: 'This legacy content type is retired and read-only' }, { status: 410 });
     }
-    const contentKind: VaultContentKind = 'generic';
-    const title = typeof raw.title === 'string' ? raw.title.trim().slice(0, 200) || null : null;
-    const content = typeof raw.content === 'string' ? raw.content.trim().slice(0, 10000) || null : null;
-    const metadata = raw.metadata && typeof raw.metadata === 'object' && !Array.isArray(raw.metadata)
-      ? raw.metadata as VaultItem['metadata'] : {};
+    title = typeof raw.title === 'string' ? raw.title.trim().slice(0, 200) || null : null;
+    content = typeof raw.content === 'string' ? raw.content.trim().slice(0, 10000) || null : null;
+    sourceId = sanitizeSourceId(raw.sourceId);
+    metadata = itemType === 'link' || itemType === 'document' || itemType === 'image'
+      ? sanitizeSourceMetadata(raw.metadata, { itemType, sourceId, userId: auth.userId })
+      : raw.metadata && typeof raw.metadata === 'object' && !Array.isArray(raw.metadata)
+        ? raw.metadata as VaultItem['metadata'] : {};
+  } catch (error) {
+    return Response.json({ error: error instanceof Error ? error.message : 'Invalid request' }, { status: 400 });
+  }
+  const contentKind: VaultContentKind = 'generic';
+  try {
     const db = createAuthedClient(auth.accessToken);
     const { data: project, error: projectError } = await db.from('projects').select('id,user_id,status').eq('id', projectId).maybeSingle();
     if (projectError) throw projectError;
@@ -120,7 +135,14 @@ async function handlePost(request: Request, params: Record<string, string>, auth
     if (vaultError) throw vaultError;
     const vault = existingVault ?? (isOwner ? await getOrCreateProjectVaultForUser(projectId, auth.userId, db) : null);
     if (!vault) return Response.json({ error: 'Not found' }, { status: 404 });
+    if (sourceId) {
+      const { data: existing, error: existingError } = await db.from('vault_items')
+        .select(ITEM_SELECT).eq('id', sourceId).eq('created_by', auth.userId).maybeSingle();
+      if (existingError) throw existingError;
+      if (existing) return Response.json({ item: { ...mapVaultItem(existing as never), directProjectItem: true, origins: [] } });
+    }
     const item = await createVaultItem(vault.id, {
+      id: sourceId,
       vaultId: vault.id, itemType, contentKind, title, content, metadata,
       folderId: null, visibility, createdBy: auth.userId, sortOrder: 0,
     }, db);

@@ -1,12 +1,13 @@
 import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
 import { withAuth, type AuthContext } from '@/lib/api/auth';
 import {
-  getVaultItemByIdForUser,
+  getAuthorizedVaultItemById,
   updateVaultItem,
   deleteVaultItem,
 } from '@/lib/db/vaults';
 import { getFolderByIdForVault } from '@/lib/db/vault-folders';
 import type { VaultItem } from '@/types/vault';
+import { SOURCE_BUCKET } from '@/features/sources/source-domain';
 
 // ─── Input sanitization ───────────────────────────────────────────────────────
 
@@ -124,12 +125,21 @@ async function handlePut(
 
   try {
     const authedDb = createAuthedClient(auth.accessToken);
-    const existingItem = await getVaultItemByIdForUser(itemId, auth.userId, authedDb);
-    if (!existingItem) {
+    const existingItem = await getAuthorizedVaultItemById(itemId, authedDb);
+    if (!existingItem || existingItem.createdBy !== auth.userId) {
       return Response.json({ error: 'Not found' }, { status: 404 });
     }
     if (existingItem.contentKind === 'sticky_note') {
       return Response.json({ error: 'This archived item is read-only' }, { status: 410 });
+    }
+
+    if (['link', 'document', 'image'].includes(existingItem.itemType) && updates.metadata) {
+      updates.metadata = {
+        ...existingItem.metadata,
+        annotation: typeof updates.metadata.annotation === 'string'
+          ? updates.metadata.annotation.trim().slice(0, 2000) || undefined
+          : existingItem.metadata.annotation,
+      };
     }
 
     if (folderIdProvided) {
@@ -179,8 +189,8 @@ async function handleDelete(
 
   try {
     const authedDb = createAuthedClient(auth.accessToken);
-    const existingItem = await getVaultItemByIdForUser(itemId, auth.userId, authedDb);
-    if (!existingItem) {
+    const existingItem = await getAuthorizedVaultItemById(itemId, authedDb);
+    if (!existingItem || existingItem.createdBy !== auth.userId) {
       return Response.json({ error: 'Not found' }, { status: 404 });
     }
     if (existingItem.contentKind === 'sticky_note') {
@@ -188,7 +198,17 @@ async function handleDelete(
     }
 
     await deleteVaultItem(itemId, authedDb);
-    return Response.json({ success: true });
+    const storagePath = ['document', 'image'].includes(existingItem.itemType)
+      ? existingItem.metadata?.storagePath : undefined;
+    let storageRemoved: boolean | undefined;
+    if (storagePath) {
+      const { error: storageError } = await authedDb.storage.from(SOURCE_BUCKET).remove([storagePath]);
+      storageRemoved = !storageError;
+      if (storageError) {
+        console.error('[vault-items] Source object cleanup failed', { itemId, storagePath, error: storageError.message });
+      }
+    }
+    return Response.json({ success: true, storageRemoved });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
     console.error('[vault-items] DELETE failed', { itemId, error: message });

@@ -1,5 +1,6 @@
-export type VaultItemType = 'note' | 'link' | 'document' | 'insight' | 'action_update';
+export type VaultItemType = 'note' | 'link' | 'document' | 'image' | 'insight' | 'action_update';
 export type VaultContentKind = 'generic' | 'sticky_note';
+export type SourceProvider = 'upload' | 'web_upload' | 'ios_files' | 'ios_photos' | 'link';
 
 export interface Vault {
   id: string;
@@ -39,6 +40,13 @@ export interface VaultItem {
     url?: string;
     annotation?: string;
     fileType?: string;
+    provider?: SourceProvider;
+    storagePath?: string;
+    fileName?: string;
+    mimeType?: string;
+    fileSize?: number;
+    width?: number;
+    height?: number;
     aiConfidence?: number;
     confirmed?: boolean;
     tags?: string[];

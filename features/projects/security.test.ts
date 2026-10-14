@@ -7,6 +7,7 @@ const migration = readFileSync(resolve(process.cwd(), 'supabase/migrations/071_p
 const collaboration = readFileSync(resolve(process.cwd(), 'supabase/migrations/073_projects_v1_1_collaboration.sql'), 'utf8');
 const chatMigration = readFileSync(resolve(process.cwd(), 'supabase/migrations/079_project_chat.sql'), 'utf8');
 const executionMigration = readFileSync(resolve(process.cwd(), 'supabase/migrations/085_project_task_execution.sql'), 'utf8');
+const sourcesMigration = readFileSync(resolve(process.cwd(), 'supabase/migrations/091_sources_v2.sql'), 'utf8');
 const api = readFileSync(resolve(process.cwd(), 'app/api/projects/[projectId]/vault+api.ts'), 'utf8');
 const auth = readFileSync(resolve(process.cwd(), 'lib/api/auth.ts'), 'utf8');
 const apiClient = readFileSync(resolve(process.cwd(), 'lib/api/client.ts'), 'utf8');
@@ -16,6 +17,9 @@ test('Project Vault has one exclusive same-owner parent', () => {
   assert.match(migration, /goal_id is not null.*project_id is not null/s);
   assert.match(migration, /vaults_project_id_unique_idx/);
   assert.match(migration, /Vault owner must match its parent owner/);
+  assert.match(sourcesMigration, /vaults_at_most_one_parent_check/);
+  assert.match(sourcesMigration, /An unlinked Vault must be personal/);
+  assert.match(sourcesMigration, /vaults_personal_unlinked_user_unique_idx/);
 });
 
 test('Goal association ownership and reassignment are database enforced', () => {

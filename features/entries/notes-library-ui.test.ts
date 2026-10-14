@@ -49,8 +49,8 @@ test('library tabs are client projections over one viewer-authorized payload', (
   assert.match(libraryDb, /deriveEntryCapabilities\([\s\S]*echoOwnedIds\.has\(row\.id\)/);
 });
 
-test('Sources are federated from authorized Vault documents and links only', () => {
-  assert.match(libraryDb, /\.in\('item_type', \['link', 'document'\]\)/);
+test('Sources are federated from authorized Vault files, images, and links only', () => {
+  assert.match(libraryDb, /\.in\('item_type', \['link', 'document', 'image'\]\)/);
   assert.match(libraryDb, /\.neq\('content_kind', 'sticky_note'\)/);
   assert.match(libraryDb, /vault\.project_id \?\? goalRow\?\.project_id/);
 });
