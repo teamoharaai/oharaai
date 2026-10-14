@@ -11,6 +11,7 @@ const sourceCard = source('features/goals/components/VaultItemCard.tsx');
 const notes = source('features/entries/components/NotesLibraryScreen.tsx');
 const app = source('app.json');
 const migration = source('supabase/migrations/091_sources_v2.sql');
+const itemRoute = source('app/api/vaults/items/[itemId]+api.ts');
 
 test('Add Source offers only the approved file, image, and link choices', () => {
   for (const label of ['File', 'Photo or Image', 'Link']) assert.match(composer, new RegExp(`title: '${label}'`));
@@ -54,4 +55,7 @@ test('private storage authorization is joined to canonical Source visibility', (
   assert.match(migration, /is_project_member_v11/);
   assert.match(migration, /preserve_departing_member_sources_v2/);
   assert.match(migration, /preserve_sources_before_vault_delete_v2/);
+  assert.match(itemRoute, /existingItem\.createdBy !== auth\.userId/);
+  assert.match(itemRoute, /createServiceRoleClient\(\)/);
+  assert.match(itemRoute, /deleteVaultItem[\s\S]+storageDb\.storage\.from\(SOURCE_BUCKET\)\.remove/);
 });

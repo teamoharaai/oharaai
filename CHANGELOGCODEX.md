@@ -15,6 +15,7 @@
 - Updated Vault creation copy to keep Echo reserved for OHARA's AI identity and to describe Sources consistently as files, images, or links (`features/goals/components/GoalVault.tsx`).
 
 ### Fixed — Sources V2.0
+- Fixed uploaded Source deletion so the creator-authorized API removes the canonical row first and then uses the server-only storage client for object cleanup; this avoids losing Storage SELECT evidence before the file removal request is evaluated (`app/api/vaults/items/[itemId]+api.ts`, `features/sources/sources-v2-ui.test.ts`).
 - Patched the pinned `react-native-css-interop` 0.2.3 declaration parser so `box-shadow` returns after parsing instead of falling through into `aspect-ratio`; this keeps the existing NativeWind stack intact while unblocking reproducible production iOS export (`patches/react-native-css-interop+0.2.3.patch`).
 - Removed a Node-only `node:crypto` import from the shared deterministic Milestone operation-ID helper while preserving byte-for-byte UUIDv5 output, so production iOS JavaScript export can include the Goal service safely (`lib/goals/milestone-operation-id.ts`, `lib/goals/milestone-operation-id.test.ts`).
 - Added private `sources` storage authorization, short-lived signed access, creator-bound paths, filename/MIME/size validation, unsafe-extension rejection, and best-effort orphan cleanup when record creation fails (`supabase/migrations/091_sources_v2.sql`, `features/sources/source-domain.ts`, `features/sources/source-server.ts`, `app/api/sources/[itemId]/access+api.ts`).

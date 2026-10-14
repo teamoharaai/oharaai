@@ -1,4 +1,5 @@
 import { createAuthedClient, isDatabaseConfigured } from '@/lib/db/client';
+import { createServiceRoleClient } from '@/lib/db/service-client';
 import { withAuth, type AuthContext } from '@/lib/api/auth';
 import {
   getAuthorizedVaultItemById,
@@ -202,7 +203,11 @@ async function handleDelete(
       ? existingItem.metadata?.storagePath : undefined;
     let storageRemoved: boolean | undefined;
     if (storagePath) {
-      const { error: storageError } = await authedDb.storage.from(SOURCE_BUCKET).remove([storagePath]);
+      // The canonical row is deliberately deleted first. Storage SELECT is
+      // row-authorized, so use the server-only client for object cleanup after
+      // the creator check above has already authorized this request.
+      const storageDb = createServiceRoleClient();
+      const { error: storageError } = await storageDb.storage.from(SOURCE_BUCKET).remove([storagePath]);
       storageRemoved = !storageError;
       if (storageError) {
         console.error('[vault-items] Source object cleanup failed', { itemId, storagePath, error: storageError.message });
