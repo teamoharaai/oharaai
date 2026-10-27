@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed — Workspace V2.0 Phase 4C dependency security (local)
+- Updated only reviewed vulnerable transitive dependencies within existing parent ranges in `package-lock.json`, including ProseMirror paste validation, shell-quote, WebSocket handling and build parsers. Kept Expo, React Native, Tiptap, Supabase, direct dependency declarations and existing patches unchanged; no overrides or framework upgrades.
+- Added Notes clipboard/context-validation and serialization browser regressions plus shell-quote security tests. Documented unresolved framework/bundled-code findings separately; the CI audit gate remains enforced. No commit, push, merge, deployment or production changes.
+
+
 ### Fixed — Workspace V2.0, Phase 3F Roots test resolution (local)
 - Corrected the historical reference test after the deliberate September archive move: `features/constellation/fixture-boundary.test.ts` now reads the original pinned Git objects, preserving exact filename, PNG dimension/hash and production-import assertions. No artwork was generated, restored in-tree, or changed; no Roots runtime or approved design changed. Documented full-history/pinned-commit test setup in `docs/constellation/REFERENCE_CONCEPTS.md`.
 - The broader Roots acceptance run exposed two stale heading expectations in its Focus test. Updated them to the already-shipped exact “Roots”/“Roots · Focus” labels; navigation, inspector, evidence counts and all existing visual snapshot checks remain unchanged (`tests/constellation/constellation.acceptance.spec.ts`).

@@ -181,3 +181,78 @@ test('Note workspace formatting controls have polished states and discoverable l
   await page.waitForTimeout(180);
   await page.screenshot({ path: visualEvidencePath('docs/ui-checkpoints/projects-notes-polish/note-formatting-toolbar-light.png') });
 });
+
+test('Note clipboard preserves formatting and serializes without executable markup', async ({ page }) => {
+  await installPreview(page, 'light');
+  await page.goto('/notes/note-1', { waitUntil: 'domcontentloaded' });
+  const editor = page.getByRole('textbox', { name: 'Note content', exact: true });
+  await expect(editor).toBeVisible();
+  await editor.click();
+  await editor.press('ControlOrMeta+A');
+  const save = page.waitForRequest(request => request.method() === 'PATCH'
+    && new URL(request.url()).pathname === '/api/entries/library/note-1');
+  await editor.evaluate(element => {
+    const data = new DataTransfer();
+    data.setData('text/html', '<h2>Clipboard heading</h2><p><strong>Keep bold</strong> '
+      + '<a href="https://example.com/">Safe link</a></p>'
+      + '<p><a href="javascript:window.__oharaPasteExecuted=true">Unsafe link</a></p>'
+      + '<img src="invalid" onerror="window.__oharaPasteExecuted=true">'
+      + '<script>window.__oharaPasteExecuted=true</script>');
+    data.setData('text/plain', 'Clipboard heading Keep bold Safe link Unsafe link');
+    element.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+  });
+  await expect(editor.locator('h2')).toContainText('Clipboard heading');
+  await expect(editor.locator('strong')).toContainText('Keep bold');
+  await expect(editor.locator('a[href="https://example.com/"]')).toHaveCount(1);
+  await expect(editor.locator('script, [onerror], a[href^="javascript:"]')).toHaveCount(0);
+  expect(await page.evaluate(() => Reflect.get(window, '__oharaPasteExecuted'))).toBeUndefined();
+  const body = (await save).postDataJSON();
+  expect(JSON.stringify(body.content)).toContain('Keep bold');
+  expect(JSON.stringify(body.content)).toContain('"bold"');
+  expect(JSON.stringify(body.content)).not.toMatch(/javascript:|onerror|__oharaPasteExecuted/);
+});
+
+test('ProseMirror paste runs schema validators on clipboard slice-context attributes', async ({ page }) => {
+  await installPreview(page, 'light');
+  await page.goto('/notes/note-1', { waitUntil: 'domcontentloaded' });
+  const editor = page.getByRole('textbox', { name: 'Note content', exact: true });
+  await expect(editor).toBeVisible();
+  const result = await editor.evaluate(element => {
+    // Exercise the installed browser modules with an isolated schema containing
+    // a validator. This does not claim OHARA configures that attribute itself.
+    const appEditor = (element as HTMLElement & { editor: import('@tiptap/core').Editor }).editor;
+    const Schema = appEditor.schema.constructor as typeof import('prosemirror-model').Schema;
+    const EditorState = appEditor.state.constructor as typeof import('prosemirror-state').EditorState;
+    const EditorView = appEditor.view.constructor as typeof import('prosemirror-view').EditorView;
+    const schema = new Schema({ nodes: {
+      doc: { content: 'block+' },
+      paragraph: { content: 'inline*', group: 'block', toDOM: () => ['p', 0], parseDOM: [{ tag: 'p' }] },
+      blockquote: { content: 'block+', group: 'block',
+        attrs: { title: { default: 'safe', validate: 'string' } },
+        toDOM: node => ['blockquote', { title: node.attrs.title }, 0], parseDOM: [{ tag: 'blockquote' }] },
+      text: { group: 'inline' },
+    } });
+    const paste = (title: unknown) => {
+      const host = document.createElement('div');
+      document.body.appendChild(host);
+      let contextType: string | null = null;
+      const view = new EditorView(host, { state: EditorState.create({ schema }),
+        handlePaste: (_view, _event, slice) => {
+          contextType = slice.content.firstChild?.type.name ?? null;
+          return false;
+        },
+      });
+      try {
+        const paragraph = document.createElement('p');
+        paragraph.textContent = 'Untrusted slice context';
+        paragraph.setAttribute('data-pm-slice', '0 0 ' + JSON.stringify(['blockquote', { title }]));
+        view.pasteHTML(paragraph.outerHTML);
+        // Inspect the parsed slice before normal insertion may flatten its open context.
+        return { text: view.state.doc.textContent, contextType };
+      } finally { view.destroy(); host.remove(); }
+    };
+    return { valid: paste('Safe title'), invalid: paste(['img', { onerror: 'unexpected' }]) };
+  });
+  expect(result.valid).toEqual({ text: 'Untrusted slice context', contextType: 'blockquote' });
+  expect(result.invalid).toEqual({ text: 'Untrusted slice context', contextType: 'paragraph' });
+});
