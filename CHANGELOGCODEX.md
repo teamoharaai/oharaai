@@ -2,27 +2,44 @@
 
 ## [Unreleased]
 
+### Changed — Workspace V2.0 Phase 4F integration publication
+- Reconstructed the verified Phase 4E candidate on a fresh review branch for dependency-safe commits and a blocked draft integration PR; preserved the rehearsal worktree, recovery packages, security gate and production restrictions.
+- Added the explicitly approved `vercel.json` deployment guard for `codex/workspace-v2-integration` only, preventing automatic Git deployments from this review branch without changing main or other branches. Recorded publication/validation evidence in `docs/design/OHARA-Workspace-V2.0-Integration-Publication.md`; no merge or deployment is authorized.
+
+### Fixed — Workspace V2.0 Phase 4E local CI repair
+- Moved `OHARA_VISUAL_OUTPUT_DIR` from job-level to browser-step environment in `.github/workflows/workspace-validation.yml`, where GitHub supports `runner.temp`, keeping capture evidence outside the repository. Replaced the retiring `macos-14` application runner with explicitly versioned `macos-15`.
+- Kept application code, dependency versions, screenshot baselines and the failing high-severity audit gate unchanged. Added the Phase 4E validation/security-owner decision packet and blocked draft PR handoff; local checks do not certify GitHub-hosted runner behavior. No staging, commit, push, PR publication or deployment.
+
 ### Fixed — Workspace V2.0 Phase 4C dependency security (local)
 - Updated only reviewed vulnerable transitive dependencies within existing parent ranges in `package-lock.json`, including ProseMirror paste validation, shell-quote, WebSocket handling and build parsers. Kept Expo, React Native, Tiptap, Supabase, direct dependency declarations and existing patches unchanged; no overrides or framework upgrades.
 - Added Notes clipboard/context-validation and serialization browser regressions plus shell-quote security tests. Documented unresolved framework/bundled-code findings separately; the CI audit gate remains enforced. No commit, push, merge, deployment or production changes.
 
+### Changed — Workspace V2.0 Phase 4B local integration rehearsal
+- Reassembled the verified landing/Workspace candidate on fetched team main in a separate temporary detached worktree, excluding generated route declarations and unapproved screenshot evidence. Original worktree and durable checkpoints remain untouched.
+- Added optional `OHARA_VISUAL_OUTPUT_DIR` routing for capture-only browser evidence (`tests/helpers/visual-evidence.ts` and affected specs) and disabled reuse of unrelated Workspace preview servers in CI. Assertion baselines and runtime behavior are unchanged. Prepared local-only comprehensive CI and integration-rehearsal documentation; no stage, commit, push, merge or deployment.
+
+### Changed — Workspace V2.0 Phase 4A integration preflight (2026-10-23)
+- Added `docs/design/OHARA-Workspace-V2.0-Integration-Plan.md` with fetched branch/overlap evidence, complete accumulated inventory, recovery verification, proposed build-safe commit groups, Roots/CI prerequisites, executable pending manual QA, preview/release gates and rollback strategy. Documentation-only preparation; no staging, commit, merge, push, deployment or production access.
 
 ### Fixed — Workspace V2.0, Phase 3F Roots test resolution (local)
 - Corrected the historical reference test after the deliberate September archive move: `features/constellation/fixture-boundary.test.ts` now reads the original pinned Git objects, preserving exact filename, PNG dimension/hash and production-import assertions. No artwork was generated, restored in-tree, or changed; no Roots runtime or approved design changed. Documented full-history/pinned-commit test setup in `docs/constellation/REFERENCE_CONCEPTS.md`.
 - The broader Roots acceptance run exposed two stale heading expectations in its Focus test. Updated them to the already-shipped exact “Roots”/“Roots · Focus” labels; navigation, inspector, evidence counts and all existing visual snapshot checks remain unchanged (`tests/constellation/constellation.acceptance.spec.ts`).
 
+### Changed — Phase 3F final manual-acceptance preparation
+- Added final readiness and full working-tree inventory documentation, updated Phase 3E/rollout status, and rehearsed recovery of both local binary-patch/untracked checkpoints. Revalidated Roots unit and browser suites, Workspace/landing/auth/Notes/Reflections browsers, domain/security suites, full database chain, TypeScript and web/iOS JS exports. Documented the preview/full-app generated-route type ordering requirement and pending physical iOS/Safari/accessibility acceptance. No commit, push, merge, deployment, production changes or runtime redesign.
+
+### Changed — Phase 3E local readiness
+- Added `docs/design/OHARA-Workspace-V2.0-Phase-3E-Readiness.md`, updated rollout, and recorded the recoverable pre-change checkpoint. Final validation: 50 browser tests, 273 domain/workspace tests, all 17 database/security suites, additional Task/Momentum/Calendar/Auth/Friends/Circles/prelaunch/Echo suites, TypeScript and web/iOS JavaScript exports pass. Roots: 73 pass, one pre-existing missing immutable-reference-image fixture failure remains documented; physical iOS/assistive-technology QA is incomplete. No commit, push, merge, deployment or production changes.
 
 ### Fixed — Phase 3E accessibility validation
 - Restored web dialog trigger focus after dismissal when React Native Web captured an internal focus target. Project Source writes now refresh the existing parent projection after success, preventing stale Source lists when switching tabs; this uses the existing domain reload, not new caching infrastructure.
 - Added an optional accessible name to the shared Modal and named Project creation; restored button semantics and 44-point targets for Source actions in `VaultItemCard.tsx`. Added browser checks for focus containment/return, Calendar pending/failure handling, optional activity errors, history, and enlarged text. Existing layouts and domain contracts remain unchanged.
 - Allowed the web Project contextual header to wrap action controls when enlarged text would otherwise crush its title; named the New Project action and Source detail dialog, corrected Reflections fallback grammar, and aligned legacy browser assertions with approved visible terminology without changing technical routes or stored titles.
 
-
 ### Fixed — Workspace V2.0, Phase 3E hardening (local)
 - Created a recoverable pre-change binary patch/untracked archive outside the worktree and inventoried all completed phases. Fixed the baseline test-only URL typing conflict by explicitly importing Node's URL in `lib/goals/manual-create-v1.test.ts`; no casts, suppression, runtime domain changes or compiler relaxation.
 - Guarded Goal/Project Source mutation results against superseded reads and parent changes, stabilized the Project hook's default items, and deduplicated repeated insert responses (`useVault.ts`, `useProjectVault.ts`). Added executable async-ordering regression tests.
 - Caught malformed Goal activity responses so loading settles with an error; prevented overlapping Calendar occurrence writes and exposed failures without changing scheduling or scoring (`useActivity.ts`, `CalendarItemRow.tsx`). Corrected nested legacy Reflection active navigation and leftover visible Journal/OHARA Intelligence labels in deterministic insight/landing copy; no layout redesign or route changes.
-
 
 ### Changed — Workspace V2.0, Phase 3D Vault (local)
 - Audited and documented existing Vault query paths, Entry/Source RLS and duplicate associations before implementation (`docs/design/OHARA-Vault-V2.0-Phase-3D.md`). Added scoped, paginated viewer-authorized Entry metadata aggregation with canonical deduplication and explicit partial failure; no schema or permission changes (`features/entries/services/context-vault.ts`).
@@ -30,7 +47,6 @@
 - Consolidated Project Vault headings, distinguished Create New/Link Existing from explicit sharing, retained existing editor linking workflows, improved partial error/retry handling and guarded Source/Entry reads against stale responses. Removed duplicate Project Source reads on Vault mount (`GoalVault.tsx`, `useVault.ts`, `useProjectVault.ts`).
 - Reduced empty Project invitation emphasis, clarified per-Goal Momentum labels and softened deterministic Echo inactivity copy without changing its calculations (`projects/index.tsx`, `projects/[id].tsx`, `contextual-insights.ts`). Added aggregation unit/browser checks and a full-chain database privacy/mutation suite; the existing same-owner Goal/Project constraint remains enforced.
 - Validated 38 browser checks, 262 scoped domain/workspace tests, all 17 disposable full-chain database suites, Tasks (86), Momentum (74), prelaunch (15), Auth (8), and web/iOS JavaScript exports. TypeScript retains only the known manual-create diagnostic. Added ten synthetic visual checkpoints and the final Phase 3D report; physical iOS remains unvalidated. Nothing committed, pushed, merged or deployed.
-
 
 ### Changed — Workspace V2.0, Phase 3C Projects (local)
 - Completed 35 local browser regressions (16 Project scenarios), Project/security and related domain suites, web and iOS JavaScript exports, and diff checks. TypeScript retains only the known manual-create test diagnostic. Saved 10 synthetic visual checkpoints and the full validation/file inventory in `docs/design/OHARA-Projects-V2.0-Phase-3C.md`; physical iOS and Phase 3D Vault aggregation remain outstanding.
@@ -42,7 +58,6 @@
 - Made Project creation viewport-scrollable, enlarged Project-specific action targets, corrected URL-driven section restoration, refreshed stale Source errors on successful parent reload, and preserved Reflections activity terminology. Added Phase 3C browser/domain checks, synthetic screenshots and design/rollout notes; no commit, push, merge or deployment.
 
 
-
 ### Changed — Workspace V2.0, Phase 3B Goals (local)
 - Validated 19 local browser scenarios and all relevant Goal/lifecycle, workspace, Entry/security, Tasks, Projects/security, Momentum, Calendar, Sources, prelaunch, Auth and Friends suites. Web and iOS JavaScript exports pass; TypeScript retains only the known manual-create URL-type diagnostic. Physical iOS testing remains outstanding. Recorded final review and screenshots in `docs/design/OHARA-Goals-V2.0-Phase-3B.md` and `docs/ui-checkpoints/goals-v2/`.
 - Removed the redundant header Vault/Overview shortcuts from the tabbed web workspace and kept Manage Goal accessible in Vault. Removed the Goal Progress card at user review; library rows now show explicit completed/total major milestones instead of the legacy stored percentage, which is not recalculated by Task/Milestone writes. Scoring and stored values are unchanged (`GoalDetailHeader.tsx`, `GoalsWorkspace.tsx`, `GoalsExperience.web.tsx`).
@@ -51,7 +66,6 @@
 - Applied approved Reflections terminology to relevant workspace/Entry/Goal/Project/Source/Circles/Home labels while retaining technical identifiers, `/journal` URLs and all access behavior. Updated matching label assertions, not domain contracts.
 - Corrected mobile header stacking and link card styling; added selected-state semantics, route-focus handling, accessible Vault filters, browser/domain regression checks, eight synthetic visual checkpoints and Phase 3B architecture/validation documentation. No commit, push, merge or deployment.
 
-
 ### Changed — Workspace Design System V2.0, Phase 2 Home
 - Verified all 13 browser scenarios, six Home/foundation unit tests and existing prelaunch/auth/Friends/Projects/Entries/Calendar/Momentum/Tasks suites. Final web and iOS JavaScript exports passed; TypeScript retains only the known manual-create test diagnostic. Added four 100%-zoom Home screenshots and the Phase 2 review/data-source/file inventory; no commit, push, merge or deployment (`docs/design/OHARA-Home-V2.0-Phase-2.md`, `docs/ui-checkpoints/home-v2/`).
 - Added Home-only lifecycle/data-boundary regression tests and browser scenarios for populated, empty, pending, failed, and long-list states, including keyboard disclosure, day selection, route destinations, light/dark screenshots and mobile priority (`tests/workspace-v2/home.*`, preview fixtures/config).
@@ -59,11 +73,9 @@
 - Refined Home's personalized/date header and responsive hierarchy, retaining aligned desktop cards while placing Calendar/Today's Focus and next actions first on mobile. Added existing Notes/Journal creation entry points without fetching libraries or generating AI content (`app/(app)/dashboard.tsx`, `features/goals/components/home/HomeEchoEntryPoints.tsx`).
 - Exposed Goal load failure as an additive UI error signal so Home can distinguish unavailable milestones from an empty list. The existing hook opts into read-error propagation from `fetchGoals` rather than caching a failed read as an empty success; direct callers retain their previous default behavior. No cache framework, backend/API contract, or Goal lifecycle changes (`features/goals/hooks/useGoals.ts`, `features/goals/services/goal-service.ts`).
 
-
 ### Added — Workspace Design System V2.0, Phase 1
 - Added web-only workspace theme tokens, scoped appearance/dimension contexts, a responsive persistent/collapsible sidebar, accessible mobile navigation drawer, and a shared shell using existing routes and account/create/settings controls. Native navigation and marketing styles remain independent (`constants/workspace.ts`, `components/layout/Workspace*`, `components/layout/workspace-*`, `store/uiStore.ts`).
 - Added design-system/rollout documentation, synthetic typed preview fixtures, 3 foundation tests and 7 browser checks covering the workspace plus public landing/auth regressions, and desktop/mobile visual checkpoints (`docs/design/OHARA-Workspace*`, `tests/workspace-v2/`, `docs/ui-checkpoints/workspace-v2/`). Local validation passed; production web and iOS JavaScript exports passed. TypeScript retains only the known `lib/goals/manual-create-v1.test.ts` diagnostic; native device QA remains outstanding. No commit, push, merge, migration, or deployment performed.
-
 
 ### Changed — Workspace Design System V2.0, Phase 1
 - Restored canonical `BrandIcon`/`VaultIcon` navigation marks and the Echo logo, with the house icon retained for Home per user approval. Added settled-dark-surface checks so visual checkpoints cannot capture mismatched theme-transition frames (`components/layout/workspace-navigation.ts`, `components/layout/WorkspaceShell.web.tsx`, `tests/workspace-v2/workspace.spec.ts`).
@@ -72,11 +84,9 @@
 - Added explicit Escape dismissal and trigger-focus restoration to the existing web Create popover; retained native behavior (`components/layout/GlobalCreateControl.tsx`).
 - Mounted the shell around the unchanged protected route stack; scoped serif page headings, restrained buttons, floating cards, and page spacing to the web workspace. Existing multi-column pages now evaluate breakpoints against usable workspace width, preserving native viewport behavior. No domain services, auth flows, API contracts, or schemas changed (`app/(app)/_layout.tsx`, `components/ui/{Typography,Button,Card}.tsx`, shared layout and page dimension consumers).
 
-
 ### Fixed — Landing Page V2.0
 - Stacked account labels and inputs vertically with matching full-width input and submit-button edges on desktop and mobile; added browser alignment regression checks (`components/landing/public-auth-v2.css`, `tests/landing-v2/landing.spec.ts`).
 - Contained the final invitation section's background texture by removing its oversized rotation/scale and isolating its blend layer within the section; retained full-section image coverage (`components/landing/landing-v2.css`).
-
 
 ### Changed — Landing Page V2.0
 - Aligned web sign-in/sign-up with the new OharaAI wordmark, forest-green editorial panel, white form surfaces, Lora headings, and restrained rectangular controls. Added explicit input labels and button/link roles while retaining existing validation, Supabase calls, redirects, and native control colors (`components/landing/PublicAuthShell.web.tsx`, `components/landing/public-auth-v2.css`, `components/landing/PublicAuthShell.tsx`, `app/(auth)/login.tsx`, `app/(auth)/signup.tsx`).
@@ -87,10 +97,8 @@
 - Rebuilt the public web landing page with the approved forest-green gradient hero, same-page Product/About Us/Coming Soon navigation, editorial product/team story, truthful future-feature labels, and verified Get Started signup links. Reused official brand assets and explicitly labeled illustrative previews; kept authenticated and native layouts unchanged (`components/landing/LandingPage.web.tsx`, `components/landing/landing-v2.css`).
 - Incorporated the final October 14 content overrides into `docs/design/OHARA-Landing-Page-V2.0-Specification.md`, preserving the original reference, responsive, accessibility, and implementation constraints and recording existing asset provenance limitations.
 
-
 ### Added — Landing Page V2.0
 - Added desktop/mobile browser checks for approved copy, real signup navigation, section anchors and focus, mobile disclosure/Escape behavior, direct hash links, and overflow at 320/390/768px, with visual checkpoints (`tests/landing-v2/`, `docs/ui-checkpoints/landing-v2/`). Extended coverage to auth field/button alignment and mocked login errors/signup validation/email-confirmation states without creating accounts. All three browser tests and eight auth tests passed; tracked TypeScript retains only the pre-existing `lib/goals/manual-create-v1.test.ts` URL-type diagnostic.
-
 
 ### Added — Sources V2.0
 - Added first-class file, image, and link Sources to the existing canonical Vault model, including personal Sources, Project Vaults, Goal Vaults, and the federated Notes Sources library (`features/sources/`, `app/api/sources*`, `features/projects/components/ProjectVaultWorkspace.tsx`, `features/goals/components/GoalVault.tsx`, `features/entries/components/NotesLibraryScreen.tsx`).
