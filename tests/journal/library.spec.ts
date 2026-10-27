@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { visualEvidencePath } from '../helpers/visual-evidence';
 
-const screenshots = resolve(process.cwd(), 'docs/ui-checkpoints/journal-prelaunch');
+const screenshots = visualEvidencePath('docs/ui-checkpoints/journal-prelaunch');
 mkdirSync(screenshots, { recursive: true });
 
 const viewerId = '11111111-1111-4111-8111-111111111111';

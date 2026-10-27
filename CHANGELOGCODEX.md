@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Fixed — Workspace V2.0, Phase 3F Roots test resolution (local)
+- Corrected the historical reference test after the deliberate September archive move: `features/constellation/fixture-boundary.test.ts` now reads the original pinned Git objects, preserving exact filename, PNG dimension/hash and production-import assertions. No artwork was generated, restored in-tree, or changed; no Roots runtime or approved design changed. Documented full-history/pinned-commit test setup in `docs/constellation/REFERENCE_CONCEPTS.md`.
+- The broader Roots acceptance run exposed two stale heading expectations in its Focus test. Updated them to the already-shipped exact “Roots”/“Roots · Focus” labels; navigation, inspector, evidence counts and all existing visual snapshot checks remain unchanged (`tests/constellation/constellation.acceptance.spec.ts`).
+
+
+### Changed — Integration validation foundations
+- Added explicit Node URL typing and capture-only evidence helpers/path routing so intermediate validation remains typed and screenshots can stay outside the repository.
+
+
 ### Added — Sources V2.0
 - Added first-class file, image, and link Sources to the existing canonical Vault model, including personal Sources, Project Vaults, Goal Vaults, and the federated Notes Sources library (`features/sources/`, `app/api/sources*`, `features/projects/components/ProjectVaultWorkspace.tsx`, `features/goals/components/GoalVault.tsx`, `features/entries/components/NotesLibraryScreen.tsx`).
 - Added Expo-compatible native document and photo selection with picker-scoped permission copy and no camera/microphone permission. Chosen files are copied into a private OHARA-managed Supabase bucket instead of retaining temporary device/provider URIs; web uses the same canonical storage and Source records (`app.json`, `package.json`, `features/sources/source-service.ts`).

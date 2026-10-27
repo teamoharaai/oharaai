@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { URL } from 'node:url';
 import { manualGoalV1, isCalendarDate } from './manual-create-v1.ts';
 const base = { title: 'Café', category: 'Life & Relationships' };
 const vectors = JSON.parse(readFileSync(new URL('./manual-create-v1.fixtures.json', import.meta.url), 'utf8'));

@@ -1,9 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { visualEvidencePath } from '../helpers/visual-evidence';
 
-const screenshots = resolve(process.cwd(), 'docs/ui-checkpoints/notes-library-prelaunch');
-const sourceScreenshots = resolve(process.cwd(), 'docs/ui-checkpoints/sources-v2');
+const screenshots = visualEvidencePath('docs/ui-checkpoints/notes-library-prelaunch');
+const sourceScreenshots = visualEvidencePath('docs/ui-checkpoints/sources-v2');
 mkdirSync(screenshots, { recursive: true });
 mkdirSync(sourceScreenshots, { recursive: true });
 
@@ -179,5 +179,5 @@ test('Note workspace formatting controls have polished states and discoverable l
   await expect(bold).toBeVisible();
   await bold.hover();
   await page.waitForTimeout(180);
-  await page.screenshot({ path: resolve(process.cwd(), 'docs/ui-checkpoints/projects-notes-polish/note-formatting-toolbar-light.png') });
+  await page.screenshot({ path: visualEvidencePath('docs/ui-checkpoints/projects-notes-polish/note-formatting-toolbar-light.png') });
 });
