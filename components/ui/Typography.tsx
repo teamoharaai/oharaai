@@ -1,4 +1,6 @@
 import { Text, type TextProps, type StyleProp, type TextStyle } from 'react-native';
+import { useWorkspaceDimensions, useWorkspaceTheme } from '@/components/layout/WorkspaceContext';
+import { WORKSPACE } from '@/constants/workspace';
 import type { ThemeTextColor } from '@/constants/colors';
 import { FONT, TYPE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
@@ -126,13 +128,18 @@ export function Typography({
   ...rest
 }: TypographyProps) {
   const colors = useThemeColors();
+  const workspace = useWorkspaceTheme();
+  const { width } = useWorkspaceDimensions();
+  const editorialStyle = workspace && ((variant === 'heading' && rest.accessibilityRole === 'header') || variant === 'greeting')
+    ? width < 720 ? WORKSPACE.typography.pageCompact : WORKSPACE.typography.page
+    : undefined;
   const colorKey = VARIANT_COLOR_KEY[variant];
   const variantStyle = colorKey ? { color: colors.text[colorKey] } : undefined;
 
   return (
     <Text
       className={className}
-      style={[VARIANT_STYLES[variant], explicitClassFont(className), variantStyle, style]}
+      style={[VARIANT_STYLES[variant], editorialStyle, explicitClassFont(className), variantStyle, style]}
       {...rest}
     >
       {children}

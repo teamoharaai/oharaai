@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useWorkspaceTheme } from '@/components/layout/WorkspaceContext';
+import { WORKSPACE } from '@/constants/workspace';
 import { View, TextInput, type StyleProp, type TextInputProps, type TextStyle } from 'react-native';
 import { Typography } from '@/components/ui/Typography';
 import { CONTROL, RADIUS, SPACE, TYPE } from '@/constants/design';
@@ -36,6 +38,7 @@ export function Input({
   inputStyle,
 }: InputProps) {
   const colors = useThemeColors();
+  const workspace = useWorkspaceTheme();
   const [focused, setFocused] = useState(false);
 
   return (
@@ -51,7 +54,7 @@ export function Input({
               ? colors.border.accent
               : colors.border.input,
           color: colors.text.primary,
-          borderRadius: RADIUS.md,
+          borderRadius: workspace ? WORKSPACE.radius.control : RADIUS.md,
           borderWidth: 1,
           ...TYPE.body,
           minHeight: multiline ? 112 : CONTROL.defaultHeight,

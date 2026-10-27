@@ -108,16 +108,16 @@ export function FriendsPopover({
     POPOVER_WIDTH,
     Math.max(0, viewportWidth - VIEWPORT_MARGIN * 2),
   );
-  // The avatar lives in the top navigation's right edge, so the panel drops
-  // down below it, right-aligned, with the caret pointing up at the avatar.
-  const preferredTop = anchorRect
-    ? anchorRect.bottom + ANCHOR_GAP
-    : (viewportHeight - POPOVER_HEIGHT) / 2;
-  const top = Math.max(VIEWPORT_MARGIN, preferredTop);
+  // Accommodate both the native/top-toolbar anchor and the web sidebar footer.
   const popoverHeight = Math.min(
     POPOVER_HEIGHT,
-    Math.max(0, viewportHeight - top - VIEWPORT_MARGIN),
+    Math.max(0, viewportHeight - VIEWPORT_MARGIN * 2),
   );
+  const opensAbove = !!anchorRect && anchorRect.bottom + ANCHOR_GAP + popoverHeight > viewportHeight - VIEWPORT_MARGIN;
+  const preferredTop = anchorRect
+    ? opensAbove ? anchorRect.top - ANCHOR_GAP - popoverHeight : anchorRect.bottom + ANCHOR_GAP
+    : (viewportHeight - popoverHeight) / 2;
+  const top = clamp(preferredTop, VIEWPORT_MARGIN, viewportHeight - popoverHeight - VIEWPORT_MARGIN);
 
   const position = useMemo(() => {
     const maxLeft = Math.max(
@@ -302,8 +302,9 @@ export function FriendsPopover({
               height: 16,
               left: position.caretLeft,
               position: 'absolute',
-              top: -7,
-              transform: [{ rotate: '45deg' }],
+              top: opensAbove ? undefined : -7,
+              bottom: opensAbove ? -7 : undefined,
+              transform: [{ rotate: opensAbove ? '225deg' : '45deg' }],
               width: 16,
               zIndex: 2,
             }}

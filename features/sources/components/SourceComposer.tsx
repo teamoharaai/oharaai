@@ -96,7 +96,7 @@ export function SourceComposer({ canShare = false, context, onClose, onCreated, 
 
   return <Modal visible={visible} onClose={() => !saving && onClose()} contentStyle={{ maxWidth: 560 }}>
     <View style={{ gap: SPACE.xl }}>
-      <View style={{ gap: SPACE.xs }}><Typography variant="title">Add Source</Typography><Typography variant="body-small">Reference material stays separate from your Notes and Journal.</Typography></View>
+      <View style={{ gap: SPACE.xs }}><Typography variant="title">Add Source</Typography><Typography variant="body-small">Reference material stays separate from your Notes and Reflections.</Typography></View>
       {mode === 'choose' ? <View style={{ gap: SPACE.sm }}>{chooser.map((option) => <Pressable accessibilityLabel={`Add Source: ${option.title}`} accessibilityRole="button" key={option.key} onPress={option.action} style={({ pressed }) => ({ alignItems: 'center', backgroundColor: pressed ? colors.background.selectedRow : colors.background.subtle, borderColor: colors.border.divider, borderRadius: RADIUS.md, borderWidth: 1, flexDirection: 'row', gap: SPACE.lg, minHeight: 68, padding: SPACE.lg })}><View style={{ alignItems: 'center', backgroundColor: colors.background.selectedRow, borderRadius: RADIUS.round, height: 38, justifyContent: 'center', width: 38 }}><Ionicons color={colors.text.accent} name={option.icon} size={20} /></View><View style={{ flex: 1 }}><Typography variant="emphasis-sm">{option.title}</Typography><Typography variant="caption">{option.detail}</Typography></View><Ionicons color={colors.text.muted} name="chevron-forward" size={17} /></Pressable>)}</View> : null}
 
       {mode === 'asset' && asset ? <View style={{ gap: SPACE.lg }}>

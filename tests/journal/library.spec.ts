@@ -65,9 +65,9 @@ async function installPreview(page: Page, theme: 'light' | 'dark') {
 async function openJournal(page: Page, path = '/journal', width = 1440) {
   await page.setViewportSize({ width, height: 1000 });
   await page.goto(path, { waitUntil: 'domcontentloaded', timeout: 240_000 });
-  await expect(page.getByRole('heading', { name: 'Journal', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Reflections', exact: true })).toBeVisible();
   if (width >= 1040) await expect(page.getByRole('button', { name: 'Show All Entries', exact: true })).toBeVisible();
-  else await expect(page.getByRole('button', { name: 'Browse Journal', exact: true })).toBeVisible();
+  else await expect(page.getByRole('button', { name: 'Browse Reflections', exact: true })).toBeVisible();
   await page.waitForTimeout(350);
 }
 
@@ -75,61 +75,61 @@ test('Journal desktop light visual states', async ({ page }) => {
   await installPreview(page, 'light');
   await openJournal(page);
   await expect(page.getByRole('button', { name: 'Show Archived Training Cycle', exact: true })).toHaveCount(0);
-  const legacyEntry = page.getByLabel('Journal entry: Journal Entry · 22 Jul', { exact: true });
-  await legacyEntry.getByRole('button', { name: 'Journal entry actions', exact: true }).click();
+  const legacyEntry = page.getByLabel('Reflection: Journal Entry · 22 Jul', { exact: true });
+  await legacyEntry.getByRole('button', { name: 'Reflection actions', exact: true }).click();
   await expect(legacyEntry.getByRole('button', { name: 'Edit Entry', exact: true })).toBeVisible();
   await expect(legacyEntry.getByRole('button', { name: 'Delete', exact: true })).toBeVisible();
   await expect(page.getByText('Edit in Echo', { exact: true })).toHaveCount(0);
   await page.screenshot({ path: `${screenshots}/desktop-light-all.png`, fullPage: true });
 
   await legacyEntry.getByRole('button', { name: 'Edit Entry', exact: true }).click();
-  const legacyComposer = page.getByLabel('Edit Journal Entry composer', { exact: true });
+  const legacyComposer = page.getByLabel('Edit Reflection composer', { exact: true });
   await expect(legacyComposer).toBeVisible();
   await expect(legacyComposer.getByRole('button', { name: 'Health Improvement', exact: true })).toHaveCount(0);
-  await legacyComposer.getByRole('textbox', { name: 'Journal Entry', exact: true }).fill('Updated historical Journal entry.');
+  await legacyComposer.getByRole('textbox', { name: 'Reflection', exact: true }).fill('Updated historical Journal entry.');
   const updateRequest = page.waitForRequest((request) => new URL(request.url()).pathname === '/api/entries/journal-legacy' && request.method() === 'PATCH');
   await legacyComposer.getByRole('button', { name: 'Save Changes', exact: true }).click();
   expect((await updateRequest).postDataJSON()).toMatchObject({ content: 'Updated historical Journal entry.' });
   await expect(legacyComposer).toBeHidden();
 
-  await legacyEntry.getByRole('button', { name: 'Journal entry actions', exact: true }).click();
+  await legacyEntry.getByRole('button', { name: 'Reflection actions', exact: true }).click();
   await legacyEntry.getByRole('button', { name: 'Delete', exact: true }).click();
-  await expect(page.getByText('Delete this Journal entry?', { exact: true })).toBeVisible();
+  await expect(page.getByText('Delete this Reflection?', { exact: true })).toBeVisible();
   const deleteRequest = page.waitForRequest((request) => new URL(request.url()).pathname === '/api/entries/journal-legacy' && request.method() === 'DELETE');
   await page.getByRole('button', { name: 'Delete Entry', exact: true }).click();
   await deleteRequest;
 
   await page.getByRole('button', { name: 'Show Winter Arc', exact: true }).click();
-  await expect(page.getByText('3 journal entries', { exact: true })).toBeVisible();
+  await expect(page.getByText('3 reflections', { exact: true })).toBeVisible();
   await page.screenshot({ path: `${screenshots}/project-filter-light.png`, fullPage: true });
 
   await page.getByRole('button', { name: 'Show Ego Lifting & Mobility', exact: true }).click();
-  await expect(page.getByText('2 journal entries', { exact: true })).toBeVisible();
+  await expect(page.getByText('2 reflections', { exact: true })).toBeVisible();
   await page.screenshot({ path: `${screenshots}/goal-filter-light.png`, fullPage: true });
 
   await page.getByRole('button', { name: 'Show Unlinked', exact: true }).click();
-  await expect(page.getByText('1 journal entry', { exact: true })).toBeVisible();
+  await expect(page.getByText('1 reflection', { exact: true })).toBeVisible();
   await page.screenshot({ path: `${screenshots}/unlinked-light.png`, fullPage: true });
 
   await page.getByRole('button', { name: 'Show All Entries', exact: true }).click();
-  await page.getByRole('textbox', { name: 'Search journal', exact: true }).fill('consistency');
+  await page.getByRole('textbox', { name: 'Search reflections', exact: true }).fill('consistency');
   await expect(page.getByText('Consistency feels quieter than motivation.', { exact: false })).toBeVisible();
   await page.screenshot({ path: `${screenshots}/search-light.png`, fullPage: true });
-  await page.getByRole('textbox', { name: 'Search journal', exact: true }).fill('');
+  await page.getByRole('textbox', { name: 'Search reflections', exact: true }).fill('');
 
-  await page.getByRole('button', { name: 'Filter Journal entries', exact: true }).click();
-  await expect(page.getByText('Filter Journal', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Filter Reflections', exact: true }).click();
+  await expect(page.getByText('Filter Reflections', { exact: true })).toBeVisible();
   await page.waitForTimeout(200);
   await page.screenshot({ path: `${screenshots}/filters-open-light.png` });
   await page.getByRole('button', { name: 'Shared with Guide', exact: true }).click();
   await page.getByRole('button', { name: 'Show entries', exact: true }).click();
-  await expect(page.getByText('Filter Journal', { exact: true })).toBeHidden();
+  await expect(page.getByText('Filter Reflections', { exact: true })).toBeHidden();
   await expect(page.getByText('Shared with Guide', { exact: true })).toBeVisible();
   await page.screenshot({ path: `${screenshots}/shared-with-guide-light.png`, fullPage: true });
 
   await page.getByRole('button', { name: /New Entry$/ }).click();
-  await expect(page.getByLabel('New Journal Entry composer')).toBeVisible();
-  await expect(page.getByLabel('New Journal Entry composer').getByRole('button', { name: 'Winter Arc', exact: true })).toBeVisible();
+  await expect(page.getByLabel('New Reflection composer')).toBeVisible();
+  await expect(page.getByLabel('New Reflection composer').getByRole('button', { name: 'Winter Arc', exact: true })).toBeVisible();
   await page.screenshot({ path: `${screenshots}/new-entry-composer-light.png`, fullPage: true });
 });
 
@@ -139,21 +139,21 @@ test('Journal dark and route-context visual states', async ({ page }) => {
   await page.screenshot({ path: `${screenshots}/desktop-dark-all.png`, fullPage: true });
 
   await openJournal(page, '/journal?projectId=project-winter');
-  await expect(page.getByText('3 journal entries', { exact: true })).toBeVisible();
+  await expect(page.getByText('3 reflections', { exact: true })).toBeVisible();
   await page.screenshot({ path: `${screenshots}/project-to-journal-context.png`, fullPage: true });
 
   await openJournal(page, '/journal?goalId=goal-running');
-  await expect(page.getByText('1 journal entry', { exact: true })).toBeVisible();
+  await expect(page.getByText('1 reflection', { exact: true })).toBeVisible();
   await page.screenshot({ path: `${screenshots}/goal-to-journal-context.png`, fullPage: true });
 });
 
-test('Journal narrow layout and Browse Journal sheet', async ({ page }) => {
+test('Journal narrow layout and Browse Reflections sheet', async ({ page }) => {
   await installPreview(page, 'light');
   await openJournal(page, '/journal', 390);
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   await page.screenshot({ path: `${screenshots}/mobile-journal.png`, fullPage: true });
-  await page.getByRole('button', { name: 'Browse Journal', exact: true }).click();
-  await expect(page.getByText('Browse Journal', { exact: true }).last()).toBeVisible();
+  await page.getByRole('button', { name: 'Browse Reflections', exact: true }).click();
+  await expect(page.getByText('Browse Reflections', { exact: true }).last()).toBeVisible();
   await page.waitForTimeout(200);
   await page.screenshot({ path: `${screenshots}/mobile-browse-journal.png` });
 });

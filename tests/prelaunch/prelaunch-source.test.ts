@@ -16,7 +16,7 @@ test('Goal and Project deletion are explicit, owner-gated, and fail closed', () 
   assert.match(goalManage, /This cannot be undone\./);
   assert.match(projectManage, /const isOwner = project\.collaboration\.role === 'owner'/);
   assert.match(projectManage, /isOwner \? <View[\s\S]*Delete Project/);
-  assert.match(projectManage, /Goals, Notes, and Journal entries remain with their owners and are unlinked/);
+  assert.match(projectManage, /Goals, Notes, and Reflections remain with their owners and are unlinked/);
   for (const service of [goalService, projectService]) {
     assert.match(service, /\.delete\(\)[\s\S]*\.select\('id'\)[\s\S]*\.maybeSingle\(\)/);
     assert.match(service, /You may not have permission/);
@@ -38,7 +38,7 @@ test('Project Snapshot and Goal execution cards use the finalized compact hierar
   const milestones = read('features/goals/components/MilestonesPanel.tsx');
   const snapshot = project.match(/const snapshotCard = ([^;]+);/)?.[1] ?? '';
 
-  for (const label of ['Active Goals', 'Notes', 'Journal', 'Sources']) assert.match(snapshot, new RegExp(label));
+  for (const label of ['Active Goals', 'Notes', 'Reflections', 'Sources']) assert.match(snapshot, new RegExp(label));
   assert.doesNotMatch(snapshot, /Last Activity|lastActivity/);
   assert.match(tasks, /No Tasks yet\./);
   assert.match(tasks, /alignItems: 'center'/);

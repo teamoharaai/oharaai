@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import { BrandIcon } from '@/components/ui/BrandIcon';
@@ -8,6 +9,7 @@ import { useThemeColors } from '@/store/uiStore';
 import type { GoalWithDetails } from '@/features/goals/types';
 import type { MomentumHomeSummary } from '../types';
 import { selectHomeGoalMomentum } from '../home-snapshot';
+import { MomentumTrendChart } from './MomentumTrendChart';
 
 function changeLabel(change: number | null): string {
   if (change === null) return 'No weekly comparison yet';
@@ -20,15 +22,21 @@ export function HomeMomentumSnapshot({
   goals,
   isLoading,
   summary,
+  onRetry,
 }: {
   error: string | null;
   goals: readonly Pick<GoalWithDetails, 'id' | 'status' | 'title'>[];
   isLoading: boolean;
   summary: MomentumHomeSummary | null;
+  onRetry?: () => void;
 }) {
   const colors = useThemeColors();
+  const [showGoals, setShowGoals] = useState(false);
   const goalMomentum = selectHomeGoalMomentum(summary, goals);
   const current = summary?.displayedValue ?? summary?.currentValue ?? null;
+  // Display published history as-is: no score reconstruction or synthetic points.
+  const history = summary?.history.slice(-6) ?? [];
+  const historyLabels = history.map((point) => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(`${point.periodStart.slice(0, 10)}T12:00:00`)));
 
   return (
     <Card accessibilityLabel="Momentum Snapshot card" elevation="sm" padding="spacious">
@@ -38,18 +46,25 @@ export function HomeMomentumSnapshot({
         </View>
         <View style={{ flex: 1 }}>
           <Typography variant="eyebrow">Momentum Snapshot</Typography>
-          <Typography variant="caption">How your progress is moving</Typography>
+          <Typography variant="caption">A view of your progress</Typography>
         </View>
       </View>
 
       {isLoading && !summary ? <Typography variant="body-small" style={{ marginTop: SPACE.xl }}>Loading Momentum…</Typography> : null}
       {!isLoading && current === null ? <Typography variant="body-small" style={{ marginTop: SPACE.xl }}>{error ? 'Momentum is temporarily unavailable.' : 'Momentum is building from your activity.'}</Typography> : null}
+      {error && onRetry ? <Pressable accessibilityRole="button" accessibilityLabel="Retry Momentum" onPress={onRetry} style={{ alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' }}><Typography variant="label" style={{ color: colors.text.accent }}>Try again</Typography></Pressable> : null}
       {current !== null ? <>
-        <View style={{ alignItems: 'flex-end', flexDirection: 'row', gap: SPACE.md, marginTop: SPACE.xl }}>
-          <Typography variant="heading">{Math.round(current)}</Typography>
-          <Typography variant="caption" style={{ color: colors.text.accent, paddingBottom: SPACE.xs }}>{changeLabel(summary?.weeklyChange ?? null)}</Typography>
+        <View style={{ alignItems: 'baseline', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm, marginTop: SPACE.lg }}>
+          <Typography variant="heading" style={{ fontSize: 36, lineHeight: 44 }}>{Math.round(current)}</Typography>
+          <Typography variant="caption">/ 100</Typography>
+          <Typography variant="caption" style={{ color: colors.text.accent, marginLeft: SPACE.xs }}>{changeLabel(summary?.weeklyChange ?? null)}</Typography>
         </View>
-        {goalMomentum.length ? <View style={{ gap: SPACE.sm, marginTop: SPACE.xl }}>
+        <Typography variant="meta" style={{ marginTop: SPACE.xs }}>{summary?.periodState === 'provisional' ? 'This week · still taking shape' : 'Published weekly score'}</Typography>
+        {history.length > 1 ? <View accessibilityLabel={`Published Momentum history: ${history.map((point, index) => `${historyLabels[index]}, ${Math.round(point.value)} out of 100`).join('; ')}`} style={{ marginTop: SPACE.md }}>
+          <MomentumTrendChart height={94} fitHeight points={history.map((point) => point.value)} xLabels={historyLabels.map((label, index) => index === 0 || index === history.length - 1 ? label : '')} yDomainMax={100} />
+          <Typography variant="meta">Recent weekly snapshots</Typography>
+        </View> : <Typography variant="caption" style={{ marginTop: SPACE.lg }}>Your trend will appear as weekly history builds.</Typography>}
+        {showGoals && goalMomentum.length ? <View style={{ gap: SPACE.sm }}>
           {goalMomentum.map((goal) => <View key={goal.goalId} style={{ alignItems: 'center', borderTopColor: colors.border.divider, borderTopWidth: 1, flexDirection: 'row', gap: SPACE.md, paddingTop: SPACE.sm }}>
             <Typography numberOfLines={1} variant="body-small" style={{ flex: 1 }}>{goal.title}</Typography>
             <Typography variant="emphasis-sm">{Math.round(goal.displayedValue)}</Typography>
@@ -57,9 +72,12 @@ export function HomeMomentumSnapshot({
           </View>)}
         </View> : null}
       </> : null}
-      <Pressable accessibilityRole="link" onPress={() => router.push('/(app)/momentum')} style={{ alignSelf: 'flex-start', justifyContent: 'center', marginTop: SPACE.lg, minHeight: 40 }}>
+      <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', columnGap: SPACE.md, marginTop: SPACE.sm }}>
+      <Pressable accessibilityRole="link" onPress={() => router.push('/(app)/momentum')} style={{ justifyContent: 'center', minHeight: 44 }}>
         <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>View Momentum →</Typography>
       </Pressable>
+      {goalMomentum.length ? <Pressable accessibilityRole="button" accessibilityLabel="Goal Momentum details" aria-expanded={showGoals} accessibilityState={{ expanded: showGoals }} onPress={() => setShowGoals(!showGoals)} style={{ justifyContent: 'center', minHeight: 44 }}><Typography variant="caption" style={{ color: colors.text.accent }}>{showGoals ? 'Hide' : 'Show'} Goal scores {showGoals ? '−' : '+'}</Typography></Pressable> : null}
+      </View>
     </Card>
   );
 }

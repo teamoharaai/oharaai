@@ -22,6 +22,14 @@ function authorizedFact(overrides: Partial<InsightFact> & Pick<InsightFact, 'id'
   };
 }
 
+test('authorized reflection insight uses finalized terminology without changing selection', () => {
+  for (const count of [1, 3]) {
+    const insight = selectContextualInsight([authorizedFact({ id: 'reflection', type: 'reflection_count_change', subjectType: 'reflection', currentValue: count, previousValue: null, delta: null })], 'project_personal');
+    assert.equal(insight.kind, 'reflection_count_change');
+    assert.equal(insight.primary, `${count} shared ${count === 1 ? 'Reflection was' : 'Reflections were'} added this week.`);
+  }
+});
+
 test('the same Momentum fact uses Goal and Project-specific wording', () => {
   const momentum = authorizedFact({ id: 'momentum', type: 'goal_momentum_change' });
   const goal = selectContextualInsight([momentum], 'goal');
