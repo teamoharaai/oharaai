@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Pressable,
+  Platform,
   View,
   useWindowDimensions,
   type GestureResponderEvent,
@@ -47,6 +48,18 @@ export function GlobalCreateControl({
   const [open, setOpen] = useState(false);
   const [anchorRect, setAnchorRect] = useState<AnchorRect | null>(null);
   const anchorRef = useRef<View>(null);
+  const triggerRef = useRef<View>(null);
+
+  useEffect(() => {
+    if (!open || Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const dismissOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setOpen(false);
+      (triggerRef.current as (View & { focus?: () => void }) | null)?.focus?.();
+    };
+    document.addEventListener('keydown', dismissOnEscape);
+    return () => document.removeEventListener('keydown', dismissOnEscape);
+  }, [open]);
 
   function openMenu(event: GestureResponderEvent) {
     const node = anchorRef.current as
@@ -82,7 +95,7 @@ export function GlobalCreateControl({
     },
     {
       icon: 'reflections' as BrandIconName,
-      label: 'New journal entry',
+      label: 'New reflection',
       onPress: () => router.push({ pathname: '/journal', params: { create: 'new' } }),
     },
     {
@@ -107,6 +120,7 @@ export function GlobalCreateControl({
           : { bottom: compact ? 18 : 24, position: 'absolute', right: compact ? 16 : 24 }}
       >
         <Pressable
+          ref={triggerRef}
           accessibilityLabel="Create"
           accessibilityRole="button"
           accessibilityState={{ expanded: open }}

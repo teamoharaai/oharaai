@@ -1,0 +1,219 @@
+# Workspace V2.0 — complete change inventory
+
+October 23, 2026. Worktree: `/private/tmp/ohara-workspace-v2`; branch: `codex/workspace-design-system-v2-phase1`; base HEAD: `d286285dccd13cee607cd706fa56df589562e357`. Includes the complete accumulated landing/auth and Workspace phases, not just Phase 3F. No staged changes, commits or tracked deletions. Ignored credentials, dependencies, test traces and export artifacts are intentionally excluded.
+
+Counts: **116 tracked modifications**, **90 untracked additions** (including this inventory). All paths below are repository-relative. ` M` means unstaged tracked modification; `??` means untracked. Do not blanket-stage these files: review source, tests, documentation and synthetic PNG evidence separately.
+
+Phase 3F intentionally changes only the two Roots test files, `docs/constellation/REFERENCE_CONCEPTS.md`, changelog, readiness/rollout documents and this inventory. Generated captures from browser checks are not a visual redesign; pre-3F approved capture files are preserved from the verified checkpoint. No archived reference images have been copied into this inventory.
+
+## Tracked modifications
+
+- ` M` — `.expo/types/router.d.ts`
+- ` M` — `app/(app)/_layout.tsx`
+- ` M` — `app/(app)/dashboard.tsx`
+- ` M` — `app/(app)/goals/index.tsx`
+- ` M` — `app/(app)/momentum.tsx`
+- ` M` — `app/(app)/projects/[id].tsx`
+- ` M` — `app/(app)/projects/index.tsx`
+- ` M` — `app/(auth)/login.tsx`
+- ` M` — `app/(auth)/signup.tsx`
+- ` M` — `CHANGELOGCODEX.md`
+- ` M` — `components/landing/landing-v2.css`
+- ` M` — `components/landing/LandingPage.tsx`
+- ` M` — `components/landing/LandingPage.web.tsx`
+- ` M` — `components/landing/PublicAuthShell.tsx`
+- ` M` — `components/layout/AppNavigation.tsx`
+- ` M` — `components/layout/AuthenticatedPageShell.tsx`
+- ` M` — `components/layout/FeaturePageHeader.tsx`
+- ` M` — `components/layout/GlobalCreateControl.tsx`
+- ` M` — `components/layout/Screen.tsx`
+- ` M` — `components/ui/Button.tsx`
+- ` M` — `components/ui/Card.tsx`
+- ` M` — `components/ui/Input.tsx`
+- ` M` — `components/ui/Modal.tsx`
+- ` M` — `components/ui/Typography.tsx`
+- ` M` — `docs/constellation/REFERENCE_CONCEPTS.md`
+- ` M` — `docs/design/OHARA-Landing-Page-V2.0-Specification.md`
+- ` M` — `docs/ui-checkpoints/journal-prelaunch/desktop-dark-all.png`
+- ` M` — `docs/ui-checkpoints/journal-prelaunch/desktop-light-all.png`
+- ` M` — `docs/ui-checkpoints/journal-prelaunch/filters-open-light.png`
+- ` M` — `docs/ui-checkpoints/journal-prelaunch/goal-filter-light.png`
+- ` M` — `docs/ui-checkpoints/journal-prelaunch/goal-to-journal-context.png`
+- ` M` — `docs/ui-checkpoints/journal-prelaunch/mobile-browse-journal.png`
+- ` M` — `docs/ui-checkpoints/journal-prelaunch/mobile-journal.png`
+- ` M` — `docs/ui-checkpoints/journal-prelaunch/new-entry-composer-light.png`
+- ` M` — `docs/ui-checkpoints/journal-prelaunch/project-filter-light.png`
+- ` M` — `docs/ui-checkpoints/journal-prelaunch/project-to-journal-context.png`
+- ` M` — `docs/ui-checkpoints/journal-prelaunch/search-light.png`
+- ` M` — `docs/ui-checkpoints/journal-prelaunch/shared-with-guide-light.png`
+- ` M` — `docs/ui-checkpoints/journal-prelaunch/unlinked-light.png`
+- ` M` — `docs/ui-checkpoints/landing-v2/desktop.png`
+- ` M` — `docs/ui-checkpoints/landing-v2/mobile.png`
+- ` M` — `docs/ui-checkpoints/notes-library-prelaunch/filters-open-light.png`
+- ` M` — `docs/ui-checkpoints/notes-library-prelaunch/folder-selected-light.png`
+- ` M` — `docs/ui-checkpoints/notes-library-prelaunch/linked-to-light.png`
+- ` M` — `docs/ui-checkpoints/notes-library-prelaunch/my-library-dark.png`
+- ` M` — `docs/ui-checkpoints/notes-library-prelaunch/my-library-light.png`
+- ` M` — `docs/ui-checkpoints/notes-library-prelaunch/my-library-narrow-dark.png`
+- ` M` — `docs/ui-checkpoints/notes-library-prelaunch/search-results-light.png`
+- ` M` — `docs/ui-checkpoints/notes-library-prelaunch/shared-note-read-only-light.png`
+- ` M` — `docs/ui-checkpoints/notes-library-prelaunch/shared-with-me-light.png`
+- ` M` — `docs/ui-checkpoints/notes-library-prelaunch/sources-light.png`
+- ` M` — `docs/ui-checkpoints/notes-library-prelaunch/unfiled-light.png`
+- ` M` — `docs/ui-checkpoints/projects-notes-polish/note-formatting-toolbar-light.png`
+- ` M` — `docs/ui-checkpoints/sources-v2/04-notes-sources.png`
+- ` M` — `docs/ui-checkpoints/sources-v2/05-add-source-menu.png`
+- ` M` — `docs/ui-checkpoints/sources-v2/06-file-source.png`
+- ` M` — `docs/ui-checkpoints/sources-v2/07-image-source.png`
+- ` M` — `docs/ui-checkpoints/sources-v2/08-link-source.png`
+- ` M` — `docs/ui-checkpoints/sources-v2/11-source-filters.png`
+- ` M` — `docs/ui-checkpoints/sources-v2/12-mobile-sources.png`
+- ` M` — `docs/ui-checkpoints/sources-v2/13-ios-picker-entry-state.png`
+- ` M` — `docs/ui-checkpoints/sources-v2/14-upload-error-state.png`
+- ` M` — `features/calendar/components/CalendarItemRow.tsx`
+- ` M` — `features/calendar/components/CalendarScreen.tsx`
+- ` M` — `features/calendar/components/HomeCalendarPreview.tsx`
+- ` M` — `features/circles/components/CirclesPane.tsx`
+- ` M` — `features/circles/components/CirclesScreen.tsx`
+- ` M` — `features/circles/components/FeedPostCard.tsx`
+- ` M` — `features/circles/components/PostComposer.tsx`
+- ` M` — `features/circles/components/SavedPostsPane.tsx`
+- ` M` — `features/constellation/fixture-boundary.test.ts`
+- ` M` — `features/entries/components/CompletedReflection.tsx`
+- ` M` — `features/entries/components/EchoCreationModal.tsx`
+- ` M` — `features/entries/components/EchoNewMenu.tsx`
+- ` M` — `features/entries/components/EntriesLibrary.tsx`
+- ` M` — `features/entries/components/EntriesScreen.tsx`
+- ` M` — `features/entries/components/NoteEditor.tsx`
+- ` M` — `features/entries/components/NotesLibraryScreen.tsx`
+- ` M` — `features/entries/components/QuickReflectionEditor.tsx`
+- ` M` — `features/entries/components/ReflectionsScreen.tsx`
+- ` M` — `features/entries/components/SharedEntryReadView.tsx`
+- ` M` — `features/entries/echo-v1-ui.test.ts`
+- ` M` — `features/entries/journal-prelaunch-ui.test.ts`
+- ` M` — `features/entries/product-structure-ui.test.ts`
+- ` M` — `features/friends/components/FriendsPopover.tsx`
+- ` M` — `features/goals/components/GoalDetailHeader.tsx`
+- ` M` — `features/goals/components/GoalsWorkspace.tsx`
+- ` M` — `features/goals/components/GoalVault.tsx`
+- ` M` — `features/goals/components/home/NextStepPanel.tsx`
+- ` M` — `features/goals/components/ManageGoalControl.tsx`
+- ` M` — `features/goals/components/RecentActivityPanel.tsx`
+- ` M` — `features/goals/components/VaultItemCard.tsx`
+- ` M` — `features/goals/hooks/useActivity.ts`
+- ` M` — `features/goals/hooks/useGoals.ts`
+- ` M` — `features/goals/hooks/useVault.ts`
+- ` M` — `features/goals/services/goal-service.ts`
+- ` M` — `features/intelligence/contextual-insights.test.ts`
+- ` M` — `features/intelligence/contextual-insights.ts`
+- ` M` — `features/momentum/components/HomeMomentumSnapshot.tsx`
+- ` M` — `features/projects/components/CreateProjectModal.tsx`
+- ` M` — `features/projects/components/ManageProjectModal.tsx`
+- ` M` — `features/projects/components/ProjectCard.tsx`
+- ` M` — `features/projects/components/ProjectChat.tsx`
+- ` M` — `features/projects/components/ProjectVaultWorkspace.tsx`
+- ` M` — `features/projects/hooks/useProjectVault.ts`
+- ` M` — `features/projects/intelligence.test.ts`
+- ` M` — `features/projects/services/project-service.ts`
+- ` M` — `features/projects/ui.test.ts`
+- ` M` — `features/sources/components/SourceComposer.tsx`
+- ` M` — `lib/goals/manual-create-v1.test.ts`
+- ` M` — `scripts/db-chain/run.sh`
+- ` M` — `store/uiStore.ts`
+- ` M` — `tests/constellation/constellation.acceptance.spec.ts`
+- ` M` — `tests/journal/library.spec.ts`
+- ` M` — `tests/landing-v2/landing.spec.ts`
+- ` M` — `tests/prelaunch/prelaunch-source.test.ts`
+
+## Untracked additions
+
+- `??` — `app/(app)/goals/[id]/vault.web.tsx`
+- `??` — `components/landing/public-auth-v2.css`
+- `??` — `components/landing/PublicAuthShell.web.tsx`
+- `??` — `components/layout/workspace-navigation.ts`
+- `??` — `components/layout/workspace-v2.css`
+- `??` — `components/layout/WorkspaceContext.tsx`
+- `??` — `components/layout/WorkspaceShell.tsx`
+- `??` — `components/layout/WorkspaceShell.web.tsx`
+- `??` — `constants/workspace.ts`
+- `??` — `docs/design/OHARA-Goals-V2.0-Phase-3B.md`
+- `??` — `docs/design/OHARA-Home-V2.0-Phase-2.md`
+- `??` — `docs/design/OHARA-Projects-V2.0-Phase-3C.md`
+- `??` — `docs/design/OHARA-Vault-V2.0-Phase-3D.md`
+- `??` — `docs/design/OHARA-Workspace-Design-System-V2.0.md`
+- `??` — `docs/design/OHARA-Workspace-V2.0-Change-Inventory.md`
+- `??` — `docs/design/OHARA-Workspace-V2.0-Final-Readiness.md`
+- `??` — `docs/design/OHARA-Workspace-V2.0-Phase-3E-Readiness.md`
+- `??` — `docs/design/OHARA-Workspace-V2.0-Rollout.md`
+- `??` — `docs/ui-checkpoints/goals-v2/library-dark.png`
+- `??` — `docs/ui-checkpoints/goals-v2/library-light.png`
+- `??` — `docs/ui-checkpoints/goals-v2/milestones.png`
+- `??` — `docs/ui-checkpoints/goals-v2/overview-dark.png`
+- `??` — `docs/ui-checkpoints/goals-v2/overview-light.png`
+- `??` — `docs/ui-checkpoints/goals-v2/overview-mobile.png`
+- `??` — `docs/ui-checkpoints/goals-v2/README.md`
+- `??` — `docs/ui-checkpoints/goals-v2/tasks.png`
+- `??` — `docs/ui-checkpoints/goals-v2/vault.png`
+- `??` — `docs/ui-checkpoints/home-v2/desktop-dark.png`
+- `??` — `docs/ui-checkpoints/home-v2/desktop-light.png`
+- `??` — `docs/ui-checkpoints/home-v2/mobile-dark.png`
+- `??` — `docs/ui-checkpoints/home-v2/mobile-light.png`
+- `??` — `docs/ui-checkpoints/landing-v2/auth-login-desktop.png`
+- `??` — `docs/ui-checkpoints/landing-v2/auth-login-mobile.png`
+- `??` — `docs/ui-checkpoints/landing-v2/auth-signup-desktop.png`
+- `??` — `docs/ui-checkpoints/landing-v2/auth-signup-mobile.png`
+- `??` — `docs/ui-checkpoints/projects-v2/goals.png`
+- `??` — `docs/ui-checkpoints/projects-v2/library-grid-dark.png`
+- `??` — `docs/ui-checkpoints/projects-v2/library-grid-light.png`
+- `??` — `docs/ui-checkpoints/projects-v2/library-list-light.png`
+- `??` — `docs/ui-checkpoints/projects-v2/mobile-library.png`
+- `??` — `docs/ui-checkpoints/projects-v2/mobile-overview.png`
+- `??` — `docs/ui-checkpoints/projects-v2/overview-dark.png`
+- `??` — `docs/ui-checkpoints/projects-v2/overview-light.png`
+- `??` — `docs/ui-checkpoints/projects-v2/README.md`
+- `??` — `docs/ui-checkpoints/projects-v2/team-collaboration.png`
+- `??` — `docs/ui-checkpoints/projects-v2/vault.png`
+- `??` — `docs/ui-checkpoints/readiness-v2/project-tablet-200-text.png`
+- `??` — `docs/ui-checkpoints/readiness-v2/README.md`
+- `??` — `docs/ui-checkpoints/vault-v2/authorized-goal-linked.png`
+- `??` — `docs/ui-checkpoints/vault-v2/dark-vault.png`
+- `??` — `docs/ui-checkpoints/vault-v2/goal-all.png`
+- `??` — `docs/ui-checkpoints/vault-v2/mobile-navigation.png`
+- `??` — `docs/ui-checkpoints/vault-v2/navigation-collapsed.png`
+- `??` — `docs/ui-checkpoints/vault-v2/navigation-expanded.png`
+- `??` — `docs/ui-checkpoints/vault-v2/project-all.png`
+- `??` — `docs/ui-checkpoints/vault-v2/project-notes.png`
+- `??` — `docs/ui-checkpoints/vault-v2/project-reflections.png`
+- `??` — `docs/ui-checkpoints/vault-v2/project-sources.png`
+- `??` — `docs/ui-checkpoints/vault-v2/README.md`
+- `??` — `docs/ui-checkpoints/workspace-v2/account-panel-dark.png`
+- `??` — `docs/ui-checkpoints/workspace-v2/goals-dark.png`
+- `??` — `docs/ui-checkpoints/workspace-v2/home-collapsed-light.png`
+- `??` — `docs/ui-checkpoints/workspace-v2/home-expanded-dark.png`
+- `??` — `docs/ui-checkpoints/workspace-v2/home-expanded-light.png`
+- `??` — `docs/ui-checkpoints/workspace-v2/home-fresh-dark.png`
+- `??` — `docs/ui-checkpoints/workspace-v2/mobile-home-dark.png`
+- `??` — `docs/ui-checkpoints/workspace-v2/mobile-navigation.png`
+- `??` — `docs/ui-checkpoints/workspace-v2/mobile-projects.png`
+- `??` — `features/entries/context-vault.test.ts`
+- `??` — `features/entries/services/context-vault.ts`
+- `??` — `features/goals/components/GoalsExperience.tsx`
+- `??` — `features/goals/components/GoalsExperience.web.tsx`
+- `??` — `features/goals/components/home/HomeEchoEntryPoints.tsx`
+- `??` — `features/goals/vault-request-race.test.ts`
+- `??` — `features/projects/components/ProjectGoalsPanel.tsx`
+- `??` — `scripts/db-chain/suites/vault-context.sh`
+- `??` — `scripts/vault-context-security.test.sql`
+- `??` — `tests/workspace-v2/fixtures.ts`
+- `??` — `tests/workspace-v2/foundation.test.ts`
+- `??` — `tests/workspace-v2/goals.spec.ts`
+- `??` — `tests/workspace-v2/goals.test.ts`
+- `??` — `tests/workspace-v2/home.spec.ts`
+- `??` — `tests/workspace-v2/home.test.ts`
+- `??` — `tests/workspace-v2/playwright.config.ts`
+- `??` — `tests/workspace-v2/project-fixtures.ts`
+- `??` — `tests/workspace-v2/projects.spec.ts`
+- `??` — `tests/workspace-v2/projects.test.ts`
+- `??` — `tests/workspace-v2/readiness.spec.ts`
+- `??` — `tests/workspace-v2/vault.spec.ts`
+- `??` — `tests/workspace-v2/workspace.spec.ts`

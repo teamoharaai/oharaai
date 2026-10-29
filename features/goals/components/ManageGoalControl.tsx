@@ -216,7 +216,7 @@ export function ManageGoalControl({ goal, superseded, onComplete, onArchive, onO
           </View>
           {isOwner ? <View style={{ borderTopColor: colors.border.divider, borderTopWidth: 1, gap: SPACE.md, paddingTop: SPACE.xl }}>
             <FieldLabel>Danger zone</FieldLabel>
-            <Typography variant="caption">Delete permanently removes this Goal and its Goal-owned work. Linked Notes and Journal entries remain in their owners’ libraries.</Typography>
+            <Typography variant="caption">Delete permanently removes this Goal and its Goal-owned work. Linked Notes and Reflections remain in their owners’ libraries.</Typography>
             <Button disabled={busy || superseded} variant="danger" onPress={() => setDeleteConfirmOpen(true)}>Delete Goal</Button>
           </View> : null}
         </>}
@@ -237,7 +237,7 @@ export function ManageGoalControl({ goal, superseded, onComplete, onArchive, onO
     >
       <View style={{ gap: SPACE.md }}>
         <Typography accessibilityRole="header" variant="title">Delete Goal?</Typography>
-        <Typography variant="body">This permanently removes “{goal.title}” and its associated Goal data. Linked Notes and Journal entries remain with their owners.</Typography>
+        <Typography variant="body">This permanently removes “{goal.title}” and its associated Goal data. Linked Notes and Reflections remain with their owners.</Typography>
         <Typography variant="caption">This cannot be undone.</Typography>
       </View>
     </Modal>

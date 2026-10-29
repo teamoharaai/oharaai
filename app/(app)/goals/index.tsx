@@ -3,7 +3,7 @@ import { router, type ErrorBoundaryProps } from 'expo-router';
 import { Button } from '@/components/ui/Button';
 import { Typography } from '@/components/ui/Typography';
 import { SPACE } from '@/constants/design';
-import { GoalsWorkspace } from '@/features/goals/components/GoalsWorkspace';
+import { GoalsExperience } from '@/features/goals/components/GoalsExperience';
 import { useThemeColors } from '@/store/uiStore';
 
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
@@ -17,5 +17,5 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 }
 
 export default function GoalsScreen() {
-  return <GoalsWorkspace />;
+  return <GoalsExperience />;
 }

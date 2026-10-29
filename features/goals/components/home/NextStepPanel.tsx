@@ -19,20 +19,20 @@ function nextStepDateLabel(date: Date): string {
   if (days === 0) return 'Today';
   if (days === 1) return 'Tomorrow';
   if (days > 1 && days < 7) return `In ${days} days`;
-  if (days === -1) return '1 day overdue';
-  if (days < 0) return `${Math.abs(days)} days overdue`;
+  if (days < 0) return `Due ${new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'short' }).format(date)}`;
   return new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'short' }).format(date);
 }
 
-export function NextStepPanel({ goals }: { goals: TodayCarouselGoal[] }) {
+export function NextStepPanel({ goals, fillHeight = false, isLoading = false, error = null }: { goals: TodayCarouselGoal[]; fillHeight?: boolean; isLoading?: boolean; error?: string | null }) {
   const colors = useThemeColors();
   const steps = getUpcomingGoalSteps(goals).slice(0, 3);
 
   return (
     <Card
+      accessibilityLabel="Next Step card"
       elevation="sm"
       padding="spacious"
-      style={{ borderWidth: 0, overflow: 'hidden' }}
+      style={{ borderWidth: 0, overflow: 'hidden', flexGrow: fillHeight ? 1 : undefined }}
     >
       <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.lg }}>
         <View
@@ -49,15 +49,16 @@ export function NextStepPanel({ goals }: { goals: TodayCarouselGoal[] }) {
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Typography variant="eyebrow" style={{ color: colors.text.primary, fontSize: 12 }}>
-            Next Step
+            Next steps
           </Typography>
           <Typography variant="caption" style={{ color: colors.text.secondary, marginTop: SPACE.xs }}>
-            What&apos;s coming up across your goals
+            Milestones ahead
           </Typography>
         </View>
       </View>
 
-      {steps.length ? (
+      {error ? <Typography accessibilityRole="alert" variant="body-small" style={{ marginTop: SPACE.lg }}>Goals are temporarily unavailable. Open Goals to try again.</Typography> : null}
+      {isLoading && !steps.length ? <Typography variant="body-small" style={{ marginTop: SPACE.xl }}>Loading your next steps…</Typography> : steps.length ? (
         <View style={{ gap: SPACE.sm, marginTop: SPACE.xl }}>
           {steps.map((step) => (
             <Pressable
@@ -100,14 +101,17 @@ export function NextStepPanel({ goals }: { goals: TodayCarouselGoal[] }) {
             </Pressable>
           ))}
         </View>
-      ) : (
+      ) : !error ? (
         <View style={{ marginTop: SPACE.xl }}>
-          <Typography variant="body">No dated next step yet.</Typography>
+          <Typography variant="body">{goals.length ? 'No dated next step yet.' : 'Start with something that matters to you.'}</Typography>
           <Typography variant="caption" style={{ color: colors.text.secondary, marginTop: SPACE.xs }}>
-            Add a milestone and give it a date to create a reminder.
+            {goals.length ? 'Add a milestone and give it a date to create a reminder.' : 'A Goal can give your next small step a little direction.'}
           </Typography>
         </View>
-      )}
+      ) : null}
+      <Pressable accessibilityRole="link" onPress={() => router.push(!isLoading && !error && goals.length === 0 ? '/goals/create' : '/goals')} style={{ alignSelf: 'flex-start', justifyContent: 'center', minHeight: 44, marginTop: SPACE.md }}>
+        <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>{!isLoading && !error && goals.length === 0 ? 'Create a Goal' : 'View Goals'} →</Typography>
+      </Pressable>
     </Card>
   );
 }

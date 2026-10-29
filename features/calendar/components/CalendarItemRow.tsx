@@ -1,4 +1,5 @@
 import { Pressable, View } from 'react-native';
+import { useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
@@ -37,14 +38,24 @@ export function CalendarItemRow({
   const colors = useThemeColors();
   const completed = item.status === 'completed';
   const canComplete = item.sourceType === 'task_occurrence' && !!item.occurrenceId;
+  const pending = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   async function toggleComplete() {
-    if (!item.occurrenceId) return;
-    await mutateTaskOccurrence(item.occurrenceId, {
-      status: completed ? 'pending' : 'completed',
-      idempotencyKey: newTaskIdempotencyKey('calendar'),
-    });
-    onChanged?.();
+    if (!item.occurrenceId || pending.current) return;
+    pending.current = true; setSaving(true); setSaveError(null);
+    try {
+      await mutateTaskOccurrence(item.occurrenceId, {
+        status: completed ? 'pending' : 'completed',
+        idempotencyKey: newTaskIdempotencyKey('calendar'),
+      });
+      onChanged?.();
+    } catch {
+      setSaveError('Task could not be updated. Try again.');
+    } finally {
+      pending.current = false; setSaving(false);
+    }
   }
 
   return (
@@ -66,7 +77,9 @@ export function CalendarItemRow({
         <Pressable
           accessibilityLabel={completed ? `Mark ${item.title} incomplete` : `Complete ${item.title}`}
           accessibilityRole="checkbox"
-          accessibilityState={{ checked: completed }}
+          accessibilityState={{ checked: completed, disabled: saving, busy: saving }}
+          disabled={saving}
+          hitSlop={10}
           onPress={() => void toggleComplete()}
           style={{
             alignItems: 'center',
@@ -105,6 +118,7 @@ export function CalendarItemRow({
         <Typography numberOfLines={1} variant="caption" style={{ color: colors.text.secondary, marginTop: SPACE.xs }}>
           {[item.contextTitle, item.projectTitle].filter(Boolean).join(' · ') || (item.isExternal ? 'Personal Calendar' : 'OHARA')}
         </Typography>
+        {saveError ? <Typography accessibilityRole="alert" variant="caption" style={{ color: colors.feedback.danger.text }}>{saveError}</Typography> : null}
       </Pressable>
 
       <View style={{ alignItems: 'flex-end', gap: SPACE.xs }}>

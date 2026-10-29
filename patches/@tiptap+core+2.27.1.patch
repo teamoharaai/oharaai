@@ -1,0 +1,63 @@
+diff --git a/node_modules/@tiptap/core/dist/index.cjs b/node_modules/@tiptap/core/dist/index.cjs
+index 78b55bd..91174cd 100644
+--- a/node_modules/@tiptap/core/dist/index.cjs
++++ b/node_modules/@tiptap/core/dist/index.cjs
+@@ -316,6 +316,16 @@ function mergeAttributes(...objects) {
+         .reduce((items, item) => {
+         const mergedAttributes = { ...items };
+         Object.entries(item).forEach(([key, value]) => {
++            // Backport upstream 01d7af8: preserve an own data property.
++            if (key === '__proto__') {
++                Object.defineProperty(mergedAttributes, key, {
++                    configurable: true,
++                    enumerable: true,
++                    value,
++                    writable: true,
++                });
++                return;
++            }
+             const exists = mergedAttributes[key];
+             if (!exists) {
+                 mergedAttributes[key] = value;
+diff --git a/node_modules/@tiptap/core/dist/index.js b/node_modules/@tiptap/core/dist/index.js
+index 407d2e0..94e72e3 100644
+--- a/node_modules/@tiptap/core/dist/index.js
++++ b/node_modules/@tiptap/core/dist/index.js
+@@ -314,6 +314,16 @@ function mergeAttributes(...objects) {
+         .reduce((items, item) => {
+         const mergedAttributes = { ...items };
+         Object.entries(item).forEach(([key, value]) => {
++            // Backport upstream 01d7af8: preserve an own data property.
++            if (key === '__proto__') {
++                Object.defineProperty(mergedAttributes, key, {
++                    configurable: true,
++                    enumerable: true,
++                    value,
++                    writable: true,
++                });
++                return;
++            }
+             const exists = mergedAttributes[key];
+             if (!exists) {
+                 mergedAttributes[key] = value;
+diff --git a/node_modules/@tiptap/core/src/utilities/mergeAttributes.ts b/node_modules/@tiptap/core/src/utilities/mergeAttributes.ts
+index b98dc51..d627aa2 100644
+--- a/node_modules/@tiptap/core/src/utilities/mergeAttributes.ts
++++ b/node_modules/@tiptap/core/src/utilities/mergeAttributes.ts
+@@ -5,6 +5,16 @@ export function mergeAttributes(...objects: Record<string, any>[]): Record<strin
+       const mergedAttributes = { ...items }
+
+       Object.entries(item).forEach(([key, value]) => {
++        // Backport upstream 01d7af8: keep JSON-origin __proto__ an own data property.
++        if (key === '__proto__') {
++          Object.defineProperty(mergedAttributes, key, {
++            configurable: true,
++            enumerable: true,
++            value,
++            writable: true,
++          })
++          return
++        }
+         const exists = mergedAttributes[key]
+
+         if (!exists) {

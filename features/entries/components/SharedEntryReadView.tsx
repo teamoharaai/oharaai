@@ -1,4 +1,5 @@
-import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { useWorkspaceDimensions } from '@/components/layout/WorkspaceContext';
+import { Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '@/components/ui/Avatar';
 import { BrandIcon } from '@/components/ui/BrandIcon';
@@ -35,7 +36,7 @@ export function SharedEntryReadView({
 }) {
   const colors = useThemeColors();
   const darkMode = useUIStore((state) => state.themeMode === 'dark');
-  const { width } = useWindowDimensions();
+  const { width } = useWorkspaceDimensions();
   const compact = width < 720;
   const entry = detail.entry;
   const date = (entry.completedAt ?? entry.createdAt).toLocaleDateString('en-US', {
@@ -61,12 +62,12 @@ export function SharedEntryReadView({
   return (
     <View style={{ backgroundColor: colors.background.page, flex: 1, minHeight: 0 }}>
       <View style={{ alignItems: 'center', backgroundColor: colors.background.card, borderBottomColor: colors.border.divider, borderBottomWidth: 1, flexDirection: 'row', gap: SPACE.md, minHeight: 64, paddingHorizontal: compact ? SPACE.lg : SPACE['2xl'] }}>
-        <Pressable accessibilityLabel={`Back to ${entry.entryType === 'note' ? 'Notes' : 'Journal'}`} accessibilityRole="button" hitSlop={8} onPress={onBack} style={{ alignItems: 'center', height: 42, justifyContent: 'center', width: 42 }}>
+        <Pressable accessibilityLabel={`Back to ${entry.entryType === 'note' ? 'Notes' : 'Reflections'}`} accessibilityRole="button" hitSlop={8} onPress={onBack} style={{ alignItems: 'center', height: 42, justifyContent: 'center', width: 42 }}>
           <Ionicons color={colors.text.primary} name="arrow-back" size={22} />
         </Pressable>
         <BrandIcon color={colors.text.accent} name={entry.entryType === 'note' ? 'notes' : 'reflections'} size={22} />
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Typography numberOfLines={1} variant="nav-title">{entry.entryType === 'note' ? 'Shared Note' : entry.echoOwned ? 'Journal Entry' : 'Shared Journal Entry'}</Typography>
+          <Typography numberOfLines={1} variant="nav-title">{entry.entryType === 'note' ? 'Shared Note' : entry.echoOwned ? 'Reflection' : 'Shared Reflection'}</Typography>
           <Typography numberOfLines={1} variant="caption" style={{ color: colors.text.secondary }}>{sharingLabel(detail)}</Typography>
         </View>
       </View>

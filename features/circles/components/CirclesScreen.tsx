@@ -1,5 +1,6 @@
+import { useWorkspaceDimensions } from '@/components/layout/WorkspaceContext';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { AuthenticatedPageShell } from '@/components/layout/AuthenticatedPageShell';
@@ -24,7 +25,7 @@ import { CategoryGlyph, PersonAvatar, ProgressTrack, useCategoryTone } from './p
 
 const FILTER_OPTIONS: { value: FeedFilter; label: string }[] = [
   { value: 'all', label: 'All updates' },
-  { value: 'reflections', label: 'Journal' },
+  { value: 'reflections', label: 'Reflections' },
   { value: 'milestones', label: 'Milestones' },
   { value: 'completed', label: 'Completed' },
 ];
@@ -120,7 +121,7 @@ function EncouragersModal({ postId, onClose }: { postId: string | null; onClose:
  * lifecycle that initializes the social feed. */
 export function CirclesScreen() {
   const colors = useThemeColors();
-  const { width } = useWindowDimensions();
+  const { width } = useWorkspaceDimensions();
   const twoColumn = width >= TWO_COLUMN_MIN_WIDTH;
   const compact = width < 720;
   const circles = useCircles();

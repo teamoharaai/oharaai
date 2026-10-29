@@ -2,6 +2,7 @@
 import {
   Animated,
   Modal as RNModal,
+  Platform,
   Pressable,
   StyleSheet,
   TouchableOpacity,
@@ -25,6 +26,7 @@ interface ModalMotion {
 }
 
 interface ModalProps {
+  accessibilityLabel?: string;
   visible: boolean;
   onClose: () => void;
   children: ReactNode;
@@ -44,6 +46,7 @@ interface ModalProps {
 }
 
 export function Modal({
+  accessibilityLabel,
   visible,
   onClose,
   children,
@@ -61,6 +64,14 @@ export function Modal({
   contentStyle,
   motion,
 }: ModalProps) {
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const wasVisible = useRef(false);
+  // Capture before the portal's autofocus effects run. RN Web's own trap may
+  // otherwise remember an element inside the dialog rather than its trigger.
+  if (Platform.OS === 'web' && typeof document !== 'undefined' && visible && !wasVisible.current) {
+    returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  }
+  wasVisible.current = visible;
   const colors = useThemeColors();
   const darkMode = useUIStore((state) => state.themeMode) === 'dark';
   const resolvedBackdropColor = backdropColor ?? colors.effects.overlay;
@@ -179,10 +190,14 @@ export function Modal({
 
   return (
     <RNModal
+      accessibilityLabel={accessibilityLabel}
       visible={visible}
       transparent
       animationType={motion ? 'none' : 'fade'}
       onRequestClose={handleClose}
+      onDismiss={Platform.OS === 'web' ? () => {
+        if (!wasVisible.current && returnFocus.current?.isConnected) returnFocus.current.focus();
+      } : undefined}
     >
       {motion ? (
         <View style={styles.overlay}>

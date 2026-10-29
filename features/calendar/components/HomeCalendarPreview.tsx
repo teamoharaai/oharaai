@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
-import { Pressable, View, useWindowDimensions } from 'react-native';
+import { useWorkspaceDimensions, useWorkspaceTheme } from '@/components/layout/WorkspaceContext';
+import { useMemo } from 'react';
+import { Pressable, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Card } from '@/components/ui/Card';
@@ -27,22 +28,32 @@ function weekLabel(days: string[]): string {
 }
 
 export function HomeCalendarPreview({
+  fillHeight = false,
   accessState,
   items,
   isLoading,
+  error = null,
+  onRetry,
+  selectedDate,
+  onSelectDate,
 }: {
+  fillHeight?: boolean;
   accessState: CalendarAccessState;
   items: CalendarItem[];
   isLoading: boolean;
+  error?: string | null;
+  onRetry?: () => void;
+  selectedDate: string;
+  onSelectDate: (date: string) => void;
 }) {
   const colors = useThemeColors();
-  const { width } = useWindowDimensions();
+  const workspace = useWorkspaceTheme();
+  const { width } = useWorkspaceDimensions();
   const today = todayYmd();
   const days = useMemo(() => {
     const start = startOfIsoWeekYmd(today);
     return Array.from({ length: 7 }, (_, index) => addLocalDays(start, index));
   }, [today]);
-  const [selectedDate, setSelectedDate] = useState(today);
   const itemsByDate = useMemo(() => {
     const grouped = new Map<string, CalendarItem[]>();
     for (const item of items) {
@@ -61,7 +72,7 @@ export function HomeCalendarPreview({
   const compact = width < 620;
 
   return (
-    <Card elevation="sm" padding="spacious" style={{ borderWidth: 0, minHeight: compact ? 470 : 602 }}>
+    <Card accessibilityLabel="Calendar and Today's Focus card" elevation="sm" padding={compact ? 'default' : 'spacious'} style={{ minHeight: workspace ? undefined : compact ? 470 : 602, flexGrow: fillHeight ? 1 : undefined }}>
       <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}>
         <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
           <View style={{ alignItems: 'center', backgroundColor: colors.background.selectedRow, borderRadius: RADIUS.round, height: 36, justifyContent: 'center', width: 36 }}>
@@ -74,7 +85,7 @@ export function HomeCalendarPreview({
             </Typography>
           </View>
         </View>
-        <Pressable accessibilityLabel="View full Calendar" accessibilityRole="button" onPress={() => router.push('/calendar')}>
+        <Pressable accessibilityLabel="View full Calendar" accessibilityRole="button" onPress={() => router.push('/calendar')} style={{ minHeight: 44, justifyContent: 'center', marginLeft: SPACE.sm }}>
           <Typography variant="label" style={{ color: colors.text.accent }}>{compact ? 'Open →' : 'View Calendar →'}</Typography>
         </Pressable>
       </View>
@@ -86,7 +97,7 @@ export function HomeCalendarPreview({
           borderRadius: RADIUS.lg,
           flexDirection: 'row',
           gap: compact ? 2 : SPACE.xs,
-          marginTop: SPACE['3xl'],
+          marginTop: SPACE.xl,
           padding: compact ? SPACE.sm : SPACE.md,
         }}
       >
@@ -97,11 +108,12 @@ export function HomeCalendarPreview({
           const itemCount = itemsByDate.get(date)?.length ?? 0;
           return (
             <Pressable
-              accessibilityLabel={`${new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(parsed)}, ${itemCount} ${itemCount === 1 ? 'item' : 'items'}`}
+              accessibilityLabel={`${new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(parsed)}${isLoading || error ? '' : `, ${itemCount} ${itemCount === 1 ? 'item' : 'items'}`}`}
               accessibilityRole="button"
               accessibilityState={{ selected }}
+              aria-pressed={selected}
               key={date}
-              onPress={() => setSelectedDate(date)}
+              onPress={() => onSelectDate(date)}
               style={({ pressed }) => ({
                 alignItems: 'center',
                 backgroundColor: selected ? colors.background.card : 'transparent',
@@ -109,7 +121,7 @@ export function HomeCalendarPreview({
                 borderRadius: RADIUS.md,
                 borderWidth: 1,
                 flex: 1,
-                minHeight: compact ? 68 : 82,
+                minHeight: compact ? 64 : 74,
                 opacity: pressed ? 0.7 : 1,
                 paddingHorizontal: 2,
                 paddingVertical: compact ? SPACE.sm : SPACE.md,
@@ -133,17 +145,20 @@ export function HomeCalendarPreview({
         <View style={{ alignItems: 'baseline', flexDirection: 'row', justifyContent: 'space-between' }}>
           <View>
             <Typography variant="eyebrow" style={{ color: selectedDate === today ? colors.text.accent : colors.text.muted }}>
-              {selectedDate === today ? "Today's Focus" : new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(localCalendarDate(selectedDate))}
+              {selectedDate === today ? "Today's Focus" : 'Your focus'}
             </Typography>
             <Typography variant="title" style={{ fontSize: compact ? 19 : 22, marginTop: SPACE.xs }}>
               {new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric' }).format(localCalendarDate(selectedDate))}
             </Typography>
           </View>
-          <Typography variant="meta" style={{ color: colors.text.muted }}>
-            {selectedItems.length} {selectedItems.length === 1 ? 'item' : 'items'}
-          </Typography>
+          {selectedDate !== today ? <Pressable accessibilityRole="button" onPress={() => onSelectDate(today)} style={{ minHeight: 44, justifyContent: 'center' }}><Typography variant="label" style={{ color: colors.text.accent }}>Back to today</Typography></Pressable> : !isLoading && !error ? <Typography variant="meta" style={{ color: colors.text.muted }}>{selectedItems.length} {selectedItems.length === 1 ? 'item' : 'items'}</Typography> : null}
         </View>
 
+        {error ? <View style={{ marginTop: SPACE.lg }}>
+          <Typography accessibilityRole="alert" variant="body-small">{error}</Typography>
+          {items.length ? <Typography variant="caption">Available items are shown below; some may be missing or out of date.</Typography> : null}
+          {onRetry ? <Pressable accessibilityRole="button" accessibilityLabel="Retry Calendar" disabled={isLoading} onPress={onRetry} style={{ alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' }}><Typography variant="label" style={{ color: colors.text.accent }}>{isLoading ? 'Trying again…' : 'Try again'}</Typography></Pressable> : null}
+        </View> : null}
         <View style={{ gap: SPACE.sm, marginTop: SPACE.xl }}>
           {isLoading ? (
             <Typography variant="caption" style={{ color: colors.text.muted }}>Loading this week…</Typography>
@@ -179,18 +194,19 @@ export function HomeCalendarPreview({
               </View>
               <Ionicons color={colors.text.muted} name="chevron-forward" size={16} />
             </Pressable>
-          )) : (
+          )) : !error ? (
             <View style={{ alignItems: 'center', flex: 1, justifyContent: 'center', minHeight: compact ? 120 : 180, paddingVertical: SPACE.xl }}>
               <View style={{ alignItems: 'center', backgroundColor: colors.background.subtle, borderRadius: RADIUS.round, height: 44, justifyContent: 'center', width: 44 }}>
                 <Ionicons color={colors.text.muted} name="sunny-outline" size={21} />
               </View>
-              <Typography variant="body" style={{ marginTop: SPACE.lg }}>Your day is open.</Typography>
+              <Typography variant="body" style={{ marginTop: SPACE.lg, textAlign: 'center' }}>Nothing scheduled {selectedDate === today ? 'for today' : 'for this day'}.</Typography>
               <Typography variant="caption" style={{ color: colors.text.secondary, marginTop: SPACE.xs, textAlign: 'center' }}>
                 Scheduled Tasks, Milestones, and deadlines will appear here.
               </Typography>
             </View>
-          )}
+          ) : null}
         </View>
+        {selectedItems.length > (compact ? 3 : 4) ? <Pressable accessibilityRole="link" onPress={() => router.push({ pathname: '/calendar', params: { date: selectedDate } })} style={{ alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center', marginTop: SPACE.sm }}><Typography variant="label" style={{ color: colors.text.accent }}>View all {selectedItems.length} items →</Typography></Pressable> : null}
       </View>
 
       {accessState !== 'granted' ? (

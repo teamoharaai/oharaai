@@ -16,8 +16,11 @@ import { FONT, RADIUS, SPACE, TYPE } from '@/constants/design';
 import type { GoalWithDetails } from '../types';
 import { goalWorkspaceHref } from '../navigation';
 import { ManageGoalControl } from './ManageGoalControl';
+import { getGoalStatusLabel } from '../goals-workspace';
+import { useWorkspaceDimensions } from '@/components/layout/WorkspaceContext';
 
 interface GoalDetailHeaderProps {
+  redesigned?: boolean;
   deadlineDensity?: DatePickerDensity;
   deadlineProgress: number | null;
   embedded?: boolean;
@@ -100,6 +103,7 @@ function MetaItem({ label, value }: { label: string; value: string }) {
 }
 
 export function GoalDetailHeader({
+  redesigned = false,
   deadlineDensity,
   deadlineProgress,
   embedded = false,
@@ -118,6 +122,8 @@ export function GoalDetailHeader({
   vaultMode,
 }: GoalDetailHeaderProps) {
   const colors = useThemeColors();
+  const { width } = useWorkspaceDimensions();
+  const stackedHeader = redesigned && width < 700;
   const [editingDescription, setEditingDescription] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState(goal.description ?? '');
   const [descriptionError, setDescriptionError] = useState<string | null>(null);
@@ -199,17 +205,17 @@ export function GoalDetailHeader({
             </>
           ) : (
             <>
-              {isMomentum ? <Badge label="↻ Momentum" variant="momentum" /> : null}
-              <Badge label={goal.status} variant={getStatusBadgeVariant(goal.status)} />
+              {isMomentum ? <Badge label={redesigned ? 'New phase' : '↻ Momentum'} variant="momentum" /> : null}
+              <Badge label={redesigned ? getGoalStatusLabel(goal.status) : goal.status} variant={getStatusBadgeVariant(goal.status)} />
               {goal.aiGenerated ? <Badge label="AI-guided" variant="ai" /> : null}
             </>
           )}
         </View>
       </View>
 
-      <View style={{ alignItems: 'flex-start', flexDirection: 'row', flexWrap: 'wrap', gap: 24 }}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <GoalTitleRow
+      <View style={{ alignItems: stackedHeader ? 'stretch' : 'flex-start', flexDirection: stackedHeader ? 'column' : 'row', flexWrap: 'wrap', gap: 24 }}>
+        <View style={{ flex: stackedHeader ? undefined : 1, minWidth: 0 }}>
+          {redesigned ? <Typography accessibilityRole="header" variant="heading" style={{ marginBottom: SPACE.md }}>{goal.title}</Typography> : <GoalTitleRow
             iconSize={26}
             iconStyle={{ marginTop: 4 }}
             style={{ alignItems: 'flex-start', marginBottom: goal.description || editingDescription ? 10 : 0 }}
@@ -220,7 +226,7 @@ export function GoalDetailHeader({
             }}
             title={goal.title}
             variant="heading"
-          />
+          />}
 
           {isMomentum ? (
             <Typography variant="description" style={{ marginBottom: 8 }}>
@@ -294,7 +300,7 @@ export function GoalDetailHeader({
           )}
         </View>
         <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          <Button
+          {!redesigned ? <Button
             accessibilityLabel={vaultMode ? 'Back to Overview' : 'Open Vault'}
             leftIcon={vaultMode
               ? <Ionicons color={colors.text.onAccent} name="arrow-back" size={17} />
@@ -303,13 +309,14 @@ export function GoalDetailHeader({
             size="compact"
           >
             {vaultMode ? 'Overview' : 'Vault'}
-          </Button>
+          </Button> : null}
           {vaultMode ? <Button
             accessibilityLabel="Add to Vault"
             leftIcon={<Ionicons color={colors.text.onAccent} name="add" size={18} />}
             onPress={onAddToVault}
             size="compact"
-          >Add to Vault</Button> : <ManageGoalControl
+          >Add to Vault</Button> : null}
+          {redesigned || !vaultMode ? <ManageGoalControl
             goal={goal}
             onArchive={onArchive}
             onComplete={onComplete}
@@ -317,7 +324,7 @@ export function GoalDetailHeader({
             onOpenProjectPicker={onOpenProjectPicker}
             onUpdateDescription={onUpdateDescription}
             superseded={isSuperseded}
-          />}
+          /> : null}
         </View>
       </View>
 

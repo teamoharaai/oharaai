@@ -15,7 +15,7 @@ type LinkKind = LinkableItem['kind'];
 const LINK_KIND_OPTIONS: { value: LinkKind; label: string }[] = [
   { value: 'goal', label: 'Goal' },
   { value: 'milestone', label: 'Milestone' },
-  { value: 'reflection', label: 'Journal Entry' },
+  { value: 'reflection', label: 'Reflection' },
 ];
 
 const MAX_LINK_DESCRIPTION = 280;
@@ -211,7 +211,7 @@ export function PostComposer({
                 active={pickerOpen || !!link}
                 icon="link-outline"
                 label="Link"
-                accessibilityLabel="Link a Goal, milestone, or Journal entry"
+                accessibilityLabel="Link a Goal, milestone, or Reflection"
                 onPress={() => setPickerOpen((value) => !value)}
               />
             </View>

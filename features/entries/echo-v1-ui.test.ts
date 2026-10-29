@@ -136,13 +136,13 @@ test('the Echo New control opens an anchored, accessible creation menu', () => {
   assert.match(newMenu, /accessibilityRole="menu"/);
   assert.match(newMenu, /accessibilityRole="menuitem"/);
   assert.match(newMenu, /New Note/);
-  assert.match(newMenu, /New Journal Entry/);
+  assert.match(newMenu, /New Reflection/);
   assert.match(newMenu, /onSelectType\(item\.type\)/);
 });
 
 test('new Entries use stable retry keys and explain private organization', () => {
   assert.match(creation, /clientRequestId: requestIds\.current\[type\]/);
-  assert.match(creation, /do not share the Note or Journal entry/);
+  assert.match(creation, /do not share the Note or Reflection/);
   assert.match(creation, /write a separate Circles post/);
 });
 

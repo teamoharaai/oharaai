@@ -1,3 +1,4 @@
+import { useWorkspaceDimensions } from '@/components/layout/WorkspaceContext';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -6,7 +7,6 @@ import {
   ScrollView,
   TextInput,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -158,7 +158,7 @@ function SourceRow({ compact, source }: { compact: boolean; source: NotesLibrary
 
 export function NotesLibraryScreen() {
   const colors = useThemeColors();
-  const { width } = useWindowDimensions();
+  const { width } = useWorkspaceDimensions();
   const compact = width < 760;
   const params = useLocalSearchParams<{ create?: string | string[]; goalId?: string | string[]; projectId?: string | string[]; view?: string | string[] }>();
   const requestedCreation = firstParam(params.create);

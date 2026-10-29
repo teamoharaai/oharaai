@@ -1,5 +1,6 @@
+import { useWorkspaceDimensions } from '@/components/layout/WorkspaceContext';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { AuthenticatedPageShell } from '@/components/layout/AuthenticatedPageShell';
@@ -55,7 +56,7 @@ function reflectionDocument(text: string): RichTextDocument {
 }
 
 function journalTitle(date: Date): string {
-  return `Journal Entry · ${date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}`;
+  return `Reflection · ${date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}`;
 }
 
 function dateGroup(date: Date): string {
@@ -174,7 +175,7 @@ function BrowseRow({
 export function ReflectionsScreen({ selectedEntryId }: { selectedEntryId?: string }) {
   const colors = useThemeColors();
   const darkMode = useUIStore((state) => state.themeMode === 'dark');
-  const { width } = useWindowDimensions();
+  const { width } = useWorkspaceDimensions();
   const compact = width < 720;
   const desktopBrowse = width >= 1040;
   const params = useLocalSearchParams<{
@@ -235,7 +236,7 @@ export function ReflectionsScreen({ selectedEntryId }: { selectedEntryId?: strin
       setBrowseAvailable(payload.browseAvailable);
       for (const entry of payload.entries) upsertEntry(itemAsEntryRecord(entry));
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : 'Journal could not be loaded.');
+      setLoadError(error instanceof Error ? error.message : 'Reflections could not be loaded.');
     } finally {
       setLoading(false);
     }
@@ -311,7 +312,7 @@ export function ReflectionsScreen({ selectedEntryId }: { selectedEntryId?: strin
     ? 'All Entries'
     : context.kind === 'unlinked'
       ? 'Unlinked'
-      : selectedBrowseProject?.title ?? selectedBrowseGoal?.title ?? 'Journal';
+      : selectedBrowseProject?.title ?? selectedBrowseGoal?.title ?? 'Reflections';
   const activeProjects = projects.filter((project) => project.status !== 'archived');
   const activeGoals = goals.filter((goal) => goal.status === 'active' && (!projectId || goal.projectId === projectId));
   const selectedProject = activeProjects.find((project) => project.id === projectId) ?? null;
@@ -418,7 +419,7 @@ export function ReflectionsScreen({ selectedEntryId }: { selectedEntryId?: strin
       await loadJournal();
       resetComposer();
     } catch (caught) {
-      setSaveError(caught instanceof Error ? caught.message : 'Could not save this Journal entry.');
+      setSaveError(caught instanceof Error ? caught.message : 'Could not save this Reflection.');
     } finally {
       setSaving(false);
     }
@@ -438,7 +439,7 @@ export function ReflectionsScreen({ selectedEntryId }: { selectedEntryId?: strin
       setDeleteTarget(null);
       await loadJournal();
     } catch (caught) {
-      setSaveError(caught instanceof Error ? caught.message : 'Could not delete this Journal entry.');
+      setSaveError(caught instanceof Error ? caught.message : 'Could not delete this Reflection.');
     } finally {
       setSaving(false);
     }
@@ -466,9 +467,9 @@ export function ReflectionsScreen({ selectedEntryId }: { selectedEntryId?: strin
   function emptyTitle(): string {
     if (query.trim()) return 'No entries match your search.';
     if (context.kind === 'unlinked') return 'No unlinked entries.';
-    if (context.kind === 'project') return `No journal entries linked to ${contextLabel} yet.`;
-    if (context.kind === 'goal') return `No journal entries linked to ${contextLabel} yet.`;
-    return 'No journal entries yet.';
+    if (context.kind === 'project') return `No reflections linked to ${contextLabel} yet.`;
+    if (context.kind === 'goal') return `No reflections linked to ${contextLabel} yet.`;
+    return 'No reflections yet.';
   }
 
   return (
@@ -478,7 +479,7 @@ export function ReflectionsScreen({ selectedEntryId }: { selectedEntryId?: strin
           <View style={{ flex: 1 }}>
             <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.md }}>
               <BrandIcon color={colors.accent.primary} name="reflections" size={28} />
-              <Typography accessibilityRole="header" variant="heading">Journal</Typography>
+              <Typography accessibilityRole="header" variant="heading">Reflections</Typography>
             </View>
             <Typography variant="body" style={{ color: colors.text.secondary, marginTop: SPACE.sm }}>A place to notice what&apos;s changing.</Typography>
           </View>
@@ -488,7 +489,7 @@ export function ReflectionsScreen({ selectedEntryId }: { selectedEntryId?: strin
         <View style={{ alignItems: 'flex-start', flexDirection: desktopBrowse ? 'row' : 'column', gap: SPACE.xl }}>
           {desktopBrowse ? (
             <View
-              accessibilityLabel="Browse Journal"
+              accessibilityLabel="Browse Reflections"
               style={{
                 backgroundColor: colors.background.card,
                 borderColor: colors.border.warmSubtle,
@@ -502,16 +503,16 @@ export function ReflectionsScreen({ selectedEntryId }: { selectedEntryId?: strin
                 top: SPACE.lg,
               }}
             >
-              <Typography variant="emphasis-sm" style={{ paddingHorizontal: SPACE.md }}>Browse Journal</Typography>
+              <Typography variant="emphasis-sm" style={{ paddingHorizontal: SPACE.md }}>Browse Reflections</Typography>
               <ScrollView contentContainerStyle={{ paddingBottom: SPACE.sm }} showsVerticalScrollIndicator={false}>{browseContent}</ScrollView>
-              {!browseAvailable ? <Typography accessibilityRole="alert" variant="caption" style={{ color: colors.feedback.pending.text, paddingHorizontal: SPACE.md }}>Browse context is temporarily unavailable. Your Journal is still here.</Typography> : null}
+              {!browseAvailable ? <Typography accessibilityRole="alert" variant="caption" style={{ color: colors.feedback.pending.text, paddingHorizontal: SPACE.md }}>Browse context is temporarily unavailable. Your Reflections are still here.</Typography> : null}
             </View>
           ) : null}
 
           <View style={{ flex: 1, gap: SPACE.xl, maxWidth: 840, minWidth: 0, width: '100%' }}>
             {!desktopBrowse ? (
               <Pressable
-                accessibilityLabel="Browse Journal"
+                accessibilityLabel="Browse Reflections"
                 accessibilityRole="button"
                 accessibilityState={{ expanded: browseOpen }}
                 onPress={() => setBrowseOpen(true)}
@@ -526,11 +527,11 @@ export function ReflectionsScreen({ selectedEntryId }: { selectedEntryId?: strin
             <View style={{ alignItems: compact ? 'stretch' : 'center', flexDirection: compact ? 'column' : 'row', gap: SPACE.md }}>
               <View style={{ alignItems: 'center', backgroundColor: colors.background.input, borderColor: colors.border.input, borderRadius: RADIUS.md, borderWidth: 1, flex: 1, flexDirection: 'row', minHeight: 46, paddingHorizontal: SPACE.md }}>
                 <Ionicons color={colors.text.muted} name="search-outline" size={18} />
-                <TextInput accessibilityLabel="Search journal" onChangeText={setQuery} placeholder="Search journal..." placeholderTextColor={colors.text.muted} style={{ color: colors.text.primary, flex: 1, minHeight: 44, outlineStyle: 'none', paddingHorizontal: SPACE.sm } as never} value={query} />
+                <TextInput accessibilityLabel="Search reflections" onChangeText={setQuery} placeholder="Search reflections..." placeholderTextColor={colors.text.muted} style={{ color: colors.text.primary, flex: 1, minHeight: 44, outlineStyle: 'none', paddingHorizontal: SPACE.sm } as never} value={query} />
               </View>
               <View style={{ alignItems: 'center', flexDirection: 'row', gap: SPACE.sm }}>
-                <Pressable accessibilityLabel="Sort Journal entries" accessibilityRole="button" accessibilityState={{ expanded: sortOpen }} onPress={() => setSortOpen((value) => !value)} style={({ pressed }) => ({ alignItems: 'center', backgroundColor: colors.background.selectedRow, borderColor: colors.border.divider, borderRadius: RADIUS.round, borderWidth: 1, flexDirection: 'row', gap: SPACE.xs, minHeight: 42, opacity: pressed ? 0.7 : 1, paddingHorizontal: SPACE.lg })}><Ionicons color={colors.text.accent} name="swap-vertical-outline" size={16} /><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>{sort === 'newest' ? 'Newest' : 'Oldest'}</Typography></Pressable>
-                <Pressable accessibilityLabel="Filter Journal entries" accessibilityRole="button" accessibilityState={{ expanded: filtersOpen }} onPress={() => setFiltersOpen(true)} style={({ pressed }) => ({ alignItems: 'center', backgroundColor: filters.share !== 'all' || filters.dateRange !== 'all' ? colors.background.selectedRow : colors.background.card, borderColor: colors.border.divider, borderRadius: RADIUS.round, borderWidth: 1, flexDirection: 'row', gap: SPACE.xs, minHeight: 42, opacity: pressed ? 0.7 : 1, paddingHorizontal: SPACE.lg })}><Ionicons color={colors.text.accent} name="options-outline" size={16} /><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>Filters</Typography></Pressable>
+                <Pressable accessibilityLabel="Sort Reflections" accessibilityRole="button" accessibilityState={{ expanded: sortOpen }} onPress={() => setSortOpen((value) => !value)} style={({ pressed }) => ({ alignItems: 'center', backgroundColor: colors.background.selectedRow, borderColor: colors.border.divider, borderRadius: RADIUS.round, borderWidth: 1, flexDirection: 'row', gap: SPACE.xs, minHeight: 42, opacity: pressed ? 0.7 : 1, paddingHorizontal: SPACE.lg })}><Ionicons color={colors.text.accent} name="swap-vertical-outline" size={16} /><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>{sort === 'newest' ? 'Newest' : 'Oldest'}</Typography></Pressable>
+                <Pressable accessibilityLabel="Filter Reflections" accessibilityRole="button" accessibilityState={{ expanded: filtersOpen }} onPress={() => setFiltersOpen(true)} style={({ pressed }) => ({ alignItems: 'center', backgroundColor: filters.share !== 'all' || filters.dateRange !== 'all' ? colors.background.selectedRow : colors.background.card, borderColor: colors.border.divider, borderRadius: RADIUS.round, borderWidth: 1, flexDirection: 'row', gap: SPACE.xs, minHeight: 42, opacity: pressed ? 0.7 : 1, paddingHorizontal: SPACE.lg })}><Ionicons color={colors.text.accent} name="options-outline" size={16} /><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>Filters</Typography></Pressable>
               </View>
             </View>
             {sortOpen ? <View accessibilityRole="menu" style={{ alignSelf: compact ? 'stretch' : 'flex-end', backgroundColor: colors.background.card, borderColor: colors.border.divider, borderRadius: RADIUS.md, borderWidth: 1, gap: SPACE.xs, padding: SPACE.sm, width: compact ? '100%' : 180 }}>{(['newest', 'oldest'] as const).map((option) => <Pressable accessibilityRole="menuitem" key={option} onPress={() => { setSort(option); setSortOpen(false); }} style={({ pressed }) => ({ backgroundColor: sort === option ? colors.background.selectedRow : pressed ? colors.background.subtle : 'transparent', borderRadius: RADIUS.sm, minHeight: 38, justifyContent: 'center', paddingHorizontal: SPACE.md })}><Typography variant="body-small">{option === 'newest' ? 'Newest' : 'Oldest'}</Typography></Pressable>)}</View> : null}
@@ -539,19 +540,19 @@ export function ReflectionsScreen({ selectedEntryId }: { selectedEntryId?: strin
               <View style={{ alignItems: 'center', backgroundColor: colors.background.selectedRow, borderColor: colors.border.accent, borderRadius: RADIUS.lg, borderWidth: 1, flexDirection: 'row', gap: SPACE.md, paddingHorizontal: SPACE.lg, paddingVertical: SPACE.md }}>
                 <View style={{ flex: 1 }}>
                   <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>{contextLabel}</Typography>
-                  <Typography variant="caption">{filteredEntries.length} {filteredEntries.length === 1 ? 'journal entry' : 'journal entries'}</Typography>
+                  <Typography variant="caption">{filteredEntries.length} {filteredEntries.length === 1 ? 'reflection' : 'reflections'}</Typography>
                 </View>
-                <Pressable accessibilityLabel="Clear Journal context" accessibilityRole="button" hitSlop={8} onPress={() => selectContext({ kind: 'all' })}><Ionicons color={colors.text.accent} name="close" size={20} /></Pressable>
+                <Pressable accessibilityLabel="Clear Reflections context" accessibilityRole="button" hitSlop={8} onPress={() => selectContext({ kind: 'all' })}><Ionicons color={colors.text.accent} name="close" size={20} /></Pressable>
               </View>
             ) : null}
 
             {composerOpen ? (
-              <View accessibilityLabel={editingEntry ? 'Edit Journal Entry composer' : 'New Journal Entry composer'} style={{ ...elevationStyle('md', colors, darkMode), backgroundColor: colors.background.card, borderColor: colors.border.warmSubtle, borderRadius: RADIUS.xl, borderWidth: 1, gap: SPACE['2xl'], padding: compact ? SPACE.xl : SPACE['3xl'] }}>
+              <View accessibilityLabel={editingEntry ? 'Edit Reflection composer' : 'New Reflection composer'} style={{ ...elevationStyle('md', colors, darkMode), backgroundColor: colors.background.card, borderColor: colors.border.warmSubtle, borderRadius: RADIUS.xl, borderWidth: 1, gap: SPACE['2xl'], padding: compact ? SPACE.xl : SPACE['3xl'] }}>
                 <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}>
                   <View><Typography variant="eyebrow">JOURNAL ENTRY</Typography><Typography variant="title" style={{ marginTop: SPACE.sm }}>How are things going?</Typography></View>
-                  <Pressable accessibilityLabel="Close Journal Entry composer" accessibilityRole="button" hitSlop={8} onPress={resetComposer}><Ionicons color={colors.text.secondary} name="close" size={23} /></Pressable>
+                  <Pressable accessibilityLabel="Close Reflection composer" accessibilityRole="button" hitSlop={8} onPress={resetComposer}><Ionicons color={colors.text.secondary} name="close" size={23} /></Pressable>
                 </View>
-                <TextInput accessibilityLabel="Journal Entry" autoFocus multiline onChangeText={setBody} placeholder="Write what you notice, what you learned, or how this moment feels…" placeholderTextColor={colors.text.muted} style={{ backgroundColor: colors.background.input, borderColor: colors.border.input, borderRadius: RADIUS.lg, borderWidth: 1, color: colors.text.primary, fontFamily: FONT.editorial.regular, fontSize: compact ? 17 : 19, lineHeight: compact ? 27 : 31, minHeight: compact ? 220 : 270, outlineStyle: 'none', padding: compact ? SPACE.xl : SPACE['2xl'], textAlignVertical: 'top' } as never} value={body} />
+                <TextInput accessibilityLabel="Reflection" autoFocus multiline onChangeText={setBody} placeholder="Write what you notice, what you learned, or how this moment feels…" placeholderTextColor={colors.text.muted} style={{ backgroundColor: colors.background.input, borderColor: colors.border.input, borderRadius: RADIUS.lg, borderWidth: 1, color: colors.text.primary, fontFamily: FONT.editorial.regular, fontSize: compact ? 17 : 19, lineHeight: compact ? 27 : 31, minHeight: compact ? 220 : 270, outlineStyle: 'none', padding: compact ? SPACE.xl : SPACE['2xl'], textAlignVertical: 'top' } as never} value={body} />
                 {!editingEntry?.echoOwned ? <>
                   <ChoiceRow label="PROJECT · OPTIONAL"><Choice active={!projectId} label="None" onPress={() => { setProjectId(''); setGoalId(''); setVisibility('private'); }} />{activeProjects.map((project) => <Choice active={project.id === projectId} key={project.id} label={project.title} onPress={() => { setProjectId(project.id); setGoalId(''); setVisibility('private'); }} />)}</ChoiceRow>
                   <ChoiceRow label="GOAL · OPTIONAL"><Choice active={!goalId} label="None" onPress={() => setGoalId('')} />{activeGoals.map((goal) => <Choice active={goal.id === goalId} key={goal.id} label={goal.title} onPress={() => { setGoalId(goal.id); if (goal.projectId) setProjectId(goal.projectId); }} />)}</ChoiceRow>
@@ -563,13 +564,13 @@ export function ReflectionsScreen({ selectedEntryId }: { selectedEntryId?: strin
             ) : null}
 
             <View style={{ gap: SPACE['3xl'] }}>
-              {loading && !entries.length ? <View style={{ alignItems: 'center', paddingVertical: SPACE['6xl'] }}><ActivityIndicator color={colors.accent.primary} /><Typography variant="caption" style={{ marginTop: SPACE.md }}>Loading Journal…</Typography></View> : grouped.length ? grouped.map((group) => (
+              {loading && !entries.length ? <View style={{ alignItems: 'center', paddingVertical: SPACE['6xl'] }}><ActivityIndicator color={colors.accent.primary} /><Typography variant="caption" style={{ marginTop: SPACE.md }}>Loading Reflections…</Typography></View> : grouped.length ? grouped.map((group) => (
                 <View key={group.label} style={{ gap: SPACE.lg }}>
                   <Typography variant="eyebrow" style={{ color: colors.text.secondary, letterSpacing: 1.4 }}>{group.label}</Typography>
                   {group.items.map((entry) => {
                     const highlighted = entry.id === selectedEntryId;
-                    return <View accessibilityLabel={`Journal entry: ${entry.title}`} key={entry.id} style={{ backgroundColor: highlighted ? colors.background.selectedRow : colors.background.card, borderColor: highlighted ? colors.border.accent : colors.border.warmSubtle, borderRadius: RADIUS.xl, borderWidth: 1, padding: compact ? SPACE.xl : SPACE['3xl'] }}>
-                      <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}><Typography variant="caption" style={{ color: colors.text.secondary }}>{timeLabel(new Date(entry.createdAt))}</Typography><Pressable accessibilityLabel="Journal entry actions" accessibilityRole="button" onPress={() => setMenuEntryId(menuEntryId === entry.id ? null : entry.id)} style={{ alignItems: 'center', height: 38, justifyContent: 'center', width: 38 }}><Ionicons color={colors.text.secondary} name="ellipsis-horizontal" size={20} /></Pressable></View>
+                    return <View accessibilityLabel={`Reflection: ${entry.title}`} key={entry.id} style={{ backgroundColor: highlighted ? colors.background.selectedRow : colors.background.card, borderColor: highlighted ? colors.border.accent : colors.border.warmSubtle, borderRadius: RADIUS.xl, borderWidth: 1, padding: compact ? SPACE.xl : SPACE['3xl'] }}>
+                      <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }}><Typography variant="caption" style={{ color: colors.text.secondary }}>{timeLabel(new Date(entry.createdAt))}</Typography><Pressable accessibilityLabel="Reflection actions" accessibilityRole="button" onPress={() => setMenuEntryId(menuEntryId === entry.id ? null : entry.id)} style={{ alignItems: 'center', height: 38, justifyContent: 'center', width: 38 }}><Ionicons color={colors.text.secondary} name="ellipsis-horizontal" size={20} /></Pressable></View>
                       {menuEntryId === entry.id ? <View style={{ alignSelf: 'flex-end', backgroundColor: colors.background.input, borderColor: colors.border.input, borderRadius: RADIUS.md, borderWidth: 1, gap: SPACE.xs, marginBottom: SPACE.lg, padding: SPACE.sm }}><Button onPress={() => editJournalEntry(entry)} size="compact" variant="ghost">Edit Entry</Button><Button onPress={() => { setMenuEntryId(null); setDeleteTarget(entry); }} size="compact" variant="danger">Delete</Button></View> : null}
                       <Typography style={{ color: colors.text.primary, fontFamily: FONT.editorial.regular, fontSize: compact ? 17 : 19, lineHeight: compact ? 28 : 31 }}>{entry.plainText}</Typography>
                       {(entry.project || entry.goals.length) ? <View style={{ alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm, marginTop: SPACE['2xl'] }}>{entry.project ? <Pressable accessibilityRole="link" onPress={() => router.push(`/(app)/projects/${entry.project!.id}` as never)}><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>{entry.project.title}</Typography></Pressable> : null}{entry.project && entry.goals.length ? <Typography variant="caption">·</Typography> : null}{entry.goals.map((goal) => <Pressable accessibilityRole="link" key={goal.id} onPress={() => router.push(goalWorkspaceHref(goal.id, 'active', entry.project?.id ? { projectId: entry.project.id } : undefined) as never)}><Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>{goal.title}</Typography></Pressable>)}</View> : null}
@@ -585,13 +586,13 @@ export function ReflectionsScreen({ selectedEntryId }: { selectedEntryId?: strin
       </View>
 
       <Modal visible={browseOpen} onClose={() => setBrowseOpen(false)} closeOnBackdropPress contentStyle={{ maxHeight: '84%', maxWidth: 520 }}>
-        <Typography variant="title">Browse Journal</Typography>
+        <Typography variant="title">Browse Reflections</Typography>
         <ScrollView contentContainerStyle={{ gap: SPACE.sm, marginTop: SPACE.lg }} showsVerticalScrollIndicator={false}>{browseContent}</ScrollView>
-        {!browseAvailable ? <Typography accessibilityRole="alert" variant="caption" style={{ color: colors.feedback.pending.text, marginTop: SPACE.md }}>Browse context is temporarily unavailable. Your Journal is still here.</Typography> : null}
+        {!browseAvailable ? <Typography accessibilityRole="alert" variant="caption" style={{ color: colors.feedback.pending.text, marginTop: SPACE.md }}>Browse context is temporarily unavailable. Your Reflections are still here.</Typography> : null}
       </Modal>
 
       <Modal visible={filtersOpen} onClose={() => setFiltersOpen(false)} closeOnBackdropPress contentStyle={{ maxWidth: 520 }}>
-        <Typography variant="title">Filter Journal</Typography>
+        <Typography variant="title">Filter Reflections</Typography>
         <View style={{ gap: SPACE.xl, marginTop: SPACE.xl }}>
           <ChoiceRow label="SHARING">{([
             ['all', 'All visibility'],
@@ -610,7 +611,7 @@ export function ReflectionsScreen({ selectedEntryId }: { selectedEntryId?: strin
       </Modal>
 
       <Modal cancelText="Cancel" closeOnBackdropPress confirmText={saving ? 'Deleting…' : 'Delete Entry'} confirmDisabled={saving} onCancel={() => setDeleteTarget(null)} onClose={() => setDeleteTarget(null)} onConfirm={() => void removeJournalEntry()} visible={Boolean(deleteTarget)}>
-        <Typography variant="title">Delete this Journal entry?</Typography>
+        <Typography variant="title">Delete this Reflection?</Typography>
         <Typography variant="body" style={{ marginTop: SPACE.md }}>This permanently removes the entry. Its original date and links cannot be recovered.</Typography>
       </Modal>
     </AuthenticatedPageShell>

@@ -1,8 +1,8 @@
+import { useWorkspaceDimensions } from '@/components/layout/WorkspaceContext';
 import { useMemo, useState } from 'react';
 import {
   Pressable,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
@@ -133,7 +133,7 @@ function FilterPill({
 
 export default function MomentumScreen() {
   const colors = useThemeColors();
-  const { width } = useWindowDimensions();
+  const { width } = useWorkspaceDimensions();
   const params = useLocalSearchParams<{ goalId?: string | string[] }>();
   const requestedGoalId = Array.isArray(params.goalId) ? params.goalId[0] : params.goalId;
   const { goals, isLoading: goalsLoading } = useGoals();

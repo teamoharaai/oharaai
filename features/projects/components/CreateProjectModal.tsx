@@ -104,6 +104,7 @@ export function CreateProjectModal({ visible, onClose }: CreateProjectModalProps
 
   return (
     <Modal
+      accessibilityLabel="Create Project"
       visible={visible}
       onClose={handleClose}
       showCloseButton={false}
@@ -115,8 +116,9 @@ export function CreateProjectModal({ visible, onClose }: CreateProjectModalProps
       confirmText={isSubmitting ? 'Creating…' : 'Create project'}
       onConfirm={() => void handleSubmit()}
       confirmDisabled={!canSubmit}
-      contentStyle={{ maxWidth: 480 }}
+      contentStyle={{ maxWidth: 480, maxHeight: '90%' }}
     >
+      <ScrollView keyboardShouldPersistTaps="handled" style={{ flexShrink: 1 }} contentContainerStyle={{ paddingBottom: 12 }}>
       <Typography variant="heading" style={{ marginBottom: 8 }}>
         What are you working toward?
       </Typography>
@@ -124,7 +126,7 @@ export function CreateProjectModal({ visible, onClose }: CreateProjectModalProps
         variant="body"
         style={{ fontSize: 15, lineHeight: 22, marginBottom: 24 }}
       >
-        A project is a long-term ambition. Your goals will help you get there.
+        A space for your Goals, ideas, and collaboration. Start with or without Goals.
       </Typography>
 
       <View style={{ marginBottom: 18 }}>
@@ -214,6 +216,7 @@ export function CreateProjectModal({ visible, onClose }: CreateProjectModalProps
           {error}
         </Typography>
       ) : null}
+      </ScrollView>
     </Modal>
   );
 }

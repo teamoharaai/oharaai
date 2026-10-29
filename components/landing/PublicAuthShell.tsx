@@ -73,3 +73,8 @@ export const publicInputStyle = {
   paddingHorizontal: 15,
   paddingVertical: 13,
 } as const;
+
+// Native screens retain their existing controls; web uses the landing V2 palette.
+export const publicActionStyle = { backgroundColor: PUBLIC_COLORS.forest } as const;
+export const publicActionTextColor = '#111111';
+export const publicLinkColor = PUBLIC_COLORS.forest;

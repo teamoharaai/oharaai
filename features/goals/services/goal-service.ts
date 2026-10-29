@@ -479,7 +479,7 @@ export async function enrichGoalsWithSignals(
 
 export async function fetchGoals(
   userId: string,
-  options?: { status?: GoalStatus; includeGoalId?: string | null },
+  options?: { status?: GoalStatus | 'all'; includeGoalId?: string | null; throwOnError?: boolean },
 ): Promise<GoalWithDetails[]> {
   let query = supabase
     .from('goals')
@@ -492,7 +492,9 @@ export async function fetchGoals(
     ? query.or(`user_id.eq.${userId},id.eq.${includeGoalId}`)
     : query.eq('user_id', userId);
 
-  if (options?.status) {
+  if (options?.status === 'all') {
+    // Library browsing includes history; existing callers still default to active.
+  } else if (options?.status) {
     query = query.eq('status', options.status);
   } else {
     query = query.eq('status', 'active');
@@ -500,6 +502,7 @@ export async function fetchGoals(
 
   const { data, error } = await query.order('created_at', { ascending: false });
 
+  if (error && options?.throwOnError) throw error;
   if (error || !data) return [];
   const goals = (data as unknown as DbGoal[]).map(mapGoal);
   return enrichGoalsWithSignals(goals, userId);

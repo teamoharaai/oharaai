@@ -21,13 +21,13 @@ const momentum = source('app/(app)/momentum.tsx');
 const entriesDb = source('lib/db/entries.ts');
 
 test('global navigation exposes the product model without an Echo library tab', () => {
-  for (const label of ['Home', 'Goals', 'Projects', 'Notes', 'Journal', 'Momentum', 'Roots']) {
+  for (const label of ['Home', 'Goals', 'Projects', 'Notes', 'Reflections', 'Momentum', 'Roots']) {
     assert.match(navigation, new RegExp(`label: '${label}'`));
   }
   assert.doesNotMatch(navigation, /label: 'Echo'/);
   assert.match(navigation, /DESKTOP_NAVIGATION_MIN_WIDTH = 1220/);
   assert.match(create, /New note/);
-  assert.match(create, /New journal entry/);
+  assert.match(create, /New reflection/);
   assert.doesNotMatch(create, /New Echo/);
 });
 
@@ -40,7 +40,7 @@ test('Notes remains the existing document workspace on canonical routes', () => 
 });
 
 test('Journal uses a submitted chronological entry model', () => {
-  assert.match(reflections, />Journal<\/Typography>/);
+  assert.match(reflections, />Reflections<\/Typography>/);
   assert.match(reflections, /Save Entry/);
   assert.match(journalLibrary, /Date\.parse\(right\.createdAt\) - Date\.parse\(left\.createdAt\)/);
   assert.match(reflections, /completedAt: editingEntry\?\.completedAt \?\? now\.toISOString\(\)/);

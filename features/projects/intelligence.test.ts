@@ -24,5 +24,5 @@ test('ranks upcoming milestones above overdue work and handles no Momentum delta
 test('reports meaningful inactivity deterministically', () => {
   const insight = buildProjectIntelligence({ goals: [], tasks: [], milestones: [], latestActivityAt: '2026-09-14T12:00:00Z', now });
   assert.equal(insight.kind, 'goal_inactivity');
-  assert.equal(insight.primary, 'Project has had no recorded activity for 10 days.');
+  assert.equal(insight.primary, 'The latest recorded activity for Project was 10 days ago.');
 });
