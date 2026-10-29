@@ -1,13 +1,13 @@
 # Workspace V2.0 — Go-Live Readiness (Phase 4G)
 
-October 28, 2026. **NO-GO for merge and production.** Targeted security and CI work is being validated; this report does not grant a vulnerability exception or certify unexecuted QA.
+October 28 investigation; hosted validation finalized October 29, 2026. **NO-GO for merge and production.** Targeted fixes pass functional validation; the dependency gate remains failed. This report does not grant a vulnerability exception or certify unexecuted QA.
 
 ## Candidate and integrity
 
 - Existing [draft PR #28](https://github.com/teamoharaai/oharaai/pull/28), branch `codex/workspace-v2-integration`, repository `teamoharaai/oharaai`.
 - Start SHA `65dd1a1e297a428cb53aa989599cff048d341672`; freshly fetched team main `b939327dfd70f44c650992e3c0337c8798a297d8`. No incoming commits, conflicts or teammate overwrites at preflight. No EventKit/Tracker import.
 - Authoritative working directory `/private/tmp/ohara-workspace-v2-integration`. All 33 Phase 4E backup checksums passed. All 138 reviewed paths accounted for: 137 original non-changelog blobs matched; approved Phase 4F changelog, deployment guard and publication report retained. Original development/rehearsal worktrees and durable backups preserved.
-- Final candidate SHA: resolve this Phase 4G commit from branch history; the PR handoff records the exact published hash after commit. No other branch or main update is part of this patch.
+- Validated application candidate SHA: **`335f53fac998f26ff105e31b0c5cda040cc97873`**, committed and normally pushed to the existing draft PR. The subsequent report-only commit records hosted results without changing that application tree. No main update or deployment.
 - Change scope: two locked dependency versions, the existing patch-package mechanism, focused security tests, bounded Roots test-server setup, changelog and this report/inventory. No application redesign, schema migration, permissions/cache/provider refactor or security-gate weakening.
 
 ## Security remediation
@@ -44,7 +44,7 @@ No audit exclusions, fail-open flags, hidden approvals or security-threshold cha
 
 Before changes, application/database jobs succeeded, but the first Roots desktop case required retry on two hosted runs (30s page.goto timeout; later ERR_ABORTED). It failed during navigation, not a screenshot comparison. All historical Git object assertions succeeded; approved screenshots remained unchanged. No skip/fixme/only was introduced.
 
-The configured webServer checked only a listening port; this is not evidence that Metro compilation and fixture hydration finished. Add a separate bounded 120s loopback-only global setup navigation, requiring the actual fixture canvas, settled fonts and no uncaught page errors. Tests retain their existing budgets, assertions, baselines, tolerances and retry policy. Local validation additionally disables retries. This addresses the readiness gap; hosted confirmation is required before calling the flake resolved, and no unexplained ERR_ABORTED root cause is claimed.
+The configured webServer checked only a listening port; this is not evidence that Metro compilation and fixture hydration finished. Added a separate bounded 120s loopback-only global setup navigation, requiring the actual fixture canvas, settled fonts and no uncaught page errors. Tests retain their existing budgets, assertions, baselines, tolerances and retry policy. Local validation additionally disables retries. Hosted run 40859574076 then passed all 26 Roots tests without a retry; setup compilation/hydration took 32,703ms, beyond the old first-test navigation budget. This validates the readiness correction for this run, not a guarantee against all future flakes or an invented explanation for every prior ERR_ABORTED.
 
 Main has no enforced branch protection, required status checks or active rulesets in the read-only API result. Required-check configuration is a release-owner decision; no settings changed. GitHub reviews/review requests were empty at preflight; the user's approval to start preparation is recorded, not fabricated code-review approvals.
 
@@ -58,6 +58,10 @@ Execution evidence uses `/private/tmp/ohara-4g-*`; no logs, credentials, generat
 - Final compatible tree: Roots **26 passed with retries disabled**; Workspace/landing/auth/Notes/Reflections browsers **52 passed**; domain/unit/security-boundary suites **600 passed**, no skips. **TypeScript passed**, then **web production-mode export and iOS JavaScript export passed**, then **TypeScript passed again** with full application route declarations. An intermediate new-test URL typing error was corrected by explicitly importing Node's URL type; no application type contract changed. These synthetic `.invalid` exports must never be deployed.
 - Database/security suites: **all 17 passed in each hosted and CLI ACL mode**, disposable local databases only. Dependency changes introduce no SQL or harness modifications.
 - Dependency gate: **fails, exit 1** with the inventory above. This is a release blocker, not a functional test failure.
+
+### Hosted results — October 29
+
+[Workspace validation 40859574076](https://github.com/teamoharaai/oharaai/actions/runs/40859574076), exact application SHA above: **application passed**, **database (hosted) passed**, **database (cli) passed**, **dependency-review failed** on the disclosed audit. Application log confirms 26 Roots tests without retries, 52 Workspace browser tests, TypeScript, web/iOS exports and diff integrity. Pinned Roots history was available. Separate [Database chain 40859574072](https://github.com/teamoharaai/oharaai/actions/runs/40859574072) also passed. Overall Workspace workflow is correctly red because security is unresolved. These are executed results, not a waiver or preview acceptance.
 
 ## Preview and Vercel setup
 
