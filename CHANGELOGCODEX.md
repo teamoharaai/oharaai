@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Fixed — Workspace V2.0 Phase 4G security and CI acceptance
+- Add Metro buffer and file-backed brand-asset compatibility coverage. Reject the attempted image-size 2.0.4 override after it broke Metro's file-path reader; retain 1.2.1 and explicitly track its unresolved advisory instead of shipping a broken build.
+- Add bounded loopback-only Roots browser setup that waits for the actual fixture canvas and fonts before starting assertions, separating cold Metro startup from the unchanged test timeout. Preserve all 26 tests, screenshot baselines, console assertions, tolerances and retry settings.
+- Update the compatible node-forge 1.x lock resolution and pin PostCSS 8.5.31 within its existing major to address certificate verification and source-map processing advisories; retain the enforced dependency-audit gate and framework versions.
+- Backport upstream Tiptap's own-property protection to the installed 2.27.1 source and app-consumed CJS/ESM entry points through the existing patch-package workflow, with prototype-key and normal formatting regression tests. This is not a Tiptap major migration or an audit exception.
+
 ### Changed — Workspace V2.0 Phase 4F integration publication
 - Reconstructed the verified Phase 4E candidate on a fresh review branch for dependency-safe commits and a blocked draft integration PR; preserved the rehearsal worktree, recovery packages, security gate and production restrictions.
 - Added the explicitly approved `vercel.json` deployment guard for `codex/workspace-v2-integration` only, preventing automatic Git deployments from this review branch without changing main or other branches. Recorded publication/validation evidence in `docs/design/OHARA-Workspace-V2.0-Integration-Publication.md`; no merge or deployment is authorized.
