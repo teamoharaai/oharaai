@@ -8,16 +8,17 @@ import {
 } from 'react-native';
 import { Link, router, useLocalSearchParams, type Href } from 'expo-router';
 import supabase from '@/lib/db/client';
+import { authLinkErrorMessage, safeAuthReturnTo } from '@/lib/auth/redirects';
 import { Typography } from '@/components/ui/Typography';
 import { LIGHT_THEME } from '@/constants/colors';
 import { PublicAuthShell, publicInputStyle, publicActionStyle, publicActionTextColor, publicLinkColor } from '@/components/landing/PublicAuthShell';
 
 export default function LoginScreen() {
-  const params = useLocalSearchParams<{ error?: string }>();
+  const params = useLocalSearchParams<{ error?: string; returnTo?: string }>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(params.error ?? null);
+  const [error, setError] = useState<string | null>(authLinkErrorMessage(params.error));
 
   async function handleLogin() {
     if (!email || !password) {
@@ -26,16 +27,18 @@ export default function LoginScreen() {
     }
     setLoading(true);
     setError(null);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
-      // Generic copy for every sign-in failure. Supabase returns a distinct
-      // "Email not confirmed" message for a known-but-unconfirmed account, which
-      // would confirm an email is registered (account-existence enumeration).
-      // Collapse all cases to one message so no path reveals existence.
-      setError('Incorrect email or password.');
-    } else {
-      router.replace('/(app)/dashboard');
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error) {
+        // Generic copy avoids confirming whether an account exists.
+        setError('Incorrect email or password.');
+      } else {
+        router.replace(safeAuthReturnTo(params.returnTo) as Href);
+      }
+    } catch {
+      setError('Unable to sign in. Check your connection and try again.');
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -43,7 +46,7 @@ export default function LoginScreen() {
     <PublicAuthShell mode="login" title="Welcome back." subtitle="Continue your journey with OharaAI.">
         {/* Error */}
         {error && (
-          <View className="rounded-2xl px-4 py-3 mb-6" style={{ backgroundColor: LIGHT_THEME.feedback.danger.bg, borderColor: LIGHT_THEME.feedback.danger.border, borderWidth: 1 }}>
+          <View accessibilityRole="alert" className="rounded-2xl px-4 py-3 mb-6" style={{ backgroundColor: LIGHT_THEME.feedback.danger.bg, borderColor: LIGHT_THEME.feedback.danger.border, borderWidth: 1 }}>
             <Text className="text-sm" style={{ color: LIGHT_THEME.feedback.danger.text, fontFamily: 'Inter-Regular' }}>{error}</Text>
           </View>
         )}

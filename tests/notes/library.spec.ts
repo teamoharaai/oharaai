@@ -182,6 +182,19 @@ test('Note workspace formatting controls have polished states and discoverable l
   await page.screenshot({ path: visualEvidencePath('docs/ui-checkpoints/projects-notes-polish/note-formatting-toolbar-light.png') });
 });
 
+test('dark Note controls opt out of native button painting and retain their theme on reload', async ({ page }) => {
+  await installPreview(page, 'dark');
+  await page.goto('/notes/note-1');
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await expect(page.getByRole('toolbar', { name: 'Note formatting' })).toBeVisible();
+    await expect(page.locator('.workspace-v2')).toHaveCSS('color-scheme', 'dark');
+    await expect(page.getByRole('button', { name: 'Italic (⌘/Ctrl+I)', exact: true })).toHaveCSS('appearance', 'none');
+    const background = await page.getByRole('button', { name: 'Italic (⌘/Ctrl+I)', exact: true }).evaluate(el => getComputedStyle(el).backgroundColor);
+    expect(background).not.toBe('rgb(255, 255, 255)');
+    if (attempt === 0) await page.reload();
+  }
+});
+
 test('Note clipboard preserves formatting and serializes without executable markup', async ({ page }) => {
   await installPreview(page, 'light');
   await page.goto('/notes/note-1', { waitUntil: 'domcontentloaded' });

@@ -155,6 +155,8 @@ body {
 .ohara-editor-tool,
 .ohara-editor-style-select {
   align-items: center;
+  -webkit-appearance: none;
+  appearance: none;
   background: var(--ohara-editor-surface);
   border: 1px solid transparent;
   border-radius: 8px;

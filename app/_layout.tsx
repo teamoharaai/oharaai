@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments, usePathname, useGlobalSearchParams, type Href } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
 import { Inter_400Regular_Italic } from '@expo-google-fonts/inter/400Regular_Italic';
@@ -15,6 +15,7 @@ import { Lora_500Medium_Italic } from '@expo-google-fonts/lora/500Medium_Italic'
 import { Lora_600SemiBold } from '@expo-google-fonts/lora/600SemiBold';
 import { Lora_600SemiBold_Italic } from '@expo-google-fonts/lora/600SemiBold_Italic';
 import supabase from '@/lib/db/client';
+import { safeAuthReturnTo } from '@/lib/auth/redirects';
 import { useAuthStore } from '@/features/auth/store';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { clearAllStores } from '@/store/clearAllStores';
@@ -60,6 +61,8 @@ export default function RootLayout() {
     fontTimingRef.current = startPerformanceTimer('root.font-bootstrap', { fontCount: 12 });
   }
   const segments = useSegments();
+  const pathname = usePathname();
+  const { returnTo } = useGlobalSearchParams<{ returnTo?: string }>();
   const router = useRouter();
   const closeInternalRelease = useCallback(() => {
     markFeaturePatchesSeen(internalReleasePatches, getInternalReleaseSessionStorage());
@@ -92,6 +95,7 @@ export default function RootLayout() {
         sessionTiming.end({ success: true });
       })
       .catch(() => {
+        setLoading(false);
         sessionTiming.end({ success: false });
       });
 
@@ -137,14 +141,17 @@ export default function RootLayout() {
 
     // DEV BYPASS: comment out the first condition to skip auth and go straight to app
     if (!session && inAppGroup && !__DEV__) {
-      router.replace('/(auth)/login');
+      const destination = safeAuthReturnTo(typeof window !== 'undefined' && window.location?.pathname
+        ? window.location.pathname + window.location.search + window.location.hash
+        : pathname);
+      router.replace({ pathname: '/(auth)/login', params: { returnTo: destination } });
     } else if (
       session &&
       ((inAuthGroup && !onAuthCompletionRoute) || onLandingPage)
     ) {
-      router.replace('/(app)/dashboard');
+      router.replace(safeAuthReturnTo(returnTo) as Href);
     }
-  }, [session, loading, segments]);
+  }, [session, loading, segments, pathname, returnTo]);
 
   if (!fontsLoaded || loading) {
     return (

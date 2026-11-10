@@ -155,6 +155,7 @@ test('Goals preserve Milestone completion, Resume and unavailable direct links',
   await expect(page.getByText('1 of 1 reached', { exact: true })).toBeVisible();
   await page.goto('/goals?goal=goal-stagnant');
   await page.getByRole('button', { name: 'Manage Goal ▾', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Manage Goal', exact: true })).toBeVisible();
   await page.getByRole('tab', { name: 'Status & Access', exact: true }).click();
   await page.getByRole('button', { name: 'Resume Goal', exact: true }).click();
   await expect.poll(() => preview.mutations.some((item) => item.path === '/rest/v1/goals' && item.body.status === 'active')).toBe(true);

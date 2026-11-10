@@ -1060,6 +1060,7 @@ async function closeCompletedWeekIfNeeded(
     fetchPreviousOharaSnapshot(readDb, userId, boundary.weekStart),
     fetchTrailingGoalSnapshots(readDb, userId, boundary.weekStart),
   ]);
+  await restoreClosedMomentumBaseline(writeDb, userId, numberOrNull(previousOhara?.next_value) ?? 0);
   const goalDiagnostics: GoalMomentumDiagnostic[] = [];
   const goalSnapshots: GoalSnapshotRow[] = [];
   for (const goal of source.goals) {
@@ -1309,16 +1310,41 @@ export async function publishCurrentMomentumV11Summary(
 ): Promise<void> {
   const { error } = await writeDb.from('momentum_profiles').upsert({
     user_id: userId,
-    current_value: summary.currentValue ?? 0,
-    current_version: OHARA_MOMENTUM_VERSION,
-    status: summary.status,
-    last_calculated_at: summary.asOf,
+    // Legacy scalar fields are the closed publisher's optimistic baseline.
+    // The live score belongs only to the explicitly provisional projection.
     current_week_start: summary.weekStart,
     current_summary: summary,
     current_calculation_hash: calculationHashValue,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id' });
   if (error) throw new Error(`Momentum projection publish failed: ${error.message}`);
+}
+
+/** Repair only the identifiable old provisional/scalar collision, under the
+ * recalculation lease. Never rewrite snapshots or an unexplained scalar value. */
+export async function restoreClosedMomentumBaseline(
+  writeDb: SupabaseClient,
+  userId: string,
+  closedValue: number,
+): Promise<void> {
+  const { data: profile, error } = await writeDb.from('momentum_profiles')
+    .select('current_value,current_summary,current_week_start,updated_at')
+    .eq('user_id', userId).maybeSingle();
+  if (error) throw new Error(`Momentum baseline read failed: ${error.message}`);
+  if (!profile || numberOrNull(profile.current_value) === closedValue) return;
+  const summary = profile.current_summary;
+  if (!isMomentumHomeSummary(summary) || summary.periodState !== 'provisional'
+    || summary.weekStart !== profile.current_week_start
+    || typeof summary.currentValue !== 'number' || !Number.isFinite(summary.currentValue)
+    // PostgreSQL stores this legacy scalar as numeric(10,4), while JSON retains
+    // the full provisional calculation precision.
+    || numberOrNull(profile.current_value) !== Number(summary.currentValue.toFixed(4))) return;
+
+  const { data: repaired, error: repairError } = await writeDb.from('momentum_profiles')
+    .update({ current_value: closedValue })
+    .eq('user_id', userId).eq('current_value', profile.current_value)
+    .eq('updated_at', profile.updated_at).select('user_id').maybeSingle();
+  if (repairError || !repaired) throw new Error('Momentum baseline changed during repair; retry recalculation');
 }
 
 export async function getMomentumTaskParity(

@@ -5,6 +5,17 @@ import { visualEvidencePath } from '../helpers/visual-evidence';
 const screenshots = visualEvidencePath('docs/ui-checkpoints/landing-v2');
 mkdirSync(screenshots, { recursive: true });
 
+test('invalid callback links show an accessible failure and a usable sign-in action', async ({ page }) => {
+  await page.route('**/auth/v1/**', (route) => route.fulfill({ status: 400, json: { error: 'invalid_grant' } }));
+  for (const suffix of ['?error=access_denied&error_code=otp_expired', '?code=invalid-code', '']) {
+    await page.goto(`/callback${suffix}`);
+    await expect(page.getByRole('heading', { name: "This link couldn't be verified." })).toBeVisible();
+    await expect(page.getByRole('alert')).toContainText('invalid or has expired');
+    await page.getByRole('button', { name: 'Continue to sign in' }).click();
+    await expect(page).toHaveURL(/\/login$/);
+  }
+});
+
 test('auth screens match the landing page and preserve validation and confirmation states', async ({ page }) => {
   const form = page.locator('.auth-v2:visible');
   const checkAlignment = async () => {

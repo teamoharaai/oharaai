@@ -4,6 +4,17 @@ import { visualEvidencePath } from '../helpers/visual-evidence';
 import { installPreview } from './fixtures';
 import { installScenario } from './project-fixtures';
 
+test('existing sessions retain failed callback errors and restore safe sign-in destinations', async ({ page }) => {
+  await installPreview(page);
+  await page.goto('/callback?error=access_denied&error_code=otp_expired');
+  await expect(page.getByRole('alert')).toContainText('invalid or has expired');
+  await expect(page).toHaveURL(/\/callback\?/);
+  await page.goto('/login?returnTo=%2Fgoals%3Fgoal%3Dgoal-1%26view%3Dvault');
+  await expect(page).toHaveURL(/\/goals\?goal=goal-1&view=vault$/);
+  await page.goto('/login?returnTo=https%3A%2F%2Fevil.test');
+  await expect(page).toHaveURL(/\/dashboard$/);
+});
+
 test('Calendar serializes completion attempts, surfaces failures, and preserves browser history', async ({ page }) => {
   await installPreview(page, 'light', 'populated');
   const errors: string[] = [];

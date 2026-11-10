@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Fixed — Workspace V2.0 Phase 4I release blockers
+- Match the existing PostgreSQL four-decimal scalar precision when identifying old provisional Momentum collisions; cover a full-precision JSON score in the rollover regression.
+- Keep provisional Momentum exclusively in its published-summary fields, preserving the closed-week scalar baseline. Repair only identifiable prior provisional/scalar collisions with compare-and-set guards before closing a week; never rewrite snapshots or alter formulas. Covers the real QA rollover failure (`features/momentum/services/momentum-service.ts`, rollover regression tests).
+- Explicitly opt themed workspace/editor buttons out of native Safari button-face painting and declare the workspace color scheme after reproducing pale controls on the dark Note editor. Preserve existing tokens/layout; actual Safari verification on the refreshed preview remains required (`components/layout/workspace-v2.css`, `global.css`).
+- Preserve validated workspace deep links after sign-in; reject external/traversal destinations, show explicit callback failures even with an existing session, and release auth loading state after rejected network requests. Add named Manage/Delete Goal dialogs without changing their layout or focus behavior (`lib/auth/redirects.ts`, auth screens, root route guard, `ManageGoalControl.tsx`).
+- Update compatible locked Babel 7.29.13 dependencies and postcss-selector-parser 6.1.5 to address source-map and selector parsing advisories without changing framework majors or direct dependency ranges.
+- Backport the upstream single-pass URI decoder security fixes to the existing CommonJS dependency, preserving legacy plus-to-space handling. Keep Expo Router/native module compatibility and the visible version-based audit gate; add bounded malformed-input and route regressions.
+- Backport image-size parser bounds checks to its Metro-compatible 1.2.1 implementation, retaining buffer/filepath APIs rather than overriding to an incompatible major. Add malformed ICNS/JXL/HEIF rejection and valid-image compatibility regressions.
+
 ### Fixed — Workspace V2.0 Phase 4G security and CI acceptance
 - Add Metro buffer and file-backed brand-asset compatibility coverage. Reject the attempted image-size 2.0.4 override after it broke Metro's file-path reader; retain 1.2.1 and explicitly track its unresolved advisory instead of shipping a broken build.
 - Add bounded loopback-only Roots browser setup that waits for the actual fixture canvas and fonts before starting assertions, separating cold Metro startup from the unchanged test timeout. Preserve all 26 tests, screenshot baselines, console assertions, tolerances and retry settings.

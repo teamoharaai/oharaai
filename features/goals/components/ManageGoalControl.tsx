@@ -128,7 +128,7 @@ export function ManageGoalControl({ goal, superseded, onComplete, onArchive, onO
 
   return <>
     <Button size="compact" onPress={() => void show()}>Manage Goal ▾</Button>
-    <Modal visible={open} onClose={() => !busy && setOpen(false)} contentStyle={{ maxHeight: '90%', maxWidth: 620, padding: 0 }}>
+    <Modal accessibilityLabel="Manage Goal" visible={open} onClose={() => !busy && setOpen(false)} contentStyle={{ maxHeight: '90%', maxWidth: 620, padding: 0 }}>
       <View style={{ paddingHorizontal: SPACE['3xl'], paddingTop: SPACE['3xl'] }}>
         <Typography variant="heading">Manage Goal</Typography>
         <View accessibilityRole="tablist" style={{ borderBottomColor: colors.border.divider, borderBottomWidth: 1, flexDirection: 'row', marginTop: SPACE.xl }}>
@@ -224,6 +224,7 @@ export function ManageGoalControl({ goal, superseded, onComplete, onArchive, onO
       </ScrollView>
     </Modal>
     <Modal
+      accessibilityLabel="Delete Goal"
       cancelText="Cancel"
       closeDisabled={busy}
       confirmDisabled={busy}

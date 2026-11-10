@@ -57,6 +57,8 @@ Final compatible tree: **0 critical, 4 high, 38 moderate, 8 low; 50 total**. The
 | xcode | 3.0.1 | moderate | uuid |
 | zod | 3.25.76 | high | [GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5) |
 
-Total: {"info":0,"low":8,"moderate":38,"high":3,"critical":0,"total":49}
+Total: {"info":0,"low":8,"moderate":38,"high":4,"critical":0,"total":50}
+
+Phase 4H documentation correction: the previous footer still reflected the withdrawn image-size 2.x experiment. The table and heading already included retained image-size 1.2.1. The October 29 audit confirms this corrected total; no dependency or gate changed.
 
 Disposition: unresolved unless explicitly described as fixed in the Go-Live Readiness report. No audit ignores, threshold changes, or exceptions applied.
