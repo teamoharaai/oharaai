@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import supabase from '@/lib/db/client';
 import { useAuthStore } from '@/features/auth/store';
 import { clearAllStores } from '@/store/clearAllStores';
+import { expiredSessionReturnTo } from '@/lib/auth/redirects';
 
 // Thrown by authedFetch when the session is missing or the server rejects the
 // access token. By the time this is thrown, handleSessionExpired has already
@@ -17,14 +18,18 @@ export class UnauthorizedError extends Error {
 // Shared by authedFetch (on a 401) and any call site that signs the user out
 // directly (e.g. a "Log out" menu item) — one implementation for the
 // clear-state/sign-out/redirect sequence instead of each site reimplementing it.
-export async function signOutAndRedirect(): Promise<void> {
+export async function signOutAndRedirect(options?: { restoreDestination: boolean }): Promise<void> {
+  const returnTo = options?.restoreDestination
+    ? expiredSessionReturnTo(typeof window !== 'undefined' ? window.location : undefined)
+    : null;
   clearAllStores();
   useAuthStore.getState().setSession(null);
   // Global scope revokes the refresh token server-side (not just locally), so a
   // "Log out" actually ends the session everywhere rather than leaving a valid
   // refresh token behind on a shared/compromised device.
   await supabase.auth.signOut({ scope: 'global' });
-  router.replace('/(auth)/login');
+  if (returnTo) router.replace({ pathname: '/(auth)/login', params: { returnTo } });
+  else router.replace('/(auth)/login');
 }
 
 // Seconds of remaining validity below which we stop trusting the in-store token
@@ -68,7 +73,7 @@ export async function authedFetch(path: string, init: RequestInit = {}): Promise
   const accessToken = await resolveAccessToken();
 
   if (!accessToken) {
-    await signOutAndRedirect();
+    await signOutAndRedirect({ restoreDestination: true });
     throw new UnauthorizedError();
   }
 
@@ -83,7 +88,7 @@ export async function authedFetch(path: string, init: RequestInit = {}): Promise
   // must be treated as retryable, NOT a dead session — it is returned as-is like
   // any other non-401 status so a slow auth round-trip never logs the user out.
   if (response.status === 401) {
-    await signOutAndRedirect();
+    await signOutAndRedirect({ restoreDestination: true });
     throw new UnauthorizedError();
   }
 

@@ -1,6 +1,24 @@
 # Workspace V2.0 — Final Web Release Acceptance
 
-Updated November 10, 2026. **NO-GO for production pending the specific gates below.** This report supplements the Phase 4H Preview Acceptance report; historical results are not represented as fresh tests of a new deployment.
+Updated November 12, 2026. **NO-GO for production pending the specific gates below.** This report supplements the Phase 4H Preview Acceptance report; historical results are not represented as fresh tests of a new deployment.
+
+## Latest publication and acceptance addendum
+
+This addendum supersedes pending-publication statements in the original November 10 assessment below.
+
+- Published application commit: **3469e46dc61527f8316226b12e0d91742cd94547**, existing integration branch and Draft PR #28. Main remains b939327d after November 12 fetch.
+- Exact-head [Workspace CI run 42890518399](https://github.com/teamoharaai/oharaai/actions/runs/42890518399): application and both database profiles PASS; dependency-review FAIL, intentionally enforced. [Database chain 42890518387](https://github.com/teamoharaai/oharaai/actions/runs/42890518387): both profiles PASS.
+- Isolated Preview **dpl_EyAa2PhVUHMmANf1wqrJXMefReaq**, READY, Git SHA 3469e46, https://oharaai-fr0ogfvr7-oharaais-projects.vercel.app. Existing Git connection, six unchanged Preview/branch-only overrides, protection retained. Client bundle verified QA ref present and production ref absent before testing. No local export was deployed.
+- Deployed explicit Momentum recalculation **accepted=true**, no error, both existing account snapshots and all three Goal snapshots unchanged. This closes the hosted rollover verification noted below.
+- November 12 actual Safari: synthetic owner login succeeds; dark Note after Home theme switch/direct navigation shows correctly themed toolbar, Create and New Note controls. Earlier white button faces are absent in this tested scenario. Full theme/system-appearance matrix remains incomplete.
+- Real signed-out Note deep link exposed a second redirect source: `lib/api/client.ts` session-expiration sign-out discarded returnTo. A narrow follow-up preserves the pre-sign-out destination and an already-present validated login returnTo; explicit logout behavior is unchanged. This touches auth/API-client ownership only for navigation, with no caching/token/provider/request deduplication refactor. Follow-up exact-head checks will be linked in PR #28.
+- Real formatted clipboard attempts remain NOT VERIFIED: AX interaction did not focus/insert; coordinate fallback returned computer-use `noWindowsAvailable`. No successful paste or VoiceOver result is inferred.
+- November 12 production ledger refreshed using both default_transaction_read_only and BEGIN READ ONLY: **91 rows, 91 distinct versions, latest 091 sources_v2**, followed by ROLLBACK. No database writes.
+- Recovery archive verified byte-for-byte: `OharaBackup/OHARA-Phase4I-candidate-20261110-145100.tar.gz`, SHA-256 `36102c136d063d2da61d37e62881c9bc215c7f07371341ed9370b356de10e81a`. Original worktrees/untracked files remain preserved. The subsequent patch-format correction is recoverable in commit 3469e46.
+- Six-page PDF handoff prepared outside the integration delta: update details, proposed iOS UI mapping, semantic tokens, naming and compatibility standards. Proposed native presentation is not claimed implemented.
+- November 12 final redirect follow-up: **610 unit/domain tests, 26 Roots browser tests, 56 Workspace browser tests, TypeScript, web export, iOS JavaScript export and final TypeScript all PASS**. Database code/schema unchanged; prior full database profiles and hosted checks remain applicable. The new browser regression exercises a signed-out Note and asserts its exact returnTo after API expiration, rather than assuming an existing session proves the redirect path.
+
+Production remains **NO-GO** for unresolved security disposition, full public email/callback acceptance and critical manual accessibility coverage. PR stays Draft; main and production remain unchanged.
 
 ## Candidate and scope
 

@@ -4,6 +4,14 @@ import { visualEvidencePath } from '../helpers/visual-evidence';
 import { installPreview } from './fixtures';
 import { installScenario } from './project-fixtures';
 
+test('signed-out Note deep links survive the API expiration redirect', async ({ page }) => {
+  await page.route(/https?:\/\/[^/]+\/(?:auth|rest)\/v1\/.*/, route => route.fulfill({status:401,json:{message:'No session'}}));
+  await page.route('**/api/**', route => route.fulfill({status:401,json:{error:'Unauthorized'}}));
+  await page.goto('/notes/00000000-0000-4000-8000-000000000001?from=library');
+  await expect(page.getByRole('button',{name:'Log in',exact:true})).toBeVisible();
+  await expect.poll(() => new URL(page.url()).searchParams.get('returnTo')).toBe('/notes/00000000-0000-4000-8000-000000000001?from=library');
+});
+
 test('existing sessions retain failed callback errors and restore safe sign-in destinations', async ({ page }) => {
   await installPreview(page);
   await page.goto('/callback?error=access_denied&error_code=otp_expired');

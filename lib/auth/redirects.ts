@@ -19,6 +19,13 @@ export function authLinkErrorMessage(value: unknown): string | null {
   return 'This sign-in link is invalid or has expired. Please sign in or request a new link.';
 }
 
+/** Capture before sign-out; another expired request may already be on login. */
+export function expiredSessionReturnTo(location?: { pathname: string; search: string; hash: string }): string {
+  if (!location) return '/dashboard';
+  if (location.pathname === '/login') return safeAuthReturnTo(new URLSearchParams(location.search).get('returnTo'));
+  return safeAuthReturnTo(location.pathname + location.search + location.hash);
+}
+
 /**
  * Resolve the public base URL used in links sent by Supabase Auth.
  *

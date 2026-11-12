@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Fixed — Workspace V2.0 Phase 4I release blockers
+- Preserve the requested workspace route through API-driven session expiration, including a concurrent redirect already on login. Explicit logout remains unchanged. Fixes the real Safari deep-link race with a narrow `lib/api/client.ts` redirect change; no token reuse, caching, provider or fetch behavior refactor.
 - Match the existing PostgreSQL four-decimal scalar precision when identifying old provisional Momentum collisions; cover a full-precision JSON score in the rollover regression.
 - Keep provisional Momentum exclusively in its published-summary fields, preserving the closed-week scalar baseline. Repair only identifiable prior provisional/scalar collisions with compare-and-set guards before closing a week; never rewrite snapshots or alter formulas. Covers the real QA rollover failure (`features/momentum/services/momentum-service.ts`, rollover regression tests).
 - Explicitly opt themed workspace/editor buttons out of native Safari button-face painting and declare the workspace color scheme after reproducing pale controls on the dark Note editor. Preserve existing tokens/layout; actual Safari verification on the refreshed preview remains required (`components/layout/workspace-v2.css`, `global.css`).
