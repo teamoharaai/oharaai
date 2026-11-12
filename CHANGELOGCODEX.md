@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Fixed — Workspace V2.0 Phase 4I release blockers
+- Sample Home card bounds in one browser frame and wait for asynchronous read/layout completion in the alignment regression. Preserve the subpixel alignment assertions, responsive coverage and historical visual baselines (`tests/workspace-v2/home.spec.ts`).
 - Update locked node-forge 1.4.2 to vendor-patched 1.4.3 for the final audit's Ed25519, TLS and HTTP-parser advisories; preserve Expo's supported 1.x dependency range (`package-lock.json`).
 - Preserve the requested workspace route through API-driven session expiration, including a concurrent redirect already on login. Explicit logout remains unchanged. Fixes the real Safari deep-link race with a narrow `lib/api/client.ts` redirect change; no token reuse, caching, provider or fetch behavior refactor.
 - Match the existing PostgreSQL four-decimal scalar precision when identifying old provisional Momentum collisions; cover a full-precision JSON score in the rollover regression.

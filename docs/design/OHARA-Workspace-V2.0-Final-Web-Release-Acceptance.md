@@ -6,6 +6,15 @@ Updated November 12, 2026. **NO-GO for production pending the specific gates bel
 
 This addendum supersedes pending-publication statements in the original November 10 assessment below.
 
+### Final application preview and CI follow-up
+
+- Latest application/dependency SHA: **0cf7bfddcf2695477605f118f09a157dd329cc2c**. Protected Preview **dpl_DJmZw5PTBWsgyeRvcou27Xm5ErBC** is READY at https://oharaai-361sn8qjc-oharaais-projects.vercel.app. Client bundle rechecked against QA `rmzsdszjfrqlrykcxkhl`; production ref absent before any test mutation. Four synthetic account logins passed.
+- Deployed Momentum recalculation accepted with no error; two existing account and three Goal closed snapshots remained byte-for-byte unchanged.
+- Actual Safari on preceding application SHA 4522bd2 verified signed-out Note → login with exact `returnTo` → owner login → original Note, retaining `?from=library`. The final application delta is the compatible Forge tooling patch. Full public email/PKCE confirmation and recovery remain unverified.
+- [CI run 43237574049](https://github.com/teamoharaai/oharaai/actions/runs/43237574049) passed both database profiles but failed one of 56 Workspace tests: Home dark alignment sampled separate card bounds while asynchronous reads could resize the layout. All other 55 passed. The follow-up samples all bounds atomically and waits for completion, retaining the same less-than-one-pixel assertion. All six Home tests passed three consecutive repetitions (18 total); exact follow-up CI must pass before integration. No application layout or baseline changed.
+- Safari capture subsequently returned a blank image and no web-page accessibility controls even after raising its window. Remaining real clipboard, VoiceOver, zoom and full appearance acceptance are blocked by unavailable interactive evidence, not claimed passed.
+- The exact latest PR SHA and final CI status are recorded in PR #28 after this test-only follow-up; the immutable application preview above remains the tested release artifact.
+
 November 12 follow-up application SHA: **4522bd2f1ce008fd01b5948c6d5fa68299e66779**. Subsequent vendor-only Forge lock update is tracked by this report's commit and PR head. Exact final CI/deployment metadata is recorded in the PR handoff to avoid treating earlier runs as final-head acceptance.
 
 Final audit refresh briefly rose to 52 entries due to four newly indexed node-forge findings. Compatible vendor version **1.4.3** fixes [GHSA-6889-vf6x-f3g5](https://github.com/advisories/GHSA-6889-vf6x-f3g5), [GHSA-w4xr-hqv8-ch44](https://github.com/advisories/GHSA-w4xr-hqv8-ch44), [GHSA-6cv4-p8m7-4r25](https://github.com/advisories/GHSA-6cv4-p8m7-4r25) and [GHSA-j8rw-jp99-435v](https://github.com/advisories/GHSA-j8rw-jp99-435v). Only this lock entry changes; Expo code-signing tooling accepts the existing ^1.3.3 range. No framework major or new override.

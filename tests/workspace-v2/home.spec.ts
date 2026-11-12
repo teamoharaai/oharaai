@@ -7,11 +7,22 @@ const screenshots = visualEvidencePath('docs/ui-checkpoints/home-v2');
 mkdirSync(screenshots, { recursive: true });
 
 async function alignedCards(page: Page) {
-  const momentum = await page.getByLabel('Momentum Snapshot card', { exact: true }).boundingBox();
-  const next = await page.getByLabel('Next Step card', { exact: true }).boundingBox();
-  const calendar = await page.getByLabel("Calendar and Today's Focus card", { exact: true }).boundingBox();
-  expect(Math.abs(momentum!.y - calendar!.y)).toBeLessThan(1);
-  expect(Math.abs(next!.y + next!.height - calendar!.y - calendar!.height)).toBeLessThan(1);
+  // Independent Home reads can resize cards between separate protocol calls.
+  // Sample one layout frame and wait for the same strict alignment contract.
+  await expect(async () => {
+    const boxes = await page.evaluate(() => [
+      'Momentum Snapshot card', 'Next Step card', "Calendar and Today's Focus card",
+    ].map((label) => {
+      const element = document.querySelector(`[aria-label="${label}"]`);
+      if (!element) return null;
+      const rect = element.getBoundingClientRect();
+      return { top: rect.top, bottom: rect.bottom };
+    }));
+    const [momentum, next, calendar] = boxes;
+    expect(boxes.every(Boolean)).toBe(true);
+    expect(Math.abs(momentum!.top - calendar!.top)).toBeLessThan(1);
+    expect(Math.abs(next!.bottom - calendar!.bottom)).toBeLessThan(1);
+  }).toPass({ timeout: 20_000 });
 }
 
 for (const theme of ['light', 'dark'] as const) {
