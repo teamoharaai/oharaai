@@ -6,6 +6,12 @@ Updated November 12, 2026. **NO-GO for production pending the specific gates bel
 
 This addendum supersedes pending-publication statements in the original November 10 assessment below.
 
+November 12 follow-up application SHA: **4522bd2f1ce008fd01b5948c6d5fa68299e66779**. Subsequent vendor-only Forge lock update is tracked by this report's commit and PR head. Exact final CI/deployment metadata is recorded in the PR handoff to avoid treating earlier runs as final-head acceptance.
+
+Final audit refresh briefly rose to 52 entries due to four newly indexed node-forge findings. Compatible vendor version **1.4.3** fixes [GHSA-6889-vf6x-f3g5](https://github.com/advisories/GHSA-6889-vf6x-f3g5), [GHSA-w4xr-hqv8-ch44](https://github.com/advisories/GHSA-w4xr-hqv8-ch44), [GHSA-6cv4-p8m7-4r25](https://github.com/advisories/GHSA-6cv4-p8m7-4r25) and [GHSA-j8rw-jp99-435v](https://github.com/advisories/GHSA-j8rw-jp99-435v). Only this lock entry changes; Expo code-signing tooling accepts the existing ^1.3.3 range. No framework major or new override.
+
+After the Forge update, clean install applies all five patches; the complete 610 unit/domain, 26 Roots browser, 56 Workspace browser, TypeScript and web/iOS JavaScript export checks pass again. Final November 12 audit is **0 critical / 7 high / 43 moderate / 1 low = 51**; node-forge is absent from findings. The other issue-specific decisions remain open.
+
 - Published application commit: **3469e46dc61527f8316226b12e0d91742cd94547**, existing integration branch and Draft PR #28. Main remains b939327d after November 12 fetch.
 - Exact-head [Workspace CI run 42890518399](https://github.com/teamoharaai/oharaai/actions/runs/42890518399): application and both database profiles PASS; dependency-review FAIL, intentionally enforced. [Database chain 42890518387](https://github.com/teamoharaai/oharaai/actions/runs/42890518387): both profiles PASS.
 - Isolated Preview **dpl_EyAa2PhVUHMmANf1wqrJXMefReaq**, READY, Git SHA 3469e46, https://oharaai-fr0ogfvr7-oharaais-projects.vercel.app. Existing Git connection, six unchanged Preview/branch-only overrides, protection retained. Client bundle verified QA ref present and production ref absent before testing. No local export was deployed.
