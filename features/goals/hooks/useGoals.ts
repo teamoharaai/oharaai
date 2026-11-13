@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/features/auth/store';
 import { useGoalStore } from '../store';
 import { fetchGoals } from '../services/goal-service';
@@ -27,19 +27,23 @@ let lastLoadedAt = 0;
 let inFlight: Promise<void> | null = null;
 let inFlightKey: string | null = null;
 
-export function useGoals(options?: { status?: GoalStatus; includeGoalId?: string | null }) {
+export function useGoals(options?: { status?: GoalStatus | 'all'; includeGoalId?: string | null }) {
   const goals = useGoalStore((state) => state.goals);
   const isLoading = useGoalStore((state) => state.isLoading);
   const userId = useAuthStore((state) => state.session?.user.id ?? null);
   const requestedStatus = options?.status;
   const includeGoalId = options?.includeGoalId ?? null;
+  // Presentation-only signal; retain the existing fetch/cache coordination.
+  const [error, setError] = useState<string | null>(null);
+  const [retryVersion, setRetryVersion] = useState(0);
 
   useEffect(() => {
+    setError(null);
     const cacheKey = `${userId ?? 'anon'}:${requestedStatus ?? 'active'}:${includeGoalId ?? 'owned'}`;
     const { setGoals, setIsLoading } = useGoalStore.getState();
 
     const cacheMatches = lastCacheKey === cacheKey && lastLoadedAt > 0;
-    const isFresh = cacheMatches && Date.now() - lastLoadedAt < STALE_MS;
+    const isFresh = retryVersion === 0 && cacheMatches && Date.now() - lastLoadedAt < STALE_MS;
 
     // Fresh cache for this user + status → render it, skip the network entirely.
     if (isFresh) {
@@ -78,7 +82,7 @@ export function useGoals(options?: { status?: GoalStatus; includeGoalId?: string
           }
           const data = await fetchGoals(
             userId,
-            { status: requestedStatus, includeGoalId },
+            { status: requestedStatus, includeGoalId, throwOnError: true },
           );
           setGoals(data);
           lastCacheKey = cacheKey;
@@ -102,6 +106,7 @@ export function useGoals(options?: { status?: GoalStatus; includeGoalId?: string
 
     revalidate()
       .catch((error) => {
+        if (!cancelled) setError('Goals are temporarily unavailable.');
         console.warn('useGoals load failed:', error);
       })
       .finally(() => {
@@ -111,7 +116,7 @@ export function useGoals(options?: { status?: GoalStatus; includeGoalId?: string
     return () => {
       cancelled = true;
     };
-  }, [includeGoalId, requestedStatus, userId]);
+  }, [includeGoalId, requestedStatus, retryVersion, userId]);
 
-  return { goals, isLoading };
+  return { goals, isLoading, error, retry: () => setRetryVersion((value) => value + 1) };
 }

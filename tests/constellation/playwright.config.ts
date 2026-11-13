@@ -9,6 +9,7 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   workers: 1,
+  globalSetup: './global-setup.ts',
   outputDir: './test-results',
   reporter: process.env.CI ? 'github' : 'list',
   snapshotPathTemplate:

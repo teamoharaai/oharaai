@@ -1,3 +1,4 @@
+import { useWorkspaceDimensions } from '@/components/layout/WorkspaceContext';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
@@ -5,7 +6,6 @@ import {
   Pressable,
   TextInput,
   View,
-  useWindowDimensions,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -58,7 +58,7 @@ import { GoalDetailHeader } from './GoalDetailHeader';
 import { GoalProjectPickerModal } from './GoalProjectPickerModal';
 import { MilestonesPanel } from './MilestonesPanel';
 
-type WorkspaceTab = 'overview' | 'vault';
+export type WorkspaceTab = 'overview' | 'tasks' | 'milestones' | 'vault';
 
 const STATUS_OPTIONS: ReadonlyArray<{ label: string; value: GoalWorkspaceStatusFilter }> = [
   { label: 'Active', value: 'active' },
@@ -556,7 +556,7 @@ function GoalList({
   status: GoalWorkspaceStatusFilter;
 }) {
   const colors = useThemeColors();
-  const { width } = useWindowDimensions();
+  const { width } = useWorkspaceDimensions();
   const [expanded, setExpanded] = useState(false);
   const [compactOpen, setCompactOpen] = useState(false);
   const browsing = expanded || filterOpen;
@@ -622,7 +622,7 @@ function GoalList({
 }
 
 function WorkspaceSection({ children }: { children: ReactNode }) {
-  const { width } = useWindowDimensions();
+  const { width } = useWorkspaceDimensions();
   return (
     <View style={{ paddingHorizontal: width < 560 ? SPACE.xl : SPACE['3xl'], paddingVertical: SPACE.lg }}>
       {children}
@@ -705,6 +705,10 @@ function GoalTabContent({
   tab,
   externalVaultAddRequest,
   focusedTaskId,
+  redesigned = false,
+  onWorkspaceChange,
+  entriesLoading,
+  onRetryEntries,
 }: {
   activityError: string | null;
   activityItems: readonly ActivityItem[];
@@ -716,6 +720,10 @@ function GoalTabContent({
   tab: WorkspaceTab;
   externalVaultAddRequest: number;
   focusedTaskId?: string;
+  redesigned?: boolean;
+  onWorkspaceChange?: (value: WorkspaceTab) => void;
+  entriesLoading?: boolean;
+  onRetryEntries?: () => void;
 }) {
   const colors = useThemeColors();
   const { density: deadlineDensity } = useDeadlineDensity();
@@ -723,20 +731,42 @@ function GoalTabContent({
   const next = getNextGoalMilestone(goal.milestones);
   const milestoneRef = useRef<View>(null);
   const scrollToContent = useScrollToPageContent();
-  const { width } = useWindowDimensions();
+  const { width } = useWorkspaceDimensions();
   if (tab === 'vault') return (
-    <GoalVault key={goal.id} goal={goal} entries={linkedEntries} entriesError={entriesError}
+    <GoalVault key={goal.id} goal={goal} entries={linkedEntries} entriesError={entriesError} entriesLoading={entriesLoading} onRetryEntries={onRetryEntries}
       externalAddRequest={externalVaultAddRequest}
       showAddButton={false}
       activityItems={activityItems} activityLoading={activityLoading} activityError={activityError} />
   );
   const deadlineProgress = getGoalRingProgress(goal);
   const ended = deadlineProgress !== null && deadlineProgress >= 100;
+  const tasksPanel = <TasksPanel deadlineDensity={deadlineDensity} focusedTaskId={focusedTaskId} full={redesigned ? tab === 'tasks' : allTasks} goalId={goal.id} goalStatus={goal.status}
+    milestones={goal.milestones} onSeeAll={() => redesigned ? onWorkspaceChange?.('tasks') : setAllTasks(true)} />;
+  const milestonesPanel = <MilestonesPanel deadlineDensity={deadlineDensity} archived={goal.status === 'archived'}
+    completingIds={goalDetail.completingMilestoneIds} embedded ended={ended || goal.status === 'complete'} error={goalDetail.milestoneError}
+    hasSuccessor={goal.has_successor} milestones={goal.milestones} onAdd={goalDetail.onAddMilestone} onAttachPhoto={goalDetail.onAttachMilestonePhoto}
+    onComplete={goalDetail.onCompleteMilestone} onDelete={goalDetail.onDeleteMilestone} onDismissError={goalDetail.clearMilestoneError}
+    onSave={goalDetail.onSaveMilestone} resolvePhotoUrl={goalDetail.resolveMilestonePhotoUrl} />;
+  if (redesigned) return <View style={{ gap: SPACE.xl }}>
+    {tab === 'tasks' || tab === 'overview' ? <Surface>
+      {tasksPanel}
+    </Surface> : null}
+    {tab === 'overview' ? <Surface style={{ padding: SPACE.xl }}>
+      <NextStepCard goal={goal} milestone={next} onOpen={() => onWorkspaceChange?.('milestones')} />
+    </Surface> : null}
+    {tab === 'milestones' ? <Surface style={{ padding: width < 560 ? SPACE.xl : SPACE['3xl'] }}>
+      {milestonesPanel}
+    </Surface> : null}
+    {tab === 'overview' ? <Surface style={{ padding: SPACE.xl, gap: SPACE.md }}>
+      <Typography variant="title">Your Goal Vault</Typography>
+      <Typography variant="body">Notes, Reflections and Sources linked to this Goal. Linking organizes your content; it does not change who can see it.</Typography>
+      <Button variant="secondary" onPress={() => onWorkspaceChange?.('vault')}>Open Goal Vault</Button>
+    </Surface> : null}
+  </View>;
   return (
     <View style={{ gap: SPACE.xl }}>
       <Surface>
-      <TasksPanel deadlineDensity={deadlineDensity} focusedTaskId={focusedTaskId} full={allTasks} goalId={goal.id} goalStatus={goal.status}
-        milestones={goal.milestones} onSeeAll={() => setAllTasks(true)} />
+      {tasksPanel}
       {allTasks ? <Pressable accessibilityRole="button" onPress={() => setAllTasks(false)}
         style={{ paddingHorizontal: SPACE['3xl'], minHeight: 44 }}>
         <Typography variant="emphasis-sm" style={{ color: colors.text.accent }}>Show fewer Tasks ↑</Typography>
@@ -751,14 +781,7 @@ function GoalTabContent({
       <View ref={milestoneRef} collapsable={false}>
       <Surface>
       <View style={{ padding: width < 560 ? SPACE.xl : SPACE['3xl'] }}>
-        <MilestonesPanel deadlineDensity={deadlineDensity} archived={goal.status === 'archived'}
-          completingIds={goalDetail.completingMilestoneIds} embedded
-          ended={ended || goal.status === 'complete'} error={goalDetail.milestoneError}
-          hasSuccessor={goal.has_successor} milestones={goal.milestones}
-          onAdd={goalDetail.onAddMilestone} onAttachPhoto={goalDetail.onAttachMilestonePhoto}
-          onComplete={goalDetail.onCompleteMilestone} onDelete={goalDetail.onDeleteMilestone}
-          onDismissError={goalDetail.clearMilestoneError} onSave={goalDetail.onSaveMilestone}
-          resolvePhotoUrl={goalDetail.resolveMilestonePhotoUrl} />
+        {milestonesPanel}
       </View>
       </Surface>
       </View>
@@ -791,7 +814,7 @@ function MomentumDelta({ change, caption, decimals = 1 }: {
   );
 }
 
-function GoalAnalyticsCard({ goal }: { goal: GoalWithDetails }) {
+function GoalAnalyticsCard({ goal, compact = false }: { goal: GoalWithDetails; compact?: boolean }) {
   const colors = useThemeColors();
   const activity = useGoalActivityWindow(goal.id, 70);
   const momentum = useGoalMomentumSummary(goal.id);
@@ -801,11 +824,12 @@ function GoalAnalyticsCard({ goal }: { goal: GoalWithDetails }) {
   const history = Array.isArray(summary?.history) ? summary.history : [];
   const reasons = Array.isArray(summary?.reasons) ? summary.reasons : [];
   const trend = buildDailyActivityTrend(activity.buckets);
+  const [expanded, setExpanded] = useState(false);
   return (
     <View style={{ padding: SPACE.xl, gap: SPACE.lg }}>
-      <Typography variant="title">Momentum</Typography>
+      <Typography variant="title">Goal Momentum</Typography>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: SPACE.md }}>
-        <Typography variant="body">{summary?.status ?? (momentum.isLoading ? 'Calculating…' : 'Unavailable')}</Typography>
+        <Typography variant="body">{summary?.status ?? (momentum.isLoading ? 'Loading…' : 'Unavailable')}</Typography>
         <Typography variant="heading" style={{ color: colors.text.accent }}>{summary?.displayedValue ?? '—'} / 100</Typography>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACE.md, flexWrap: 'wrap' }}>
@@ -815,7 +839,7 @@ function GoalAnalyticsCard({ goal }: { goal: GoalWithDetails }) {
       <View style={{ borderTopWidth: 1, borderTopColor: colors.border.divider, paddingTop: SPACE.lg, gap: SPACE.md }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACE.md, flexWrap: 'wrap' }}>
           <SectionHeading>LAST 7 DAYS</SectionHeading>
-          <MomentumDelta change={activity.loading ? null : trend.delta} caption="vs prior 7 days" decimals={0} />
+          <MomentumDelta change={activity.loading || activity.error || !activity.buckets.length ? null : trend.delta} caption="vs prior 7 days" decimals={0} />
         </View>
         {activity.error ? (
           <Typography variant="body">Activity could not be loaded.</Typography>
@@ -832,7 +856,8 @@ function GoalAnalyticsCard({ goal }: { goal: GoalWithDetails }) {
           <Typography variant="caption" style={{ color: colors.text.muted }}>Daily activity will appear here.</Typography>
         )}
       </View>
-      <View style={{ paddingVertical: SPACE.lg, gap: SPACE.lg }}>
+      {compact ? <Button variant="secondary" accessibilityState={{ expanded }} onPress={() => setExpanded(!expanded)}>{expanded ? 'Hide activity details' : 'Activity and Momentum history'}</Button> : null}
+      {!compact || expanded ? <><View style={{ paddingVertical: SPACE.lg, gap: SPACE.lg }}>
         <SectionHeading>ACTIVITY</SectionHeading>
         {activity.error ? <Typography variant="body">Activity could not be loaded.</Typography> :
           <GoalActivityPanel buckets={activity.buckets} loading={activity.loading} />}
@@ -846,6 +871,8 @@ function GoalAnalyticsCard({ goal }: { goal: GoalWithDetails }) {
         ))} yDomainMax={100} /> : null}
       <Typography variant="body">{reasons[0]?.message ?? momentum.error ?? 'Momentum history will appear after calculation.'}</Typography>
       </View>
+      </> : null}
+      {compact && momentum.error ? <Typography accessibilityRole="alert" variant="caption">{momentum.error}</Typography> : null}
     </View>
   );
 }
@@ -890,12 +917,14 @@ function InsightContextCard({ goal, items }: { goal: GoalWithDetails; items: rea
   );
 }
 
-function ContextRail({
+export function ContextRail({
+  compact = false,
   goal,
   items,
   activityLoading,
   activityError,
 }: {
+  compact?: boolean;
   goal: GoalWithDetails;
   items: readonly ActivityItem[];
   activityLoading: boolean;
@@ -903,15 +932,15 @@ function ContextRail({
 }) {
   return (
     <View style={{ gap: SPACE.xl }}>
-      <Typography variant="eyebrow" style={{ paddingHorizontal: SPACE.xl }}>Goal Analytics</Typography>
+      {!compact ? <Typography variant="eyebrow" style={{ paddingHorizontal: SPACE.xl }}>Goal Analytics</Typography> : null}
+      <Surface><GoalAnalyticsCard compact={compact} goal={goal} /></Surface>
       <Surface style={{ overflow: 'hidden' }}><InsightContextCard goal={goal} items={items} /></Surface>
-      <Surface><GoalAnalyticsCard goal={goal} /></Surface>
       <Surface><RecentActivityPanel items={items} loading={activityLoading} error={activityError} /></Surface>
     </View>
   );
 }
 
-function SelectedGoalWorkspace({
+export function SelectedGoalWorkspace({
   activityError,
   activityItems,
   activityLoading,
@@ -923,6 +952,10 @@ function SelectedGoalWorkspace({
   onWorkspaceChange,
   sourceProjectId,
   focusedTaskId,
+  redesigned = false,
+  entriesLoading,
+  onRetryEntries,
+  overviewAside,
 }: {
   activityError: string | null;
   activityItems: readonly ActivityItem[];
@@ -935,8 +968,13 @@ function SelectedGoalWorkspace({
   sourceProjectId?: string;
   focusedTaskId?: string;
   tab: WorkspaceTab;
+  redesigned?: boolean;
+  entriesLoading?: boolean;
+  onRetryEntries?: () => void;
+  overviewAside?: ReactNode;
 }) {
   const colors = useThemeColors();
+  const { width: availableWidth } = useWorkspaceDimensions();
   const { density: deadlineDensity } = useDeadlineDensity();
   const [projectPickerVisible, setProjectPickerVisible] = useState(false);
   const [projectSaving, setProjectSaving] = useState(false);
@@ -987,12 +1025,14 @@ function SelectedGoalWorkspace({
           <Typography numberOfLines={1} variant="emphasis-sm">{goal.title}</Typography>
         </View>
         {!sourceProject && associatedProject ? (
-          <Pressable accessibilityRole="link" onPress={() => router.push(`/(app)/projects/${associatedProject.id}` as never)} style={{ alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: SPACE.sm, minHeight: 38 }}>
+          <Pressable accessibilityRole="link" accessibilityLabel={`Open Project ${associatedProject.title}`} onPress={() => router.push(`/(app)/projects/${associatedProject.id}` as never)} style={{ alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: SPACE.sm, minHeight: 44 }}>
             <BrandIcon color={colors.text.accent} name="project" size={16} />
             <Typography variant="caption" style={{ color: colors.text.accent }}>Project: {associatedProject.title}</Typography>
           </Pressable>
         ) : null}
+        <View style={redesigned ? { backgroundColor: colors.background.selectedRow, borderRadius: RADIUS.xl, padding: SPACE.xl } : undefined}>
         <GoalDetailHeader
+          redesigned={redesigned}
             deadlineDensity={deadlineDensity}
           deadlineProgress={goal.progress}
           embedded
@@ -1010,6 +1050,10 @@ function SelectedGoalWorkspace({
           successorGoalId={goal.successor?.id ?? null}
           vaultMode={tab === 'vault'}
         />
+        </View>
+        {redesigned ? <View accessibilityLabel="Goal sections" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm }}>
+          {(['overview', 'tasks', 'milestones', 'vault'] as const).map((value) => <Button key={value} accessibilityLabel={`${value[0].toUpperCase() + value.slice(1)} section`} aria-pressed={tab === value} variant={tab === value ? 'primary' : 'secondary'} onPress={() => onWorkspaceChange(value)}>{value[0].toUpperCase() + value.slice(1)}</Button>)}
+        </View> : null}
         {goalDetail.goalError ? (
           <View
             style={{
@@ -1030,7 +1074,8 @@ function SelectedGoalWorkspace({
             </View>
           </View>
         ) : null}
-        <GoalTabContent
+        <View style={{ flexDirection: availableWidth >= 980 && overviewAside && tab === 'overview' ? 'row' : 'column', gap: SPACE.xl, alignItems: 'stretch' }}>
+        <View style={{ flex: 1.5, minWidth: 0 }}><GoalTabContent
             key={goal.id}
             activityError={activityError}
             activityItems={activityItems}
@@ -1042,7 +1087,13 @@ function SelectedGoalWorkspace({
             tab={tab}
             externalVaultAddRequest={vaultAddRequest}
             focusedTaskId={focusedTaskId}
-        />
+            redesigned={redesigned}
+            onWorkspaceChange={onWorkspaceChange}
+            entriesLoading={entriesLoading}
+            onRetryEntries={onRetryEntries}
+        /></View>
+        {tab === 'overview' && overviewAside ? <View style={{ flex: 1, minWidth: 0 }}>{overviewAside}</View> : null}
+        </View>
       </View>
       <GoalProjectPickerModal
         currentProjectId={goal.projectId}
@@ -1091,7 +1142,7 @@ export function GoalsWorkspace() {
     projectId?: string | string[];
     taskId?: string | string[];
   }>();
-  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWorkspaceDimensions();
   const [workspaceWidth, setWorkspaceWidth] = useState(0);
   const responsiveWidth = workspaceWidth || windowWidth;
   const wide = responsiveWidth >= 1120;

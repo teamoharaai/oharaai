@@ -128,7 +128,7 @@ export function ManageGoalControl({ goal, superseded, onComplete, onArchive, onO
 
   return <>
     <Button size="compact" onPress={() => void show()}>Manage Goal ▾</Button>
-    <Modal visible={open} onClose={() => !busy && setOpen(false)} contentStyle={{ maxHeight: '90%', maxWidth: 620, padding: 0 }}>
+    <Modal accessibilityLabel="Manage Goal" visible={open} onClose={() => !busy && setOpen(false)} contentStyle={{ maxHeight: '90%', maxWidth: 620, padding: 0 }}>
       <View style={{ paddingHorizontal: SPACE['3xl'], paddingTop: SPACE['3xl'] }}>
         <Typography variant="heading">Manage Goal</Typography>
         <View accessibilityRole="tablist" style={{ borderBottomColor: colors.border.divider, borderBottomWidth: 1, flexDirection: 'row', marginTop: SPACE.xl }}>
@@ -216,7 +216,7 @@ export function ManageGoalControl({ goal, superseded, onComplete, onArchive, onO
           </View>
           {isOwner ? <View style={{ borderTopColor: colors.border.divider, borderTopWidth: 1, gap: SPACE.md, paddingTop: SPACE.xl }}>
             <FieldLabel>Danger zone</FieldLabel>
-            <Typography variant="caption">Delete permanently removes this Goal and its Goal-owned work. Linked Notes and Journal entries remain in their owners’ libraries.</Typography>
+            <Typography variant="caption">Delete permanently removes this Goal and its Goal-owned work. Linked Notes and Reflections remain in their owners’ libraries.</Typography>
             <Button disabled={busy || superseded} variant="danger" onPress={() => setDeleteConfirmOpen(true)}>Delete Goal</Button>
           </View> : null}
         </>}
@@ -224,6 +224,7 @@ export function ManageGoalControl({ goal, superseded, onComplete, onArchive, onO
       </ScrollView>
     </Modal>
     <Modal
+      accessibilityLabel="Delete Goal"
       cancelText="Cancel"
       closeDisabled={busy}
       confirmDisabled={busy}
@@ -237,7 +238,7 @@ export function ManageGoalControl({ goal, superseded, onComplete, onArchive, onO
     >
       <View style={{ gap: SPACE.md }}>
         <Typography accessibilityRole="header" variant="title">Delete Goal?</Typography>
-        <Typography variant="body">This permanently removes “{goal.title}” and its associated Goal data. Linked Notes and Journal entries remain with their owners.</Typography>
+        <Typography variant="body">This permanently removes “{goal.title}” and its associated Goal data. Linked Notes and Reflections remain with their owners.</Typography>
         <Typography variant="caption">This cannot be undone.</Typography>
       </View>
     </Modal>

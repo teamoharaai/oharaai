@@ -162,7 +162,7 @@ test.describe('final architecture interaction contract', () => {
 
     await expect(page).toHaveURL(/\/constellation$/);
     await expect(
-      page.getByRole('heading', { name: 'Constellation · Focus' }),
+      page.getByRole('heading', { name: 'Roots · Focus', exact: true }),
     ).toBeVisible();
     await expect(
       page.getByLabel('Goal inspector for Train three times weekly'),
@@ -186,7 +186,7 @@ test.describe('final architecture interaction contract', () => {
 
     await expect(page).toHaveURL(/\/constellation$/);
     await expect(
-      page.getByRole('heading', { name: 'Constellation', exact: true }),
+      page.getByRole('heading', { name: 'Roots', exact: true }),
     ).toBeVisible();
   });
 

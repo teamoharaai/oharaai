@@ -1,5 +1,6 @@
+import { useWorkspaceDimensions, useWorkspaceTheme } from '@/components/layout/WorkspaceContext';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { BrandIcon } from '@/components/ui/BrandIcon';
 import { Card } from '@/components/ui/Card';
@@ -16,6 +17,7 @@ import { useMomentumHomeSummary } from '@/features/momentum/hooks/useMomentumHom
 import { HomeMomentumSnapshot } from '@/features/momentum/components/HomeMomentumSnapshot';
 import { ProjectGoalRow } from '@/features/goals/components/ProjectGoalRow';
 import { NextStepPanel } from '@/features/goals/components/home/NextStepPanel';
+import { HomeEchoEntryPoints } from '@/features/goals/components/home/HomeEchoEntryPoints';
 import {
   orderActiveGoals,
   resolveActiveGoalProjectTitles,
@@ -54,46 +56,30 @@ function displayNameFromMetadata(metadata: Record<string, unknown> | undefined):
 
 function DashboardGreeting({
   displayName,
-  momentumLoading,
-  weeklyStreak,
 }: {
   displayName: string | null;
-  momentumLoading: boolean;
-  weeklyStreak: number | null;
 }) {
   const colors = useThemeColors();
+  const { width } = useWorkspaceDimensions();
   const name = displayName ?? 'there';
   const greetingName = name.replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim().split(' ')[0];
+  const now = new Date();
+  const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 18 ? 'Good afternoon' : 'Good evening';
 
   return (
-    <View style={{ justifyContent: 'center', minHeight: 116 }}>
-      <Typography
-        variant="body"
-        style={{ color: colors.text.secondary, fontSize: 18, lineHeight: 26 }}
-      >
-        Welcome back,
+    <View style={{ gap: SPACE.sm, paddingVertical: SPACE.sm }}>
+      <Typography variant="eyebrow" style={{ color: colors.text.muted }}>
+        {new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(now)}
       </Typography>
       <Typography
+        accessibilityRole="header"
         variant="greeting"
-        style={{ fontSize: 46, letterSpacing: -1.5, lineHeight: 54 }}
+        style={{ fontSize: width < 620 ? 32 : 40, letterSpacing: -1, lineHeight: width < 620 ? 42 : 50 }}
       >
-        {greetingName}.
+        {greeting}, {greetingName}.
       </Typography>
-      <Typography
-        variant="body"
-        style={{ color: colors.text.secondary, fontSize: 16, lineHeight: 24, marginTop: SPACE.xs }}
-      >
-        {momentumLoading ? (
-          'Your weekly rhythm is loading…'
-        ) : weeklyStreak && weeklyStreak > 0 ? (
-          <>
-            You&apos;ve shown up for{' '}
-            <Text style={{ color: colors.text.accent, fontWeight: '500' }}>{weeklyStreak}</Text>
-            {' '}{weeklyStreak === 1 ? 'consecutive week' : 'consecutive weeks'}.
-          </>
-        ) : (
-          'This week is ready for your next meaningful step.'
-        )}
+      <Typography variant="body" style={{ color: colors.text.secondary }}>
+        Your plans, progress, and a little room to reflect.
       </Typography>
     </View>
   );
@@ -169,12 +155,13 @@ function DraftsCard({ drafts }: { drafts: ReturnType<typeof useGoals>['goals'] }
 }
 
 export default function DashboardScreen() {
-  const { width } = useWindowDimensions();
+  const { width } = useWorkspaceDimensions();
+  const workspace = useWorkspaceTheme();
   const routeParams = useLocalSearchParams<{
     draftSaved?: string | string[];
     goalFilter?: string | string[];
   }>();
-  const { goals } = useGoals();
+  const { goals, isLoading: goalsLoading, error: goalsError } = useGoals();
   const { session } = useSession();
   const momentum = useMomentumHomeSummary();
   const { projects, loadProjects } = useProjectStore();
@@ -183,6 +170,8 @@ export default function DashboardScreen() {
   // goal load — the server resolves the caller's active goals itself.
   const { reflectionTimestamps } = useHomeSummary();
   const today = todayYmd();
+  // Keep day selection when the responsive card layout changes parentage.
+  const [selectedDate, setSelectedDate] = useState(today);
   // Home reads one bounded current-week projection for its Calendar canvas.
   // Social data and full month/year Calendar work stay off this route.
   const homeCalendar = useCalendarItems(rangeForView(today, 'week', deviceTimezone()));
@@ -218,33 +207,32 @@ export default function DashboardScreen() {
 
   const displayName = displayNameFromMetadata(session?.user.user_metadata)
     ?? displayNameFromEmail(session?.user.email);
+  const desktop = width >= 980;
+  const momentumCard = <HomeMomentumSnapshot error={momentum.error} goals={activeGoals} isLoading={momentum.isLoading} summary={momentum.summary} onRetry={momentum.refresh} />;
+  const nextStepsCard = <NextStepPanel fillHeight={!!workspace && desktop} goals={todayGoals} isLoading={goalsLoading} error={goalsError} />;
+  const calendarCard = <HomeCalendarPreview fillHeight={!!workspace && desktop} accessState={homeCalendar.accessState} items={homeCalendar.items} isLoading={homeCalendar.isLoading} error={homeCalendar.error} onRetry={homeCalendar.refresh} selectedDate={selectedDate} onSelectDate={setSelectedDate} />;
 
   return (
     <>
       <AuthenticatedPageShell>
         <View style={{ alignSelf: 'center', maxWidth: 1280, minWidth: 0, width: '100%' }}>
           <View style={{ marginBottom: SPACE['3xl'] }}>
-          <DashboardGreeting
-            displayName={displayName}
-            momentumLoading={momentum.isLoading}
-            weeklyStreak={momentum.summary?.weeklyStreak ?? null}
-          />
+            <DashboardGreeting displayName={displayName} />
           </View>
 
-          <View
-            style={{
-              alignItems: width >= 980 ? 'flex-start' : 'stretch',
-              flexDirection: width >= 980 ? 'row' : 'column',
-              gap: SPACE['3xl'],
-            }}
-          >
-            <View style={{ flexBasis: width >= 980 ? '34%' : undefined, gap: SPACE['3xl'], maxWidth: width >= 980 ? 430 : undefined, minWidth: width >= 980 ? 340 : 0 }}>
-              <HomeMomentumSnapshot error={momentum.error} goals={activeGoals} isLoading={momentum.isLoading} summary={momentum.summary} />
-              <NextStepPanel goals={todayGoals} />
+          {desktop ? <View style={{ alignItems: 'stretch', flexDirection: 'row', gap: SPACE['3xl'] }}>
+            <View style={{ flexBasis: '34%', gap: SPACE['3xl'], maxWidth: 430, minWidth: 320 }}>
+              {momentumCard}
+              {nextStepsCard}
             </View>
-            <View style={{ flex: 1, gap: SPACE['3xl'], minWidth: 0, width: width >= 980 ? undefined : '100%' }}>
-              <HomeCalendarPreview accessState={homeCalendar.accessState} items={homeCalendar.items} isLoading={homeCalendar.isLoading} />
-            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>{calendarCard}</View>
+          </View> : <View style={{ gap: SPACE['3xl'] }}>
+            {calendarCard}
+            {nextStepsCard}
+            {momentumCard}
+          </View>}
+          <View style={{ marginTop: SPACE['3xl'] }}>
+            <HomeEchoEntryPoints />
           </View>
 
           {draftsRequested ? <View style={{ marginTop: SPACE['3xl'] }}><DraftsCard drafts={draftGoals} /></View> : null}

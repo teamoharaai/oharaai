@@ -1,30 +1,33 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { router, Stack } from 'expo-router';
-import { AppNavigation } from '@/components/layout/AppNavigation';
+import { WorkspaceShell } from '@/components/layout/WorkspaceShell';
 import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal';
 import { useThemeColors } from '@/store/uiStore';
 
 export default function AppLayout() {
-  const colors = useThemeColors();
   const [projectModalOpen, setProjectModalOpen] = useState(false);
 
   return (
-    <View
-      style={{
-        backgroundColor: colors.background.page,
-        flex: 1,
-        flexDirection: 'column',
-        minHeight: 0,
-      }}
-    >
-      <AppNavigation
+    <WorkspaceShell
         onNewEntry={() => router.push({
           pathname: '/notes',
           params: { create: 'note' },
         })}
         onNewProject={() => setProjectModalOpen(true)}
+    >
+      <WorkspaceRoutes />
+      <CreateProjectModal
+        onClose={() => setProjectModalOpen(false)}
+        visible={projectModalOpen}
       />
+    </WorkspaceShell>
+  );
+}
+
+function WorkspaceRoutes() {
+  const colors = useThemeColors();
+  return (
       <View
         style={{
           backgroundColor: colors.background.page,
@@ -67,10 +70,5 @@ export default function AppLayout() {
           <Stack.Screen name="goals/[id]/vault" />
         </Stack>
       </View>
-      <CreateProjectModal
-        onClose={() => setProjectModalOpen(false)}
-        visible={projectModalOpen}
-      />
-    </View>
   );
 }

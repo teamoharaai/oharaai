@@ -1,3 +1,4 @@
+import { useWorkspaceDimensions } from '@/components/layout/WorkspaceContext';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -8,7 +9,6 @@ import {
   View,
   type LayoutChangeEvent,
   type ViewStyle,
-  useWindowDimensions,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -70,7 +70,7 @@ export function NoteEditor({
 }) {
   const colors = useThemeColors();
   const darkMode = useUIStore((state) => state.themeMode === 'dark');
-  const { width } = useWindowDimensions();
+  const { width } = useWorkspaceDimensions();
   const narrow = width < 840;
   const libraryCollapsed = useUIStore((state) => state.entriesLibraryCollapsed);
   const entries = useEntriesStore((state) => state.entries);
@@ -615,7 +615,7 @@ export function NoteEditor({
               <Typography variant="meta">{related.title || 'Untitled entry'}</Typography>
             </View>
           )) : (
-            <Typography variant="body-small">Related Notes and Journal entries will appear here.</Typography>
+            <Typography variant="body-small">Related Notes and Reflections will appear here.</Typography>
           )}
           <View
             style={{

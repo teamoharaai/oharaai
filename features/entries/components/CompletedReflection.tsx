@@ -1,5 +1,6 @@
+import { useWorkspaceDimensions } from '@/components/layout/WorkspaceContext';
 import { useState } from 'react';
-import { Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/ui/Button';
@@ -21,7 +22,7 @@ export function CompletedReflection({
   showBack?: boolean;
 }) {
   const colors = useThemeColors();
-  const { width } = useWindowDimensions();
+  const { width } = useWorkspaceDimensions();
   const compact = width < 720;
   const updateEntry = useEntriesStore((state) => state.updateEntry);
   const deleteEntry = useEntriesStore((state) => state.deleteEntry);
@@ -58,7 +59,7 @@ export function CompletedReflection({
       });
       setEditing(false);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Could not save this Journal entry');
+      setError(saveError instanceof Error ? saveError.message : 'Could not save this Reflection');
     } finally {
       setSaving(false);
     }
@@ -70,7 +71,7 @@ export function CompletedReflection({
       if (onBack) onBack();
       else router.replace('/(app)/entries' as never);
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : 'Could not delete this Journal entry');
+      setError(deleteError instanceof Error ? deleteError.message : 'Could not delete this Reflection');
     }
   }
 
@@ -104,14 +105,14 @@ export function CompletedReflection({
       >
         {showBack ? (
           <Pressable
-            accessibilityLabel="Back to Journal"
+            accessibilityLabel="Back to Reflections"
             onPress={() => onBack ? onBack() : router.replace('/(app)/entries' as never)}
           >
             <Ionicons name="arrow-back" color={colors.text.primary} size={22} />
           </Pressable>
         ) : null}
         <Typography variant="nav-title" numberOfLines={1} style={{ flex: 1 }}>
-          Journal Entry
+          Reflection
         </Typography>
         <Button onPress={() => setExportOpen(true)} size="compact" variant="secondary">
           Export
@@ -119,7 +120,7 @@ export function CompletedReflection({
         <Button onPress={() => setEditing((current) => !current)} size="compact" variant="secondary">
           {editing ? 'Cancel' : 'Edit'}
         </Button>
-        <Pressable accessibilityLabel="Delete Journal entry" onPress={() => setDeleteConfirmOpen(true)}>
+        <Pressable accessibilityLabel="Delete Reflection" onPress={() => setDeleteConfirmOpen(true)}>
           <Ionicons name="trash-outline" color={colors.feedback.danger.text} size={20} />
         </Pressable>
       </View>
@@ -137,7 +138,7 @@ export function CompletedReflection({
         <View>
           {editing ? (
             <TextInput
-              accessibilityLabel="Journal entry title"
+              accessibilityLabel="Reflection title"
               onChangeText={setTitle}
               style={{
                 borderBottomColor: colors.border.input,
@@ -201,7 +202,7 @@ export function CompletedReflection({
           <Typography variant="eyebrow">TAKEAWAY</Typography>
           {editing ? (
             <TextInput
-              accessibilityLabel="Your Journal entry takeaway"
+              accessibilityLabel="Your Reflection takeaway"
               multiline
               onChangeText={setTakeaway}
               placeholder="Add an optional takeaway in your own words."
@@ -287,7 +288,7 @@ export function CompletedReflection({
         closeOnBackdropPress
         showCloseButton={false}
       >
-        <Typography variant="title">Export Journal entry</Typography>
+        <Typography variant="title">Export Reflection</Typography>
         <View style={{ gap: 8, marginTop: 16 }}>
           <Button onPress={() => void exportAction('pdf')} variant="secondary">Export as PDF</Button>
           <Button onPress={() => void exportAction('text')} variant="secondary">Export as plain text</Button>
@@ -307,9 +308,9 @@ export function CompletedReflection({
         confirmVariant="destructive"
         onConfirm={() => void remove()}
       >
-        <Typography variant="title">Delete this Journal entry?</Typography>
+        <Typography variant="title">Delete this Reflection?</Typography>
         <Typography variant="body" style={{ marginTop: 8 }}>
-          This permanently removes the Journal entry and its relationships.
+          This permanently removes the Reflection and its relationships.
         </Typography>
       </Modal>
     </View>

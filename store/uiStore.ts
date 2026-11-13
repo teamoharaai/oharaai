@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useWorkspaceTheme } from '@/components/layout/WorkspaceContext';
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
 import { colorScheme } from 'nativewind';
 import { Platform } from 'react-native';
@@ -115,5 +116,6 @@ export const useUIStore = create<UIStore>()(
 
 export function useThemeColors() {
   const themeMode = useUIStore((state) => state.themeMode);
-  return themeMode === 'dark' ? DARK_THEME : LIGHT_THEME;
+  const workspaceColors = useWorkspaceTheme();
+  return workspaceColors ?? (themeMode === 'dark' ? DARK_THEME : LIGHT_THEME);
 }

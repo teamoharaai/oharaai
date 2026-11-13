@@ -23,30 +23,18 @@ export function useActivity(goalId: string): {
     async function load() {
       setLoading(true);
       setError(null);
+      setItems([]);
 
-      let response: Response;
       try {
-        response = await authedFetch(`/api/goals/activity?goalId=${encodeURIComponent(goalId)}`);
+        const response = await authedFetch(`/api/goals/activity?goalId=${encodeURIComponent(goalId)}`);
+        if (!response.ok) throw new Error('Failed to load activity');
+        const data = (await response.json()) as ActivityResponse;
+        if (!Array.isArray(data.items)) throw new Error('Invalid activity response');
+        if (isActive) setItems(data.items);
       } catch (error) {
-        if (isActive) {
-          setError(error instanceof UnauthorizedError ? 'Not authenticated' : 'Failed to load activity');
-          setLoading(false);
-        }
-        return;
-      }
-
-      if (!response.ok) {
-        if (isActive) {
-          setError('Failed to load activity');
-          setLoading(false);
-        }
-        return;
-      }
-
-      const data = (await response.json()) as ActivityResponse;
-      if (isActive) {
-        setItems(data.items);
-        setLoading(false);
+        if (isActive) setError(error instanceof UnauthorizedError ? 'Not authenticated' : 'Failed to load activity');
+      } finally {
+        if (isActive) setLoading(false);
       }
     }
 

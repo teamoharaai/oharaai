@@ -1,3 +1,4 @@
+import { useWorkspaceDimensions } from '@/components/layout/WorkspaceContext';
 import type { ReactNode } from 'react';
 import { View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 
@@ -24,7 +25,7 @@ export function FeaturePageHeader({
   style,
 }: FeaturePageHeaderProps) {
   const colors = useThemeColors();
-  const { width } = useWindowDimensions();
+  const { width } = useWorkspaceDimensions();
   const compact = width < 720;
 
   return (

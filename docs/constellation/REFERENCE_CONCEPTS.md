@@ -1,14 +1,19 @@
 # Constellation concept references
 
-The five original `handoff_constellation` concept images are preserved as
-documentation-only references at:
+The five original `handoff_constellation` concept images are documentation-only
+references. They were restored under the path below in `cae56aa`, then deliberately
+moved out of this checkout in `854b2c4` (September 17, 2026), following the
+[repository archive policy](../CLAUDE.md#archive):
 
 ```text
 docs/constellation/reference/5df3a3b/concepts/
 ```
 
-The commit-addressed directory records their source,
-`5df3a3bc7b0e4d471fcaa0d679615b9a46c2b96f`. The fixture-boundary suite pins the
+The archive repository is `jvillalta1903-cmyk/oharaai-archive`, with mirrored paths.
+Do not copy these binaries back into the active source tree. The originals also
+remain recoverable from this repository's immutable Git history at
+`5df3a3bc7b0e4d471fcaa0d679615b9a46c2b96f:handoff_constellation/concepts`.
+The fixture-boundary suite now reads those Git objects directly and pins the
 exact filename set, PNG dimensions, and SHA-256 digest for every image. Replacing,
 renaming, recompressing, or adding an image therefore requires an explicit test
 change rather than silently rewriting the historical reference.
@@ -18,6 +23,24 @@ Production TypeScript must not import anything under
 roots for static, dynamic, side-effect, and CommonJS imports of this tree. These
 images are comparison evidence, not application assets or runtime fallbacks.
 
+## Test checkout prerequisite
+
+`npm run test:constellation` requires Git and the pinned historical commit above.
+Full-history checkouts already contain it. Shallow CI or source-only distributions
+must make the original objects available before this test can pass. From a trusted
+configured repository remote, fetch the specific commit if absent (replace
+`<remote>` with the verified remote name):
+
+```sh
+git fetch <remote> 5df3a3bc7b0e4d471fcaa0d679615b9a46c2b96f
+npm run test:constellation
+```
+
+The test performs no network requests, writes no images, and fails with an explicit
+setup error if history is unavailable. Filename-set, PNG signature, width/height,
+SHA-256 and production-import boundary assertions remain mandatory. This is not a
+visual snapshot of the current UI and is not a runtime dependency.
+
 ## Original frames
 
 The source HTML used the following CSS frame sizes. The committed PNGs are 2×
@@ -25,11 +48,11 @@ captures with a one-device-pixel card boundary on each edge.
 
 | Concept | Reference | Source frame | PNG pixels |
 |---|---|---:|---:|
-| 1a restrained light canvas | [1a-canvas-restrained.png](reference/5df3a3b/concepts/1a-canvas-restrained.png) | 1180 × 760 | 2362 × 1522 |
-| 1b atmospheric dark canvas | [1b-canvas-atmospheric.png](reference/5df3a3b/concepts/1b-canvas-atmospheric.png) | 1180 × 760 | 2362 × 1522 |
-| 1c Goal inspector | [1c-goal-inspector.png](reference/5df3a3b/concepts/1c-goal-inspector.png) | 820 × 720 | 1642 × 1442 |
-| 1d Reflection inspector | [1d-reflection-inspector.png](reference/5df3a3b/concepts/1d-reflection-inspector.png) | 820 × 720 | 1642 × 1442 |
-| 1e empty state | [1e-empty-state.png](reference/5df3a3b/concepts/1e-empty-state.png) | 960 × 640 | 1922 × 1282 |
+| 1a restrained light canvas | `1a-canvas-restrained.png` | 1180 × 760 | 2362 × 1522 |
+| 1b atmospheric dark canvas | `1b-canvas-atmospheric.png` | 1180 × 760 | 2362 × 1522 |
+| 1c Goal inspector | `1c-goal-inspector.png` | 820 × 720 | 1642 × 1442 |
+| 1d Reflection inspector | `1d-reflection-inspector.png` | 820 × 720 | 1642 × 1442 |
+| 1e empty state | `1e-empty-state.png` | 960 × 640 | 1922 × 1282 |
 
 The current implementation's reproducible capture URLs and viewport sizes are
 documented in [`previews/constellation/README.md`](../../previews/constellation/README.md).

@@ -1,3 +1,4 @@
+import { useWorkspaceDimensions } from '@/components/layout/WorkspaceContext';
 import { SafeAreaView, ScrollView, useWindowDimensions, View } from 'react-native';
 import type { ReactNode } from 'react';
 import { DARK_THEME } from '@/constants/colors';
@@ -20,7 +21,7 @@ export function Screen({
   padded = false,
 }: ScreenProps) {
   const colors = useThemeColors();
-  const { width } = useWindowDimensions();
+  const { width } = useWorkspaceDimensions();
   const backgroundColor = dark ? DARK_THEME.background.page : colors.background.page;
   const horizontalPadding = width >= 1440
     ? LAYOUT.wideGutter

@@ -1,5 +1,6 @@
+import { useWorkspaceDimensions } from '@/components/layout/WorkspaceContext';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -49,7 +50,7 @@ export function QuickReflectionEditor({
   showBack: boolean;
 }) {
   const colors = useThemeColors();
-  const { width } = useWindowDimensions();
+  const { width } = useWorkspaceDimensions();
   const compact = width < 720;
   const activeGoalOptions = useEntriesStore((state) => state.goals);
   const updateEntry = useEntriesStore((state) => state.updateEntry);
@@ -269,7 +270,7 @@ export function QuickReflectionEditor({
         {showBack ? (
           <Pressable
             accessibilityHint="Saves changes before returning"
-            accessibilityLabel="Back to Journal"
+            accessibilityLabel="Back to Reflections"
             accessibilityRole="button"
             hitSlop={8}
             onPress={() => void leave()}
@@ -279,7 +280,7 @@ export function QuickReflectionEditor({
           </Pressable>
         ) : null}
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="nav-title" numberOfLines={1}>Journal Entry</Typography>
+          <Typography variant="nav-title" numberOfLines={1}>Reflection</Typography>
           <Pressable
             accessibilityLabel={saveLabel(saveStatus)}
             accessibilityLiveRegion="polite"
@@ -296,8 +297,8 @@ export function QuickReflectionEditor({
           </Pressable>
         </View>
         <Pressable
-          accessibilityHint="Links Goals or a Project without sharing your Journal entry"
-          accessibilityLabel="Organize Journal entry"
+          accessibilityHint="Links Goals or a Project without sharing your Reflection"
+          accessibilityLabel="Organize Reflection"
           accessibilityRole="button"
           hitSlop={8}
           onPress={() => setLinkPickerOpen(true)}
@@ -307,7 +308,7 @@ export function QuickReflectionEditor({
         </Pressable>
         <Pressable
           accessibilityHint="Opens explicit PDF, text, and copy options"
-          accessibilityLabel="Export Journal entry"
+          accessibilityLabel="Export Reflection"
           accessibilityRole="button"
           hitSlop={8}
           onPress={() => setExportOpen(true)}
@@ -316,7 +317,7 @@ export function QuickReflectionEditor({
           <Ionicons name="share-outline" color={colors.text.secondary} size={21} />
         </Pressable>
         <Pressable
-          accessibilityLabel="Delete Journal entry"
+          accessibilityLabel="Delete Reflection"
           accessibilityRole="button"
           hitSlop={8}
           onPress={() => setDeleteOpen(true)}
@@ -328,7 +329,7 @@ export function QuickReflectionEditor({
 
       {saveError ? (
         <Pressable
-          accessibilityHint="Retries saving this Journal entry"
+          accessibilityHint="Retries saving this Reflection"
           accessibilityLabel={saveError}
           accessibilityRole="button"
           onPress={() => void persist(dirtyVersion)}
@@ -347,7 +348,7 @@ export function QuickReflectionEditor({
       ) : null}
 
       <View
-        accessibilityLabel="Private Journal entry"
+        accessibilityLabel="Private Reflection"
         style={{
           alignItems: 'center',
           backgroundColor: colors.background.selectedRow,
@@ -394,10 +395,10 @@ export function QuickReflectionEditor({
       >
         <View style={{ alignSelf: 'center', maxWidth: 840, width: '100%' }}>
           <TextInput
-            accessibilityLabel="Journal entry title"
+            accessibilityLabel="Reflection title"
             maxLength={200}
             onChangeText={(value) => { setTitle(value); markDirty(); }}
-            placeholder="Journal Entry"
+            placeholder="Reflection"
             placeholderTextColor={colors.text.muted}
             style={{
               color: colors.text.primary,
@@ -414,7 +415,7 @@ export function QuickReflectionEditor({
             {entry.createdAt.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
           </Typography>
           <TextInput
-            accessibilityLabel="Journal entry"
+            accessibilityLabel="Reflection"
             accessibilityHint="Write privately in your own words"
             autoFocus={!body}
             maxLength={100000}
@@ -454,7 +455,7 @@ export function QuickReflectionEditor({
       />
 
       <Modal visible={exportOpen} onClose={() => setExportOpen(false)} closeOnBackdropPress showCloseButton={false}>
-        <Typography variant="title">Export Journal entry</Typography>
+        <Typography variant="title">Export Reflection</Typography>
         <View style={{ gap: SPACE.md, marginTop: SPACE.xl }}>
           <Button onPress={() => void exportAction('pdf')} variant="secondary">Export as PDF</Button>
           <Button onPress={() => void exportAction('text')} variant="secondary">Export as plain text</Button>
@@ -474,7 +475,7 @@ export function QuickReflectionEditor({
         confirmVariant="destructive"
         onConfirm={() => void remove()}
       >
-        <Typography variant="title">Delete this Journal entry?</Typography>
+        <Typography variant="title">Delete this Reflection?</Typography>
         <Typography variant="body" style={{ marginTop: SPACE.md }}>
           This permanently removes the Reflection. Linked Goals and Projects are not deleted.
         </Typography>

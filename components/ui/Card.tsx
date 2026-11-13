@@ -8,6 +8,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import type { ReactNode } from 'react';
+import { useWorkspaceTheme } from '@/components/layout/WorkspaceContext';
 import { elevationStyle, RADIUS, type ElevationLevel } from '@/constants/design';
 import { useThemeColors, useUIStore } from '@/store/uiStore';
 import { Typography } from './Typography';
@@ -41,9 +42,10 @@ export function Card({
   ...rest
 }: CardProps) {
   const colors = useThemeColors();
+  const workspace = useWorkspaceTheme();
   const themeMode = useUIStore((state) => state.themeMode);
   const darkMode = themeMode === 'dark';
-  const resolvedElevation = elevation ?? (elevated || variant === 'elevated' ? 'sm' : 'none');
+  const resolvedElevation = elevation ?? (elevated || variant === 'elevated' || (workspace && variant === 'standard') ? 'sm' : 'none');
   const shadowStyle = elevationStyle(resolvedElevation, colors, darkMode);
   const appearance = {
     standard: { backgroundColor: colors.background.card, borderColor: colors.border.warmSubtle },

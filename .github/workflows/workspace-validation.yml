@@ -1,0 +1,115 @@
+# Phase 4E local repair: uncommitted, not published or executed on GitHub.
+# Existing database-chain workflow remains intact. Confirm runner/snapshot
+# compatibility and required-check policy before enabling this workflow.
+name: Workspace validation
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: workspace-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  application:
+    # Existing Roots images were approved on macOS; do not rebaseline on Linux
+    # just to make a different renderer pass. Hosted runner still needs review.
+    runs-on: macos-15
+    timeout-minutes: 35
+    env:
+      CI: '1'
+      EXPO_OFFLINE: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_PUBLIC_SUPABASE_URL: https://workspace-preview.invalid
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: preview-only
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Install locked dependencies and patches
+        run: npm ci --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install chromium
+      - name: Require pinned original Roots history
+        run: |
+          git cat-file -e '5df3a3bc7b0e4d471fcaa0d679615b9a46c2b96f^{commit}'
+          git cat-file -e '5df3a3bc7b0e4d471fcaa0d679615b9a46c2b96f:handoff_constellation/concepts'
+      - name: Domain and security-boundary tests
+        run: |
+          npm run test:constellation
+          node --experimental-strip-types --test features/entries/*.test.ts features/projects/*.test.ts features/intelligence/*.test.ts features/sources/*.test.ts features/goals/*.test.ts lib/goals/*.test.ts tests/workspace-v2/*.test.ts tests/helpers/*.test.ts
+          for suite in tasks momentum calendar auth friends circles prelaunch echo-composer; do
+            npm run "test:$suite"
+          done
+      - name: Roots browser acceptance (isolated preview router first)
+        run: npm run test:constellation:acceptance
+      - name: Workspace, landing, authentication, Notes and Reflections browsers
+        env:
+          OHARA_VISUAL_OUTPUT_DIR: ${{ runner.temp }}/ohara-visual-evidence
+        run: npx playwright test --config tests/workspace-v2/playwright.config.ts
+      - name: TypeScript with full application route declarations
+        run: npx tsc --noEmit
+      - name: Production-mode export checks (synthetic configuration; never deploy)
+        run: |
+          npx expo export --platform web --output-dir "$RUNNER_TEMP/ohara-web"
+          npx expo export --platform ios --output-dir "$RUNNER_TEMP/ohara-ios"
+          npx tsc --noEmit
+      - name: Diff integrity
+        run: |
+          git diff --check
+          git diff --exit-code -- tests/constellation/__screenshots__ package.json package-lock.json supabase/migrations
+
+  database:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        default-acl: [hosted, cli]
+    env:
+      OHARA_PG_BIN: /usr/lib/postgresql/17/bin
+      OHARA_DEFAULT_ACL: ${{ matrix.default-acl }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Install disposable database runtime
+        run: |
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y --no-install-recommends postgresql-17 postgresql-17-pgvector postgresql-17-cron
+          sudo locale-gen en_US.UTF-8
+      - name: Full migration chain and security suites
+        run: npm run test:db
+      - name: Local-only preflight and apply rehearsals
+        run: |
+          npm run test:preflight:rehearsal
+          npm run test:apply:rehearsal
+
+  dependency-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+      # Known baseline high/critical advisories intentionally remain a failed
+      # release gate until reviewed/remediated; do not add silent exceptions.
+      - name: Report high and critical locked-dependency advisories
+        run: npm audit --package-lock-only --audit-level=high

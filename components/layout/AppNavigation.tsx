@@ -24,7 +24,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Goals', href: '/(app)/goals', matches: ['/goals'], enabled: true, icon: 'goals' },
   { label: 'Projects', href: '/(app)/projects', matches: ['/projects'], enabled: true, icon: 'project' },
   { label: 'Notes', href: '/(app)/notes', matches: ['/notes', '/entries'], enabled: FEATURES.ECHO_ENABLED, icon: 'notes' },
-  { label: 'Journal', href: '/(app)/journal', matches: ['/journal', '/reflections'], enabled: FEATURES.ECHO_ENABLED, icon: 'reflections' },
+  { label: 'Reflections', href: '/(app)/journal', matches: ['/journal', '/reflections'], enabled: FEATURES.ECHO_ENABLED, icon: 'reflections' },
   { label: 'Momentum', href: '/(app)/momentum', matches: ['/momentum'], enabled: true, icon: 'momentum' },
   {
     label: 'Roots',

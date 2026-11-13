@@ -1,5 +1,6 @@
+import { useWorkspaceDimensions } from '@/components/layout/WorkspaceContext';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, View, useWindowDimensions } from 'react-native';
+import { Animated, Pressable, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BrandIcon } from '@/components/ui/BrandIcon';
@@ -34,7 +35,7 @@ export function EntriesScreen({
   const darkMode = useUIStore((state) => state.themeMode === 'dark');
   const libraryCollapsed = useUIStore((state) => state.entriesLibraryCollapsed);
   const toggleLibrary = useUIStore((state) => state.toggleEntriesLibraryCollapsed);
-  const { width } = useWindowDimensions();
+  const { width } = useWorkspaceDimensions();
   const compact = width < 900;
   const params = useLocalSearchParams<{
     create?: string | string[];
@@ -210,8 +211,8 @@ export function EntriesScreen({
         </Typography>
         <Typography variant="body" style={{ color: colors.text.secondary, lineHeight: 24, marginTop: SPACE.md, textAlign: 'center' }}>
           {selectedProject
-            ? feature === 'notes' ? 'Choose a Note from this Project, or create something new for it.' : 'Choose a Note or Journal entry from this Project, or create something new for it.'
-            : feature === 'notes' ? 'Choose a Note, open a Project collection, or begin writing.' : 'Choose something from Most Recent, open a Project, or begin with a new Note or Journal entry.'}
+            ? feature === 'notes' ? 'Choose a Note from this Project, or create something new for it.' : 'Choose a Note or Reflection from this Project, or create something new for it.'
+            : feature === 'notes' ? 'Choose a Note, open a Project collection, or begin writing.' : 'Choose something from Most Recent, open a Project, or begin with a new Note or Reflection.'}
         </Typography>
       </View>
     </View>

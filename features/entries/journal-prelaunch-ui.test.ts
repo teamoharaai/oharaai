@@ -14,12 +14,12 @@ const oldDetailRoute = source('app/(app)/reflections/[id].tsx');
 const project = source('app/(app)/projects/[id].tsx');
 const vault = source('features/goals/components/GoalVault.tsx');
 
-test('Journal is the active product name while reflection remains the canonical type', () => {
-  assert.match(navigation, /label: 'Journal'.*href: '\/\(app\)\/journal'/);
-  assert.match(screen, />Journal<\/Typography>/);
+test('Reflections is the product name while journal routes and reflection storage remain compatible', () => {
+  assert.match(navigation, /label: 'Reflections'.*href: '\/\(app\)\/journal'/);
+  assert.match(screen, />Reflections<\/Typography>/);
   assert.match(screen, />New Entry<\/Button>/);
   assert.match(screen, /entryType: 'reflection'/);
-  assert.doesNotMatch(screen, />Reflections<\/Typography>|>Reflect<\/Button>/);
+  assert.doesNotMatch(screen, />Journal<\/Typography>|>Reflect<\/Button>/);
 });
 
 test('Journal first render uses a lightweight owner-scoped authorized projection', () => {
@@ -33,8 +33,8 @@ test('Journal first render uses a lightweight owner-scoped authorized projection
   assert.match(screen, /if \(!composerOpen\) return;[\s\S]*loadContext\(\)[\s\S]*loadProjects\(\)/);
 });
 
-test('Browse Journal, search, temporal sorting, filters, and mobile disclosure are present', () => {
-  for (const copy of ['Browse Journal', 'All Entries', 'Unlinked', 'PROJECTS', 'GOALS', 'Search journal...', 'Newest', 'Oldest', 'Filters']) assert.match(screen, new RegExp(copy.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+test('Browse Reflections, search, temporal sorting, filters, and mobile disclosure are present', () => {
+  for (const copy of ['Browse Reflections', 'All Entries', 'Unlinked', 'PROJECTS', 'GOALS', 'Search reflections...', 'Newest', 'Oldest', 'Filters']) assert.match(screen, new RegExp(copy.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.match(screen, /desktopBrowse = width >= 1040/);
   assert.match(screen, /visible=\{browseOpen\}/);
   assert.match(screen, /Shared with Guide/);
@@ -49,9 +49,9 @@ test('Browse Journal, search, temporal sorting, filters, and mobile disclosure a
 test('Journal routes are canonical and Reflections deep links remain redirects', () => {
   assert.match(oldRoute, /Redirect[\s\S]*\/\(app\)\/journal/);
   assert.match(oldDetailRoute, /Redirect[\s\S]*\/\(app\)\/journal\/\[id\]/);
-  assert.match(project, /View Journal/);
-  assert.match(project, /'Journal'/);
-  assert.match(vault, /label: 'Journal'/);
-  assert.match(vault, /title="Journal"/);
-  assert.doesNotMatch(vault, /title="Reflections"/);
+  assert.match(project, /View Reflections/);
+  assert.match(project, /'Reflections'/);
+  assert.match(vault, /label: 'Reflections'/);
+  assert.match(vault, /title="Reflections"/);
+  assert.doesNotMatch(vault, /title="Journal"/);
 });

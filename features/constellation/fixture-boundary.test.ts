@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,10 +15,18 @@ import {
 const featureRoot = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(featureRoot, '../..');
 const routeRoot = resolve(repositoryRoot, 'app');
-const conceptReferenceRoot = resolve(
-  repositoryRoot,
-  'docs/constellation/reference/5df3a3b/concepts',
-);
+// These documentation-only images were intentionally archived in 854b2c4.
+// Verify the original immutable Git objects without restoring heavy binaries
+// to the checkout or importing them into the application.
+const conceptReferenceCommit = '5df3a3bc7b0e4d471fcaa0d679615b9a46c2b96f';
+const conceptReferenceTree = `${conceptReferenceCommit}:handoff_constellation/concepts`;
+function readHistoricalConcept(args: string[]): Buffer {
+  try {
+    return execFileSync('git', args, { cwd: repositoryRoot, maxBuffer: 8 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });
+  } catch (cause) {
+    throw new Error(`Roots reference validation requires Git history containing ${conceptReferenceCommit}. Fetch that pinned commit (or use a full-history checkout); see docs/constellation/REFERENCE_CONCEPTS.md. No assertion is skipped.`, { cause });
+  }
+}
 const productionSourceRoots = [
   'app',
   'components',
@@ -97,7 +106,7 @@ test('production source cannot import immutable Constellation concept references
   assert.deepEqual(violations, []);
 });
 
-test('restored concept references preserve the exact commit 5df3a3b bytes and dimensions', () => {
+test('archived concept references preserve the exact commit 5df3a3b bytes and dimensions', () => {
   const expected = {
     '1a-canvas-restrained.png': {
       height: 1522,
@@ -127,12 +136,12 @@ test('restored concept references preserve the exact commit 5df3a3b bytes and di
   } as const;
 
   assert.deepEqual(
-    readdirSync(conceptReferenceRoot).sort(),
+    readHistoricalConcept(['ls-tree', '--name-only', conceptReferenceTree]).toString('utf8').trim().split('\n').sort(),
     Object.keys(expected).sort(),
   );
 
   for (const [name, metadata] of Object.entries(expected)) {
-    const bytes = readFileSync(resolve(conceptReferenceRoot, name));
+    const bytes = readHistoricalConcept(['show', `${conceptReferenceTree}/${name}`]);
     assert.equal(bytes.subarray(1, 4).toString('ascii'), 'PNG');
     assert.equal(bytes.readUInt32BE(16), metadata.width);
     assert.equal(bytes.readUInt32BE(20), metadata.height);

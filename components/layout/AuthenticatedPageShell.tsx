@@ -1,6 +1,9 @@
+import { useWorkspaceDimensions } from '@/components/layout/WorkspaceContext';
 import { createContext, useContext, useRef, type ReactNode } from 'react';
-import { ScrollView, View, useWindowDimensions } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { SPACE } from '@/constants/design';
+import { WORKSPACE } from '@/constants/workspace';
+import { useWorkspaceTheme } from './WorkspaceContext';
 import { useThemeColors } from '@/store/uiStore';
 
 type AuthenticatedPageShellProps = {
@@ -19,7 +22,8 @@ export const useScrollToPageContent = () => useContext(ScrollToContentContext);
  */
 export function AuthenticatedPageShell({ children }: AuthenticatedPageShellProps) {
   const colors = useThemeColors();
-  const { width } = useWindowDimensions();
+  const workspace = useWorkspaceTheme();
+  const { width } = useWorkspaceDimensions();
   const compact = width < 720;
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<View>(null);
@@ -38,8 +42,8 @@ export function AuthenticatedPageShell({ children }: AuthenticatedPageShellProps
         contentContainerStyle={{
           minWidth: 0,
           paddingBottom: compact ? SPACE['4xl'] : SPACE.lg,
-          paddingHorizontal: compact ? SPACE.xl : SPACE['3xl'],
-          paddingTop: compact ? SPACE.xl : SPACE.lg,
+          paddingHorizontal: compact ? SPACE.xl : workspace ? WORKSPACE.spacing.page : SPACE['3xl'],
+          paddingTop: compact ? SPACE.xl : workspace ? WORKSPACE.spacing.section : SPACE.lg,
         }}
       >
         <View ref={contentRef} collapsable={false} style={{ minWidth: 0, width: '100%' }}>

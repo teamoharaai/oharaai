@@ -1,4 +1,5 @@
-import { Linking, Platform, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { useWorkspaceDimensions } from '@/components/layout/WorkspaceContext';
+import { Linking, Platform, Pressable, ScrollView, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -199,7 +200,7 @@ function MonthGrid({ anchor, items, onSelect }: { anchor: string; items: Calenda
 export function CalendarScreen() {
   const colors = useThemeColors();
   const params = useLocalSearchParams<{ date?: string | string[]; providerPreview?: string | string[] }>();
-  const { width } = useWindowDimensions();
+  const { width } = useWorkspaceDimensions();
   const compact = width < 720;
   const initialDate = Array.isArray(params.date) ? params.date[0] : params.date;
   const [anchorDate, setAnchorDate] = useState(/^\d{4}-\d{2}-\d{2}$/.test(initialDate ?? '') ? initialDate! : todayYmd());

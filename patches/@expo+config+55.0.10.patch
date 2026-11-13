@@ -1,0 +1,6 @@
+diff --git a/node_modules/@expo/config/build/Config.js b/node_modules/@expo/config/build/Config.js
+--- a/node_modules/@expo/config/build/Config.js
++++ b/node_modules/@expo/config/build/Config.js
+@@ -34 +34 @@
+-  const data = _interopRequireDefault(require("deepmerge"));
++  const data = _interopRequireDefault(require("deepmerge")({ symbols: true }));

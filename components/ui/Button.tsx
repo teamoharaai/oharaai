@@ -8,6 +8,8 @@ import {
   type ViewStyle,
 } from 'react-native';
 import type { ReactNode } from 'react';
+import { useWorkspaceTheme } from '@/components/layout/WorkspaceContext';
+import { WORKSPACE } from '@/constants/workspace';
 import { CONTROL, RADIUS, SPACE } from '@/constants/design';
 import { useThemeColors } from '@/store/uiStore';
 import { Typography } from './Typography';
@@ -37,6 +39,7 @@ export function Button({
   ...rest
 }: ButtonProps) {
   const colors = useThemeColors();
+  const workspace = useWorkspaceTheme();
   const unavailable = disabled || loading;
   const compact = size === 'compact';
 
@@ -82,7 +85,7 @@ export function Button({
           borderColor: variant === 'primary' && (hovered || pressed)
             ? colors.accent.primaryHover
             : appearance.borderColor,
-          borderRadius: compact ? RADIUS.round : RADIUS.md,
+          borderRadius: workspace ? WORKSPACE.radius.control : compact ? RADIUS.round : RADIUS.md,
           borderWidth: variant === 'ghost' ? 0 : 1,
           justifyContent: 'center',
           minHeight: compact ? CONTROL.compactHeight : CONTROL.defaultHeight,

@@ -32,7 +32,7 @@ test('Projects is a first-class horizontal navigation destination', () => {
 });
 
 test('landing uses meaningful data without progress percentages or imagery', () => {
-  assert.match(landing, /Your bigger picture/);
+  assert.match(landing, /A space for everything you're building/);
   assert.match(landing, /fetchProjectSummaries/);
   assert.doesNotMatch(landing, /progress percentage|scenic|quote/i);
 });
@@ -51,14 +51,14 @@ test('Projects landing offers color-preserving Grid and List views', () => {
   assert.match(landing, /accessibilityLabel="Grid view"|label: 'Grid view'/);
   assert.match(landing, /accessibilityLabel="List view"|label: 'List view'/);
   assert.match(landing, /accessibilityRole="toolbar"/);
-  assert.match(landing, /accessibilityState=\{\{ selected \}\}/);
+  assert.match(landing, /aria-pressed=\{selected\}/);
   assert.match(landing, /option\.label\}\$\{selected \? ', selected' : ''\}/);
   assert.match(landing, /<ProjectListRow/);
   assert.match(projectCard, /export function ProjectListRow/);
   assert.match(projectCard, /projectCategoryPresentation\(project\.visualCategory, colors\)/);
   assert.match(projectCard, /backgroundColor: accent\.bg/);
-  assert.match(projectCard, /<Typography numberOfLines=\{1\} variant="emphasis-sm"/);
-  assert.match(projectCard, /project\.activeGoalCount === 1 \? 'ACTIVE GOAL' : 'ACTIVE GOALS'/);
+  assert.match(projectCard, /<Typography numberOfLines=\{2\} variant="emphasis-sm"/);
+  assert.match(projectCard, /project\.activeGoalCount === 1 \? 'active Goal' : 'active Goals'/);
 });
 
 test('Project and Goal management use compact disclosure controls instead of button walls', () => {
@@ -74,15 +74,16 @@ test('Project and Goal management use compact disclosure controls instead of but
 
 test('metric and supporting labels use one uppercase caption treatment', () => {
   assert.match(typography, /'micro-label': \{[\s\S]*textTransform: 'uppercase'/);
-  for (const label of ['ACTIVE GOALS', 'VAULT ITEMS', 'LAST ACTIVITY']) {
+  for (const label of ['ACTIVE GOALS', 'LAST ACTIVITY']) {
     assert.match(projectCard, new RegExp(`variant="micro-label">${label}`));
   }
   assert.match(landing, /Project Invitations/);
+  assert.doesNotMatch(projectCard, /VAULT ITEMS/);
   assert.doesNotMatch(landing, /No Projects yet\./);
 });
 
 test('workspace contains approved overview and owner-only Vault hierarchy', () => {
-  for (const label of ['Current Goals', 'Project Chat', 'Recent Activity', 'Notes', 'Journal', 'Upcoming Milestones', 'Project Tasks', 'Project Snapshot', 'Momentum Snapshot', 'Echo']) assert.match(`${workspace}\n${chat}`, new RegExp(label));
+  for (const label of ['Current Goals', 'Project Chat', 'Recent Activity', 'Notes', 'Reflections', 'Upcoming Milestones', 'Project Tasks', 'Project Snapshot', 'Momentum Snapshot', 'Echo']) assert.match(`${workspace}\n${chat}`, new RegExp(label));
   assert.doesNotMatch(workspace, /Project Notice/);
   assert.doesNotMatch(workspace, /title="Sticky Notes"/);
   assert.doesNotMatch(vault, /Project Sticky Note|Add Sticky Note|Sticky Notes/);
@@ -148,7 +149,7 @@ test('Echo uses one presentation hierarchy without changing facts', () => {
 
 test('Project Vault separates Notes and Journal entries and applies strict Source semantics', () => {
   assert.match(sharedVault, /title="Notes"/);
-  assert.match(sharedVault, /title="Journal"/);
+  assert.match(sharedVault, /title="Reflections"/);
   assert.match(sharedVault, /filter\(isSourceVaultItem\)/);
   assert.doesNotMatch(sharedVault, /label: 'Sticky Notes'/);
 });

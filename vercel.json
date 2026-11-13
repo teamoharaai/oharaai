@@ -1,5 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": {
+      "codex/workspace-v2-integration": false
+    }
+  },
   "buildCommand": "expo export -p web",
   "outputDirectory": "dist/client",
   "regions": ["iad1"],

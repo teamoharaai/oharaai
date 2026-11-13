@@ -1,9 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { visualEvidencePath } from '../helpers/visual-evidence';
 
-const screenshots = resolve(process.cwd(), 'docs/ui-checkpoints/notes-library-prelaunch');
-const sourceScreenshots = resolve(process.cwd(), 'docs/ui-checkpoints/sources-v2');
+const screenshots = visualEvidencePath('docs/ui-checkpoints/notes-library-prelaunch');
+const sourceScreenshots = visualEvidencePath('docs/ui-checkpoints/sources-v2');
 mkdirSync(screenshots, { recursive: true });
 mkdirSync(sourceScreenshots, { recursive: true });
 
@@ -179,5 +179,135 @@ test('Note workspace formatting controls have polished states and discoverable l
   await expect(bold).toBeVisible();
   await bold.hover();
   await page.waitForTimeout(180);
-  await page.screenshot({ path: resolve(process.cwd(), 'docs/ui-checkpoints/projects-notes-polish/note-formatting-toolbar-light.png') });
+  await page.screenshot({ path: visualEvidencePath('docs/ui-checkpoints/projects-notes-polish/note-formatting-toolbar-light.png') });
+});
+
+test('dark Note controls opt out of native button painting and retain their theme on reload', async ({ page }) => {
+  await installPreview(page, 'dark');
+  await page.goto('/notes/note-1');
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await expect(page.getByRole('toolbar', { name: 'Note formatting' })).toBeVisible();
+    await expect(page.locator('.workspace-v2')).toHaveCSS('color-scheme', 'dark');
+    await expect(page.getByRole('button', { name: 'Italic (⌘/Ctrl+I)', exact: true })).toHaveCSS('appearance', 'none');
+    const background = await page.getByRole('button', { name: 'Italic (⌘/Ctrl+I)', exact: true }).evaluate(el => getComputedStyle(el).backgroundColor);
+    expect(background).not.toBe('rgb(255, 255, 255)');
+    if (attempt === 0) await page.reload();
+  }
+});
+
+test('Note clipboard preserves formatting and serializes without executable markup', async ({ page }) => {
+  await installPreview(page, 'light');
+  await page.goto('/notes/note-1', { waitUntil: 'domcontentloaded' });
+  const editor = page.getByRole('textbox', { name: 'Note content', exact: true });
+  await expect(editor).toBeVisible();
+  await editor.click();
+  await editor.press('ControlOrMeta+A');
+  const save = page.waitForRequest(request => request.method() === 'PATCH'
+    && new URL(request.url()).pathname === '/api/entries/library/note-1');
+  await editor.evaluate(element => {
+    const data = new DataTransfer();
+    data.setData('text/html', '<h2>Clipboard heading</h2><p><strong>Keep bold</strong> '
+      + '<a href="https://example.com/">Safe link</a></p>'
+      + '<p><a href="javascript:window.__oharaPasteExecuted=true">Unsafe link</a></p>'
+      + '<img src="invalid" onerror="window.__oharaPasteExecuted=true">'
+      + '<script>window.__oharaPasteExecuted=true</script>');
+    data.setData('text/plain', 'Clipboard heading Keep bold Safe link Unsafe link');
+    element.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+  });
+  await expect(editor.locator('h2')).toContainText('Clipboard heading');
+  await expect(editor.locator('strong')).toContainText('Keep bold');
+  await expect(editor.locator('a[href="https://example.com/"]')).toHaveCount(1);
+  await expect(editor.locator('script, [onerror], a[href^="javascript:"]')).toHaveCount(0);
+  expect(await page.evaluate(() => Reflect.get(window, '__oharaPasteExecuted'))).toBeUndefined();
+  const body = (await save).postDataJSON();
+  expect(JSON.stringify(body.content)).toContain('Keep bold');
+  expect(JSON.stringify(body.content)).toContain('"bold"');
+  expect(JSON.stringify(body.content)).not.toMatch(/javascript:|onerror|__oharaPasteExecuted/);
+});
+
+test('ProseMirror paste runs schema validators on clipboard slice-context attributes', async ({ page }) => {
+  await installPreview(page, 'light');
+  await page.goto('/notes/note-1', { waitUntil: 'domcontentloaded' });
+  const editor = page.getByRole('textbox', { name: 'Note content', exact: true });
+  await expect(editor).toBeVisible();
+  const result = await editor.evaluate(element => {
+    // Exercise the installed browser modules with an isolated schema containing
+    // a validator. This does not claim OHARA configures that attribute itself.
+    const appEditor = (element as HTMLElement & { editor: import('@tiptap/core').Editor }).editor;
+    const Schema = appEditor.schema.constructor as typeof import('prosemirror-model').Schema;
+    const EditorState = appEditor.state.constructor as typeof import('prosemirror-state').EditorState;
+    const EditorView = appEditor.view.constructor as typeof import('prosemirror-view').EditorView;
+    const schema = new Schema({ nodes: {
+      doc: { content: 'block+' },
+      paragraph: { content: 'inline*', group: 'block', toDOM: () => ['p', 0], parseDOM: [{ tag: 'p' }] },
+      blockquote: { content: 'block+', group: 'block',
+        attrs: { title: { default: 'safe', validate: 'string' } },
+        toDOM: node => ['blockquote', { title: node.attrs.title }, 0], parseDOM: [{ tag: 'blockquote' }] },
+      text: { group: 'inline' },
+    } });
+    const paste = (title: unknown) => {
+      const host = document.createElement('div');
+      document.body.appendChild(host);
+      let contextType: string | null = null;
+      const view = new EditorView(host, { state: EditorState.create({ schema }),
+        handlePaste: (_view, _event, slice) => {
+          contextType = slice.content.firstChild?.type.name ?? null;
+          return false;
+        },
+      });
+      try {
+        const paragraph = document.createElement('p');
+        paragraph.textContent = 'Untrusted slice context';
+        paragraph.setAttribute('data-pm-slice', '0 0 ' + JSON.stringify(['blockquote', { title }]));
+        view.pasteHTML(paragraph.outerHTML);
+        // Inspect the parsed slice before normal insertion may flatten its open context.
+        return { text: view.state.doc.textContent, contextType };
+      } finally { view.destroy(); host.remove(); }
+    };
+    return { valid: paste('Safe title'), invalid: paste(['img', { onerror: 'unexpected' }]) };
+  });
+  expect(result.valid).toEqual({ text: 'Untrusted slice context', contextType: 'blockquote' });
+  expect(result.invalid).toEqual({ text: 'Untrusted slice context', contextType: 'paragraph' });
+});
+
+test('editor upgrade retains V2 custom nodes, IDs and undo history without automatic trailing content', async ({ page }) => {
+  await installPreview(page, 'light');
+  await page.goto('/notes/note-1');
+  const editor = page.getByRole('textbox', { name: 'Note content', exact: true });
+  await expect(editor).toBeVisible();
+  const result = await editor.evaluate(element => {
+    const instance = (element as HTMLElement & { editor: import('@tiptap/core').Editor }).editor;
+    const original = instance.getJSON();
+    instance.commands.setTextSelection(1);
+    instance.commands.insertContent('Edit ');
+    const edited = instance.getJSON();
+    instance.commands.undo();
+    const undone = instance.getJSON();
+    instance.commands.redo();
+    const redone = instance.getJSON();
+    const content = { type: 'doc', content: [
+      { type: 'paragraph', attrs: { id: 'stable-paragraph' }, content: [{ type: 'text', text: 'Keep formatting', marks: [{ type: 'bold' }, { type: 'underline' }] }] },
+      { type: 'taskList', content: [{ type: 'taskItem', attrs: { id: 'stable-task', checked: true }, content: [{ type: 'paragraph', attrs: { id: 'task-text' }, content: [{ type: 'text', text: 'Completed checklist' }] }] }] },
+      { type: 'goalCard', attrs: { id: 'stable-goal', goalId: 'goal-1', referenceId: 'goal-ref-existing', createdAt: '2026-10-03T14:00:00Z' } },
+      { type: 'noteImage', attrs: { id: 'stable-image', storagePath: 'synthetic/image.png', alt: 'Existing image', align: 'right' } },
+    ] };
+    let updates = 0;
+    const onUpdate = () => { updates++; };
+    instance.on('update', onUpdate);
+    instance.commands.setContent(content, { emitUpdate: false });
+    const loaded = instance.getJSON();
+    const loadUpdates = updates;
+    instance.off('update', onUpdate);
+    return { original, loaded, loadUpdates, edited, undone, redone };
+  });
+  expect(result.original.content?.length).toBe(2);
+  expect(result.loadUpdates).toBe(0);
+  expect(result.loaded.content?.map(node => node.type)).toEqual(['paragraph', 'taskList', 'goalCard', 'noteImage']);
+  expect(result.loaded.content?.[0].attrs?.id).toBe('stable-paragraph');
+  expect(result.loaded.content?.[0].content?.[0].marks?.map(mark => mark.type)).toEqual(expect.arrayContaining(['bold', 'underline']));
+  expect(result.loaded.content?.[1].content?.[0]).toMatchObject({ type: 'taskItem', attrs: { id: 'stable-task', checked: true } });
+  expect(result.loaded.content?.[2].attrs).toMatchObject({ id: 'stable-goal', goalId: 'goal-1', referenceId: 'goal-ref-existing' });
+  expect(result.loaded.content?.[3].attrs).toMatchObject({ id: 'stable-image', storagePath: 'synthetic/image.png', alt: 'Existing image', align: 'right' });
+  expect(result.undone).toEqual(result.original);
+  expect(result.redone).toEqual(result.edited);
 });
