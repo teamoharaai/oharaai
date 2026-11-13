@@ -269,3 +269,45 @@ test('ProseMirror paste runs schema validators on clipboard slice-context attrib
   expect(result.valid).toEqual({ text: 'Untrusted slice context', contextType: 'blockquote' });
   expect(result.invalid).toEqual({ text: 'Untrusted slice context', contextType: 'paragraph' });
 });
+
+test('editor upgrade retains V2 custom nodes, IDs and undo history without automatic trailing content', async ({ page }) => {
+  await installPreview(page, 'light');
+  await page.goto('/notes/note-1');
+  const editor = page.getByRole('textbox', { name: 'Note content', exact: true });
+  await expect(editor).toBeVisible();
+  const result = await editor.evaluate(element => {
+    const instance = (element as HTMLElement & { editor: import('@tiptap/core').Editor }).editor;
+    const original = instance.getJSON();
+    instance.commands.setTextSelection(1);
+    instance.commands.insertContent('Edit ');
+    const edited = instance.getJSON();
+    instance.commands.undo();
+    const undone = instance.getJSON();
+    instance.commands.redo();
+    const redone = instance.getJSON();
+    const content = { type: 'doc', content: [
+      { type: 'paragraph', attrs: { id: 'stable-paragraph' }, content: [{ type: 'text', text: 'Keep formatting', marks: [{ type: 'bold' }, { type: 'underline' }] }] },
+      { type: 'taskList', content: [{ type: 'taskItem', attrs: { id: 'stable-task', checked: true }, content: [{ type: 'paragraph', attrs: { id: 'task-text' }, content: [{ type: 'text', text: 'Completed checklist' }] }] }] },
+      { type: 'goalCard', attrs: { id: 'stable-goal', goalId: 'goal-1', referenceId: 'goal-ref-existing', createdAt: '2026-10-03T14:00:00Z' } },
+      { type: 'noteImage', attrs: { id: 'stable-image', storagePath: 'synthetic/image.png', alt: 'Existing image', align: 'right' } },
+    ] };
+    let updates = 0;
+    const onUpdate = () => { updates++; };
+    instance.on('update', onUpdate);
+    instance.commands.setContent(content, { emitUpdate: false });
+    const loaded = instance.getJSON();
+    const loadUpdates = updates;
+    instance.off('update', onUpdate);
+    return { original, loaded, loadUpdates, edited, undone, redone };
+  });
+  expect(result.original.content?.length).toBe(2);
+  expect(result.loadUpdates).toBe(0);
+  expect(result.loaded.content?.map(node => node.type)).toEqual(['paragraph', 'taskList', 'goalCard', 'noteImage']);
+  expect(result.loaded.content?.[0].attrs?.id).toBe('stable-paragraph');
+  expect(result.loaded.content?.[0].content?.[0].marks?.map(mark => mark.type)).toEqual(expect.arrayContaining(['bold', 'underline']));
+  expect(result.loaded.content?.[1].content?.[0]).toMatchObject({ type: 'taskItem', attrs: { id: 'stable-task', checked: true } });
+  expect(result.loaded.content?.[2].attrs).toMatchObject({ id: 'stable-goal', goalId: 'goal-1', referenceId: 'goal-ref-existing' });
+  expect(result.loaded.content?.[3].attrs).toMatchObject({ id: 'stable-image', storagePath: 'synthetic/image.png', alt: 'Existing image', align: 'right' });
+  expect(result.undone).toEqual(result.original);
+  expect(result.redone).toEqual(result.edited);
+});

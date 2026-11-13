@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Changed — Workspace V2.0 production security follow-up
+- Share the strict atomic Home alignment assertion with the sidebar regression, removing its duplicate cross-frame measurement race without changing the UI, tolerance or visual baselines.
+- Add editor migration coverage for existing V2 custom Goal/image/checklist nodes, stable IDs, formatting, silent external loads, undo/redo and absence of automatic trailing content; retain clipboard and read-only regressions.
+- Upgrade the approved editor dependency set to Tiptap 3.33.1, replacing the maintained security backport. Preserve explicit Link/Underline configuration, disable the new automatic trailing node, and keep external document loads from emitting autosave updates (`RichTextEditor.web.tsx`).
+- Update affected modern glob/minimatch and Xcode UUID tooling; replace Expo config's vulnerable deepmerge implementation with maintained Fastify deepmerge through a scoped package alias and factory adapter. Keep legacy glob/minimatch callers unchanged; add configuration/schema/tooling compatibility regressions.
+- Replace the URI/image parser backports with the vendor-fixed decoder 0.5.1 and Metro 0.83.8 patch family, and scope Zod 4.6.6 to Expo CLI. Validate native/web module resolution, Metro asset metadata and DevTools schemas before release; retain the audit gate and Expo SDK 55 (`package.json`, lockfile, dependency patches and regression tests).
+
 ### Fixed — Workspace V2.0 Phase 4I release blockers
 - Sample Home card bounds in one browser frame and wait for asynchronous read/layout completion in the alignment regression. Preserve the subpixel alignment assertions, responsive coverage and historical visual baselines (`tests/workspace-v2/home.spec.ts`).
 - Update locked node-forge 1.4.2 to vendor-patched 1.4.3 for the final audit's Ed25519, TLS and HTTP-parser advisories; preserve Expo's supported 1.x dependency range (`package-lock.json`).

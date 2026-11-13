@@ -1,0 +1,10 @@
+diff --git a/node_modules/query-string/index.js b/node_modules/query-string/index.js
+index e87b137..0f52102 100644
+--- a/node_modules/query-string/index.js
++++ b/node_modules/query-string/index.js
+@@ -3 +3 @@
+-const decodeComponent = require('decode-uri-component');
++const decodeComponent = require('decode-uri-component').default;
+@@ -233 +233 @@
+-		return decodeComponent(value);
++		return decodeComponent(value.replace(/\+/g, ' '));

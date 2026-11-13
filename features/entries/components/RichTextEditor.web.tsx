@@ -247,6 +247,9 @@ export function RichTextEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
+        link: false,
+        underline: false,
+        trailingNode: false,
       }),
       Link.configure({
         autolink: true,
@@ -365,7 +368,7 @@ export function RichTextEditor({
       editor.getJSON() as { type?: string; content?: import('../types').RichTextNode[] },
     ));
     if (serialized === current) return;
-    editor.commands.setContent(editorContentForDocument(document), false);
+    editor.commands.setContent(editorContentForDocument(document), { emitUpdate: false });
   }, [document, editor]);
 
   useEffect(() => {

@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { visualEvidencePath } from '../helpers/visual-evidence';
 import { installPreview } from './fixtures';
+import { expectAlignedHomeCards } from '../helpers/workspace-layout';
 
 const screenshots = visualEvidencePath('docs/ui-checkpoints/workspace-v2');
 mkdirSync(screenshots, { recursive: true });
@@ -20,11 +21,7 @@ test('desktop sidebar, appearance, create/account controls and route state', asy
   await expect(sidebar.getByRole('link', { name: 'Home', exact: true })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByText("Today's Focus", { exact: true })).toBeVisible();
   await expect(page.getByText('Pull Day', { exact: true }).first()).toBeVisible();
-  const momentumCard = await page.getByLabel('Momentum Snapshot card', { exact: true }).boundingBox();
-  const nextStepCard = await page.getByLabel('Next Step card', { exact: true }).boundingBox();
-  const calendarCard = await page.getByLabel("Calendar and Today's Focus card", { exact: true }).boundingBox();
-  expect(Math.abs(momentumCard!.y - calendarCard!.y)).toBeLessThan(1);
-  expect(Math.abs(nextStepCard!.y + nextStepCard!.height - calendarCard!.y - calendarCard!.height)).toBeLessThan(1);
+  await expectAlignedHomeCards(page);
   await page.screenshot({ path: `${screenshots}/home-expanded-light.png` });
   await page.getByRole('button', { name: 'Collapse sidebar' }).click();
   await expect(sidebar).toHaveCSS('width', '76px');

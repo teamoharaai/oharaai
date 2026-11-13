@@ -17,10 +17,10 @@ function bounded(script: string) {
   assert.equal(result.status, 0, result.stderr);
 }
 
-test('CommonJS URI decoding retains Unicode, plus, malformed-byte and one-pass semantics', () => {
-  const decode = require('decode-uri-component');
+test('vendor URI decoder retains Unicode, malformed-byte and one-pass semantics', () => {
+  const decode = require('decode-uri-component').default;
   const cases = {
-    'a+b%2Bc': 'a b+c',
+    'a+b%2Bc': 'a+b+c',
     'st%C3%A5le%': 'ståle%', '%E4%BD%A0%E5%A5%BD': '你好',
     '%F0%9F%98%80%ab': '😀%ab', '%FE%FF': '\uFFFD\uFFFD',
     '%C2%41': '\uFFFDA', '%C0%AF': '%C0%AF', '%ED%A0%80': '%ED%A0%80',
@@ -30,12 +30,15 @@ test('CommonJS URI decoding retains Unicode, plus, malformed-byte and one-pass s
   };
   for (const [input, expected] of Object.entries(cases)) assert.equal(decode(input), expected, input);
   for (const value of [null, undefined, {}, 42]) assert.throws(() => decode(value), TypeError);
+  // query-string retains the legacy form/fragment plus semantics at its boundary.
+  assert.equal(require('query-string').parse('label=a+b%2Bc').label, 'a b+c');
+  assert.equal(require('query-string').parseUrl('/notes/id#hello+world', { parseFragmentIdentifier: true }).fragmentIdentifier, 'hello world');
 });
 
 test('URI decoder and query-string terminate on oversized malformed contiguous and distinct runs', () => {
   bounded(`
     const assert = require('node:assert/strict');
-    const decode = require('decode-uri-component');
+    const decode = require('decode-uri-component').default;
     const query = require('query-string');
     const contiguous = '%A9'.repeat(50000);
     assert.equal(decode(contiguous), contiguous);
@@ -69,10 +72,11 @@ test('native navigation path parser preserves Goal, Project and Vault deep-link 
   `);
 });
 
-test('image-size rejects malformed ICNS, JXL and HEIF without blocking Metro', () => {
+test('Metro rejects malformed or unsupported image content without loading image-size', () => {
   bounded(`
     const assert = require('node:assert/strict');
-    const size = require('image-size');
+    const { getAssetSize } = require('metro/private/Assets');
+    const size = bytes => getAssetSize('png', bytes, 'untrusted.png');
     const box = (name, payload = Buffer.alloc(0), declared) => {
       const out = Buffer.alloc(8 + payload.length);
       out.writeUInt32BE(declared ?? out.length); out.write(name, 4); payload.copy(out, 8); return out;
@@ -80,11 +84,11 @@ test('image-size rejects malformed ICNS, JXL and HEIF without blocking Metro', (
     const icns = Buffer.alloc(16);
     icns.write('icns'); icns.writeUInt32BE(16, 4); icns.write('ic07', 8);
     for (const length of [0, 1, 7]) {
-      icns.writeUInt32BE(length, 12); assert.throws(() => size(icns), /Invalid ICNS/);
+      icns.writeUInt32BE(length, 12); assert.throws(() => size(icns));
     }
     icns.writeUInt32BE(8, 12);
-    assert.equal(size(icns).width, 128);
-    assert.throws(() => size(icns.subarray(0, 12)), /Invalid ICNS/);
+    assert.equal(getAssetSize('icns', icns, 'icon.icns'), null);
+    assert.throws(() => size(icns.subarray(0, 12)));
     const jxlHeader = Buffer.concat([box('JXL ', Buffer.from([13, 10, 135, 10])), box('ftyp', Buffer.from('jxl '))]);
     for (const length of [0, 1, 7, 8]) {
       assert.throws(() => size(Buffer.concat([jxlHeader, box('jxlp', Buffer.alloc(0), length)])));
@@ -95,7 +99,10 @@ test('image-size rejects malformed ICNS, JXL and HEIF without blocking Metro', (
       assert.throws(() => size(Buffer.concat([heifHeader, nested(box('ispe', Buffer.alloc(0), length))])));
     }
     const dimensions = Buffer.alloc(12); dimensions.writeUInt32BE(320, 4); dimensions.writeUInt32BE(240, 8);
-    const valid = size(Buffer.concat([heifHeader, nested(box('ispe', dimensions))]));
-    assert.equal(valid.width, 320); assert.equal(valid.height, 240);
+    assert.equal(getAssetSize('heic', Buffer.concat([heifHeader, nested(box('ispe', dimensions))]), 'image.heic'), null);
+    // Metro never treated these formats as image assets. Its old parser dependency
+    // is removed, not retained under an unscanned alias; supported brand PNGs are
+    // independently checked through both buffer and file-backed APIs.
+    assert.throws(() => require.resolve('image-size'), { code: 'MODULE_NOT_FOUND' });
   `);
 });
